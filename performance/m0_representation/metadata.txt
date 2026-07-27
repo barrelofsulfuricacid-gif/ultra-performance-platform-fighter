@@ -1,0 +1,15 @@
+mode=milestone
+commit=9e757df3d4c222ee55d100bd2db7572b94c748fb
+dirty=false
+affinity=cpu0
+frequency_control=container_unavailable
+thermal_control=container_unavailable
+compiler=gcc
+cflags=-std=c17 -O3 -march=native -DNDEBUG -Wall -Wextra -Werror
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0
+Linux 6.12.13 #1 SMP Wed Jul 22 00:33:13 UTC 2026 x86_64
+Architecture:                         x86_64
+CPU(s):                               9
+Model name:                           INTEL(R) XEON(R) PLATINUM 8573C
+Thread(s) per core:                   1
+Hypervisor vendor:                    KVM

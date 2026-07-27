@@ -1,0 +1,8 @@
+/build/
+/performance/local/
+*.o
+*.obj
+*.exe
+*.out
+*.profraw
+*.profdata
