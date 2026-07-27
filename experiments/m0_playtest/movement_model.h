@@ -29,8 +29,11 @@ typedef struct M0FloatMotion
     uint8_t grounded;
     uint8_t on_platform;
     uint8_t air_jumps;
-    uint8_t short_hop_cut;
+    uint8_t short_hop_latched;
     uint8_t platform_drop_ticks;
+    uint8_t dash_ticks;
+    int8_t dash_direction;
+    int8_t previous_strong_direction;
 } M0FloatMotion;
 
 typedef struct M0FixedMotion
@@ -45,8 +48,11 @@ typedef struct M0FixedMotion
     uint8_t grounded;
     uint8_t on_platform;
     uint8_t air_jumps;
-    uint8_t short_hop_cut;
+    uint8_t short_hop_latched;
     uint8_t platform_drop_ticks;
+    uint8_t dash_ticks;
+    int8_t dash_direction;
+    int8_t previous_strong_direction;
 } M0FixedMotion;
 
 typedef struct M0MovementPair
@@ -67,6 +73,7 @@ typedef struct M0MovementView
     uint8_t grounded;
     uint8_t on_platform;
     uint8_t air_jumps;
+    uint8_t dash_ticks;
 } M0MovementView;
 
 typedef struct M0StageGeometry

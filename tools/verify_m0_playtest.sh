@@ -18,6 +18,6 @@ mkdir -p "$build_dir" "$output_dir"
 "$binary" >"$output_dir/verification.txt" \
     2>"$output_dir/diagnostics.txt"
 
-grep -q '^self-test=pass cases=5 ' "$output_dir/verification.txt"
+grep -q '^self-test=pass cases=7 ' "$output_dir/verification.txt"
 
 echo "M0 movement playtest verification passed: $output_dir"

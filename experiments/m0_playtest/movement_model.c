@@ -10,7 +10,9 @@ enum
     Q_ONE = 1 << Q_SHIFT,
     JUMP_SQUAT_TICKS = 3,
     AIR_JUMPS = 1,
-    PLATFORM_DROP_TICKS = 8
+    PLATFORM_DROP_TICKS = 8,
+    DASH_TICKS = 10,
+    DASH_STICK_THRESHOLD = 24575
 };
 
 #define Q_FROM_RATIO(numerator, denominator) \
@@ -31,15 +33,16 @@ static const int32_t k_blast_bottom = Q_FROM_RATIO(19, 2);
 static const int32_t k_ground_acceleration = Q_FROM_RATIO(9, 500);
 static const int32_t k_turn_acceleration = Q_FROM_RATIO(31, 1000);
 static const int32_t k_ground_speed = Q_FROM_RATIO(7, 50);
+static const int32_t k_dash_speed = Q_FROM_RATIO(1, 5);
 static const int32_t k_traction = Q_FROM_RATIO(7, 500);
 static const int32_t k_air_acceleration = Q_FROM_RATIO(9, 2000);
 static const int32_t k_air_speed = Q_FROM_RATIO(11, 100);
 static const int32_t k_gravity = Q_FROM_RATIO(17, 2500);
 static const int32_t k_fall_speed = Q_FROM_RATIO(9, 50);
 static const int32_t k_fast_fall_speed = Q_FROM_RATIO(6, 25);
-static const int32_t k_jump_speed = Q_FROM_RATIO(6, 25);
+static const int32_t k_full_jump_speed = Q_FROM_RATIO(6, 25);
+static const int32_t k_short_jump_speed = Q_FROM_RATIO(87, 625);
 static const int32_t k_double_jump_speed = Q_FROM_RATIO(21, 100);
-static const int32_t k_short_hop_scale = Q_FROM_RATIO(29, 50);
 static const int32_t k_drop_nudge = Q_FROM_RATIO(1, 256);
 
 static const M0StageGeometry k_geometry = {
@@ -114,6 +117,19 @@ static int signs_differ_float(float left, float right)
 {
     return (left < 0.0f && right > 0.0f) ||
            (left > 0.0f && right < 0.0f);
+}
+
+static int8_t strong_direction(int16_t axis)
+{
+    if (axis >= DASH_STICK_THRESHOLD)
+    {
+        return 1;
+    }
+    if (axis <= -DASH_STICK_THRESHOLD)
+    {
+        return -1;
+    }
+    return 0;
 }
 
 static void float_spawn(M0FloatMotion *state, int preserve_clock)
@@ -229,7 +245,9 @@ static void float_land(M0FloatMotion *state, float surface_y,
     state->grounded = 1U;
     state->on_platform = (uint8_t)on_platform;
     state->air_jumps = AIR_JUMPS;
-    state->short_hop_cut = 0U;
+    state->short_hop_latched = 0U;
+    state->dash_ticks = 0U;
+    state->dash_direction = 0;
 }
 
 static void fixed_land(M0FixedMotion *state, int32_t surface_y,
@@ -240,12 +258,16 @@ static void fixed_land(M0FixedMotion *state, int32_t surface_y,
     state->grounded = 1U;
     state->on_platform = (uint8_t)on_platform;
     state->air_jumps = AIR_JUMPS;
-    state->short_hop_cut = 0U;
+    state->short_hop_latched = 0U;
+    state->dash_ticks = 0U;
+    state->dash_direction = 0;
 }
 
 void m0_float_step(M0FloatMotion *state, M0MovementInput input)
 {
-    float axis = (float)m0_axis_clamp(input.move_x) / (float)M0_AXIS_MAX;
+    int16_t clamped_axis = m0_axis_clamp(input.move_x);
+    int8_t input_strong_direction = strong_direction(clamped_axis);
+    float axis = (float)clamped_axis / (float)M0_AXIS_MAX;
     float ground_speed = q_to_float(k_ground_speed);
     float air_speed = q_to_float(k_air_speed);
 
@@ -256,24 +278,51 @@ void m0_float_step(M0FloatMotion *state, M0MovementInput input)
 
     if (state->grounded)
     {
-        float target = axis * ground_speed;
-        float acceleration = signs_differ_float(state->velocity_x, target)
-                                 ? q_to_float(k_turn_acceleration)
-                                 : q_to_float(k_ground_acceleration);
-        if (input.move_x == 0)
+        int dash_started =
+            (input_strong_direction != 0 &&
+             state->previous_strong_direction == 0) ||
+            (state->dash_ticks > 0U &&
+             input_strong_direction == -state->dash_direction);
+
+        if (dash_started)
+        {
+            state->dash_ticks = DASH_TICKS;
+            state->dash_direction = input_strong_direction;
+            state->velocity_x =
+                (float)state->dash_direction * q_to_float(k_dash_speed);
+        }
+        else if (state->dash_ticks > 0U &&
+                 input_strong_direction == state->dash_direction)
         {
             state->velocity_x =
-                approach_float(state->velocity_x, 0.0f,
-                               q_to_float(k_traction));
+                (float)state->dash_direction * q_to_float(k_dash_speed);
+            state->dash_ticks--;
         }
         else
         {
-            state->velocity_x =
-                approach_float(state->velocity_x, target, acceleration);
+            float target = axis * ground_speed;
+            float acceleration = signs_differ_float(state->velocity_x, target)
+                                     ? q_to_float(k_turn_acceleration)
+                                     : q_to_float(k_ground_acceleration);
+            state->dash_ticks = 0U;
+            state->dash_direction = 0;
+            if (clamped_axis == 0)
+            {
+                state->velocity_x =
+                    approach_float(state->velocity_x, 0.0f,
+                                   q_to_float(k_traction));
+            }
+            else
+            {
+                state->velocity_x =
+                    approach_float(state->velocity_x, target, acceleration);
+            }
         }
     }
     else
     {
+        state->dash_ticks = 0U;
+        state->dash_direction = 0;
         state->velocity_x =
             approach_float(state->velocity_x, axis * air_speed,
                            q_to_float(k_air_acceleration));
@@ -281,46 +330,48 @@ void m0_float_step(M0FloatMotion *state, M0MovementInput input)
 
     state->x += state->velocity_x;
     float_leave_invalid_support(state, input);
+    if (!state->grounded)
+    {
+        state->dash_ticks = 0U;
+        state->dash_direction = 0;
+    }
 
     if (state->grounded && input.jump_pressed && state->jump_squat == 0U)
     {
         state->jump_squat = JUMP_SQUAT_TICKS;
+        state->short_hop_latched = 0U;
     }
 
     if (state->jump_squat > 0U)
     {
+        if (!input.jump_held)
+        {
+            state->short_hop_latched = 1U;
+        }
         state->jump_squat--;
         if (state->jump_squat == 0U)
         {
-            float speed = q_to_float(k_jump_speed);
-            if (!input.jump_held)
-            {
-                speed *= q_to_float(k_short_hop_scale);
-                state->short_hop_cut = 1U;
-            }
+            float speed = q_to_float(state->short_hop_latched
+                                         ? k_short_jump_speed
+                                         : k_full_jump_speed);
             state->velocity_y = -speed;
             state->grounded = 0U;
             state->on_platform = 0U;
+            state->dash_ticks = 0U;
+            state->dash_direction = 0;
         }
     }
     else if (!state->grounded && input.jump_pressed && state->air_jumps > 0U)
     {
         state->velocity_y = -q_to_float(k_double_jump_speed);
         state->air_jumps--;
-        state->short_hop_cut = 0U;
+        state->short_hop_latched = 0U;
     }
 
     if (!state->grounded)
     {
         float previous_bottom =
             state->y + q_to_float(k_fighter_half_height);
-
-        if (!input.jump_held && !state->short_hop_cut &&
-            state->velocity_y < 0.0f)
-        {
-            state->velocity_y *= q_to_float(k_short_hop_scale);
-            state->short_hop_cut = 1U;
-        }
 
         if (input.down_held && state->velocity_y > 0.0f)
         {
@@ -365,6 +416,8 @@ void m0_float_step(M0FloatMotion *state, M0MovementInput input)
                        k_fighter_half_height);
     }
 
+    state->previous_strong_direction = input_strong_direction;
+
     if (state->x < q_to_float(k_blast_left) ||
         state->x > q_to_float(k_blast_right) ||
         state->y > q_to_float(k_blast_bottom))
@@ -376,7 +429,9 @@ void m0_float_step(M0FloatMotion *state, M0MovementInput input)
 
 void m0_fixed_step(M0FixedMotion *state, M0MovementInput input)
 {
-    int32_t axis = q_axis(m0_axis_clamp(input.move_x));
+    int16_t clamped_axis = m0_axis_clamp(input.move_x);
+    int8_t input_strong_direction = strong_direction(clamped_axis);
+    int32_t axis = q_axis(clamped_axis);
 
     if (state->platform_drop_ticks > 0U)
     {
@@ -385,23 +440,48 @@ void m0_fixed_step(M0FixedMotion *state, M0MovementInput input)
 
     if (state->grounded)
     {
-        int32_t target = q_multiply(axis, k_ground_speed);
-        int32_t acceleration = signs_differ_q(state->velocity_x, target)
-                                   ? k_turn_acceleration
-                                   : k_ground_acceleration;
-        if (input.move_x == 0)
+        int dash_started =
+            (input_strong_direction != 0 &&
+             state->previous_strong_direction == 0) ||
+            (state->dash_ticks > 0U &&
+             input_strong_direction == -state->dash_direction);
+
+        if (dash_started)
         {
-            state->velocity_x =
-                approach_q(state->velocity_x, 0, k_traction);
+            state->dash_ticks = DASH_TICKS;
+            state->dash_direction = input_strong_direction;
+            state->velocity_x = state->dash_direction * k_dash_speed;
+        }
+        else if (state->dash_ticks > 0U &&
+                 input_strong_direction == state->dash_direction)
+        {
+            state->velocity_x = state->dash_direction * k_dash_speed;
+            state->dash_ticks--;
         }
         else
         {
-            state->velocity_x =
-                approach_q(state->velocity_x, target, acceleration);
+            int32_t target = q_multiply(axis, k_ground_speed);
+            int32_t acceleration = signs_differ_q(state->velocity_x, target)
+                                       ? k_turn_acceleration
+                                       : k_ground_acceleration;
+            state->dash_ticks = 0U;
+            state->dash_direction = 0;
+            if (clamped_axis == 0)
+            {
+                state->velocity_x =
+                    approach_q(state->velocity_x, 0, k_traction);
+            }
+            else
+            {
+                state->velocity_x =
+                    approach_q(state->velocity_x, target, acceleration);
+            }
         }
     }
     else
     {
+        state->dash_ticks = 0U;
+        state->dash_direction = 0;
         state->velocity_x =
             approach_q(state->velocity_x,
                        q_multiply(axis, k_air_speed),
@@ -410,46 +490,47 @@ void m0_fixed_step(M0FixedMotion *state, M0MovementInput input)
 
     state->x += state->velocity_x;
     fixed_leave_invalid_support(state, input);
+    if (!state->grounded)
+    {
+        state->dash_ticks = 0U;
+        state->dash_direction = 0;
+    }
 
     if (state->grounded && input.jump_pressed && state->jump_squat == 0U)
     {
         state->jump_squat = JUMP_SQUAT_TICKS;
+        state->short_hop_latched = 0U;
     }
 
     if (state->jump_squat > 0U)
     {
+        if (!input.jump_held)
+        {
+            state->short_hop_latched = 1U;
+        }
         state->jump_squat--;
         if (state->jump_squat == 0U)
         {
-            int32_t speed = k_jump_speed;
-            if (!input.jump_held)
-            {
-                speed = q_multiply(speed, k_short_hop_scale);
-                state->short_hop_cut = 1U;
-            }
+            int32_t speed = state->short_hop_latched
+                                ? k_short_jump_speed
+                                : k_full_jump_speed;
             state->velocity_y = -speed;
             state->grounded = 0U;
             state->on_platform = 0U;
+            state->dash_ticks = 0U;
+            state->dash_direction = 0;
         }
     }
     else if (!state->grounded && input.jump_pressed && state->air_jumps > 0U)
     {
         state->velocity_y = -k_double_jump_speed;
         state->air_jumps--;
-        state->short_hop_cut = 0U;
+        state->short_hop_latched = 0U;
     }
 
     if (!state->grounded)
     {
         int32_t previous_bottom = state->y + k_fighter_half_height;
-
-        if (!input.jump_held && !state->short_hop_cut &&
-            state->velocity_y < 0)
-        {
-            state->velocity_y =
-                q_multiply(state->velocity_y, k_short_hop_scale);
-            state->short_hop_cut = 1U;
-        }
 
         if (input.down_held && state->velocity_y > 0)
         {
@@ -491,6 +572,8 @@ void m0_fixed_step(M0FixedMotion *state, M0MovementInput input)
             k_fighter_half_height;
     }
 
+    state->previous_strong_direction = input_strong_direction;
+
     if (state->x < k_blast_left || state->x > k_blast_right ||
         state->y > k_blast_bottom)
     {
@@ -518,6 +601,7 @@ M0MovementView m0_float_view(const M0FloatMotion *state)
     view.grounded = state->grounded;
     view.on_platform = state->on_platform;
     view.air_jumps = state->air_jumps;
+    view.dash_ticks = state->dash_ticks;
     return view;
 }
 
@@ -534,6 +618,7 @@ M0MovementView m0_fixed_view(const M0FixedMotion *state)
     view.grounded = state->grounded;
     view.on_platform = state->on_platform;
     view.air_jumps = state->air_jumps;
+    view.dash_ticks = state->dash_ticks;
     return view;
 }
 
@@ -569,10 +654,15 @@ uint64_t m0_float_hash(const M0FloatMotion *state)
     hash = hash_bytes(hash, &state->grounded, sizeof(state->grounded));
     hash = hash_bytes(hash, &state->on_platform, sizeof(state->on_platform));
     hash = hash_bytes(hash, &state->air_jumps, sizeof(state->air_jumps));
-    hash = hash_bytes(hash, &state->short_hop_cut,
-                      sizeof(state->short_hop_cut));
+    hash = hash_bytes(hash, &state->short_hop_latched,
+                      sizeof(state->short_hop_latched));
     hash = hash_bytes(hash, &state->platform_drop_ticks,
                       sizeof(state->platform_drop_ticks));
+    hash = hash_bytes(hash, &state->dash_ticks, sizeof(state->dash_ticks));
+    hash = hash_bytes(hash, &state->dash_direction,
+                      sizeof(state->dash_direction));
+    hash = hash_bytes(hash, &state->previous_strong_direction,
+                      sizeof(state->previous_strong_direction));
     return hash;
 }
 
@@ -589,10 +679,15 @@ uint64_t m0_fixed_hash(const M0FixedMotion *state)
     hash = hash_bytes(hash, &state->grounded, sizeof(state->grounded));
     hash = hash_bytes(hash, &state->on_platform, sizeof(state->on_platform));
     hash = hash_bytes(hash, &state->air_jumps, sizeof(state->air_jumps));
-    hash = hash_bytes(hash, &state->short_hop_cut,
-                      sizeof(state->short_hop_cut));
+    hash = hash_bytes(hash, &state->short_hop_latched,
+                      sizeof(state->short_hop_latched));
     hash = hash_bytes(hash, &state->platform_drop_ticks,
                       sizeof(state->platform_drop_ticks));
+    hash = hash_bytes(hash, &state->dash_ticks, sizeof(state->dash_ticks));
+    hash = hash_bytes(hash, &state->dash_direction,
+                      sizeof(state->dash_direction));
+    hash = hash_bytes(hash, &state->previous_strong_direction,
+                      sizeof(state->previous_strong_direction));
     return hash;
 }
 

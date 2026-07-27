@@ -7,6 +7,7 @@ type Point = { x: number; y: number };
 type Controls = {
   left: boolean;
   right: boolean;
+  walk: boolean;
   down: boolean;
   jump: boolean;
   jumpPressed: boolean;
@@ -53,7 +54,14 @@ const MANEUVERS = [
 ];
 
 function freshControls(): Controls {
-  return { left: false, right: false, down: false, jump: false, jumpPressed: false };
+  return {
+    left: false,
+    right: false,
+    walk: false,
+    down: false,
+    jump: false,
+    jumpPressed: false,
+  };
 }
 
 function freshScores(): Scores {
@@ -68,18 +76,19 @@ function nextSeed() {
 }
 
 async function loadCore(): Promise<MovementApi> {
-  const response = await fetch("/movement_core.wasm");
+  const response = await fetch("/movement_core.wasm?v=2");
   if (!response.ok) throw new Error(`Movement core returned ${response.status}`);
   const bytes = await response.arrayBuffer();
   const { instance } = await WebAssembly.instantiate(bytes, {});
   const api = instance.exports as unknown as MovementApi;
-  if (api.m0_version() !== 1) throw new Error("Unsupported movement core ABI");
+  if (api.m0_version() !== 2) throw new Error("Unsupported movement core ABI");
   return api;
 }
 
 function stateLabel(api: MovementApi, candidate: Candidate) {
   if (api.m0_get(candidate, 6) > 0) return "JUMP SQUAT";
   if (api.m0_get(candidate, 7) > 0) {
+    if (api.m0_get(candidate, 10) > 0) return "DASH";
     return api.m0_get(candidate, 8) > 0 ? "PLATFORM" : "GROUNDED";
   }
   return "AIRBORNE";
@@ -271,7 +280,9 @@ export default function Home() {
     const controls = controlsRef.current;
     const gamepad = gamepadRef.current;
     const digitalMove =
-      controls.left === controls.right ? 0 : controls.left ? -32767 : 32767;
+      controls.left === controls.right
+        ? 0
+        : (controls.left ? -1 : 1) * (controls.walk ? 13500 : 32767);
     const moveX = digitalMove || gamepad.moveX;
     api.m0_step(
       moveX,
@@ -360,6 +371,7 @@ export default function Home() {
         event.preventDefault();
       }
       const controls = controlsRef.current;
+      if (event.code === "ShiftLeft" || event.code === "ShiftRight") controls.walk = true;
       if (event.code === "KeyA" || event.code === "ArrowLeft") controls.left = true;
       if (event.code === "KeyD" || event.code === "ArrowRight") controls.right = true;
       if (event.code === "KeyS" || event.code === "ArrowDown") controls.down = true;
@@ -378,6 +390,9 @@ export default function Home() {
     };
     const up = (event: KeyboardEvent) => {
       const controls = controlsRef.current;
+      if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+        controls.walk = event.shiftKey;
+      }
       if (event.code === "KeyA" || event.code === "ArrowLeft") controls.left = false;
       if (event.code === "KeyD" || event.code === "ArrowRight") controls.right = false;
       if (event.code === "KeyS" || event.code === "ArrowDown") controls.down = false;
@@ -385,11 +400,16 @@ export default function Home() {
         controls.jump = false;
       }
     };
+    const blur = () => {
+      controlsRef.current = freshControls();
+    };
     window.addEventListener("keydown", down, { passive: false });
     window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
     };
   }, [reset, reveal, simulate]);
 
@@ -596,7 +616,9 @@ export default function Home() {
           ))}
         </ol>
         <p className="key-hint">
-          Keyboard: <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>Space</kbd> jump ·{" "}
+          Keyboard: tap <kbd>A</kbd>/<kbd>D</kbd> to dash dance · hold{" "}
+          <kbd>Shift</kbd> + <kbd>A</kbd>/<kbd>D</kbd> to walk ·{" "}
+          <kbd>Space</kbd> jump ·{" "}
           <kbd>S</kbd> fast fall · <kbd>1</kbd>/<kbd>2</kbd> focus ·{" "}
           <kbd>R</kbd> reset · <kbd>P</kbd> pause · Controller:{" "}
           <span className={gamepadConnected ? "device-live" : ""}>

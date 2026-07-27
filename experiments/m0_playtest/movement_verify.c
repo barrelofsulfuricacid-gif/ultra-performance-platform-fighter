@@ -1,5 +1,6 @@
 #include "movement_model.h"
 
+#include <float.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
@@ -87,6 +88,104 @@ static void test_reset(void)
             "reset grounded");
     require(float_view.air_jumps == 1U && fixed_view.air_jumps == 1U,
             "reset air jump");
+}
+
+static void test_walk_dash_and_pivot(void)
+{
+    M0MovementPair pair;
+    M0MovementInput input = {0};
+    M0MovementView float_view;
+    M0MovementView fixed_view;
+
+    m0_pair_reset(&pair);
+    input.move_x = 13500;
+    m0_pair_step(&pair, input);
+    float_view = m0_float_view(&pair.float32);
+    fixed_view = m0_fixed_view(&pair.q16_16);
+    require(float_view.dash_ticks == 0U && fixed_view.dash_ticks == 0U,
+            "walk-strength input started a dash");
+    require(fabs(float_view.velocity_x) < 0.1 &&
+                fabs(fixed_view.velocity_x) < 0.1,
+            "walk-strength input was not slow");
+
+    m0_pair_reset(&pair);
+    input.move_x = M0_AXIS_MAX;
+    m0_pair_step(&pair, input);
+    float_view = m0_float_view(&pair.float32);
+    fixed_view = m0_fixed_view(&pair.q16_16);
+    require(float_view.dash_ticks > 0U && fixed_view.dash_ticks > 0U,
+            "full input did not start a dash");
+    require(float_view.velocity_x > 0.19 &&
+                fixed_view.velocity_x > 0.19,
+            "initial dash was not immediate");
+
+    input.move_x = M0_AXIS_MIN;
+    m0_pair_step(&pair, input);
+    float_view = m0_float_view(&pair.float32);
+    fixed_view = m0_fixed_view(&pair.q16_16);
+    require(float_view.dash_ticks > 0U && fixed_view.dash_ticks > 0U,
+            "pivot ended the dash window");
+    require(float_view.velocity_x < -0.19 &&
+                fixed_view.velocity_x < -0.19,
+            "dash pivot did not reverse immediately");
+}
+
+static void jump_apex(uint32_t release_tick, double *float_apex,
+                      double *fixed_apex)
+{
+    M0MovementPair pair;
+    uint32_t tick;
+
+    *float_apex = DBL_MAX;
+    *fixed_apex = DBL_MAX;
+    m0_pair_reset(&pair);
+    for (tick = 0U; tick < 180U; ++tick)
+    {
+        M0MovementInput input = {0};
+        M0MovementView float_view;
+        M0MovementView fixed_view;
+
+        input.jump_pressed = (uint8_t)(tick == 0U);
+        input.jump_held = (uint8_t)(tick < release_tick);
+        m0_pair_step(&pair, input);
+        float_view = m0_float_view(&pair.float32);
+        fixed_view = m0_fixed_view(&pair.q16_16);
+        if (float_view.y < *float_apex)
+        {
+            *float_apex = float_view.y;
+        }
+        if (fixed_view.y < *fixed_apex)
+        {
+            *fixed_apex = fixed_view.y;
+        }
+    }
+}
+
+static void test_binary_jump_heights(void)
+{
+    double short_early_float;
+    double short_early_fixed;
+    double short_late_float;
+    double short_late_fixed;
+    double full_early_float;
+    double full_early_fixed;
+    double full_late_float;
+    double full_late_fixed;
+
+    jump_apex(0U, &short_early_float, &short_early_fixed);
+    jump_apex(2U, &short_late_float, &short_late_fixed);
+    jump_apex(3U, &full_early_float, &full_early_fixed);
+    jump_apex(20U, &full_late_float, &full_late_fixed);
+
+    require(short_early_float == short_late_float &&
+                short_early_fixed == short_late_fixed,
+            "short-hop height changed inside jumpsquat");
+    require(full_early_float == full_late_float &&
+                full_early_fixed == full_late_fixed,
+            "full-hop height changed after takeoff");
+    require(full_early_float < short_early_float &&
+                full_early_fixed < short_early_fixed,
+            "full hop was not higher than short hop");
 }
 
 static void test_fixed_replay(void)
@@ -182,11 +281,13 @@ int main(void)
 
     test_axis_clamp();
     test_reset();
+    test_walk_dash_and_pivot();
+    test_binary_jump_heights();
     test_fixed_replay();
     restore_hash = test_fixed_save_restore();
     max_delta = test_candidate_comparability();
 
-    printf("self-test=pass cases=5 trace_ticks=%d "
+    printf("self-test=pass cases=7 trace_ticks=%d "
            "max_position_delta=%.9f fixed_restore_hash=%" PRIu64 "\n",
            TRACE_TICKS, max_delta, restore_hash);
     return EXIT_SUCCESS;

@@ -31,8 +31,14 @@ The verifier runs the same 7,200-tick trace as the native M0 verifier. Expected
 output includes:
 
 ```text
-wasm-self-test=pass trace_ticks=7200 max_position_delta=0.001472473
+wasm-self-test=pass trace_ticks=7200 max_position_delta=0.001699448
 ```
+
+Keyboard controls use full-strength <kbd>A</kbd>/<kbd>D</kbd> presses for the
+initial dash and pivot window. Hold <kbd>Shift</kbd> with either direction for
+walk-strength input. Short-hop versus full-hop is latched only during the
+three-tick jumpsquat, so releasing after takeoff cannot continuously alter the
+jump height.
 
 The hosted page uses a thin Vinext/React shell around these checked-in adapter
 sources. The engine remains C-first; the web layer is a disposable M0

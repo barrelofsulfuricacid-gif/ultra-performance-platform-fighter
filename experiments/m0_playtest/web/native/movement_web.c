@@ -46,7 +46,7 @@ static M0MovementView view_for_candidate(int candidate)
 M0_EXPORT("m0_version")
 int m0_web_version(void)
 {
-    return 1;
+    return 2;
 }
 
 M0_EXPORT("m0_reset")
@@ -94,6 +94,8 @@ double m0_web_get(int candidate, int field)
         return (double)view.on_platform;
     case 9:
         return (double)view.air_jumps;
+    case 10:
+        return (double)view.dash_ticks;
     default:
         return 0.0;
     }

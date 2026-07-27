@@ -19,7 +19,78 @@ for (const name of [
 ]) {
   assert.equal(typeof api[name], "function", `missing export ${name}`);
 }
-assert.equal(api.m0_version(), 1);
+assert.equal(api.m0_version(), 2);
+
+api.m0_reset(20260727);
+api.m0_step(13500, 0, 0, 0);
+for (const candidate of [0, 1]) {
+  assert.equal(
+    api.m0_get(candidate, 10),
+    0,
+    `Candidate ${candidate} treated walk-strength input as a dash`,
+  );
+  assert.ok(
+    Math.abs(api.m0_get(candidate, 2)) < 0.1,
+    `Candidate ${candidate} walk speed was not slow`,
+  );
+}
+
+api.m0_reset(20260727);
+api.m0_step(32767, 0, 0, 0);
+for (const candidate of [0, 1]) {
+  assert.ok(
+    api.m0_get(candidate, 10) > 0,
+    `Candidate ${candidate} did not enter initial dash`,
+  );
+  assert.ok(
+    api.m0_get(candidate, 2) > 0.19,
+    `Candidate ${candidate} initial dash was not immediate`,
+  );
+}
+api.m0_step(-32767, 0, 0, 0);
+for (const candidate of [0, 1]) {
+  assert.ok(
+    api.m0_get(candidate, 10) > 0,
+    `Candidate ${candidate} did not remain in dash after a pivot`,
+  );
+  assert.ok(
+    api.m0_get(candidate, 2) < -0.19,
+    `Candidate ${candidate} did not reverse during the dash window`,
+  );
+}
+
+const jumpApex = (releaseTick) => {
+  api.m0_reset(20260727);
+  const apex = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+  for (let tick = 0; tick < 180; tick += 1) {
+    api.m0_step(0, tick === 0 ? 1 : 0, tick < releaseTick ? 1 : 0, 0);
+    for (const candidate of [0, 1]) {
+      apex[candidate] = Math.min(apex[candidate], api.m0_get(candidate, 1));
+    }
+  }
+  return apex;
+};
+
+const earliestShortHop = jumpApex(0);
+const latestShortHop = jumpApex(2);
+const earliestFullHop = jumpApex(3);
+const latestFullHop = jumpApex(20);
+assert.deepEqual(
+  latestShortHop,
+  earliestShortHop,
+  "short-hop height changed with release timing inside jumpsquat",
+);
+assert.deepEqual(
+  latestFullHop,
+  earliestFullHop,
+  "full-hop height changed with release timing after takeoff",
+);
+for (const candidate of [0, 1]) {
+  assert.ok(
+    earliestFullHop[candidate] < earliestShortHop[candidate],
+    `Candidate ${candidate} full hop was not higher than its short hop`,
+  );
+}
 
 const traceInput = (tick) => {
   const phase = tick % 480;
@@ -62,7 +133,7 @@ assert.deepEqual(second, first, "WebAssembly replay diverged");
 assert.equal(first.a[4], 7200);
 assert.equal(first.b[4], 7200);
 assert.ok(
-  Math.abs(first.maxDelta - 0.00147247314453125) < 1e-12,
+  Math.abs(first.maxDelta - 0.0016994476318359375) < 1e-12,
   `unexpected trace delta ${first.maxDelta}`,
 );
 

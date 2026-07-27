@@ -213,16 +213,21 @@ static Controls read_controls(Playtest *playtest)
     Controls controls = {0};
     int keyboard_axis = 0;
     int gamepad_axis = 0;
+    int keyboard_strength = M0_AXIS_MAX;
     int jump_held;
     int down_held;
 
+    if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT])
+    {
+        keyboard_strength = 13500;
+    }
     if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT])
     {
-        keyboard_axis -= M0_AXIS_MAX;
+        keyboard_axis -= keyboard_strength;
     }
     if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT])
     {
-        keyboard_axis += M0_AXIS_MAX;
+        keyboard_axis += keyboard_strength;
     }
 
     jump_held =
@@ -453,7 +458,7 @@ static void render_scene(SDL_Renderer *renderer, const Playtest *playtest,
         "M0 BLIND MOVEMENT REPRESENTATION PLAYTEST");
     (void)SDL_RenderDebugText(
         renderer, margin, 36.0f,
-        "MOVE: A/D OR LEFT STICK   JUMP: SPACE/PAD SOUTH   DOWN/FAST-FALL: S/DOWN");
+        "DASH: A/D   WALK: SHIFT+A/D   JUMP: SPACE/PAD SOUTH   DOWN: S/DOWN");
     (void)SDL_RenderDebugText(
         renderer, margin, 52.0f,
         "1/2 FOCUS   R RESET   P PAUSE   N STEP   T TRAILS   V REVEAL   ESC QUIT");
