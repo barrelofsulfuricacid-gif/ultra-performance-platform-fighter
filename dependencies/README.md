@@ -24,7 +24,9 @@ and `macos-15` runner labels. The accepted compiler compatibility lanes are:
 
 - GNU C 13.3.x on Ubuntu.
 - Clang 17.0.x on macOS.
-- MSVC 19.44.x from Visual Studio 2022 17.14 on Windows.
+- MSVC 19.44.x (`vcvars_ver=14.44`) on Windows. The compatibility toolset is
+  selected explicitly even when the hosted runner's Visual Studio shell is
+  newer.
 
 Bootstrap validates the lane rather than silently accepting a different
 compiler. The full compiler patch, runner image version, operating system,

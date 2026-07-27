@@ -88,14 +88,13 @@ function Enter-PFVisualStudio
     {
         Stop-PFToolchain (
             "Visual Studio Installer's vswhere.exe is required; " +
-            "install Visual Studio 2022 17.14 with Desktop development with C++")
+            "install Visual Studio with the MSVC 14.44 compatibility tools")
     }
 
     $installationPath = (
         & $vswhere `
             -latest `
             -products * `
-            -version "[17.14,17.15)" `
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
             -property installationPath
     )
@@ -103,7 +102,7 @@ function Enter-PFVisualStudio
         [string]::IsNullOrWhiteSpace($installationPath))
     {
         Stop-PFToolchain (
-            "Visual Studio 2022 17.14 with the MSVC C++ tools was not found")
+            "Visual Studio with the MSVC C++ tools was not found")
     }
 
     $vsDevCmd = Join-Path $installationPath.Trim() `
@@ -128,7 +127,9 @@ function Enter-PFVisualStudio
 
     Import-PFBatchEnvironment `
         -BatchFile $vsDevCmd `
-        -Arguments "-no_logo -arch=$targetArchitecture -host_arch=$hostArchitecture"
+        -Arguments (
+            "-no_logo -arch=$targetArchitecture " +
+            "-host_arch=$hostArchitecture -vcvars_ver=14.44")
 
     $compilerText = (& cl.exe 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0)
@@ -138,7 +139,7 @@ function Enter-PFVisualStudio
     if ($compilerText -notmatch "Version 19\.44\.")
     {
         Stop-PFToolchain (
-            "expected MSVC 19.44.x from Visual Studio 2022 17.14; got " +
+            "expected the pinned MSVC 19.44.x compatibility toolset; got " +
             ($compilerText -replace "\s+", " ").Trim())
     }
 
