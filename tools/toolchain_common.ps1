@@ -20,9 +20,10 @@ function Get-PFRepositoryRoot
 
 function Get-PFPlatformKey
 {
-    $isWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    $pfWindowsHost =
+        [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
         [System.Runtime.InteropServices.OSPlatform]::Windows)
-    if (-not $isWindows)
+    if (-not $pfWindowsHost)
     {
         Stop-PFToolchain "tools/*.ps1 support Windows; use tools/*.sh on POSIX hosts"
     }

@@ -133,18 +133,19 @@ if command -v pwsh >/dev/null 2>&1; then
         tools/toolchain_common.ps1 \
         tools/workflow.ps1
     do
-        pwsh -NoLogo -NoProfile -NonInteractive -Command '
+        PF_POWERSHELL_FILE="$repository_root/$script" \
+            pwsh -NoLogo -NoProfile -NonInteractive -Command '
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile(
-                $args[0],
+                $env:PF_POWERSHELL_FILE,
                 [ref]$tokens,
                 [ref]$errors) | Out-Null
             if ($errors.Count -ne 0) {
                 $errors | ForEach-Object { [Console]::Error.WriteLine($_) }
                 exit 1
             }
-        ' "$repository_root/$script" ||
+        ' ||
             fail "$script has invalid PowerShell syntax"
     done
 else
