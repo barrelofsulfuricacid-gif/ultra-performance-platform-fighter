@@ -24,6 +24,24 @@ The milestone benchmark evidence is preserved in
 are relative measurements from one virtualized compatibility key, not
 machine-independent performance claims.
 
+## Run the M0 movement playtest
+
+The remaining M0 gate is a blind human comparison of float32 and Q16.16
+movement. The pure-C models, SDL3 client, build instructions, controls, and
+protocol are in
+[`experiments/m0_playtest/`](experiments/m0_playtest/).
+
+```sh
+cmake -S experiments/m0_playtest -B build/m0_playtest
+cmake --build build/m0_playtest --config Release
+ctest --test-dir build/m0_playtest --output-on-failure
+```
+
+Use
+[`docs/milestones/M0_playtest_worksheet.md`](docs/milestones/M0_playtest_worksheet.md)
+to score both hidden candidates before revealing their assignment. M1 remains
+blocked until the owner approves a representation.
+
 ## Repository guide
 
 - [`docs/product/`](docs/product/) — gameplay feel, roster coverage, stage,

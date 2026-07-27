@@ -1,10 +1,14 @@
 # M0 checkpoint report
 
-**Status:** Engineering work complete; human representation checkpoint open.
+**Status:** Engineering and interactive prototype complete; owner playtest
+pending.
 
 **Date:** 2026-07-27
 
 **Benchmark commit:** `9e757df3d4c222ee55d100bd2db7572b94c748fb`
+
+**Playtest prototype commit:**
+`6f6ebd792a57d8387b9eb5a8ea51bf807e5540cf`
 
 ## Outcome
 
@@ -22,6 +26,8 @@ M0 now contains:
 - Authored-C/foreign-C++ ABI rules implementing D2-A.
 - Current first-spike dependency pins, licenses, target roles, replacement
   seams, and adoption gates.
+- A blind, randomized, side-by-side SDL3 movement prototype comparing the
+  float32 and Q16.16 candidates with identical normalized input.
 
 No external game assets or third-party game implementation data are present.
 
@@ -40,6 +46,9 @@ No external game assets or third-party game implementation data are present.
 | ASan/UBSan smoke | Pass | `tools/verify_m0_sanitized.sh` |
 | LeakSanitizer | Environment exception | Work Mode container cannot enumerate ptraced threads; M1 CI restores it |
 | Hardware counters | Unavailable | `perf=unavailable` recorded |
+| Pure-C movement trace | Pass | 7,200 ticks; 0.001472473 maximum world-unit delta |
+| Q16.16 replay/save-restore | Pass | `tools/verify_m0_playtest.sh` |
+| SDL3 offscreen render smoke | Pass | 600 ticks with deterministic seed `20260727` |
 
 ## Representation result
 
@@ -71,18 +80,18 @@ reconsideration triggers are in
 ## Open human checkpoint
 
 M0 requires a human comparison of leading quantized and higher-precision
-movement prototypes. The current experiments are headless kernels and cannot
-satisfy that subjective test.
+movement prototypes. On 2026-07-27, the owner selected the full playtest path
+rather than waiving or deferring it.
 
-The owner must choose one path:
+The ready prototype is under `experiments/m0_playtest/`. It randomizes which
+representation is Candidate A/B, feeds both the same keyboard or gamepad input,
+supports movement, short/full hops, double jumps, aerial control, fast fall,
+pass-through platforms, and platform drops, and reveals the assignment only
+when requested. The focused protocol and scoring form are in
+`docs/milestones/M0_playtest_worksheet.md`.
 
-1. Keep M0 open and build a disposable side-by-side SDL3 movement playtest.
-2. Explicitly defer the playtest to the first playable vertical slice, approve
-   Q16.16 provisionally, and record the exception in `plan_modifications.md`.
-3. Select float32 provisionally, accepting its lower measured throughput and
-   higher cross-target determinism burden.
-
-No M1 implementation begins until one path is selected.
+No M1 implementation begins until the owner plays both candidates and approves
+Q16.16, float32, or a requested retest.
 
 ## Source research
 

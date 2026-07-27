@@ -6,6 +6,9 @@
 
 **Raw evidence:** `performance/m0_representation/`
 
+**Interactive comparison prototype:**
+`6f6ebd792a57d8387b9eb5a8ea51bf807e5540cf`
+
 ## Measurement validity
 
 - 23 candidates, 15 interleaved samples each, 345 samples total.
@@ -109,10 +112,7 @@ while retaining much finer precision than the quantized candidate.
 
 ## Unclosed acceptance item
 
-The experiments are not playable. The plan requires at least one human
-comparison of the leading higher-precision and quantized representations.
-Candidate A therefore remains proposed, not accepted, until the owner either:
-
-- plays a disposable side-by-side movement prototype and approves a candidate;
-  or
-- explicitly waives/defers the M0 playtest and records that plan modification.
+The blind SDL3 comparison prototype is ready under
+`experiments/m0_playtest/`. The plan still requires the owner to play both
+hidden candidates and approve a representation. Candidate A therefore remains
+proposed, not accepted, until the completed worksheet records that decision.
