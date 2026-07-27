@@ -1,6 +1,6 @@
 # M0 movement representation playtest worksheet
 
-**Status:** Awaiting owner playtest.
+**Status:** Blind playtest complete; owner representation decision pending.
 
 **Purpose:** Compare the subjective movement feel of the float32 and Q16.16
 candidates before accepting the M0 representation architecture.
@@ -67,3 +67,15 @@ checkpoint.
 
 M0 remains open until the owner selects a representation or explicitly records
 an exception.
+
+## Recorded result
+
+- Date: 2026-07-27
+- Corrected browser prototype:
+  `897e5e90c9e96cfd20d38b32c1068fce5ed0c17e`
+- Difference perceptible: No
+- Preferred candidate based on feel: No preference
+- Owner decision: Pending
+
+Scores and environment details were not supplied and are intentionally left
+blank rather than inferred.

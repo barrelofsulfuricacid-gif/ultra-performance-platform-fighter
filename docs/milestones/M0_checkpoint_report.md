@@ -1,14 +1,14 @@
 # M0 checkpoint report
 
-**Status:** Engineering and interactive prototype complete; owner playtest
-pending.
+**Status:** Engineering and blind owner playtest complete; explicit
+representation approval pending.
 
 **Date:** 2026-07-27
 
 **Benchmark commit:** `9e757df3d4c222ee55d100bd2db7572b94c748fb`
 
 **Playtest prototype commit:**
-`6f6ebd792a57d8387b9eb5a8ea51bf807e5540cf`
+`897e5e90c9e96cfd20d38b32c1068fce5ed0c17e`
 
 ## Outcome
 
@@ -46,7 +46,7 @@ No external game assets or third-party game implementation data are present.
 | ASan/UBSan smoke | Pass | `tools/verify_m0_sanitized.sh` |
 | LeakSanitizer | Environment exception | Work Mode container cannot enumerate ptraced threads; M1 CI restores it |
 | Hardware counters | Unavailable | `perf=unavailable` recorded |
-| Pure-C movement trace | Pass | 7,200 ticks; 0.001472473 maximum world-unit delta |
+| Pure-C movement trace | Pass | 7,200 ticks; 0.001699448 maximum world-unit delta |
 | Q16.16 replay/save-restore | Pass | `tools/verify_m0_playtest.sh` |
 | SDL3 offscreen render smoke | Pass | 600 ticks with deterministic seed `20260727` |
 
@@ -77,21 +77,22 @@ final-engine or machine-independent claims. The complete Pareto reasoning and
 reconsideration triggers are in
 `docs/architecture/representation_decision.md`.
 
-## Open human checkpoint
+## Human result and open owner decision
 
 M0 requires a human comparison of leading quantized and higher-precision
-movement prototypes. On 2026-07-27, the owner selected the full playtest path
-rather than waiving or deferring it.
+movement prototypes. On 2026-07-27, the owner completed the corrected blind
+browser playtest and reported no perceptible difference between Q16.16 and
+float32.
 
-The ready prototype is under `experiments/m0_playtest/`. It randomizes which
+The prototype is under `experiments/m0_playtest/`. It randomizes which
 representation is Candidate A/B, feeds both the same keyboard or gamepad input,
 supports movement, short/full hops, double jumps, aerial control, fast fall,
 pass-through platforms, and platform drops, and reveals the assignment only
 when requested. The focused protocol and scoring form are in
 `docs/milestones/M0_playtest_worksheet.md`.
 
-No M1 implementation begins until the owner plays both candidates and approves
-Q16.16, float32, or a requested retest.
+No M1 implementation begins until the owner explicitly approves Q16.16,
+approves float32, or requests another retest.
 
 ## Source research
 

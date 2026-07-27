@@ -1,13 +1,14 @@
 # M0 representation Pareto decision
 
-**Status:** Proposed; blocked on the mandatory human playtest/owner checkpoint.
+**Status:** Proposed; blind human playtest complete, explicit owner
+representation approval pending.
 
 **Measured commit:** `9e757df3d4c222ee55d100bd2db7572b94c748fb`
 
 **Raw evidence:** `performance/m0_representation/`
 
 **Interactive comparison prototype:**
-`6f6ebd792a57d8387b9eb5a8ea51bf807e5540cf`
+`897e5e90c9e96cfd20d38b32c1068fce5ed0c17e`
 
 ## Measurement validity
 
@@ -112,7 +113,8 @@ while retaining much finer precision than the quantized candidate.
 
 ## Unclosed acceptance item
 
-The blind SDL3 comparison prototype is ready under
-`experiments/m0_playtest/`. The plan still requires the owner to play both
-hidden candidates and approve a representation. Candidate A therefore remains
-proposed, not accepted, until the completed worksheet records that decision.
+The owner completed the corrected blind browser comparison on 2026-07-27 and
+reported no perceptible difference between Q16.16 and float32. That result
+removes the identified feel objection but is not itself an explicit
+representation approval. Candidate A therefore remains proposed, not accepted,
+until the owner approves Q16.16, approves float32, or requests another retest.
