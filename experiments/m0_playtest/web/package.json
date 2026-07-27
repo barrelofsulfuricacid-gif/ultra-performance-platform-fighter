@@ -1,0 +1,13 @@
+{
+  "name": "m0-movement-web-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:wasm": "node scripts/compile-movement-wasm.mjs",
+    "test": "npm run build:wasm && node scripts/verify-movement-wasm.mjs"
+  },
+  "devDependencies": {
+    "@yowasp/clang": "22.0.0-git20542-10"
+  }
+}

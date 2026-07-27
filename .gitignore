@@ -1,5 +1,6 @@
 /build/
 /performance/local/
+/experiments/m0_playtest/web/node_modules/
 *.o
 *.obj
 *.exe

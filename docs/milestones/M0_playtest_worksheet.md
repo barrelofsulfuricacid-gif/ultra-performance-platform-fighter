@@ -7,14 +7,14 @@ candidates before accepting the M0 representation architecture.
 
 ## Setup
 
-Build and run `m0_movement_playtest` using
-`experiments/m0_playtest/README.md`. Record the seed shown at the bottom of the
-window:
+Open the browser build linked from `experiments/m0_playtest/README.md`, or
+build and run the native `m0_movement_playtest`. Record the seed shown in the
+interface:
 
 - Seed:
 - Input device:
-- Operating system:
-- Build configuration:
+- Browser and operating system:
+- Build configuration: WebAssembly / native release
 
 Keep the representation labels hidden until both trials are scored.
 

@@ -11,6 +11,17 @@ to two pure-C candidates:
 The prototype is deliberately movement-only. It is evidence for the numeric
 representation decision, not permanent engine code or a combat vertical slice.
 
+## Browser playtest
+
+The same pure-C movement core is available as an owner-only browser build:
+
+<https://m0-movement-playtest.lol1234.chatgpt.site>
+
+It runs the float32 and Q16.16 candidates as WebAssembly at a fixed 60 Hz and
+includes keyboard, controller, touch, blind scoring, reveal, and result-copy
+flows. The browser adapter source and deterministic trace verifier live in
+[`web/`](web/).
+
 ## Build
 
 CMake 3.24 or newer and a C17 compiler are required. SDL 3.4.12 is used when
