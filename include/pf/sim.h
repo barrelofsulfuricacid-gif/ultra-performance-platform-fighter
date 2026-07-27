@@ -16,6 +16,7 @@ extern "C"
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
 #define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(1)
@@ -97,6 +98,31 @@ typedef struct pf_content_view
     size_t byte_count;
     pf_hash256 content_hash;
 } pf_content_view;
+
+typedef struct pf_sim_identity
+{
+    uint32_t struct_size;
+    uint16_t schema_version;
+    uint16_t reserved;
+    uint32_t sim_abi_version;
+    uint32_t tick_rate_hz;
+    uint16_t config_schema_version;
+    uint16_t content_schema_version;
+    uint16_t input_schema_version;
+    uint16_t state_schema_version;
+    uint16_t observation_schema_version;
+    uint16_t arithmetic_version;
+    uint16_t rng_version;
+    uint16_t save_format_version;
+    uint8_t player_count;
+    uint8_t mode;
+    uint16_t reserved2;
+    uint64_t max_ticks;
+    int32_t arena_half_width_q16;
+    int32_t arena_ceiling_q16;
+    pf_hash256 content_hash;
+    pf_hash256 config_hash;
+} pf_sim_identity;
 
 typedef struct pf_sim_config
 {
@@ -194,6 +220,8 @@ pf_status pf_sim_init(
     const pf_sim_config *config,
     pf_sim **out_sim);
 
+pf_status pf_sim_deinit(pf_sim *sim);
+
 pf_status pf_sim_reset(pf_sim *sim, uint64_t seed);
 
 pf_status pf_sim_tick(
@@ -205,6 +233,10 @@ pf_status pf_sim_tick(
 pf_status pf_sim_observe(
     const pf_sim *sim,
     pf_sim_observation *out_observation);
+
+pf_status pf_sim_query_identity(
+    const pf_sim *sim,
+    pf_sim_identity *out_identity);
 
 pf_status pf_sim_query_save_size(
     const pf_sim *sim,

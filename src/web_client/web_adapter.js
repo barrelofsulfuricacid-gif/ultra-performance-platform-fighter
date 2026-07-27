@@ -209,4 +209,235 @@ mergeInto(LibraryManager.library, {
     status.dataset.webgl2 = "pass";
     return 1;
   },
+
+  pf_web_replay_inspector__deps: ["$UTF8ToString"],
+  pf_web_replay_inspector__sig: "vppiiip",
+  pf_web_replay_inspector: function (
+    positionsPointer,
+    hashesPointer,
+    tickCount,
+    playerCount,
+    winnerMask,
+    finalHashPointer
+  ) {
+    var checkpointCount = tickCount + 1;
+    var positionCount = checkpointCount * playerCount * 2;
+    var hashCount = checkpointCount * 32;
+    var positions = new Int32Array(
+      HEAP32.subarray(
+        positionsPointer >> 2,
+        (positionsPointer >> 2) + positionCount
+      )
+    );
+    var hashes = new Uint8Array(
+      HEAPU8.subarray(hashesPointer, hashesPointer + hashCount)
+    );
+    var finalHash = UTF8ToString(finalHashPointer);
+    var status = document.getElementById("pf-status");
+    var oldInspector = document.getElementById("pf-replay-inspector");
+
+    if (oldInspector) {
+      oldInspector.remove();
+    }
+
+    var style = document.getElementById("pf-replay-style");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "pf-replay-style";
+      style.textContent =
+        "body{margin:0;padding:24px;background:#0a0d14;color:#e9eef8;" +
+        "font:15px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}" +
+        "#pf-runtime-summary{max-width:900px;margin:0 auto}" +
+        "#pf-status{white-space:pre-wrap;color:#9fb0cb}" +
+        "#canvas{width:96px;height:96px;image-rendering:pixelated;" +
+        "border:1px solid #263249;border-radius:8px}" +
+        "#pf-replay-inspector{max-width:900px;margin:24px auto 0;padding:24px;" +
+        "background:#111827;border:1px solid #263249;border-radius:16px;" +
+        "box-shadow:0 18px 50px #0008}" +
+        "#pf-replay-inspector h1{font:700 24px/1.2 system-ui;margin:0 0 6px}" +
+        "#pf-replay-inspector p{font-family:system-ui;color:#a9b6ca;" +
+        "margin:0 0 18px}" +
+        ".pf-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}" +
+        ".pf-badge{padding:5px 9px;background:#18243a;border-radius:999px;" +
+        "color:#b9cbeb;font-size:12px}" +
+        "#pf-replay-canvas{display:block;width:100%;height:auto;" +
+        "background:#090d16;border:1px solid #263249;border-radius:12px}" +
+        "#pf-replay-slider{width:100%;margin:18px 0 8px;accent-color:#62d0ff}" +
+        ".pf-row{display:flex;justify-content:space-between;gap:16px;" +
+        "align-items:baseline}.pf-hash{overflow-wrap:anywhere;color:#88d9ff;" +
+        "font-size:12px}.pf-help{font-size:13px!important;margin-top:14px!important}" +
+        "@media(max-width:600px){body{padding:12px}" +
+        "#pf-replay-inspector{padding:16px}.pf-row{align-items:flex-start;" +
+        "flex-direction:column;gap:4px}}";
+      document.head.appendChild(style);
+    }
+
+    var inspector = document.createElement("section");
+    inspector.id = "pf-replay-inspector";
+    var title = document.createElement("h1");
+    title.textContent = "M2 deterministic replay inspector";
+    inspector.appendChild(title);
+    var summary = document.createElement("p");
+    summary.textContent =
+      "The same authored-C simulation generated, encoded, and verified this " +
+      "four-player trace inside WebAssembly.";
+    inspector.appendChild(summary);
+
+    var badges = document.createElement("div");
+    badges.className = "pf-badges";
+    [
+      "verified replay",
+      tickCount + " ticks",
+      playerCount + " players",
+      "winner mask " + winnerMask,
+      "60 Hz",
+    ].forEach(function (label) {
+      var badge = document.createElement("span");
+      badge.className = "pf-badge";
+      badge.textContent = label;
+      badges.appendChild(badge);
+    });
+    inspector.appendChild(badges);
+
+    var canvas = document.createElement("canvas");
+    canvas.id = "pf-replay-canvas";
+    canvas.width = 840;
+    canvas.height = 400;
+    inspector.appendChild(canvas);
+
+    var slider = document.createElement("input");
+    slider.id = "pf-replay-slider";
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = String(tickCount);
+    slider.value = "0";
+    slider.step = "1";
+    slider.setAttribute("aria-label", "Replay tick");
+    inspector.appendChild(slider);
+
+    var row = document.createElement("div");
+    row.className = "pf-row";
+    var tickLabel = document.createElement("strong");
+    var positionLabel = document.createElement("span");
+    row.appendChild(tickLabel);
+    row.appendChild(positionLabel);
+    inspector.appendChild(row);
+
+    var hashLabel = document.createElement("div");
+    hashLabel.className = "pf-hash";
+    inspector.appendChild(hashLabel);
+    var help = document.createElement("p");
+    help.className = "pf-help";
+    help.textContent =
+      "Drag the timeline. Trails and the per-tick SHA-256 state hash are " +
+      "derived from the verified replay; player 3 forfeits on the final tick.";
+    inspector.appendChild(help);
+    document.body.appendChild(inspector);
+
+    function hexHash(tick) {
+      var output = "";
+      var offset = tick * 32;
+      var index;
+      for (index = 0; index < 32; ++index) {
+        output += hashes[offset + index].toString(16).padStart(2, "0");
+      }
+      return output;
+    }
+
+    function draw(tick) {
+      var context = canvas.getContext("2d");
+      var colors = ["#62d0ff", "#ff6b86", "#8ee28d", "#ffd166"];
+      var arenaLeft = 52;
+      var arenaRight = canvas.width - 52;
+      var arenaTop = 40;
+      var arenaBottom = canvas.height - 54;
+      var player;
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#090d16";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "#27344a";
+      context.lineWidth = 2;
+      context.strokeRect(
+        arenaLeft,
+        arenaTop,
+        arenaRight - arenaLeft,
+        arenaBottom - arenaTop
+      );
+      context.strokeStyle = "#41516c";
+      context.beginPath();
+      context.moveTo(arenaLeft, arenaBottom);
+      context.lineTo(arenaRight, arenaBottom);
+      context.stroke();
+
+      function screenPosition(checkpoint, slot) {
+        var offset = (checkpoint * playerCount + slot) * 2;
+        var x = positions[offset] / 65536;
+        var y = positions[offset + 1] / 65536;
+        return {
+          x: arenaLeft + ((x + 64) / 128) * (arenaRight - arenaLeft),
+          y: arenaBottom - (y / 64) * (arenaBottom - arenaTop),
+          worldX: x,
+          worldY: y,
+        };
+      }
+
+      for (player = 0; player < playerCount; ++player) {
+        var trailStart = Math.max(0, tick - 45);
+        var checkpoint;
+        context.strokeStyle = colors[player] + "88";
+        context.lineWidth = 2;
+        context.beginPath();
+        for (
+          checkpoint = trailStart;
+          checkpoint <= tick;
+          ++checkpoint
+        ) {
+          var trailPosition = screenPosition(checkpoint, player);
+          if (checkpoint === trailStart) {
+            context.moveTo(trailPosition.x, trailPosition.y);
+          } else {
+            context.lineTo(trailPosition.x, trailPosition.y);
+          }
+        }
+        context.stroke();
+
+        var current = screenPosition(tick, player);
+        context.fillStyle = colors[player];
+        context.beginPath();
+        context.arc(current.x, current.y, 10, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#07101a";
+        context.font = "bold 12px system-ui";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(String(player), current.x, current.y);
+      }
+
+      var selected = screenPosition(tick, 0);
+      tickLabel.textContent = "Tick " + tick + " / " + tickCount;
+      positionLabel.textContent =
+        "P0 x=" +
+        selected.worldX.toFixed(3) +
+        " y=" +
+        selected.worldY.toFixed(3);
+      hashLabel.textContent = "state sha256: " + hexHash(tick);
+    }
+
+    slider.addEventListener("input", function () {
+      draw(Number(slider.value));
+    });
+    draw(0);
+
+    if (status) {
+      status.textContent +=
+        " replay=pass ticks=" +
+        tickCount +
+        " winner_mask=" +
+        winnerMask +
+        " final_sha256=" +
+        finalHash;
+      status.dataset.replay = "pass";
+    }
+  },
 });

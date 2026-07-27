@@ -4,10 +4,11 @@ An original deterministic 2D platform fighter, authored in C and designed for
 native, web, rollback, headless, and reinforcement-learning targets.
 
 The project has completed **M0: product contract and measured architecture
-decisions** and **M1: reproducible foundation**. M2 deterministic simulation
-and reinforcement-learning work is now active. M0 selected Q16.16
-deterministic motion and geometry after benchmark, verifier, and blind
-human-playtest evidence. The accepted milestones are summarized in
+decisions** and **M1: reproducible foundation**. The M2 deterministic
+simulation and reinforcement-learning candidate is complete and awaiting its
+owner checkpoint. M0 selected Q16.16 deterministic motion and geometry after
+benchmark, verifier, and blind human-playtest evidence. The accepted
+milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
 and
 [`docs/milestones/M1_checkpoint_report.md`](docs/milestones/M1_checkpoint_report.md).
@@ -77,21 +78,32 @@ Run its focused allocation/platform-boundary and scripted determinism checks:
 ./tools/verify_m2_kernel.sh
 ```
 
-Current scope and remaining snapshot, replay, cross-target, RL, and Gymnasium
-work are tracked in
+Current scope, verification evidence, and checkpoint work are tracked in
 [`docs/milestones/M2_progress.md`](docs/milestones/M2_progress.md).
 
-## Build and serve the browser smoke
+The optional Gymnasium 1.3 vector adapter is under
+[`bindings/python/`](bindings/python/). After the headless workflow builds
+`pf_sim_rl`, run its deterministic API and Python-to-C batch-overhead checks:
 
-Run the published M1 checkpoint directly in a current desktop browser:
+```sh
+./tools/verify_m2_python.sh
+```
+
+## Inspect the M2 replay in a browser
+
+Open the owner-only browser checkpoint in a current desktop browser:
 
 [`https://platform-fighter-m1.lol1234.chatgpt.site`](https://platform-fighter-m1.lol1234.chatgpt.site)
 
-The live page loads the repository's generated JavaScript and Wasm and must
-report
-`web-client-smoke=pass sim_abi=1 tick_hz=60 webgl2=pass batch_draws=1`.
-This is a platform/rendering checkpoint, not a gameplay playtest; keyboard
-movement and combat begin in later milestones.
+The live page loads the repository's generated JavaScript and Wasm, verifies
+the authored-C 180-tick four-player replay, and presents a draggable timeline
+with positions and a SHA-256 state hash at every tick. It must report
+`web-client-smoke=pass sim_abi=2 tick_hz=60`, `webgl2=pass batch_draws=1`,
+and `replay=pass ticks=180 winner_mask=5`.
+
+This is an M2 deterministic-kernel review, not the M4 gameplay playtest.
+Keyboard movement, dash dancing, short/full-hop mechanics, combat, and the
+first complete stage remain later milestone work.
 
 To reproduce the same check locally, the web bootstrap additionally installs
 the checksum-verified Emscripten 6.0.3 SDK and its pinned Node.js runtime.
@@ -116,11 +128,11 @@ On Windows PowerShell:
 
 Then open
 [`http://127.0.0.1:8000/web_client.html`](http://127.0.0.1:8000/web_client.html).
-The current source build must contain
-`web-client-smoke=pass sim_abi=2 tick_hz=60 webgl2=pass batch_draws=1`.
-Clean-machine CI runs this generated HTML and Wasm in headless Chrome, compiles
-and links shaders, submits the shared textured/blended batch, and verifies a
-rendered pixel rather than checking files alone.
+The current source build must contain the same smoke and replay result as the
+hosted checkpoint. Clean-machine CI runs this generated HTML and Wasm in
+headless Chrome, compiles and links shaders, submits the shared
+textured/blended batch, verifies a rendered pixel, and checks the replay
+inspector rather than checking files alone.
 
 Validate the complete lock, bootstrap, preset, and CI contract with:
 

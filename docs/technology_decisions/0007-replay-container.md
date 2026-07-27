@@ -48,16 +48,17 @@ All three functions perform no allocation or I/O.
 
 ## Corpus
 
-`tests/sim/test_replay_corpus.c` defines the format-1 golden corpus:
+`src/checkpoint/m2_replay_fixture.c` defines the shared format-1 golden trace
+used by the native/WebAssembly corpus test and browser inspector:
 
 - Four-player team configuration.
 - Seed `0x0123456789abcdef`.
 - 180 normalized input ticks and 181 state hashes.
 - 30,997 replay bytes.
 - Replay SHA-256
-  `a1008ac5f1d555ccd17a8f17fe48eab6ce08079fd635b26ee08155f0dea44dce`.
+  `fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e`.
 - Final state SHA-256
-  `335e31f2d830eea582f9e42fe7ee41469f81aa359ee14e661cf68002932d558a`.
+  `7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7`.
 
 The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,
@@ -65,4 +66,7 @@ unknown-required rejection, and unknown-optional skipping.
 
 `tools/verify_m2_replay.sh` compiles and runs the corpus natively, runs the
 Emscripten build through Node when present, and requires byte-identical output.
-The Web CI job makes the WebAssembly comparison mandatory.
+The Web CI job makes the WebAssembly comparison mandatory. The browser build
+also generates, encodes, verifies, and displays the same trace inside
+WebAssembly, with a draggable tick timeline and the canonical state hash at
+every checkpoint.

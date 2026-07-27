@@ -14,6 +14,8 @@
 #endif
 
 #if PF_PRODUCT_BROWSER
+#include "replay_checkpoint.h"
+
 extern void pf_web_set_status(const char *message);
 extern int pf_web_render_probe(
     const float *clear_rgba,
@@ -80,6 +82,11 @@ static int run_smoke(void)
         return 1;
     }
 #endif
+    if (!pf_web_run_replay_checkpoint())
+    {
+        (void)fprintf(stderr, "%s-smoke=fail reason=replay\n", PF_PRODUCT_NAME);
+        return 1;
+    }
 #endif
 
     return 0;

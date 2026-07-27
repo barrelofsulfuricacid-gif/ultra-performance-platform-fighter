@@ -75,5 +75,14 @@ grep -Fq \
 grep -Fq \
     'webgl2=pass batch_draws=1' \
     "$dom_output"
+grep -Fq \
+    'replay=pass ticks=180 winner_mask=5 final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7' \
+    "$dom_output"
+grep -Fq \
+    'id="pf-replay-inspector"' \
+    "$dom_output"
+grep -Fq \
+    'Platform Fighter M2 Replay Checkpoint' \
+    "$dom_output"
 
 echo "web-browser-smoke=pass browser=$browser url=$url"

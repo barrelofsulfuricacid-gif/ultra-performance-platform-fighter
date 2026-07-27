@@ -1,6 +1,6 @@
 # M2 deterministic simulation and RL progress
 
-**Status:** M2.1 deterministic-world implementation in progress
+**Status:** M2 implementation complete; owner contract checkpoint pending
 
 ## Current deterministic kernel
 
@@ -28,6 +28,14 @@ The first M2 slice replaces the M1 ABI placeholder with simulation ABI 2 and:
   normalized inputs, every per-tick state hash, and the final result.
 - Allocation-free replay verification through the same tick function with
   exact first-divergence reporting.
+- A versioned candidate RL C surface with normalized analog actions,
+  structured and 36-word compact observations, legal-button masks, Q16.16
+  rewards, and single/batched reset and step.
+- An uncapped 64-environment headless throughput runner with single/batch
+  state-hash equivalence.
+- A thin Gymnasium 1.3 `VectorEnv` adapter using the shared C ABI, exact NumPy
+  action/observation layouts, next-step autoreset, and configurable
+  player-perspective scalar rewards.
 
 The provisional movement constants exercise deterministic arithmetic and state
 transitions only. They are not M4 gameplay tuning and make no claim about
@@ -49,23 +57,26 @@ final movement feel.
 - Replay corruption, incompatible content, unknown required chunks, unknown
   optional chunks, and a deliberate tick-51 hash mismatch follow their
   documented failure paths.
+- RL conformance covers duel/team rewards, atomic invalid actions, terminal
+  behavior, structured/compact correspondence, and independent status across
+  six batched environments.
+- Five Gymnasium wrapper tests cover spaces, seeded determinism, duel/team
+  rewards, next-step autoreset, masked reset, invalid actions, and lifecycle.
+- Repeated Python boundary runs measured an 18.2x–21.6x speedup from one C call
+  per environment to one C call for 64 environments. The current native sample
+  measured 15.97 million single-step and 15.25 million batched
+  environment-ticks/s with exact state-hash equality; native measurements,
+  rather than Python throughput, remain authoritative.
 - Deterministic object files reference no allocation, platform, I/O,
   wall-clock, or synchronization symbols.
 
 The same tests are also CTest targets in debug, release, sanitizer, and
 headless workflows. Emscripten compiles the same simulation sources.
 
-## Remaining M2.1 work
+## Remaining checkpoint work
 
-- Cross-compiler, operating-system, optimization-level, and WebAssembly hash
-  comparison beyond the current native/WebAssembly golden corpus.
-
-## Remaining M2.2 work
-
-- Final candidate structured/compact observations, legal masks, rewards, and
-  diagnostics.
-- Caller-owned single and batched RL stepping.
-- Uncapped headless throughput runner and boundary-overhead comparison.
-- Thin Gymnasium-compatible vector wrapper.
+- Complete the clean-machine native/WebAssembly and Python CI run for this
+  candidate revision.
+- Publish the deterministic replay inspection artifact and checkpoint report.
 - Mandatory owner review of deterministic replays and the observation/action
   contract.

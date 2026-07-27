@@ -21,7 +21,7 @@ rows still require their representative adoption work.
 | Audio candidate | SDL_mixer 3.2.4 / `72a8186` | zlib | Native/web client | Candidate |
 | Profiler | Tracy 0.13.1 / `05cceee` | BSD-3-Clause | Profile builds/tools | Selected |
 | Performance store | SQLite 3.53.4 / source ID `bf7c7f3…` | Public domain | Local benchmark tools | Selected |
-| RL compatibility | Gymnasium 1.3.0 / `53bf3e9` | MIT | Optional Python wrapper | Selected |
+| RL compatibility | Gymnasium 1.3.0 / `53bf3e9` | MIT | Optional Python wrapper | Adopted for M2 adapter |
 
 ## Adoption gate
 
@@ -42,6 +42,11 @@ The M1 build/platform rows satisfy this gate through
 `docs/technology_decisions/0002-build-platform-and-web.md`, the clean-machine
 CI matrix, and `tools/verify_m1_setup.sh`. The ignored `.toolchains` extraction
 is a verified build input, not vendored source.
+
+The Gymnasium row satisfies the same boundary gate through
+`dependencies/python.lock.tsv`, TDR-0005, `tools/verify_m2_python.sh`, and the
+isolated `rl-python` clean-machine CI job. It is an optional packaging/test
+dependency and is absent from every native engine product.
 
 Steam Input is a platform service/API rather than a vendored source dependency.
 Its eventual adapter is additive to SDL Gamepad and cannot change normalized

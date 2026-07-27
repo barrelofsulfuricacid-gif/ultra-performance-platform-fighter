@@ -289,7 +289,11 @@ static uint64_t pf_replay_reader_u64(pf_replay_reader *reader)
 
 static int16_t pf_replay_reader_i16(pf_replay_reader *reader)
 {
-    return (int16_t)pf_replay_reader_u16(reader);
+    const uint16_t bits = pf_replay_reader_u16(reader);
+    int16_t value;
+
+    (void)memcpy(&value, &bits, sizeof(value));
+    return value;
 }
 
 static void pf_replay_reader_bytes(

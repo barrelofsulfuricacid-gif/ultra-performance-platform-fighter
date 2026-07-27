@@ -19,6 +19,10 @@ option(PF_BUILD_TOOLS "Build the content/development tools boundary" ON)
 option(PF_BUILD_BENCHMARKS "Build the benchmark product boundary" ON)
 option(PF_BUILD_VERIFIER "Build the verifier product boundary" ON)
 option(
+    PF_BUILD_RL_PYTHON_LIBRARY
+    "Build the native shared library consumed by the Python RL wrapper"
+    ON)
+option(
     PF_BUILD_DETERMINISM_CORPUS
     "Build the native/WebAssembly replay determinism corpus"
     ON)
@@ -35,39 +39,58 @@ set(
     CACHE PATH
     "Path to the checksum-verified SDL3 source tree")
 
-add_library(
-    sim
-    STATIC
-        src/sim/sim.c
-        src/sim/sim_internal.h
-        src/sim/sim_sha256.c
-        src/sim/sim_sha256.h
-        src/sim/sim_replay.c
-        src/sim/sim_snapshot.c
-        src/sim/sim_tick.c)
+set(
+    PF_SIM_SOURCES
+    src/sim/sim.c
+    src/sim/sim_internal.h
+    src/sim/sim_sha256.c
+    src/sim/sim_sha256.h
+    src/sim/sim_rl.c
+    src/sim/sim_replay.c
+    src/sim/sim_snapshot.c
+    src/sim/sim_tick.c)
+
+function(pf_configure_sim_target target output_name)
+    target_include_directories(
+        ${target}
+        PUBLIC
+            "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
+    target_compile_features(${target} PUBLIC c_std_17)
+    set_target_properties(
+        ${target}
+        PROPERTIES
+            C_EXTENSIONS OFF
+            OUTPUT_NAME "${output_name}")
+    pf_enable_project_warnings(${target})
+    pf_apply_build_mode(${target})
+    pf_assert_deterministic_target(${target})
+endfunction()
+
+add_library(sim STATIC ${PF_SIM_SOURCES})
 add_library(pf::sim ALIAS sim)
-target_include_directories(
-    sim
-    PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
-target_compile_features(sim PUBLIC c_std_17)
-set_target_properties(
-    sim
-    PROPERTIES
-        C_EXTENSIONS OFF
-        OUTPUT_NAME pf_sim)
-pf_enable_project_warnings(sim)
-pf_apply_build_mode(sim)
-pf_assert_deterministic_target(sim)
+pf_configure_sim_target(sim pf_sim)
+
+if(PF_BUILD_RL_PYTHON_LIBRARY AND NOT EMSCRIPTEN)
+    add_library(sim_rl_shared SHARED ${PF_SIM_SOURCES})
+    add_library(pf::sim_rl_shared ALIAS sim_rl_shared)
+    pf_configure_sim_target(sim_rl_shared pf_sim_rl)
+    set_target_properties(
+        sim_rl_shared
+        PROPERTIES
+            WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 if(PF_BUILD_DETERMINISM_CORPUS)
     add_executable(
         replay_corpus
+        src/checkpoint/m2_replay_fixture.c
         tests/sim/test_replay_corpus.c)
     target_link_libraries(replay_corpus PRIVATE sim)
     target_include_directories(
         replay_corpus
-        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/checkpoint"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
     target_compile_features(replay_corpus PRIVATE c_std_17)
     set_target_properties(
         replay_corpus
@@ -174,16 +197,21 @@ function(pf_add_smoke_product target product_name render_probe)
     if(EMSCRIPTEN AND "${target}" STREQUAL "web_client")
         set(pf_web_adapter
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/web_adapter.js")
+        set(pf_web_shell
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/shell.html")
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=1)
         target_link_options(
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
-                "--js-library=${pf_web_adapter}")
+                "--js-library=${pf_web_adapter}"
+                "--shell-file=${pf_web_shell}")
         set_property(
             TARGET ${target}
             APPEND
-            PROPERTY LINK_DEPENDS "${pf_web_adapter}")
+            PROPERTY LINK_DEPENDS
+                "${pf_web_adapter}"
+                "${pf_web_shell}")
         set_target_properties(${target} PROPERTIES SUFFIX ".html")
     else()
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=0)
@@ -230,7 +258,18 @@ endif()
 
 if(PF_BUILD_WEB_CLIENT)
     pf_add_smoke_product(web_client "web-client" 1)
-    if(NOT EMSCRIPTEN)
+    if(EMSCRIPTEN)
+        target_sources(
+            web_client
+            PRIVATE
+                src/checkpoint/m2_replay_fixture.c
+                src/web_client/replay_checkpoint.c)
+        target_include_directories(
+            web_client
+            PRIVATE
+                "${CMAKE_CURRENT_SOURCE_DIR}/src/checkpoint"
+                "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client")
+    else()
         set_target_properties(
             web_client
             PROPERTIES OUTPUT_NAME pf_web_client_host_smoke)
@@ -316,6 +355,19 @@ if(BUILD_TESTING)
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "sim-snapshot=pass bytes=305 hash_algorithm=sha256")
 
+    add_executable(rl_api_test tests/sim/test_rl_api.c)
+    target_link_libraries(rl_api_test PRIVATE sim)
+    target_compile_features(rl_api_test PRIVATE c_std_17)
+    set_target_properties(rl_api_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(rl_api_test)
+    pf_apply_build_mode(rl_api_test)
+
+    add_test(NAME sim.rl_api COMMAND rl_api_test)
+    set_tests_properties(
+        sim.rl_api
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "rl-api=pass compact_values=36 batch_environments=6 reward_q16=65536")
+
     if(PF_BUILD_DETERMINISM_CORPUS)
         add_test(NAME sim.replay_corpus COMMAND replay_corpus)
         set_tests_properties(
@@ -330,5 +382,13 @@ if(BUILD_TESTING)
             headless.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "headless-smoke=pass sim_abi=2 tick_hz=60")
+
+        add_test(
+            NAME headless.throughput_smoke
+            COMMAND headless --throughput-smoke)
+        set_tests_properties(
+            headless.throughput_smoke
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "headless-throughput=pass environments=64")
     endif()
 endif()

@@ -1,0 +1,2 @@
+component	version	revision	archive	sha256	size	url	license
+gymnasium	1.3.0	53bf3e9a884783eb72ad3fc8b15780914c97c3e1	53bf3e9a884783eb72ad3fc8b15780914c97c3e1.tar.gz	1fed3f2b523aad174cab6bed6357f65c897c79afce674578ac2b7e32fe524bc2	119161195	https://github.com/Farama-Foundation/Gymnasium/archive/53bf3e9a884783eb72ad3fc8b15780914c97c3e1.tar.gz	MIT

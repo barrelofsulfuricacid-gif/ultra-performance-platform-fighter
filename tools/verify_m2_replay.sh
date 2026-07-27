@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=a1008ac5f1d555ccd17a8f17fe48eab6ce08079fd635b26ee08155f0dea44dce final_sha256=335e31f2d830eea582f9e42fe7ee41469f81aa359ee14e661cf68002932d558a'
+expected='sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7'
 
 mkdir -p "$output_dir"
 
@@ -27,12 +27,15 @@ common_flags="
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
     -I"$root/include" \
+    -I"$root/src/checkpoint" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_replay.c" \
+    "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
+    "$root/src/checkpoint/m2_replay_fixture.c" \
     "$root/tests/sim/test_replay_corpus.c" \
     -o "$output_dir/native_replay_corpus"
 

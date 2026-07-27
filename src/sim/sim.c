@@ -270,6 +270,21 @@ pf_status pf_sim_init(
     return PF_STATUS_OK;
 }
 
+pf_status pf_sim_deinit(pf_sim *sim)
+{
+    pf_sim_scratch *scratch;
+
+    if (!pf_sim_is_valid(sim))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
+    scratch = sim->scratch;
+    (void)memset(scratch, 0, sizeof(*scratch));
+    (void)memset(sim, 0, sizeof(*sim));
+    return PF_STATUS_OK;
+}
+
 uint64_t pf_sim_rng_next(uint64_t *state)
 {
     uint64_t value;

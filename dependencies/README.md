@@ -5,6 +5,10 @@ download used by bootstrap has an immutable version/revision, byte length, and
 full SHA-256 digest. Tab-separated fields keep the same file directly readable
 from POSIX shell and PowerShell without adding a parser dependency.
 
+`python.lock.tsv` separately records the optional Gymnasium source used to
+qualify the M2 Python adapter. Gymnasium never enters the engine bootstrap or
+the native/headless link graph.
+
 The locked host tools are CMake 4.4.0 and Ninja 1.13.2. The web lane pins:
 
 - Emsdk commit `db04e88298d9916fc51fcd3743045ca3eb695127`.

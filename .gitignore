@@ -8,6 +8,9 @@
 /release/output/*
 !/release/output/README.md
 /experiments/m0_playtest/web/node_modules/
+__pycache__/
+*.pyc
+.venv/
 *.o
 *.obj
 *.exe

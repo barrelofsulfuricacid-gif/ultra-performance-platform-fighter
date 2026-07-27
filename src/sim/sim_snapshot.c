@@ -198,7 +198,11 @@ static uint64_t pf_reader_u64(pf_byte_reader *reader)
 
 static int32_t pf_reader_i32(pf_byte_reader *reader)
 {
-    return (int32_t)pf_reader_u32(reader);
+    const uint32_t bits = pf_reader_u32(reader);
+    int32_t value;
+
+    (void)memcpy(&value, &bits, sizeof(value));
+    return value;
 }
 
 static void pf_reader_bytes(
@@ -599,6 +603,53 @@ pf_status pf_sim_query_save_size(
     }
 
     *out_save_bytes = PF_SIM_SAVE_TOTAL_BYTES;
+    return PF_STATUS_OK;
+}
+
+pf_status pf_sim_query_identity(
+    const pf_sim *sim,
+    pf_sim_identity *out_identity)
+{
+    if (out_identity == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    (void)memset(out_identity, 0, sizeof(*out_identity));
+    if (!pf_sim_is_valid(sim))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
+    out_identity->struct_size = (uint32_t)sizeof(*out_identity);
+    out_identity->schema_version = PF_SIM_IDENTITY_SCHEMA_VERSION;
+    out_identity->sim_abi_version = PF_SIM_ABI_VERSION;
+    out_identity->tick_rate_hz = PF_SIM_TICK_RATE_HZ;
+    out_identity->config_schema_version =
+        PF_SIM_CONFIG_SCHEMA_VERSION;
+    out_identity->content_schema_version =
+        PF_SIM_CONTENT_SCHEMA_VERSION;
+    out_identity->input_schema_version =
+        sim->world.input_schema_version;
+    out_identity->state_schema_version =
+        sim->world.state_schema_version;
+    out_identity->observation_schema_version =
+        PF_SIM_OBSERVATION_SCHEMA_VERSION;
+    out_identity->arithmetic_version =
+        sim->world.arithmetic_version;
+    out_identity->rng_version = sim->world.rng_version;
+    out_identity->save_format_version =
+        PF_SIM_SAVE_FORMAT_VERSION;
+    out_identity->player_count = sim->world.player_count;
+    out_identity->mode = sim->world.mode;
+    out_identity->max_ticks = sim->world.max_ticks;
+    out_identity->arena_half_width_q16 =
+        sim->world.arena_half_width_q16;
+    out_identity->arena_ceiling_q16 =
+        sim->world.arena_ceiling_q16;
+    out_identity->content_hash = sim->world.content_hash;
+    pf_sim_snapshot_config_hash(
+        &sim->world,
+        out_identity->config_hash.bytes);
     return PF_STATUS_OK;
 }
 

@@ -251,8 +251,48 @@ pf_status pf_sim_tick_impl(
         const uint64_t active_mask =
             (UINT64_C(1) << world->player_count) - UINT64_C(1);
         world->terminated = UINT8_C(1);
-        world->winner_mask =
-            (uint8_t)(active_mask & ~forfeit_mask);
+        if (world->mode == (uint8_t)PF_SIM_MODE_DUEL)
+        {
+            world->winner_mask =
+                (uint8_t)(active_mask & ~forfeit_mask);
+        }
+        else
+        {
+            uint8_t forfeiting_teams = UINT8_C(0);
+
+            for (player_index = UINT32_C(0);
+                 player_index < (uint32_t)world->player_count;
+                 ++player_index)
+            {
+                if ((forfeit_mask &
+                     (UINT64_C(1) << player_index)) != UINT64_C(0))
+                {
+                    forfeiting_teams |=
+                        (uint8_t)(UINT32_C(1) <<
+                                  world->team[player_index]);
+                }
+            }
+
+            world->winner_mask = UINT8_C(0);
+            if (forfeiting_teams == UINT8_C(1) ||
+                forfeiting_teams == UINT8_C(2))
+            {
+                const uint8_t winning_team =
+                    forfeiting_teams == UINT8_C(1)
+                        ? UINT8_C(1)
+                        : UINT8_C(0);
+                for (player_index = UINT32_C(0);
+                     player_index < (uint32_t)world->player_count;
+                     ++player_index)
+                {
+                    if (world->team[player_index] == winning_team)
+                    {
+                        world->winner_mask |=
+                            (uint8_t)(UINT32_C(1) << player_index);
+                    }
+                }
+            }
+        }
     }
     if (world->tick >= world->max_ticks)
     {

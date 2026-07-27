@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Platform Fighter M2 Replay Checkpoint</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          "SFMono-Regular", "Roboto Mono", "Cascadia Code", Consolas,
+          monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #0a0d14;
+        color: #e9eef8;
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      #pf-runtime-summary {
+        align-items: center;
+        background: #111827;
+        border: 1px solid #263249;
+        border-radius: 16px;
+        display: grid;
+        gap: 18px;
+        grid-template-columns: auto 1fr;
+        margin: 0 auto;
+        max-width: 900px;
+        padding: 18px 22px;
+      }
+
+      #pf-runtime-summary h1 {
+        font: 700 18px/1.25 system-ui, sans-serif;
+        margin: 0 0 6px;
+      }
+
+      #pf-runtime-summary p {
+        color: #8fa0ba;
+        font-size: 12px;
+        margin: 0;
+      }
+
+      #canvas {
+        background: #090d16;
+        border: 1px solid #263249;
+        border-radius: 8px;
+        display: block;
+        height: 96px;
+        image-rendering: pixelated;
+        width: 96px;
+      }
+
+      #pf-status {
+        color: #9fb0cb;
+        font-size: 11px;
+        grid-column: 1 / -1;
+        margin: 0;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+
+      #output {
+        display: none;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 12px;
+        }
+
+        #pf-runtime-summary {
+          grid-template-columns: 1fr;
+          padding: 16px;
+        }
+
+        #pf-status {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="pf-runtime-summary" aria-label="Runtime verification">
+      <canvas
+        id="canvas"
+        width="128"
+        height="128"
+        aria-label="WebGL 2 render probe"
+      ></canvas>
+      <div>
+        <h1>Deterministic C17 / WebAssembly</h1>
+        <p>
+          Loading the render probe and the shared four-player replay corpus.
+        </p>
+      </div>
+      <pre id="pf-status" role="status" aria-live="polite">Loading WebAssembly…</pre>
+      <pre id="output" aria-label="Runtime console"></pre>
+    </section>
+    <script>
+      var outputElement = document.getElementById("output");
+      var statusElement = document.getElementById("pf-status");
+      var Module = {
+        canvas: document.getElementById("canvas"),
+        print: function () {
+          var line = Array.prototype.join.call(arguments, " ");
+          outputElement.textContent += line + "\n";
+          console.log(line);
+        },
+        printErr: function () {
+          var line = Array.prototype.join.call(arguments, " ");
+          outputElement.textContent += "error: " + line + "\n";
+          console.error(line);
+        },
+        setStatus: function (message) {
+          if (message) {
+            statusElement.textContent = message;
+          }
+        },
+      };
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

@@ -1,6 +1,7 @@
 #include "pf/replay.h"
 #include "pf/sim.h"
 
+#include "m2_replay_fixture.h"
 #include "sim_sha256.h"
 
 #include <inttypes.h>
@@ -12,18 +13,23 @@
 
 #define TEST_MEMORY_BYTES 2048U
 #define TEST_MEMORY_ALIGNMENT 64U
-#define TEST_TICKS UINT64_C(180)
-#define TEST_PLAYERS UINT8_C(4)
 #define TEST_INPUT_COUNT 720U
 #define TEST_HASH_COUNT 181U
 #define TEST_REPLAY_CAPACITY 32768U
 #define TEST_OPTIONAL_REPLAY_CAPACITY 32816U
 #define TEST_INPUT_PAYLOAD_OFFSET 589U
 
+_Static_assert(
+    TEST_INPUT_COUNT == PF_M2_REPLAY_TICKS * PF_M2_REPLAY_PLAYERS,
+    "replay input capacity must cover the fixture");
+_Static_assert(
+    TEST_HASH_COUNT == PF_M2_REPLAY_TICKS + UINT64_C(1),
+    "replay hash capacity must cover tick zero");
+
 static const char expected_corpus_sha256[] =
-    "a1008ac5f1d555ccd17a8f17fe48eab6ce08079fd635b26ee08155f0dea44dce";
+    PF_M2_REPLAY_CORPUS_SHA256;
 static const char expected_final_sha256[] =
-    "335e31f2d830eea582f9e42fe7ee41469f81aa359ee14e661cf68002932d558a";
+    PF_M2_REPLAY_FINAL_SHA256;
 
 typedef struct test_sim_storage
 {
@@ -55,24 +61,6 @@ static int expect_status(
     return 1;
 }
 
-static pf_content_view make_content(uint8_t salt)
-{
-    pf_content_view content;
-    uint32_t byte_index;
-
-    (void)memset(&content, 0, sizeof(content));
-    content.struct_size = (uint32_t)sizeof(content);
-    content.schema_version = PF_SIM_CONTENT_SCHEMA_VERSION;
-    for (byte_index = UINT32_C(0);
-         byte_index < (uint32_t)sizeof(content.content_hash.bytes);
-         ++byte_index)
-    {
-        content.content_hash.bytes[byte_index] =
-            (uint8_t)(byte_index * UINT32_C(13) + (uint32_t)salt);
-    }
-    return content;
-}
-
 static int initialize_sim(
     test_sim_storage *storage,
     const pf_content_view *content,
@@ -90,65 +78,6 @@ static int initialize_sim(
             out_sim),
         PF_STATUS_OK,
         "init");
-}
-
-static void make_tick_inputs(
-    pf_input_frame *inputs,
-    uint64_t tick)
-{
-    uint32_t player_index;
-
-    (void)memset(
-        inputs,
-        0,
-        sizeof(*inputs) * (size_t)TEST_PLAYERS);
-    for (player_index = UINT32_C(0);
-         player_index < (uint32_t)TEST_PLAYERS;
-         ++player_index)
-    {
-        inputs[player_index].tick = tick;
-        inputs[player_index].schema_version =
-            PF_SIM_INPUT_SCHEMA_VERSION;
-        inputs[player_index].player_slot = (uint8_t)player_index;
-    }
-
-    inputs[0].main_stick_x =
-        (tick % UINT64_C(17)) < UINT64_C(11)
-            ? INT16_C(32767)
-            : INT16_C(0);
-    inputs[1].main_stick_x =
-        (tick % UINT64_C(19)) < UINT64_C(13)
-            ? INT16_MIN
-            : INT16_C(0);
-    inputs[2].main_stick_x =
-        (tick % UINT64_C(23)) < UINT64_C(12)
-            ? INT16_C(20480)
-            : INT16_C(-16384);
-    inputs[3].main_stick_x =
-        (tick % UINT64_C(29)) < UINT64_C(15)
-            ? INT16_C(-24576)
-            : INT16_C(12288);
-
-    if (tick == UINT64_C(8) || tick == UINT64_C(87))
-    {
-        inputs[0].buttons |= PF_INPUT_BUTTON_JUMP;
-    }
-    if (tick == UINT64_C(21) || tick == UINT64_C(103))
-    {
-        inputs[1].buttons |= PF_INPUT_BUTTON_JUMP;
-    }
-    if (tick == UINT64_C(34) || tick == UINT64_C(119))
-    {
-        inputs[2].buttons |= PF_INPUT_BUTTON_JUMP;
-    }
-    if (tick == UINT64_C(55) || tick == UINT64_C(141))
-    {
-        inputs[3].buttons |= PF_INPUT_BUTTON_JUMP;
-    }
-    if (tick + UINT64_C(1) == TEST_TICKS)
-    {
-        inputs[3].buttons |= PF_INPUT_BUTTON_FORFEIT;
-    }
 }
 
 static int state_hash_equal(
@@ -276,7 +205,7 @@ static int verify_optional_chunk(
                pf_replay_verify(sim, replay, &verification),
                PF_STATUS_OK,
                "unknown-optional-chunk") &&
-           verification.verified_ticks == TEST_TICKS;
+           verification.verified_ticks == PF_M2_REPLAY_TICKS;
 }
 
 int main(void)
@@ -287,8 +216,8 @@ int main(void)
     test_sim_storage malformed_storage;
     test_sim_storage mismatch_storage;
     test_sim_storage incompatible_storage;
-    pf_content_view content = make_content(UINT8_C(7));
-    pf_content_view different_content = make_content(UINT8_C(17));
+    pf_content_view content = pf_m2_replay_make_content();
+    pf_content_view different_content = content;
     pf_sim_config config;
     pf_sim *initial = NULL;
     pf_sim *source_sim = NULL;
@@ -312,7 +241,7 @@ int main(void)
     if (!expect_status(
             pf_sim_default_config(
                 &config,
-                TEST_PLAYERS,
+                PF_M2_REPLAY_PLAYERS,
                 PF_SIM_MODE_TEAMS),
             PF_STATUS_OK,
             "default-config"))
@@ -320,6 +249,7 @@ int main(void)
         return 1;
     }
     config.max_ticks = UINT64_C(500);
+    different_content.content_hash.bytes[0] ^= UINT8_C(0xff);
     if (!initialize_sim(
             &initial_storage,
             &content,
@@ -353,7 +283,7 @@ int main(void)
         !expect_status(
             pf_sim_reset(
                 initial,
-                UINT64_C(0x0123456789abcdef)),
+                PF_M2_REPLAY_SEED),
             PF_STATUS_OK,
             "initial-reset") ||
         !expect_status(
@@ -368,16 +298,17 @@ int main(void)
         return 1;
     }
 
-    for (tick = UINT64_C(0); tick < TEST_TICKS; ++tick)
+    for (tick = UINT64_C(0); tick < PF_M2_REPLAY_TICKS; ++tick)
     {
         pf_input_frame *tick_inputs =
-            &corpus_inputs[(size_t)tick * (size_t)TEST_PLAYERS];
-        make_tick_inputs(tick_inputs, tick);
+            &corpus_inputs[
+                (size_t)tick * (size_t)PF_M2_REPLAY_PLAYERS];
+        pf_m2_replay_make_tick_inputs(tick_inputs, tick);
         if (!expect_status(
                 pf_sim_tick(
                     source_sim,
                     tick_inputs,
-                    (size_t)TEST_PLAYERS,
+                    (size_t)PF_M2_REPLAY_PLAYERS,
                     &result),
                 PF_STATUS_OK,
                 "source-tick") ||
@@ -391,10 +322,10 @@ int main(void)
             return 1;
         }
     }
-    if (result.completed_tick != TEST_TICKS ||
+    if (result.completed_tick != PF_M2_REPLAY_TICKS ||
         result.terminated != UINT8_C(1) ||
         result.truncated != UINT8_C(0) ||
-        result.winner_mask != UINT8_C(7))
+        result.winner_mask != UINT8_C(5))
     {
         (void)fprintf(
             stderr,
@@ -411,7 +342,7 @@ int main(void)
     replay_source.input_frame_count = TEST_INPUT_COUNT;
     replay_source.state_hashes = corpus_hashes;
     replay_source.state_hash_count = TEST_HASH_COUNT;
-    replay_source.tick_count = TEST_TICKS;
+    replay_source.tick_count = PF_M2_REPLAY_TICKS;
     replay_source.final_result = result;
 
     if (!expect_status(
@@ -455,8 +386,8 @@ int main(void)
             PF_STATUS_OK,
             "verify-replay") ||
         verification.status != (uint32_t)PF_STATUS_OK ||
-        verification.expected_ticks != TEST_TICKS ||
-        verification.verified_ticks != TEST_TICKS ||
+        verification.expected_ticks != PF_M2_REPLAY_TICKS ||
+        verification.verified_ticks != PF_M2_REPLAY_TICKS ||
         verification.first_mismatch_tick != UINT64_MAX ||
         !expect_status(
             pf_sim_hash(playback, &playback_hash),
@@ -592,8 +523,8 @@ int main(void)
     (void)printf(
         "sim-replay=pass ticks=%" PRIu64
         " players=%u bytes=%zu corpus_sha256=%s final_sha256=%s\n",
-        TEST_TICKS,
-        (unsigned int)TEST_PLAYERS,
+        PF_M2_REPLAY_TICKS,
+        (unsigned int)PF_M2_REPLAY_PLAYERS,
         replay_size,
         replay_digest_hex,
         final_digest_hex);

@@ -30,6 +30,7 @@ common_flags="
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_replay.c" \
+    "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
@@ -47,6 +48,7 @@ grep -Fqx \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_replay.c" \
+    "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
@@ -64,15 +66,36 @@ grep -Fqx \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_replay.c" \
+    "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
+    "$root/tests/sim/test_rl_api.c" \
+    -o "$output_dir/rl_api_test"
+
+"$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
+grep -Fqx \
+    'rl-api=pass compact_values=36 batch_environments=6 reward_q16=65536' \
+    "$output_dir/rl_api.txt"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/checkpoint" \
+    -I"$root/src/sim" \
+    "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_replay.c" \
+    "$root/src/sim/sim_rl.c" \
+    "$root/src/sim/sim_sha256.c" \
+    "$root/src/sim/sim_snapshot.c" \
+    "$root/src/sim/sim_tick.c" \
+    "$root/src/checkpoint/m2_replay_fixture.c" \
     "$root/tests/sim/test_replay_corpus.c" \
     -o "$output_dir/replay_corpus"
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=a1008ac5f1d555ccd17a8f17fe48eab6ce08079fd635b26ee08155f0dea44dce final_sha256=335e31f2d830eea582f9e42fe7ee41469f81aa359ee14e661cf68002932d558a' \
+    'sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -97,6 +120,13 @@ grep -Fqx \
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
     -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_rl.c" \
+    -o "$output_dir/sim_rl.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
     -c "$root/src/sim/sim_sha256.c" \
     -o "$output_dir/sim_sha256.o"
 
@@ -110,6 +140,7 @@ if command -v nm >/dev/null 2>&1; then
     nm -u \
         "$output_dir/sim.o" \
         "$output_dir/sim_replay.o" \
+        "$output_dir/sim_rl.o" \
         "$output_dir/sim_sha256.o" \
         "$output_dir/sim_snapshot.o" \
         "$output_dir/sim_tick.o" \
@@ -125,4 +156,4 @@ else
     echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
 fi
 
-echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 players=4 abi=2"
+echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 rl_batch=6 players=4 abi=2"

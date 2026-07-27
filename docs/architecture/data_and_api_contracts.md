@@ -48,6 +48,27 @@ pf_status pf_replay_verify(
     pf_sim *sim,
     pf_bytes replay,
     pf_replay_verification *out_verification);
+
+pf_status pf_rl_reset(
+    pf_sim *sim,
+    uint64_t seed,
+    pf_rl_transition *out_transition);
+pf_status pf_rl_step(
+    pf_sim *sim,
+    const pf_rl_action *actions,
+    size_t action_count,
+    pf_rl_transition *out_transition);
+pf_status pf_rl_reset_batch(
+    pf_sim *const *sims,
+    const uint64_t *seeds,
+    size_t environment_count,
+    pf_rl_transition *out_transitions);
+pf_status pf_rl_step_batch(
+    pf_sim *const *sims,
+    size_t environment_count,
+    const pf_rl_action *actions,
+    size_t action_stride,
+    pf_rl_transition *out_transitions);
 ```
 
 Rules:
@@ -141,6 +162,10 @@ Replay format 1 uses five checksummed required chunks and mandatory per-tick
 hashes. Its exact ownership, compatibility, failure, and golden-corpus rules
 are recorded in
 [TDR-0007](../technology_decisions/0007-replay-container.md).
+
+The candidate action, structured/compact observation, reward, legal-mask, and
+batch semantics awaiting the M2 owner checkpoint are recorded in
+[TDR-0008](../technology_decisions/0008-rl-contract-candidate.md).
 
 ## Design-data pipeline
 
