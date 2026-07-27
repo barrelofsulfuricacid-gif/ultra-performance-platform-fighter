@@ -14,6 +14,7 @@ docs/architecture/determinism_contract.md
 docs/architecture/representation_decision.md
 docs/architecture/system_boundaries.md
 docs/milestones/M0_checkpoint_report.md
+docs/milestones/M0_playtest_worksheet.md
 docs/performance/performance_charter.md
 docs/product/melee_feel_contract.md
 docs/product/originality_and_provenance.md
@@ -25,6 +26,12 @@ docs/technology_decisions/0003-debug-gui-and-design-data.md
 docs/technology_decisions/0004-rollback-and-crossplay-transport.md
 docs/technology_decisions/0005-audio-profiling-history-and-rl.md
 docs/technology_decisions/dependency_register.md
+experiments/m0_playtest/CMakeLists.txt
+experiments/m0_playtest/README.md
+experiments/m0_playtest/movement_model.c
+experiments/m0_playtest/movement_model.h
+experiments/m0_playtest/movement_playtest.c
+experiments/m0_playtest/movement_verify.c
 experiments/m0_representation/m0_analyze.c
 experiments/m0_representation/m0_bench.c
 experiments/m0_representation/run_benchmarks.sh
@@ -38,6 +45,7 @@ performance/m0_representation/results.csv
 performance/m0_representation/summary.md
 tools/post_commit.sh
 tools/verify_m0.sh
+tools/verify_m0_playtest.sh
 tools/verify_m0_sanitized.sh
 "
 
@@ -100,6 +108,9 @@ for mechanic in Wavedash L-cancel DI SDI Teching Ledges; do
         exit 1
     fi
 done
+
+"$root/tools/verify_m0_playtest.sh" \
+    "$root/performance/local/m0_playtest"
 
 experiment_runner="$root/experiments/m0_representation/run_benchmarks.sh"
 if [ -x "$experiment_runner" ]; then
