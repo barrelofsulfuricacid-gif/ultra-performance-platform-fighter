@@ -1,6 +1,6 @@
 # M1 native/web platform adoption evidence
 
-**Status:** Local spike accepted; clean-machine platform matrix pending
+**Status:** Accepted
 **Date:** 2026-07-27
 
 ## Outcome
@@ -76,3 +76,22 @@ comparing:
 
 No claim about playable frame time or final renderer performance is made at
 M1.
+
+## Clean-machine result
+
+GitHub Actions run
+[`30299564266`](https://github.com/barrelofsulfuricacid-gif/ultra-performance-platform-fighter/actions/runs/30299564266)
+passed all eight jobs:
+
+- Native SDL3 builds and smokes on Ubuntu x64, Ubuntu Arm64, macOS Intel,
+  macOS Arm64, and Windows x64.
+- Linux address and undefined-behavior sanitizers.
+- Lock, preset, PowerShell, boundary, and CI setup-contract verification.
+- Emscripten compilation followed by a real Chrome/WebGL 2 shader, batch, and
+  pixel-readback smoke under ANGLE/SwiftShader.
+
+The platform adoption slice is complete. M1 now waits only at its mandatory
+owner setup checkpoint. Its public browser artifact is
+[`platform-fighter-m1.lol1234.chatgpt.site`](https://platform-fighter-m1.lol1234.chatgpt.site);
+a passing owner run begins with
+`web-client-smoke=pass sim_abi=1 tick_hz=60 webgl2=pass batch_draws=1`.

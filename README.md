@@ -4,9 +4,10 @@ An original deterministic 2D platform fighter, authored in C and designed for
 native, web, rollback, headless, and reinforcement-learning targets.
 
 The project has completed **M0: product contract and measured architecture
-decisions** and is entering **M1: reproducible foundation**. M0 selected
-Q16.16 deterministic motion and geometry after benchmark, verifier, and blind
-human-playtest evidence. The accepted decision is summarized in
+decisions** and implemented **M1: reproducible foundation**. M1 is waiting at
+its mandatory owner setup/browser checkpoint. M0 selected Q16.16 deterministic
+motion and geometry after benchmark, verifier, and blind human-playtest
+evidence. The accepted decision is summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md).
 
 ## Verify the checkpoint
@@ -63,10 +64,20 @@ Current progress and remaining M1 adoption/checkpoint items are tracked in
 
 ## Build and serve the browser smoke
 
-The web bootstrap additionally installs the checksum-verified Emscripten 6.0.3
-SDK and its pinned Node.js runtime. Browser-specific JavaScript remains in
-`src/web_client/web_adapter.js`; the product and simulation sources remain
-strict C17.
+Run the published M1 checkpoint directly in a current desktop browser:
+
+[`https://platform-fighter-m1.lol1234.chatgpt.site`](https://platform-fighter-m1.lol1234.chatgpt.site)
+
+The live page loads the repository's generated JavaScript and Wasm and must
+report
+`web-client-smoke=pass sim_abi=1 tick_hz=60 webgl2=pass batch_draws=1`.
+This is a platform/rendering checkpoint, not a gameplay playtest; keyboard
+movement and combat begin in later milestones.
+
+To reproduce the same check locally, the web bootstrap additionally installs
+the checksum-verified Emscripten 6.0.3 SDK and its pinned Node.js runtime.
+Browser-specific JavaScript remains in `src/web_client/web_adapter.js`; the
+product and simulation sources remain strict C17.
 
 On Linux or macOS:
 

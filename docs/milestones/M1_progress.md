@@ -1,6 +1,6 @@
 # M1 reproducible foundation progress
 
-**Status:** In progress
+**Status:** Implementation complete; awaiting mandatory owner checkpoint
 
 ## M1.1 repository and build products
 
@@ -75,8 +75,18 @@ The current adoption slice adds:
 Detailed local evidence and deferred M7 renderer questions are recorded in
 [`M1_platform_spike.md`](M1_platform_spike.md).
 
+## Mandatory owner browser checkpoint
+
+Open the
+[published M1 browser artifact](https://platform-fighter-m1.lol1234.chatgpt.site)
+in a current desktop browser. Approval requires a visible pair of overlapping
+tinted quads and a status beginning with
+`web-client-smoke=pass sim_abi=1 tick_hz=60 webgl2=pass batch_draws=1`.
+
+This checkpoint validates setup, Wasm loading, WebGL 2 shader/draw behavior,
+and the native/web render-packet boundary. It intentionally has no gameplay
+controls.
+
 ## Remaining M1 work
 
-- Confirm the platform-adoption change on the full clean-machine CI matrix,
-  including the WebGL 2 Chrome draw and Windows/macOS SDL builds.
-- Stop for the mandatory owner setup checkpoint.
+- Complete or explicitly waive the mandatory owner setup/browser checkpoint.
