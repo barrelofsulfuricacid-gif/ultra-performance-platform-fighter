@@ -64,6 +64,23 @@ into `sim` or the `headless` link graph.
 Current progress and remaining M1 adoption/checkpoint items are tracked in
 [`docs/milestones/M1_progress.md`](docs/milestones/M1_progress.md).
 
+## Build the current M2 deterministic kernel
+
+M2 now provides a caller-owned strict-C17 simulation ABI with seeded reset,
+normalized two/four-player inputs, fixed Q16.16 ticks, deterministic episode
+completion, and a structured observation candidate. It is a kernel
+conformance slice, not playable combat.
+
+Run its focused allocation/platform-boundary and scripted determinism checks:
+
+```sh
+./tools/verify_m2_kernel.sh
+```
+
+Current scope and remaining snapshot, replay, cross-target, RL, and Gymnasium
+work are tracked in
+[`docs/milestones/M2_progress.md`](docs/milestones/M2_progress.md).
+
 ## Build and serve the browser smoke
 
 Run the published M1 checkpoint directly in a current desktop browser:
@@ -99,8 +116,8 @@ On Windows PowerShell:
 
 Then open
 [`http://127.0.0.1:8000/web_client.html`](http://127.0.0.1:8000/web_client.html).
-The page must contain
-`web-client-smoke=pass sim_abi=1 tick_hz=60 webgl2=pass batch_draws=1`.
+The current source build must contain
+`web-client-smoke=pass sim_abi=2 tick_hz=60 webgl2=pass batch_draws=1`.
 Clean-machine CI runs this generated HTML and Wasm in headless Chrome, compiles
 and links shaders, submits the shared textured/blended batch, and verifies a
 rendered pixel rather than checking files alone.

@@ -31,7 +31,12 @@ set(
     CACHE PATH
     "Path to the checksum-verified SDL3 source tree")
 
-add_library(sim STATIC src/sim/sim.c)
+add_library(
+    sim
+    STATIC
+        src/sim/sim.c
+        src/sim/sim_internal.h
+        src/sim/sim_tick.c)
 add_library(pf::sim ALIAS sim)
 target_include_directories(
     sim
@@ -159,7 +164,7 @@ function(pf_add_smoke_product target product_name render_probe)
         set_tests_properties(
             ${target}.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "${product_name}-smoke=pass sim_abi=1 tick_hz=60")
+                       "${product_name}-smoke=pass sim_abi=2 tick_hz=60")
     endif()
 endfunction()
 
@@ -182,7 +187,7 @@ if(PF_BUILD_NATIVE_CLIENT)
             set_tests_properties(
                 native_client.smoke
                 PROPERTIES PASS_REGULAR_EXPRESSION
-                           "native-client-smoke=pass sim_abi=1 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
+                           "native-client-smoke=pass sim_abi=2 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
         endif()
     else()
         pf_add_smoke_product(native_client "native-client" 0)
@@ -245,13 +250,26 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.contract
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-contract=pass abi=1 tick_hz=60")
+                   "sim-contract=pass abi=2 tick_hz=60")
+
+    add_executable(sim_world_test tests/sim/test_sim_world.c)
+    target_link_libraries(sim_world_test PRIVATE sim)
+    target_compile_features(sim_world_test PRIVATE c_std_17)
+    set_target_properties(sim_world_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(sim_world_test)
+    pf_apply_build_mode(sim_world_test)
+
+    add_test(NAME sim.world COMMAND sim_world_test)
+    set_tests_properties(
+        sim.world
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "sim-world=pass players=4 deterministic_ticks=180")
 
     if(PF_BUILD_HEADLESS)
         add_test(NAME headless.smoke COMMAND headless --smoke)
         set_tests_properties(
             headless.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "headless-smoke=pass sim_abi=1 tick_hz=60")
+                       "headless-smoke=pass sim_abi=2 tick_hz=60")
     endif()
 endif()

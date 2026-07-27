@@ -70,7 +70,7 @@ done
     >"$dom_output"
 
 grep -Fq \
-    'web-client-smoke=pass sim_abi=1 tick_hz=60' \
+    'web-client-smoke=pass sim_abi=2 tick_hz=60' \
     "$dom_output"
 grep -Fq \
     'webgl2=pass batch_draws=1' \

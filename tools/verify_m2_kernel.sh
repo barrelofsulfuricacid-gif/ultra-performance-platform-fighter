@@ -1,0 +1,66 @@
+#!/bin/sh
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+output_dir=${1:-"$root/performance/local/m2_kernel"}
+compiler=${CC:-cc}
+
+mkdir -p "$output_dir"
+
+common_flags="
+    -std=c17
+    -O2
+    -g
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+    -Wconversion
+    -Wformat=2
+    -Wmissing-prototypes
+    -Wshadow
+    -Wstrict-prototypes
+    -Wundef
+    -Wwrite-strings
+"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_tick.c" \
+    "$root/tests/sim/test_sim_world.c" \
+    -o "$output_dir/sim_world_test"
+
+"$output_dir/sim_world_test" >"$output_dir/sim_world.txt"
+grep -Fqx \
+    'sim-world=pass players=4 deterministic_ticks=180' \
+    "$output_dir/sim_world.txt"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -c "$root/src/sim/sim.c" \
+    -o "$output_dir/sim.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -c "$root/src/sim/sim_tick.c" \
+    -o "$output_dir/sim_tick.o"
+
+if command -v nm >/dev/null 2>&1; then
+    nm -u "$output_dir/sim.o" "$output_dir/sim_tick.o" \
+        >"$output_dir/undefined_symbols.txt"
+    if grep -Eq \
+        'calloc|clock_gettime|CreateThread|fopen|fprintf|free|malloc|mtx_|nanosleep|pthread_|printf|realloc|SDL_|Sleep|thrd_| time$' \
+        "$output_dir/undefined_symbols.txt"; then
+        echo "M2 kernel verification failed: forbidden tick dependency" >&2
+        exit 1
+    fi
+    echo "m2-forbidden-symbol-validation=pass"
+else
+    echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
+fi
+
+echo "m2-kernel-verification=pass deterministic_ticks=180 players=4 abi=2"

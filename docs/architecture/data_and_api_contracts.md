@@ -1,7 +1,7 @@
 # Data and API contracts
 
-This document fixes interface shape, not C layout. M1 will turn these contracts
-into public headers and conformance tests.
+This document fixes interface shape rather than wire layout. M2 implements the
+contracts incrementally in public headers and conformance tests.
 
 ## Simulation lifecycle
 

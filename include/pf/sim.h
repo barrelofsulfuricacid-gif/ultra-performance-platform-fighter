@@ -1,6 +1,7 @@
 #ifndef PF_SIM_H
 #define PF_SIM_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -8,11 +9,173 @@ extern "C"
 {
 #endif
 
-#define PF_SIM_ABI_VERSION UINT32_C(1)
+#define PF_SIM_ABI_VERSION UINT32_C(2)
 #define PF_SIM_TICK_RATE_HZ UINT32_C(60)
+#define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
+#define PF_SIM_RNG_VERSION UINT16_C(1)
+#define PF_SIM_MAX_PLAYERS UINT32_C(4)
+#define PF_Q16_ONE INT32_C(65536)
+
+#define PF_INPUT_BUTTON_JUMP (UINT64_C(1) << 0U)
+#define PF_INPUT_BUTTON_FORFEIT (UINT64_C(1) << 63U)
+#define PF_INPUT_KNOWN_BUTTONS                                             \
+    (PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_FORFEIT)
+
+typedef enum pf_status
+{
+    PF_STATUS_OK = 0,
+    PF_STATUS_INVALID_ARGUMENT = 1,
+    PF_STATUS_UNSUPPORTED_VERSION = 2,
+    PF_STATUS_BUFFER_TOO_SMALL = 3,
+    PF_STATUS_MISALIGNED_MEMORY = 4,
+    PF_STATUS_INVALID_CONFIG = 5,
+    PF_STATUS_TICK_MISMATCH = 6,
+    PF_STATUS_EPISODE_DONE = 7,
+    PF_STATUS_INVALID_STATE = 8,
+    PF_STATUS_DETERMINISTIC_FAULT = 9
+} pf_status;
+
+typedef enum pf_sim_mode
+{
+    PF_SIM_MODE_DUEL = 1,
+    PF_SIM_MODE_TEAMS = 2
+} pf_sim_mode;
+
+typedef enum pf_sim_fault
+{
+    PF_SIM_FAULT_NONE = 0,
+    PF_SIM_FAULT_ARITHMETIC = 1 << 0,
+    PF_SIM_FAULT_CAPACITY = 1 << 1,
+    PF_SIM_FAULT_INVALID_STATE = 1 << 2
+} pf_sim_fault;
+
+typedef struct pf_hash256
+{
+    uint8_t bytes[32];
+} pf_hash256;
+
+typedef struct pf_content_view
+{
+    uint32_t struct_size;
+    uint16_t schema_version;
+    uint16_t reserved;
+    const void *bytes;
+    size_t byte_count;
+    pf_hash256 content_hash;
+} pf_content_view;
+
+typedef struct pf_sim_config
+{
+    uint32_t struct_size;
+    uint16_t schema_version;
+    uint8_t player_count;
+    uint8_t mode;
+    uint64_t max_ticks;
+    int32_t arena_half_width_q16;
+    int32_t arena_ceiling_q16;
+} pf_sim_config;
+
+typedef struct pf_memory_requirements
+{
+    size_t state_bytes;
+    size_t state_alignment;
+    size_t scratch_bytes;
+    size_t scratch_alignment;
+} pf_memory_requirements;
+
+typedef struct pf_input_frame
+{
+    uint64_t tick;
+    uint64_t buttons;
+    int16_t main_stick_x;
+    int16_t main_stick_y;
+    int16_t secondary_stick_x;
+    int16_t secondary_stick_y;
+    uint16_t left_trigger;
+    uint16_t right_trigger;
+    uint16_t schema_version;
+    uint8_t player_slot;
+    uint8_t reserved;
+} pf_input_frame;
+
+typedef struct pf_tick_result
+{
+    uint64_t completed_tick;
+    uint32_t fault_flags;
+    uint8_t terminated;
+    uint8_t truncated;
+    uint8_t winner_mask;
+    uint8_t reserved;
+} pf_tick_result;
+
+typedef struct pf_player_observation
+{
+    uint64_t previous_buttons;
+    int32_t position_x_q16;
+    int32_t position_y_q16;
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint8_t player_slot;
+    uint8_t team;
+    uint8_t grounded;
+    uint8_t active;
+} pf_player_observation;
+
+typedef struct pf_sim_observation
+{
+    uint64_t tick;
+    uint64_t seed;
+    uint32_t fault_flags;
+    uint16_t schema_version;
+    uint8_t player_count;
+    uint8_t mode;
+    uint8_t terminated;
+    uint8_t truncated;
+    uint8_t winner_mask;
+    uint8_t reserved[3];
+    pf_player_observation players[PF_SIM_MAX_PLAYERS];
+} pf_sim_observation;
+
+typedef struct pf_sim pf_sim;
 
 uint32_t pf_sim_abi_version(void);
 uint32_t pf_sim_tick_rate_hz(void);
+const char *pf_status_name(pf_status status);
+
+pf_status pf_sim_default_config(
+    pf_sim_config *out_config,
+    uint8_t player_count,
+    pf_sim_mode mode);
+
+pf_status pf_sim_query_memory(
+    const pf_sim_config *config,
+    pf_memory_requirements *out_requirements);
+
+pf_status pf_sim_init(
+    void *state_memory,
+    size_t state_bytes,
+    void *scratch_memory,
+    size_t scratch_bytes,
+    const pf_content_view *content,
+    const pf_sim_config *config,
+    pf_sim **out_sim);
+
+pf_status pf_sim_reset(pf_sim *sim, uint64_t seed);
+
+pf_status pf_sim_tick(
+    pf_sim *sim,
+    const pf_input_frame *inputs,
+    size_t player_count,
+    pf_tick_result *out_result);
+
+pf_status pf_sim_observe(
+    const pf_sim *sim,
+    pf_sim_observation *out_observation);
 
 #ifdef __cplusplus
 }
