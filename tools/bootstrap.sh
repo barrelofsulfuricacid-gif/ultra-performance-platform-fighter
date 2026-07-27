@@ -168,6 +168,31 @@ fi
 pf_find_host_tools
 pf_validate_compiler
 
+pf_sdl_root="$PF_TOOLCHAINS_DIR/dependencies/SDL3-3.4.12"
+if [ ! -d "$pf_sdl_root" ]; then
+    pf_download_record sdl-source all "$pf_download_root"
+    pf_sdl_temp=$(mktemp -d "$pf_temp_root/sdl.XXXXXX")
+    tar -xzf "$PF_DOWNLOADED_ARCHIVE" \
+        --strip-components=1 \
+        -C "$pf_sdl_temp"
+    mkdir -p "$(dirname "$pf_sdl_root")"
+    mv "$pf_sdl_temp" "$pf_sdl_root"
+fi
+
+pf_sdl_version_header="$pf_sdl_root/include/SDL3/SDL_version.h"
+[ -f "$pf_sdl_version_header" ] ||
+    pf_fail "locked SDL3 source is incomplete: $pf_sdl_root"
+grep -Eq '^#define SDL_MAJOR_VERSION[[:space:]]+3$' \
+    "$pf_sdl_version_header" &&
+    grep -Eq '^#define SDL_MINOR_VERSION[[:space:]]+4$' \
+        "$pf_sdl_version_header" &&
+    grep -Eq '^#define SDL_MICRO_VERSION[[:space:]]+12$' \
+        "$pf_sdl_version_header" ||
+    pf_fail "locked SDL3 source is not version 3.4.12"
+PF_SDL_SOURCE_DIR=$pf_sdl_root
+export PF_SDL_SOURCE_DIR
+echo "sdl-source=3.4.12 path=$PF_SDL_SOURCE_DIR"
+
 if [ "$pf_install_web" -eq 1 ]; then
     command -v python3 >/dev/null 2>&1 ||
         pf_fail "Python 3 is required for the pinned Emscripten SDK"

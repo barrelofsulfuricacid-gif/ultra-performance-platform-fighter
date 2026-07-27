@@ -168,6 +168,45 @@ $hostTools = Find-PFHostTools `
     -PlatformKey $platformKey
 Enter-PFVisualStudio -PlatformKey $platformKey
 
+$sdlRoot = Join-Path $toolchainsDirectory "dependencies\SDL3-3.4.12"
+if (-not (Test-Path -LiteralPath $sdlRoot -PathType Container))
+{
+    $sdlRecord = Get-PFLockRecord -Component sdl-source -Platform all
+    $sdlArchive = Save-PFLockedArchive `
+        -Record $sdlRecord `
+        -Directory $downloadRoot
+    $sdlTemporary = Join-Path $temporaryRoot ("sdl." + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $sdlTemporary | Out-Null
+    & tar.exe `
+        -xzf $sdlArchive `
+        --strip-components=1 `
+        -C $sdlTemporary
+    if ($LASTEXITCODE -ne 0)
+    {
+        Stop-PFToolchain "failed to extract the locked SDL3 archive"
+    }
+    New-Item `
+        -ItemType Directory `
+        -Path (Split-Path -Parent $sdlRoot) `
+        -Force | Out-Null
+    Move-Item -LiteralPath $sdlTemporary -Destination $sdlRoot
+}
+
+$sdlVersionHeader = Join-Path $sdlRoot "include\SDL3\SDL_version.h"
+if (-not (Test-Path -LiteralPath $sdlVersionHeader -PathType Leaf))
+{
+    Stop-PFToolchain "locked SDL3 source is incomplete: $sdlRoot"
+}
+$sdlVersionText = Get-Content -LiteralPath $sdlVersionHeader -Raw
+if ($sdlVersionText -notmatch "(?m)^#define SDL_MAJOR_VERSION\s+3$" -or
+    $sdlVersionText -notmatch "(?m)^#define SDL_MINOR_VERSION\s+4$" -or
+    $sdlVersionText -notmatch "(?m)^#define SDL_MICRO_VERSION\s+12$")
+{
+    Stop-PFToolchain "locked SDL3 source is not version 3.4.12"
+}
+$env:PF_SDL_SOURCE_DIR = $sdlRoot
+Write-Output "sdl-source=3.4.12 path=$sdlRoot"
+
 if ($Web)
 {
     if ($platformKey -ne "windows-x86_64")

@@ -9,16 +9,18 @@ The first permanent foundation slice establishes:
 - `sim`, an authored-C17 static library with a public `pf_` ABI.
 - `headless`, a separate renderer/audio/input-free executable that explicitly
   links only `sim`.
-- Clean `native_client`, `web_client`, `tools`, `benchmarks`, and `verifier`
-  boundary-smoke products that currently link only `sim`.
+- An SDL3 `native_client`, an Emscripten/WebGL 2 `web_client`, and clean
+  `tools`, `benchmarks`, and `verifier` products.
+- A platform-neutral presentation packet shared by the native and browser
+  adapters without entering deterministic state.
 - A fixed 60 Hz simulation contract and versioned ABI smoke surface.
 - Strict warnings-as-errors for GCC, Clang, and MSVC project code.
 - Native direct-compiler and CMake/CTest verification.
 
 This is intentionally not the M2 simulation kernel. Seeded world state, input
 frames, ticks, observations, save/load, and hashing remain M2 work.
-The native and browser targets are boundary smokes, not adoption decisions:
-SDL3 and Emscripten integration remain gated by the M1 platform spikes.
+SDL3 and Emscripten are now adopted for the M1 platform baseline. Final
+renderer performance details remain an M7 evidence decision.
 
 ## M1.3 workflow scaffold
 
@@ -54,9 +56,27 @@ build. LeakSanitizer is left enabled in the preset and CI; only this restricted
 Work Mode container requires `ASAN_OPTIONS=detect_leaks=0` because it cannot
 use the process-inspection facilities LeakSanitizer needs.
 
+The initial clean-machine matrix passed on Linux x64/Arm64, macOS Intel/Arm64,
+Windows x64, the sanitizer lane, and real Chrome/Wasm. It also verified the
+PowerShell setup contract and the pinned MSVC 19.44 compatibility toolset.
+
+## M1.4 native/web platform adoption
+
+The current adoption slice adds:
+
+- Checksum-verified SDL 3.4.12 bootstrap and static native builds.
+- SDL event and gamepad mapping probes.
+- A shared 12-vertex textured/blended render packet.
+- A native GPU-renderer-first path with an ordinary SDL renderer fallback.
+- A WebGL 2 adapter with runtime shader compile/link, one batched draw, and
+  pixel readback.
+- Explicit guards keeping SDL out of `sim` and `headless`.
+
+Detailed local evidence and deferred M7 renderer questions are recorded in
+[`M1_platform_spike.md`](M1_platform_spike.md).
+
 ## Remaining M1 work
 
-- Confirm the first clean-machine CI matrix, including Windows PowerShell and
-  the real Chrome DOM/Wasm smoke.
-- Complete native/web render and platform adoption spikes.
+- Confirm the platform-adoption change on the full clean-machine CI matrix,
+  including the WebGL 2 Chrome draw and Windows/macOS SDL builds.
 - Stop for the mandatory owner setup checkpoint.

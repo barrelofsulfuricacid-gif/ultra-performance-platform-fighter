@@ -42,6 +42,19 @@ $hostTools = Find-PFHostTools `
     -ToolchainsDirectory $toolchainsDirectory `
     -PlatformKey $platformKey
 
+$sdlPresets = @("debug", "sanitizer", "release", "profile")
+if ($sdlPresets -contains $Preset)
+{
+    $sdlRoot = Join-Path $toolchainsDirectory "dependencies\SDL3-3.4.12"
+    $sdlVersionHeader = Join-Path $sdlRoot "include\SDL3\SDL_version.h"
+    if (-not (Test-Path -LiteralPath $sdlVersionHeader -PathType Leaf))
+    {
+        Stop-PFToolchain (
+            "pinned SDL3 source is missing; run .\tools\bootstrap.ps1")
+    }
+    $env:PF_SDL_SOURCE_DIR = $sdlRoot
+}
+
 if ($Preset -eq "web")
 {
     $emsdkCommit = "db04e88298d9916fc51fcd3743045ca3eb695127"

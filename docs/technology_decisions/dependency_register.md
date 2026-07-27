@@ -1,16 +1,16 @@
-# M0 dependency register
+# Dependency register
 
 Research was refreshed from primary project sources on 2026-07-27. These are
-first-spike pins, not yet vendored dependencies. M1 must download exact source
-archives, verify full checksums/licenses, record transitive dependencies, and
-run target conformance before adoption.
+reviewed pins and candidates. An adopted row has a checksum-verified,
+repository-local bootstrap path and boundary/conformance evidence; candidate
+rows still require their representative adoption work.
 
 | Area | First-spike pin | License | Target role | Status |
 |---|---|---|---|---|
-| Build configuration | CMake 4.4.0 / `44125a9` | BSD-3-Clause | Host build tool | Selected |
-| Build executor | Ninja 1.13.2 / `3441b63` | Apache-2.0 | Host build tool | Selected |
-| Native platform | SDL 3.4.12 / `f87239e` | zlib | Windows/macOS/Linux client | Selected |
-| Web toolchain | Emscripten 6.0.3 / `283e2d1` | MIT + NCSA | C/C++ to Wasm | Selected |
+| Build configuration | CMake 4.4.0 / `44125a9` | BSD-3-Clause | Host build tool | Adopted in M1 |
+| Build executor | Ninja 1.13.2 / `3441b63` | Apache-2.0 | Host build tool | Adopted in M1 |
+| Native platform | SDL 3.4.12 / `f87239e` | zlib | Windows/macOS/Linux client | Adopted for M1 client baseline |
+| Web toolchain | Emscripten 6.0.3 / `9074aa5` | MIT + NCSA | C/C++ to Wasm | Adopted in M1 |
 | Debug GUI | Dear ImGui 1.92.8 | MIT | Developer client only | Selected matched version |
 | Generated GUI C API | Dear Bindings 0.21 / `c9ff649` | MIT | Private C++ island | Selected matched version |
 | Rollback reference | GGPO repository, observed 2026-07-27 | MIT | Behavioral reference only | Not linked |
@@ -36,6 +36,12 @@ decision record includes:
 - Security/update owner and replacement procedure.
 - Confirmation that `sim` and the final headless link graph do not acquire the
   dependency accidentally.
+
+The M1 build/platform rows satisfy this gate through
+`dependencies/toolchains.lock.tsv`,
+`docs/technology_decisions/0002-build-platform-and-web.md`, the clean-machine
+CI matrix, and `tools/verify_m1_setup.sh`. The ignored `.toolchains` extraction
+is a verified build input, not vendored source.
 
 Steam Input is a platform service/API rather than a vendored source dependency.
 Its eventual adapter is additive to SDL Gamepad and cannot change normalized

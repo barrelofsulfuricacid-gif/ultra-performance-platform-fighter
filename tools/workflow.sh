@@ -10,9 +10,17 @@ pf_platform_key
 pf_find_host_tools
 
 preset=${1:-debug}
+pf_sdl_root="$PF_TOOLCHAINS_DIR/dependencies/SDL3-3.4.12"
 
 case "$preset" in
-    debug|sanitizer|release|profile|benchmark|headless)
+    debug|sanitizer|release|profile)
+        pf_validate_compiler
+        [ -f "$pf_sdl_root/include/SDL3/SDL_version.h" ] ||
+            pf_fail "pinned SDL3 source is missing; run ./tools/bootstrap.sh"
+        PF_SDL_SOURCE_DIR=$pf_sdl_root
+        export PF_SDL_SOURCE_DIR
+        ;;
+    benchmark|headless)
         pf_validate_compiler
         ;;
     web)

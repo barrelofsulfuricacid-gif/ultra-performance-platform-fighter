@@ -60,8 +60,10 @@ done
 
 "$browser" \
     --headless \
-    --disable-gpu \
     --no-sandbox \
+    --use-gl=angle \
+    --use-angle=swiftshader \
+    --enable-unsafe-swiftshader \
     --virtual-time-budget=10000 \
     --dump-dom \
     "$url" \
@@ -69,6 +71,9 @@ done
 
 grep -Fq \
     'web-client-smoke=pass sim_abi=1 tick_hz=60' \
+    "$dom_output"
+grep -Fq \
+    'webgl2=pass batch_draws=1' \
     "$dom_output"
 
 echo "web-browser-smoke=pass browser=$browser url=$url"

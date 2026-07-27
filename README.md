@@ -49,9 +49,11 @@ The release workflow configures, builds, and tests the native products. The
 same commands accept `debug`, `sanitizer`, `release`, `profile`, `benchmark`,
 and `headless`; `web` uses the browser toolchain described below.
 
-The default native build also creates `native_client`, a host-compiled
-`web_client` source smoke, `tools`, `benchmarks`, and `verifier`. These are
-clean product boundaries; SDL3 and Emscripten adoption remain active M1 spikes.
+The default native build also creates an SDL3 `native_client`, a host-compiled
+`web_client` source smoke, `tools`, `benchmarks`, and `verifier`. The native
+client consumes a platform-neutral render packet through SDL3; the browser
+client consumes the same packet through WebGL 2. Neither dependency crosses
+into `sim` or the `headless` link graph.
 
 Current progress and remaining M1 adoption/checkpoint items are tracked in
 [`docs/milestones/M1_progress.md`](docs/milestones/M1_progress.md).
@@ -82,8 +84,10 @@ On Windows PowerShell:
 Then open
 [`http://127.0.0.1:8000/web_client.html`](http://127.0.0.1:8000/web_client.html).
 The page must contain
-`web-client-smoke=pass sim_abi=1 tick_hz=60`. Clean-machine CI runs this
-generated HTML and Wasm in headless Chrome rather than checking files alone.
+`web-client-smoke=pass sim_abi=1 tick_hz=60 webgl2=pass batch_draws=1`.
+Clean-machine CI runs this generated HTML and Wasm in headless Chrome, compiles
+and links shaders, submits the shared textured/blended batch, and verifies a
+rendered pixel rather than checking files alone.
 
 Validate the complete lock, bootstrap, preset, and CI contract with:
 

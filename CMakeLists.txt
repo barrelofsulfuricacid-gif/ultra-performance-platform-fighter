@@ -20,6 +20,16 @@ option(PF_BUILD_BENCHMARKS "Build the benchmark product boundary" ON)
 option(PF_BUILD_VERIFIER "Build the verifier product boundary" ON)
 option(PF_ENABLE_SANITIZERS "Enable the supported address/UB sanitizers" OFF)
 option(PF_ENABLE_PROFILING "Preserve frame pointers and profiling seams" OFF)
+option(PF_ENABLE_SDL_CLIENT "Build the native client against locked SDL3" OFF)
+option(
+    PF_SDL_UNIX_CONSOLE_BUILD
+    "Allow a Unix SDL build without X11/Wayland (restricted environments only)"
+    OFF)
+set(
+    PF_SDL_SOURCE_DIR
+    ""
+    CACHE PATH
+    "Path to the checksum-verified SDL3 source tree")
 
 add_library(sim STATIC src/sim/sim.c)
 add_library(pf::sim ALIAS sim)
@@ -37,6 +47,51 @@ pf_enable_project_warnings(sim)
 pf_apply_build_mode(sim)
 pf_assert_deterministic_target(sim)
 
+add_library(presentation STATIC src/presentation/render_packet.c)
+add_library(pf::presentation ALIAS presentation)
+target_include_directories(
+    presentation
+    PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
+target_compile_features(presentation PUBLIC c_std_17)
+set_target_properties(
+    presentation
+    PROPERTIES
+        C_EXTENSIONS OFF
+        OUTPUT_NAME pf_presentation)
+pf_enable_project_warnings(presentation)
+pf_apply_build_mode(presentation)
+
+if(PF_ENABLE_SDL_CLIENT)
+    if(NOT EXISTS "${PF_SDL_SOURCE_DIR}/CMakeLists.txt" OR
+       NOT EXISTS "${PF_SDL_SOURCE_DIR}/include/SDL3/SDL_version.h")
+        message(FATAL_ERROR
+            "PF_ENABLE_SDL_CLIENT requires the locked SDL3 source. "
+            "Run tools/bootstrap.sh or tools/bootstrap.ps1.")
+    endif()
+
+    set(SDL_SHARED OFF CACHE BOOL "Do not build shared SDL in-tree" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "Build static SDL in-tree" FORCE)
+    set(SDL_TEST_LIBRARY OFF CACHE BOOL "Do not build SDL test support" FORCE)
+    set(SDL_TESTS OFF CACHE BOOL "Do not build SDL tests" FORCE)
+    set(SDL_EXAMPLES OFF CACHE BOOL "Do not build SDL examples" FORCE)
+    set(SDL_INSTALL OFF CACHE BOOL "Do not install in-tree SDL" FORCE)
+    set(
+        SDL_UNIX_CONSOLE_BUILD
+        "${PF_SDL_UNIX_CONSOLE_BUILD}"
+        CACHE BOOL
+        "Allow SDL without a Unix desktop video backend"
+        FORCE)
+    add_subdirectory(
+        "${PF_SDL_SOURCE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}/third_party/sdl"
+        EXCLUDE_FROM_ALL)
+
+    if(NOT TARGET SDL3::SDL3-static)
+        message(FATAL_ERROR "Locked SDL3 did not provide SDL3::SDL3-static")
+    endif()
+endif()
+
 if(PF_BUILD_HEADLESS)
     add_executable(headless src/headless/main.c)
     target_link_libraries(headless PRIVATE sim)
@@ -53,23 +108,31 @@ if(PF_BUILD_HEADLESS)
     endif()
 endif()
 
-function(pf_add_smoke_product target product_name)
+function(pf_add_smoke_product target product_name render_probe)
     add_executable(${target} src/product/product_main.c)
     target_link_libraries(${target} PRIVATE sim)
+    if(render_probe)
+        target_link_libraries(${target} PRIVATE presentation)
+        set(pf_expected_product_links "sim;presentation")
+    else()
+        set(pf_expected_product_links "sim")
+    endif()
     target_compile_features(${target} PRIVATE c_std_17)
     target_compile_definitions(
         ${target}
         PRIVATE
-            "PF_PRODUCT_NAME=\"${product_name}\"")
+            "PF_PRODUCT_NAME=\"${product_name}\""
+            "PF_PRODUCT_RENDER_PROBE=${render_probe}")
     set_target_properties(${target} PROPERTIES C_EXTENSIONS OFF)
     pf_enable_project_warnings(${target})
     pf_apply_build_mode(${target})
 
     get_target_property(pf_product_link_libraries ${target} LINK_LIBRARIES)
-    if(NOT "${pf_product_link_libraries}" STREQUAL "sim")
+    if(NOT "${pf_product_link_libraries}" STREQUAL
+       "${pf_expected_product_links}")
         message(FATAL_ERROR
-            "${target} may explicitly link only sim in the M1 boundary "
-            "smoke; got: ${pf_product_link_libraries}")
+            "${target} has unexpected explicit M1 boundary links; "
+            "got: ${pf_product_link_libraries}")
     endif()
 
     if(EMSCRIPTEN AND "${target}" STREQUAL "web_client")
@@ -101,14 +164,36 @@ function(pf_add_smoke_product target product_name)
 endfunction()
 
 if(PF_BUILD_NATIVE_CLIENT)
-    pf_add_smoke_product(native_client "native-client")
+    if(PF_ENABLE_SDL_CLIENT)
+        add_executable(native_client src/native_client/main.c)
+        target_link_libraries(
+            native_client
+            PRIVATE
+                sim
+                presentation
+                SDL3::SDL3-static)
+        target_compile_features(native_client PRIVATE c_std_17)
+        set_target_properties(native_client PROPERTIES C_EXTENSIONS OFF)
+        pf_enable_project_warnings(native_client)
+        pf_apply_build_mode(native_client)
+
+        if(BUILD_TESTING)
+            add_test(NAME native_client.smoke COMMAND native_client --smoke)
+            set_tests_properties(
+                native_client.smoke
+                PROPERTIES PASS_REGULAR_EXPRESSION
+                           "native-client-smoke=pass sim_abi=1 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
+        endif()
+    else()
+        pf_add_smoke_product(native_client "native-client" 0)
+    endif()
     set_target_properties(
         native_client
         PROPERTIES OUTPUT_NAME pf_native_client)
 endif()
 
 if(PF_BUILD_WEB_CLIENT)
-    pf_add_smoke_product(web_client "web-client")
+    pf_add_smoke_product(web_client "web-client" 1)
     if(NOT EMSCRIPTEN)
         set_target_properties(
             web_client
@@ -117,23 +202,38 @@ if(PF_BUILD_WEB_CLIENT)
 endif()
 
 if(PF_BUILD_TOOLS)
-    pf_add_smoke_product(tools "tools")
+    pf_add_smoke_product(tools "tools" 0)
     set_target_properties(tools PROPERTIES OUTPUT_NAME pf_tools)
 endif()
 
 if(PF_BUILD_BENCHMARKS)
-    pf_add_smoke_product(benchmarks "benchmarks")
+    pf_add_smoke_product(benchmarks "benchmarks" 0)
     set_target_properties(
         benchmarks
         PROPERTIES OUTPUT_NAME pf_benchmarks)
 endif()
 
 if(PF_BUILD_VERIFIER)
-    pf_add_smoke_product(verifier "verifier")
+    pf_add_smoke_product(verifier "verifier" 0)
     set_target_properties(verifier PROPERTIES OUTPUT_NAME pf_verifier)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(
+        render_packet_test
+        tests/presentation/test_render_packet.c)
+    target_link_libraries(render_packet_test PRIVATE presentation)
+    target_compile_features(render_packet_test PRIVATE c_std_17)
+    set_target_properties(render_packet_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(render_packet_test)
+    pf_apply_build_mode(render_packet_test)
+
+    add_test(NAME presentation.render_packet COMMAND render_packet_test)
+    set_tests_properties(
+        presentation.render_packet
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "render-packet=pass vertices=12 texture=2x2")
+
     add_executable(sim_contract_test tests/sim/test_sim_contract.c)
     target_link_libraries(sim_contract_test PRIVATE sim)
     target_compile_features(sim_contract_test PRIVATE c_std_17)

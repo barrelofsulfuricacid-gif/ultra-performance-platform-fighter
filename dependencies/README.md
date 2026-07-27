@@ -14,8 +14,9 @@ The locked host tools are CMake 4.4.0 and Ninja 1.13.2. The web lane pins:
 
 The bootstrap pre-downloads and verifies both Emscripten payloads before
 allowing emsdk to extract them. This closes emsdk's own missing archive-hash
-check. SDL 3.4.12 is locked here but is not fetched by the host bootstrap; it
-remains gated by the M1 platform-adoption spike.
+check. The host bootstrap also downloads, verifies, and extracts the locked SDL
+3.4.12 source archive into `.toolchains/dependencies`; native client presets
+build it statically without changing a system installation.
 
 ## Native compiler lanes
 

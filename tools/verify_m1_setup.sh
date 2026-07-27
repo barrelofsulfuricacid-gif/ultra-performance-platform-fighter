@@ -191,8 +191,48 @@ grep -Fq -- "--js-library=" "$repository_root/CMakeLists.txt" ||
 grep -Fq "pf_web_set_status" \
     "$repository_root/src/web_client/web_adapter.js" ||
     fail "web JavaScript adapter is missing its status boundary"
+grep -Fq "pf_web_render_probe" \
+    "$repository_root/src/web_client/web_adapter.js" ||
+    fail "web JavaScript adapter is missing its WebGL2 boundary"
+[ -f "$repository_root/include/pf/render_packet.h" ] ||
+    fail "shared render packet contract is missing"
+[ -f "$repository_root/src/native_client/main.c" ] ||
+    fail "SDL3 native-client adapter is missing"
+for native_api in \
+    SDL_CreateGPURenderer \
+    SDL_RenderGeometryRaw \
+    SDL_AddGamepadMapping \
+    SDL_PushEvent
+do
+    grep -Fq "$native_api" "$repository_root/src/native_client/main.c" ||
+        fail "native SDL adapter is missing $native_api"
+done
+for web_api in \
+    'getContext("webgl2"' \
+    'gl.drawArrays' \
+    'gl.readPixels'
+do
+    grep -Fq "$web_api" "$repository_root/src/web_client/web_adapter.js" ||
+        fail "browser renderer adapter is missing $web_api"
+done
+if grep -R -E -n 'SDL3/|SDL_[A-Za-z0-9_]+' \
+    "$repository_root/src/sim" \
+    "$repository_root/src/headless" \
+    "$repository_root/include/pf/sim.h"
+then
+    fail "SDL leaked into sim or headless source"
+fi
+grep -Fq '"PF_ENABLE_SDL_CLIENT": false' "$presets_file" ||
+    fail "isolated presets do not explicitly disable SDL"
 if grep -Fq "EM_ASM" "$repository_root/src/product/product_main.c"; then
     fail "strict authored C contains inline Emscripten JavaScript"
+fi
+
+if command -v node >/dev/null 2>&1; then
+    node --check "$repository_root/src/web_client/web_adapter.js" ||
+        fail "browser JavaScript adapter has invalid syntax"
+else
+    echo "javascript-syntax=deferred-to-web-ci"
 fi
 
 action_uses=$(

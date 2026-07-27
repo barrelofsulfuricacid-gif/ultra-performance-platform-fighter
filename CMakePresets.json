@@ -13,7 +13,10 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "BUILD_TESTING": true,
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "PF_ENABLE_SDL_CLIENT": true,
+        "PF_SDL_SOURCE_DIR": "$env{PF_SDL_SOURCE_DIR}",
+        "PF_SDL_UNIX_CONSOLE_BUILD": "$env{PF_SDL_UNIX_CONSOLE_BUILD}"
       }
     },
     {
@@ -59,7 +62,8 @@
         "PF_BUILD_NATIVE_CLIENT": false,
         "PF_BUILD_TOOLS": false,
         "PF_BUILD_VERIFIER": false,
-        "PF_BUILD_WEB_CLIENT": false
+        "PF_BUILD_WEB_CLIENT": false,
+        "PF_ENABLE_SDL_CLIENT": false
       }
     },
     {
@@ -72,7 +76,8 @@
         "PF_BUILD_NATIVE_CLIENT": false,
         "PF_BUILD_TOOLS": false,
         "PF_BUILD_VERIFIER": false,
-        "PF_BUILD_WEB_CLIENT": false
+        "PF_BUILD_WEB_CLIENT": false,
+        "PF_ENABLE_SDL_CLIENT": false
       }
     },
     {
@@ -90,7 +95,8 @@
         "PF_BUILD_NATIVE_CLIENT": false,
         "PF_BUILD_TOOLS": false,
         "PF_BUILD_VERIFIER": false,
-        "PF_BUILD_WEB_CLIENT": true
+        "PF_BUILD_WEB_CLIENT": true,
+        "PF_ENABLE_SDL_CLIENT": false
       }
     }
   ],
