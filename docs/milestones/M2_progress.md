@@ -24,6 +24,10 @@ The first M2 slice replaces the M1 ABI placeholder with simulation ABI 2 and:
   configuration compatibility identity.
 - Allocation-free save, atomic validated load, compatible-state clone, and
   versioned SHA-256 state hashing.
+- A caller-owned chunked replay format carrying the tick-zero checkpoint,
+  normalized inputs, every per-tick state hash, and the final result.
+- Allocation-free replay verification through the same tick function with
+  exact first-divergence reporting.
 
 The provisional movement constants exercise deterministic arithmetic and state
 transitions only. They are not M4 gameplay tuning and make no claim about
@@ -40,6 +44,11 @@ final movement feel.
   capacity behave as specified.
 - The SHA-256 standard vector, exact save-stream hash, save/load/clone future
   equality, malformed-input rejection, and failed-load atomicity pass.
+- A 180-tick, four-player replay corpus byte-matches between native and
+  WebAssembly, including its complete container and final-state digests.
+- Replay corruption, incompatible content, unknown required chunks, unknown
+  optional chunks, and a deliberate tick-51 hash mismatch follow their
+  documented failure paths.
 - Deterministic object files reference no allocation, platform, I/O,
   wall-clock, or synchronization symbols.
 
@@ -48,9 +57,8 @@ headless workflows. Emscripten compiles the same simulation sources.
 
 ## Remaining M2.1 work
 
-- Replay container, input playback, and per-tick hash corpus.
 - Cross-compiler, operating-system, optimization-level, and WebAssembly hash
-  comparison.
+  comparison beyond the current native/WebAssembly golden corpus.
 
 ## Remaining M2.2 work
 

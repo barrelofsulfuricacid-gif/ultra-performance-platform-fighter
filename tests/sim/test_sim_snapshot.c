@@ -8,13 +8,14 @@
 #include <string.h>
 
 #define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_SAVE_CAPACITY 512U
 #define TEST_TRACE_TICKS UINT64_C(73)
 
 typedef struct test_sim_storage
 {
-    alignas(max_align_t) uint8_t state[TEST_MEMORY_BYTES];
-    alignas(max_align_t) uint8_t scratch[TEST_MEMORY_BYTES];
+    alignas(TEST_MEMORY_ALIGNMENT) uint8_t state[TEST_MEMORY_BYTES];
+    alignas(TEST_MEMORY_ALIGNMENT) uint8_t scratch[TEST_MEMORY_BYTES];
 } test_sim_storage;
 
 static int expect_status(

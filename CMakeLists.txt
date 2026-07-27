@@ -18,6 +18,10 @@ option(PF_BUILD_WEB_CLIENT "Build the web-client product boundary" ON)
 option(PF_BUILD_TOOLS "Build the content/development tools boundary" ON)
 option(PF_BUILD_BENCHMARKS "Build the benchmark product boundary" ON)
 option(PF_BUILD_VERIFIER "Build the verifier product boundary" ON)
+option(
+    PF_BUILD_DETERMINISM_CORPUS
+    "Build the native/WebAssembly replay determinism corpus"
+    ON)
 option(PF_ENABLE_SANITIZERS "Enable the supported address/UB sanitizers" OFF)
 option(PF_ENABLE_PROFILING "Preserve frame pointers and profiling seams" OFF)
 option(PF_ENABLE_SDL_CLIENT "Build the native client against locked SDL3" OFF)
@@ -38,6 +42,7 @@ add_library(
         src/sim/sim_internal.h
         src/sim/sim_sha256.c
         src/sim/sim_sha256.h
+        src/sim/sim_replay.c
         src/sim/sim_snapshot.c
         src/sim/sim_tick.c)
 add_library(pf::sim ALIAS sim)
@@ -54,6 +59,29 @@ set_target_properties(
 pf_enable_project_warnings(sim)
 pf_apply_build_mode(sim)
 pf_assert_deterministic_target(sim)
+
+if(PF_BUILD_DETERMINISM_CORPUS)
+    add_executable(
+        replay_corpus
+        tests/sim/test_replay_corpus.c)
+    target_link_libraries(replay_corpus PRIVATE sim)
+    target_include_directories(
+        replay_corpus
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
+    target_compile_features(replay_corpus PRIVATE c_std_17)
+    set_target_properties(
+        replay_corpus
+        PROPERTIES
+            C_EXTENSIONS OFF
+            OUTPUT_NAME pf_replay_corpus)
+    pf_enable_project_warnings(replay_corpus)
+    pf_apply_build_mode(replay_corpus)
+    if(EMSCRIPTEN)
+        target_link_options(
+            replay_corpus
+            PRIVATE "-sENVIRONMENT=node")
+    endif()
+endif()
 
 add_library(presentation STATIC src/presentation/render_packet.c)
 add_library(pf::presentation ALIAS presentation)
@@ -287,6 +315,14 @@ if(BUILD_TESTING)
         sim.snapshot
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "sim-snapshot=pass bytes=305 hash_algorithm=sha256")
+
+    if(PF_BUILD_DETERMINISM_CORPUS)
+        add_test(NAME sim.replay_corpus COMMAND replay_corpus)
+        set_tests_properties(
+            sim.replay_corpus
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "sim-replay=pass ticks=180 players=4 bytes=30997")
+    endif()
 
     if(PF_BUILD_HEADLESS)
         add_test(NAME headless.smoke COMMAND headless --smoke)

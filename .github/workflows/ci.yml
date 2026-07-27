@@ -133,6 +133,10 @@ jobs:
         shell: bash
         run: ./tools/workflow.sh web
 
+      - name: Compare native and Wasm replay corpus
+        shell: bash
+        run: PF_REQUIRE_WEB_REPLAY=1 ./tools/verify_m2_replay.sh
+
       - name: Run generated Wasm in Chrome
         shell: bash
         run: ./tools/verify_web_smoke.sh

@@ -8,11 +8,12 @@
 #include <string.h>
 
 #define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_ALIGNMENT 64U
 
 typedef struct test_sim_storage
 {
-    alignas(max_align_t) uint8_t state[TEST_MEMORY_BYTES];
-    alignas(max_align_t) uint8_t scratch[TEST_MEMORY_BYTES];
+    alignas(TEST_MEMORY_ALIGNMENT) uint8_t state[TEST_MEMORY_BYTES];
+    alignas(TEST_MEMORY_ALIGNMENT) uint8_t scratch[TEST_MEMORY_BYTES];
 } test_sim_storage;
 
 static int expect_status(
@@ -89,8 +90,8 @@ static int initialize_sim(
     }
     if (requirements.state_bytes > sizeof(storage->state) ||
         requirements.scratch_bytes > sizeof(storage->scratch) ||
-        requirements.state_alignment > alignof(max_align_t) ||
-        requirements.scratch_alignment > alignof(max_align_t))
+        requirements.state_alignment > (size_t)TEST_MEMORY_ALIGNMENT ||
+        requirements.scratch_alignment > (size_t)TEST_MEMORY_ALIGNMENT)
     {
         (void)fprintf(stderr, "sim-world=fail operation=memory-capacity\n");
         return 0;

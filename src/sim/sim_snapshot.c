@@ -385,7 +385,7 @@ static void pf_hash_payload(
     pf_sha256_finish(&hash, digest);
 }
 
-static void pf_hash_config(
+void pf_sim_snapshot_config_hash(
     const pf_world_state *world,
     uint8_t digest[32])
 {
@@ -445,7 +445,7 @@ static void pf_write_save_stream(
     uint8_t config_hash[32];
     uint8_t payload_checksum[32];
 
-    pf_hash_config(world, config_hash);
+    pf_sim_snapshot_config_hash(world, config_hash);
     pf_hash_payload(world, payload_checksum);
     pf_write_header(writer, world, config_hash, payload_checksum);
     pf_write_payload(writer, world);
@@ -593,7 +593,7 @@ pf_status pf_sim_query_save_size(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    if (!pf_sim_is_valid(sim) || sim->has_reset == UINT8_C(0))
+    if (!pf_sim_is_valid(sim))
     {
         return PF_STATUS_INVALID_STATE;
     }
@@ -817,7 +817,7 @@ pf_status pf_sim_load(
         return PF_STATUS_INVALID_STATE;
     }
 
-    pf_hash_config(&sim->world, live_config_hash);
+    pf_sim_snapshot_config_hash(&sim->world, live_config_hash);
     if (!pf_hash_equal(
             content_hash,
             sim->world.content_hash.bytes) ||

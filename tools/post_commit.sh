@@ -51,6 +51,14 @@ status=pass
         status=fail
     fi
 
+    if "$root/tools/verify_m2_replay.sh" \
+        "$evidence_dir/m2_replay"; then
+        echo "m2_replay_verification=pass"
+    else
+        echo "m2_replay_verification=fail"
+        status=fail
+    fi
+
     benchmark_runner="$root/experiments/m0_representation/run_benchmarks.sh"
     if [ -x "$benchmark_runner" ]; then
         if M0_BENCH_MODE=commit "$benchmark_runner" "$evidence_dir"; then

@@ -29,6 +29,7 @@ common_flags="
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
@@ -45,6 +46,7 @@ grep -Fqx \
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
@@ -55,6 +57,23 @@ grep -Fqx \
 grep -Fqx \
     'sim-snapshot=pass bytes=305 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_replay.c" \
+    "$root/src/sim/sim_sha256.c" \
+    "$root/src/sim/sim_snapshot.c" \
+    "$root/src/sim/sim_tick.c" \
+    "$root/tests/sim/test_replay_corpus.c" \
+    -o "$output_dir/replay_corpus"
+
+"$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
+grep -Fqx \
+    'sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=a1008ac5f1d555ccd17a8f17fe48eab6ce08079fd635b26ee08155f0dea44dce final_sha256=335e31f2d830eea582f9e42fe7ee41469f81aa359ee14e661cf68002932d558a' \
+    "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
@@ -71,6 +90,13 @@ grep -Fqx \
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
     -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_replay.c" \
+    -o "$output_dir/sim_replay.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
     -c "$root/src/sim/sim_sha256.c" \
     -o "$output_dir/sim_sha256.o"
 
@@ -83,6 +109,7 @@ grep -Fqx \
 if command -v nm >/dev/null 2>&1; then
     nm -u \
         "$output_dir/sim.o" \
+        "$output_dir/sim_replay.o" \
         "$output_dir/sim_sha256.o" \
         "$output_dir/sim_snapshot.o" \
         "$output_dir/sim_tick.o" \
@@ -98,4 +125,4 @@ else
     echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
 fi
 
-echo "m2-kernel-verification=pass deterministic_ticks=180 players=4 abi=2"
+echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 players=4 abi=2"

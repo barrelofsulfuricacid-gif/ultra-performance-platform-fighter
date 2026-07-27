@@ -97,6 +97,8 @@ const char *pf_status_name(pf_status status)
             return "incompatible-state";
         case PF_STATUS_CHECKSUM_MISMATCH:
             return "checksum-mismatch";
+        case PF_STATUS_REPLAY_MISMATCH:
+            return "replay-mismatch";
         default:
             return "unknown-status";
     }

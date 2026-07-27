@@ -37,6 +37,17 @@ pf_status pf_sim_save(const pf_sim *sim, pf_mut_bytes *destination);
 pf_status pf_sim_load(pf_sim *sim, pf_bytes source);
 pf_status pf_sim_clone(pf_sim *destination, const pf_sim *source);
 pf_status pf_sim_hash(const pf_sim *sim, pf_state_hash *out_hash);
+
+pf_status pf_replay_query_size(
+    const pf_replay_source *source,
+    size_t *out_replay_bytes);
+pf_status pf_replay_encode(
+    const pf_replay_source *source,
+    pf_mut_bytes *destination);
+pf_status pf_replay_verify(
+    pf_sim *sim,
+    pf_bytes replay,
+    pf_replay_verification *out_verification);
 ```
 
 Rules:
@@ -125,6 +136,11 @@ closed. Display metadata is not included in deterministic result hashing.
 Ranked clients sign or authenticate the submitted input/replay envelope. The
 server re-simulates it with the identified headless build/content pair before
 rating is finalized.
+
+Replay format 1 uses five checksummed required chunks and mandatory per-tick
+hashes. Its exact ownership, compatibility, failure, and golden-corpus rules
+are recorded in
+[TDR-0007](../technology_decisions/0007-replay-container.md).
 
 ## Design-data pipeline
 

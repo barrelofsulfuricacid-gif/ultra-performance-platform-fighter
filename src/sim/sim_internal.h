@@ -67,5 +67,8 @@ pf_status pf_sim_tick_impl(
     size_t player_count,
     pf_tick_result *out_result);
 pf_status pf_sim_snapshot_validate_world(const pf_world_state *world);
+void pf_sim_snapshot_config_hash(
+    const pf_world_state *world,
+    uint8_t digest[32]);
 
 #endif
