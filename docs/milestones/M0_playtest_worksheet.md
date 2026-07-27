@@ -1,6 +1,6 @@
 # M0 movement representation playtest worksheet
 
-**Status:** Blind playtest complete; owner representation decision pending.
+**Status:** Complete; Q16.16 approved by the owner.
 
 **Purpose:** Compare the subjective movement feel of the float32 and Q16.16
 candidates before accepting the M0 representation architecture.
@@ -65,8 +65,7 @@ checkpoint.
   snapshot, and determinism evidence?
 - Owner decision: approve Q16.16 / approve float32 / request changes and retest
 
-M0 remains open until the owner selects a representation or explicitly records
-an exception.
+M0 closed when the owner selected a representation on 2026-07-27.
 
 ## Recorded result
 
@@ -75,7 +74,9 @@ an exception.
   `897e5e90c9e96cfd20d38b32c1068fce5ed0c17e`
 - Difference perceptible: No
 - Preferred candidate based on feel: No preference
-- Owner decision: Pending
+- Owner decision: Approve Q16.16
+- Decision basis: No perceptible feel difference; Q16.16 retained the measured
+  throughput and determinism advantages with equal tested motion-state bytes.
 
 Scores and environment details were not supplied and are intentionally left
 blank rather than inferred.

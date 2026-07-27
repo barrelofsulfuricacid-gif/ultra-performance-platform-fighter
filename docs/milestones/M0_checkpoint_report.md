@@ -1,7 +1,6 @@
 # M0 checkpoint report
 
-**Status:** Engineering and blind owner playtest complete; explicit
-representation approval pending.
+**Status:** Complete; Q16.16 accepted by the owner on 2026-07-27.
 
 **Date:** 2026-07-27
 
@@ -52,7 +51,7 @@ No external game assets or third-party game implementation data are present.
 
 ## Representation result
 
-The measured candidate is:
+The accepted architecture is:
 
 - Q16.16 deterministic motion/geometry.
 - High-resolution authored world coordinates rather than a universal 256-cell
@@ -77,12 +76,13 @@ final-engine or machine-independent claims. The complete Pareto reasoning and
 reconsideration triggers are in
 `docs/architecture/representation_decision.md`.
 
-## Human result and open owner decision
+## Human result and owner decision
 
 M0 requires a human comparison of leading quantized and higher-precision
 movement prototypes. On 2026-07-27, the owner completed the corrected blind
 browser playtest and reported no perceptible difference between Q16.16 and
-float32.
+float32. The owner then explicitly selected decision option A and approved
+Q16.16.
 
 The prototype is under `experiments/m0_playtest/`. It randomizes which
 representation is Candidate A/B, feeds both the same keyboard or gamepad input,
@@ -91,8 +91,7 @@ pass-through platforms, and platform drops, and reveals the assignment only
 when requested. The focused protocol and scoring form are in
 `docs/milestones/M0_playtest_worksheet.md`.
 
-No M1 implementation begins until the owner explicitly approves Q16.16,
-approves float32, or requests another retest.
+The M0 human gate is closed and M1 implementation is unblocked.
 
 ## Source research
 

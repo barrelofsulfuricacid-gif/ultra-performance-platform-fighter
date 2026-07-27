@@ -3,10 +3,10 @@
 An original deterministic 2D platform fighter, authored in C and designed for
 native, web, rollback, headless, and reinforcement-learning targets.
 
-The project is currently at **M0: product contract and measured architecture
-decisions**. M0 contains disposable C experiments used to choose
-representations before permanent engine implementation begins. The measured
-candidate and its remaining human checkpoint are summarized in
+The project has completed **M0: product contract and measured architecture
+decisions** and is entering **M1: reproducible foundation**. M0 selected
+Q16.16 deterministic motion and geometry after benchmark, verifier, and blind
+human-playtest evidence. The accepted decision is summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md).
 
 ## Verify the checkpoint
@@ -24,11 +24,11 @@ The milestone benchmark evidence is preserved in
 are relative measurements from one virtualized compatibility key, not
 machine-independent performance claims.
 
-## Run the M0 movement playtest
+## Reproduce the M0 movement playtest
 
-The remaining M0 gate is a blind human comparison of float32 and Q16.16
-movement. The pure-C models, SDL3 client, build instructions, controls, and
-protocol are in
+The completed M0 gate used a blind human comparison of float32 and Q16.16
+movement. The archived pure-C models, SDL3 client, build instructions,
+controls, and protocol remain in
 [`experiments/m0_playtest/`](experiments/m0_playtest/).
 
 ```sh
@@ -39,15 +39,15 @@ ctest --test-dir build/m0_playtest --output-on-failure
 
 Use
 [`docs/milestones/M0_playtest_worksheet.md`](docs/milestones/M0_playtest_worksheet.md)
-to score both hidden candidates before revealing their assignment. M1 remains
-blocked until the owner approves a representation.
+to reproduce the comparison. The owner reported no perceptible difference and
+approved Q16.16 on 2026-07-27; M1 is unblocked.
 
 ## Repository guide
 
 - [`docs/product/`](docs/product/) — gameplay feel, roster coverage, stage,
   and originality contracts.
 - [`docs/architecture/`](docs/architecture/) — deterministic boundaries,
-  data/API contracts, and the proposed representation decision.
+  data/API contracts, and the accepted representation decision.
 - [`docs/technology_decisions/`](docs/technology_decisions/) — authored-C and
   dependency decisions with current pins and licenses.
 - [`experiments/m0_representation/`](experiments/m0_representation/) —

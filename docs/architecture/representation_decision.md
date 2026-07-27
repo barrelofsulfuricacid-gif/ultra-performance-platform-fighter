@@ -1,7 +1,6 @@
 # M0 representation Pareto decision
 
-**Status:** Proposed; blind human playtest complete, explicit owner
-representation approval pending.
+**Status:** Accepted by the owner on 2026-07-27.
 
 **Measured commit:** `9e757df3d4c222ee55d100bd2db7572b94c748fb`
 
@@ -33,7 +32,7 @@ experiment's working arrays, not a final engine budget.
 
 | Concern | Leading result | Baseline | Relative result | Decision |
 |---|---|---|---:|---|
-| Motion arithmetic | Q16.16 fixed | float32 | 1.410× [1.389, 1.440] | Propose Q16.16 |
+| Motion arithmetic | Q16.16 fixed | float32 | 1.410× [1.389, 1.440] | Select Q16.16 |
 | Compact cell motion | 256-cell int8 | float32 | 0.636× [0.626, 0.640] | Reject as universal motion |
 | Hybrid motion | integer position/float velocity | float32 | 0.141× [0.138, 0.147] | Reject tested form |
 | World range | 4096-cell u16 | 256-cell u8 | 1.033× [1.017, 1.055] | Prefer range/precision; speed gain is below noise rule |
@@ -53,7 +52,7 @@ times the 1.63% baseline MAD, so it is not claimed as a meaningful speed win.
 It is preferred because it avoids the severe precision/range compromise
 without demonstrating a material slowdown.
 
-## Proposed architecture candidate A
+## Accepted architecture
 
 1. **Q16.16 deterministic motion and geometry.** Use signed 32-bit stored
    values, signed 64-bit intermediates, explicit rounding, and checked range.
@@ -84,7 +83,7 @@ without demonstrating a material slowdown.
 | Candidate | Precision/range | Cross-target determinism risk | State | Complexity | Expected feel risk |
 |---|---|---|---:|---|---|
 | float32 | High | Highest; compiler/FMA/denormal policy must be controlled | 16 bytes/actor | Low | Lowest before tuning |
-| Q16.16 | High for this game | Low when overflow/rounding is explicit | 16 bytes/actor | Medium | Low, but must be played |
+| Q16.16 | High for this game | Low when overflow/rounding is explicit | 16 bytes/actor | Medium | Low; blind playtest found no perceptible difference |
 | 256-cell int8 | Very low | Low | 4 bytes/actor | Medium | High: coarse movement and collision |
 | tested hybrid | High | Medium; mixed-domain rounding | 24 bytes/actor | High | Medium |
 
@@ -111,10 +110,10 @@ while retaining much finer precision than the quantized candidate.
 - **Blind delta scan:** retain as a correctness diagnostic or when mutation
   sites cannot mark dirty ranges cheaply.
 
-## Unclosed acceptance item
+## Decision closure
 
 The owner completed the corrected blind browser comparison on 2026-07-27 and
 reported no perceptible difference between Q16.16 and float32. That result
-removes the identified feel objection but is not itself an explicit
-representation approval. Candidate A therefore remains proposed, not accepted,
-until the owner approves Q16.16, approves float32, or requests another retest.
+removed the identified feel objection. The owner then selected decision option
+A—approve Q16.16—on 2026-07-27. Q16.16 motion and geometry, together with the
+other selected architecture items above, are the accepted M1 baseline.
