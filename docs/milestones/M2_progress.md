@@ -20,6 +20,10 @@ The first M2 slice replaces the M1 ABI placeholder with simulation ABI 2 and:
   forfeit termination, and time-limit truncation.
 - Atomic rejection of invalid input: a failed tick leaves state unchanged.
 - A structured observation view suitable for kernel conformance tests.
+- A fixed 305-byte canonical little-endian save format with content and
+  configuration compatibility identity.
+- Allocation-free save, atomic validated load, compatible-state clone, and
+  versioned SHA-256 state hashing.
 
 The provisional movement constants exercise deterministic arithmetic and state
 transitions only. They are not M4 gameplay tuning and make no claim about
@@ -34,6 +38,8 @@ final movement feel.
 - A mismatched input tick is rejected without state mutation.
 - Reset, movement, jump edges, termination, truncation, and four-player
   capacity behave as specified.
+- The SHA-256 standard vector, exact save-stream hash, save/load/clone future
+  equality, malformed-input rejection, and failed-load atomicity pass.
 - Deterministic object files reference no allocation, platform, I/O,
   wall-clock, or synchronization symbols.
 
@@ -42,8 +48,6 @@ headless workflows. Emscripten compiles the same simulation sources.
 
 ## Remaining M2.1 work
 
-- Canonical little-endian serialization with validated save/load.
-- Canonical state hashing and cloning.
 - Replay container, input playback, and per-tick hash corpus.
 - Cross-compiler, operating-system, optimization-level, and WebAssembly hash
   comparison.

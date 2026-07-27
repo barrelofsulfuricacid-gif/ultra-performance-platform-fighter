@@ -6,6 +6,8 @@
 #include <stdint.h>
 
 #define PF_SIM_HANDLE_MAGIC UINT64_C(0x504653494D303032)
+#define PF_M2_MAX_HORIZONTAL_SPEED_Q16 INT32_C(131072)
+#define PF_M2_JUMP_SPEED_Q16 INT32_C(196608)
 
 typedef struct pf_world_state
 {
@@ -64,5 +66,6 @@ pf_status pf_sim_tick_impl(
     const pf_input_frame *inputs,
     size_t player_count,
     pf_tick_result *out_result);
+pf_status pf_sim_snapshot_validate_world(const pf_world_state *world);
 
 #endif

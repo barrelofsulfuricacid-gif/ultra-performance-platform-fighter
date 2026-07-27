@@ -36,6 +36,9 @@ add_library(
     STATIC
         src/sim/sim.c
         src/sim/sim_internal.h
+        src/sim/sim_sha256.c
+        src/sim/sim_sha256.h
+        src/sim/sim_snapshot.c
         src/sim/sim_tick.c)
 add_library(pf::sim ALIAS sim)
 target_include_directories(
@@ -264,6 +267,26 @@ if(BUILD_TESTING)
         sim.world
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "sim-world=pass players=4 deterministic_ticks=180")
+
+    add_executable(
+        sim_snapshot_test
+        tests/sim/test_sim_snapshot.c)
+    target_link_libraries(sim_snapshot_test PRIVATE sim)
+    target_include_directories(
+        sim_snapshot_test
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
+    target_compile_features(sim_snapshot_test PRIVATE c_std_17)
+    set_target_properties(
+        sim_snapshot_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(sim_snapshot_test)
+    pf_apply_build_mode(sim_snapshot_test)
+
+    add_test(NAME sim.snapshot COMMAND sim_snapshot_test)
+    set_tests_properties(
+        sim.snapshot
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "sim-snapshot=pass bytes=305 hash_algorithm=sha256")
 
     if(PF_BUILD_HEADLESS)
         add_test(NAME headless.smoke COMMAND headless --smoke)

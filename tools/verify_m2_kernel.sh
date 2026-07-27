@@ -27,7 +27,10 @@ common_flags="
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
     -I"$root/include" \
+    -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_sha256.c" \
+    "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
     "$root/tests/sim/test_sim_world.c" \
     -o "$output_dir/sim_world_test"
@@ -36,6 +39,22 @@ common_flags="
 grep -Fqx \
     'sim-world=pass players=4 deterministic_ticks=180' \
     "$output_dir/sim_world.txt"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_sha256.c" \
+    "$root/src/sim/sim_snapshot.c" \
+    "$root/src/sim/sim_tick.c" \
+    "$root/tests/sim/test_sim_snapshot.c" \
+    -o "$output_dir/sim_snapshot_test"
+
+"$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
+grep -Fqx \
+    'sim-snapshot=pass bytes=305 hash_algorithm=sha256' \
+    "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
@@ -49,8 +68,24 @@ grep -Fqx \
     -c "$root/src/sim/sim_tick.c" \
     -o "$output_dir/sim_tick.o"
 
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -c "$root/src/sim/sim_sha256.c" \
+    -o "$output_dir/sim_sha256.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -c "$root/src/sim/sim_snapshot.c" \
+    -o "$output_dir/sim_snapshot.o"
+
 if command -v nm >/dev/null 2>&1; then
-    nm -u "$output_dir/sim.o" "$output_dir/sim_tick.o" \
+    nm -u \
+        "$output_dir/sim.o" \
+        "$output_dir/sim_sha256.o" \
+        "$output_dir/sim_snapshot.o" \
+        "$output_dir/sim_tick.o" \
         >"$output_dir/undefined_symbols.txt"
     if grep -Eq \
         'calloc|clock_gettime|CreateThread|fopen|fprintf|free|malloc|mtx_|nanosleep|pthread_|printf|realloc|SDL_|Sleep|thrd_| time$' \

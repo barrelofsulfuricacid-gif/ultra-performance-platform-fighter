@@ -18,6 +18,10 @@ extern "C"
 #define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(1)
+#define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
+#define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
+#define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
 #define PF_SIM_MAX_PLAYERS UINT32_C(4)
 #define PF_Q16_ONE INT32_C(65536)
 
@@ -37,7 +41,9 @@ typedef enum pf_status
     PF_STATUS_TICK_MISMATCH = 6,
     PF_STATUS_EPISODE_DONE = 7,
     PF_STATUS_INVALID_STATE = 8,
-    PF_STATUS_DETERMINISTIC_FAULT = 9
+    PF_STATUS_DETERMINISTIC_FAULT = 9,
+    PF_STATUS_INCOMPATIBLE_STATE = 10,
+    PF_STATUS_CHECKSUM_MISMATCH = 11
 } pf_status;
 
 typedef enum pf_sim_mode
@@ -58,6 +64,28 @@ typedef struct pf_hash256
 {
     uint8_t bytes[32];
 } pf_hash256;
+
+typedef struct pf_bytes
+{
+    const uint8_t *bytes;
+    size_t size;
+} pf_bytes;
+
+typedef struct pf_mut_bytes
+{
+    uint8_t *bytes;
+    size_t capacity;
+    size_t size;
+} pf_mut_bytes;
+
+typedef struct pf_state_hash
+{
+    uint16_t algorithm;
+    uint16_t algorithm_version;
+    uint16_t digest_size;
+    uint16_t reserved;
+    uint8_t bytes[PF_SIM_STATE_HASH_BYTES];
+} pf_state_hash;
 
 typedef struct pf_content_view
 {
@@ -176,6 +204,26 @@ pf_status pf_sim_tick(
 pf_status pf_sim_observe(
     const pf_sim *sim,
     pf_sim_observation *out_observation);
+
+pf_status pf_sim_query_save_size(
+    const pf_sim *sim,
+    size_t *out_save_bytes);
+
+pf_status pf_sim_save(
+    const pf_sim *sim,
+    pf_mut_bytes *destination);
+
+pf_status pf_sim_load(
+    pf_sim *sim,
+    pf_bytes source);
+
+pf_status pf_sim_clone(
+    pf_sim *destination,
+    const pf_sim *source);
+
+pf_status pf_sim_hash(
+    const pf_sim *sim,
+    pf_state_hash *out_hash);
 
 #ifdef __cplusplus
 }

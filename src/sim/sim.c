@@ -93,6 +93,10 @@ const char *pf_status_name(pf_status status)
             return "invalid-state";
         case PF_STATUS_DETERMINISTIC_FAULT:
             return "deterministic-fault";
+        case PF_STATUS_INCOMPATIBLE_STATE:
+            return "incompatible-state";
+        case PF_STATUS_CHECKSUM_MISMATCH:
+            return "checksum-mismatch";
         default:
             return "unknown-status";
     }

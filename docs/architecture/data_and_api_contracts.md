@@ -30,8 +30,12 @@ pf_status pf_sim_tick(
     size_t player_count,
     pf_tick_result *out_result);
 
+pf_status pf_sim_query_save_size(
+    const pf_sim *sim,
+    size_t *out_save_bytes);
 pf_status pf_sim_save(const pf_sim *sim, pf_mut_bytes *destination);
 pf_status pf_sim_load(pf_sim *sim, pf_bytes source);
+pf_status pf_sim_clone(pf_sim *destination, const pf_sim *source);
 pf_status pf_sim_hash(const pf_sim *sim, pf_state_hash *out_hash);
 ```
 
@@ -44,6 +48,10 @@ Rules:
 - Query APIs report required capacity without partial silent truncation.
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
+
+Save format 1 is fixed at 305 bytes for state schema 1. Its exact header,
+payload, compatibility, checksum, and atomic-load behavior are recorded in
+[TDR-0006](../technology_decisions/0006-canonical-state-format.md).
 
 ## Normalized input frame
 

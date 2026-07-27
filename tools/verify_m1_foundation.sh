@@ -15,6 +15,8 @@ mkdir -p "$direct_dir" "$cmake_dir"
     -Wwrite-strings \
     -I"$root/include" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_sha256.c" \
+    "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
     "$root/tests/sim/test_sim_contract.c" \
     -o "$direct_dir/sim_contract_test"
@@ -29,6 +31,8 @@ grep -q '^sim-contract=pass abi=2 tick_hz=60$' \
     -Wwrite-strings \
     -I"$root/include" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_sha256.c" \
+    "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
     "$root/src/headless/main.c" \
     -o "$direct_dir/headless"
