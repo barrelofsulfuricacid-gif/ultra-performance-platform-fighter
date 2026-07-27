@@ -75,8 +75,5 @@ headless workflows. Emscripten compiles the same simulation sources.
 
 ## Remaining checkpoint work
 
-- Complete the clean-machine native/WebAssembly and Python CI run for this
-  candidate revision.
-- Publish the deterministic replay inspection artifact and checkpoint report.
 - Mandatory owner review of deterministic replays and the observation/action
   contract.

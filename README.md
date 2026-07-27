@@ -12,6 +12,8 @@ milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
 and
 [`docs/milestones/M1_checkpoint_report.md`](docs/milestones/M1_checkpoint_report.md).
+The M2 candidate evidence and required owner choices are in
+[`docs/milestones/M2_checkpoint_report.md`](docs/milestones/M2_checkpoint_report.md).
 
 ## Verify the checkpoint
 
