@@ -21,6 +21,14 @@ status=pass
         status=fail
     fi
 
+    if "$root/tools/verify_m1_foundation.sh" \
+        "$evidence_dir/m1_foundation"; then
+        echo "m1_foundation_verification=pass"
+    else
+        echo "m1_foundation_verification=fail"
+        status=fail
+    fi
+
     benchmark_runner="$root/experiments/m0_representation/run_benchmarks.sh"
     if [ -x "$benchmark_runner" ]; then
         if M0_BENCH_MODE=commit "$benchmark_runner" "$evidence_dir"; then

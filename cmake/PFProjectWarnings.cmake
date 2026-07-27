@@ -1,0 +1,24 @@
+function(pf_enable_project_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /WX /permissive-)
+    elseif(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(
+            ${target}
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Werror
+                -Wconversion
+                -Wformat=2
+                -Wmissing-prototypes
+                -Wshadow
+                -Wstrict-prototypes
+                -Wundef
+                -Wwrite-strings)
+    else()
+        message(FATAL_ERROR
+            "Strict warning policy is not defined for C compiler "
+            "${CMAKE_C_COMPILER_ID}")
+    endif()
+endfunction()

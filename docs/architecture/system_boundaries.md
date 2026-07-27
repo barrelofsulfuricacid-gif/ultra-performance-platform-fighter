@@ -1,7 +1,7 @@
 # M0 system boundaries
 
-**Status:** Proposed M0 architecture; the numeric representation remains
-subject to the mandatory human checkpoint.
+**Status:** Accepted M1 baseline; Q16.16 was approved at the M0 human
+checkpoint on 2026-07-27.
 
 ## Dependency direction
 
