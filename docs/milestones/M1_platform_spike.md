@@ -32,8 +32,8 @@ only for evidence; it is not a hidden alternate path.
 The local container has neither X11 nor Wayland development headers. Its
 native build therefore used the explicit `PF_SDL_UNIX_CONSOLE_BUILD=ON`
 diagnostic switch and validated SDL's software/offscreen render path. Normal
-bootstrap and CI leave that switch off. Linux CI installs the minimal X11/Xext
-platform SDK headers first, and a missing desktop backend fails configuration
+bootstrap and CI leave that switch off. Linux CI installs the standard X11
+platform SDK set first, and a missing desktop backend fails configuration
 instead of silently producing a non-interactive client.
 
 No Chrome executable is installed in this local environment. The generated
