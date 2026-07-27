@@ -26,23 +26,70 @@ machine-independent performance claims.
 
 ## Build the current M1 foundation
 
-The permanent authored-C `sim` library and renderer-free `headless` smoke
-product require the pinned CMake 4.4 toolchain:
+The repository bootstrap installs and verifies the locked CMake 4.4.0 and
+Ninja 1.13.2 archives inside `.toolchains`, validates the pinned compiler
+compatibility lane, configures the Git hook, and runs a headless smoke build.
+It is safe to rerun.
+
+On Linux or macOS:
 
 ```sh
-cmake -S . -B build/m1 -DCMAKE_BUILD_TYPE=Release
-cmake --build build/m1 --parallel
-ctest --test-dir build/m1 --output-on-failure
-build/m1/headless --smoke
+./tools/bootstrap.sh
+./tools/workflow.sh release
 ```
+
+On Windows PowerShell:
+
+```powershell
+.\tools\bootstrap.ps1
+.\tools\workflow.ps1 release
+```
+
+The release workflow configures, builds, and tests the native products. The
+same commands accept `debug`, `sanitizer`, `release`, `profile`, `benchmark`,
+and `headless`; `web` uses the browser toolchain described below.
 
 The default native build also creates `native_client`, a host-compiled
 `web_client` source smoke, `tools`, `benchmarks`, and `verifier`. These are
 clean product boundaries; SDL3 and Emscripten adoption remain active M1 spikes.
 
-The bootstrap and preset layer is still active M1 work. Current progress and
-remaining acceptance items are tracked in
+Current progress and remaining M1 adoption/checkpoint items are tracked in
 [`docs/milestones/M1_progress.md`](docs/milestones/M1_progress.md).
+
+## Build and serve the browser smoke
+
+The web bootstrap additionally installs the checksum-verified Emscripten 6.0.3
+SDK and its pinned Node.js runtime. Browser-specific JavaScript remains in
+`src/web_client/web_adapter.js`; the product and simulation sources remain
+strict C17.
+
+On Linux or macOS:
+
+```sh
+./tools/bootstrap.sh --web
+./tools/workflow.sh web
+./tools/serve_web.sh
+```
+
+On Windows PowerShell:
+
+```powershell
+.\tools\bootstrap.ps1 -Web
+.\tools\workflow.ps1 web
+.\tools\serve_web.ps1
+```
+
+Then open
+[`http://127.0.0.1:8000/web_client.html`](http://127.0.0.1:8000/web_client.html).
+The page must contain
+`web-client-smoke=pass sim_abi=1 tick_hz=60`. Clean-machine CI runs this
+generated HTML and Wasm in headless Chrome rather than checking files alone.
+
+Validate the complete lock, bootstrap, preset, and CI contract with:
+
+```sh
+./tools/verify_m1_setup.sh
+```
 
 The repository/evidence workflow is documented in
 [`docs/workflow_scaffolding.md`](docs/workflow_scaffolding.md). Validate its

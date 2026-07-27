@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#if PF_PRODUCT_BROWSER
-#include <emscripten.h>
-#endif
-
 #ifndef PF_PRODUCT_NAME
 #error "PF_PRODUCT_NAME must identify the product boundary"
+#endif
+
+#if PF_PRODUCT_BROWSER
+extern void pf_web_set_status(const char *message);
 #endif
 
 static int run_smoke(void)
@@ -43,18 +43,7 @@ static int run_smoke(void)
     (void)puts(message);
 
 #if PF_PRODUCT_BROWSER
-    EM_ASM(
-        {
-            var status = document.getElementById("pf-status");
-            if (!status)
-            {
-                status = document.createElement("pre");
-                status.id = "pf-status";
-                document.body.appendChild(status);
-            }
-            status.textContent = UTF8ToString($0);
-        },
-        message);
+    pf_web_set_status(message);
 #endif
 
     return 0;

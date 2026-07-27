@@ -1,0 +1,288 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 4,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "native-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": true,
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Native debug",
+      "inherits": "native-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "sanitizer",
+      "displayName": "Native address/UB sanitizer",
+      "inherits": "debug",
+      "cacheVariables": {
+        "PF_ENABLE_SANITIZERS": true
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Native release",
+      "inherits": "native-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "profile",
+      "displayName": "Native profile",
+      "inherits": "native-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "PF_ENABLE_PROFILING": true
+      }
+    },
+    {
+      "name": "benchmark",
+      "displayName": "Isolated benchmark products",
+      "inherits": "release",
+      "cacheVariables": {
+        "PF_BUILD_BENCHMARKS": true,
+        "PF_BUILD_HEADLESS": false,
+        "PF_BUILD_NATIVE_CLIENT": false,
+        "PF_BUILD_TOOLS": false,
+        "PF_BUILD_VERIFIER": false,
+        "PF_BUILD_WEB_CLIENT": false
+      }
+    },
+    {
+      "name": "headless",
+      "displayName": "Maximum-throughput headless boundary",
+      "inherits": "release",
+      "cacheVariables": {
+        "PF_BUILD_BENCHMARKS": false,
+        "PF_BUILD_HEADLESS": true,
+        "PF_BUILD_NATIVE_CLIENT": false,
+        "PF_BUILD_TOOLS": false,
+        "PF_BUILD_VERIFIER": false,
+        "PF_BUILD_WEB_CLIENT": false
+      }
+    },
+    {
+      "name": "web",
+      "displayName": "Emscripten browser smoke",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": {
+        "BUILD_TESTING": false,
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "PF_BUILD_BENCHMARKS": false,
+        "PF_BUILD_HEADLESS": false,
+        "PF_BUILD_NATIVE_CLIENT": false,
+        "PF_BUILD_TOOLS": false,
+        "PF_BUILD_VERIFIER": false,
+        "PF_BUILD_WEB_CLIENT": true
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "sanitizer",
+      "configurePreset": "sanitizer"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "profile",
+      "configurePreset": "profile"
+    },
+    {
+      "name": "benchmark",
+      "configurePreset": "benchmark"
+    },
+    {
+      "name": "headless",
+      "configurePreset": "headless"
+    },
+    {
+      "name": "web",
+      "configurePreset": "web"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "sanitizer",
+      "configurePreset": "sanitizer",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "profile",
+      "configurePreset": "profile",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "benchmark",
+      "configurePreset": "benchmark",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "headless",
+      "configurePreset": "headless",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug"
+        },
+        {
+          "type": "build",
+          "name": "debug"
+        },
+        {
+          "type": "test",
+          "name": "debug"
+        }
+      ]
+    },
+    {
+      "name": "sanitizer",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "sanitizer"
+        },
+        {
+          "type": "build",
+          "name": "sanitizer"
+        },
+        {
+          "type": "test",
+          "name": "sanitizer"
+        }
+      ]
+    },
+    {
+      "name": "release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "release"
+        },
+        {
+          "type": "build",
+          "name": "release"
+        },
+        {
+          "type": "test",
+          "name": "release"
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "profile"
+        },
+        {
+          "type": "build",
+          "name": "profile"
+        },
+        {
+          "type": "test",
+          "name": "profile"
+        }
+      ]
+    },
+    {
+      "name": "benchmark",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "benchmark"
+        },
+        {
+          "type": "build",
+          "name": "benchmark"
+        },
+        {
+          "type": "test",
+          "name": "benchmark"
+        }
+      ]
+    },
+    {
+      "name": "headless",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "headless"
+        },
+        {
+          "type": "build",
+          "name": "headless"
+        },
+        {
+          "type": "test",
+          "name": "headless"
+        }
+      ]
+    },
+    {
+      "name": "web",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "web"
+        },
+        {
+          "type": "build",
+          "name": "web"
+        }
+      ]
+    }
+  ]
+}

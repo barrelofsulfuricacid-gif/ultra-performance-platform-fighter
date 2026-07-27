@@ -43,7 +43,7 @@ UBSAN_OPTIONS=halt_on_error=1 \
     >"$output_dir/m0_playtest.txt" \
     2>"$output_dir/m0_playtest-diagnostics.txt"
 
-grep -q '^self-test=pass cases=5 ' "$output_dir/m0_playtest.txt"
+grep -q '^self-test=pass cases=7 ' "$output_dir/m0_playtest.txt"
 
 {
     echo "status=pass"

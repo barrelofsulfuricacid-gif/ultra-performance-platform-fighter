@@ -1,0 +1,105 @@
+name: M1 clean-machine CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m1-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Native ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - macos-15-intel
+          - macos-15
+          - windows-2025
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Bootstrap pinned native tools
+        if: runner.os != 'Windows'
+        shell: bash
+        run: ./tools/bootstrap.sh
+
+      - name: Run native release workflow
+        if: runner.os != 'Windows'
+        shell: bash
+        run: ./tools/workflow.sh release
+
+      - name: Bootstrap pinned native tools
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\tools\bootstrap.ps1
+
+      - name: Run native release workflow
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\tools\workflow.ps1 release
+
+  setup-contract:
+    name: Setup contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Bootstrap without duplicate smoke work
+        shell: bash
+        run: ./tools/bootstrap.sh --no-smoke
+
+      - name: Verify setup, locks, presets, and CI
+        shell: bash
+        run: ./tools/verify_m1_setup.sh
+
+  sanitizer:
+    name: Linux address and UB sanitizers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Bootstrap pinned native tools
+        shell: bash
+        run: ./tools/bootstrap.sh --no-smoke
+
+      - name: Run sanitizer workflow
+        shell: bash
+        run: ./tools/workflow.sh sanitizer
+
+  web:
+    name: Emscripten and Chrome
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Bootstrap pinned web tools
+        shell: bash
+        run: ./tools/bootstrap.sh --web --no-smoke
+
+      - name: Build browser target
+        shell: bash
+        run: ./tools/workflow.sh web
+
+      - name: Run generated Wasm in Chrome
+        shell: bash
+        run: ./tools/verify_web_smoke.sh

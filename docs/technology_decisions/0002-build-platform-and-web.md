@@ -16,16 +16,22 @@ Rendering is not deterministic and does not affect cross-play compatibility.
 Native and web clients consume the same logical render/event outputs even when
 their GPU backends differ.
 
-## Current first-spike pins
+## Locked setup pins
 
-- CMake 4.4.0 (`44125a9`).
-- Ninja 1.13.2 (`3441b63`).
+- CMake 4.4.0 (`44125a9`), with every supported host archive locked by full
+  SHA-256 and byte length.
+- Ninja 1.13.2 (`3441b63`), with every supported host archive locked by full
+  SHA-256 and byte length.
 - SDL 3.4.12 (`f87239e`); official source tarball SHA-256
   `f07b958a9ac5020fb7a44cadb957f658b2149c3c8abb4f63145fac9303249db7`.
-- Emscripten 6.0.3 (`283e2d1`).
+- Emsdk commit `db04e88298d9916fc51fcd3743045ca3eb695127` and
+  Emscripten 6.0.3 release revision
+  `9074aa513b501925adb1361e208932ad32a29a5f`, including locked SDK and
+  Node.js payloads for every supported web host.
 
-M1 records complete downloaded-archive checksums in the lock manifest before
-these become build dependencies.
+The exact archive URLs, sizes, and digests are versioned in
+`dependencies/toolchains.lock.tsv`. SDL remains locked but unfetched until the
+platform-adoption spike passes.
 
 ## Evidence
 

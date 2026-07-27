@@ -36,6 +36,13 @@ status=pass
         status=fail
     fi
 
+    if "$root/tools/verify_m1_setup.sh"; then
+        echo "m1_setup_verification=pass"
+    else
+        echo "m1_setup_verification=fail"
+        status=fail
+    fi
+
     benchmark_runner="$root/experiments/m0_representation/run_benchmarks.sh"
     if [ -x "$benchmark_runner" ]; then
         if M0_BENCH_MODE=commit "$benchmark_runner" "$evidence_dir"; then

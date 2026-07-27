@@ -8,6 +8,7 @@ project(
 
 include(CTest)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(PFBuildModes)
 include(PFDeterministicBoundary)
 include(PFProjectWarnings)
 
@@ -17,6 +18,8 @@ option(PF_BUILD_WEB_CLIENT "Build the web-client product boundary" ON)
 option(PF_BUILD_TOOLS "Build the content/development tools boundary" ON)
 option(PF_BUILD_BENCHMARKS "Build the benchmark product boundary" ON)
 option(PF_BUILD_VERIFIER "Build the verifier product boundary" ON)
+option(PF_ENABLE_SANITIZERS "Enable the supported address/UB sanitizers" OFF)
+option(PF_ENABLE_PROFILING "Preserve frame pointers and profiling seams" OFF)
 
 add_library(sim STATIC src/sim/sim.c)
 add_library(pf::sim ALIAS sim)
@@ -31,6 +34,7 @@ set_target_properties(
         C_EXTENSIONS OFF
         OUTPUT_NAME pf_sim)
 pf_enable_project_warnings(sim)
+pf_apply_build_mode(sim)
 pf_assert_deterministic_target(sim)
 
 if(PF_BUILD_HEADLESS)
@@ -39,6 +43,7 @@ if(PF_BUILD_HEADLESS)
     target_compile_features(headless PRIVATE c_std_17)
     set_target_properties(headless PROPERTIES C_EXTENSIONS OFF)
     pf_enable_project_warnings(headless)
+    pf_apply_build_mode(headless)
 
     get_target_property(pf_headless_link_libraries headless LINK_LIBRARIES)
     if(NOT "${pf_headless_link_libraries}" STREQUAL "sim")
@@ -58,6 +63,7 @@ function(pf_add_smoke_product target product_name)
             "PF_PRODUCT_NAME=\"${product_name}\"")
     set_target_properties(${target} PROPERTIES C_EXTENSIONS OFF)
     pf_enable_project_warnings(${target})
+    pf_apply_build_mode(${target})
 
     get_target_property(pf_product_link_libraries ${target} LINK_LIBRARIES)
     if(NOT "${pf_product_link_libraries}" STREQUAL "sim")
@@ -67,8 +73,18 @@ function(pf_add_smoke_product target product_name)
     endif()
 
     if(EMSCRIPTEN AND "${target}" STREQUAL "web_client")
+        set(pf_web_adapter
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/web_adapter.js")
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=1)
-        target_link_options(${target} PRIVATE "-sASSERTIONS=1")
+        target_link_options(
+            ${target}
+            PRIVATE
+                "-sASSERTIONS=1"
+                "--js-library=${pf_web_adapter}")
+        set_property(
+            TARGET ${target}
+            APPEND
+            PROPERTY LINK_DEPENDS "${pf_web_adapter}")
         set_target_properties(${target} PROPERTIES SUFFIX ".html")
     else()
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=0)
@@ -123,6 +139,7 @@ if(BUILD_TESTING)
     target_compile_features(sim_contract_test PRIVATE c_std_17)
     set_target_properties(sim_contract_test PROPERTIES C_EXTENSIONS OFF)
     pf_enable_project_warnings(sim_contract_test)
+    pf_apply_build_mode(sim_contract_test)
 
     add_test(NAME sim.contract COMMAND sim_contract_test)
     set_tests_properties(

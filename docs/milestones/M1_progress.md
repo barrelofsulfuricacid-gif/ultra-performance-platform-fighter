@@ -29,10 +29,34 @@ by `tools/verify_m1_workflow.sh`. The validator also proves that per-commit
 evidence remains ignored, preventing the post-commit workflow from recursively
 creating commits.
 
+## M1.2 reproducible setup
+
+The setup slice now provides:
+
+- Conceptually matched POSIX shell and Windows PowerShell bootstrap/workflow
+  commands.
+- Repository-local, checksum-verified CMake 4.4.0 and Ninja 1.13.2 installs.
+- Exact Emsdk, Emscripten SDK, and Node.js web payload locks, including byte
+  lengths and SHA-256 digests.
+- Strict compiler lanes for GNU C 13.3.x, Clang 17.0.x, and MSVC 19.44.x.
+- Debug, sanitizer, release, profile, benchmark, headless, and web CMake
+  workflow presets.
+- A strict-C17 web product with its browser-only JavaScript isolated in one
+  adapter.
+- Documented one-command web serving and an automated Chrome DOM/Wasm smoke.
+- Clean-machine CI definitions for Linux x64/Arm64, macOS Intel/Arm64,
+  Windows x64, sanitizers, and Emscripten/Chrome.
+- `tools/verify_m1_setup.sh`, which validates the lock, scripts, presets,
+  boundary, and pinned CI actions.
+
+Local Linux validation has passed for every native preset and the Emscripten
+build. LeakSanitizer is left enabled in the preset and CI; only this restricted
+Work Mode container requires `ASAN_OPTIONS=detect_leaks=0` because it cannot
+use the process-inspection facilities LeakSanitizer needs.
+
 ## Remaining M1 work
 
-- Add pinned POSIX and PowerShell bootstrap flows.
-- Add debug, sanitizer, release, profile, benchmark, headless, and web presets.
-- Add clean-machine Windows, macOS, Linux, and web CI.
+- Confirm the first clean-machine CI matrix, including Windows PowerShell and
+  the real Chrome DOM/Wasm smoke.
 - Complete native/web render and platform adoption spikes.
 - Stop for the mandatory owner setup checkpoint.
