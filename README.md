@@ -12,7 +12,9 @@ human-playtest evidence. The accepted decision is summarized in
 ## Verify the checkpoint
 
 Requirements: a POSIX shell, Git, GCC with C17 support, and standard Unix
-utilities.
+utilities. Native Linux client builds also require the X11 and Xext development
+headers (`libx11-dev` and `libxext-dev` on Ubuntu); headless and web-only
+workflows do not.
 
 ```sh
 tools/verify_m0.sh

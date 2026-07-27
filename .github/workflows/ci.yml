@@ -32,6 +32,15 @@ jobs:
       - name: Check out the exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
+      - name: Install Linux desktop SDK headers
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libx11-dev \
+            libxext-dev
+
       - name: Bootstrap pinned native tools
         if: runner.os != 'Windows'
         shell: bash
@@ -75,6 +84,14 @@ jobs:
     steps:
       - name: Check out the exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install Linux desktop SDK headers
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libx11-dev \
+            libxext-dev
 
       - name: Bootstrap pinned native tools
         shell: bash

@@ -47,6 +47,11 @@ named CMake workflows. No bootstrap modifies a system installation or shell
 profile. Downloads use a temporary partial name and become eligible for
 extraction only after both their byte length and SHA-256 match this lock.
 
+The native Linux workflow additionally needs the operating system's X11 and
+Xext SDK headers. CI installs `libx11-dev` and `libxext-dev` from its recorded
+Ubuntu runner image before bootstrap. These are platform SDK inputs, not linked
+project runtime dependencies; SDL loads the host X11 libraries dynamically.
+
 ## Upgrade procedure
 
 1. Refresh the decision record from primary release sources.

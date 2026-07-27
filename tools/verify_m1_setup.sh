@@ -258,5 +258,10 @@ grep -Fq '.\tools\bootstrap.ps1' "$ci_file" ||
     fail "CI does not exercise the PowerShell bootstrap"
 grep -Fq './tools/verify_web_smoke.sh' "$ci_file" ||
     fail "CI does not run the browser DOM smoke"
+for package in libx11-dev libxext-dev
+do
+    grep -Fq "$package" "$ci_file" ||
+        fail "CI does not install Linux platform SDK package $package"
+done
 
 echo "m1-setup-verification=pass records=24 workflows=7"
