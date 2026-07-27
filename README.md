@@ -4,11 +4,13 @@ An original deterministic 2D platform fighter, authored in C and designed for
 native, web, rollback, headless, and reinforcement-learning targets.
 
 The project has completed **M0: product contract and measured architecture
-decisions** and implemented **M1: reproducible foundation**. M1 is waiting at
-its mandatory owner setup/browser checkpoint. M0 selected Q16.16 deterministic
-motion and geometry after benchmark, verifier, and blind human-playtest
-evidence. The accepted decision is summarized in
-[`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md).
+decisions** and **M1: reproducible foundation**. M2 deterministic simulation
+and reinforcement-learning work is now active. M0 selected Q16.16
+deterministic motion and geometry after benchmark, verifier, and blind
+human-playtest evidence. The accepted milestones are summarized in
+[`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
+and
+[`docs/milestones/M1_checkpoint_report.md`](docs/milestones/M1_checkpoint_report.md).
 
 ## Verify the checkpoint
 

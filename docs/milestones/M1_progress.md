@@ -1,6 +1,6 @@
 # M1 reproducible foundation progress
 
-**Status:** Implementation complete; awaiting mandatory owner checkpoint
+**Status:** Accepted by the owner on 2026-07-27
 
 ## M1.1 repository and build products
 
@@ -89,4 +89,5 @@ controls.
 
 ## Remaining M1 work
 
-- Complete or explicitly waive the mandatory owner setup/browser checkpoint.
+None. The accepted outcome and verification evidence are recorded in
+[`M1_checkpoint_report.md`](M1_checkpoint_report.md).
