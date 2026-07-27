@@ -1,0 +1,37 @@
+function(pf_assert_deterministic_target target)
+    get_target_property(pf_link_libraries ${target} LINK_LIBRARIES)
+    if(pf_link_libraries)
+        message(FATAL_ERROR
+            "The deterministic ${target} target must not link external "
+            "libraries: ${pf_link_libraries}")
+    endif()
+
+    get_target_property(pf_sources ${target} SOURCES)
+    foreach(pf_source IN LISTS pf_sources)
+        if(NOT IS_ABSOLUTE "${pf_source}")
+            set(pf_source "${CMAKE_CURRENT_SOURCE_DIR}/${pf_source}")
+        endif()
+
+        file(READ "${pf_source}" pf_source_text)
+        foreach(pf_forbidden_token IN ITEMS
+                "CreateThread"
+                "SDL_CreateThread"
+                "_beginthread"
+                "_beginthreadex"
+                "emscripten_dispatch"
+                "pthread_create"
+                "std::thread"
+                "thrd_create")
+            string(FIND
+                "${pf_source_text}"
+                "${pf_forbidden_token}"
+                pf_forbidden_offset)
+            if(NOT pf_forbidden_offset EQUAL -1)
+                message(FATAL_ERROR
+                    "Deterministic target ${target} source ${pf_source} "
+                    "contains forbidden thread-creation token "
+                    "${pf_forbidden_token}")
+            endif()
+        endforeach()
+    endforeach()
+endfunction()

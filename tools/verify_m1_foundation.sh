@@ -62,6 +62,55 @@ if [ -n "$cmake_command" ]; then
         fi
     fi
     "$ctest_command" --test-dir "$cmake_dir" --output-on-failure
+
+    run_cmake_smoke()
+    {
+        executable=$1
+        expected=$2
+        output_file=$3
+
+        "$cmake_dir/$executable" --smoke >"$cmake_dir/$output_file"
+        grep -Fqx "$expected" "$cmake_dir/$output_file"
+    }
+
+    run_cmake_smoke \
+        headless \
+        "headless-smoke=pass sim_abi=1 tick_hz=60" \
+        headless.txt
+    run_cmake_smoke \
+        pf_native_client \
+        "native-client-smoke=pass sim_abi=1 tick_hz=60" \
+        native_client.txt
+    run_cmake_smoke \
+        pf_web_client_host_smoke \
+        "web-client-smoke=pass sim_abi=1 tick_hz=60" \
+        web_client.txt
+    run_cmake_smoke \
+        pf_tools \
+        "tools-smoke=pass sim_abi=1 tick_hz=60" \
+        tools.txt
+    run_cmake_smoke \
+        pf_benchmarks \
+        "benchmarks-smoke=pass sim_abi=1 tick_hz=60" \
+        benchmarks.txt
+    run_cmake_smoke \
+        pf_verifier \
+        "verifier-smoke=pass sim_abi=1 tick_hz=60" \
+        verifier.txt
+
+    if command -v nm >/dev/null 2>&1; then
+        nm -u "$cmake_dir/libpf_sim.a" >"$cmake_dir/sim_undefined_symbols.txt"
+        if grep -Eq \
+            'CreateThread|SDL_CreateThread|_beginthread|emscripten_dispatch|pthread_create|thrd_create' \
+            "$cmake_dir/sim_undefined_symbols.txt"; then
+            echo "M1 foundation verification failed: sim references a thread-creation symbol" >&2
+            exit 1
+        fi
+        echo "sim-thread-symbol-validation=pass"
+    else
+        echo "sim-thread-symbol-validation=skipped reason=nm-not-on-path"
+    fi
+
     echo "cmake-validation=pass"
 else
     echo "cmake-validation=skipped reason=cmake-not-on-path"

@@ -36,6 +36,10 @@ ctest --test-dir build/m1 --output-on-failure
 build/m1/headless --smoke
 ```
 
+The default native build also creates `native_client`, a host-compiled
+`web_client` source smoke, `tools`, `benchmarks`, and `verifier`. These are
+clean product boundaries; SDL3 and Emscripten adoption remain active M1 spikes.
+
 The bootstrap and preset layer is still active M1 work. Current progress and
 remaining acceptance items are tracked in
 [`docs/milestones/M1_progress.md`](docs/milestones/M1_progress.md).
