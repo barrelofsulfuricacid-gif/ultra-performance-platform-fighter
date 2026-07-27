@@ -1,5 +1,11 @@
 /build/
 /performance/local/
+/performance/database/*.sqlite
+/performance/database/*.sqlite3
+/performance/database/*.sqlite-shm
+/performance/database/*.sqlite-wal
+/release/output/*
+!/release/output/README.md
 /experiments/m0_playtest/web/node_modules/
 *.o
 *.obj

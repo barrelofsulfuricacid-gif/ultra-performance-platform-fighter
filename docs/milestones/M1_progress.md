@@ -16,10 +16,18 @@ The first permanent foundation slice establishes:
 This is intentionally not the M2 simulation kernel. Seeded world state, input
 frames, ticks, observations, save/load, and hashing remain M2 work.
 
+## M1.3 workflow scaffold
+
+The tracked workflow now includes all required design, generated-data,
+original-asset, performance, verifier-issue, human-feedback, optimization, and
+release locations. Versioned templates and valid lifecycle fixtures are checked
+by `tools/verify_m1_workflow.sh`. The validator also proves that per-commit
+evidence remains ignored, preventing the post-commit workflow from recursively
+creating commits.
+
 ## Remaining M1 work
 
 - Add clean native-client, web-client, tools, benchmark, and verifier targets.
-- Establish the complete tracked directory/template scaffold.
 - Add pinned POSIX and PowerShell bootstrap flows.
 - Add debug, sanitizer, release, profile, benchmark, headless, and web presets.
 - Add clean-machine Windows, macOS, Linux, and web CI.

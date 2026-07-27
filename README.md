@@ -40,6 +40,14 @@ The bootstrap and preset layer is still active M1 work. Current progress and
 remaining acceptance items are tracked in
 [`docs/milestones/M1_progress.md`](docs/milestones/M1_progress.md).
 
+The repository/evidence workflow is documented in
+[`docs/workflow_scaffolding.md`](docs/workflow_scaffolding.md). Validate its
+directories, templates, lifecycle samples, and recursion guard with:
+
+```sh
+./tools/verify_m1_workflow.sh
+```
+
 ## Reproduce the M0 movement playtest
 
 The completed M0 gate used a blind human comparison of float32 and Q16.16
@@ -75,7 +83,7 @@ approved Q16.16 on 2026-07-27; M1 is unblocked.
 
 Every commit invokes `.githooks/post-commit`, which:
 
-1. Runs the M0 evidence verifier and the current M1 foundation checks.
+1. Runs the M0 evidence verifier and the current M1 foundation/workflow checks.
 2. Runs the M0 performance harness until M3 replaces it.
 3. Stores local evidence under `performance/local/commits/<commit>/`.
 
