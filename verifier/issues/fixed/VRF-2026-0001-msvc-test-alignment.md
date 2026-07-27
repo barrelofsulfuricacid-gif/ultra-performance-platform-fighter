@@ -1,12 +1,12 @@
 # [VRF-2026-0001] MSVC test-storage alignment type is unavailable
 
 ID: VRF-2026-0001
-Status: unfixed
+Status: fixed
 Severity: high
 Detected commit: 05fcdd16ee62276a8970f91310072f2f35fa64ae
 Build hash: 05fcdd16ee62276a8970f91310072f2f35fa64ae
 Content hash: not-applicable
-Fixed commit: not-fixed
+Fixed commit: 6052af8a480fbc06db291d1f184e6431c9ecdd72
 
 ## Reproduction
 
@@ -40,12 +40,19 @@ compile; the failure is isolated to test storage.
 
 ## Resolution
 
-Pending corrective commit. Replace the test-only `max_align_t` dependency with
-an explicit 64-byte buffer alignment and retain the runtime assertion that the
-queried state and scratch requirements fit that alignment.
+Corrective commit `6052af8a480fbc06db291d1f184e6431c9ecdd72`
+replaces the test-only `max_align_t` dependency with an explicit 64-byte
+buffer alignment and retains the runtime assertion that queried state and
+scratch requirements fit that alignment. The same declaration is used by the
+world, snapshot, and replay-corpus tests.
 
 ## Fix verification
 
-Pending corrective commit and clean Windows CI rerun. Native GCC debug,
-release, sanitizer, and WebAssembly builds already pass with the proposed
-portable declaration.
+- The following bookkeeping commit moves this report after the corrective
+  commit, preserving the required two-commit relationship.
+- `M2 clean-machine CI` run
+  <https://github.com/barrelofsulfuricacid-gif/ultra-performance-platform-fighter/actions/runs/30305313145>
+  completed the `Native windows-2025` release workflow successfully with MSVC
+  19.44.35228.
+- Local GCC debug, release, sanitizer, strict-C17 kernel, and replay tests pass.
+- The native and Emscripten replay corpus outputs byte-match for all 180 ticks.
