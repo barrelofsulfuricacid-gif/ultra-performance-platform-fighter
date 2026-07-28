@@ -2,13 +2,15 @@
 set -eu
 
 root=$(git rev-parse --show-toplevel)
-output_dir=${1:-"$root/performance/local/m3_performance_qualification"}
+output_root=${1:-"$root/performance/local/m3_performance_qualification"}
+mkdir -p "$output_root"
+output_dir=$(mktemp -d "$output_root/run.XXXXXX")
 graph_dir="$output_dir/graphs"
 database="$output_dir/history.sqlite3"
 manifest="$output_dir/manifest.txt"
 log_file="$output_dir/qualification.log"
 
-mkdir -p "$output_dir" "$graph_dir"
+mkdir -p "$graph_dir"
 "$root/tools/workflow.sh" benchmark
 
 if "$root/build/benchmark/pf_benchmarks" \
