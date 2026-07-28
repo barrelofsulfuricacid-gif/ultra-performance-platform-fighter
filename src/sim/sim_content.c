@@ -78,6 +78,30 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
+    pf_m4_hash_u32(hash, fighter->shield_health_q16);
+    pf_m4_hash_u32(hash, fighter->shield_reset_health_q16);
+    pf_m4_hash_u32(hash, fighter->shield_hold_depletion_q16);
+    pf_m4_hash_u32(hash, fighter->shield_regeneration_q16);
+    pf_m4_hash_u32(hash, fighter->shield_damage_multiplier_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_stun_damage_multiplier_q16);
+    pf_m4_hash_i32(hash, fighter->shield_stun_base_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_defender_pushback_damage_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_defender_pushback_base_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_defender_pushback_scale_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_attacker_pushback_damage_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_attacker_pushback_base_q16);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
@@ -102,6 +126,10 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->tech_in_place_ticks);
     pf_m4_hash_u16(hash, fighter->tech_roll_ticks);
     pf_m4_hash_u16(hash, fighter->knockdown_ticks);
+    pf_m4_hash_u16(hash, fighter->shield_minimum_hold_ticks);
+    pf_m4_hash_u16(hash, fighter->shield_release_ticks);
+    pf_m4_hash_u16(hash, fighter->powershield_window_ticks);
+    pf_m4_hash_u16(hash, fighter->shield_break_ticks);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
 }
 
@@ -209,6 +237,29 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
     fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
     fighter->tech_roll_speed_q16 = PF_Q16_RATIO(1, 5);
+    fighter->shield_health_q16 =
+        UINT32_C(60) * UINT32_C(65536);
+    fighter->shield_reset_health_q16 =
+        UINT32_C(30) * UINT32_C(65536);
+    fighter->shield_hold_depletion_q16 =
+        (uint32_t)PF_Q16_RATIO(7, 25);
+    fighter->shield_regeneration_q16 =
+        (uint32_t)PF_Q16_RATIO(7, 100);
+    fighter->shield_damage_multiplier_q16 =
+        (uint32_t)PF_Q16_RATIO(7, 10);
+    fighter->shield_stun_damage_multiplier_q16 =
+        PF_Q16_RATIO(9, 20);
+    fighter->shield_stun_base_q16 = INT32_C(2) * PF_Q16_ONE;
+    fighter->shield_defender_pushback_damage_q16 =
+        PF_Q16_RATIO(9, 100);
+    fighter->shield_defender_pushback_base_q16 =
+        PF_Q16_RATIO(2, 5);
+    fighter->shield_defender_pushback_scale_q16 =
+        PF_Q16_RATIO(3, 5);
+    fighter->shield_attacker_pushback_damage_q16 =
+        PF_Q16_RATIO(7, 100);
+    fighter->shield_attacker_pushback_base_q16 =
+        PF_Q16_RATIO(1, 50);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->landing_ticks = UINT16_C(4);
@@ -233,6 +284,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->tech_in_place_ticks = UINT16_C(20);
     fighter->tech_roll_ticks = UINT16_C(24);
     fighter->knockdown_ticks = UINT16_C(30);
+    fighter->shield_minimum_hold_ticks = UINT16_C(8);
+    fighter->shield_release_ticks = UINT16_C(15);
+    fighter->powershield_window_ticks = UINT16_C(4);
+    fighter->shield_break_ticks = UINT16_C(180);
     fighter->air_jump_count = UINT8_C(1);
 
     stage = &out_content->stage;
@@ -358,6 +413,47 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->tech_roll_speed_q16 <= INT32_C(0) ||
         fighter->tech_roll_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->shield_health_q16 == UINT32_C(0) ||
+        fighter->shield_health_q16 >
+            PF_SIM_MAX_SHIELD_HEALTH_Q16 ||
+        fighter->shield_reset_health_q16 == UINT32_C(0) ||
+        fighter->shield_reset_health_q16 >
+            fighter->shield_health_q16 ||
+        fighter->shield_hold_depletion_q16 == UINT32_C(0) ||
+        fighter->shield_hold_depletion_q16 >
+            fighter->shield_health_q16 ||
+        fighter->shield_regeneration_q16 == UINT32_C(0) ||
+        fighter->shield_regeneration_q16 >
+            fighter->shield_health_q16 ||
+        fighter->shield_damage_multiplier_q16 == UINT32_C(0) ||
+        fighter->shield_damage_multiplier_q16 >
+            UINT32_C(2) * UINT32_C(65536) ||
+        fighter->shield_stun_damage_multiplier_q16 <= INT32_C(0) ||
+        fighter->shield_stun_damage_multiplier_q16 >
+            INT32_C(2) * PF_Q16_ONE ||
+        fighter->shield_stun_base_q16 <= INT32_C(0) ||
+        fighter->shield_stun_base_q16 >
+            INT32_C(16) * PF_Q16_ONE ||
+        fighter->shield_defender_pushback_damage_q16 <=
+            INT32_C(0) ||
+        fighter->shield_defender_pushback_damage_q16 >
+            PF_Q16_ONE ||
+        fighter->shield_defender_pushback_base_q16 <=
+            INT32_C(0) ||
+        fighter->shield_defender_pushback_base_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->shield_defender_pushback_scale_q16 <=
+            INT32_C(0) ||
+        fighter->shield_defender_pushback_scale_q16 >
+            PF_Q16_ONE ||
+        fighter->shield_attacker_pushback_damage_q16 <=
+            INT32_C(0) ||
+        fighter->shield_attacker_pushback_damage_q16 >
+            PF_Q16_ONE ||
+        fighter->shield_attacker_pushback_base_q16 <=
+            INT32_C(0) ||
+        fighter->shield_attacker_pushback_base_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_x >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_y >
@@ -439,6 +535,15 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->tech_roll_ticks > UINT16_C(240) ||
         fighter->knockdown_ticks == UINT16_C(0) ||
         fighter->knockdown_ticks > UINT16_C(480) ||
+        fighter->shield_minimum_hold_ticks == UINT16_C(0) ||
+        fighter->shield_minimum_hold_ticks > UINT16_C(120) ||
+        fighter->shield_release_ticks == UINT16_C(0) ||
+        fighter->shield_release_ticks > UINT16_C(240) ||
+        fighter->powershield_window_ticks == UINT16_C(0) ||
+        fighter->powershield_window_ticks >=
+            fighter->shield_minimum_hold_ticks ||
+        fighter->shield_break_ticks == UINT16_C(0) ||
+        fighter->shield_break_ticks > UINT16_C(480) ||
         fighter->air_jump_count > UINT8_C(8))
     {
         return PF_STATUS_INVALID_CONFIG;

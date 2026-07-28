@@ -2,16 +2,20 @@
 
 ## Scope
 
-This checkpoint extends the first production-path M4.2 ground attack with the
-first deterministic defensive reaction layer: trajectory DI, SDI, ASDI,
-tumble, missed-tech knockdown, tech in place, and directional ground tech.
+This checkpoint extends the first production-path M4.2 ground attack with
+deterministic hit reaction and the first dense-shield primitive: trajectory
+DI, SDI, ASDI, tumble, missed-tech knockdown, tech in place, directional
+ground tech, shield stop, shield damage/stun/pushback, shield release and
+regeneration, grounded shield break lockout, and physical powershielding.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
 This is still an incremental checkpoint. It does not claim the remaining
-attacks, shields, wall/ceiling techs, get-up choices, tech invulnerability,
-stocks, match completion, or completion of the 61-row non-character-specific
-advanced-technique gate.
+attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
+spot dodge, platform shield drop, grabs, powershield canceling, projectile
+powershields, complete shield-break launch/stun, wall/ceiling techs, get-up
+choices, tech invulnerability, stocks, match completion, or completion of the
+61-row non-character-specific advanced-technique gate.
 
 ## Attack, collision, and ownership
 
@@ -96,25 +100,88 @@ These actions currently return directly to ground idle. Invulnerability,
 missed-tech get-up choices, attack interruption, and wall/ceiling techs remain
 explicit follow-up work and are not implied by these state names.
 
+## Dense shield, shield stop, and release
+
+Either normalized analog trigger at or above the fighter's digital threshold
+raises a full-density shield on frame 1 from supported grounded actionable
+states. Initial dash is deliberately excluded; the fighter must first reach
+run or another shieldable grounded state. Raising shield from run preserves
+horizontal momentum and applies normal traction each tick, producing the
+forward slide required for shield stop.
+
+The current full-density values are data, not hidden constants:
+
+- 60 shield HP, 0.28 HP depletion per held tick, and 0.07 HP regeneration per
+  non-shield tick;
+- an eight-tick minimum hold before release and 15 ticks of ordinary shield
+  release lag;
+- immediate jump cancel from an already active shield or its release state;
+  and
+- reset to 30 HP after the current shield-break lockout.
+
+Shield release regenerates health because the blocking volume is no longer
+active. Holding shield cannot reopen a tech window without a new trigger edge,
+so the existing tech-window/lockout contract remains intact.
+
+## Blocking, shield stun, and powershield
+
+The current physical ground attack intersects the grounded fighter body box as
+the first shield collision volume. A legal block:
+
+- prevents percent gain and launch;
+- applies ordinary hitlag to attacker and defender;
+- applies shield damage equal to base damage multiplied by 0.7;
+- floors shield stun from `(damage * 0.45 + 2) * 200 / 201`;
+- applies defender pushback `(damage * 0.09 + 0.4) * 0.6`, capped at 2; and
+- applies attacker pushback `damage * 0.07 + 0.02`.
+
+The defender resumes in `SHIELD_STUN` after hitlag and cannot act until its
+timer expires. Holding the trigger then returns to shield; releasing it enters
+ordinary shield-release lag.
+
+A physical hit during the first four active shield ticks is a powershield. It
+takes no shield damage, retains the same hitlag and shield stun as an ordinary
+Melee physical block, and uses the larger defender pushback factor of 1. The
+powershield result flag remains inspectable through hitlag and shield stun,
+then clears. Projectile reflection and the special one-frame
+powershield-cancel release path are separate remaining work.
+
+These values follow the Melee dense-shield and pushback tables in
+[SmashWiki's shield reference](https://www.ssbwiki.com/Shield), the four-frame
+physical window and no-damage behavior in its
+[powershield reference](https://www.ssbwiki.com/Power_shield), and the
+traction-preserving input sequence in its
+[shield-stop reference](https://www.ssbwiki.com/Shield-stop).
+
+## Shield break checkpoint boundary
+
+Reaching zero HP, either from holding shield or blocking the current attack,
+enters `SHIELD_BREAK`. The state is grounded, locked, and deterministic for
+180 ticks, ignores further hitboxes during this placeholder lockout, then
+restores 30 shield HP. This is only the canonical state and serialization
+foundation. It does not yet claim Melee's upward shield-break launch,
+landing/knockdown sequence, damage-dependent stun, mash reduction, vulnerability,
+or hit interruption.
+
 ## Canonical state and inspection
 
-State schema 5 / save format 4 adds per-player tech-window and lockout timers,
-digital-trigger edge state, tumble, SDI pulse count and component directions,
-and tech-roll direction. The active magic is `PFSAVE04`; the fixed stream is
-541 bytes: a 140-byte header plus a 401-byte payload.
+State schema 6 / save format 5 adds per-player shield health, shield-stun
+timers, and powershield result state to the existing reaction fields. The
+active magic is `PFSAVE05`; the fixed stream is 569 bytes: a 140-byte header
+plus a 429-byte payload.
 
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 4 exposes percent, hitlag, hitstun, tumble, tech window and
-lockout, trigger-held state, SDI count/direction, tech direction, active
-hitbox bounds, and last-hit metadata. Browser view schema 3 carries the
-reaction fields used by the live state cards.
+Inspection schema 5 exposes percent, hitlag, hitstun, tumble, tech window and
+lockout, trigger-held state, SDI count/direction, tech direction, shield
+health/stun/powershield, active hitbox bounds, and last-hit metadata. Browser
+view schema 4 carries those fields and the live shield bubble.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 28 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 45 focused
 invariants, including:
 
 - attack schedule, facing, whiff, damage, ownership, freeze, launch, hitstun,
@@ -125,15 +192,23 @@ invariants, including:
 - missed tech, in-place tech, directional tech roll, 20-tick window, 40-tick
   lockout, and held-trigger edge behavior;
 - rejection of invalid reaction content;
-- mid-hitlag save/load plus 80 future equal hashes; and
+- run shield stop, the initial-dash shield restriction, hold depletion,
+  minimum hold, bounded action timer, release lag, regeneration, and jump
+  cancel;
+- ordinary block damage/stun/hitlag/pushback, four-tick physical powershield,
+  zero powershield damage, larger powershield pushback, and result-flag
+  clearing;
+- deterministic shield break, placeholder re-hit lockout, reset health, and
+  invalid shield-data rejection;
+- mid-hitlag and mid-shield-hitlag save/load with equal future hashes; and
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
-The 180-tick replay corpus now includes vertical stick and trigger inputs and
-requires observed SDI and tech-window state before encoding. Native and
-WebAssembly runs must agree on all 181 state hashes, the 31,233-byte replay,
-and its final digest.
+The 180-tick replay corpus includes vertical stick and trigger inputs and
+requires observed SDI, tech-window, and shield state before encoding. Native
+and WebAssembly runs must agree on all 181 state hashes, the 31,261-byte
+replay, and its final digest.
 
-The browser startup refuses readiness unless independent movement, attack, and
-reaction probes pass. Its reaction probe uses the production hit path to
-observe an SDI displacement, then verifies trigger edge, window, and lockout
-timers.
+The browser startup refuses readiness unless independent movement, attack,
+reaction, and shield probes pass. The shield probe observes both a normal
+physical block and a four-frame powershield through the production collision
+path.

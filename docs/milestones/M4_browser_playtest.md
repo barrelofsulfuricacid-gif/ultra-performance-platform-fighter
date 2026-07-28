@@ -1,7 +1,7 @@
 # M4 real-simulation browser playtest
 
-This checkpoint runs the production `pf_sim_tick` M4 movement, first combat
-primitive, and hit-reaction controls in WebAssembly. It is no longer the
+This checkpoint runs the production `pf_sim_tick` M4 movement, first attack,
+hit-reaction, and dense-shield primitives in WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
 headless execution.
@@ -15,7 +15,7 @@ headless execution.
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Ground attack | `F` | `/` or Numpad `0` |
-| Tech trigger | `G` | `.` or Numpad `1` |
+| Hold shield / tap tech trigger | `G` | `.` or Numpad `1` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -57,13 +57,34 @@ component produces one SDI pulse. Holding that component does not repeat it.
 The final hitlag input also supplies ASDI and trajectory DI, with full
 perpendicular input reaching the configured 18-degree maximum.
 
-`G`, `.`, and Numpad `1` currently drive the normalized analog-trigger path
-used for tech input; the visible shield action itself is not implemented in
-this checkpoint. A new trigger press opens a 20-tick tech window and a 40-tick
-lockout. A tumbling floor/platform impact with neutral horizontal input enters
+`G`, `.`, and Numpad `1` drive one normalized analog trigger. Hold the key from
+idle, walk, crouch, or run to raise the full-density shield; initial dash
+cannot shield until it reaches run. A run-to-shield transition keeps momentum
+and slides under traction as a shield stop. The translucent player-color
+bubble shrinks with the inspected 60-point shield health.
+
+Holding shield drains 0.28 health per tick. Releasing before eight ticks keeps
+the shield active until that minimum completes, then starts the 15-tick
+`SHIELD RELEASE`; jumping cancels an already active shield or release. Shield
+health regenerates by 0.07 per non-shield tick.
+
+Blocking the current physical attack prevents percent and launch, freezes both
+players in hitlag, applies damage-scaled pushback, and resumes the defender in
+`SHIELD STUN`. Raising shield within four ticks of contact powershields the
+attack: the defender takes no shield damage but keeps ordinary physical
+hitlag/stun and receives the larger Melee-style pushback. The state card shows
+shield health, shield stun, and a powershield indicator.
+
+A new trigger press still opens a 20-tick tech window and a 40-tick lockout. A
+tumbling floor/platform impact with neutral horizontal input enters
 `TECH IN PLACE`; holding left or right enters `TECH ROLL`; missing the window
 enters `KNOCKDOWN`. The current light attack needs substantial accumulated
 damage before its hitstun reaches the 32-tick tumble threshold.
+
+This shield slice does not yet include analog light shield, shield tilt/poke,
+shield SDI, roll/spot dodge, platform shield drop, grab, projectile reflection,
+powershield canceling, or the complete airborne/knockdown/stun shield-break
+sequence.
 
 ## Focused owner checks
 
@@ -106,7 +127,19 @@ damage before its hitstun reaches the 32-tick tumble threshold.
     target's tech key within 20 ticks of landing. Use neutral horizontal input
     for `TECH IN PLACE`, then repeat while holding a direction for `TECH ROLL`.
     Repeat without the tech input and confirm `KNOCKDOWN`.
-15. Repeat with Player 2's arrow-key controls and try both players
+15. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+    health drains, an early key release waits for the eight-tick minimum, and
+    `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
+    confirm `JUMP SQUAT`.
+16. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+    fighter slides forward and slows under traction. Reset, press shield during
+    `INITIAL DASH`, and confirm the fighter does not shield until run.
+17. Hold shield for more than four ticks and block an attack. Confirm no
+    percent is added, shield health drops, both fighters freeze, and the
+    defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
+    before contact; confirm the powershield indicator appears, shield health
+    loses only its normal hold depletion, and pushback is larger.
+18. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -128,11 +161,15 @@ through:
   identity, and canonical combat event; and
 - a production-path target SDI pulse producing a positional shift;
 - a trigger edge producing the 20-tick tech window and 40-tick lockout, with a
-  held trigger counting down rather than retriggering; and
+  held trigger counting down rather than retriggering;
+- a normal physical shield block producing zero percent, shield damage,
+  shield stun, hitlag, and ordinary pushback;
+- a physical attack inside the four-tick powershield window producing zero
+  shield damage and the powershield result; and
 - the native movement oracle covering ledge catch, hang, release, jump, climb,
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
 `playtest=ready input_probe=pass combat_probe=pass reaction_probe=pass
-controls=keyboard-two-player` only after all checks pass. Clean-machine Chrome
-CI also requires that status and the live playtest DOM.
+shield_probe=pass controls=keyboard-two-player` only after all checks pass.
+Clean-machine Chrome CI also requires that status and the live playtest DOM.

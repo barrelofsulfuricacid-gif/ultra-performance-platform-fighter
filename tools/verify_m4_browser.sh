@@ -44,7 +44,7 @@ common_flags="
 
 "$output_dir/m4_web_playtest_test" >"$output_dir/m4_web_playtest.txt"
 grep -Fq \
-    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1 reaction_probe=1' \
+    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1' \
     "$output_dir/m4_web_playtest.txt"
 
 command -v node >/dev/null 2>&1 ||
@@ -70,10 +70,13 @@ grep -Fq \
     'shieldQueued: [false, false]' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 64' \
+    'viewCount !== 70' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" shield_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'controls=keyboard-two-player' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1 reaction_probe=1"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1"

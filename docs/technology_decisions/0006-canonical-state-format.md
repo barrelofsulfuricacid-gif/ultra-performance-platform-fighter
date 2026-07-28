@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–4 / state schemas 1–5
+- **Status:** Accepted for save formats 1–5 / state schemas 1–6
 - **Date:** 2026-07-28
 
 ## Decision
@@ -14,9 +14,11 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 2 | 3 | 140 | 217 | 357 | Canonical ledge-hang, ledge-climb, run-turnaround, and run-brake action IDs; no byte-layout change |
 | 3 | 4 | 140 | 361 | 501 | Damage, pending launch, sequenced last-hit metadata, hitlag/hitstun, resume action, and attack hit masks |
 | 4 | 5 | 140 | 401 | 541 | Tech window/lockout and trigger-edge state, tumble, SDI component/count state, and tech-roll direction |
+| 5 | 6 | 140 | 429 | 569 | Shield health, shield-stun timer, and powershield result state |
 
-The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, or `PFSAVE04`. The
-active M4 runtime emits and accepts format 4 with state schema 5. Earlier
+The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
+`PFSAVE05`. The active M4 runtime emits and accepts format 5 with state schema
+6. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -64,8 +66,11 @@ service-envelope responsibility.
 - Atomicity of every failed load checked by before/after state hash.
 - Mid-hitlag save/load plus equal future combat hashes in
   `tests/sim/test_m4_combat.c`.
+- Mid-shield-hitlag save/load plus equal shield-stun and shield-health
+  continuation hashes in `tests/sim/test_m4_combat.c`.
 - Exact validation and future equality for DI/SDI, tumble, tech-window,
-  lockout, and tech-outcome state in `tests/sim/test_m4_combat.c`.
+  lockout, tech outcome, shield health, shield stun, powershield, and
+  shield-break state in `tests/sim/test_m4_combat.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

@@ -183,6 +183,10 @@ pf_status pf_sim_tick_impl(
             scratch->tech_window_ticks[player_index];
         world->tech_lockout_ticks[player_index] =
             scratch->tech_lockout_ticks[player_index];
+        world->shield_stun_ticks[player_index] =
+            scratch->shield_stun_ticks[player_index];
+        world->shield_health_q16[player_index] =
+            scratch->shield_health_q16[player_index];
         world->hitlag_resume_action[player_index] =
             scratch->hitlag_resume_action[player_index];
         world->attack_hit_mask[player_index] =
@@ -191,6 +195,8 @@ pf_status pf_sim_tick_impl(
             scratch->last_hit_attacker[player_index];
         world->shield_held[player_index] =
             scratch->shield_held[player_index];
+        world->powershield[player_index] =
+            scratch->powershield[player_index];
         world->tumble[player_index] =
             scratch->tumble[player_index];
         world->sdi_pulse_count[player_index] =

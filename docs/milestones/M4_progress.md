@@ -1,7 +1,7 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 movement/ledge core, first M4.2 combat primitive,
-and first hit-reaction/ground-tech layer implemented
+**Status:** In progress; M4.1 movement/ledge core, first M4.2 attack and
+hit-reaction layers, and first dense-shield primitive implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -19,15 +19,16 @@ and first hit-reaction/ground-tech layer implemented
   release, ledge jump, and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-5/save-format-4 contract that serializes every
-  future-affecting movement, attack, hit-reaction, and ground-tech field.
+- A rollback-safe state-schema-6/save-format-5 contract that serializes every
+  future-affecting movement, attack, hit-reaction, ground-tech, and current
+  shield field.
 - Replay format 1 regenerated against the new canonical state schema and real
   attack/hit inputs, with native and WebAssembly comparisons still using the
   same corpus path.
 - A public `pf_m4_inspect` surface for movement state, active ledge claims,
   ledge points, moving-platform geometry, blast zones, percent, hitlag,
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
-  metadata.
+  metadata, plus shield health/stun/powershield state.
 - Twenty-six movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
@@ -78,6 +79,28 @@ and first hit-reaction/ground-tech layer implemented
 The exact first-primitive behavior and intentional remaining scope are fixed in
 [`m4_combat_contract.md`](../product/m4_combat_contract.md).
 
+## Delivered in the first shield slice
+
+- A frame-1 full-density grounded shield using the existing normalized analog
+  triggers, while preserving the trigger-edge tech-window contract.
+- Melee-style run shield stop with retained momentum and traction, plus an
+  explicit oracle that initial dash itself cannot enter shield.
+- Data-defined 60 HP, 0.28/tick hold depletion, 0.07/tick regeneration,
+  eight-tick minimum hold, 15-tick release, and jump out of shield/release.
+- Physical block resolution with zero percent/launch, ordinary hitlag,
+  damage-scaled shield health/stun, Melee-style attacker/defender pushback, and
+  shield-stun continuation.
+- A four-tick physical powershield window with no shield damage, ordinary
+  hitlag/stun, larger Melee defender pushback, and inspectable result state.
+- A deterministic grounded shield-break lockout/reset foundation. The Melee
+  launch, landing, vulnerable mashable stun, and interruption sequence remains
+  explicit follow-up work; the placeholder lockout ignores further hitboxes.
+- Browser shield bubbles, health/stun/powershield diagnostics, hold-to-shield
+  controls on `G` and `.`/Numpad `1`, and an independent normal-block plus
+  powershield startup probe.
+- Mid-shield-hitlag save/load with equal future hashes and focused shield
+  invariants inside the 20,000-tick combat verifier.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -99,6 +122,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A versioned row-by-row registry, deterministic evidence links, and browser
   playtest recipes are required for all 61 rows before M4 can be accepted; none
   may be deferred to a later milestone.
+- Registry schema 1 now exists at
+  [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
+  and is mechanically checked for all 61 ordered rows. Its current gate is
+  blocked: 1 verified, 3 playable, 5 primitive-ready, and 52 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -114,8 +141,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.2 and M4.3 work
 
-- Remaining ground attacks, aerials, specials, recovery, grabs/throws, shields,
-  shield stun/damage, defensive rolls, spot dodge, air dodge, complete
+- Remaining ground attacks, aerials, specials, recovery, grabs/throws, analog
+  light shield, shield size/tilt/pokes and shield SDI, defensive rolls, spot
+  dodge, air dodge, platform shield drop, projectile powershield/reflection,
+  powershield canceling, complete shield-break behavior, complete
   knockback/angle data, stale-move behavior, wall/ceiling techs, missed-tech
   get-up choices, tech invulnerability, stocks, respawn invulnerability, match
   result, and the complete bounded combat-event journal.
@@ -129,15 +158,17 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 16/16 tests.
 - Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 26 movement invariants, 28 attack/reaction invariants,
+- Mechanical oracles: 26 movement invariants, 45 attack/reaction/shield
+  invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
-- Native replay corpus: exact 180-tick attack/reaction trace at 31,233 bytes,
+- Native replay corpus: exact 180-tick attack/reaction/shield trace at 31,261
+  bytes,
   replay SHA-256
-  `feb69cb963cddc95efef39560fa0da1f53a12b5b95256f01e96a373466efa400`,
+  `e5e2cbbd513c7b37617f4138dae472baed2b76075a16286ce69f113fb5b17fd7`,
   final SHA-256
-  `8e9817abd3c9cf89189fae146a44c3acbc00c4090bf461f03b2a00956b1da532`;
+  `d0d2eab988ab7c8597829297601d533c69259ee9f0f8203cd6c385d2ed20db17`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -145,8 +176,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Browser-adapter verification
 
 - Strict-warning native adapter contract: pass
-  (`walk_axis=13500`, `dash_axis=32767`, movement/combat/reaction probes and
-  live rendering).
+  (`walk_axis=13500`, `dash_axis=32767`,
+  movement/combat/reaction/shield probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

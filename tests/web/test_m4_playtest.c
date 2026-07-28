@@ -4,13 +4,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 64
+#define TEST_VIEW_COUNT 70
 #define TEST_PLAYER0_BASE 14
 #define TEST_PLAYER_ACTION 4
 #define TEST_PLAYER_FACING 5
 #define TEST_PLAYER_HITBOX_ACTIVE 14
 #define TEST_PLAYER_TECH_WINDOW 20
 #define TEST_PLAYER_TECH_LOCKOUT 21
+#define TEST_PLAYER_SHIELD_HEALTH 25
+#define TEST_PLAYER_SHIELD_STUN 26
+#define TEST_PLAYER_POWERSHIELD 27
 
 static int test_install_count;
 static int test_render_count;
@@ -19,6 +22,7 @@ static int test_dash_axis;
 static int test_input_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
+static int test_shield_probe;
 static int32_t test_view[TEST_VIEW_COUNT];
 
 void pf_web_m4_playtest_install(
@@ -26,7 +30,8 @@ void pf_web_m4_playtest_install(
     int dash_axis,
     int input_probe_passed,
     int combat_probe_passed,
-    int reaction_probe_passed);
+    int reaction_probe_passed,
+    int shield_probe_passed);
 
 void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -37,7 +42,8 @@ void pf_web_m4_playtest_install(
     int dash_axis,
     int input_probe_passed,
     int combat_probe_passed,
-    int reaction_probe_passed)
+    int reaction_probe_passed,
+    int shield_probe_passed)
 {
     ++test_install_count;
     test_walk_axis = walk_axis;
@@ -45,6 +51,7 @@ void pf_web_m4_playtest_install(
     test_input_probe = input_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
+    test_shield_probe = shield_probe_passed;
 }
 
 void pf_web_m4_playtest_render(
@@ -79,14 +86,15 @@ int main(void)
         test_input_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
-        test_view[0] != 3 ||
+        test_shield_probe != 1 ||
+        test_view[0] != 4 ||
         test_view[1] != 0)
     {
         (void)fprintf(
             stderr,
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
             "dash=%d input_probe=%d combat_probe=%d "
-            "reaction_probe=%d schema=%d tick=%d\n",
+            "reaction_probe=%d shield_probe=%d schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
             test_walk_axis,
@@ -94,6 +102,7 @@ int main(void)
             test_input_probe,
             test_combat_probe,
             test_reaction_probe,
+            test_shield_probe,
             (int)test_view[0],
             (int)test_view[1]);
         return fail("start-and-input-probe");
@@ -177,6 +186,11 @@ int main(void)
             0, 0, 0, 0, 1, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_WINDOW] != 20 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_LOCKOUT] != 40 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_HEALTH] >=
+            60 * 65536 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STUN] != 0 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_POWERSHIELD] != 0 ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 1, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_WINDOW] != 19 ||
@@ -187,12 +201,14 @@ int main(void)
 
     (void)printf(
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
-        "input_probe=%d combat_probe=%d reaction_probe=%d renders=%d\n",
+        "input_probe=%d combat_probe=%d reaction_probe=%d "
+        "shield_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
         test_combat_probe,
         test_reaction_probe,
+        test_shield_probe,
         test_render_count);
     return 0;
 }

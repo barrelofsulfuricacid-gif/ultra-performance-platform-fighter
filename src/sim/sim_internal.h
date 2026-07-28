@@ -9,6 +9,8 @@
 #define PF_SIM_HANDLE_MAGIC UINT64_C(0x504653494D303032)
 #define PF_SIM_MAX_MOTION_SPEED_Q16 INT32_C(262144)
 #define PF_SIM_MAX_DAMAGE_Q16 (UINT32_C(999) * UINT32_C(65536))
+#define PF_SIM_MAX_SHIELD_HEALTH_Q16 \
+    (UINT32_C(100) * UINT32_C(65536))
 #define PF_SIM_MAX_HITSTUN_TICKS UINT16_C(600)
 
 typedef struct pf_world_state
@@ -60,10 +62,13 @@ typedef struct pf_world_state
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_lockout_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t shield_stun_ticks[PF_SIM_MAX_PLAYERS];
+    uint32_t shield_health_q16[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
+    uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
@@ -101,10 +106,13 @@ typedef struct pf_sim_scratch
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t tech_lockout_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t shield_stun_ticks[PF_SIM_MAX_PLAYERS];
+    uint32_t shield_health_q16[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
+    uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];

@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)401)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)429)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x34)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x35)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -479,7 +479,25 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(writer, world->shield_stun_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u32(writer, world->shield_health_q16[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->shield_held[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->powershield[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -745,7 +763,27 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->shield_stun_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->shield_health_q16[player_index] =
+            pf_reader_u32(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->shield_held[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->powershield[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1005,8 +1043,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->tech_window_ticks[player_index];
             const uint16_t tech_lockout =
                 world->tech_lockout_ticks[player_index];
+            const uint16_t shield_stun =
+                world->shield_stun_ticks[player_index];
+            const uint32_t shield_health =
+                world->shield_health_q16[player_index];
             const uint8_t resume_action =
                 world->hitlag_resume_action[player_index];
+            const uint8_t powershield =
+                world->powershield[player_index];
             const uint8_t tumble = world->tumble[player_index];
             const int8_t tech_direction =
                 world->tech_direction[player_index];
@@ -1031,7 +1075,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(480) ||
-                action > (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+                action > (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
                 world->support[player_index] >
                     (uint8_t)PF_M4_SURFACE_PLATFORM ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
@@ -1065,7 +1109,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 tech_window > UINT16_C(120) ||
                 tech_lockout > UINT16_C(240) ||
                 tech_window > tech_lockout ||
+                shield_stun > UINT16_C(600) ||
+                shield_health >
+                    PF_SIM_MAX_SHIELD_HEALTH_Q16 ||
                 world->shield_held[player_index] > UINT8_C(1) ||
+                powershield > UINT8_C(1) ||
                 tumble > UINT8_C(1) ||
                 world->sdi_pulse_count[player_index] >
                     UINT8_C(120) ||
@@ -1103,7 +1151,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (hitlag > UINT16_C(0) &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
-                 resume_action != (uint8_t)PF_M4_ACTION_HITSTUN) ||
+                 resume_action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 resume_action !=
+                     (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+                 resume_action !=
+                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK) ||
                 (hitlag == UINT16_C(0) &&
                  resume_action != UINT8_C(0)) ||
                 (resume_action ==
@@ -1120,11 +1172,67 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                        INT32_C(0) &&
                    world->pending_velocity_y_q16[player_index] ==
                        INT32_C(0)))) ||
+                (resume_action ==
+                     (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+                 (shield_stun == UINT16_C(0) ||
+                  shield_health == UINT32_C(0) ||
+                  hitstun != UINT16_C(0) ||
+                  world->grounded[player_index] == UINT8_C(0) ||
+                  world->pending_velocity_x_q16[player_index] !=
+                      INT32_C(0) ||
+                  world->pending_velocity_y_q16[player_index] !=
+                      INT32_C(0))) ||
+                (resume_action ==
+                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+                 (shield_stun != UINT16_C(0) ||
+                  shield_health != UINT32_C(0) ||
+                  hitstun != UINT16_C(0) ||
+                  world->grounded[player_index] == UINT8_C(0) ||
+                  world->pending_velocity_x_q16[player_index] !=
+                      INT32_C(0) ||
+                  world->pending_velocity_y_q16[player_index] !=
+                      INT32_C(0))) ||
                 (hitlag == UINT16_C(0) &&
                  ((action == (uint8_t)PF_M4_ACTION_HITSTUN) !=
                   (hitstun > UINT16_C(0)))) ||
                 (action == (uint8_t)PF_M4_ACTION_HITSTUN &&
                  world->grounded[player_index] != UINT8_C(0)) ||
+                (hitlag == UINT16_C(0) &&
+                 ((action ==
+                       (uint8_t)PF_M4_ACTION_SHIELD_STUN) !=
+                  (shield_stun > UINT16_C(0)))) ||
+                (shield_stun > UINT16_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+                 (action != (uint8_t)PF_M4_ACTION_HITLAG ||
+                  resume_action !=
+                      (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
+                (shield_health == UINT32_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+                 (action != (uint8_t)PF_M4_ACTION_HITLAG ||
+                  resume_action !=
+                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK)) ||
+                (action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+                 (shield_health != UINT32_C(0) ||
+                  shield_stun != UINT16_C(0) ||
+                  hitlag != UINT16_C(0) ||
+                  hitstun != UINT16_C(0) ||
+                  world->grounded[player_index] == UINT8_C(0))) ||
+                ((action == (uint8_t)PF_M4_ACTION_SHIELD ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_SHIELD_RELEASE) &&
+                 (shield_health == UINT32_C(0) ||
+                  shield_stun != UINT16_C(0) ||
+                  hitlag != UINT16_C(0) ||
+                  hitstun != UINT16_C(0) ||
+                  world->grounded[player_index] == UINT8_C(0))) ||
+                (powershield != UINT8_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+                 (action != (uint8_t)PF_M4_ACTION_HITLAG ||
+                  resume_action !=
+                      (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
                 (tumble != UINT8_C(0) &&
                  action != (uint8_t)PF_M4_ACTION_HITLAG &&
                  action != (uint8_t)PF_M4_ACTION_HITSTUN &&
@@ -1222,7 +1330,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->last_hit_attacker[player_index] != UINT8_C(0) ||
                  world->tech_window_ticks[player_index] != UINT16_C(0) ||
                  world->tech_lockout_ticks[player_index] != UINT16_C(0) ||
+                 world->shield_stun_ticks[player_index] !=
+                     UINT16_C(0) ||
+                 world->shield_health_q16[player_index] !=
+                     UINT32_C(0) ||
                  world->shield_held[player_index] != UINT8_C(0) ||
+                 world->powershield[player_index] != UINT8_C(0) ||
                  world->tumble[player_index] != UINT8_C(0) ||
                  world->sdi_pulse_count[player_index] != UINT8_C(0) ||
                  world->sdi_direction_x[player_index] != INT8_C(0) ||

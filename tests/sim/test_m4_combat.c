@@ -511,6 +511,650 @@ static int run_whiff_and_trade_test(
     return 1;
 }
 
+static int start_normal_shield_block(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection) &&
+           step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection) &&
+           step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection);
+}
+
+static int start_powershield_block(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    return step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               out_inspection) &&
+           step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               out_inspection) &&
+           step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection);
+}
+
+static int run_shield_state_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t run_velocity;
+    uint32_t shield_health;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return fail("shield-state-init");
+    }
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].shield_health_q16 !=
+            content->fighter.shield_health_q16 ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0x4d34434f4d424154)),
+            PF_STATUS_OK,
+            "shield-state-reset"))
+    {
+        return fail("initial-dash-cannot-shield");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(11); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(32767),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("shield-stop-run-setup");
+        }
+    }
+    run_velocity = inspection.players[0].velocity_x_q16;
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        run_velocity <= INT32_C(0) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        inspection.players[0].velocity_x_q16 >= run_velocity ||
+        inspection.players[0].shield_health_q16 !=
+            content->fighter.shield_health_q16 -
+                content->fighter.shield_hold_depletion_q16)
+    {
+        return fail("shield-stop-and-entry");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("shield-minimum-hold-release");
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+        {
+            break;
+        }
+    }
+    if (inspection.players[0].action_state !=
+        (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+    {
+        return fail("shield-release-entry");
+    }
+    shield_health = inspection.players[0].shield_health_q16;
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].shield_health_q16 <= shield_health ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        return fail("shield-regeneration-and-jump-cancel");
+    }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x4d34434f4d424154)),
+            PF_STATUS_OK,
+            "long-shield-reset"))
+    {
+        return fail("long-shield-reset");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("long-shield-hold");
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].action_ticks !=
+            content->fighter.shield_minimum_hold_ticks)
+    {
+        return fail("shield-action-timer-saturates");
+    }
+    return 1;
+}
+
+static int run_shield_block_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage normal_storage;
+    test_sim_storage power_storage;
+    pf_sim *normal = NULL;
+    pf_sim *power = NULL;
+    pf_m4_inspection normal_inspection;
+    pf_m4_inspection power_inspection;
+    const uint32_t shield_damage =
+        (uint32_t)(((uint64_t)content->fighter.jab_damage_q16 *
+                    (uint64_t)content->fighter
+                        .shield_damage_multiplier_q16) >>
+                   16U);
+    const uint32_t normal_expected_health =
+        content->fighter.shield_health_q16 -
+        UINT32_C(8) *
+            content->fighter.shield_hold_depletion_q16 -
+        shield_damage;
+    const uint32_t power_expected_health =
+        content->fighter.shield_health_q16 -
+        content->fighter.shield_hold_depletion_q16;
+    int32_t normal_pushback;
+    uint16_t normal_shield_stun;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &normal_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &normal) ||
+        !initialize_sim(
+            &power_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &power) ||
+        !start_normal_shield_block(normal, &normal_inspection))
+    {
+        return fail("normal-shield-block-setup");
+    }
+    if (normal_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        normal_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        normal_inspection.players[1].damage_q16 != UINT32_C(0) ||
+        normal_inspection.players[1].last_hit_valid != UINT8_C(0) ||
+        normal_inspection.players[1].powershield != UINT8_C(0) ||
+        normal_inspection.players[1].shield_stun_ticks ==
+            UINT16_C(0) ||
+        normal_inspection.players[1].shield_health_q16 !=
+            normal_expected_health ||
+        normal_inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        normal_inspection.players[1].velocity_x_q16 <= INT32_C(0))
+    {
+        return fail("normal-shield-damage-stun-pushback");
+    }
+    normal_pushback =
+        normal_inspection.players[1].velocity_x_q16;
+    normal_shield_stun =
+        normal_inspection.players[1].shield_stun_ticks;
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                normal,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &normal_inspection))
+        {
+            return fail("shield-hitlag-step");
+        }
+    }
+    if (normal_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        normal_inspection.players[1].hitlag_ticks != UINT16_C(0))
+    {
+        return fail("shield-hitlag-resume");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        if (!step_reaction_duel(
+                normal,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &normal_inspection))
+        {
+            return fail("shield-stun-step");
+        }
+        if (normal_inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD)
+        {
+            break;
+        }
+    }
+    if (normal_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        normal_inspection.players[1].shield_stun_ticks !=
+            UINT16_C(0))
+    {
+        return fail("shield-stun-duration");
+    }
+
+    if (!start_powershield_block(power, &power_inspection) ||
+        power_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        power_inspection.players[1].damage_q16 != UINT32_C(0) ||
+        power_inspection.players[1].powershield != UINT8_C(1) ||
+        power_inspection.players[1].shield_health_q16 !=
+            power_expected_health ||
+        power_inspection.players[1].shield_stun_ticks !=
+            normal_shield_stun ||
+        power_inspection.players[1].velocity_x_q16 <=
+            normal_pushback)
+    {
+        return fail("powershield-window-and-zero-damage");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                power,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &power_inspection))
+        {
+            return fail("powershield-hitlag-step");
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        if (!step_reaction_duel(
+                power,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &power_inspection))
+        {
+            return fail("powershield-stun-step");
+        }
+        if (power_inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD)
+        {
+            break;
+        }
+    }
+    if (power_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        power_inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("powershield-indicator-clears");
+    }
+    return 1;
+}
+
+static int make_shield_break_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "shield-break-default-content"))
+    {
+        return 0;
+    }
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
+    out_content->fighter.shield_health_q16 =
+        UINT32_C(4) * UINT32_C(65536);
+    out_content->fighter.shield_reset_health_q16 =
+        UINT32_C(2) * UINT32_C(65536);
+    out_content->fighter.shield_hold_depletion_q16 =
+        UINT32_C(655);
+    out_content->fighter.shield_attacker_pushback_damage_q16 =
+        INT32_C(1);
+    out_content->fighter.shield_attacker_pushback_base_q16 =
+        INT32_C(1);
+    out_content->fighter.shield_break_ticks = UINT16_C(20);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "shield-break-content-view");
+}
+
+static int run_shield_break_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t break_elapsed = UINT32_C(0);
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !start_normal_shield_block(sim, &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].shield_health_q16 != UINT32_C(0) ||
+        inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("shield-break-hit-setup");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return fail("shield-break-hitlag");
+        }
+    }
+    if (inspection.players[1].action_state !=
+        (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+    {
+        return fail("shield-break-state");
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(16) &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return fail("shield-break-lockout");
+        }
+        ++break_elapsed;
+        if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+        {
+            return fail("shield-break-ended-before-rehit");
+        }
+    }
+    if (inspection.players[0].action_state !=
+        (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return fail("shield-break-rehit-attacker-ready");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return fail("shield-break-rehit-step");
+        }
+        ++break_elapsed;
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
+        inspection.players[1].damage_q16 != UINT32_C(0) ||
+        inspection.players[1].shield_health_q16 != UINT32_C(0))
+    {
+        return fail("shield-break-placeholder-rehit-lockout");
+    }
+    while (break_elapsed <
+           (uint32_t)content->fighter.shield_break_ticks)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return fail("shield-break-lockout-completion");
+        }
+        ++break_elapsed;
+        if (break_elapsed <
+                (uint32_t)content->fighter.shield_break_ticks &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+        {
+            return fail("shield-break-lockout-duration");
+        }
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[1].shield_health_q16 !=
+            content->fighter.shield_reset_health_q16)
+    {
+        return fail("shield-break-reset-health");
+    }
+    return 1;
+}
+
 static int start_reaction_hit(
     pf_sim *sim,
     pf_m4_inspection *out_inspection)
@@ -915,7 +1559,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)541)
+        save_size != (size_t)569)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -984,6 +1628,119 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
     return 1;
 }
 
+static int run_shield_hitlag_snapshot_test(
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !start_normal_shield_block(source, &source_inspection) ||
+        source_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        source_inspection.players[1].shield_stun_ticks ==
+            UINT16_C(0) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "query-shield-save-size") ||
+        save_size != (size_t)569)
+    {
+        return fail("mid-shield-hitlag-save-setup");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "save-mid-shield-hitlag") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "load-mid-shield-hitlag") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "hash-source-mid-shield-hitlag") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "hash-loaded-mid-shield-hitlag") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("mid-shield-hitlag-round-trip");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(40); ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "hash-source-shield-continuation") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "hash-loaded-shield-continuation") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail(
+                "mid-shield-hitlag-deterministic-continuation");
+        }
+    }
+    return 1;
+}
+
 static void make_trace_inputs(
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
     uint64_t tick)
@@ -1025,6 +1782,12 @@ static void make_trace_inputs(
         {
             inputs[player_index].main_stick_y = INT16_C(32767);
         }
+        if ((tick + UINT64_C(5) * (uint64_t)player_index) %
+                UINT64_C(127) <
+            UINT64_C(12))
+        {
+            inputs[player_index].left_trigger = UINT16_MAX;
+        }
     }
 }
 
@@ -1042,6 +1805,7 @@ static int run_deterministic_trace(const pf_content_view *view)
     pf_m4_inspection inspection;
     uint64_t tick;
     int saw_hit = 0;
+    int saw_shield = 0;
 
     if (!initialize_sim(
             &left_storage,
@@ -1112,41 +1876,69 @@ static int run_deterministic_trace(const pf_content_view *view)
                 {
                     saw_hit = 1;
                 }
+                if (inspection.players[player_index].action_state ==
+                        (uint8_t)PF_M4_ACTION_SHIELD ||
+                    inspection.players[player_index]
+                            .shield_health_q16 <
+                        UINT32_C(60) * UINT32_C(65536))
+                {
+                    saw_shield = 1;
+                }
             }
         }
     }
-    return saw_hit != 0 || fail("trace-did-not-exercise-combat");
+    return (saw_hit != 0 && saw_shield != 0) ||
+           fail("trace-did-not-exercise-combat-and-shield");
 }
 
 int main(void)
 {
     pf_m4_content content;
     pf_m4_content invalid_content;
+    pf_m4_content invalid_shield_content;
     pf_m4_content reaction_content;
+    pf_m4_content shield_break_content;
     pf_content_view view;
     pf_content_view reaction_view;
+    pf_content_view shield_break_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_reaction_content(
             &reaction_content,
-            &reaction_view))
+            &reaction_view) ||
+        !make_shield_break_content(
+            &shield_break_content,
+            &shield_break_view))
     {
         return 1;
     }
     invalid_content = content;
     invalid_content.fighter.jab_knockback_growth_q16 =
         INT32_C(4) * PF_Q16_ONE;
+    invalid_shield_content = content;
+    invalid_shield_content.fighter.shield_release_ticks =
+        UINT16_C(0);
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-overflowing-knockback") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_shield_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-shield-data") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_whiff_and_trade_test(&content, &view) ||
+        !run_shield_state_test(&content, &view) ||
+        !run_shield_block_test(&content, &view) ||
+        !run_shield_break_test(
+            &shield_break_content,
+            &shield_break_view) ||
         !run_di_and_sdi_test(
             &reaction_content,
             &reaction_view) ||
         !run_knockdown_and_tech_test(&reaction_view) ||
         !run_hitlag_snapshot_test(&view) ||
+        !run_shield_hitlag_snapshot_test(&view) ||
         !run_deterministic_trace(&view))
     {
         return 1;
@@ -1154,7 +1946,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=28\n",
+        " combat_invariants=45\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

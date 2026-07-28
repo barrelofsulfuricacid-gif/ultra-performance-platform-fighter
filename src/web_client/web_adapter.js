@@ -441,13 +441,14 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiii",
+  pf_web_m4_playtest_install__sig: "viiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
     inputProbePassed,
     combatProbePassed,
-    reactionProbePassed
+    reactionProbePassed,
+    shieldProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -524,8 +525,11 @@ mergeInto(LibraryManager.library, {
     var live = document.createElement("span");
     live.className = "pf-m4-live";
     live.textContent =
-      inputProbePassed && combatProbePassed && reactionProbePassed
-        ? "INPUT + COMBAT + REACTION PROBES PASSED"
+      inputProbePassed &&
+      combatProbePassed &&
+      reactionProbePassed &&
+      shieldProbePassed
+        ? "INPUT + COMBAT + REACTION + SHIELD PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -573,13 +577,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash or DI · Shift + A / D walk · W or Space jump · F attack · G tech trigger · W / S vertical DI"
+        "A / D dash or DI · Shift + A / D walk · W or Space jump · F attack · Hold G shield / tap G to tech · W / S vertical DI"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 attack · . or Numpad 1 tech trigger · ↑ / ↓ vertical DI"
+        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 attack · Hold . or Numpad 1 to shield / tap to tech · ↑ / ↓ vertical DI"
       )
     );
     section.appendChild(controls);
@@ -596,8 +600,10 @@ mergeInto(LibraryManager.library, {
       "release, or jump to ledge-jump. F and / perform the first data-driven " +
       "ground attack; translucent boxes show its active frames. During hitlag, " +
       "change stick direction for SDI and hold a launch direction for DI. Press " +
-      "G or . shortly before a tumble landing to tech in place; hold left or " +
-      "right to tech-roll. R resets, P " +
+      "Hold G or . on the ground for a real draining shield; fresh shields " +
+      "powershield during their four-tick window, while releases have 15 ticks " +
+      "of lag. Tap the same trigger shortly before a tumble landing to tech in " +
+      "place; hold left or right to tech-roll. R resets, P " +
       "pauses, and N single-steps.";
     section.appendChild(note);
 
@@ -816,12 +822,16 @@ mergeInto(LibraryManager.library, {
         (combatProbePassed ? "pass" : "fail") +
         " reaction_probe=" +
         (reactionProbePassed ? "pass" : "fail") +
+        " shield_probe=" +
+        (shieldProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.reactionProbe =
         reactionProbePassed ? "pass" : "fail";
+      status.dataset.shieldProbe =
+        shieldProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -829,7 +839,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 64) {
+    if (!state || viewCount !== 70) {
       return;
     }
     state.latest = new Int32Array(
@@ -867,6 +877,10 @@ mergeInto(LibraryManager.library, {
       "KNOCKDOWN",
       "TECH IN PLACE",
       "TECH ROLL",
+      "SHIELD",
+      "SHIELD STUN",
+      "SHIELD RELEASE",
+      "SHIELD BREAK",
     ];
 
     function sx(q16Value) {
@@ -917,7 +931,7 @@ mergeInto(LibraryManager.library, {
     context.stroke();
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 14 + playerIndex * 25;
+      var base = 14 + playerIndex * 28;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -927,6 +941,10 @@ mergeInto(LibraryManager.library, {
       var width = Math.max(14, halfWidth * 2);
       var height = Math.max(28, halfHeight * 2);
       var facing = view[base + 5];
+      var shielding =
+        view[base + 4] === 18 ||
+        view[base + 4] === 19 ||
+        (view[base + 4] === 13 && view[base + 26] > 0);
 
       if (view[base + 14]) {
         var hitboxLeft = sx(view[base + 15]);
@@ -949,6 +967,24 @@ mergeInto(LibraryManager.library, {
           hitboxRight - hitboxLeft,
           hitboxBottom - hitboxTop
         );
+      }
+
+      if (shielding) {
+        var shieldFraction = Math.max(
+          0,
+          Math.min(1, view[base + 25] / (60 * q16))
+        );
+        var shieldRadius =
+          Math.max(width, height) * (0.72 + shieldFraction * 0.2);
+        context.fillStyle =
+          view[base + 27] !== 0 ? "#f7fbff55" : colors[playerIndex] + "33";
+        context.strokeStyle =
+          view[base + 27] !== 0 ? "#ffffff" : colors[playerIndex];
+        context.lineWidth = view[base + 27] !== 0 ? 4 : 2;
+        context.beginPath();
+        context.arc(x, y, shieldRadius, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
       }
 
       context.shadowColor = colors[playerIndex] + "88";
@@ -1007,7 +1043,13 @@ mergeInto(LibraryManager.library, {
         " · lockout " +
         view[base + 21] +
         " · tech direction " +
-        view[base + 24];
+        view[base + 24] +
+        "<br>shield " +
+        (view[base + 25] / q16).toFixed(2) +
+        " / 60 · shield stun " +
+        view[base + 26] +
+        " · powershield " +
+        view[base + 27];
     });
 
     context.fillStyle = "#8da2bb";

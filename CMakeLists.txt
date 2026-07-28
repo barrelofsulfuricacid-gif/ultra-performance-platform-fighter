@@ -422,6 +422,18 @@ if(PF_BUILD_VERIFIER)
 endif()
 
 if(BUILD_TESTING)
+    add_test(
+        NAME docs.m4_technique_registry
+        COMMAND
+            "${CMAKE_COMMAND}"
+            "-DPF_M4_TECHNIQUE_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/docs/product/m4_advanced_technique_registry.md"
+            -P
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyM4TechniqueRegistry.cmake")
+    set_tests_properties(
+        docs.m4_technique_registry
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-technique-registry=pass rows=61")
+
     add_executable(
         render_packet_test
         tests/presentation/test_render_packet.c)
@@ -481,7 +493,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=541 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=569 hash_algorithm=sha256")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -494,7 +506,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=4")
+                   "m4-movement=pass content_schema=5")
 
     add_executable(m4_combat_test tests/sim/test_m4_combat.c)
     target_link_libraries(m4_combat_test PRIVATE sim)
@@ -507,7 +519,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=4 deterministic_ticks=20000 combat_invariants=28")
+                   "m4-combat=pass content_schema=5 deterministic_ticks=20000 combat_invariants=45")
 
     add_executable(
         m4_web_playtest_test
@@ -528,7 +540,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1 reaction_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -548,7 +560,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=31233")
+                       "sim-replay=pass ticks=180 players=4 bytes=31261")
     endif()
 
     if(PF_BUILD_HEADLESS)

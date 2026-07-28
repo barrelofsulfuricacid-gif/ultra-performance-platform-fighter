@@ -81,12 +81,12 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–3 remain the historical 305-byte, 357-byte, and 501-byte
-checkpoints. The current M4 movement/combat state uses save format 4: a fixed
-541-byte checkpoint with state schema 5. In addition to the attack state from
-format 3, it appends tumble, tech-window/lockout, digital-trigger edge, SDI
-component/count, and tech-direction state. Exact headers, payloads,
-compatibility, checksum, and atomic-load behavior are recorded in
+Save formats 1–4 remain the historical 305-byte, 357-byte, 501-byte, and
+541-byte checkpoints. The current M4 movement/combat state uses save format 5:
+a fixed 569-byte checkpoint with state schema 6. In addition to the reaction
+state from format 4, it appends shield health, shield-stun timers, and
+powershield result state. Exact headers, payloads, compatibility, checksum,
+and atomic-load behavior are recorded in
 [TDR-0006](../technology_decisions/0006-canonical-state-format.md).
 
 ## Normalized input frame
