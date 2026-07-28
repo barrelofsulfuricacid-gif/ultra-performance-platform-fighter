@@ -1,7 +1,7 @@
 # M3 performance and verifier progress
 
-**Status:** Implementation qualification passed; clean-commit evidence and
-owner checkpoint pending
+**Status:** Implementation and clean-commit evidence passed; owner checkpoint
+pending
 
 ## Performance history
 

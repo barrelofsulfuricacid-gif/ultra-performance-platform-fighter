@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480">
+<title>hazard_heavy_four_player performance evolution</title>
+<desc>SQLite-backed compatible measurements keyed by commit.</desc>
+<rect width="960" height="480" fill="#f8fafc"/>
+<text x="48" y="38" font-family="sans-serif" font-size="22" fill="#0f172a">hazard_heavy_four_player</text>
+<text x="48" y="62" font-family="sans-serif" font-size="13" fill="#475569">relative_performance_percent</text>
+<line x1="72" y1="410" x2="930" y2="410" stroke="#64748b"/>
+<line x1="72" y1="84" x2="72" y2="410" stroke="#64748b"/>
+<text x="110" y="240" font-family="sans-serif" font-size="16" fill="#64748b">The deterministic stage-hazard framework enters in M6.</text>
+</svg>
