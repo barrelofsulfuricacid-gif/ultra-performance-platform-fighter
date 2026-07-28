@@ -1,6 +1,6 @@
 # M2 deterministic simulation and RL progress
 
-**Status:** M2 owner contract accepted; schema-2 qualification in progress
+**Status:** M2 owner contract accepted; schema-2 qualification passed
 
 ## Current deterministic kernel
 
@@ -77,5 +77,4 @@ headless workflows. Emscripten compiles the same simulation sources.
 
 ## Remaining checkpoint work
 
-- Qualify RL schema 2 across native, sanitizer, Python, WebAssembly, and
-  browser CI, then merge the owner-decision checkpoint before M3 begins.
+- Merge the qualified owner-decision checkpoint before M3 begins.

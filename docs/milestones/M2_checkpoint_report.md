@@ -1,6 +1,6 @@
 # M2 checkpoint report
 
-**Status:** Owner contract accepted; schema-2 implementation in review
+**Status:** Owner contract accepted; schema-2 qualification passed
 
 **Baseline build commit:** `e59672c2a719f084c289330f49bc656b5498cda2`
 
@@ -44,7 +44,7 @@ combat, and the first playable stage begin in M4.
 | Headless runs uncapped and reports throughput | Pass | `headless --throughput` |
 | One API supports duel and team configurations | Pass | RL duel/team reward tests |
 | Batched stepping reduces Python boundary overhead | Pass | 18.2x–21.6x across repeated 64-environment runs |
-| Observations and rewards are versioned, deterministic, and tested | Pass locally; CI pending for schema 2 | TDR-0008 and C/Python conformance suites |
+| Observations and rewards are versioned, deterministic, and tested | Pass | TDR-0008, C/Python conformance suites, and schema-2 CI |
 | Gymnasium wrapper passes its API tests | Pass | Gymnasium 1.3 CI job |
 
 ## Verification
@@ -72,10 +72,14 @@ For RL schema 2, strict C17 kernel verification, the 13-test debug/release
 workflows, the 8-test headless workflow, and all five Gymnasium tests pass
 locally. AddressSanitizer/UndefinedBehaviorSanitizer pass 13/13 with leak
 discovery disabled because this workspace's tracing sandbox prevents
-LeakSanitizer from reading `/proc`; the normal CI sanitizer lane remains
-required. Native and WebAssembly replay output still byte-match the hashes
-above. The WebAssembly browser build succeeds; this host has no Chrome binary,
-so the clean CI browser job is the remaining schema-2 qualification check.
+LeakSanitizer from reading `/proc`. Native and WebAssembly replay output still
+byte-match the hashes above.
+
+Schema-2 GitHub Actions run
+[`30317408257`](https://github.com/barrelofsulfuricacid-gif/ultra-performance-platform-fighter/actions/runs/30317408257)
+passed all nine jobs, including the normal Linux sanitizer lane, Gymnasium,
+Windows, Ubuntu x64/Arm64, macOS Intel/Arm64, and generated WebAssembly in
+Chrome.
 
 The owner-only browser checkpoint is
 [`platform-fighter-m1.lol1234.chatgpt.site`](https://platform-fighter-m1.lol1234.chatgpt.site).
