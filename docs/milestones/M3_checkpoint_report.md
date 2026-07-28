@@ -89,6 +89,10 @@ in the local evidence store; no hardware-counter claim is made. See
 - Benchmark and verifier workflows: 7/7 tests each.
 - Headless workflow: 8/8 tests.
 - Native-to-WebAssembly replay verification: exact 180-tick match.
+- Clean-machine CI: all 9 jobs passed, including Windows, both macOS
+  architectures, Ubuntu x86-64 and arm64, sanitizers, Emscripten/Chrome,
+  Gymnasium, and the setup/profile contract
+  ([run 30346494750](https://github.com/barrelofsulfuricacid-gif/ultra-performance-platform-fighter/actions/runs/30346494750)).
 - Performance qualification: 13 graphs; baseline, same-commit, suspected,
   confirmed, and invalid paths passed.
 - Verifier qualification: 3 live invariants, 4 seeded defect classes, issue

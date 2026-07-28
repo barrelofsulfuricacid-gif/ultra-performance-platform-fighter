@@ -1,12 +1,12 @@
 # [VRF-2026-0002] macOS benchmark calibration rejects a short probe
 
 ID: VRF-2026-0002
-Status: unfixed
+Status: fixed
 Severity: high
 Detected commit: 27a8a3a1159c0ed83d12eed2fe4dfe10433f9ac8
 Build hash: 27a8a3a1159c0ed83d12eed2fe4dfe10433f9ac8
 Content hash: not-applicable
-Fixed commit: not-fixed
+Fixed commit: 39181569577e338353a55e7a72a1cafa079d3093
 
 ## Reproduction
 
@@ -39,8 +39,20 @@ before `run_measured_scenario` can double the iteration count.
 
 ## Resolution
 
-Not fixed.
+Corrective commit `39181569577e338353a55e7a72a1cafa079d3093`
+accepts an equal start and finish timestamp as a zero-duration calibration
+probe, allowing the calibration loop to double its iteration count. Completed
+measurement samples retain a separate nonzero-duration requirement, so the
+change does not admit zero-duration benchmark evidence.
 
 ## Fix verification
 
-Pending a corrective commit and following bookkeeping commit.
+- The targeted benchmark-history qualification passed with all 13 graph slots
+  and the headless instrumentation boundary.
+- The corrective tree's local post-commit verifier passed all 13 checks with
+  zero failures.
+- `M3 clean-machine CI` run
+  <https://github.com/barrelofsulfuricacid-gif/ultra-performance-platform-fighter/actions/runs/30346494750>
+  completed both `Native macos-15` and `Native macos-15-intel` successfully.
+- This following bookkeeping commit moves the report only after the corrective
+  commit and clean-machine verification passed.

@@ -1,12 +1,12 @@
 # [VRF-2026-0003] MSVC rejects portable tool CRT calls
 
 ID: VRF-2026-0003
-Status: unfixed
+Status: fixed
 Severity: high
 Detected commit: 27a8a3a1159c0ed83d12eed2fe4dfe10433f9ac8
 Build hash: 27a8a3a1159c0ed83d12eed2fe4dfe10433f9ac8
 Content hash: not-applicable
-Fixed commit: not-fixed
+Fixed commit: c175db53b96dfafeb49892a9c46ada596b130c12
 
 ## Reproduction
 
@@ -45,8 +45,23 @@ same C4996 policy warning for `fopen` in `src/verifier/main.c`.
 
 ## Resolution
 
-Not fixed.
+Corrective commit `39181569577e338353a55e7a72a1cafa079d3093`
+adds `_CRT_SECURE_NO_WARNINGS` only to the MSVC benchmark target. Follow-up
+corrective commit `c175db53b96dfafeb49892a9c46ada596b130c12`
+applies the same target-local policy to the verifier executable after its
+previously hidden C4996 diagnostics became reachable. Project warnings remain
+at `/W4 /WX`, and no global or runtime target receives the compatibility
+definition.
 
 ## Fix verification
 
-Pending a corrective commit and following bookkeeping commit.
+- The benchmark and verifier self-tests pass locally, and both corrective
+  trees passed the 13-check post-commit verifier.
+- `M3 clean-machine CI` run
+  <https://github.com/barrelofsulfuricacid-gif/ultra-performance-platform-fighter/actions/runs/30346494750>
+  completed `Native windows-2025` successfully under MSVC with the release
+  benchmark and verifier targets enabled.
+- The same clean-machine run passed both macOS architectures, Ubuntu x86-64
+  and arm64, sanitizers, Emscripten/Chrome, Gymnasium, and setup/profile jobs.
+- This following bookkeeping commit moves the report only after both
+  corrective commits and clean-machine verification passed.

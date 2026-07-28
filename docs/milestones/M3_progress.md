@@ -119,9 +119,6 @@ does not set that override and retains leak discovery.
 
 ## Remaining checkpoint work
 
-- Commit the M3 implementation and let the post-commit hook measure the clean
-  commit.
-- Capture and summarize the clean M3 milestone performance/profile evidence.
-- Pass the clean-machine GitHub matrix.
+- Obtain the mandatory owner approval before beginning M4.
 - Present benchmark stability, graphs, profile status, and verifier
   qualification for the mandatory owner checkpoint.
