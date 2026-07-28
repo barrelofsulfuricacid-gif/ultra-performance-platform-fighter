@@ -27,6 +27,10 @@ _Static_assert(
     PF_WEB_REPLAY_POSITION_COUNT ==
         PF_WEB_REPLAY_HASH_COUNT * PF_M2_REPLAY_PLAYERS * UINT64_C(2),
     "web replay position capacity must cover every checkpoint");
+_Static_assert(
+    sizeof(PF_M2_REPLAY_FINAL_SHA256) ==
+        PF_SIM_STATE_HASH_BYTES * (size_t)2 + (size_t)1,
+    "fixture hash text must encode exactly one simulation hash");
 
 typedef struct pf_web_replay_storage
 {
@@ -54,15 +58,54 @@ static uint8_t pf_web_replay_bytes[PF_WEB_REPLAY_CAPACITY];
 static uint8_t pf_web_hash_bytes[
     PF_WEB_REPLAY_HASH_COUNT * PF_SIM_STATE_HASH_BYTES];
 
-static const uint8_t pf_web_expected_final_hash[PF_SIM_STATE_HASH_BYTES] = {
-    UINT8_C(0x75), UINT8_C(0x71), UINT8_C(0xf4), UINT8_C(0xec),
-    UINT8_C(0x13), UINT8_C(0x75), UINT8_C(0xce), UINT8_C(0xcb),
-    UINT8_C(0xde), UINT8_C(0x2c), UINT8_C(0x6d), UINT8_C(0xc1),
-    UINT8_C(0xb9), UINT8_C(0xe8), UINT8_C(0xea), UINT8_C(0x00),
-    UINT8_C(0xa8), UINT8_C(0xd3), UINT8_C(0x68), UINT8_C(0xc8),
-    UINT8_C(0x76), UINT8_C(0xbd), UINT8_C(0xa8), UINT8_C(0x7e),
-    UINT8_C(0x8a), UINT8_C(0xdc), UINT8_C(0xdb), UINT8_C(0x35),
-    UINT8_C(0x4a), UINT8_C(0xf8), UINT8_C(0x3e), UINT8_C(0xa7)};
+static int pf_web_hex_nibble(char value)
+{
+    if (value >= '0' && value <= '9')
+    {
+        return (int)(value - '0');
+    }
+    if (value >= 'a' && value <= 'f')
+    {
+        return (int)(value - 'a') + 10;
+    }
+    if (value >= 'A' && value <= 'F')
+    {
+        return (int)(value - 'A') + 10;
+    }
+    return -1;
+}
+
+static int pf_web_hash_matches_fixture(const pf_state_hash *hash)
+{
+    static const char expected[] = PF_M2_REPLAY_FINAL_SHA256;
+    size_t byte_index;
+
+    if (hash == NULL)
+    {
+        return 0;
+    }
+    for (byte_index = (size_t)0;
+         byte_index < (size_t)PF_SIM_STATE_HASH_BYTES;
+         ++byte_index)
+    {
+        const int high = pf_web_hex_nibble(expected[byte_index * (size_t)2]);
+        const int low =
+            pf_web_hex_nibble(expected[byte_index * (size_t)2 + (size_t)1]);
+        uint8_t decoded;
+
+        if (high < 0 || low < 0)
+        {
+            return 0;
+        }
+        decoded =
+            (uint8_t)((unsigned int)high << 4U | (unsigned int)low);
+        if (hash->bytes[byte_index] != decoded)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
 
 static int pf_web_replay_init(
     pf_web_replay_storage *storage,
@@ -180,11 +223,9 @@ int pf_web_run_replay_checkpoint(void)
         result.terminated != UINT8_C(1) ||
         result.truncated != UINT8_C(0) ||
         result.winner_mask != UINT8_C(5) ||
-        memcmp(
-            pf_web_replay_hashes[
-                PF_WEB_REPLAY_HASH_COUNT - (size_t)1].bytes,
-            pf_web_expected_final_hash,
-            sizeof(pf_web_expected_final_hash)) != 0)
+        !pf_web_hash_matches_fixture(
+            &pf_web_replay_hashes[
+                PF_WEB_REPLAY_HASH_COUNT - (size_t)1]))
     {
         goto cleanup;
     }
