@@ -1,4 +1,4 @@
-name: M2 clean-machine CI
+name: M3 clean-machine CI
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: m2-ci-${{ github.workflow }}-${{ github.ref }}
+  group: m3-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -86,6 +86,21 @@ jobs:
       - name: Verify deterministic simulation kernel
         shell: bash
         run: ./tools/verify_m2_kernel.sh
+
+      - name: Qualify SQLite history, comparisons, and graphs
+        shell: bash
+        run: ./tools/verify_m3_performance.sh "$RUNNER_TEMP/m3-performance"
+
+      - name: Qualify verifier detectors and issue lifecycle
+        shell: bash
+        run: ./tools/verify_m3_verifier.sh "$RUNNER_TEMP/m3-verifier"
+
+      - name: Capture profile-only Tracy workload
+        shell: bash
+        run: |
+          PF_SDL_UNIX_CONSOLE_BUILD=ON \
+          PF_PROFILE_CAPTURE_SECONDS=1 \
+            ./tools/capture_profile.sh CI "$RUNNER_TEMP/m3-profile"
 
   sanitizer:
     name: Linux address and UB sanitizers

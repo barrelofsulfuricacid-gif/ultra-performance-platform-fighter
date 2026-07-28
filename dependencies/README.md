@@ -22,6 +22,21 @@ check. The host bootstrap also downloads, verifies, and extracts the locked SDL
 3.4.12 source archive into `.toolchains/dependencies`; native client presets
 build it statically without changing a system installation.
 
+The same bootstrap installs the official SQLite 3.53.4 amalgamation under
+`.toolchains/dependencies`. Only the benchmark/history product compiles this
+source. The deterministic simulation and maximum-throughput headless product
+do not link SQLite.
+
+Tracy 0.13.1 is likewise checksum-locked and installed under
+`.toolchains/dependencies`. Its C++ client is enabled only for the `profile`
+configuration and linked only to the benchmark executable. Release,
+benchmark, verifier, and maximum-throughput headless products contain no Tracy
+client or zone instrumentation. `tools/capture_profile.sh` builds Tracy's
+matching command-line capture utility from that source without installing it
+system-wide. The capture-only Capstone 6.0.0-Alpha5, PPQSort 1.0.6, and Zstd
+1.5.7 sources are locked independently so Tracy's generic build scripts never
+perform an unverified transitive download.
+
 ## Native compiler lanes
 
 M1 CI uses the non-preview `ubuntu-24.04`, `windows-2025`, `macos-15-intel`,

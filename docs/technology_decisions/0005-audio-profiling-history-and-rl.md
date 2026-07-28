@@ -29,13 +29,22 @@ Pin Tracy 0.13.1 (`05cceee`, BSD-3-Clause) for profile builds. Instrumentation
 is wrapped in project macros and compiles to nothing in maximum-throughput
 headless builds. Use OS-native profilers in addition when available.
 
+M3 locks the 4,565,018-byte Tracy source archive at SHA-256
+`d4efc50ebcb0bfcfdbba148995aeb75044c0d80f5d91223aebfaa8fa9e563d2b`.
+The Tracy C++ client is enabled only in the `profile` configuration and linked
+only into `pf_benchmarks`; the authored engine and public action/state
+contracts remain C17. The matching capture utility is built from separately
+locked Capstone 6.0.0-Alpha5, PPQSort 1.0.6, and Zstd 1.5.7 sources so its
+generic CMake path cannot fetch unverified transitive dependencies.
+
 Evidence:
 
 - [Tracy 0.13.1 release](https://github.com/wolfpld/tracy/releases/tag/v0.13.1)
 - [Tracy license](https://github.com/wolfpld/tracy/blob/master/LICENSE)
 
-Linux `perf` was unavailable in the current M0 container, so no hardware
-counter claim is included in the M0 result.
+Linux `perf` was unavailable in the current M0/M3 container, so no hardware
+counter claim is included. `tools/capture_profile.sh` records that absence as
+a machine-readable reason while still requiring a valid Tracy capture.
 
 ## Performance history
 

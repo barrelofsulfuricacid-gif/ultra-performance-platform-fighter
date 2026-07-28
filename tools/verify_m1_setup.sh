@@ -49,8 +49,8 @@ awk -F '	' '
         records++
     }
     END {
-        if (records != 24) {
-            print "expected 24 lock records, got " records >"/dev/stderr"
+        if (records != 29) {
+            print "expected 29 lock records, got " records >"/dev/stderr"
             exit 1
         }
     }
@@ -92,6 +92,11 @@ done
 
 require_lock_record emsdk 6.0.3 all
 require_lock_record sdl-source 3.4.12 all
+require_lock_record sqlite-source 3.53.4 all
+require_lock_record tracy-source 0.13.1 all
+require_lock_record tracy-capstone-source 6.0.0-Alpha5 all
+require_lock_record tracy-ppqsort-source 1.0.6 all
+require_lock_record tracy-zstd-source 1.5.7 all
 for platform in \
     linux-x86_64 \
     linux-arm64 \
@@ -105,8 +110,13 @@ done
 
 for script in \
     tools/bootstrap.sh \
+    tools/capture_profile.sh \
+    tools/run_verifier.sh \
     tools/serve_web.sh \
+    tools/run_performance.sh \
     tools/toolchain_common.sh \
+    tools/verify_m3_performance.sh \
+    tools/verify_m3_verifier.sh \
     tools/verify_web_smoke.sh \
     tools/workflow.sh
 do
@@ -118,6 +128,8 @@ done
 
 for script in \
     tools/bootstrap.ps1 \
+    tools/run_performance.ps1 \
+    tools/run_verifier.ps1 \
     tools/serve_web.ps1 \
     tools/toolchain_common.ps1 \
     tools/workflow.ps1
@@ -129,6 +141,8 @@ done
 if command -v pwsh >/dev/null 2>&1; then
     for script in \
         tools/bootstrap.ps1 \
+        tools/run_performance.ps1 \
+        tools/run_verifier.ps1 \
         tools/serve_web.ps1 \
         tools/toolchain_common.ps1 \
         tools/workflow.ps1
@@ -174,17 +188,20 @@ expected_workflows=$(
         profile \
         release \
         sanitizer \
+        verifier \
         web |
         sort
 )
 [ "$actual_workflows" = "$expected_workflows" ] ||
-    fail "workflow preset names differ from the required seven"
+    fail "workflow preset names differ from the required eight"
 
 "$repository_root/tools/bootstrap.sh" --verify-only --no-smoke >/dev/null ||
     fail "idempotent bootstrap verification failed"
 
 git -C "$repository_root" check-ignore -q .toolchains/probe ||
     fail ".toolchains is not ignored"
+git -C "$repository_root" check-ignore -q performance/local/profile-probe ||
+    fail "local profile output is not ignored"
 
 grep -Fq -- "--js-library=" "$repository_root/CMakeLists.txt" ||
     fail "web JavaScript adapter is not linked"
@@ -272,4 +289,4 @@ do
         fail "CI does not install Linux platform SDK package $package"
 done
 
-echo "m1-setup-verification=pass records=24 workflows=7"
+echo "m1-setup-verification=pass records=29 workflows=8"

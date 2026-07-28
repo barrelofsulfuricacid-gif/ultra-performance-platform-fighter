@@ -1,13 +1,28 @@
-# Verifier records
+# Verifier agent
 
-The verifier writes one durable Markdown record per discovered issue. New
-findings enter `issues/unfixed/`; resolved findings move to `issues/fixed/` in
-a bookkeeping commit after the corrective commit.
+`verifier/acceptance_manifest.tsv` is the machine-readable acceptance surface.
+The authored-C `pf_verifier` reads it with the commit file list and external
+check manifest, then:
 
-Use `docs/templates/issue.md` and preserve all original reproduction evidence.
+- drives deterministic scripted and exploratory matches through the public
+  player/RL action layer;
+- verifies seed-redacted policy observations, diagnostic seed visibility,
+  four-player snapshot continuation, state hashes, and tolerant semantic
+  render packets;
+- enforces that every active acceptance entry has an internal or external
+  result;
+- writes `pass_manifest.md` even when no issue exists; and
+- writes one durable Markdown record per failed check.
 
-Until M3 replaces the provisional command with the full verifier agent,
-`tools/verify_m2_kernel.sh` checks the deterministic M2 source directly for
-strict-C17 behavior, identical scripted traces, four-player capacity, atomic
-invalid-input rejection, episode completion, and forbidden platform or
-allocation symbols.
+Run the complete current-commit workflow with:
+
+```sh
+./tools/run_verifier.sh
+```
+
+New findings enter `issues/unfixed/`; critical failures block milestone
+completion. Resolved findings move to `issues/fixed/` in a bookkeeping commit
+after the corrective commit, preserving all original reproduction evidence
+and recording the actual fix hash. `tools/verify_m3_verifier.sh` qualifies the
+mechanical, visual, menu, determinism, acceptance-coverage, and issue-lifecycle
+detectors with isolated fixtures.

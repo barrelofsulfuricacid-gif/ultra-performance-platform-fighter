@@ -59,7 +59,8 @@ if [ -n "$cmake_command" ]; then
     "$cmake_command" -S "$root" -B "$cmake_dir" \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_TESTING=ON \
-        -DPF_BUILD_HEADLESS=ON
+        -DPF_BUILD_HEADLESS=ON \
+        -DPF_SQLITE_SOURCE_DIR="$root/.toolchains/dependencies/sqlite-amalgamation-3530400"
     "$cmake_command" --build "$cmake_dir" --parallel
 
     ctest_command=$(dirname "$cmake_command")/ctest

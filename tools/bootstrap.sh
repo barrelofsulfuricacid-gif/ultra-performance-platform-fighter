@@ -193,6 +193,109 @@ PF_SDL_SOURCE_DIR=$pf_sdl_root
 export PF_SDL_SOURCE_DIR
 echo "sdl-source=3.4.12 path=$PF_SDL_SOURCE_DIR"
 
+pf_sqlite_root="$PF_TOOLCHAINS_DIR/dependencies/sqlite-amalgamation-3530400"
+if [ ! -d "$pf_sqlite_root" ]; then
+    command -v unzip >/dev/null 2>&1 ||
+        pf_fail "unzip is required to install pinned SQLite"
+    pf_download_record sqlite-source all "$pf_download_root"
+    pf_sqlite_temp=$(mktemp -d "$pf_temp_root/sqlite.XXXXXX")
+    unzip -q "$PF_DOWNLOADED_ARCHIVE" -d "$pf_sqlite_temp"
+    mkdir -p "$(dirname "$pf_sqlite_root")"
+    mv \
+        "$pf_sqlite_temp/sqlite-amalgamation-3530400" \
+        "$pf_sqlite_root"
+fi
+
+pf_sqlite_header="$pf_sqlite_root/sqlite3.h"
+pf_sqlite_source="$pf_sqlite_root/sqlite3.c"
+[ -f "$pf_sqlite_header" ] && [ -f "$pf_sqlite_source" ] ||
+    pf_fail "locked SQLite source is incomplete: $pf_sqlite_root"
+grep -Fq '#define SQLITE_VERSION        "3.53.4"' \
+    "$pf_sqlite_header" ||
+    pf_fail "locked SQLite source is not version 3.53.4"
+grep -Fq \
+    'bf7c7f30031888f4e796e429ab3978879485813aaca6f641c7b33e4e09459bcc' \
+    "$pf_sqlite_source" ||
+    pf_fail "locked SQLite source ID is incorrect"
+PF_SQLITE_SOURCE_DIR=$pf_sqlite_root
+export PF_SQLITE_SOURCE_DIR
+echo "sqlite-source=3.53.4 path=$PF_SQLITE_SOURCE_DIR"
+
+pf_tracy_root="$PF_TOOLCHAINS_DIR/dependencies/tracy-0.13.1"
+if [ ! -d "$pf_tracy_root" ]; then
+    pf_download_record tracy-source all "$pf_download_root"
+    pf_tracy_temp=$(mktemp -d "$pf_temp_root/tracy.XXXXXX")
+    tar -xzf "$PF_DOWNLOADED_ARCHIVE" \
+        --strip-components=1 \
+        -C "$pf_tracy_temp"
+    mkdir -p "$(dirname "$pf_tracy_root")"
+    mv "$pf_tracy_temp" "$pf_tracy_root"
+fi
+
+pf_tracy_header="$pf_tracy_root/public/tracy/TracyC.h"
+pf_tracy_client="$pf_tracy_root/public/TracyClient.cpp"
+[ -f "$pf_tracy_header" ] && [ -f "$pf_tracy_client" ] ||
+    pf_fail "locked Tracy source is incomplete: $pf_tracy_root"
+grep -Fq 'enum { Major = 0 };' \
+    "$pf_tracy_root/public/common/TracyVersion.hpp" &&
+    grep -Fq 'enum { Minor = 13 };' \
+        "$pf_tracy_root/public/common/TracyVersion.hpp" &&
+    grep -Fq 'enum { Patch = 1 };' \
+        "$pf_tracy_root/public/common/TracyVersion.hpp" ||
+    pf_fail "locked Tracy source is not version 0.13.1"
+PF_TRACY_SOURCE_DIR=$pf_tracy_root
+export PF_TRACY_SOURCE_DIR
+echo "tracy-source=0.13.1 path=$PF_TRACY_SOURCE_DIR"
+
+pf_install_tar_dependency()
+{
+    pf_dependency_component=$1
+    pf_dependency_directory=$2
+    if [ ! -d "$pf_dependency_directory" ]; then
+        pf_download_record \
+            "$pf_dependency_component" \
+            all \
+            "$pf_download_root"
+        pf_dependency_temp=$(
+            mktemp -d "$pf_temp_root/$pf_dependency_component.XXXXXX"
+        )
+        tar -xzf "$PF_DOWNLOADED_ARCHIVE" \
+            --strip-components=1 \
+            -C "$pf_dependency_temp"
+        mkdir -p "$(dirname "$pf_dependency_directory")"
+        mv "$pf_dependency_temp" "$pf_dependency_directory"
+    fi
+}
+
+pf_tracy_capstone_root=\
+"$PF_TOOLCHAINS_DIR/dependencies/capstone-6.0.0-Alpha5"
+pf_tracy_ppqsort_root=\
+"$PF_TOOLCHAINS_DIR/dependencies/ppqsort-1.0.6"
+pf_tracy_zstd_root="$PF_TOOLCHAINS_DIR/dependencies/zstd-1.5.7"
+pf_install_tar_dependency \
+    tracy-capstone-source \
+    "$pf_tracy_capstone_root"
+pf_install_tar_dependency \
+    tracy-ppqsort-source \
+    "$pf_tracy_ppqsort_root"
+pf_install_tar_dependency \
+    tracy-zstd-source \
+    "$pf_tracy_zstd_root"
+[ -f "$pf_tracy_capstone_root/include/capstone/capstone.h" ] ||
+    pf_fail "locked Tracy Capstone source is incomplete"
+[ -f "$pf_tracy_ppqsort_root/include/ppqsort.h" ] ||
+    pf_fail "locked Tracy PPQSort source is incomplete"
+[ -f "$pf_tracy_zstd_root/lib/zstd.h" ] ||
+    pf_fail "locked Tracy Zstd source is incomplete"
+PF_TRACY_CAPSTONE_SOURCE_DIR=$pf_tracy_capstone_root
+PF_TRACY_PPQSORT_SOURCE_DIR=$pf_tracy_ppqsort_root
+PF_TRACY_ZSTD_SOURCE_DIR=$pf_tracy_zstd_root
+export \
+    PF_TRACY_CAPSTONE_SOURCE_DIR \
+    PF_TRACY_PPQSORT_SOURCE_DIR \
+    PF_TRACY_ZSTD_SOURCE_DIR
+echo "tracy-capture-dependencies=locked"
+
 if [ "$pf_install_web" -eq 1 ]; then
     command -v python3 >/dev/null 2>&1 ||
         pf_fail "Python 3 is required for the pinned Emscripten SDK"
