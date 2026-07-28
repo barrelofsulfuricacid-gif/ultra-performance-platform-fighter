@@ -421,7 +421,7 @@ static int complete_sample(
                               ? logical_ticks
                               : iterations;
 
-    if (finished <= started ||
+    if (finished < started ||
         iterations == UINT64_C(0) ||
         rate_count == UINT64_C(0) ||
         checksum < INT64_C(0))
@@ -432,6 +432,18 @@ static int complete_sample(
     sample->iterations = iterations;
     sample->logical_ticks = logical_ticks;
     sample->elapsed_ns = finished - started;
+    /*
+     * A one-iteration calibration probe can be shorter than the observable
+     * clock resolution. The calibration loop will double its work; completed
+     * measurement samples are checked separately and must remain nonzero.
+     */
+    if (sample->elapsed_ns == UINT64_C(0))
+    {
+        sample->rate_per_second = 0.0;
+        sample->ns_per_operation = 0.0;
+        sample->checksum = checksum;
+        return 1;
+    }
     sample->rate_per_second =
         (double)rate_count * 1000000000.0 /
         (double)sample->elapsed_ns;
@@ -1260,6 +1272,13 @@ static int run_measured_scenario(
                 &result->samples[sample_index],
                 error))
         {
+            return 0;
+        }
+        if (result->samples[sample_index].elapsed_ns == UINT64_C(0))
+        {
+            set_text_error(
+                error,
+                "measured benchmark sample has zero duration");
             return 0;
         }
     }

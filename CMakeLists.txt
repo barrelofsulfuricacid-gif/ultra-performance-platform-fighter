@@ -376,7 +376,11 @@ if(PF_BUILD_BENCHMARKS)
         benchmarks
         PRIVATE
             "PF_BENCHMARK_SCHEMA_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/performance/database/schema.sql\"")
-    if(NOT MSVC)
+    if(MSVC)
+        target_compile_definitions(
+            benchmarks
+            PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
         target_compile_definitions(
             benchmarks
             PRIVATE _POSIX_C_SOURCE=200809L)
