@@ -111,7 +111,7 @@ pf_require_dom \
     'id="pf-replay-inspector"'
 pf_require_dom \
     "M4 input/combat/reaction/shield-probe status" \
-    'playtest=ready input_probe=pass combat_probe=pass reaction_probe=pass shield_probe=pass controls=keyboard-two-player'
+    'playtest=ready input_probe=pass combat_probe=pass reaction_probe=pass shield_probe=pass powershield_cancel_probe=pass controls=keyboard-two-player'
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'

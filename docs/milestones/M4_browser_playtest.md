@@ -75,6 +75,12 @@ attack: the defender takes no shield damage but keeps ordinary physical
 hitlag/stun and receives the larger Melee-style pushback. The state card shows
 shield health, shield stun, and a powershield indicator.
 
+After a physical powershield, release shield by the end of shield stun. Frame 1
+of `SHIELD RELEASE` cannot start a ground attack; a fresh attack press on frame
+2 cancels the remaining release animation into the current attack. An early
+attack is not buffered. Holding shield until stun ends consumes the opportunity,
+and an ordinary block retains the full 15-tick release.
+
 A new trigger press still opens a 20-tick tech window and a 40-tick lockout. A
 tumbling floor/platform impact with neutral horizontal input enters
 `TECH IN PLACE`; holding left or right enters `TECH ROLL`; missing the window
@@ -83,8 +89,9 @@ damage before its hitstun reaches the 32-tick tumble threshold.
 
 This shield slice does not yet include analog light shield, shield tilt/poke,
 shield SDI, roll/spot dodge, platform shield drop, grab, projectile reflection,
-powershield canceling, or the complete airborne/knockdown/stun shield-break
-sequence.
+or the complete airborne/knockdown/stun shield-break sequence. Future ground
+actions must join the same powershield-cancel router before that registry row
+can advance from `playable` to `verified`.
 
 ## Focused owner checks
 
@@ -139,7 +146,11 @@ sequence.
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-18. Repeat with Player 2's arrow-key controls and try both players
+18. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+    first `SHIELD RELEASE` tick neutral, then press the defender's attack key
+    on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
+    block and confirm the attack cannot skip the 15-tick release.
+19. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -165,11 +176,14 @@ through:
 - a normal physical shield block producing zero percent, shield damage,
   shield stun, hitlag, and ordinary pushback;
 - a physical attack inside the four-tick powershield window producing zero
-  shield damage and the powershield result; and
+  shield damage and the powershield result;
+- release after that physical powershield preserving the cancel opportunity,
+  followed by the one-frame delay and frame-2 ground attack; and
 - the native movement oracle covering ledge catch, hang, release, jump, climb,
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
 `playtest=ready input_probe=pass combat_probe=pass reaction_probe=pass
-shield_probe=pass controls=keyboard-two-player` only after all checks pass.
+shield_probe=pass powershield_cancel_probe=pass
+controls=keyboard-two-player` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

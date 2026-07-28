@@ -1354,9 +1354,9 @@ pf_status pf_m4_step_player(
         if (scratch->shield_stun_ticks[player_index] ==
             UINT16_C(0))
         {
-            scratch->powershield[player_index] = UINT8_C(0);
             if (shield_held != 0)
             {
+                scratch->powershield[player_index] = UINT8_C(0);
                 action_state = (uint8_t)PF_M4_ACTION_SHIELD;
                 action_ticks =
                     fighter->shield_minimum_hold_ticks;
@@ -1377,7 +1377,20 @@ pf_status pf_m4_step_player(
             velocity_x,
             INT32_C(0),
             fighter->traction_q16);
-        if (jump_pressed)
+        if (scratch->powershield[player_index] != UINT8_C(0) &&
+            fighter->powershield_cancel_enabled != UINT8_C(0) &&
+            action_ticks >=
+                fighter->powershield_cancel_delay_ticks &&
+            attack_pressed)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+            action_ticks = UINT16_C(0);
+            scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            short_hop_latched = UINT8_C(0);
+            dash_direction = INT8_C(0);
+            scratch->powershield[player_index] = UINT8_C(0);
+        }
+        else if (jump_pressed)
         {
             action_state = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
             action_ticks = UINT16_C(0);

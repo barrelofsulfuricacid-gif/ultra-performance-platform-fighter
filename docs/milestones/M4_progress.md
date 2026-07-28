@@ -1,7 +1,7 @@
 # M4 combat vertical-slice progress
 
 **Status:** In progress; M4.1 movement/ledge core, first M4.2 attack and
-hit-reaction layers, and first dense-shield primitive implemented
+hit-reaction layers, dense shield, and physical powershield cancel implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -92,6 +92,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   shield-stun continuation.
 - A four-tick physical powershield window with no shield damage, ordinary
   hitlag/stun, larger Melee defender pushback, and inspectable result state.
+- Melee-style physical powershield canceling: release by shield-stun end,
+  reject attack on shield-drop frame 1, and accept a fresh ground-attack edge
+  on frame 2. Ordinary blocks retain all 15 release ticks.
 - A deterministic grounded shield-break lockout/reset foundation. The Melee
   launch, landing, vulnerable mashable stun, and interruption sequence remains
   explicit follow-up work; the placeholder lockout ignores further hitboxes.
@@ -125,7 +128,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 3 playable, 5 primitive-ready, and 52 planned.
+  blocked: 1 verified, 4 playable, 5 primitive-ready, and 51 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -144,7 +147,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Remaining ground attacks, aerials, specials, recovery, grabs/throws, analog
   light shield, shield size/tilt/pokes and shield SDI, defensive rolls, spot
   dodge, air dodge, platform shield drop, projectile powershield/reflection,
-  powershield canceling, complete shield-break behavior, complete
+  expansion of the powershield-cancel router to each future ground action,
+  complete shield-break behavior, complete
   knockback/angle data, stale-move behavior, wall/ceiling techs, missed-tech
   get-up choices, tech invulnerability, stocks, respawn invulnerability, match
   result, and the complete bounded combat-event journal.
@@ -158,7 +162,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 16/16 tests.
 - Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 26 movement invariants, 45 attack/reaction/shield
+- Mechanical oracles: 26 movement invariants, 51 attack/reaction/shield
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
@@ -177,7 +181,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/combat/reaction/shield probes and live rendering).
+  movement/combat/reaction/shield-and-PSC probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

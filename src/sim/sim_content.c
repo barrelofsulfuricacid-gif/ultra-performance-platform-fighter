@@ -129,8 +129,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->shield_minimum_hold_ticks);
     pf_m4_hash_u16(hash, fighter->shield_release_ticks);
     pf_m4_hash_u16(hash, fighter->powershield_window_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->powershield_cancel_delay_ticks);
     pf_m4_hash_u16(hash, fighter->shield_break_ticks);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
+    pf_m4_hash_u8(
+        hash,
+        fighter->powershield_cancel_enabled);
 }
 
 static void pf_m4_hash_stage(
@@ -287,8 +293,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->shield_minimum_hold_ticks = UINT16_C(8);
     fighter->shield_release_ticks = UINT16_C(15);
     fighter->powershield_window_ticks = UINT16_C(4);
+    fighter->powershield_cancel_delay_ticks = UINT16_C(1);
     fighter->shield_break_ticks = UINT16_C(180);
     fighter->air_jump_count = UINT8_C(1);
+    fighter->powershield_cancel_enabled = UINT8_C(1);
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -345,7 +353,6 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     if (content->fighter_count != PF_M4_PLACEHOLDER_FIGHTER_COUNT ||
         content->stage_count != PF_M4_TEST_STAGE_COUNT ||
         content->fighter.reserved != UINT16_C(0) ||
-        content->fighter.reserved2 != UINT8_C(0) ||
         content->stage.reserved != UINT16_C(0) ||
         content->stage.reserved2 != UINT16_C(0))
     {
@@ -542,9 +549,13 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->powershield_window_ticks == UINT16_C(0) ||
         fighter->powershield_window_ticks >=
             fighter->shield_minimum_hold_ticks ||
+        fighter->powershield_cancel_delay_ticks == UINT16_C(0) ||
+        fighter->powershield_cancel_delay_ticks >=
+            fighter->shield_release_ticks ||
         fighter->shield_break_ticks == UINT16_C(0) ||
         fighter->shield_break_ticks > UINT16_C(480) ||
-        fighter->air_jump_count > UINT8_C(8))
+        fighter->air_jump_count > UINT8_C(8) ||
+        fighter->powershield_cancel_enabled > UINT8_C(1))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

@@ -1,4 +1,5 @@
 #include "pf/m4.h"
+#include "pf/replay.h"
 #include "pf/sim.h"
 
 #include <inttypes.h>
@@ -12,6 +13,10 @@
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_SAVE_CAPACITY 1024U
 #define TEST_DETERMINISTIC_TICKS UINT64_C(20000)
+#define TEST_PSC_REPLAY_TICKS UINT64_C(20)
+#define TEST_PSC_REPLAY_INPUT_COUNT 40U
+#define TEST_PSC_REPLAY_HASH_COUNT 21U
+#define TEST_PSC_REPLAY_CAPACITY 8192U
 
 typedef struct test_sim_storage
 {
@@ -606,6 +611,381 @@ static int start_powershield_block(
                UINT64_C(0),
                UINT16_MAX,
                out_inspection);
+}
+
+static int advance_block_to_release(
+    const pf_m4_content *content,
+    pf_sim *sim,
+    int powershield,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if ((powershield != 0
+             ? !start_powershield_block(sim, out_inspection)
+             : !start_normal_shield_block(sim, out_inspection)))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
+    {
+        if (out_inspection->players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+        {
+            return 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+static int run_powershield_cancel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage early_storage;
+    test_sim_storage cancel_storage;
+    test_sim_storage normal_storage;
+    pf_sim *early = NULL;
+    pf_sim *cancel = NULL;
+    pf_sim *normal = NULL;
+    pf_m4_inspection inspection;
+
+    if (!initialize_sim(
+            &early_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &early) ||
+        !initialize_sim(
+            &cancel_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &cancel) ||
+        !initialize_sim(
+            &normal_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &normal) ||
+        !advance_block_to_release(
+            content,
+            early,
+            1,
+            &inspection) ||
+        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].powershield != UINT8_C(1))
+    {
+        return fail("powershield-cancel-opportunity");
+    }
+    if (!step_reaction_duel(
+            early,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        inspection.players[1].action_ticks !=
+            content->fighter.powershield_cancel_delay_ticks ||
+        inspection.players[1].powershield != UINT8_C(1))
+    {
+        return fail("powershield-cancel-frame-one-rejected");
+    }
+
+    if (!advance_block_to_release(
+            content,
+            cancel,
+            1,
+            &inspection) ||
+        !step_reaction_duel(
+            cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_ticks !=
+            content->fighter.powershield_cancel_delay_ticks ||
+        !step_reaction_duel(
+            cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("powershield-cancel-frame-two-attack");
+    }
+
+    if (!advance_block_to_release(
+            content,
+            normal,
+            0,
+            &inspection) ||
+        inspection.players[1].powershield != UINT8_C(0) ||
+        !step_reaction_duel(
+            normal,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            normal,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        inspection.players[1].action_ticks != UINT16_C(2))
+    {
+        return fail("normal-shield-release-not-canceled");
+    }
+    return 1;
+}
+
+static int run_powershield_cancel_replay_test(
+    const pf_content_view *view)
+{
+    test_sim_storage initial_storage;
+    test_sim_storage source_storage;
+    test_sim_storage playback_storage;
+    pf_sim *initial = NULL;
+    pf_sim *source = NULL;
+    pf_sim *playback = NULL;
+    pf_input_frame inputs[TEST_PSC_REPLAY_INPUT_COUNT];
+    pf_state_hash hashes[TEST_PSC_REPLAY_HASH_COUNT];
+    pf_input_frame tick_inputs[PF_SIM_MAX_PLAYERS];
+    pf_replay_source replay_source;
+    pf_replay_verification verification;
+    pf_tick_result result;
+    pf_mut_bytes destination;
+    pf_bytes replay;
+    pf_m4_inspection inspection;
+    uint8_t replay_bytes[TEST_PSC_REPLAY_CAPACITY];
+    size_t replay_size = (size_t)0;
+    uint64_t tick;
+    int saw_powershield = 0;
+    int saw_cancel_release = 0;
+    int saw_cancel_attack = 0;
+
+    if (!initialize_sim(
+            &initial_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &initial) ||
+        !initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &source) ||
+        !initialize_sim(
+            &playback_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &playback) ||
+        !expect_status(
+            pf_sim_clone(source, initial),
+            PF_STATUS_OK,
+            "powershield-cancel-replay-clone") ||
+        !expect_status(
+            pf_sim_hash(initial, &hashes[0]),
+            PF_STATUS_OK,
+            "powershield-cancel-replay-initial-hash"))
+    {
+        return fail("powershield-cancel-replay-init");
+    }
+
+    for (tick = UINT64_C(0);
+         tick < TEST_PSC_REPLAY_TICKS;
+         ++tick)
+    {
+        pf_input_frame *stored =
+            &inputs[(size_t)tick * (size_t)UINT8_C(2)];
+
+        make_inputs(tick_inputs, UINT8_C(2), tick);
+        if (tick == UINT64_C(0))
+        {
+            tick_inputs[0].buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        if (tick == UINT64_C(2))
+        {
+            tick_inputs[1].left_trigger = UINT16_MAX;
+        }
+        if (tick == UINT64_C(12))
+        {
+            tick_inputs[1].buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        (void)memcpy(
+            stored,
+            tick_inputs,
+            sizeof(*stored) * (size_t)UINT8_C(2));
+        if (!expect_status(
+                pf_sim_tick(
+                    source,
+                    tick_inputs,
+                    (size_t)UINT8_C(2),
+                    &result),
+                PF_STATUS_OK,
+                "powershield-cancel-replay-tick") ||
+            !expect_status(
+                pf_sim_hash(
+                    source,
+                    &hashes[(size_t)tick + (size_t)1]),
+                PF_STATUS_OK,
+                "powershield-cancel-replay-hash") ||
+            !expect_status(
+                pf_m4_inspect(source, &inspection),
+                PF_STATUS_OK,
+                "powershield-cancel-replay-inspect"))
+        {
+            return fail("powershield-cancel-replay-record");
+        }
+        if (inspection.players[1].powershield != UINT8_C(0))
+        {
+            saw_powershield = 1;
+        }
+        if (inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+            inspection.players[1].powershield != UINT8_C(0))
+        {
+            saw_cancel_release = 1;
+        }
+        if (tick == UINT64_C(12) &&
+            inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+        {
+            saw_cancel_attack = 1;
+        }
+    }
+
+    (void)memset(&replay_source, 0, sizeof(replay_source));
+    replay_source.struct_size = (uint32_t)sizeof(replay_source);
+    replay_source.schema_version = PF_REPLAY_SCHEMA_VERSION;
+    replay_source.flags = PF_REPLAY_FLAG_PER_TICK_HASHES;
+    replay_source.initial_state = initial;
+    replay_source.input_frames = inputs;
+    replay_source.input_frame_count =
+        (size_t)TEST_PSC_REPLAY_INPUT_COUNT;
+    replay_source.state_hashes = hashes;
+    replay_source.state_hash_count =
+        (size_t)TEST_PSC_REPLAY_HASH_COUNT;
+    replay_source.tick_count = TEST_PSC_REPLAY_TICKS;
+    replay_source.final_result = result;
+    destination.bytes = replay_bytes;
+    destination.capacity = sizeof(replay_bytes);
+    replay.bytes = replay_bytes;
+
+    if (saw_powershield == 0 ||
+        saw_cancel_release == 0 ||
+        saw_cancel_attack == 0 ||
+        !expect_status(
+            pf_replay_query_size(&replay_source, &replay_size),
+            PF_STATUS_OK,
+            "powershield-cancel-replay-query") ||
+        replay_size > sizeof(replay_bytes))
+    {
+        return fail("powershield-cancel-replay-trace");
+    }
+    destination.size = replay_size;
+    if (!expect_status(
+            pf_replay_encode(&replay_source, &destination),
+            PF_STATUS_OK,
+            "powershield-cancel-replay-encode"))
+    {
+        return fail("powershield-cancel-replay-encode");
+    }
+    replay.size = destination.size;
+    if (!expect_status(
+            pf_replay_verify(
+                playback,
+                replay,
+                &verification),
+            PF_STATUS_OK,
+            "powershield-cancel-replay-verify") ||
+        verification.verified_ticks !=
+            TEST_PSC_REPLAY_TICKS ||
+        !expect_status(
+            pf_m4_inspect(playback, &inspection),
+            PF_STATUS_OK,
+            "powershield-cancel-replay-final-inspect") ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("powershield-cancel-replay-result");
+    }
+    return 1;
 }
 
 static int run_shield_state_test(
@@ -1896,6 +2276,7 @@ int main(void)
     pf_m4_content content;
     pf_m4_content invalid_content;
     pf_m4_content invalid_shield_content;
+    pf_m4_content invalid_cancel_content;
     pf_m4_content reaction_content;
     pf_m4_content shield_break_content;
     pf_content_view view;
@@ -1918,6 +2299,9 @@ int main(void)
     invalid_shield_content = content;
     invalid_shield_content.fighter.shield_release_ticks =
         UINT16_C(0);
+    invalid_cancel_content = content;
+    invalid_cancel_content.fighter.powershield_cancel_delay_ticks =
+        invalid_cancel_content.fighter.shield_release_ticks;
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -1926,10 +2310,16 @@ int main(void)
             pf_m4_validate_content(&invalid_shield_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-shield-data") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_cancel_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-powershield-cancel-data") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_whiff_and_trade_test(&content, &view) ||
         !run_shield_state_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
+        !run_powershield_cancel_test(&content, &view) ||
+        !run_powershield_cancel_replay_test(&view) ||
         !run_shield_break_test(
             &shield_break_content,
             &shield_break_view) ||
@@ -1946,7 +2336,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=45\n",
+        " combat_invariants=51\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

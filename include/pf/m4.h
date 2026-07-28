@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(5)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(5)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(6)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(6)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(5)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
@@ -131,9 +131,10 @@ typedef struct pf_m4_fighter_data
     uint16_t shield_minimum_hold_ticks;
     uint16_t shield_release_ticks;
     uint16_t powershield_window_ticks;
+    uint16_t powershield_cancel_delay_ticks;
     uint16_t shield_break_ticks;
     uint8_t air_jump_count;
-    uint8_t reserved2;
+    uint8_t powershield_cancel_enabled;
 } pf_m4_fighter_data;
 
 typedef struct pf_m4_stage_data

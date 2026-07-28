@@ -63,7 +63,7 @@ current build can perform the technique.
 | 34 | Powershield | playable | M4.4 | Four-tick physical window, dense shield, attack block; projectile two-tick reflection remains | `tests/sim/test_m4_combat.c`; `src/web_client/m4_playtest.c`; `tools/verify_m4_combat.sh`; `tools/verify_m4_browser.sh` | Raise shield immediately before the physical attack connects; confirm powershield indicator, zero attack shield damage, ordinary stun, and larger pushback; raise it five or more ticks early for the negative case |
 | 35 | Pivoting | planned | M4.4 | Turnaround frame, action interrupts, facing and velocity preservation | — | Future: reverse from run and act on the legal pivot frame; repeat early/late |
 | 36 | Planking | planned | M4.4 | Ledge invulnerability/regrab limits, aerial options, stocks, anti-stall policy | — | Future: repeat a legal ledge refresh sequence while an opponent threatens the ledge and inspect vulnerability gaps |
-| 37 | Power shield canceling | planned | M4.4 | Powershield result, release timing, one-frame physical attack cancel, full ground-action set | Powershield result state exists; cancel path absent | Future: powershield a physical hit, release, and attack on frame 2 of shield drop; compare normal shield's 15-tick release |
+| 37 | Power shield canceling | playable | M4.4 | Physical powershield result, data-driven one-frame release delay, current production ground attack; future ground actions must join the same cancel router before verification | `tests/sim/test_m4_combat.c` covers positive/negative timing and focused replay; browser shield/PSC startup probe | Powershield the physical attack, release shield before shield stun ends, leave frame 1 of `SHIELD RELEASE` neutral, then press attack on frame 2; repeat after an ordinary block and confirm the full 15-tick release cannot be canceled |
 | 38 | Scar Jump | planned | M4.4 | Ledge jump/release, wall/stage geometry, recovery and aerial routes | — | Future: execute the named ledge route on original equivalent geometry and compare a missed wall/ledge timing |
 | 39 | Sharking | planned | M4.4 | Platform geometry plus aerial/upward attacks and target shield/movement | — | Future: threaten and hit a platform opponent from below while remaining in legal stage space |
 | 40 | Shield break combo | primitive-ready | M4.4 | Shield HP/break state exists; complete launch, knockdown, vulnerable mashable stun, and combo route remain | `tests/sim/test_m4_combat.c` covers depletion, placeholder re-hit lockout, and deterministic reset only | Future: force shield break, follow the complete break sequence, and land a deterministic punish before stun ends |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 3 `playable`, 5
-`primitive-ready`, and 52 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 4 `playable`, 5
+`primitive-ready`, and 51 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.

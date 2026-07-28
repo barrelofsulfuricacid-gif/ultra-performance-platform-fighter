@@ -202,12 +202,13 @@ int main(void)
     (void)printf(
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d combat_probe=%d reaction_probe=%d "
-        "shield_probe=%d renders=%d\n",
+        "shield_probe=%d powershield_cancel_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
         test_combat_probe,
         test_reaction_probe,
+        test_shield_probe,
         test_shield_probe,
         test_render_count);
     return 0;

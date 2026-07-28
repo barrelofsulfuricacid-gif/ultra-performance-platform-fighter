@@ -529,7 +529,7 @@ mergeInto(LibraryManager.library, {
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed
-        ? "INPUT + COMBAT + REACTION + SHIELD PROBES PASSED"
+        ? "INPUT + COMBAT + REACTION + SHIELD / PSC PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -824,6 +824,8 @@ mergeInto(LibraryManager.library, {
         (reactionProbePassed ? "pass" : "fail") +
         " shield_probe=" +
         (shieldProbePassed ? "pass" : "fail") +
+        " powershield_cancel_probe=" +
+        (shieldProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -831,6 +833,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.reactionProbe =
         reactionProbePassed ? "pass" : "fail";
       status.dataset.shieldProbe =
+        shieldProbePassed ? "pass" : "fail";
+      status.dataset.powershieldCancelProbe =
         shieldProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);

@@ -634,13 +634,88 @@ static int pf_web_m4_run_shield_probe(void)
     {
         return 0;
     }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].powershield != UINT8_C(1) ||
+        inspection.players[1].shield_health_q16 !=
+            pf_web_m4_content.fighter.shield_health_q16 -
+                pf_web_m4_content.fighter
+                    .shield_hold_depletion_q16)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)pf_web_m4_content.fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(600); ++tick)
+    {
+        if (inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE)
+        {
+            break;
+        }
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].powershield != UINT8_C(1) ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_ticks !=
+            pf_web_m4_content.fighter
+                .powershield_cancel_delay_ticks ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
     return inspection.players[1].action_state ==
-               (uint8_t)PF_M4_ACTION_HITLAG &&
-           inspection.players[1].powershield == UINT8_C(1) &&
-           inspection.players[1].shield_health_q16 ==
-               pf_web_m4_content.fighter.shield_health_q16 -
-                   pf_web_m4_content.fighter
-                       .shield_hold_depletion_q16;
+               (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+           inspection.players[1].powershield == UINT8_C(0);
 }
 
 static int pf_web_m4_render(void)

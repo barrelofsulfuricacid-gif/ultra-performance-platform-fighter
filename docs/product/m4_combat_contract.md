@@ -6,14 +6,15 @@ This checkpoint extends the first production-path M4.2 ground attack with
 deterministic hit reaction and the first dense-shield primitive: trajectory
 DI, SDI, ASDI, tumble, missed-tech knockdown, tech in place, directional
 ground tech, shield stop, shield damage/stun/pushback, shield release and
-regeneration, grounded shield break lockout, and physical powershielding.
+regeneration, grounded shield break lockout, physical powershielding, and
+frame-2 powershield canceling into the current production ground attack.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
 This is still an incremental checkpoint. It does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
-spot dodge, platform shield drop, grabs, powershield canceling, projectile
-powershields, complete shield-break launch/stun, wall/ceiling techs, get-up
+spot dodge, platform shield drop, grabs, projectile powershields, complete
+shield-break launch/stun, wall/ceiling techs, get-up
 choices, tech invulnerability, stocks, match completion, or completion of the
 61-row non-character-specific advanced-technique gate.
 
@@ -142,9 +143,11 @@ ordinary shield-release lag.
 A physical hit during the first four active shield ticks is a powershield. It
 takes no shield damage, retains the same hitlag and shield stun as an ordinary
 Melee physical block, and uses the larger defender pushback factor of 1. The
-powershield result flag remains inspectable through hitlag and shield stun,
-then clears. Projectile reflection and the special one-frame
-powershield-cancel release path are separate remaining work.
+The powershield result flag remains inspectable through hitlag and shield stun.
+If shield is still held when stun ends, the flag clears and the fighter returns
+to ordinary shield. Releasing before stun ends instead carries the flag into
+shield drop and opens the cancel path described below. Projectile reflection
+remains separate work.
 
 These values follow the Melee dense-shield and pushback tables in
 [SmashWiki's shield reference](https://www.ssbwiki.com/Shield), the four-frame
@@ -152,6 +155,30 @@ physical window and no-damage behavior in its
 [powershield reference](https://www.ssbwiki.com/Power_shield), and the
 traction-preserving input sequence in its
 [shield-stop reference](https://www.ssbwiki.com/Shield-stop).
+
+## Physical powershield cancel
+
+After a physical powershield, releasing shield by the end of shield stun enters
+`SHIELD_RELEASE` with the cancel opportunity intact. The content table defines
+the one-tick delay and whether the fighter supports the technique.
+
+- Attack on frame 1 of shield drop is rejected.
+- A fresh attack edge on frame 2 or later cancels directly into the current
+  production ground attack.
+- An attack pressed too early is not buffered; it must be released and pressed
+  again on a legal frame.
+- Holding shield through the end of shield stun consumes the opportunity.
+- An ordinary physical block never receives this cancel and still pays the
+  complete 15-tick shield-release duration.
+- Jump remains an ordinary out-of-shield cancel and does not depend on a
+  powershield.
+
+This implements the Melee physical timing documented by
+[SmashWiki's powershield-cancel reference](https://www.ssbwiki.com/Powershield_canceling):
+ground attacks begin on frame 2 of shield drop, after one frame of delay.
+The registry remains conservative at `playable` until every future supported
+ground action routes through the same cancel and receives positive/negative
+coverage.
 
 ## Shield break checkpoint boundary
 
@@ -170,6 +197,11 @@ timers, and powershield result state to the existing reaction fields. The
 active magic is `PFSAVE05`; the fixed stream is 569 bytes: a 140-byte header
 plus a 429-byte payload.
 
+Content schema 6 adds the powershield-cancel enable flag and shield-drop delay
+to the fighter table. No new canonical state field is required: the existing
+powershield flag already distinguishes an eligible release and is serialized,
+hashed, cloned, replayed, and inspected.
+
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
@@ -181,7 +213,7 @@ view schema 4 carries those fields and the live shield bubble.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 45 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 51 focused
 invariants, including:
 
 - attack schedule, facing, whiff, damage, ownership, freeze, launch, hitstun,
@@ -198,6 +230,9 @@ invariants, including:
 - ordinary block damage/stun/hitlag/pushback, four-tick physical powershield,
   zero powershield damage, larger powershield pushback, and result-flag
   clearing;
+- physical powershield opportunity preservation, frame-1 rejection, frame-2
+  attack cancel, ordinary-shield negative behavior, content validation, and a
+  focused encode/verify replay that performs the cancel;
 - deterministic shield break, placeholder re-hit lockout, reset health, and
   invalid shield-data rejection;
 - mid-hitlag and mid-shield-hitlag save/load with equal future hashes; and
@@ -209,6 +244,6 @@ and WebAssembly runs must agree on all 181 state hashes, the 31,261-byte
 replay, and its final digest.
 
 The browser startup refuses readiness unless independent movement, attack,
-reaction, and shield probes pass. The shield probe observes both a normal
-physical block and a four-frame powershield through the production collision
-path.
+reaction, and shield probes pass. The shield probe observes a normal physical
+block, a four-frame powershield, the frame-1 shield-drop delay, and a frame-2
+powershield-canceled attack through the production collision path.
