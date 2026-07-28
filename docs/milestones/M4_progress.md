@@ -39,8 +39,13 @@
   has direct invariant coverage; other rows remain `planned` until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
-  playtest recipes remain required before M4 can be accepted and will stay
-  release-blocking through M11.
+  playtest recipes are required for all 61 rows before M4 can be accepted; none
+  may be deferred to a later milestone.
+- M4 must include narrow production-path item, team, projectile, charge,
+  reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
+  non-character-specific registry needs them.
+- Character-specific SSBM advanced techniques are a separate M8 fighter-wave
+  gate and are not counted among these 61 M4 rows.
 
 ## Remaining M4.1 work
 

@@ -101,9 +101,9 @@ No dependency is selected because it is fashionable or merely claims to be fast.
 | M1 | Reproducible repository, builds, dependency boundaries, and workflow scaffolding | Yes |
 | M2 | Deterministic headless simulation kernel and RL API | Yes |
 | M3 | Per-commit performance system and verifier agent | Yes |
-| M4 | Playable one-fighter/one-stage 1v1 combat vertical slice | Yes |
+| M4 | Playable combat vertical slice with complete non-character-specific SSBM advanced-technique coverage | Yes |
 | M5 | Excel-driven gameplay data and Dear ImGui debug editing | Yes |
-| M6 | Complete local 1v1, 2v2, hazards/items framework, and capture the flag | Yes |
+| M6 | Complete local 1v1, 2v2, hazards framework, and capture the flag | Yes |
 | M7 | Native/web client presentation, menus, audio, and controller support | Yes |
 | M8 | Full original roster and ten-stage content set | After every roster/stage wave |
 | M9 | Cross-platform GGPO rollback netplay | Yes |
@@ -390,7 +390,7 @@ Implement:
 Treat the `SSBM = Yes` rows in SmashWiki's
 [List of advanced techniques, revision 2048934](https://www.ssbwiki.com/index.php?title=Advanced_technique&oldid=2048934#List_of_advanced_techniques),
 captured on 2026-07-28, as a binding gameplay requirement. Every unique technique
-in that baseline must be supported and functional by M11. The source table lists
+in that baseline must be supported and functional before M4 can be accepted. The source table lists
 dash-dancing twice; this plan counts it once, yielding 61 unique required
 techniques:
 
@@ -478,22 +478,51 @@ For this requirement, “supported and functional” means:
 - Original fighters, items, animation, audio, and presentation must express the
   behavior without copying protected SSBM content.
 
-Delivery is incremental:
+M4 is the completion gate for this entire 61-row non-character-specific
+baseline:
 
-- M4 establishes the versioned 61-row technique registry, implements the shared
-  movement/combat primitives, and verifies every entry exercisable by the
-  vertical-slice fighter and stage.
-- M5 makes all technique timing windows and content-specific parameters
-  data-driven and exposes their state in the inspector.
-- M6 supplies the team and held-item interactions needed by entries such as bat
-  dropping, glide toss, jump cancel throw, and team wobble.
-- Each M8 fighter wave must make its newly exercisable character-dependent
-  entries playable and verified before the wave can be accepted.
-- M11 is blocked until all 61 rows are playable, deterministic, verifier-tested,
-  browser-testable, and linked to current evidence. Recheck the live source table
-  at every M8 wave and before M11; add any newly marked SSBM technique to this
-  registry before accepting that milestone unless the owner explicitly changes
-  scope.
+- No row may be deferred to M5, M6, M8, or release hardening. If a technique
+  needs an item, team interaction, projectile, charge state, reflector-like
+  action, or other capability beyond the ordinary 1v1 slice, M4 supplies the
+  narrow original fixture and live browser configuration needed to perform and
+  verify it.
+- M4 maintains a versioned row-by-row registry with dependencies, supporting
+  configuration, implementation state, automated evidence, and browser
+  playtest recipe. M4 acceptance requires every row to be `verified`.
+- M5 may move the already-working timings into authoritative workbooks, and
+  later milestones may broaden content and presentation, but neither may
+  change or remove the accepted behavior without rerunning the M4 oracles and
+  owner playtests.
+- M11 reruns the complete registry as a regression gate. Recheck the live source
+  table before M4 acceptance, at every M8 wave, and before M11; add any newly
+  marked SSBM technique to this registry before accepting the current milestone
+  unless the owner explicitly changes scope.
+
+#### M4.5 — Technique-support fixtures
+
+Implement the smallest original, production-path fixtures required to exercise
+all M4.4 techniques:
+
+- Data-driven pickup, carry, drop, aerial drop, directional throw, item hitbox,
+  despawn/reset, and momentum-transfer rules, plus one original bat-like test
+  item.
+- A narrow multi-fighter/team laboratory configuration for team wobble and any
+  other multi-fighter verification. Full local team setup and mode UX remain in
+  M6.
+- Placeholder-fighter actions needed by the general registry, including charge,
+  projectile, reflector-like, shield, grab/throw, aerial, and ledge
+  interactions. These fixtures use the same action/combat paths later content
+  uses and are not debug-only shortcuts.
+
+**Acceptance criteria**
+
+- Bat dropping, glide toss, jump cancel throw, team wobble, shine spike, and
+  short hop laser can be performed in an ordinary browser match/laboratory
+  configuration and have positive/negative deterministic verifier oracles.
+- Fixture state serializes, hashes, rewinds, replays, rolls back, and remains
+  available to the headless/RL API.
+- Fixtures stay inside the M0 performance and state-size budgets and introduce
+  no copied names, art, audio, animation, or data.
 
 **Acceptance criteria**
 
@@ -506,6 +535,8 @@ Delivery is incremental:
   `playable`, or `verified` for every required row, with dependencies, target
   milestone, automated evidence, and a browser playtest recipe; no row may be
   silently omitted.
+- All 61 non-character-specific rows are `verified`; any lesser state blocks M4
+  acceptance and the transition to M5.
 
 **Human checkpoint:** Mandatory combat playtest. Do not scale content until the core feel is approved.
 
@@ -557,7 +588,7 @@ Provide panels for:
 
 ---
 
-### M6 — Local modes, teams, hazards, items, and capture the flag
+### M6 — Local modes, teams, hazards, and capture the flag
 
 #### M6.1 — Complete local player/team model
 
@@ -583,23 +614,7 @@ Provide panels for:
 - Hazard scripts cannot allocate, access wall-clock time, or mutate state outside declared deterministic data.
 - Worst-case hazard scenarios remain within the M0 budget.
 
-#### M6.3 — Minimal deterministic held-item framework
-
-- Implement data-driven pickup, carry, drop, aerial drop, directional throw, item
-  hitbox, despawn/reset, and momentum-transfer rules.
-- Provide at least one original bat-like test item so item-dependent advanced
-  techniques can be exercised without copied names, art, audio, or data.
-- Reuse the core action, collision, event, serialization, replay, rollback, and RL
-  paths rather than creating an item-only simulation path.
-
-**Acceptance criteria**
-
-- Bat dropping, glide toss, and jump cancel throw have live-match browser recipes
-  and positive/negative deterministic verifier oracles.
-- Item state serializes, hashes, rewinds, replays, and rolls back correctly.
-- Item interactions remain inside the M0 performance and state-size budgets.
-
-#### M6.4 — Capture the flag
+#### M6.3 — Capture the flag
 
 - Implement flags, bases, pickup, carry, drop, return, capture, scoring, respawn, overtime/tie handling, and HUD events.
 - Support configurations suitable for 1v1 and 2v2.
@@ -700,12 +715,30 @@ Scale the approved combat system in waves rather than all at once:
 
 Each fighter receives original naming, silhouette, lore, move expression, animation, effects, voice/sound set, physics/data, AI/verifier scripts, portraits, selection assets, and balance tests.
 
+M8 is the completion gate for character-specific SSBM advanced techniques.
+Before the first fighter wave, create a pinned row-by-row registry from the
+separate
+[character-specific advanced-technique section in revision 2048934](https://www.ssbwiki.com/index.php?title=Advanced_technique&oldid=2048934#List_of_character-specific_advanced_techniques).
+Include every listed technique applicable to a fighter or form in the SSBM
+roster, then map it to the corresponding original D1-A mechanical counterpart.
+Entries exclusive to fighters that are not in SSBM are outside this
+SSBM-counterpart requirement.
+
+Each mapped technique must be performable in an ordinary match, use
+production-path mechanics and original presentation, have deterministic
+positive/negative verifier evidence, and include a browser playtest recipe.
+The supporting fighter wave cannot be accepted until all of its mapped
+techniques are verified; the final M8 fighter wave is blocked until the entire
+character-specific registry is verified.
+
 **Acceptance criteria for each wave**
 
 - Every fighter is complete enough for full 1v1, 2v2, CTF, replay, rollback, and RL use; no “visual-only” roster entries count.
 - Every move/state has valid data, hit/hurt boxes, animation, and required sound/event mappings.
 - Automated matchup smoke tests cover every ordered fighter pair and representative teams.
-- Every advanced-technique registry row made possible by the wave's fighters is playable and verified; content-dependent rows identify the exact supporting fighter/item/stage configuration.
+- Every character-specific advanced-technique registry row mapped to the wave's
+  fighters is playable and verified; each row identifies the exact supporting
+  fighter/item/stage configuration.
 - Originality/provenance review passes.
 - Worst-case fighter combinations meet state-size and performance budgets.
 - The owner playtests and accepts the wave before the next wave begins.
@@ -713,6 +746,8 @@ Each fighter receives original naming, silhouette, lore, move expression, animat
 **Final fighter acceptance**
 
 - Every playable SSBM fighter/form has an original D1-A mechanical counterpart preserving substantially the same move functions and matchup identity.
+- Every character-specific SSBM advanced technique mapped to those counterparts
+  is playable, deterministic, verifier-tested, and browser-testable.
 - Names, art, audio, music, animation, writing, and presentation are original.
 - The roster preserves broad matchup and playstyle diversity rather than becoming cosmetic variants.
 
@@ -1002,7 +1037,8 @@ The plan is not treated as ground truth when measurements or implementation real
 | Source requirement | Acceptance location |
 |---|---|
 | Fun 2D platform fighter, Melee-like play | M0.1, M4, M8.3, M11.3 |
-| All techniques marked available for SSBM in the pinned advanced-technique table | M4.4, M5, M6.3, M8.1, M11.2 |
+| All non-character-specific techniques marked available for SSBM in the pinned advanced-technique table | M4.4–M4.5, M11.2 |
+| Character-specific advanced techniques applicable to the SSBM roster | M8.1, M11.2 |
 | Maximum single-thread performance | M0.2–M0.3, M2, M3, M11, M12 |
 | Ultra-fast RL tool | M2.2, M3.1, M11.2 |
 | 1v1 and 2v2 | M6.1, M9, M11.2 |
@@ -1017,7 +1053,7 @@ The plan is not treated as ground truth when measurements or implementation real
 | Steam/GameCube/Xbox/PlayStation/major controllers | M7.4, M11 |
 | Windows/macOS/Linux/browser | M1, M7, M9, M11 |
 | ImGui design-value editing | M5.2 |
-| Capture the flag | M6.4, M11 |
+| Capture the flag | M6.3, M11 |
 | C implementation | D2-A, M0.4, M1 |
 | Current best tools selected through research | Section 4, M0.4, per-dependency decision records |
 | Single-thread engine; client may multithread | Section 3, M1.1, M2 |
