@@ -401,6 +401,11 @@ if(PF_BUILD_VERIFIER)
         PRIVATE
             sim
             presentation)
+    if(MSVC)
+        target_compile_definitions(
+            verifier
+            PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
     target_compile_features(verifier PRIVATE c_std_17)
     set_target_properties(
         verifier
