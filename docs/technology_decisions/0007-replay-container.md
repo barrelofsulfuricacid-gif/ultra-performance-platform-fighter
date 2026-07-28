@@ -58,7 +58,7 @@ used by the native/WebAssembly corpus test and browser inspector:
 - Ground-attack, vertical-stick, and trigger inputs plus confirmed damage/hit,
   SDI, tech-window, and shield state in the production combat path.
 - Replay SHA-256
-  `e5e2cbbd513c7b37617f4138dae472baed2b76075a16286ce69f113fb5b17fd7`.
+  `628685db3a1ce96383608dc48f356346f8a0ddfc785a8fe0a00bb21c3977e3b3`.
 - Final state SHA-256
   `d0d2eab988ab7c8597829297601d533c69259ee9f0f8203cd6c385d2ed20db17`.
 

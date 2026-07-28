@@ -78,6 +78,7 @@ extern void pf_web_m4_playtest_install(
     int walk_axis,
     int dash_axis,
     int input_probe_passed,
+    int air_facing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed);
@@ -344,6 +345,74 @@ static int pf_web_m4_run_input_probe(void)
     return short_early_apex == short_late_apex &&
            full_release_apex == full_hold_apex &&
            full_release_apex < short_early_apex;
+}
+
+static int pf_web_m4_run_air_facing_probe(void)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].facing != INT8_C(1) ||
+        !pf_web_m4_tick(
+            -PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        inspection.players[0].facing != INT8_C(1) ||
+        !pf_web_m4_tick(
+            -PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        inspection.players[0].facing != INT8_C(1))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].grounded != UINT8_C(0) ||
+            inspection.players[0].facing != INT8_C(1))
+        {
+            return 0;
+        }
+    }
+    return inspection.players[0].velocity_x_q16 > INT32_C(0);
 }
 
 static int pf_web_m4_run_combat_probe(void)
@@ -840,6 +909,7 @@ int pf_web_m4_playtest_start(void)
     pf_memory_requirements requirements;
     pf_sim_config config;
     int input_probe_passed;
+    int air_facing_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -878,10 +948,12 @@ int pf_web_m4_playtest_start(void)
     }
 
     input_probe_passed = pf_web_m4_run_input_probe();
+    air_facing_probe_passed = pf_web_m4_run_air_facing_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
     if (input_probe_passed == 0 ||
+        air_facing_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -893,6 +965,7 @@ int pf_web_m4_playtest_start(void)
         (int)PF_WEB_M4_WALK_AXIS,
         (int)PF_WEB_M4_DASH_AXIS,
         input_probe_passed,
+        air_facing_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed);

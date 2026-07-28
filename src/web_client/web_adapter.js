@@ -441,11 +441,12 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
     inputProbePassed,
+    airFacingProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed
@@ -526,10 +527,11 @@ mergeInto(LibraryManager.library, {
     live.className = "pf-m4-live";
     live.textContent =
       inputProbePassed &&
+      airFacingProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed
-        ? "INPUT + COMBAT + REACTION + SHIELD / PSC PROBES PASSED"
+        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -818,6 +820,8 @@ mergeInto(LibraryManager.library, {
       status.textContent +=
         " playtest=ready input_probe=" +
         (inputProbePassed ? "pass" : "fail") +
+        " air_facing_probe=" +
+        (airFacingProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " reaction_probe=" +
@@ -829,6 +833,8 @@ mergeInto(LibraryManager.library, {
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
+      status.dataset.airFacingProbe =
+        airFacingProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.reactionProbe =
         reactionProbePassed ? "pass" : "fail";

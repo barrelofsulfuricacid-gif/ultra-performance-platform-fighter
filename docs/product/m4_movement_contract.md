@@ -33,6 +33,10 @@ pass-through platforms are horizontal surface heights.
   initial-dash speed/window, run-turnaround duration/threshold/lockout,
   run-brake duration, aerial acceleration, aerial speed, and facing are
   deterministic data fields.
+- Airborne horizontal stick input changes the aerial target velocity and
+  acceleration only. It does not change facing. Facing is inherited at
+  takeoff and can change only through an explicit action transition, never
+  from ordinary aerial drift.
 - Down on the floor enters crouch. Down on a pass-through platform drops
   through it for a data-defined exclusion window.
 
@@ -51,9 +55,10 @@ Therefore key duration chooses between two heights; it never continuously
 scales jump height. The mechanical oracle compares early and late releases
 within each category and requires exact matching apexes.
 
-An airborne fresh jump press consumes one configured air jump. A deliberate
-down input after the apex enters the fixed fast-fall speed. Landing enters a
-finite landing state.
+An airborne fresh jump press consumes one configured air jump without changing
+facing, even when the horizontal stick points opposite that facing. A
+deliberate down input after the apex enters the fixed fast-fall speed. Landing
+enters a finite landing state.
 
 ## Stage interaction
 
@@ -95,7 +100,8 @@ geometry without placing presentation objects in canonical state. It includes
 - content validation, content-hash rejection, and a data-tuning effect;
 - proportional walk, initial dash, run, dash-dance reversal, run turnaround,
   turnaround lockout, run brake, facing, traction, and crouch;
-- binary short/full hops, double jump, aerial drift, fast fall, and landing;
+- binary short/full hops, double jump, aerial drift, airborne-facing lock
+  across opposite drift and air-jump input, fast fall, and landing;
 - moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
   one-occupant priority, mid-climb save/load equivalence, platform drop, and
   blast-zone respawn; and

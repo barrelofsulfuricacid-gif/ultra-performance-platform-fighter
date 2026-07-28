@@ -1789,10 +1789,6 @@ pf_status pf_m4_step_player(
 
             action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
             action_ticks = UINT16_C(0);
-            if (horizontal_direction != INT8_C(0))
-            {
-                facing = horizontal_direction;
-            }
             velocity_x = pf_m4_approach(
                 velocity_x,
                 air_target,

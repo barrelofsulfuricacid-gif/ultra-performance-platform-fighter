@@ -20,6 +20,7 @@ static int test_render_count;
 static int test_walk_axis;
 static int test_dash_axis;
 static int test_input_probe;
+static int test_air_facing_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
@@ -29,6 +30,7 @@ void pf_web_m4_playtest_install(
     int walk_axis,
     int dash_axis,
     int input_probe_passed,
+    int air_facing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed);
@@ -41,6 +43,7 @@ void pf_web_m4_playtest_install(
     int walk_axis,
     int dash_axis,
     int input_probe_passed,
+    int air_facing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed)
@@ -49,6 +52,7 @@ void pf_web_m4_playtest_install(
     test_walk_axis = walk_axis;
     test_dash_axis = dash_axis;
     test_input_probe = input_probe_passed;
+    test_air_facing_probe = air_facing_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
@@ -84,6 +88,7 @@ int main(void)
         test_walk_axis != 13500 ||
         test_dash_axis != 32767 ||
         test_input_probe != 1 ||
+        test_air_facing_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
@@ -93,13 +98,14 @@ int main(void)
         (void)fprintf(
             stderr,
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
-            "dash=%d input_probe=%d combat_probe=%d "
+            "dash=%d input_probe=%d air_facing_probe=%d combat_probe=%d "
             "reaction_probe=%d shield_probe=%d schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
             test_walk_axis,
             test_dash_axis,
             test_input_probe,
+            test_air_facing_probe,
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
@@ -201,11 +207,12 @@ int main(void)
 
     (void)printf(
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
-        "input_probe=%d combat_probe=%d reaction_probe=%d "
+        "input_probe=%d air_facing_probe=%d combat_probe=%d reaction_probe=%d "
         "shield_probe=%d powershield_cancel_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
+        test_air_facing_probe,
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,

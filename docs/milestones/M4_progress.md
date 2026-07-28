@@ -14,9 +14,10 @@ hit-reaction layers, dense shield, and physical powershield cancel implemented
 - Real-simulation Q16.16 states for proportional walk, initial dash, run,
   dash-dance reversal, run turnaround, run brake, post-turnaround run lockout,
   facing, traction, crouch, jump squat, binary short/full hop, configured air
-  jump, aerial drift, fast fall, landing, moving-platform support, platform
-  drop, support edges, blast-zone respawn, ledge catch, catch lockout, hang,
-  release, ledge jump, and ledge climb.
+  jump, independently steerable aerial drift with takeoff-facing lock, fast
+  fall, landing, moving-platform support, platform drop, support edges,
+  blast-zone respawn, ledge catch, catch lockout, hang, release, ledge jump,
+  and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
 - A rollback-safe state-schema-6/save-format-5 contract that serializes every
@@ -29,7 +30,7 @@ hit-reaction layers, dense shield, and physical powershield cancel implemented
   ledge points, moving-platform geometry, blast zones, percent, hitlag,
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state.
-- Twenty-six movement/content invariants plus a 20,000-tick four-player
+- Thirty movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -111,6 +112,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
+- Airborne horizontal input changes drift velocity but never changes facing;
+  an opposite-direction air jump likewise preserves the takeoff-facing
+  direction.
 - Opposite input during initial dash remains a dash-dance reversal. Opposite
   input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
   sub-threshold run input enters `RUN BRAKE`.
@@ -162,7 +166,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 16/16 tests.
 - Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 26 movement invariants, 51 attack/reaction/shield
+- Mechanical oracles: 30 movement invariants, 51 attack/reaction/shield
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
@@ -170,7 +174,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Native replay corpus: exact 180-tick attack/reaction/shield trace at 31,261
   bytes,
   replay SHA-256
-  `e5e2cbbd513c7b37617f4138dae472baed2b76075a16286ce69f113fb5b17fd7`,
+  `628685db3a1ce96383608dc48f356346f8a0ddfc785a8fe0a00bb21c3977e3b3`,
   final SHA-256
   `d0d2eab988ab7c8597829297601d533c69259ee9f0f8203cd6c385d2ed20db17`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -181,7 +185,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/combat/reaction/shield-and-PSC probes and live rendering).
+  movement/air-facing/combat/reaction/shield-and-PSC probes and live
+  rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

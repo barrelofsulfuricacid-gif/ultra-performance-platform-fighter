@@ -40,6 +40,11 @@ short-hop launch speed; hold through takeoff for the one fixed full-hop launch
 speed. Releasing or continuing to hold after takeoff cannot change the selected
 apex.
 
+Once airborne, horizontal input changes drift but does not change the direction
+the fighter faces. An air jump also preserves facing, even when performed while
+holding the opposite horizontal direction. Turn on the ground before takeoff
+when an inward or outward airborne facing is required.
+
 To grab a ledge, fall beside it while facing inward. After the seven-tick catch
 window, press toward the stage to climb, press down or away to release, or press
 jump for a ledge jump. A claimed ledge rejects another fighter until its current
@@ -107,50 +112,55 @@ can advance from `playable` to `verified`.
    height.
 5. Hold jump through takeoff, then vary when it is released. Confirm every full
    hop reaches the same height and is higher than every short hop.
-6. Use an airborne fresh jump, reverse aerial drift around the apex, fast-fall
+6. Jump while facing right, hold left until moving left, then hold right until
+   moving right. Confirm the facing indicator stays right throughout both drift
+   directions and an air jump. Repeat after turning left on the ground.
+7. Use an airborne fresh jump, reverse aerial drift around the apex, fast-fall
    with down, land on the moving platform, then press down to drop through it.
-7. Run off the right side, reverse toward the stage while falling, and confirm
-   `LEDGE HANG`. Try neutral hang, down/away release, jump, and inward climb.
-8. Put one player on a ledge and attempt to grab it with the other player.
+8. Approach the right edge in `RUN`, press left before leaving it to enter
+   `RUN TURNAROUND`, and let the retained rightward momentum carry the fighter
+   off while facing inward. Confirm `LEDGE HANG`, then try neutral hang,
+   down/away release, jump, and inward climb.
+9. Put one player on a ledge and attempt to grab it with the other player.
    Confirm only the original occupant enters `LEDGE HANG`.
-9. Move into range, press `F`, and confirm the amber hitbox appears only on the
+10. Move into range, press `F`, and confirm the amber hitbox appears only on the
    active frames. On contact, confirm the target gains 6%, both players visibly
    freeze, and the target then launches in `HITSTUN`.
-10. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
+11. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
-11. Pause just before contact and use `N` to step through hitlag. On the first
+12. Pause just before contact and use `N` to step through hitlag. On the first
     target hitlag tick, press a horizontal direction and confirm `SDI pulses`
     becomes 1 and the target shifts. Keep holding it for another tick and
     confirm the count stays 1. Add the vertical component and confirm the count
     becomes 2.
-12. Compare otherwise similar launches while holding perpendicular opposite
+13. Compare otherwise similar launches while holding perpendicular opposite
     vertical directions on the final hitlag tick. Confirm the visible launch
     vector changes while the state remains deterministic after Reset.
-13. Tap the target's tech key and confirm the state card shows
+14. Tap the target's tech key and confirm the state card shows
     `tech window 20` and `lockout 40`. Hold the key through the next tick and
     confirm they count down to 19/39 rather than reopening.
-14. After building enough damage for the card to show `tumble 1`, press the
+15. After building enough damage for the card to show `tumble 1`, press the
     target's tech key within 20 ticks of landing. Use neutral horizontal input
     for `TECH IN PLACE`, then repeat while holding a direction for `TECH ROLL`.
     Repeat without the tech input and confirm `KNOCKDOWN`.
-15. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+16. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-16. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+17. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
     fighter slides forward and slows under traction. Reset, press shield during
     `INITIAL DASH`, and confirm the fighter does not shield until run.
-17. Hold shield for more than four ticks and block an attack. Confirm no
+18. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-18. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+19. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-19. Repeat with Player 2's arrow-key controls and try both players
+20. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -168,6 +178,8 @@ through:
   new initial dash;
 - two different short-hop release timings producing the same apex;
 - two different post-takeoff full-hop hold durations producing the same apex;
+- opposite-direction aerial drift and an opposite-direction air jump changing
+  velocity without changing takeoff facing;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
 - a production-path target SDI pulse producing a positional shift;
@@ -183,7 +195,7 @@ through:
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
-`playtest=ready input_probe=pass combat_probe=pass reaction_probe=pass
+`playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass
 controls=keyboard-two-player` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.
