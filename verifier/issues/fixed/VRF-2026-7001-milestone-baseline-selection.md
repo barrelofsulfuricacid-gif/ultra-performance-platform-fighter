@@ -1,12 +1,12 @@
 # [VRF-2026-7001] Milestone same-commit baseline is excluded
 
 ID: VRF-2026-7001
-Status: unfixed
+Status: fixed
 Severity: high
 Detected commit: ecc671fc5a77c7fff62d4ea6d01be66afb72bd85
 Build hash: f0f8f22a7e9f892c90885eb0818106e1e92c092969cf88cdcd5b501dbd8b3589
 Content hash: 1728394a5b6c7d8e9fb0c1d2e3f405162738495a6b7c8d9eafc0d1e2f3041526
-Fixed commit: not-fixed
+Fixed commit: b285e0fe55e24e05d5be3aef3b6c96c706ccff9d
 
 ## Reproduction
 
@@ -34,8 +34,19 @@ could never be selected.
 
 ## Resolution
 
-Not fixed.
+Corrective commit `b285e0fe55e24e05d5be3aef3b6c96c706ccff9d`
+allows any earlier compatible run to serve as the baseline, including a
+repeated measurement of the same unchanged commit. The history qualification
+now requires all nine measured scenarios to compare successfully in that
+case.
 
 ## Fix verification
 
-Pending a corrective commit and following bookkeeping commit.
+- The isolated history qualification passed with `same_commit=9`.
+- The full 13-check verifier qualification passed with zero failures.
+- Follow-up corrective commit
+  `229f6f633b12740f9bbdbf966ccfd00e938d90d4` made that qualification
+  repeatable against an already populated artifact root, and its post-commit
+  gate passed.
+- This bookkeeping commit preserves the original evidence after both
+  corrective behaviors were verified.
