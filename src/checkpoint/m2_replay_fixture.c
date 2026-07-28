@@ -58,6 +58,14 @@ void pf_m2_replay_make_tick_inputs(
             ? INT16_C(-24576)
             : INT16_C(12288);
 
+    if (tick < UINT64_C(27))
+    {
+        inputs[0].main_stick_x = INT16_C(32767);
+        inputs[1].main_stick_x = INT16_C(-32767);
+        inputs[2].main_stick_x = INT16_C(32767);
+        inputs[3].main_stick_x = INT16_C(-32767);
+    }
+
     if (tick == UINT64_C(8) || tick == UINT64_C(87))
     {
         inputs[0].buttons |= PF_INPUT_BUTTON_JUMP;
@@ -73,6 +81,27 @@ void pf_m2_replay_make_tick_inputs(
     if (tick == UINT64_C(55) || tick == UINT64_C(141))
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_JUMP;
+    }
+    if (tick % UINT64_C(13) == UINT64_C(4))
+    {
+        inputs[0].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick % UINT64_C(17) == UINT64_C(6))
+    {
+        inputs[1].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick % UINT64_C(19) == UINT64_C(8))
+    {
+        inputs[2].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick % UINT64_C(23) == UINT64_C(10))
+    {
+        inputs[3].buttons |= PF_INPUT_BUTTON_ATTACK;
+    }
+    if (tick == UINT64_C(27))
+    {
+        inputs[0].buttons |= PF_INPUT_BUTTON_ATTACK;
+        inputs[2].buttons |= PF_INPUT_BUTTON_ATTACK;
     }
     if (tick + UINT64_C(1) == PF_M2_REPLAY_TICKS)
     {

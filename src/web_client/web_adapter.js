@@ -441,11 +441,12 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viii",
+  pf_web_m4_playtest_install__sig: "viiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
-    inputProbePassed
+    inputProbePassed,
+    combatProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -505,7 +506,7 @@ mergeInto(LibraryManager.library, {
     var section = document.createElement("section");
     section.id = "pf-m4-playtest";
     section.dataset.ready = "true";
-    section.setAttribute("aria-label", "M4 movement playtest");
+    section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
     heading.className = "pf-m4-heading";
@@ -515,12 +516,16 @@ mergeInto(LibraryManager.library, {
     var subtitle = document.createElement("p");
     subtitle.textContent =
       "Two keyboard players drive the same deterministic Q16.16 simulation " +
-      "used by native, replay, rollback, and headless execution.";
+      "used by native, replay, rollback, and headless execution. Active attack " +
+      "hitboxes are drawn over the production collision state.";
     headingCopy.appendChild(title);
     headingCopy.appendChild(subtitle);
     var live = document.createElement("span");
     live.className = "pf-m4-live";
-    live.textContent = inputProbePassed ? "INPUT PROBE PASSED" : "INPUT PROBE FAILED";
+    live.textContent =
+      inputProbePassed && combatProbePassed
+        ? "INPUT + COMBAT PROBES PASSED"
+        : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
     section.appendChild(heading);
@@ -529,7 +534,7 @@ mergeInto(LibraryManager.library, {
     canvas.id = "pf-m4-canvas";
     canvas.width = 960;
     canvas.height = 480;
-    canvas.setAttribute("aria-label", "Live deterministic movement stage");
+    canvas.setAttribute("aria-label", "Live deterministic combat stage");
     section.appendChild(canvas);
 
     var toolbar = document.createElement("div");
@@ -567,13 +572,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash · Shift + A / D walk · W or Space jump · S down / fast fall"
+        "A / D dash · Shift + A / D walk · W or Space jump · F attack · S down / fast fall"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash · Shift + ← / → walk · ↑ jump · ↓ down / fast fall"
+        "← / → dash · Shift + ← / → walk · ↑ jump · / or Numpad 0 attack · ↓ down / fast fall"
       )
     );
     section.appendChild(controls);
@@ -587,7 +592,9 @@ mergeInto(LibraryManager.library, {
       "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
       "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
-      "release, or jump to ledge-jump. R resets, P pauses, and N single-steps.";
+      "release, or jump to ledge-jump. F and / perform the first data-driven " +
+      "ground attack; translucent boxes show its active frames. R resets, P " +
+      "pauses, and N single-steps.";
     section.appendChild(note);
 
     var stateGrid = document.createElement("div");
@@ -618,6 +625,7 @@ mergeInto(LibraryManager.library, {
       latest: null,
       pauseButton: pauseButton,
       playerStates: playerStates,
+      attackQueued: [false, false],
       jumpQueued: [false, false],
       running: true,
       tickLabel: tickLabel,
@@ -645,16 +653,24 @@ mergeInto(LibraryManager.library, {
         held("KeyW") || held("Space") || state.jumpQueued[0];
       var player1Jump =
         held("ArrowUp") || state.jumpQueued[1];
+      var player0Attack =
+        held("KeyF") || state.attackQueued[0];
+      var player1Attack =
+        held("Slash") || held("Numpad0") || state.attackQueued[1];
       var passed = Module._pf_web_m4_playtest_step(
         horizontal("KeyA", "KeyD"),
         held("KeyS") ? state.dashAxis : 0,
         player0Jump ? 1 : 0,
+        player0Attack ? 1 : 0,
         horizontal("ArrowLeft", "ArrowRight"),
         held("ArrowDown") ? state.dashAxis : 0,
-        player1Jump ? 1 : 0
+        player1Jump ? 1 : 0,
+        player1Attack ? 1 : 0
       );
       state.jumpQueued[0] = false;
       state.jumpQueued[1] = false;
+      state.attackQueued[0] = false;
+      state.attackQueued[1] = false;
       if (!passed) {
         state.running = false;
         state.pauseButton.textContent = "Resume";
@@ -677,6 +693,7 @@ mergeInto(LibraryManager.library, {
     function reset() {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
+      state.attackQueued = [false, false];
       state.accumulator = 0;
       Module._pf_web_m4_playtest_reset();
     }
@@ -715,6 +732,8 @@ mergeInto(LibraryManager.library, {
         var wasHeld = held(event.code);
         if (
           event.code === "Space" ||
+          event.code === "Slash" ||
+          event.code === "Numpad0" ||
           event.code.indexOf("Arrow") === 0
         ) {
           event.preventDefault();
@@ -725,6 +744,15 @@ mergeInto(LibraryManager.library, {
         }
         if (!wasHeld && event.code === "ArrowUp") {
           state.jumpQueued[1] = true;
+        }
+        if (!wasHeld && event.code === "KeyF") {
+          state.attackQueued[0] = true;
+        }
+        if (
+          !wasHeld &&
+          (event.code === "Slash" || event.code === "Numpad0")
+        ) {
+          state.attackQueued[1] = true;
         }
         if (event.repeat) {
           return;
@@ -745,15 +773,19 @@ mergeInto(LibraryManager.library, {
     window.addEventListener("blur", function () {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
+      state.attackQueued = [false, false];
     });
 
     if (status) {
       status.textContent +=
         " playtest=ready input_probe=" +
         (inputProbePassed ? "pass" : "fail") +
+        " combat_probe=" +
+        (combatProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
+      status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -761,7 +793,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 36) {
+    if (!state || viewCount !== 54) {
       return;
     }
     state.latest = new Int32Array(
@@ -793,6 +825,9 @@ mergeInto(LibraryManager.library, {
       "LEDGE CLIMB",
       "RUN TURNAROUND",
       "RUN BRAKE",
+      "GROUND ATTACK",
+      "HITLAG",
+      "HITSTUN",
     ];
 
     function sx(q16Value) {
@@ -843,7 +878,7 @@ mergeInto(LibraryManager.library, {
     context.stroke();
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 14 + playerIndex * 11;
+      var base = 14 + playerIndex * 20;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -854,9 +889,33 @@ mergeInto(LibraryManager.library, {
       var height = Math.max(28, halfHeight * 2);
       var facing = view[base + 5];
 
+      if (view[base + 14]) {
+        var hitboxLeft = sx(view[base + 15]);
+        var hitboxRight = sx(view[base + 16]);
+        var hitboxTop = sy(view[base + 17]);
+        var hitboxBottom = sy(view[base + 18]);
+
+        context.fillStyle = "#ffb34744";
+        context.strokeStyle = "#ffd089";
+        context.lineWidth = 2;
+        context.fillRect(
+          hitboxLeft,
+          hitboxTop,
+          hitboxRight - hitboxLeft,
+          hitboxBottom - hitboxTop
+        );
+        context.strokeRect(
+          hitboxLeft,
+          hitboxTop,
+          hitboxRight - hitboxLeft,
+          hitboxBottom - hitboxTop
+        );
+      }
+
       context.shadowColor = colors[playerIndex] + "88";
       context.shadowBlur = 16;
-      context.fillStyle = colors[playerIndex];
+      context.fillStyle =
+        view[base + 4] === 13 ? "#ffffff" : colors[playerIndex];
       context.fillRect(x - width / 2, y - height / 2, width, height);
       context.shadowBlur = 0;
       context.fillStyle = "#07111c";
@@ -891,7 +950,15 @@ mergeInto(LibraryManager.library, {
         " · fast fall " +
         view[base + 9] +
         " · respawns " +
-        view[base + 10];
+        view[base + 10] +
+        "<br>damage " +
+        (view[base + 11] / q16).toFixed(1) +
+        "% · hitlag " +
+        view[base + 12] +
+        " · hitstun " +
+        view[base + 13] +
+        " · hit event " +
+        view[base + 19];
     });
 
     context.fillStyle = "#8da2bb";

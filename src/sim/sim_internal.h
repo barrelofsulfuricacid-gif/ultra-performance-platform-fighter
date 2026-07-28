@@ -8,6 +8,8 @@
 
 #define PF_SIM_HANDLE_MAGIC UINT64_C(0x504653494D303032)
 #define PF_SIM_MAX_MOTION_SPEED_Q16 INT32_C(262144)
+#define PF_SIM_MAX_DAMAGE_Q16 (UINT32_C(999) * UINT32_C(65536))
+#define PF_SIM_MAX_HITSTUN_TICKS UINT16_C(600)
 
 typedef struct pf_world_state
 {
@@ -48,6 +50,18 @@ typedef struct pf_world_state
     int8_t facing[PF_SIM_MAX_PLAYERS];
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_strong_direction[PF_SIM_MAX_PLAYERS];
+    uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
+    int32_t pending_velocity_x_q16[PF_SIM_MAX_PLAYERS];
+    int32_t pending_velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
+    uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
+    uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
+    uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
+    uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
+    uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
+    uint32_t combat_event_sequence;
 } pf_world_state;
 
 typedef struct pf_sim_scratch
@@ -69,6 +83,18 @@ typedef struct pf_sim_scratch
     int8_t facing[PF_SIM_MAX_PLAYERS];
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_strong_direction[PF_SIM_MAX_PLAYERS];
+    uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
+    int32_t pending_velocity_x_q16[PF_SIM_MAX_PLAYERS];
+    int32_t pending_velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
+    uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
+    uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
+    uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
+    uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
+    uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
+    uint32_t combat_event_sequence;
 } pf_sim_scratch;
 
 struct pf_sim
@@ -100,6 +126,21 @@ pf_status pf_m4_step_player(
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
     uint32_t player_index);
+pf_status pf_m4_resolve_combat(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch);
+int pf_m4_attack_hitbox(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    int32_t *out_left_q16,
+    int32_t *out_right_q16,
+    int32_t *out_top_q16,
+    int32_t *out_bottom_q16);
 pf_status pf_sim_tick_impl(
     pf_sim *sim,
     const pf_input_frame *inputs,

@@ -65,6 +65,15 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->short_hop_speed_q16);
     pf_m4_hash_i32(hash, fighter->double_jump_speed_q16);
     pf_m4_hash_i32(hash, fighter->platform_drop_nudge_q16);
+    pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_x_q16);
+    pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_y_q16);
+    pf_m4_hash_i32(hash, fighter->jab_hitbox_half_width_q16);
+    pf_m4_hash_i32(hash, fighter->jab_hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, fighter->jab_damage_q16);
+    pf_m4_hash_i32(hash, fighter->jab_base_knockback_x_q16);
+    pf_m4_hash_i32(hash, fighter->jab_base_knockback_y_q16);
+    pf_m4_hash_i32(hash, fighter->jab_knockback_growth_q16);
+    pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
@@ -77,6 +86,10 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->run_continue_axis_threshold);
     pf_m4_hash_u16(hash, fighter->run_turnaround_lockout_ticks);
     pf_m4_hash_u16(hash, fighter->crouch_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->jab_startup_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_active_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_recovery_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_hitlag_ticks);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
 }
 
@@ -171,6 +184,15 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->short_hop_speed_q16 = PF_Q16_RATIO(9, 25);
     fighter->double_jump_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->platform_drop_nudge_q16 = PF_Q16_RATIO(1, 256);
+    fighter->jab_hitbox_offset_x_q16 = PF_Q16_RATIO(3, 4);
+    fighter->jab_hitbox_offset_y_q16 = INT32_C(0);
+    fighter->jab_hitbox_half_width_q16 = PF_Q16_RATIO(3, 5);
+    fighter->jab_hitbox_half_height_q16 = PF_Q16_RATIO(9, 20);
+    fighter->jab_damage_q16 = UINT32_C(6) * UINT32_C(65536);
+    fighter->jab_base_knockback_x_q16 = PF_Q16_RATIO(9, 50);
+    fighter->jab_base_knockback_y_q16 = PF_Q16_RATIO(11, 50);
+    fighter->jab_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
+    fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->landing_ticks = UINT16_C(4);
@@ -183,6 +205,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->run_continue_axis_threshold = UINT16_C(20480);
     fighter->run_turnaround_lockout_ticks = UINT16_C(10);
     fighter->crouch_axis_threshold = UINT16_C(16384);
+    fighter->jab_startup_ticks = UINT16_C(2);
+    fighter->jab_active_ticks = UINT16_C(2);
+    fighter->jab_recovery_ticks = UINT16_C(8);
+    fighter->jab_hitlag_ticks = UINT16_C(4);
     fighter->air_jump_count = UINT8_C(1);
 
     stage = &out_content->stage;
@@ -218,6 +244,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t platform_right_extent;
     int64_t spawn_left_extent;
     int64_t spawn_right_extent;
+    int64_t maximum_jab_knockback_x;
+    int64_t maximum_jab_knockback_y;
 
     if (content == NULL)
     {
@@ -246,6 +274,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     }
 
     fighter = &content->fighter;
+    maximum_jab_knockback_x =
+        (int64_t)fighter->jab_base_knockback_x_q16 +
+        (((int64_t)fighter->jab_knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_jab_knockback_y =
+        (int64_t)fighter->jab_base_knockback_y_q16 +
+        ((((int64_t)fighter->jab_knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
     if (fighter->half_width_q16 <= INT32_C(0) ||
         fighter->half_height_q16 <= INT32_C(0) ||
         fighter->half_width_q16 > maximum_fighter_extent_q16 ||
@@ -267,6 +306,27 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->short_hop_speed_q16 <= INT32_C(0) ||
         fighter->double_jump_speed_q16 <= INT32_C(0) ||
         fighter->platform_drop_nudge_q16 <= INT32_C(0) ||
+        fighter->jab_hitbox_offset_x_q16 < -maximum_fighter_extent_q16 ||
+        fighter->jab_hitbox_offset_x_q16 > maximum_fighter_extent_q16 ||
+        fighter->jab_hitbox_offset_y_q16 < -maximum_fighter_extent_q16 ||
+        fighter->jab_hitbox_offset_y_q16 > maximum_fighter_extent_q16 ||
+        fighter->jab_hitbox_half_width_q16 <= INT32_C(0) ||
+        fighter->jab_hitbox_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->jab_hitbox_half_height_q16 <= INT32_C(0) ||
+        fighter->jab_hitbox_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->jab_damage_q16 == UINT32_C(0) ||
+        fighter->jab_damage_q16 >
+            UINT32_C(50) * UINT32_C(65536) ||
+        fighter->jab_base_knockback_x_q16 <= INT32_C(0) ||
+        fighter->jab_base_knockback_y_q16 <= INT32_C(0) ||
+        fighter->jab_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->hitstun_velocity_per_tick_q16 <= INT32_C(0) ||
+        maximum_jab_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_jab_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->ground_acceleration_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->turn_acceleration_q16 >
@@ -288,6 +348,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->double_jump_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->platform_drop_nudge_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->jab_base_knockback_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->jab_base_knockback_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->hitstun_velocity_per_tick_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->jump_squat_ticks == UINT16_C(0) ||
         fighter->jump_squat_ticks > UINT16_C(60) ||
@@ -313,6 +379,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->run_turnaround_lockout_ticks > UINT16_C(120) ||
         fighter->crouch_axis_threshold <= fighter->axis_dead_zone ||
         fighter->crouch_axis_threshold > UINT16_C(32767) ||
+        fighter->jab_startup_ticks == UINT16_C(0) ||
+        fighter->jab_startup_ticks > UINT16_C(120) ||
+        fighter->jab_active_ticks == UINT16_C(0) ||
+        fighter->jab_active_ticks > UINT16_C(120) ||
+        fighter->jab_recovery_ticks == UINT16_C(0) ||
+        fighter->jab_recovery_ticks > UINT16_C(240) ||
+        fighter->jab_hitlag_ticks == UINT16_C(0) ||
+        fighter->jab_hitlag_ticks > UINT16_C(120) ||
         fighter->air_jump_count > UINT8_C(8))
     {
         return PF_STATUS_INVALID_CONFIG;

@@ -2,7 +2,7 @@
 set -eu
 
 root=$(git rev-parse --show-toplevel)
-output_dir=${1:-"$root/performance/local/m4_movement"}
+output_dir=${1:-"$root/performance/local/m4_combat"}
 compiler=${CC:-cc}
 
 mkdir -p "$output_dir"
@@ -37,12 +37,12 @@ common_flags="
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
-    "$root/tests/sim/test_m4_movement.c" \
-    -o "$output_dir/m4_movement_test"
+    "$root/tests/sim/test_m4_combat.c" \
+    -o "$output_dir/m4_combat_test"
 
-"$output_dir/m4_movement_test" >"$output_dir/m4_movement.txt"
+"$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
 grep -Fqx \
-    'm4-movement=pass content_schema=3 deterministic_ticks=20000 movement_invariants=26' \
-    "$output_dir/m4_movement.txt"
+    'm4-combat=pass content_schema=3 deterministic_ticks=20000 combat_invariants=14' \
+    "$output_dir/m4_combat.txt"
 
-echo "m4-movement-verification=pass invariants=26 deterministic_ticks=20000"
+echo "m4-combat-verification=pass invariants=14 deterministic_ticks=20000"

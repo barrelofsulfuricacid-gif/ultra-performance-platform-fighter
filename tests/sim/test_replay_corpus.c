@@ -1,4 +1,5 @@
 #include "pf/replay.h"
+#include "pf/m4.h"
 #include "pf/sim.h"
 
 #include "m2_replay_fixture.h"
@@ -17,7 +18,7 @@
 #define TEST_HASH_COUNT 181U
 #define TEST_REPLAY_CAPACITY 32768U
 #define TEST_OPTIONAL_REPLAY_CAPACITY 32816U
-#define TEST_INPUT_PAYLOAD_OFFSET 641U
+#define TEST_INPUT_PAYLOAD_OFFSET 785U
 
 _Static_assert(
     TEST_INPUT_COUNT == PF_M2_REPLAY_TICKS * PF_M2_REPLAY_PLAYERS,
@@ -232,6 +233,7 @@ int main(void)
     pf_bytes replay;
     pf_state_hash playback_hash;
     pf_state_hash malformed_before;
+    pf_m4_inspection combat_inspection;
     uint8_t replay_digest[32];
     char replay_digest_hex[65];
     char final_digest_hex[65];
@@ -322,14 +324,34 @@ int main(void)
             return 1;
         }
     }
+    if (!expect_status(
+            pf_m4_inspect(source_sim, &combat_inspection),
+            PF_STATUS_OK,
+            "source-combat-inspection"))
+    {
+        return 1;
+    }
     if (result.completed_tick != PF_M2_REPLAY_TICKS ||
         result.terminated != UINT8_C(1) ||
         result.truncated != UINT8_C(0) ||
-        result.winner_mask != UINT8_C(5))
+        result.winner_mask != UINT8_C(5) ||
+        (combat_inspection.players[0].last_hit_valid == UINT8_C(0) &&
+         combat_inspection.players[1].last_hit_valid == UINT8_C(0) &&
+         combat_inspection.players[2].last_hit_valid == UINT8_C(0) &&
+         combat_inspection.players[3].last_hit_valid == UINT8_C(0)))
     {
         (void)fprintf(
             stderr,
-            "sim-replay=fail operation=source-result\n");
+            "sim-replay=fail operation=source-result completed=%" PRIu64
+            " terminated=%u truncated=%u winner=%u hit=%u%u%u%u\n",
+            result.completed_tick,
+            (unsigned int)result.terminated,
+            (unsigned int)result.truncated,
+            (unsigned int)result.winner_mask,
+            (unsigned int)combat_inspection.players[0].last_hit_valid,
+            (unsigned int)combat_inspection.players[1].last_hit_valid,
+            (unsigned int)combat_inspection.players[2].last_hit_valid,
+            (unsigned int)combat_inspection.players[3].last_hit_valid);
         return 1;
     }
 
@@ -349,7 +371,7 @@ int main(void)
             pf_replay_query_size(&replay_source, &replay_size),
             PF_STATUS_OK,
             "query-replay-size") ||
-        replay_size != (size_t)31049)
+        replay_size != (size_t)31193)
     {
         (void)fprintf(
             stderr,

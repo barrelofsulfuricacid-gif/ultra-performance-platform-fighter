@@ -1,7 +1,7 @@
 # M4 real-simulation browser playtest
 
-This checkpoint runs the production `pf_sim_tick` M4 movement state in
-WebAssembly. It is no longer the disposable M0 float32/Q16.16 comparison.
+This checkpoint runs the production `pf_sim_tick` M4 movement and first combat
+primitive in WebAssembly. It is no longer the disposable M0 float32/Q16.16 comparison.
 Both visible players use the same validated M4 fighter and stage content used
 by native, replay, rollback, and headless execution.
 
@@ -12,6 +12,7 @@ by native, replay, rollback, and headless execution.
 | Full left/right input | `A` / `D` | Left / Right |
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Jump | `W` or `Space` | Up |
+| Ground attack | `F` | `/` or Numpad `0` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -41,6 +42,12 @@ window, press toward the stage to climb, press down or away to release, or press
 jump for a ledge jump. A claimed ledge rejects another fighter until its current
 occupant releases or completes the climb.
 
+The first placeholder ground attack has two startup ticks, two active ticks,
+and eight recovery ticks. The translucent amber rectangle is the exact
+inspected active hitbox. A hit adds 6%, freezes both fighters for four hitlag
+ticks, then launches the target into hitstun. The state cards show percent,
+hitlag, hitstun, and the last combat-event sequence.
+
 ## Focused owner checks
 
 1. Tap left and right rapidly without `Shift`. Confirm each reversal occurs
@@ -61,8 +68,14 @@ occupant releases or completes the climb.
    `LEDGE HANG`. Try neutral hang, down/away release, jump, and inward climb.
 8. Put one player on a ledge and attempt to grab it with the other player.
    Confirm only the original occupant enters `LEDGE HANG`.
-9. Repeat with Player 2's arrow-key controls and try both players
-   simultaneously.
+9. Move into range, press `F`, and confirm the amber hitbox appears only on the
+   active frames. On contact, confirm the target gains 6%, both players visibly
+   freeze, and the target then launches in `HITSTUN`.
+10. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
+    players into range, and attack on the same tick to confirm a simultaneous
+    trade.
+11. Repeat with Player 2's arrow-key controls and try both players
+    simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -79,10 +92,12 @@ through:
   new initial dash;
 - two different short-hop release timings producing the same apex;
 - two different post-takeoff full-hop hold durations producing the same apex;
+- a real grounded attack producing the configured damage, hitlag, attacker
+  identity, and canonical combat event; and
 - the native movement oracle covering ledge catch, hang, release, jump, climb,
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
-`playtest=ready input_probe=pass controls=keyboard-two-player` only after all
-checks pass. Clean-machine Chrome CI also requires that status and the live
-playtest DOM.
+`playtest=ready input_probe=pass combat_probe=pass controls=keyboard-two-player`
+only after all checks pass. Clean-machine Chrome CI also requires that status
+and the live playtest DOM.

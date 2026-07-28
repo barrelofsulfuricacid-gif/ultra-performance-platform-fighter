@@ -75,6 +75,7 @@ endif()
 set(
     PF_SIM_SOURCES
     src/sim/sim.c
+    src/sim/sim_combat.c
     src/sim/sim_content.c
     src/sim/sim_internal.h
     src/sim/sim_movement.c
@@ -480,7 +481,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=357 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=501 hash_algorithm=sha256")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -493,7 +494,20 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=2")
+                   "m4-movement=pass content_schema=3")
+
+    add_executable(m4_combat_test tests/sim/test_m4_combat.c)
+    target_link_libraries(m4_combat_test PRIVATE sim)
+    target_compile_features(m4_combat_test PRIVATE c_std_17)
+    set_target_properties(m4_combat_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_combat_test)
+    pf_apply_build_mode(m4_combat_test)
+
+    add_test(NAME sim.m4_combat COMMAND m4_combat_test)
+    set_tests_properties(
+        sim.m4_combat
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-combat=pass content_schema=3 deterministic_ticks=20000 combat_invariants=14")
 
     add_executable(
         m4_web_playtest_test
@@ -514,7 +528,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 combat_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -534,7 +548,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=31049")
+                       "sim-replay=pass ticks=180 players=4 bytes=31193")
     endif()
 
     if(PF_BUILD_HEADLESS)

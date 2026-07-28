@@ -93,6 +93,7 @@ pf_status pf_sim_tick_impl(
         return status;
     }
 
+    scratch->combat_event_sequence = world->combat_event_sequence;
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
          ++player_index)
@@ -115,6 +116,13 @@ pf_status pf_sim_tick_impl(
             pf_write_result(world, out_result);
             return status;
         }
+    }
+
+    status = pf_m4_resolve_combat(&sim->content, world, scratch);
+    if (status != PF_STATUS_OK)
+    {
+        pf_write_result(world, out_result);
+        return status;
     }
 
     for (player_index = UINT32_C(0);
@@ -155,7 +163,30 @@ pf_status pf_sim_tick_impl(
             scratch->dash_direction[player_index];
         world->previous_strong_direction[player_index] =
             scratch->previous_strong_direction[player_index];
+        world->damage_q16[player_index] =
+            scratch->damage_q16[player_index];
+        world->pending_velocity_x_q16[player_index] =
+            scratch->pending_velocity_x_q16[player_index];
+        world->pending_velocity_y_q16[player_index] =
+            scratch->pending_velocity_y_q16[player_index];
+        world->last_hit_sequence[player_index] =
+            scratch->last_hit_sequence[player_index];
+        world->last_hit_tick[player_index] =
+            scratch->last_hit_tick[player_index];
+        world->last_hit_damage_q16[player_index] =
+            scratch->last_hit_damage_q16[player_index];
+        world->hitlag_ticks[player_index] =
+            scratch->hitlag_ticks[player_index];
+        world->hitstun_ticks[player_index] =
+            scratch->hitstun_ticks[player_index];
+        world->hitlag_resume_action[player_index] =
+            scratch->hitlag_resume_action[player_index];
+        world->attack_hit_mask[player_index] =
+            scratch->attack_hit_mask[player_index];
+        world->last_hit_attacker[player_index] =
+            scratch->last_hit_attacker[player_index];
     }
+    world->combat_event_sequence = scratch->combat_event_sequence;
 
     ++world->tick;
 

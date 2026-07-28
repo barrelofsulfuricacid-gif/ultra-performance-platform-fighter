@@ -122,6 +122,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_movement.sh" \
     "$pf_artifact_dir/m4_movement"
 pf_record \
+    m4-combat \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_combat.sh" \
+    "$pf_artifact_dir/m4_combat"
+pf_record \
     m4-browser-adapter \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
     "$pf_artifact_dir/m4_browser"

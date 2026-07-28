@@ -82,12 +82,12 @@ The step component is `potential(after) - potential(before)`. Opponents are
 active players on a different team. The fixed-point implementation uses
 integer arithmetic, exposes the `0.25` (`16384` Q16.16) potential limit in
 `pf_rl_spec`, and uses a fixed 128-world-unit reference distance so the
-per-unit signal does not change with stage width. It considers horizontal
-distance only because M2 has no combat state. Closing distance produces a
-small positive reward, separating produces a negative reward, and returning
-to the same positions has zero undiscounted net shaping reward. This avoids
-rewarding raw button presses or velocity that could be farmed without
-interaction.
+per-unit signal does not change with stage width. It remains the provisional
+M2 horizontal-distance contract even though M4 now has an initial combat
+state. Closing distance produces a small positive reward, separating produces
+a negative reward, and returning to the same positions has zero undiscounted
+net shaping reward. This avoids rewarding raw button presses or velocity that
+could be farmed without interaction.
 
 On the transition that deterministically terminates a match, the outcome
 component is added to any engagement delta:

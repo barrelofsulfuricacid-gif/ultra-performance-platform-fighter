@@ -81,12 +81,11 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save format 1 remains the historical 305-byte state-schema-1 checkpoint.
-M4 movement state uses save format 2: a fixed 357-byte checkpoint. The current
-state schema is 3; it extends the state-schema-2 action enum with canonical
-ledge-hang, ledge-climb, run-turnaround, and run-brake states without changing
-the byte layout. Exact headers, payloads, compatibility, checksum, and
-atomic-load behavior are recorded in
+Save formats 1 and 2 remain the historical 305-byte and 357-byte checkpoints.
+The current M4 movement/combat state uses save format 3: a fixed 501-byte
+checkpoint with state schema 4. It appends damage, pending launch, hitlag,
+hitstun, attack hit masks, and sequenced last-hit metadata. Exact headers,
+payloads, compatibility, checksum, and atomic-load behavior are recorded in
 [TDR-0006](../technology_decisions/0006-canonical-state-format.md).
 
 ## Normalized input frame
@@ -104,6 +103,9 @@ The logical fields are:
 | input schema | `uint16_t` | Reject unknown incompatible mappings |
 
 The C ABI structure is not the replay/network byte encoding.
+
+Input schema 2 assigns bit 0 to jump, bit 1 to attack, and bit 63 to forfeit.
+Unknown bits fail before any player state is advanced.
 
 ## Deterministic state schema
 

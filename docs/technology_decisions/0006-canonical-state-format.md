@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1 and 2 / state schemas 1–3
+- **Status:** Accepted for save formats 1–3 / state schemas 1–4
 - **Date:** 2026-07-28
 
 ## Decision
@@ -12,10 +12,12 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 1 | 1 | 140 | 165 | 305 | M2 match and basic-motion state |
 | 2 | 2 | 140 | 217 | 357 | M4 action timers, respawn count, support, air-jump/short-hop/drop/fast-fall flags, facing, dash direction, and prior strong direction |
 | 2 | 3 | 140 | 217 | 357 | Canonical ledge-hang, ledge-climb, run-turnaround, and run-brake action IDs; no byte-layout change |
+| 3 | 4 | 140 | 361 | 501 | Damage, pending launch, sequenced last-hit metadata, hitlag/hitstun, resume action, and attack hit masks |
 
-The header magic is `PFSAVE01` or `PFSAVE02`. The active M4 runtime emits and
-accepts format 2 with state schema 3. State schema 2 and format 1 remain
-documented as historical evidence rather than being silently converted. The
+The header magic is `PFSAVE01`, `PFSAVE02`, or `PFSAVE03`. The active M4
+runtime emits and accepts format 3 with state schema 4. Earlier schemas and
+formats remain documented as historical evidence rather than being silently
+converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
 canonical configuration fields. The payload checksum is SHA-256 over the exact
 payload bytes. `pf_sim_hash` is SHA-256 over the complete emitted save stream
@@ -59,6 +61,8 @@ service-envelope responsibility.
 - Checksum, version, header, trailing-byte, content, and configuration
   rejection.
 - Atomicity of every failed load checked by before/after state hash.
+- Mid-hitlag save/load plus equal future combat hashes in
+  `tests/sim/test_m4_combat.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

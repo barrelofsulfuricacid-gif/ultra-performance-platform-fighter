@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(2)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(3)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(3)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(2)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(3)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -30,7 +30,10 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_LEDGE_HANG = 8,
     PF_M4_ACTION_LEDGE_CLIMB = 9,
     PF_M4_ACTION_RUN_TURNAROUND = 10,
-    PF_M4_ACTION_RUN_BRAKE = 11
+    PF_M4_ACTION_RUN_BRAKE = 11,
+    PF_M4_ACTION_GROUND_ATTACK = 12,
+    PF_M4_ACTION_HITLAG = 13,
+    PF_M4_ACTION_HITSTUN = 14
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -69,6 +72,15 @@ typedef struct pf_m4_fighter_data
     int32_t short_hop_speed_q16;
     int32_t double_jump_speed_q16;
     int32_t platform_drop_nudge_q16;
+    int32_t jab_hitbox_offset_x_q16;
+    int32_t jab_hitbox_offset_y_q16;
+    int32_t jab_hitbox_half_width_q16;
+    int32_t jab_hitbox_half_height_q16;
+    uint32_t jab_damage_q16;
+    int32_t jab_base_knockback_x_q16;
+    int32_t jab_base_knockback_y_q16;
+    int32_t jab_knockback_growth_q16;
+    int32_t hitstun_velocity_per_tick_q16;
     uint16_t jump_squat_ticks;
     uint16_t initial_dash_ticks;
     uint16_t landing_ticks;
@@ -81,6 +93,10 @@ typedef struct pf_m4_fighter_data
     uint16_t run_continue_axis_threshold;
     uint16_t run_turnaround_lockout_ticks;
     uint16_t crouch_axis_threshold;
+    uint16_t jab_startup_ticks;
+    uint16_t jab_active_ticks;
+    uint16_t jab_recovery_ticks;
+    uint16_t jab_hitlag_ticks;
     uint8_t air_jump_count;
     uint8_t reserved2;
 } pf_m4_fighter_data;
@@ -136,6 +152,20 @@ typedef struct pf_m4_player_inspection
     uint8_t platform_drop_ticks;
     uint8_t active;
     uint8_t ledge;
+    uint64_t last_hit_tick;
+    uint32_t damage_q16;
+    uint32_t last_hit_sequence;
+    uint32_t last_hit_damage_q16;
+    int32_t hitbox_left_q16;
+    int32_t hitbox_right_q16;
+    int32_t hitbox_top_q16;
+    int32_t hitbox_bottom_q16;
+    uint16_t hitlag_ticks;
+    uint16_t hitstun_ticks;
+    uint8_t attack_hit_mask;
+    uint8_t hitbox_active;
+    uint8_t last_hit_valid;
+    uint8_t last_hit_attacker;
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection

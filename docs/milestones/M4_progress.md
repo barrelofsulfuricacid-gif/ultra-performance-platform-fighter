@@ -1,6 +1,6 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 deterministic movement and ledge core implemented
+**Status:** In progress; M4.1 movement/ledge core and first M4.2 combat primitive implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -18,12 +18,14 @@
   release, ledge jump, and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-3/save-format-2 contract that serializes every
-  future-affecting movement field and versions the new ledge/run action IDs.
-- Replay format 1 regenerated against the new canonical state schema, with
-  native and WebAssembly comparisons still using the same corpus path.
+- A rollback-safe state-schema-4/save-format-3 contract that serializes every
+  future-affecting movement and first-combat-primitive field.
+- Replay format 1 regenerated against the new canonical state schema and real
+  attack/hit inputs, with native and WebAssembly comparisons still using the
+  same corpus path.
 - A public `pf_m4_inspect` surface for movement state, active ledge claims,
-  ledge points, moving-platform geometry, and blast zones.
+  ledge points, moving-platform geometry, blast zones, percent, hitlag,
+  hitstun, active hitbox bounds, and last-hit metadata.
 - Twenty-six movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
@@ -32,7 +34,29 @@
 - Explicit full-magnitude dash/dash-dance keys and reduced-magnitude walk keys
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
-  dash-dance reversal, and short/full-hop apex invariants pass.
+  dash-dance reversal, short/full-hop apex, and real damage/hitlag invariants
+  pass.
+
+## Delivered in the first M4.2 combat slice
+
+- Input-schema-2 attack buttons for native, replay, RL, and browser callers.
+- One original data-driven grounded attack with explicit startup, active, and
+  recovery phases plus facing-mirrored hitbox geometry.
+- Deterministic hurtbox overlap, one-hit-per-action masks, lower-slot
+  same-target ownership, team friendly-fire rejection, and simultaneous
+  trades.
+- Q16.16 percent, percent-scaled launch, hitlag freeze, pending launch,
+  hitstun control lockout, gravity/landing continuation, and blast reset.
+- A monotonic rollback-safe combat-event sequence with per-target last-hit
+  tick, attacker, and damage.
+- Fourteen focused combat invariants, mid-hitlag save/load continuation, and a
+  20,000-tick four-player deterministic combat trace under active
+  `M4-COMBAT` verification.
+- Browser attack controls (`F` and `/` or Numpad `0`), active-hitbox overlay,
+  percent/hitlag/hitstun inspection, and an independent combat startup probe.
+
+The exact first-primitive behavior and intentional remaining scope are fixed in
+[`m4_combat_contract.md`](../product/m4_combat_contract.md).
 
 ## Explicitly preserved playtest requirements
 
@@ -70,9 +94,10 @@
 
 ## Remaining M4.2 and M4.3 work
 
-- Hitboxes, hurtboxes, offense, defense, grabs/throws, hitlag, knockback,
-  hitstun, DI/SDI, teching, stocks, recovery, respawn invulnerability, match
-  result, and rollback-safe combat events.
+- Remaining ground attacks, aerials, specials, recovery, grabs/throws, shields,
+  shield stun/damage, rolls, spot dodge, air dodge, launch angles, DI/SDI,
+  stale-move behavior, teching, knockdown, stocks, respawn invulnerability,
+  match result, and the complete bounded combat-event journal.
 - Local setup, complete 1v1 loop, results/rematch, replay visualization,
   collision/hitbox overlay, and repeated verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
@@ -80,20 +105,22 @@
 
 ## First-slice verification
 
-- Release workflow: 14/14 tests.
-- Address/undefined-behavior sanitizer workflow: 14/14 tests; leak discovery
+- Release workflow: 16/16 tests.
+- Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
 - Mechanical oracle: 26 invariants and 20,000 deterministic four-player ticks.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
-- Native/WebAssembly replay corpus: exact 180-tick match at 31,049 bytes.
+- Native replay corpus: exact 180-tick combat trace at 31,193 bytes; fresh
+  WebAssembly byte comparison remains mandatory in CI.
 - Clean Chrome CI executes the generated Wasm, canonical replay inspector, and
   live playtest DOM.
 
 ## Browser-adapter verification
 
 - Strict-warning native adapter contract: pass
-  (`walk_axis=13500`, `dash_axis=32767`, input probe and live rendering).
+  (`walk_axis=13500`, `dash_axis=32767`, movement/combat probes and live
+  rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

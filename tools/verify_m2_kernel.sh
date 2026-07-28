@@ -29,6 +29,7 @@ common_flags="
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
@@ -49,6 +50,7 @@ grep -Fqx \
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
@@ -61,7 +63,7 @@ grep -Fqx \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=357 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=501 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
@@ -69,6 +71,7 @@ grep -Fqx \
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
@@ -90,6 +93,7 @@ grep -Fqx \
     -I"$root/src/checkpoint" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
@@ -103,7 +107,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31049 corpus_sha256=35fe264e2c2c8c4062cb84dbe73d3698cca8d92eb9e24adb46b6af732ea08b52 final_sha256=9ddeaa38cbba6050c3b15d0de04e91c99cf5b0182af5ca52a01d79f0f8387ff7' \
+    'sim-replay=pass ticks=180 players=4 bytes=31193 corpus_sha256=25b9ce8b95c8eb77ab92635d7480fc83f7e97ded6bd0925e4ca0d5cb423eb75b final_sha256=768db033f6f9f0841b00cf876ef94b4aaa499dcce89b5b55e15e5bc4c3491537' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -111,6 +115,13 @@ grep -Fqx \
     -I"$root/include" \
     -c "$root/src/sim/sim.c" \
     -o "$output_dir/sim.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_combat.c" \
+    -o "$output_dir/sim_combat.o"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
@@ -161,6 +172,7 @@ grep -Fqx \
 if command -v nm >/dev/null 2>&1; then
     nm -u \
         "$output_dir/sim.o" \
+        "$output_dir/sim_combat.o" \
         "$output_dir/sim_content.o" \
         "$output_dir/sim_movement.o" \
         "$output_dir/sim_replay.o" \
