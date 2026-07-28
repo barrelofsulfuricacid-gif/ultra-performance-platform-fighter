@@ -103,7 +103,7 @@ No dependency is selected because it is fashionable or merely claims to be fast.
 | M3 | Per-commit performance system and verifier agent | Yes |
 | M4 | Playable one-fighter/one-stage 1v1 combat vertical slice | Yes |
 | M5 | Excel-driven gameplay data and Dear ImGui debug editing | Yes |
-| M6 | Complete local 1v1, 2v2, hazards framework, and capture the flag | Yes |
+| M6 | Complete local 1v1, 2v2, hazards/items framework, and capture the flag | Yes |
 | M7 | Native/web client presentation, menus, audio, and controller support | Yes |
 | M8 | Full original roster and ten-stage content set | After every roster/stage wave |
 | M9 | Cross-platform GGPO rollback netplay | Yes |
@@ -385,6 +385,116 @@ Implement:
 - Tune through the approved Excel-data path precursor even before the full workbook UI lands.
 - Run repeated human and verifier matches.
 
+#### M4.4 — Complete SSBM advanced-technique compatibility
+
+Treat the `SSBM = Yes` rows in SmashWiki's
+[List of advanced techniques, revision 2048934](https://www.ssbwiki.com/index.php?title=Advanced_technique&oldid=2048934#List_of_advanced_techniques),
+captured on 2026-07-28, as a binding gameplay requirement. Every unique technique
+in that baseline must be supported and functional by M11. The source table lists
+dash-dancing twice; this plan counts it once, yielding 61 unique required
+techniques:
+
+1. Approach
+2. Auto-canceling
+3. Bat dropping
+4. Boost grab
+5. Camping
+6. Chain grab
+7. Charge storage canceling
+8. Cross-up
+9. Dash cancel
+10. Dash-dancing
+11. Dashing shield
+12. Double jump cancel
+13. Double jump cancel counter
+14. Drop cancel
+15. Edge dashing
+16. Edge hopping
+17. Fox-trotting
+18. Glide toss
+19. Gimp
+20. Infinite
+21. Instant double jump
+22. Jab cancel
+23. Jab reset
+24. Juggling
+25. Jump cancel throw
+26. Jump-canceled grab
+27. Jump-cancelling
+28. Kill confirm
+29. L-cancelling
+30. Ladder
+31. Ledge-cancelling
+32. Mindgame
+33. Moonwalk
+34. Powershield
+35. Pivoting
+36. Planking
+37. Power shield canceling
+38. Scar Jump
+39. Sharking
+40. Shield break combo
+41. Shield platform dropping
+42. Shield-stop
+43. Shine spike
+44. Short hop laser
+45. Short hop air dodge
+46. Short hop fast fall l-cancel
+47. Small step forward smash
+48. Smash directional influence
+49. Spacing
+50. Stage humping
+51. Stage spike
+52. Stalling
+53. Taunt cancelling
+54. Team wobble
+55. Teching
+56. Tech-chasing
+57. Teeter cancel
+58. Turtling
+59. V-cancelling
+60. Wavedash
+61. Zero-to-death combo
+
+This baseline refers specifically to the linked cross-game table, not the page's
+separate character-specific section. D1-A mechanical-counterpart coverage may
+independently require character-specific techniques.
+
+For this requirement, “supported and functional” means:
+
+- A player can perform the technique during an ordinary match with the relevant
+  fighter, stage, item, or team configuration. Debug-only commands and scripted
+  state injection do not count.
+- The underlying input windows, state transitions, momentum/collision rules, and
+  combat outcomes are deterministic in native, browser, and headless builds and
+  survive save/load, replay, rewind, and rollback.
+- Each mechanical technique has positive and negative invariant tests plus a
+  verifier-readable execution trace. Each technique also has a concise human
+  test recipe that can be executed in the browser.
+- Tactical or emergent entries such as approach, camping, gimp, juggling,
+  mindgame, spacing, stalling, and zero-to-death are not hardcoded outcomes.
+  They count only when at least one legal, repeatable match sequence demonstrates
+  the tactic and the constituent mechanics are independently verified.
+- Original fighters, items, animation, audio, and presentation must express the
+  behavior without copying protected SSBM content.
+
+Delivery is incremental:
+
+- M4 establishes the versioned 61-row technique registry, implements the shared
+  movement/combat primitives, and verifies every entry exercisable by the
+  vertical-slice fighter and stage.
+- M5 makes all technique timing windows and content-specific parameters
+  data-driven and exposes their state in the inspector.
+- M6 supplies the team and held-item interactions needed by entries such as bat
+  dropping, glide toss, jump cancel throw, and team wobble.
+- Each M8 fighter wave must make its newly exercisable character-dependent
+  entries playable and verified before the wave can be accepted.
+- M11 is blocked until all 61 rows are playable, deterministic, verifier-tested,
+  browser-testable, and linked to current evidence. Recheck the live source table
+  at every M8 wave and before M11; add any newly marked SSBM technique to this
+  registry before accepting that milestone unless the owner explicitly changes
+  scope.
+
 **Acceptance criteria**
 
 - A complete local 1v1 match can be played from start to result with two supported inputs.
@@ -392,6 +502,10 @@ Implement:
 - Collision, knockback, hitlag, hitstun, DI, stocks, ledges, and recovery are deterministic and replayable.
 - Performance remains within the M0 1v1 budget with profiling evidence.
 - The owner rates control responsiveness and core combat acceptable on the M0 playtest rubric.
+- The advanced-technique registry records one of `planned`, `primitive-ready`,
+  `playable`, or `verified` for every required row, with dependencies, target
+  milestone, automated evidence, and a browser playtest recipe; no row may be
+  silently omitted.
 
 **Human checkpoint:** Mandatory combat playtest. Do not scale content until the core feel is approved.
 
@@ -443,7 +557,7 @@ Provide panels for:
 
 ---
 
-### M6 — Local modes, teams, hazards, and capture the flag
+### M6 — Local modes, teams, hazards, items, and capture the flag
 
 #### M6.1 — Complete local player/team model
 
@@ -469,7 +583,23 @@ Provide panels for:
 - Hazard scripts cannot allocate, access wall-clock time, or mutate state outside declared deterministic data.
 - Worst-case hazard scenarios remain within the M0 budget.
 
-#### M6.3 — Capture the flag
+#### M6.3 — Minimal deterministic held-item framework
+
+- Implement data-driven pickup, carry, drop, aerial drop, directional throw, item
+  hitbox, despawn/reset, and momentum-transfer rules.
+- Provide at least one original bat-like test item so item-dependent advanced
+  techniques can be exercised without copied names, art, audio, or data.
+- Reuse the core action, collision, event, serialization, replay, rollback, and RL
+  paths rather than creating an item-only simulation path.
+
+**Acceptance criteria**
+
+- Bat dropping, glide toss, and jump cancel throw have live-match browser recipes
+  and positive/negative deterministic verifier oracles.
+- Item state serializes, hashes, rewinds, replays, and rolls back correctly.
+- Item interactions remain inside the M0 performance and state-size budgets.
+
+#### M6.4 — Capture the flag
 
 - Implement flags, bases, pickup, carry, drop, return, capture, scoring, respawn, overtime/tie handling, and HUD events.
 - Support configurations suitable for 1v1 and 2v2.
@@ -575,6 +705,7 @@ Each fighter receives original naming, silhouette, lore, move expression, animat
 - Every fighter is complete enough for full 1v1, 2v2, CTF, replay, rollback, and RL use; no “visual-only” roster entries count.
 - Every move/state has valid data, hit/hurt boxes, animation, and required sound/event mappings.
 - Automated matchup smoke tests cover every ordered fighter pair and representative teams.
+- Every advanced-technique registry row made possible by the wave's fighters is playable and verified; content-dependent rows identify the exact supporting fighter/item/stage configuration.
 - Originality/provenance review passes.
 - Worst-case fighter combinations meet state-size and performance budgets.
 - The owner playtests and accepts the wave before the next wave begins.
@@ -748,6 +879,9 @@ The final ten must include:
 - Ranked/unranked netplay, Elo, rank tiers, and leaderboards pass end-to-end tests.
 - Headless/RL builds meet the D3-C relative-performance charter.
 - Every supported platform produces identical deterministic replay hashes for the canonical corpus.
+- Every one of the 61 required SSBM advanced-technique registry rows is playable,
+  deterministic, verifier-tested, browser-testable, and linked to passing
+  evidence for its supporting configuration.
 - No unresolved critical/high issue remains unless the owner explicitly accepts it in writing.
 - The requirement traceability matrix is fully green.
 
@@ -868,6 +1002,7 @@ The plan is not treated as ground truth when measurements or implementation real
 | Source requirement | Acceptance location |
 |---|---|
 | Fun 2D platform fighter, Melee-like play | M0.1, M4, M8.3, M11.3 |
+| All techniques marked available for SSBM in the pinned advanced-technique table | M4.4, M5, M6.3, M8.1, M11.2 |
 | Maximum single-thread performance | M0.2–M0.3, M2, M3, M11, M12 |
 | Ultra-fast RL tool | M2.2, M3.1, M11.2 |
 | 1v1 and 2v2 | M6.1, M9, M11.2 |
@@ -882,7 +1017,7 @@ The plan is not treated as ground truth when measurements or implementation real
 | Steam/GameCube/Xbox/PlayStation/major controllers | M7.4, M11 |
 | Windows/macOS/Linux/browser | M1, M7, M9, M11 |
 | ImGui design-value editing | M5.2 |
-| Capture the flag | M6.3, M11 |
+| Capture the flag | M6.4, M11 |
 | C implementation | D2-A, M0.4, M1 |
 | Current best tools selected through research | Section 4, M0.4, per-dependency decision records |
 | Single-thread engine; client may multithread | Section 3, M1.1, M2 |

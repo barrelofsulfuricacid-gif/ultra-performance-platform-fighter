@@ -31,6 +31,17 @@
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
 
+## New binding M4.4 scope
+
+- The governing plan now pins and enumerates all 61 unique techniques marked
+  available for SSBM in the referenced advanced-technique table.
+- This first movement slice does not claim full technique parity. Dash-dancing
+  has direct invariant coverage; other rows remain `planned` until their full
+  movement, combat, item, team, or fighter-content dependencies are present.
+- A versioned row-by-row registry, deterministic evidence links, and browser
+  playtest recipes remain required before M4 can be accepted and will stay
+  release-blocking through M11.
+
 ## Remaining M4.1 work
 
 - Ledge occupancy, grab transitions, release, and the movement-side ledge
