@@ -62,6 +62,7 @@ git -C "$root" \
     printf 'm3-performance\tpass\tqualification fixture\n'
     printf 'm3-regression-qualification\tpass\tqualification fixture\n'
     printf 'mechanical-oracle\tpass\tqualification fixture\n'
+    printf 'm4-combat\tpass\tqualification fixture\n'
     printf 'm4-browser-adapter\tpass\tqualification fixture\n'
 } >"$pass_checks"
 
