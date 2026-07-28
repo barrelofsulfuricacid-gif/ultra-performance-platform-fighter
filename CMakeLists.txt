@@ -239,6 +239,7 @@ function(pf_add_smoke_product target product_name render_probe)
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
+                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_reset"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(
@@ -298,6 +299,7 @@ if(PF_BUILD_WEB_CLIENT)
             web_client
             PRIVATE
                 src/checkpoint/m2_replay_fixture.c
+                src/web_client/m4_playtest.c
                 src/web_client/replay_checkpoint.c)
         target_include_directories(
             web_client
@@ -492,6 +494,27 @@ if(BUILD_TESTING)
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-movement=pass content_schema=1")
+
+    add_executable(
+        m4_web_playtest_test
+        src/web_client/m4_playtest.c
+        tests/web/test_m4_playtest.c)
+    target_link_libraries(m4_web_playtest_test PRIVATE sim)
+    target_include_directories(
+        m4_web_playtest_test
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client")
+    target_compile_features(m4_web_playtest_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_web_playtest_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_web_playtest_test)
+    pf_apply_build_mode(m4_web_playtest_test)
+
+    add_test(NAME web.m4_playtest COMMAND m4_web_playtest_test)
+    set_tests_properties(
+        web.m4_playtest
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)

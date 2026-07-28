@@ -1,6 +1,6 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 deterministic movement core implemented
+**Status:** In progress; M4.1 deterministic movement core and browser adapter implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -22,6 +22,13 @@
   moving-platform geometry, and blast zones.
 - Thirteen movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
+- A live two-player browser adapter that advances the production simulation at
+  fixed 60 Hz, draws its inspected stage/player state, and supports pause,
+  single-step, and reset.
+- Explicit full-magnitude dash/dash-dance keys and reduced-magnitude walk keys
+  for both keyboard players, with the real binary jump-squat selection rule.
+- A native and Wasm startup contract that refuses readiness unless walk,
+  dash-dance reversal, and short/full-hop apex invariants pass.
 
 ## Explicitly preserved playtest requirements
 
@@ -51,8 +58,8 @@
 
 - Ledge occupancy, grab transitions, release, and the movement-side ledge
   states needed by M4.2 actions.
-- Temporary browser presentation wired to this real simulation, with two
-  keyboard/controller input slots and explicit walk/dash controls.
+- Gamepad polling for the temporary browser presentation; two keyboard slots
+  and their explicit walk/dash controls are implemented.
 - Any stage wall/ceiling collision required by the final vertical-slice test
   geometry.
 
@@ -77,5 +84,17 @@
 - Native/WebAssembly replay corpus: exact 180-tick match at 31,049 bytes.
 - Local Chrome execution is unavailable in this workspace and remains selected
   for the clean browser CI lane.
+
+## Browser-adapter verification
+
+- Strict-warning native adapter contract: pass
+  (`walk_axis=13500`, `dash_axis=32767`, input probe and live rendering).
+- Address/undefined-behavior sanitizer adapter contract: pass.
+- Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
+- Browser JavaScript syntax and M1 source-boundary checks: pass.
+- Focused owner controls and expected results:
+  [`M4_browser_playtest.md`](M4_browser_playtest.md).
+- Generated-page execution remains pending in the clean Chrome CI lane because
+  Chrome/Chromium is unavailable locally.
 
 M5 content scaling remains blocked until M4 combat feel is approved.

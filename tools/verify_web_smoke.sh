@@ -82,7 +82,13 @@ grep -Fq \
     'id="pf-replay-inspector"' \
     "$dom_output"
 grep -Fq \
-    'Platform Fighter M2 Replay Checkpoint' \
+    'playtest=ready input_probe=pass controls=keyboard-two-player' \
+    "$dom_output"
+grep -Fq \
+    'id="pf-m4-playtest"' \
+    "$dom_output"
+grep -Fq \
+    'Platform Fighter M4 Browser Playtest' \
     "$dom_output"
 
 echo "web-browser-smoke=pass browser=$browser url=$url"

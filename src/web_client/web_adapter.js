@@ -440,4 +440,460 @@ mergeInto(LibraryManager.library, {
       status.dataset.replay = "pass";
     }
   },
+
+  pf_web_m4_playtest_install__sig: "viii",
+  pf_web_m4_playtest_install: function (
+    walkAxis,
+    dashAxis,
+    inputProbePassed
+  ) {
+    var status = document.getElementById("pf-status");
+    var replayInspector = document.getElementById("pf-replay-inspector");
+    var previous = document.getElementById("pf-m4-playtest");
+
+    if (previous) {
+      previous.remove();
+    }
+
+    var style = document.getElementById("pf-m4-playtest-style");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "pf-m4-playtest-style";
+      style.textContent =
+        "#pf-m4-playtest{max-width:1100px;margin:24px auto 0;padding:24px;" +
+        "background:linear-gradient(145deg,#111b2b,#0d1421);" +
+        "border:1px solid #2d405e;border-radius:18px;" +
+        "box-shadow:0 22px 60px #0009;font-family:system-ui,sans-serif}" +
+        ".pf-m4-heading{display:flex;justify-content:space-between;gap:20px;" +
+        "align-items:flex-start;margin-bottom:18px}" +
+        ".pf-m4-heading h1{font-size:25px;line-height:1.15;margin:0 0 7px}" +
+        ".pf-m4-heading p{color:#a9b7ca;margin:0;max-width:720px}" +
+        ".pf-m4-live{background:#123b32;color:#8ff3cf;border:1px solid #276b59;" +
+        "border-radius:999px;font:700 11px/1 ui-monospace,monospace;" +
+        "letter-spacing:.08em;padding:8px 11px;white-space:nowrap}" +
+        "#pf-m4-canvas{display:block;width:100%;height:auto;aspect-ratio:16/8;" +
+        "background:#07101a;border:1px solid #2b3d58;border-radius:14px}" +
+        ".pf-m4-toolbar{display:flex;align-items:center;gap:10px;" +
+        "flex-wrap:wrap;margin:14px 0}" +
+        ".pf-m4-toolbar button{background:#182841;color:#e8f1ff;" +
+        "border:1px solid #385274;border-radius:9px;padding:8px 13px;" +
+        "font:700 12px/1 system-ui;cursor:pointer}" +
+        ".pf-m4-toolbar button:hover{background:#203654}" +
+        ".pf-m4-tick{color:#8edcff;font:12px/1 ui-monospace,monospace;" +
+        "margin-left:auto}" +
+        ".pf-m4-controls{display:grid;grid-template-columns:1fr 1fr;" +
+        "gap:12px;margin:12px 0}" +
+        ".pf-m4-control-card{background:#0b1320;border:1px solid #263b58;" +
+        "border-radius:12px;padding:13px;color:#adbbce;font-size:13px}" +
+        ".pf-m4-control-card strong{color:#f3f7ff;display:block;margin-bottom:6px}" +
+        ".pf-m4-control-card kbd{background:#1d2b40;border:1px solid #425875;" +
+        "border-bottom-width:2px;border-radius:5px;color:#dcecff;" +
+        "font:11px/1 ui-monospace,monospace;padding:2px 5px}" +
+        ".pf-m4-state-grid{display:grid;grid-template-columns:1fr 1fr;" +
+        "gap:12px;margin-top:12px}" +
+        ".pf-m4-state{background:#0a111d;border:1px solid #263851;" +
+        "border-radius:10px;padding:10px 12px;font:12px/1.5 ui-monospace,monospace;" +
+        "color:#9fb0c7}.pf-m4-state strong{color:#edf5ff}" +
+        ".pf-m4-note{color:#8294ad;font-size:12px;margin:13px 0 0}" +
+        "@media(max-width:680px){.pf-m4-heading{flex-direction:column}" +
+        ".pf-m4-controls,.pf-m4-state-grid{grid-template-columns:1fr}" +
+        ".pf-m4-tick{margin-left:0;width:100%}" +
+        "#pf-m4-playtest{padding:16px}}";
+      document.head.appendChild(style);
+    }
+
+    var section = document.createElement("section");
+    section.id = "pf-m4-playtest";
+    section.dataset.ready = "true";
+    section.setAttribute("aria-label", "M4 movement playtest");
+
+    var heading = document.createElement("div");
+    heading.className = "pf-m4-heading";
+    var headingCopy = document.createElement("div");
+    var title = document.createElement("h1");
+    title.textContent = "M4 real-simulation browser playtest";
+    var subtitle = document.createElement("p");
+    subtitle.textContent =
+      "Two keyboard players drive the same deterministic Q16.16 simulation " +
+      "used by native, replay, rollback, and headless execution.";
+    headingCopy.appendChild(title);
+    headingCopy.appendChild(subtitle);
+    var live = document.createElement("span");
+    live.className = "pf-m4-live";
+    live.textContent = inputProbePassed ? "INPUT PROBE PASSED" : "INPUT PROBE FAILED";
+    heading.appendChild(headingCopy);
+    heading.appendChild(live);
+    section.appendChild(heading);
+
+    var canvas = document.createElement("canvas");
+    canvas.id = "pf-m4-canvas";
+    canvas.width = 960;
+    canvas.height = 480;
+    canvas.setAttribute("aria-label", "Live deterministic movement stage");
+    section.appendChild(canvas);
+
+    var toolbar = document.createElement("div");
+    toolbar.className = "pf-m4-toolbar";
+    var pauseButton = document.createElement("button");
+    pauseButton.type = "button";
+    pauseButton.textContent = "Pause";
+    pauseButton.setAttribute("aria-pressed", "false");
+    var stepButton = document.createElement("button");
+    stepButton.type = "button";
+    stepButton.textContent = "Step";
+    var resetButton = document.createElement("button");
+    resetButton.type = "button";
+    resetButton.textContent = "Reset";
+    var tickLabel = document.createElement("span");
+    tickLabel.className = "pf-m4-tick";
+    tickLabel.textContent = "tick 0 · fixed 60 Hz";
+    toolbar.appendChild(pauseButton);
+    toolbar.appendChild(stepButton);
+    toolbar.appendChild(resetButton);
+    toolbar.appendChild(tickLabel);
+    section.appendChild(toolbar);
+
+    var controls = document.createElement("div");
+    controls.className = "pf-m4-controls";
+    function controlCard(player, bindings) {
+      var card = document.createElement("div");
+      card.className = "pf-m4-control-card";
+      var label = document.createElement("strong");
+      label.textContent = player;
+      card.appendChild(label);
+      card.appendChild(document.createTextNode(bindings));
+      return card;
+    }
+    controls.appendChild(
+      controlCard(
+        "Player 1",
+        "A / D dash · Shift + A / D walk · W or Space jump · S down / fast fall"
+      )
+    );
+    controls.appendChild(
+      controlCard(
+        "Player 2",
+        "← / → dash · Shift + ← / → walk · ↑ jump · ↓ down / fast fall"
+      )
+    );
+    section.appendChild(controls);
+
+    var note = document.createElement("p");
+    note.className = "pf-m4-note";
+    note.textContent =
+      "Tap jump and release during the three-tick jump squat for the fixed " +
+      "short hop; hold through takeoff for the fixed full hop. Releasing after " +
+      "takeoff never changes either apex. Tap opposite full directions during " +
+      "initial dash to dash-dance. R resets, P pauses, and N single-steps.";
+    section.appendChild(note);
+
+    var stateGrid = document.createElement("div");
+    stateGrid.className = "pf-m4-state-grid";
+    var playerStates = [];
+    [0, 1].forEach(function (player) {
+      var card = document.createElement("div");
+      card.className = "pf-m4-state";
+      card.id = "pf-m4-player-" + player;
+      card.textContent = "P" + (player + 1) + " waiting for first state";
+      stateGrid.appendChild(card);
+      playerStates.push(card);
+    });
+    section.appendChild(stateGrid);
+
+    if (replayInspector) {
+      document.body.insertBefore(section, replayInspector);
+    } else {
+      document.body.appendChild(section);
+    }
+
+    var state = {
+      accumulator: 0,
+      canvas: canvas,
+      dashAxis: dashAxis,
+      keys: Object.create(null),
+      lastTime: 0,
+      latest: null,
+      pauseButton: pauseButton,
+      playerStates: playerStates,
+      jumpQueued: [false, false],
+      running: true,
+      tickLabel: tickLabel,
+      walkAxis: walkAxis,
+    };
+    Module.pfM4Playtest = state;
+
+    function held(code) {
+      return state.keys[code] === true;
+    }
+
+    function horizontal(negative, positive) {
+      if (held(negative) === held(positive)) {
+        return 0;
+      }
+      var magnitude =
+        held("ShiftLeft") || held("ShiftRight")
+          ? state.walkAxis
+          : state.dashAxis;
+      return held(negative) ? -magnitude : magnitude;
+    }
+
+    function step() {
+      var player0Jump =
+        held("KeyW") || held("Space") || state.jumpQueued[0];
+      var player1Jump =
+        held("ArrowUp") || state.jumpQueued[1];
+      var passed = Module._pf_web_m4_playtest_step(
+        horizontal("KeyA", "KeyD"),
+        held("KeyS") ? state.dashAxis : 0,
+        player0Jump ? 1 : 0,
+        horizontal("ArrowLeft", "ArrowRight"),
+        held("ArrowDown") ? state.dashAxis : 0,
+        player1Jump ? 1 : 0
+      );
+      state.jumpQueued[0] = false;
+      state.jumpQueued[1] = false;
+      if (!passed) {
+        state.running = false;
+        state.pauseButton.textContent = "Resume";
+        state.pauseButton.setAttribute("aria-pressed", "true");
+        if (status) {
+          status.textContent += " playtest_runtime=fail";
+          status.dataset.playtestRuntime = "fail";
+        }
+      }
+    }
+
+    function setRunning(running) {
+      state.running = running;
+      state.pauseButton.textContent = running ? "Pause" : "Resume";
+      state.pauseButton.setAttribute("aria-pressed", running ? "false" : "true");
+      state.accumulator = 0;
+      state.lastTime = 0;
+    }
+
+    function reset() {
+      state.keys = Object.create(null);
+      state.jumpQueued = [false, false];
+      state.accumulator = 0;
+      Module._pf_web_m4_playtest_reset();
+    }
+
+    function frame(time) {
+      if (state.running) {
+        if (!state.lastTime) {
+          state.lastTime = time;
+        }
+        var elapsed = Math.min(time - state.lastTime, 100);
+        state.lastTime = time;
+        state.accumulator += elapsed;
+        while (state.accumulator >= 1000 / 60) {
+          step();
+          state.accumulator -= 1000 / 60;
+        }
+      } else {
+        state.lastTime = time;
+      }
+      requestAnimationFrame(frame);
+    }
+
+    pauseButton.addEventListener("click", function () {
+      setRunning(!state.running);
+    });
+    stepButton.addEventListener("click", function () {
+      if (!state.running) {
+        step();
+      }
+    });
+    resetButton.addEventListener("click", reset);
+
+    window.addEventListener(
+      "keydown",
+      function (event) {
+        var wasHeld = held(event.code);
+        if (
+          event.code === "Space" ||
+          event.code.indexOf("Arrow") === 0
+        ) {
+          event.preventDefault();
+        }
+        state.keys[event.code] = true;
+        if (!wasHeld && (event.code === "KeyW" || event.code === "Space")) {
+          state.jumpQueued[0] = true;
+        }
+        if (!wasHeld && event.code === "ArrowUp") {
+          state.jumpQueued[1] = true;
+        }
+        if (event.repeat) {
+          return;
+        }
+        if (event.code === "KeyR") {
+          reset();
+        } else if (event.code === "KeyP") {
+          setRunning(!state.running);
+        } else if (event.code === "KeyN" && !state.running) {
+          step();
+        }
+      },
+      { passive: false }
+    );
+    window.addEventListener("keyup", function (event) {
+      state.keys[event.code] = false;
+    });
+    window.addEventListener("blur", function () {
+      state.keys = Object.create(null);
+      state.jumpQueued = [false, false];
+    });
+
+    if (status) {
+      status.textContent +=
+        " playtest=ready input_probe=" +
+        (inputProbePassed ? "pass" : "fail") +
+        " controls=keyboard-two-player";
+      status.dataset.playtest = "ready";
+      status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
+    }
+    requestAnimationFrame(frame);
+  },
+
+  pf_web_m4_playtest_render__sig: "vpi",
+  pf_web_m4_playtest_render: function (viewPointer, viewCount) {
+    var state = Module.pfM4Playtest;
+    if (!state || viewCount !== 36) {
+      return;
+    }
+    state.latest = new Int32Array(
+      HEAP32.subarray(viewPointer >> 2, (viewPointer >> 2) + viewCount)
+    );
+
+    var view = state.latest;
+    var canvas = state.canvas;
+    var context = canvas.getContext("2d");
+    var q16 = 65536;
+    var blastLeft = view[8] / q16;
+    var blastRight = view[9] / q16;
+    var blastTop = view[10] / q16;
+    var blastBottom = view[11] / q16;
+    var padding = 34;
+    var usableWidth = canvas.width - padding * 2;
+    var usableHeight = canvas.height - padding * 2;
+    var colors = ["#55e6d0", "#ff7695"];
+    var actionNames = [
+      "IDLE",
+      "WALK",
+      "INITIAL DASH",
+      "RUN",
+      "CROUCH",
+      "JUMP SQUAT",
+      "AIRBORNE",
+      "LANDING",
+    ];
+
+    function sx(q16Value) {
+      return (
+        padding +
+        ((q16Value / q16 - blastLeft) / (blastRight - blastLeft)) *
+          usableWidth
+      );
+    }
+    function sy(q16Value) {
+      return (
+        padding +
+        ((q16Value / q16 - blastTop) / (blastBottom - blastTop)) *
+          usableHeight
+      );
+    }
+
+    var gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, "#111f34");
+    gradient.addColorStop(1, "#07101a");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.setLineDash([7, 8]);
+    context.strokeStyle = "#2b4665";
+    context.lineWidth = 1;
+    context.strokeRect(
+      sx(view[8]),
+      sy(view[10]),
+      sx(view[9]) - sx(view[8]),
+      sy(view[11]) - sy(view[10])
+    );
+    context.setLineDash([]);
+
+    context.strokeStyle = "#8ea2b7";
+    context.lineCap = "round";
+    context.lineWidth = 8;
+    context.beginPath();
+    context.moveTo(sx(view[2]), sy(view[4]));
+    context.lineTo(sx(view[3]), sy(view[4]));
+    context.stroke();
+
+    context.strokeStyle = "#d1dae4";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(sx(view[5]), sy(view[7]));
+    context.lineTo(sx(view[6]), sy(view[7]));
+    context.stroke();
+
+    [0, 1].forEach(function (playerIndex) {
+      var base = 14 + playerIndex * 11;
+      var x = sx(view[base]);
+      var y = sy(view[base + 1]);
+      var halfWidth =
+        (view[12] / q16 / (blastRight - blastLeft)) * usableWidth;
+      var halfHeight =
+        (view[13] / q16 / (blastBottom - blastTop)) * usableHeight;
+      var width = Math.max(14, halfWidth * 2);
+      var height = Math.max(28, halfHeight * 2);
+      var facing = view[base + 5];
+
+      context.shadowColor = colors[playerIndex] + "88";
+      context.shadowBlur = 16;
+      context.fillStyle = colors[playerIndex];
+      context.fillRect(x - width / 2, y - height / 2, width, height);
+      context.shadowBlur = 0;
+      context.fillStyle = "#07111c";
+      context.beginPath();
+      context.moveTo(x + facing * width * 0.45, y - 5);
+      context.lineTo(x + facing * width * 0.75, y);
+      context.lineTo(x + facing * width * 0.45, y + 5);
+      context.closePath();
+      context.fill();
+
+      var action =
+        actionNames[view[base + 4]] || "STATE " + view[base + 4];
+      state.playerStates[playerIndex].innerHTML =
+        "<strong>P" +
+        (playerIndex + 1) +
+        " · " +
+        action +
+        "</strong><br>x " +
+        (view[base] / q16).toFixed(3) +
+        " · y " +
+        (view[base + 1] / q16).toFixed(3) +
+        " · vx " +
+        (view[base + 2] / q16).toFixed(3) +
+        " · vy " +
+        (view[base + 3] / q16).toFixed(3) +
+        "<br>grounded " +
+        view[base + 6] +
+        " · support " +
+        view[base + 7] +
+        " · air jumps " +
+        view[base + 8] +
+        " · fast fall " +
+        view[base + 9] +
+        " · respawns " +
+        view[base + 10];
+    });
+
+    context.fillStyle = "#8da2bb";
+    context.font = "12px ui-monospace, monospace";
+    context.textAlign = "left";
+    context.fillText("blast zone", padding + 8, padding + 18);
+    context.textAlign = "right";
+    context.fillText("real sim · Q16.16 · 60 Hz", canvas.width - padding, 22);
+
+    state.tickLabel.textContent = "tick " + view[1] + " · fixed 60 Hz";
+  },
 });

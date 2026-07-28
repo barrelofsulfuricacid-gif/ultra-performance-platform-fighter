@@ -122,6 +122,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_movement.sh" \
     "$pf_artifact_dir/m4_movement"
 pf_record \
+    m4-browser-adapter \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
+    "$pf_artifact_dir/m4_browser"
+pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"
@@ -132,7 +136,7 @@ pf_record \
     "$pf_artifact_dir/m3_performance"
 
 if pf_diff_matches \
-    '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier)/|tests/(presentation|sim)/|tools/(bootstrap|workflow)\.)'
+    '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier|web_client)/|tests/(presentation|sim|web)/|tools/(bootstrap|workflow)\.)'
 then
     pf_record \
         sanitizer \

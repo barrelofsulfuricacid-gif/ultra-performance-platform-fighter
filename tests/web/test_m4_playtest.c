@@ -1,0 +1,127 @@
+#include "m4_playtest.h"
+
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#define TEST_VIEW_COUNT 36
+#define TEST_PLAYER0_BASE 14
+#define TEST_PLAYER_ACTION 4
+#define TEST_PLAYER_FACING 5
+
+static int test_install_count;
+static int test_render_count;
+static int test_walk_axis;
+static int test_dash_axis;
+static int test_input_probe;
+static int32_t test_view[TEST_VIEW_COUNT];
+
+void pf_web_m4_playtest_install(
+    int walk_axis,
+    int dash_axis,
+    int input_probe_passed);
+
+void pf_web_m4_playtest_render(
+    const int32_t *view,
+    int view_count);
+
+void pf_web_m4_playtest_install(
+    int walk_axis,
+    int dash_axis,
+    int input_probe_passed)
+{
+    ++test_install_count;
+    test_walk_axis = walk_axis;
+    test_dash_axis = dash_axis;
+    test_input_probe = input_probe_passed;
+}
+
+void pf_web_m4_playtest_render(
+    const int32_t *view,
+    int view_count)
+{
+    ++test_render_count;
+    if (view == NULL || view_count != TEST_VIEW_COUNT)
+    {
+        (void)memset(test_view, 0xff, sizeof(test_view));
+        return;
+    }
+    (void)memcpy(test_view, view, sizeof(test_view));
+}
+
+static int fail(const char *operation)
+{
+    (void)fprintf(
+        stderr,
+        "m4-browser-adapter=fail operation=%s\n",
+        operation);
+    return 1;
+}
+
+int main(void)
+{
+    if (!pf_web_m4_playtest_start() ||
+        test_install_count != 1 ||
+        test_render_count != 1 ||
+        test_walk_axis != 13500 ||
+        test_dash_axis != 32767 ||
+        test_input_probe != 1 ||
+        test_view[0] != 1 ||
+        test_view[1] != 0)
+    {
+        return fail("start-and-input-probe");
+    }
+
+    if (!pf_web_m4_playtest_step(
+            test_walk_axis,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 1)
+    {
+        return fail("keyboard-walk-magnitude");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(
+            test_dash_axis,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
+        !pf_web_m4_playtest_step(
+            -test_dash_axis,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1)
+    {
+        return fail("keyboard-dash-dance");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(0, 0, 1, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 5 ||
+        !pf_web_m4_playtest_step(0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(0, 0, 0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 6)
+    {
+        return fail("keyboard-short-hop-selection");
+    }
+
+    (void)printf(
+        "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
+        "input_probe=%d renders=%d\n",
+        test_walk_axis,
+        test_dash_axis,
+        test_input_probe,
+        test_render_count);
+    return 0;
+}
