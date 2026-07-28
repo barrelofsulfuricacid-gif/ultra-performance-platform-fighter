@@ -7,6 +7,7 @@ param(
         "profile",
         "benchmark",
         "headless",
+        "verifier",
         "web")]
     [string]$Preset = "debug",
     [string]$ToolchainsDirectory
@@ -41,6 +42,39 @@ $hostTools = Find-PFHostTools `
     -RepositoryRoot $repositoryRoot `
     -ToolchainsDirectory $toolchainsDirectory `
     -PlatformKey $platformKey
+
+$sqlitePresets = @("debug", "sanitizer", "release", "profile", "benchmark")
+if ($sqlitePresets -contains $Preset)
+{
+    $sqliteRoot = Join-Path `
+        $toolchainsDirectory `
+        "dependencies\sqlite-amalgamation-3530400"
+    $sqliteSource = Join-Path $sqliteRoot "sqlite3.c"
+    $sqliteHeader = Join-Path $sqliteRoot "sqlite3.h"
+    if (-not (Test-Path -LiteralPath $sqliteSource -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $sqliteHeader -PathType Leaf))
+    {
+        Stop-PFToolchain (
+            "pinned SQLite source is missing; run .\tools\bootstrap.ps1")
+    }
+    $env:PF_SQLITE_SOURCE_DIR = $sqliteRoot
+}
+
+if ($Preset -eq "profile")
+{
+    $tracyRoot = Join-Path `
+        $toolchainsDirectory `
+        "dependencies\tracy-0.13.1"
+    $tracyHeader = Join-Path $tracyRoot "public\tracy\TracyC.h"
+    $tracyClient = Join-Path $tracyRoot "public\TracyClient.cpp"
+    if (-not (Test-Path -LiteralPath $tracyHeader -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $tracyClient -PathType Leaf))
+    {
+        Stop-PFToolchain (
+            "pinned Tracy source is missing; run .\tools\bootstrap.ps1")
+    }
+    $env:PF_TRACY_SOURCE_DIR = $tracyRoot
+}
 
 $sdlPresets = @("debug", "sanitizer", "release", "profile")
 if ($sdlPresets -contains $Preset)

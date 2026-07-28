@@ -16,6 +16,8 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "PF_ENABLE_SDL_CLIENT": true,
         "PF_SDL_SOURCE_DIR": "$env{PF_SDL_SOURCE_DIR}",
+        "PF_SQLITE_SOURCE_DIR": "$env{PF_SQLITE_SOURCE_DIR}",
+        "PF_TRACY_SOURCE_DIR": "$env{PF_TRACY_SOURCE_DIR}",
         "PF_SDL_UNIX_CONSOLE_BUILD": "$env{PF_SDL_UNIX_CONSOLE_BUILD}"
       }
     },
@@ -81,6 +83,20 @@
       }
     },
     {
+      "name": "verifier",
+      "displayName": "Isolated verifier agent",
+      "inherits": "release",
+      "cacheVariables": {
+        "PF_BUILD_BENCHMARKS": false,
+        "PF_BUILD_HEADLESS": false,
+        "PF_BUILD_NATIVE_CLIENT": false,
+        "PF_BUILD_TOOLS": false,
+        "PF_BUILD_VERIFIER": true,
+        "PF_BUILD_WEB_CLIENT": false,
+        "PF_ENABLE_SDL_CLIENT": false
+      }
+    },
+    {
       "name": "web",
       "displayName": "Emscripten browser smoke",
       "generator": "Ninja",
@@ -126,6 +142,10 @@
       "configurePreset": "headless"
     },
     {
+      "name": "verifier",
+      "configurePreset": "verifier"
+    },
+    {
       "name": "web",
       "configurePreset": "web"
     }
@@ -169,6 +189,13 @@
     {
       "name": "headless",
       "configurePreset": "headless",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "verifier",
+      "configurePreset": "verifier",
       "output": {
         "outputOnFailure": true
       }
@@ -274,6 +301,23 @@
         {
           "type": "test",
           "name": "headless"
+        }
+      ]
+    },
+    {
+      "name": "verifier",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "verifier"
+        },
+        {
+          "type": "build",
+          "name": "verifier"
+        },
+        {
+          "type": "test",
+          "name": "verifier"
         }
       ]
     },

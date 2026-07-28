@@ -4,82 +4,28 @@ set -u
 root=$(git rev-parse --show-toplevel)
 commit=$(git rev-parse HEAD)
 evidence_dir="$root/performance/local/commits/$commit"
+verifier_dir="$evidence_dir/verifier"
 log_file="$evidence_dir/post_commit.log"
 manifest_file="$evidence_dir/manifest.txt"
 
 mkdir -p "$evidence_dir"
 
-status=pass
-{
-    echo "commit=$commit"
-    echo "started_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-    if "$root/tools/verify_m0.sh" "$commit"; then
-        echo "verification=pass"
-    else
-        echo "verification=fail"
-        status=fail
-    fi
-
-    if "$root/tools/verify_m1_foundation.sh" \
-        "$evidence_dir/m1_foundation"; then
-        echo "m1_foundation_verification=pass"
-    else
-        echo "m1_foundation_verification=fail"
-        status=fail
-    fi
-
-    if "$root/tools/verify_m1_workflow.sh"; then
-        echo "m1_workflow_verification=pass"
-    else
-        echo "m1_workflow_verification=fail"
-        status=fail
-    fi
-
-    if "$root/tools/verify_m1_setup.sh"; then
-        echo "m1_setup_verification=pass"
-    else
-        echo "m1_setup_verification=fail"
-        status=fail
-    fi
-
-    if "$root/tools/verify_m2_kernel.sh" \
-        "$evidence_dir/m2_kernel"; then
-        echo "m2_kernel_verification=pass"
-    else
-        echo "m2_kernel_verification=fail"
-        status=fail
-    fi
-
-    if "$root/tools/verify_m2_replay.sh" \
-        "$evidence_dir/m2_replay"; then
-        echo "m2_replay_verification=pass"
-    else
-        echo "m2_replay_verification=fail"
-        status=fail
-    fi
-
-    benchmark_runner="$root/experiments/m0_representation/run_benchmarks.sh"
-    if [ -x "$benchmark_runner" ]; then
-        if M0_BENCH_MODE=commit "$benchmark_runner" "$evidence_dir"; then
-            echo "benchmark=pass"
-        else
-            echo "benchmark=fail"
-            status=fail
-        fi
-    else
-        echo "benchmark=unavailable"
-        echo "benchmark_reason=m0_harness_not_implemented"
-    fi
-
-    echo "finished_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "status=$status"
-} >"$log_file" 2>&1
+if "$root/tools/run_verifier.sh" \
+    "$commit" \
+    "$verifier_dir" >"$log_file" 2>&1
+then
+    status=pass
+else
+    status=fail
+fi
 
 {
     echo "commit=$commit"
     echo "status=$status"
     echo "evidence=$log_file"
+    echo "verifier_manifest=$verifier_dir/pass_manifest.md"
+    echo "benchmark_database=$root/performance/local/performance.sqlite3"
+    echo "benchmark_graphs=$root/performance/local/graphs"
 } >"$manifest_file"
 
 echo "post-commit $status: $manifest_file"

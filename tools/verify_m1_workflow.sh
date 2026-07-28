@@ -84,6 +84,7 @@ for path in \
     assets/original \
     performance/database \
     performance/graphs \
+    performance/profiles \
     performance/reports \
     verifier/issues/unfixed \
     verifier/issues/fixed \
@@ -105,6 +106,7 @@ for path in \
     performance/README.md \
     performance/database/README.md \
     performance/graphs/README.md \
+    performance/profiles/README.md \
     performance/reports/README.md \
     verifier/README.md \
     verifier/issues/unfixed/README.md \

@@ -207,6 +207,167 @@ if ($sdlVersionText -notmatch "(?m)^#define SDL_MAJOR_VERSION\s+3$" -or
 $env:PF_SDL_SOURCE_DIR = $sdlRoot
 Write-Output "sdl-source=3.4.12 path=$sdlRoot"
 
+$sqliteRoot = Join-Path `
+    $toolchainsDirectory `
+    "dependencies\sqlite-amalgamation-3530400"
+if (-not (Test-Path -LiteralPath $sqliteRoot -PathType Container))
+{
+    $sqliteRecord = Get-PFLockRecord `
+        -Component sqlite-source `
+        -Platform all
+    $sqliteArchive = Save-PFLockedArchive `
+        -Record $sqliteRecord `
+        -Directory $downloadRoot
+    $sqliteTemporary = Join-Path `
+        $temporaryRoot `
+        ("sqlite." + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $sqliteTemporary | Out-Null
+    Expand-Archive `
+        -LiteralPath $sqliteArchive `
+        -DestinationPath $sqliteTemporary
+    $sqliteExtracted = Join-Path `
+        $sqliteTemporary `
+        "sqlite-amalgamation-3530400"
+    New-Item `
+        -ItemType Directory `
+        -Path (Split-Path -Parent $sqliteRoot) `
+        -Force | Out-Null
+    Move-Item -LiteralPath $sqliteExtracted -Destination $sqliteRoot
+}
+
+$sqliteHeader = Join-Path $sqliteRoot "sqlite3.h"
+$sqliteSource = Join-Path $sqliteRoot "sqlite3.c"
+if (-not (Test-Path -LiteralPath $sqliteHeader -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $sqliteSource -PathType Leaf))
+{
+    Stop-PFToolchain "locked SQLite source is incomplete: $sqliteRoot"
+}
+$sqliteHeaderText = Get-Content -LiteralPath $sqliteHeader -Raw
+$sqliteSourceText = Get-Content -LiteralPath $sqliteSource -Raw
+if ($sqliteHeaderText -notmatch '#define SQLITE_VERSION\s+"3\.53\.4"')
+{
+    Stop-PFToolchain "locked SQLite source is not version 3.53.4"
+}
+if ($sqliteSourceText -notmatch
+    "bf7c7f30031888f4e796e429ab3978879485813aaca6f641c7b33e4e09459bcc")
+{
+    Stop-PFToolchain "locked SQLite source ID is incorrect"
+}
+$env:PF_SQLITE_SOURCE_DIR = $sqliteRoot
+Write-Output "sqlite-source=3.53.4 path=$sqliteRoot"
+
+$tracyRoot = Join-Path $toolchainsDirectory "dependencies\tracy-0.13.1"
+if (-not (Test-Path -LiteralPath $tracyRoot -PathType Container))
+{
+    $tracyRecord = Get-PFLockRecord -Component tracy-source -Platform all
+    $tracyArchive = Save-PFLockedArchive `
+        -Record $tracyRecord `
+        -Directory $downloadRoot
+    $tracyTemporary = Join-Path `
+        $temporaryRoot `
+        ("tracy." + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $tracyTemporary | Out-Null
+    & tar.exe `
+        -xzf $tracyArchive `
+        --strip-components=1 `
+        -C $tracyTemporary
+    if ($LASTEXITCODE -ne 0)
+    {
+        Stop-PFToolchain "failed to extract the locked Tracy archive"
+    }
+    New-Item `
+        -ItemType Directory `
+        -Path (Split-Path -Parent $tracyRoot) `
+        -Force | Out-Null
+    Move-Item -LiteralPath $tracyTemporary -Destination $tracyRoot
+}
+
+$tracyHeader = Join-Path $tracyRoot "public\tracy\TracyC.h"
+$tracyClient = Join-Path $tracyRoot "public\TracyClient.cpp"
+$tracyVersion = Join-Path `
+    $tracyRoot `
+    "public\common\TracyVersion.hpp"
+if (-not (Test-Path -LiteralPath $tracyHeader -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $tracyClient -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $tracyVersion -PathType Leaf))
+{
+    Stop-PFToolchain "locked Tracy source is incomplete: $tracyRoot"
+}
+$tracyVersionText = Get-Content -LiteralPath $tracyVersion -Raw
+if ($tracyVersionText -notmatch "enum \{ Major = 0 \};" -or
+    $tracyVersionText -notmatch "enum \{ Minor = 13 \};" -or
+    $tracyVersionText -notmatch "enum \{ Patch = 1 \};")
+{
+    Stop-PFToolchain "locked Tracy source is not version 0.13.1"
+}
+$env:PF_TRACY_SOURCE_DIR = $tracyRoot
+Write-Output "tracy-source=0.13.1 path=$tracyRoot"
+
+function Install-PFTarDependency
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Component,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    if (-not (Test-Path -LiteralPath $Destination -PathType Container))
+    {
+        $record = Get-PFLockRecord -Component $Component -Platform all
+        $archive = Save-PFLockedArchive `
+            -Record $record `
+            -Directory $downloadRoot
+        $temporary = Join-Path `
+            $temporaryRoot `
+            ($Component + "." + [guid]::NewGuid())
+        New-Item -ItemType Directory -Path $temporary | Out-Null
+        & tar.exe `
+            -xzf $archive `
+            --strip-components=1 `
+            -C $temporary
+        if ($LASTEXITCODE -ne 0)
+        {
+            Stop-PFToolchain "failed to extract locked $Component archive"
+        }
+        New-Item `
+            -ItemType Directory `
+            -Path (Split-Path -Parent $Destination) `
+            -Force | Out-Null
+        Move-Item -LiteralPath $temporary -Destination $Destination
+    }
+}
+
+$tracyCapstoneRoot = Join-Path `
+    $toolchainsDirectory `
+    "dependencies\capstone-6.0.0-Alpha5"
+$tracyPpqsortRoot = Join-Path `
+    $toolchainsDirectory `
+    "dependencies\ppqsort-1.0.6"
+$tracyZstdRoot = Join-Path `
+    $toolchainsDirectory `
+    "dependencies\zstd-1.5.7"
+Install-PFTarDependency `
+    -Component tracy-capstone-source `
+    -Destination $tracyCapstoneRoot
+Install-PFTarDependency `
+    -Component tracy-ppqsort-source `
+    -Destination $tracyPpqsortRoot
+Install-PFTarDependency `
+    -Component tracy-zstd-source `
+    -Destination $tracyZstdRoot
+if (-not (Test-Path -LiteralPath (
+        Join-Path $tracyCapstoneRoot "include\capstone\capstone.h")) -or
+    -not (Test-Path -LiteralPath (
+        Join-Path $tracyPpqsortRoot "include\ppqsort.h")) -or
+    -not (Test-Path -LiteralPath (
+        Join-Path $tracyZstdRoot "lib\zstd.h")))
+{
+    Stop-PFToolchain "locked Tracy capture dependency source is incomplete"
+}
+$env:PF_TRACY_CAPSTONE_SOURCE_DIR = $tracyCapstoneRoot
+$env:PF_TRACY_PPQSORT_SOURCE_DIR = $tracyPpqsortRoot
+$env:PF_TRACY_ZSTD_SOURCE_DIR = $tracyZstdRoot
+Write-Output "tracy-capture-dependencies=locked"
+
 if ($Web)
 {
     if ($platformKey -ne "windows-x86_64")

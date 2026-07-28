@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480">
+<title>empty_tick performance evolution</title>
+<desc>Privacy-safe compatible measurements normalized to the prior revision.</desc>
+<rect width="960" height="480" fill="#f8fafc"/>
+<text x="48" y="38" font-family="sans-serif" font-size="22" fill="#0f172a">empty_tick</text>
+<text x="48" y="62" font-family="sans-serif" font-size="13" fill="#475569">relative_performance_percent</text>
+<line x1="72" y1="410" x2="930" y2="410" stroke="#64748b"/>
+<line x1="72" y1="84" x2="72" y2="410" stroke="#64748b"/>
+<line x1="72" y1="247" x2="930" y2="247" stroke="#cbd5e1" stroke-dasharray="5 5"/>
+<text x="20" y="94" font-family="monospace" font-size="11" fill="#475569">104%</text>
+<text x="20" y="251" font-family="monospace" font-size="11" fill="#475569">100%</text>
+<text x="20" y="410" font-family="monospace" font-size="11" fill="#475569">96%</text>
+<polyline fill="none" stroke="#2563eb" stroke-width="2" points="72.00,247.00 930.00,316.85 "/>
+<circle cx="72.00" cy="247.00" r="4" fill="#94a3b8"><title>previous compatible revision 100.000%</title></circle>
+<circle cx="930.00" cy="316.85" r="4" fill="#2563eb"><title>M3 checkpoint 98.286% (-1.714%)</title></circle>
+<text x="72" y="438" font-family="monospace" font-size="11" fill="#475569">prior</text>
+<text x="902" y="438" font-family="monospace" font-size="11" fill="#475569">M3</text>
+</svg>

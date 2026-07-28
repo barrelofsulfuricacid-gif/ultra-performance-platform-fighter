@@ -19,8 +19,11 @@ rows still require their representative adoption work.
 | Workbook candidate | XLSX I/O 0.2.36 / `a9016eb` | MIT | Developer/offline tools | Candidate |
 | Audio candidate | miniaudio 0.11.25 / `9634bed` | Public domain or MIT-0 | Native/web client | Candidate |
 | Audio candidate | SDL_mixer 3.2.4 / `72a8186` | zlib | Native/web client | Candidate |
-| Profiler | Tracy 0.13.1 / `05cceee` | BSD-3-Clause | Profile builds/tools | Selected |
-| Performance store | SQLite 3.53.4 / source ID `bf7c7f3…` | Public domain | Local benchmark tools | Selected |
+| Profiler | Tracy 0.13.1 / `05cceee` | BSD-3-Clause | Profile builds/tools | Adopted in M3 profile-only boundary |
+| Tracy capture disassembly | Capstone 6.0.0-Alpha5 | BSD-3-Clause | Capture utility only | Adopted in M3 tooling |
+| Tracy capture sorting | PPQSort 1.0.6 | MIT | Capture utility only | Adopted in M3 tooling |
+| Tracy capture compression | Zstd 1.5.7 | BSD-3-Clause / GPLv2 dual | Capture utility only | Adopted in M3 tooling under BSD terms |
+| Performance store | SQLite 3.53.4 / source ID `bf7c7f3…` | Public domain | Local benchmark tools | Adopted in M3 benchmark boundary |
 | RL compatibility | Gymnasium 1.3.0 / `53bf3e9` | MIT | Optional Python wrapper | Adopted for M2 adapter |
 
 ## Adoption gate
@@ -47,6 +50,13 @@ The Gymnasium row satisfies the same boundary gate through
 `dependencies/python.lock.tsv`, TDR-0005, `tools/verify_m2_python.sh`, and the
 isolated `rl-python` clean-machine CI job. It is an optional packaging/test
 dependency and is absent from every native engine product.
+
+The SQLite and Tracy rows satisfy the gate through full archive hashes in
+`dependencies/toolchains.lock.tsv`, TDR-0005, the isolated benchmark/profile
+links, `tools/verify_m3_performance.sh`, and `tools/capture_profile.sh`.
+Capstone, PPQSort, and Zstd build only the matching local Tracy capture
+utility. The maximum-throughput headless binary is checked for the absence of
+both SQLite and Tracy symbols.
 
 Steam Input is a platform service/API rather than a vendored source dependency.
 Its eventual adapter is additive to SDL Gamepad and cannot change normalized

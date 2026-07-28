@@ -23,3 +23,8 @@ node	22.16.0	macos-x86_64	node-v22.16.0-darwin-x64.tar.gz	838d400f7e66c804e5d11e
 node	22.16.0	macos-arm64	node-v22.16.0-darwin-arm64.tar.gz	1d7f34ec4c03e12d8b33481e5c4560432d7dc31a0ef3ff5a4d9a8ada7cf6ecc9	47716750	https://nodejs.org/dist/v22.16.0/node-v22.16.0-darwin-arm64.tar.gz
 node	22.16.0	windows-x86_64	node-v22.16.0-win-x64.zip	21c2d9735c80b8f86dab19305aa6a9f6f59bbc808f68de3eef09d5832e3bfbbd	35466975	https://nodejs.org/dist/v22.16.0/node-v22.16.0-win-x64.zip
 sdl-source	3.4.12	all	SDL3-3.4.12.tar.gz	f07b958a9ac5020fb7a44cadb957f658b2149c3c8abb4f63145fac9303249db7	15629574	https://github.com/libsdl-org/SDL/releases/download/release-3.4.12/SDL3-3.4.12.tar.gz
+sqlite-source	3.53.4	all	sqlite-amalgamation-3530400.zip	1e71ddf93849c6a6ecf58b827c0692073d2dd7ee40196158068f7b29f422e87d	2946650	https://www.sqlite.org/2026/sqlite-amalgamation-3530400.zip
+tracy-source	0.13.1	all	tracy-v0.13.1.tar.gz	d4efc50ebcb0bfcfdbba148995aeb75044c0d80f5d91223aebfaa8fa9e563d2b	4565018	https://github.com/wolfpld/tracy/archive/refs/tags/v0.13.1.tar.gz
+tracy-capstone-source	6.0.0-Alpha5	all	capstone-6.0.0-Alpha5.tar.gz	a909a0ea9cd9da5a55fb498b4bd54507469dafe80eadc2e1928c80c8773ed7c5	8174116	https://github.com/capstone-engine/capstone/archive/refs/tags/6.0.0-Alpha5.tar.gz
+tracy-ppqsort-source	1.0.6	all	ppqsort-v1.0.6.tar.gz	12d9c05363fa3d36f4916a78f1c7e237748dfe111ef44b8b7a7ca0f3edad44da	40346	https://github.com/GabTux/PPQSort/archive/refs/tags/v1.0.6.tar.gz
+tracy-zstd-source	1.5.7	all	zstd-v1.5.7.tar.gz	37d7284556b20954e56e1ca85b80226768902e2edabd3b649e9e72c0c9012ee3	2451884	https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.tar.gz

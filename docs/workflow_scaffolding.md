@@ -14,6 +14,7 @@ is `tools/verify_m1_workflow.sh`.
 | `assets/original/` | Original assets with provenance records |
 | `performance/database/` | Performance schemas, migrations, and approved snapshots |
 | `performance/graphs/` | Reproducible milestone graph exports |
+| `performance/profiles/` | Profile capture instructions and approved analyses |
 | `performance/reports/` | Milestone and optimization performance reports |
 | `verifier/issues/unfixed/` | Open verifier findings |
 | `verifier/issues/fixed/` | Preserved resolved verifier findings |
@@ -57,9 +58,12 @@ already resolved by the governing plan are not duplicated there.
 ## Generated evidence and recursion guard
 
 The versioned post-commit command is `tools/post_commit.sh`, invoked by
-`.githooks/post-commit`. Per-commit logs, raw measurements, temporary databases,
-and build products go under `performance/local/`, which is ignored by Git.
-Tracked performance artifacts are explicit milestone exports, never automatic
+`.githooks/post-commit`. It delegates to `tools/run_verifier.sh`, which selects
+checks from the commit diff, runs the required global contracts and performance
+jobs, and writes a pass manifest or one durable issue per failure. Per-commit
+logs, raw measurements, temporary databases, graphs, captures, and build
+products go under `performance/local/`, which is ignored by Git. Tracked
+performance artifacts are explicit milestone exports, never automatic
 post-commit output. This separation prevents generated benchmark data from
 causing a new commit and recursively launching the workflow.
 

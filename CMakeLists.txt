@@ -38,6 +38,39 @@ set(
     ""
     CACHE PATH
     "Path to the checksum-verified SDL3 source tree")
+set(
+    PF_SQLITE_SOURCE_DIR
+    ""
+    CACHE PATH
+    "Path to the checksum-verified SQLite amalgamation")
+set(
+    PF_TRACY_SOURCE_DIR
+    ""
+    CACHE PATH
+    "Path to the checksum-verified Tracy source tree")
+
+if(PF_ENABLE_PROFILING)
+    if(NOT EXISTS "${PF_TRACY_SOURCE_DIR}/public/tracy/TracyC.h" OR
+       NOT EXISTS "${PF_TRACY_SOURCE_DIR}/public/TracyClient.cpp")
+        message(FATAL_ERROR
+            "PF_ENABLE_PROFILING requires the locked Tracy source. "
+            "Run tools/bootstrap.sh or tools/bootstrap.ps1.")
+    endif()
+    enable_language(CXX)
+    set(TRACY_STATIC ON CACHE BOOL "Build static Tracy client" FORCE)
+    set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy profiling" FORCE)
+    set(TRACY_NO_BROADCAST ON CACHE BOOL "Disable Tracy LAN broadcast" FORCE)
+    set(
+        TRACY_NO_VSYNC_CAPTURE
+        ON
+        CACHE BOOL
+        "Disable profile-only VSync capture"
+        FORCE)
+    add_subdirectory(
+        "${PF_TRACY_SOURCE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}/third_party/tracy"
+        EXCLUDE_FROM_ALL)
+endif()
 
 set(
     PF_SIM_SOURCES
@@ -282,15 +315,105 @@ if(PF_BUILD_TOOLS)
 endif()
 
 if(PF_BUILD_BENCHMARKS)
-    pf_add_smoke_product(benchmarks "benchmarks" 0)
+    if(NOT EXISTS "${PF_SQLITE_SOURCE_DIR}/sqlite3.c" OR
+       NOT EXISTS "${PF_SQLITE_SOURCE_DIR}/sqlite3.h")
+        message(FATAL_ERROR
+            "PF_BUILD_BENCHMARKS requires the locked SQLite source. "
+            "Run tools/bootstrap.sh or tools/bootstrap.ps1.")
+    endif()
+
+    add_library(
+        pf_sqlite3
+        STATIC
+            "${PF_SQLITE_SOURCE_DIR}/sqlite3.c")
+    target_include_directories(
+        pf_sqlite3
+        PUBLIC
+            "${PF_SQLITE_SOURCE_DIR}")
+    target_compile_definitions(
+        pf_sqlite3
+        PRIVATE
+            SQLITE_DEFAULT_MEMSTATUS=0
+            SQLITE_DQS=0
+            SQLITE_OMIT_DEPRECATED
+            SQLITE_OMIT_LOAD_EXTENSION
+            SQLITE_OMIT_SHARED_CACHE
+            SQLITE_TEMP_STORE=2
+            SQLITE_THREADSAFE=0)
+    set_target_properties(
+        pf_sqlite3
+        PROPERTIES
+            C_EXTENSIONS ON
+            C_STANDARD 17
+            C_STANDARD_REQUIRED ON)
+    pf_apply_build_mode(pf_sqlite3)
+
+    add_executable(
+        benchmarks
+        src/benchmarks/benchmark.h
+        src/benchmarks/history.c
+        src/benchmarks/main.c
+        src/benchmarks/scenarios.c
+        src/checkpoint/m2_replay_fixture.c)
+    target_link_libraries(
+        benchmarks
+        PRIVATE
+            sim
+            pf_sqlite3)
+    if(PF_ENABLE_PROFILING)
+        target_link_libraries(benchmarks PRIVATE Tracy::TracyClient)
+        target_compile_definitions(benchmarks PRIVATE PF_TRACY_ENABLED=1)
+    else()
+        target_compile_definitions(benchmarks PRIVATE PF_TRACY_ENABLED=0)
+    endif()
+    target_include_directories(
+        benchmarks
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/benchmarks"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/checkpoint")
+    target_compile_features(benchmarks PRIVATE c_std_17)
+    target_compile_definitions(
+        benchmarks
+        PRIVATE
+            "PF_BENCHMARK_SCHEMA_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/performance/database/schema.sql\"")
+    if(MSVC)
+        target_compile_definitions(
+            benchmarks
+            PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_definitions(
+            benchmarks
+            PRIVATE _POSIX_C_SOURCE=200809L)
+    endif()
     set_target_properties(
         benchmarks
-        PROPERTIES OUTPUT_NAME pf_benchmarks)
+        PROPERTIES
+            C_EXTENSIONS OFF
+            OUTPUT_NAME pf_benchmarks)
+    pf_enable_project_warnings(benchmarks)
+    pf_apply_build_mode(benchmarks)
 endif()
 
 if(PF_BUILD_VERIFIER)
-    pf_add_smoke_product(verifier "verifier" 0)
-    set_target_properties(verifier PROPERTIES OUTPUT_NAME pf_verifier)
+    add_executable(verifier src/verifier/main.c)
+    target_link_libraries(
+        verifier
+        PRIVATE
+            sim
+            presentation)
+    if(MSVC)
+        target_compile_definitions(
+            verifier
+            PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
+    target_compile_features(verifier PRIVATE c_std_17)
+    set_target_properties(
+        verifier
+        PROPERTIES
+            C_EXTENSIONS OFF
+            OUTPUT_NAME pf_verifier)
+    pf_enable_project_warnings(verifier)
+    pf_apply_build_mode(verifier)
 endif()
 
 if(BUILD_TESTING)
@@ -390,5 +513,25 @@ if(BUILD_TESTING)
             headless.throughput_smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "headless-throughput=pass environments=64")
+    endif()
+
+    if(PF_BUILD_BENCHMARKS)
+        add_test(
+            NAME benchmarks.self_test
+            COMMAND benchmarks --self-test)
+        set_tests_properties(
+            benchmarks.self_test
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "benchmarks-self-test=pass scenarios=13 available=9 sqlite=3.53.4 schema=1")
+    endif()
+
+    if(PF_BUILD_VERIFIER)
+        add_test(
+            NAME verifier.self_test
+            COMMAND verifier --self-test)
+        set_tests_properties(
+            verifier.self_test
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "verifier-self-test=pass checks=3 seeded_defects=4")
     endif()
 endif()
