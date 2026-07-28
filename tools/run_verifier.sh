@@ -13,6 +13,7 @@ pf_acceptance="$PF_REPOSITORY_ROOT/verifier/acceptance_manifest.tsv"
 pf_diff="$pf_output_dir/commit_files.txt"
 pf_external="$pf_output_dir/external_checks.tsv"
 pf_check_dir="$pf_output_dir/checks"
+pf_artifact_dir=${PF_VERIFIER_ARTIFACT_DIRECTORY:-"$PF_REPOSITORY_ROOT/performance/local/commits/$pf_commit/artifacts"}
 pf_content_hash=1728394a5b6c7d8e9fb0c1d2e3f405162738495a6b7c8d9eafc0d1e2f3041526
 
 printf '%s\n' "$pf_commit" |
@@ -21,7 +22,11 @@ printf '%s\n' "$pf_commit" |
 git -C "$PF_REPOSITORY_ROOT" cat-file -e "$pf_commit^{commit}" ||
     pf_fail "verifier commit does not exist: $pf_commit"
 
-mkdir -p "$pf_output_dir" "$pf_check_dir" "$pf_issue_dir"
+mkdir -p \
+    "$pf_output_dir" \
+    "$pf_check_dir" \
+    "$pf_artifact_dir" \
+    "$pf_issue_dir"
 git -C "$PF_REPOSITORY_ROOT" \
     diff-tree --root --no-commit-id --name-only -r "$pf_commit" \
     >"$pf_diff"
@@ -97,7 +102,7 @@ pf_record \
 pf_record \
     m1-foundation \
     "$PF_REPOSITORY_ROOT/tools/verify_m1_foundation.sh" \
-    "$pf_check_dir/m1_foundation"
+    "$pf_artifact_dir/m1_foundation"
 pf_record \
     m1-workflow \
     "$PF_REPOSITORY_ROOT/tools/verify_m1_workflow.sh"
@@ -107,20 +112,20 @@ pf_record \
 pf_record \
     m2-kernel \
     "$PF_REPOSITORY_ROOT/tools/verify_m2_kernel.sh" \
-    "$pf_check_dir/m2_kernel"
+    "$pf_artifact_dir/m2_kernel"
 pf_record \
     m2-replay \
     "$PF_REPOSITORY_ROOT/tools/verify_m2_replay.sh" \
-    "$pf_check_dir/m2_replay"
+    "$pf_artifact_dir/m2_replay"
 pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
-    "$pf_check_dir/m3_performance_qualification"
+    "$pf_artifact_dir/m3_performance_qualification"
 pf_record \
     m3-performance \
     "$PF_REPOSITORY_ROOT/tools/run_performance.sh" \
     commit \
-    "$pf_check_dir/m3_performance"
+    "$pf_artifact_dir/m3_performance"
 
 if pf_diff_matches \
     '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier)/|tests/(presentation|sim)/|tools/(bootstrap|workflow)\.)'
