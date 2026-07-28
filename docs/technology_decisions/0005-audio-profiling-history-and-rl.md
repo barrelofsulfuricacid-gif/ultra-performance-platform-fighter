@@ -68,11 +68,11 @@ The implemented adapter:
 
 - Loads the separately built `pf_sim_rl` shared library through `ctypes`.
 - Owns aligned state and scratch buffers outside the engine.
-- Maps exact integer actions and 36-word observations without defining game
-  logic in Python.
+- Maps exact integer actions and 36-word seed-redacted observations without
+  defining game logic in Python.
 - Uses Gymnasium 1.3 next-step autoreset.
-- Selects one configurable player for Gymnasium's scalar reward while retaining
-  exact four-player Q16.16 rewards in `info`.
+- Selects one configurable player for Gymnasium's scalar shaped/outcome reward
+  while retaining exact four-player Q16.16 rewards in `info`.
 - Crosses Python-to-C once per active batch rather than once per environment.
 
 Repeated M2 Linux qualification runs with 64 duel environments measured an

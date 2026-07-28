@@ -5,14 +5,15 @@ native, web, rollback, headless, and reinforcement-learning targets.
 
 The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
-simulation and reinforcement-learning candidate is complete and awaiting its
-owner checkpoint. M0 selected Q16.16 deterministic motion and geometry after
-benchmark, verifier, and blind human-playtest evidence. The accepted
+simulation is complete, and its reinforcement-learning contract has been
+accepted by the owner with schema-2 qualification complete and merge review
+pending. M0 selected Q16.16 deterministic motion and geometry after benchmark,
+verifier, and blind human-playtest evidence. The accepted
 milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
 and
 [`docs/milestones/M1_checkpoint_report.md`](docs/milestones/M1_checkpoint_report.md).
-The M2 candidate evidence and required owner choices are in
+The M2 evidence and owner decision record are in
 [`docs/milestones/M2_checkpoint_report.md`](docs/milestones/M2_checkpoint_report.md).
 
 ## Verify the checkpoint

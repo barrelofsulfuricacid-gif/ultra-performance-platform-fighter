@@ -11,18 +11,23 @@ extern "C"
 {
 #endif
 
-#define PF_RL_SCHEMA_VERSION UINT16_C(1)
+#define PF_RL_SCHEMA_VERSION UINT16_C(2)
 #define PF_RL_ACTION_SCHEMA_VERSION UINT16_C(1)
-#define PF_RL_TRANSITION_SCHEMA_VERSION UINT16_C(1)
-#define PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION UINT16_C(1)
+#define PF_RL_TRANSITION_SCHEMA_VERSION UINT16_C(2)
+#define PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION UINT16_C(2)
 #define PF_RL_COMPACT_GLOBAL_VALUES UINT16_C(8)
 #define PF_RL_COMPACT_PLAYER_STRIDE UINT16_C(7)
 #define PF_RL_COMPACT_VALUE_COUNT UINT16_C(36)
 
+#define PF_RL_REWARD_COMPONENT_TERMINAL (UINT8_C(1) << 0U)
+#define PF_RL_REWARD_COMPONENT_ENGAGEMENT (UINT8_C(1) << 1U)
+#define PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16 INT32_C(16384)
+#define PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 INT32_C(8388608)
+
 #define PF_RL_COMPACT_TICK_LOW_INDEX UINT16_C(0)
 #define PF_RL_COMPACT_TICK_HIGH_INDEX UINT16_C(1)
-#define PF_RL_COMPACT_SEED_LOW_INDEX UINT16_C(2)
-#define PF_RL_COMPACT_SEED_HIGH_INDEX UINT16_C(3)
+#define PF_RL_COMPACT_RESERVED_LOW_INDEX UINT16_C(2)
+#define PF_RL_COMPACT_RESERVED_HIGH_INDEX UINT16_C(3)
 #define PF_RL_COMPACT_MAX_TICKS_LOW_INDEX UINT16_C(4)
 #define PF_RL_COMPACT_MAX_TICKS_HIGH_INDEX UINT16_C(5)
 #define PF_RL_COMPACT_FAULT_FLAGS_INDEX UINT16_C(6)
@@ -54,13 +59,15 @@ typedef struct pf_rl_spec
     uint16_t compact_value_count;
     uint16_t action_stride;
     uint8_t max_players;
-    uint8_t reserved[3];
+    uint8_t reward_component_flags;
+    uint8_t reserved[2];
     uint64_t known_buttons;
     int16_t axis_minimum;
     int16_t axis_maximum;
     uint16_t trigger_minimum;
     uint16_t trigger_maximum;
     int32_t terminal_reward_one_q16;
+    int32_t engagement_potential_limit_q16;
 } pf_rl_spec;
 
 typedef struct pf_rl_compact_observation
