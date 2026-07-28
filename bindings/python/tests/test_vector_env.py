@@ -54,6 +54,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         )
         self.assertEqual(first_observation.shape, (6, 36))
         self.assertEqual(first_observation.dtype, np.int32)
+        self.assertTrue(np.all(first_observation[:, 2:4] == 0))
         self.assertTrue(np.all(first_info["_legal_buttons"]))
         self.assertTrue(
             np.array_equal(
@@ -78,6 +79,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
                 second_step[4]["player_rewards_q16"],
             )
         )
+        self.assertTrue(np.all(first_step[1] > 0.0))
 
     def test_duel_reward_and_next_step_autoreset(self) -> None:
         environment = PlatformFighterVectorEnv(

@@ -13,13 +13,17 @@ import numpy as np
 PF_STATUS_OK = 0
 PF_SIM_ABI_VERSION = 2
 PF_SIM_CONTENT_SCHEMA_VERSION = 1
-PF_RL_SCHEMA_VERSION = 1
+PF_RL_SCHEMA_VERSION = 2
 PF_RL_ACTION_SCHEMA_VERSION = 1
-PF_RL_TRANSITION_SCHEMA_VERSION = 1
-PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 1
+PF_RL_TRANSITION_SCHEMA_VERSION = 2
+PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 2
 PF_SIM_MAX_PLAYERS = 4
 PF_RL_COMPACT_VALUE_COUNT = 36
 PF_Q16_ONE = 65_536
+PF_RL_REWARD_COMPONENT_TERMINAL = 1 << 0
+PF_RL_REWARD_COMPONENT_ENGAGEMENT = 1 << 1
+PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16 = 16_384
+PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 = 8_388_608
 
 
 class NativeCallError(RuntimeError):
@@ -142,13 +146,15 @@ class _RlSpec(ct.Structure):
         ("compact_value_count", ct.c_uint16),
         ("action_stride", ct.c_uint16),
         ("max_players", ct.c_uint8),
-        ("reserved", ct.c_uint8 * 3),
+        ("reward_component_flags", ct.c_uint8),
+        ("reserved", ct.c_uint8 * 2),
         ("known_buttons", ct.c_uint64),
         ("axis_minimum", ct.c_int16),
         ("axis_maximum", ct.c_int16),
         ("trigger_minimum", ct.c_uint16),
         ("trigger_maximum", ct.c_uint16),
         ("terminal_reward_one_q16", ct.c_int32),
+        ("engagement_potential_limit_q16", ct.c_int32),
     ]
 
 
@@ -317,7 +323,14 @@ class NativeBatch:
             or self.spec.compact_value_count != PF_RL_COMPACT_VALUE_COUNT
             or self.spec.action_stride != PF_SIM_MAX_PLAYERS
             or self.spec.max_players != PF_SIM_MAX_PLAYERS
+            or self.spec.reward_component_flags
+            != (
+                PF_RL_REWARD_COMPONENT_TERMINAL
+                | PF_RL_REWARD_COMPONENT_ENGAGEMENT
+            )
             or self.spec.terminal_reward_one_q16 != PF_Q16_ONE
+            or self.spec.engagement_potential_limit_q16
+            != PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16
         ):
             raise RuntimeError("native RL schema does not match the Python binding")
 

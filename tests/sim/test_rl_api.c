@@ -131,6 +131,11 @@ static int verify_transition_contract(
             PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION ||
         transition->compact_observation.value_count !=
             PF_RL_COMPACT_VALUE_COUNT ||
+        transition->compact_observation.values[
+            PF_RL_COMPACT_RESERVED_LOW_INDEX] != INT32_C(0) ||
+        transition->compact_observation.values[
+            PF_RL_COMPACT_RESERVED_HIGH_INDEX] != INT32_C(0) ||
+        transition->structured_observation.seed != UINT64_C(0) ||
         transition->structured_observation.tick != tick ||
         transition->tick_result.completed_tick != tick ||
         (match_bits & UINT32_C(0xff)) != (uint32_t)player_count)
@@ -181,6 +186,7 @@ static int run_duel_test(const pf_content_view *content)
     pf_state_hash before_invalid;
     pf_state_hash after_invalid;
     pf_sim_identity identity;
+    pf_sim_observation diagnostic_observation;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -222,7 +228,13 @@ static int run_duel_test(const pf_content_view *content)
         transition.legal_buttons[1] != PF_INPUT_KNOWN_BUTTONS ||
         transition.legal_buttons[2] != UINT64_C(0) ||
         transition.reward_q16[0] != INT32_C(0) ||
-        transition.reward_q16[1] != INT32_C(0))
+        transition.reward_q16[1] != INT32_C(0) ||
+        !expect_status(
+            pf_sim_observe(sim, &diagnostic_observation),
+            PF_STATUS_OK,
+            "duel-diagnostic-observe") ||
+        diagnostic_observation.seed !=
+            UINT64_C(0xabcdef0123456789))
     {
         return 0;
     }
@@ -238,8 +250,8 @@ static int run_duel_test(const pf_content_view *content)
         !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)) ||
         transition.structured_observation.players[0].position_y_q16 <=
             INT32_C(0) ||
-        transition.reward_q16[0] != INT32_C(0) ||
-        transition.reward_q16[1] != INT32_C(0) ||
+        transition.reward_q16[0] <= INT32_C(0) ||
+        transition.reward_q16[0] != transition.reward_q16[1] ||
         !expect_status(
             pf_sim_hash(sim, &before_invalid),
             PF_STATUS_OK,
@@ -277,8 +289,8 @@ static int run_duel_test(const pf_content_view *content)
         transition.tick_result.completed_tick != UINT64_C(2) ||
         transition.tick_result.terminated != UINT8_C(1) ||
         transition.tick_result.winner_mask != UINT8_C(2) ||
-        transition.reward_q16[0] != -PF_Q16_ONE ||
-        transition.reward_q16[1] != PF_Q16_ONE ||
+        transition.reward_q16[1] - transition.reward_q16[0] !=
+            INT32_C(2) * PF_Q16_ONE ||
         transition.legal_buttons[0] != UINT64_C(0) ||
         transition.legal_buttons[1] != UINT64_C(0))
     {
@@ -373,6 +385,51 @@ static int run_team_reward_test(const pf_content_view *content)
     return 1;
 }
 
+static int run_engagement_shaping_test(
+    const pf_content_view *content)
+{
+    test_sim_storage storage;
+    pf_sim_config config;
+    pf_sim *sim = NULL;
+    pf_rl_action actions[PF_SIM_MAX_PLAYERS];
+    pf_rl_transition transition;
+
+    if (!expect_status(
+            pf_sim_default_config(
+                &config,
+                UINT8_C(2),
+                PF_SIM_MODE_DUEL),
+            PF_STATUS_OK,
+            "shaping-config") ||
+        !initialize_sim(&storage, content, &config, &sim) ||
+        !expect_status(
+            pf_rl_reset(sim, UINT64_C(909), &transition),
+            PF_STATUS_OK,
+            "shaping-reset"))
+    {
+        return 0;
+    }
+
+    initialize_actions(actions);
+    actions[0].main_stick_x = INT16_MIN;
+    actions[1].main_stick_x = INT16_MAX;
+    if (!expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "shaping-separate") ||
+        transition.reward_q16[0] >= INT32_C(0) ||
+        transition.reward_q16[0] != transition.reward_q16[1] ||
+        transition.reward_q16[0] <
+            -PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16)
+    {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=engagement-shaping\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int run_batch_test(const pf_content_view *content)
 {
     test_sim_storage storage[TEST_BATCH_ENVIRONMENTS];
@@ -428,7 +485,7 @@ static int run_batch_test(const pf_content_view *content)
          ++environment_index)
     {
         if (transitions[environment_index].structured_observation.seed !=
-                seeds[environment_index] ||
+                UINT64_C(0) ||
             transitions[environment_index].structured_observation.tick !=
                 UINT64_C(0))
         {
@@ -557,12 +614,19 @@ int main(void)
         spec.compact_value_count != PF_RL_COMPACT_VALUE_COUNT ||
         spec.action_stride != (uint16_t)PF_SIM_MAX_PLAYERS ||
         spec.max_players != (uint8_t)PF_SIM_MAX_PLAYERS ||
+        spec.reward_component_flags !=
+            (PF_RL_REWARD_COMPONENT_TERMINAL |
+             PF_RL_REWARD_COMPONENT_ENGAGEMENT) ||
+        spec.reserved[0] != UINT8_C(0) ||
+        spec.reserved[1] != UINT8_C(0) ||
         spec.known_buttons != PF_INPUT_KNOWN_BUTTONS ||
         spec.axis_minimum != INT16_MIN ||
         spec.axis_maximum != INT16_MAX ||
         spec.trigger_minimum != UINT16_C(0) ||
         spec.trigger_maximum != UINT16_MAX ||
-        spec.terminal_reward_one_q16 != PF_Q16_ONE)
+        spec.terminal_reward_one_q16 != PF_Q16_ONE ||
+        spec.engagement_potential_limit_q16 !=
+            PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16)
     {
         (void)fprintf(stderr, "rl-api=fail operation=spec-contract\n");
         return 1;
@@ -570,6 +634,7 @@ int main(void)
 
     if (!run_duel_test(&content) ||
         !run_team_reward_test(&content) ||
+        !run_engagement_shaping_test(&content) ||
         !run_batch_test(&content))
     {
         return 1;
@@ -577,9 +642,13 @@ int main(void)
 
     (void)printf(
         "rl-api=pass compact_values=%u batch_environments=%u"
-        " reward_q16=%" PRId32 "\n",
+        " reward_q16=%" PRId32
+        " engagement_limit_q16=%" PRId32
+        " schema=%u\n",
         (unsigned int)PF_RL_COMPACT_VALUE_COUNT,
         (unsigned int)TEST_BATCH_ENVIRONMENTS,
-        PF_Q16_ONE);
+        PF_Q16_ONE,
+        PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16,
+        (unsigned int)PF_RL_SCHEMA_VERSION);
     return 0;
 }

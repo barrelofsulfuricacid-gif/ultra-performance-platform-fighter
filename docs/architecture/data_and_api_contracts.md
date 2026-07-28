@@ -163,8 +163,8 @@ hashes. Its exact ownership, compatibility, failure, and golden-corpus rules
 are recorded in
 [TDR-0007](../technology_decisions/0007-replay-container.md).
 
-The candidate action, structured/compact observation, reward, legal-mask, and
-batch semantics awaiting the M2 owner checkpoint are recorded in
+The owner-approved action, structured/compact observation, reward, legal-mask,
+and batch semantics are recorded in
 [TDR-0008](../technology_decisions/0008-rl-contract-candidate.md).
 
 ## Design-data pipeline

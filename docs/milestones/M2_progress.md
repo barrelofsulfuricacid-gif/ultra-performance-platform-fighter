@@ -1,6 +1,6 @@
 # M2 deterministic simulation and RL progress
 
-**Status:** M2 implementation complete; owner contract checkpoint pending
+**Status:** M2 owner contract accepted; schema-2 qualification in progress
 
 ## Current deterministic kernel
 
@@ -28,9 +28,10 @@ The first M2 slice replaces the M1 ABI placeholder with simulation ABI 2 and:
   normalized inputs, every per-tick state hash, and the final result.
 - Allocation-free replay verification through the same tick function with
   exact first-divergence reporting.
-- A versioned candidate RL C surface with normalized analog actions,
-  structured and 36-word compact observations, legal-button masks, Q16.16
-  rewards, and single/batched reset and step.
+- The owner-approved RL C surface with normalized analog actions, structured
+  and 36-word seed-redacted observations, legal-button masks, bounded
+  potential-based engagement plus terminal Q16.16 rewards, and single/batched
+  reset and step.
 - An uncapped 64-environment headless throughput runner with single/batch
   state-hash equivalence.
 - A thin Gymnasium 1.3 `VectorEnv` adapter using the shared C ABI, exact NumPy
@@ -57,9 +58,10 @@ final movement feel.
 - Replay corruption, incompatible content, unknown required chunks, unknown
   optional chunks, and a deliberate tick-51 hash mismatch follow their
   documented failure paths.
-- RL conformance covers duel/team rewards, atomic invalid actions, terminal
-  behavior, structured/compact correspondence, and independent status across
-  six batched environments.
+- RL conformance covers seed redaction, approach/separation shaping, duel/team
+  terminal rewards, atomic invalid actions, terminal behavior,
+  structured/compact correspondence, and independent status across six
+  batched environments.
 - Five Gymnasium wrapper tests cover spaces, seeded determinism, duel/team
   rewards, next-step autoreset, masked reset, invalid actions, and lifecycle.
 - Repeated Python boundary runs measured an 18.2x–21.6x speedup from one C call
@@ -75,5 +77,5 @@ headless workflows. Emscripten compiles the same simulation sources.
 
 ## Remaining checkpoint work
 
-- Mandatory owner review of deterministic replays and the observation/action
-  contract.
+- Qualify RL schema 2 across native, sanitizer, Python, WebAssembly, and
+  browser CI, then merge the owner-decision checkpoint before M3 begins.
