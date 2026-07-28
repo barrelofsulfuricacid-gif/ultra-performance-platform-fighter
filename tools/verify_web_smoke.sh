@@ -7,6 +7,7 @@ port=${PF_WEB_SMOKE_PORT:-8123}
 url="http://127.0.0.1:$port/web_client.html"
 server_log="$web_root/web_smoke_server.log"
 dom_output="$web_root/web_smoke_dom.html"
+browser_log="$web_root/web_smoke_browser.log"
 
 [ -f "$web_root/web_client.html" ] ||
     {
@@ -58,7 +59,7 @@ while ! curl -fsS "$url" >/dev/null 2>&1; do
     sleep 1
 done
 
-"$browser" \
+if ! "$browser" \
     --headless \
     --no-sandbox \
     --use-gl=angle \
@@ -67,28 +68,55 @@ done
     --virtual-time-budget=10000 \
     --dump-dom \
     "$url" \
-    >"$dom_output"
+    >"$dom_output" \
+    2>"$browser_log"
+then
+    echo "web browser smoke failed: Chrome exited unsuccessfully" >&2
+    tail -n 80 "$browser_log" >&2
+    exit 1
+fi
 
-grep -Fq \
-    'web-client-smoke=pass sim_abi=2 tick_hz=60' \
-    "$dom_output"
-grep -Fq \
-    'webgl2=pass batch_draws=1' \
-    "$dom_output"
-grep -Fq \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=2206d54fa4fc6e783cd96e3b244bb546fa5a9850722576ece804a5bc4f591b23' \
-    "$dom_output"
-grep -Fq \
-    'id="pf-replay-inspector"' \
-    "$dom_output"
-grep -Fq \
-    'playtest=ready input_probe=pass controls=keyboard-two-player' \
-    "$dom_output"
-grep -Fq \
-    'id="pf-m4-playtest"' \
-    "$dom_output"
-grep -Fq \
-    'Platform Fighter M4 Browser Playtest' \
-    "$dom_output"
+pf_dump_browser_diagnostics()
+{
+    echo "web browser smoke captured status:" >&2
+    sed -n \
+        '/id="pf-status"/p;/id="output"/p;/id="pf-m4-playtest"/p' \
+        "$dom_output" >&2
+    echo "web browser smoke browser log tail:" >&2
+    tail -n 40 "$browser_log" >&2
+}
+
+pf_require_dom()
+{
+    pf_label=$1
+    pf_expected=$2
+    if ! grep -Fq "$pf_expected" "$dom_output"; then
+        echo "web browser smoke failed: missing $pf_label" >&2
+        pf_dump_browser_diagnostics
+        exit 1
+    fi
+}
+
+pf_require_dom \
+    "simulation ABI status" \
+    'web-client-smoke=pass sim_abi=2 tick_hz=60'
+pf_require_dom \
+    "WebGL2 status" \
+    'webgl2=pass batch_draws=1'
+pf_require_dom \
+    "deterministic replay status" \
+    'replay=pass ticks=180 winner_mask=5 final_sha256=2206d54fa4fc6e783cd96e3b244bb546fa5a9850722576ece804a5bc4f591b23'
+pf_require_dom \
+    "replay inspector" \
+    'id="pf-replay-inspector"'
+pf_require_dom \
+    "M4 input-probe status" \
+    'playtest=ready input_probe=pass controls=keyboard-two-player'
+pf_require_dom \
+    "M4 playtest surface" \
+    'id="pf-m4-playtest"'
+pf_require_dom \
+    "M4 browser title" \
+    'Platform Fighter M4 Browser Playtest'
 
 echo "web-browser-smoke=pass browser=$browser url=$url"
