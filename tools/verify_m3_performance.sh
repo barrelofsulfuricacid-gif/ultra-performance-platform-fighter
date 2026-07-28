@@ -55,6 +55,10 @@ grep -Fq 'suspected=9 confirmed=9 invalid=9' "$log_file" || {
     echo "M3 performance verification failed: regression qualification changed" >&2
     exit 1
 }
+grep -Fq 'same_commit=9' "$log_file" || {
+    echo "M3 performance verification failed: unchanged baseline comparison changed" >&2
+    exit 1
+}
 
 "$root/tools/workflow.sh" headless
 if command -v nm >/dev/null 2>&1; then

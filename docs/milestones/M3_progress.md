@@ -40,8 +40,9 @@ compiler command, dependency and content hashes, executable hash, machine,
 OS, CPU, power/thermal metadata, benchmark schema, and scenario identity.
 Dirty measurements and metadata mismatches are stored but explicitly marked
 invalid. The qualification corpus proves baseline, compatible, suspected,
-confirmed, and invalid paths; it deliberately detects nine regressions and
-nine incompatible comparisons before ending with a clean fixture.
+confirmed, and invalid paths, including a compatible repeated measurement of
+the same unchanged commit. It deliberately detects nine regressions and nine
+incompatible comparisons before ending with a clean fixture.
 
 SQLite 3.53.4 is checksum-locked and linked only to `pf_benchmarks`.
 Per-commit databases and graphs remain under ignored `performance/local/`.

@@ -402,6 +402,7 @@ static int run_history_qualification(
         "5555555555555555555555555555555555555555";
     pf_benchmark_history_paths paths;
     pf_benchmark_history_outcome baseline;
+    pf_benchmark_history_outcome same_commit_repeat;
     pf_benchmark_history_outcome suspected;
     pf_benchmark_history_outcome milestone_baseline;
     pf_benchmark_history_outcome confirmed;
@@ -425,6 +426,17 @@ static int run_history_qualification(
             &baseline,
             error) ||
         baseline.suspected_regressions != UINT32_C(0) ||
+        !persist_synthetic_run(
+            &paths,
+            baseline_commit,
+            "qualification-c17",
+            "commit",
+            PF_COMMIT_SAMPLE_TARGET_NS,
+            PF_COMMIT_REPETITIONS,
+            1000000.0,
+            &same_commit_repeat,
+            error) ||
+        same_commit_repeat.compatible_count != UINT32_C(9) ||
         !persist_synthetic_run(
             &paths,
             suspected_commit,
@@ -478,9 +490,11 @@ static int run_history_qualification(
     }
     (void)printf(
         "benchmark-history-qualification=pass baseline=%" PRId64
+        " same_commit=%" PRIu32
         " suspected=%" PRIu32 " confirmed=%" PRIu32
         " invalid=%" PRIu32 "\n",
         baseline.run_id,
+        same_commit_repeat.compatible_count,
         suspected.suspected_regressions,
         confirmed.confirmed_regressions,
         incompatible.invalid_comparisons);

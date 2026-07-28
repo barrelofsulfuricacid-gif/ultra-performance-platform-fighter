@@ -697,7 +697,6 @@ static int find_compatible_baseline(
         "FROM benchmark_summaries AS s "
         "JOIN benchmark_runs AS r ON r.id = s.run_id "
         "WHERE s.scenario_id = ? AND s.run_id < ? "
-        "AND r.commit_hash <> ? "
         "AND r.dirty_state = ? AND r.run_mode = ? "
         "AND r.build_configuration = ? AND r.compiler = ? "
         "AND r.compiler_flags = ? AND r.dependency_hash = ? "
@@ -730,13 +729,7 @@ static int find_compatible_baseline(
              statement,
              2,
              (sqlite3_int64)run_id) == SQLITE_OK &&
-         bind_text(
-             database,
-             statement,
-             3,
-             metadata->commit_hash,
-             error) &&
-         bind_compatibility(database, statement, 4, metadata, error);
+         bind_compatibility(database, statement, 3, metadata, error);
     if (!ok)
     {
         if (error[0] == '\0')
