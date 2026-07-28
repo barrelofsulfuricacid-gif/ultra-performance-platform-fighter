@@ -201,6 +201,7 @@ static int pf_web_m4_run_input_probe(void)
     int32_t short_late_apex;
     int32_t full_release_apex;
     int32_t full_hold_apex;
+    uint32_t tick;
 
     if (!pf_web_m4_reset_internal() ||
         !pf_web_m4_tick(
@@ -238,6 +239,41 @@ static int pf_web_m4_run_input_probe(void)
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
         inspection.players[0].dash_direction != INT8_C(-1))
+    {
+        return 0;
+    }
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)pf_web_m4_content.fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        !pf_web_m4_tick(
+            -PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
     {
         return 0;
     }

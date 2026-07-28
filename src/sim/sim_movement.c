@@ -152,6 +152,187 @@ static void pf_m4_surface_bounds_q16(
     }
 }
 
+static int pf_m4_action_uses_ledge(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+           action_state == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB;
+}
+
+static uint8_t pf_m4_ledge_from_state(
+    uint8_t action_state,
+    int8_t facing)
+{
+    if (!pf_m4_action_uses_ledge(action_state))
+    {
+        return (uint8_t)PF_M4_LEDGE_NONE;
+    }
+    return facing == INT8_C(1)
+               ? (uint8_t)PF_M4_LEDGE_LEFT
+               : (uint8_t)PF_M4_LEDGE_RIGHT;
+}
+
+static int8_t pf_m4_ledge_inward_direction(uint8_t ledge)
+{
+    return ledge == (uint8_t)PF_M4_LEDGE_LEFT
+               ? INT8_C(1)
+               : INT8_C(-1);
+}
+
+static int32_t pf_m4_ledge_x_q16(
+    const pf_m4_stage_data *stage,
+    uint8_t ledge)
+{
+    return ledge == (uint8_t)PF_M4_LEDGE_LEFT
+               ? stage->floor_left_q16
+               : stage->floor_right_q16;
+}
+
+static uint16_t pf_m4_ledge_transition_ticks(
+    const pf_m4_fighter_data *fighter)
+{
+    const uint32_t total =
+        (uint32_t)fighter->landing_ticks +
+        (uint32_t)fighter->jump_squat_ticks;
+
+    return total > UINT32_C(120)
+               ? UINT16_C(120)
+               : (uint16_t)total;
+}
+
+static void pf_m4_ledge_hang_position(
+    const pf_m4_fighter_data *fighter,
+    const pf_m4_stage_data *stage,
+    uint8_t ledge,
+    int32_t *out_x,
+    int32_t *out_y)
+{
+    const int8_t inward = pf_m4_ledge_inward_direction(ledge);
+
+    *out_x =
+        pf_m4_ledge_x_q16(stage, ledge) -
+        (int32_t)inward * fighter->half_width_q16;
+    *out_y =
+        stage->floor_y_q16 + fighter->half_height_q16 / INT32_C(2);
+}
+
+static int pf_m4_ledge_occupied(
+    const pf_world_state *world,
+    const pf_sim_scratch *scratch,
+    uint32_t player_index,
+    uint8_t ledge)
+{
+    uint32_t other_index;
+
+    for (other_index = UINT32_C(0);
+         other_index < (uint32_t)world->player_count;
+         ++other_index)
+    {
+        if (other_index != player_index &&
+            pf_m4_ledge_from_state(
+                world->action_state[other_index],
+                world->facing[other_index]) == ledge)
+        {
+            return 1;
+        }
+    }
+
+    for (other_index = UINT32_C(0);
+         other_index < player_index;
+         ++other_index)
+    {
+        if (pf_m4_ledge_from_state(
+                scratch->action_state[other_index],
+                scratch->facing[other_index]) == ledge)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int pf_m4_try_grab_ledge(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    const pf_sim_scratch *scratch,
+    uint32_t player_index,
+    int32_t *position_x,
+    int32_t *position_y,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint8_t *grounded,
+    uint8_t *action_state,
+    uint8_t *support,
+    uint8_t *air_jumps_remaining,
+    uint8_t *short_hop_latched,
+    uint8_t *fast_fall,
+    int8_t facing,
+    int8_t *dash_direction)
+{
+    const pf_m4_fighter_data *fighter = &content->fighter;
+    const pf_m4_stage_data *stage = &content->stage;
+    const int64_t horizontal_reach =
+        (int64_t)fighter->half_width_q16 +
+        (int64_t)fighter->air_speed_q16;
+    const int32_t catch_top =
+        stage->floor_y_q16 - fighter->half_height_q16;
+    const int32_t catch_bottom =
+        stage->floor_y_q16 + fighter->half_height_q16;
+    uint8_t ledge = (uint8_t)PF_M4_LEDGE_NONE;
+
+    if (*velocity_y < INT32_C(0) ||
+        *position_y < catch_top ||
+        *position_y > catch_bottom)
+    {
+        return 0;
+    }
+
+    if (*position_x < stage->floor_left_q16 &&
+        facing == INT8_C(1) &&
+        (int64_t)stage->floor_left_q16 -
+                (int64_t)*position_x <=
+            horizontal_reach)
+    {
+        ledge = (uint8_t)PF_M4_LEDGE_LEFT;
+    }
+    else if (*position_x > stage->floor_right_q16 &&
+             facing == INT8_C(-1) &&
+             (int64_t)*position_x -
+                     (int64_t)stage->floor_right_q16 <=
+                 horizontal_reach)
+    {
+        ledge = (uint8_t)PF_M4_LEDGE_RIGHT;
+    }
+
+    if (ledge == (uint8_t)PF_M4_LEDGE_NONE ||
+        pf_m4_ledge_occupied(
+            world,
+            scratch,
+            player_index,
+            ledge))
+    {
+        return 0;
+    }
+
+    pf_m4_ledge_hang_position(
+        fighter,
+        stage,
+        ledge,
+        position_x,
+        position_y);
+    *velocity_x = INT32_C(0);
+    *velocity_y = INT32_C(0);
+    *action_ticks = UINT16_C(0);
+    *grounded = UINT8_C(0);
+    *action_state = (uint8_t)PF_M4_ACTION_LEDGE_HANG;
+    *support = (uint8_t)PF_M4_SURFACE_NONE;
+    *air_jumps_remaining = fighter->air_jump_count;
+    *short_hop_latched = UINT8_C(0);
+    *fast_fall = UINT8_C(0);
+    *dash_direction = INT8_C(0);
+    return 1;
+}
+
 void pf_m4_reset_player(
     pf_sim *sim,
     uint32_t player_index,
@@ -312,6 +493,8 @@ pf_status pf_m4_step_player(
     int8_t previous_strong_direction =
         world->previous_strong_direction[player_index];
     int launched_this_tick = 0;
+    int ledge_motion_handled = 0;
+    int released_ledge_this_tick = 0;
     int64_t next_position;
 
     if (platform_drop_ticks > UINT8_C(0))
@@ -319,7 +502,135 @@ pf_status pf_m4_step_player(
         --platform_drop_ticks;
     }
 
-    if (grounded != UINT8_C(0) &&
+    if (pf_m4_action_uses_ledge(action_state))
+    {
+        const uint8_t ledge =
+            pf_m4_ledge_from_state(action_state, facing);
+        const int8_t inward =
+            pf_m4_ledge_inward_direction(ledge);
+        const int8_t outward = (int8_t)-inward;
+        int32_t hang_x;
+        int32_t hang_y;
+
+        pf_m4_ledge_hang_position(
+            fighter,
+            stage,
+            ledge,
+            &hang_x,
+            &hang_y);
+        position_x = hang_x;
+        position_y = hang_y;
+        velocity_x = INT32_C(0);
+        velocity_y = INT32_C(0);
+        grounded = UINT8_C(0);
+        support = (uint8_t)PF_M4_SURFACE_NONE;
+        short_hop_latched = UINT8_C(0);
+        fast_fall = UINT8_C(0);
+        dash_direction = INT8_C(0);
+
+        if (action_state == (uint8_t)PF_M4_ACTION_LEDGE_HANG)
+        {
+            const uint16_t catch_ticks =
+                pf_m4_ledge_transition_ticks(fighter);
+            const int down_held =
+                input->main_stick_y >=
+                (int16_t)fighter->crouch_axis_threshold;
+
+            if (action_ticks < catch_ticks)
+            {
+                ++action_ticks;
+            }
+
+            if (action_ticks >= catch_ticks && jump_pressed)
+            {
+                velocity_x =
+                    (int32_t)inward * fighter->air_speed_q16;
+                velocity_y = -fighter->double_jump_speed_q16;
+                action_ticks = UINT16_C(0);
+                action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                launched_this_tick = 1;
+                released_ledge_this_tick = 1;
+            }
+            else if (action_ticks >= catch_ticks &&
+                     (down_held ||
+                      horizontal_direction == outward))
+            {
+                velocity_x =
+                    horizontal_direction == outward
+                        ? (int32_t)outward *
+                              fighter->air_speed_q16
+                        : (int32_t)outward *
+                              fighter->platform_drop_nudge_q16;
+                velocity_y = fighter->gravity_q16;
+                action_ticks = UINT16_C(0);
+                action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                released_ledge_this_tick = 1;
+            }
+            else if (action_ticks >= catch_ticks &&
+                     horizontal_direction == inward)
+            {
+                action_ticks = UINT16_C(0);
+                action_state =
+                    (uint8_t)PF_M4_ACTION_LEDGE_CLIMB;
+                ledge_motion_handled = 1;
+            }
+            else
+            {
+                ledge_motion_handled = 1;
+            }
+        }
+        else
+        {
+            const uint16_t climb_ticks =
+                pf_m4_ledge_transition_ticks(fighter);
+            const int32_t target_x =
+                pf_m4_ledge_x_q16(stage, ledge) +
+                (int32_t)inward *
+                    (fighter->half_width_q16 +
+                     fighter->platform_drop_nudge_q16);
+            const int32_t target_y =
+                stage->floor_y_q16 - fighter->half_height_q16;
+
+            ++action_ticks;
+            if (action_ticks >= climb_ticks)
+            {
+                position_x = target_x;
+                pf_m4_land(
+                    fighter,
+                    stage->floor_y_q16,
+                    (uint8_t)PF_M4_SURFACE_FLOOR,
+                    &position_y,
+                    &velocity_y,
+                    &action_ticks,
+                    &grounded,
+                    &action_state,
+                    &support,
+                    &air_jumps_remaining,
+                    &short_hop_latched,
+                    &fast_fall,
+                    &dash_direction);
+            }
+            else
+            {
+                position_x =
+                    hang_x +
+                    (int32_t)(
+                        ((int64_t)target_x - (int64_t)hang_x) *
+                        (int64_t)action_ticks /
+                        (int64_t)climb_ticks);
+                position_y =
+                    hang_y +
+                    (int32_t)(
+                        ((int64_t)target_y - (int64_t)hang_y) *
+                        (int64_t)action_ticks /
+                        (int64_t)climb_ticks);
+            }
+            ledge_motion_handled = 1;
+        }
+    }
+
+    if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
         support == (uint8_t)PF_M4_SURFACE_PLATFORM)
     {
         const int32_t previous_platform_x =
@@ -338,7 +649,8 @@ pf_status pf_m4_step_player(
         }
     }
 
-    if (grounded != UINT8_C(0) &&
+    if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         action_state != (uint8_t)PF_M4_ACTION_LANDING &&
         jump_pressed)
@@ -349,7 +661,8 @@ pf_status pf_m4_step_player(
         dash_direction = INT8_C(0);
     }
 
-    if (grounded != UINT8_C(0) &&
+    if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
     {
         velocity_x = pf_m4_approach(
@@ -376,7 +689,8 @@ pf_status pf_m4_step_player(
             launched_this_tick = 1;
         }
     }
-    else if (grounded != UINT8_C(0) &&
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
              action_state == (uint8_t)PF_M4_ACTION_LANDING)
     {
         velocity_x = pf_m4_approach(
@@ -390,7 +704,10 @@ pf_status pf_m4_step_player(
             action_ticks = UINT16_C(0);
         }
     }
-    else if (grounded != UINT8_C(0) &&
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
+             action_state !=
+                 (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
              input->main_stick_y >=
                  (int16_t)fighter->crouch_axis_threshold)
     {
@@ -406,6 +723,16 @@ pf_status pf_m4_step_player(
             velocity_y = fighter->gravity_q16;
             fast_fall = UINT8_C(0);
         }
+        else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_RUN_BRAKE;
+            action_ticks = UINT16_C(1);
+            velocity_x = pf_m4_approach(
+                velocity_x,
+                INT32_C(0),
+                fighter->traction_q16);
+            dash_direction = INT8_C(0);
+        }
         else
         {
             action_state = (uint8_t)PF_M4_ACTION_CROUCH;
@@ -417,82 +744,220 @@ pf_status pf_m4_step_player(
             dash_direction = INT8_C(0);
         }
     }
-    else if (grounded != UINT8_C(0))
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0))
     {
-        const int dash_started =
-            strong_direction != INT8_C(0) &&
-            (previous_strong_direction == INT8_C(0) ||
-             (action_state ==
-                  (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-              strong_direction == -dash_direction));
+        const int run_turnaround_requested =
+            horizontal_direction == -facing &&
+            horizontal_magnitude >=
+                fighter->run_turnaround_axis_threshold;
+        const int run_continues =
+            horizontal_direction == facing &&
+            horizontal_magnitude >=
+                fighter->run_continue_axis_threshold;
 
-        if (dash_started)
+        if (action_state ==
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
         {
-            action_state = (uint8_t)PF_M4_ACTION_INITIAL_DASH;
-            action_ticks = UINT16_C(1);
-            dash_direction = strong_direction;
-            facing = strong_direction;
-            velocity_x =
-                (int32_t)strong_direction *
-                fighter->initial_dash_speed_q16;
-        }
-        else if (action_state ==
-                     (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-                 strong_direction == dash_direction &&
-                 action_ticks < fighter->initial_dash_ticks)
-        {
-            velocity_x =
-                (int32_t)dash_direction *
-                fighter->initial_dash_speed_q16;
+            const int8_t target_direction = dash_direction;
+            const int target_held =
+                horizontal_direction == target_direction &&
+                horizontal_magnitude >=
+                    fighter->run_continue_axis_threshold;
+
+            facing = target_direction;
+            velocity_x = pf_m4_approach(
+                velocity_x,
+                (int32_t)target_direction *
+                    fighter->run_speed_q16,
+                fighter->turn_acceleration_q16);
             ++action_ticks;
-            if (action_ticks >= fighter->initial_dash_ticks)
+            if (action_ticks >= fighter->run_turnaround_ticks)
             {
-                action_state = (uint8_t)PF_M4_ACTION_RUN;
+                dash_direction = INT8_C(0);
                 action_ticks = UINT16_C(0);
+                if (target_held)
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_RUN;
+                }
+                else
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                    velocity_x = pf_m4_approach(
+                        velocity_x,
+                        INT32_C(0),
+                        fighter->traction_q16);
+                }
             }
         }
-        else if (horizontal_magnitude > fighter->axis_dead_zone)
+        else if (action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE)
         {
-            int32_t target;
-            int32_t acceleration;
-
-            facing = horizontal_direction;
-            dash_direction = INT8_C(0);
-            action_ticks = UINT16_C(0);
-            if (strong_direction != INT8_C(0))
-            {
-                action_state = (uint8_t)PF_M4_ACTION_RUN;
-                target =
-                    (int32_t)horizontal_direction *
-                    fighter->run_speed_q16;
-            }
-            else
-            {
-                action_state = (uint8_t)PF_M4_ACTION_WALK;
-                target = pf_m4_scale_axis_q16(
-                    input->main_stick_x,
-                    fighter->walk_speed_q16);
-            }
-            acceleration =
-                pf_m4_signs_differ(velocity_x, target)
-                    ? fighter->turn_acceleration_q16
-                    : fighter->ground_acceleration_q16;
-            velocity_x =
-                pf_m4_approach(velocity_x, target, acceleration);
-        }
-        else
-        {
-            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-            action_ticks = UINT16_C(0);
-            dash_direction = INT8_C(0);
             velocity_x = pf_m4_approach(
                 velocity_x,
                 INT32_C(0),
                 fighter->traction_q16);
+            ++action_ticks;
+            if (run_turnaround_requested)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
+                action_ticks = UINT16_C(1);
+                dash_direction = horizontal_direction;
+                facing = horizontal_direction;
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    (int32_t)horizontal_direction *
+                        fighter->run_speed_q16,
+                    fighter->turn_acceleration_q16);
+            }
+            else if (run_continues)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_RUN;
+                action_ticks =
+                    fighter->run_turnaround_lockout_ticks;
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    (int32_t)facing * fighter->run_speed_q16,
+                    fighter->ground_acceleration_q16);
+            }
+            else if (action_ticks >= fighter->run_brake_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                dash_direction = INT8_C(0);
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
+        {
+            if (action_ticks <
+                fighter->run_turnaround_lockout_ticks)
+            {
+                ++action_ticks;
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    (int32_t)facing * fighter->run_speed_q16,
+                    fighter->ground_acceleration_q16);
+            }
+            else if (run_turnaround_requested)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
+                action_ticks = UINT16_C(1);
+                dash_direction = horizontal_direction;
+                facing = horizontal_direction;
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    (int32_t)horizontal_direction *
+                        fighter->run_speed_q16,
+                    fighter->turn_acceleration_q16);
+            }
+            else if (!run_continues)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_RUN_BRAKE;
+                action_ticks = UINT16_C(1);
+                dash_direction = INT8_C(0);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    INT32_C(0),
+                    fighter->traction_q16);
+            }
+            else
+            {
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    (int32_t)facing * fighter->run_speed_q16,
+                    fighter->ground_acceleration_q16);
+            }
+        }
+        else
+        {
+            const int dash_started =
+                strong_direction != INT8_C(0) &&
+                (previous_strong_direction == INT8_C(0) ||
+                 (action_state ==
+                      (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                  strong_direction == -dash_direction));
+
+            if (dash_started)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_INITIAL_DASH;
+                action_ticks = UINT16_C(1);
+                dash_direction = strong_direction;
+                facing = strong_direction;
+                velocity_x =
+                    (int32_t)strong_direction *
+                    fighter->initial_dash_speed_q16;
+            }
+            else if (action_state ==
+                         (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                     strong_direction == dash_direction &&
+                     action_ticks < fighter->initial_dash_ticks)
+            {
+                velocity_x =
+                    (int32_t)dash_direction *
+                    fighter->initial_dash_speed_q16;
+                ++action_ticks;
+                if (action_ticks >= fighter->initial_dash_ticks)
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_RUN;
+                    action_ticks =
+                        fighter->run_turnaround_lockout_ticks;
+                    dash_direction = INT8_C(0);
+                }
+            }
+            else if (horizontal_magnitude >
+                     fighter->axis_dead_zone)
+            {
+                int32_t target;
+                int32_t acceleration;
+
+                facing = horizontal_direction;
+                dash_direction = INT8_C(0);
+                if (strong_direction != INT8_C(0))
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_RUN;
+                    action_ticks =
+                        fighter->run_turnaround_lockout_ticks;
+                    target =
+                        (int32_t)horizontal_direction *
+                        fighter->run_speed_q16;
+                }
+                else
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_WALK;
+                    action_ticks = UINT16_C(0);
+                    target = pf_m4_scale_axis_q16(
+                        input->main_stick_x,
+                        fighter->walk_speed_q16);
+                }
+                acceleration =
+                    pf_m4_signs_differ(velocity_x, target)
+                        ? fighter->turn_acceleration_q16
+                        : fighter->ground_acceleration_q16;
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    target,
+                    acceleration);
+            }
+            else
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                dash_direction = INT8_C(0);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    INT32_C(0),
+                    fighter->traction_q16);
+            }
         }
     }
 
-    if (grounded == UINT8_C(0))
+    if (!ledge_motion_handled &&
+        grounded == UINT8_C(0))
     {
         const int32_t air_target = pf_m4_scale_axis_q16(
             input->main_stick_x,
@@ -521,12 +986,14 @@ pf_status pf_m4_step_player(
     }
 
     next_position = (int64_t)position_x + (int64_t)velocity_x;
-    if (!pf_m4_checked_i32(next_position, &position_x))
+    if (!ledge_motion_handled &&
+        !pf_m4_checked_i32(next_position, &position_x))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
-    if (grounded != UINT8_C(0))
+    if (!ledge_motion_handled &&
+        grounded != UINT8_C(0))
     {
         int32_t surface_left;
         int32_t surface_right;
@@ -556,7 +1023,8 @@ pf_status pf_m4_step_player(
         }
     }
 
-    if (grounded == UINT8_C(0))
+    if (!ledge_motion_handled &&
+        grounded == UINT8_C(0))
     {
         const int32_t previous_bottom =
             position_y + fighter->half_height_q16;
@@ -645,6 +1113,32 @@ pf_status pf_m4_step_player(
                     &dash_direction);
             }
         }
+    }
+
+    if (!ledge_motion_handled &&
+        !released_ledge_this_tick &&
+        grounded == UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+        platform_drop_ticks == UINT8_C(0))
+    {
+        (void)pf_m4_try_grab_ledge(
+            content,
+            world,
+            scratch,
+            player_index,
+            &position_x,
+            &position_y,
+            &velocity_x,
+            &velocity_y,
+            &action_ticks,
+            &grounded,
+            &action_state,
+            &support,
+            &air_jumps_remaining,
+            &short_hop_latched,
+            &fast_fall,
+            facing,
+            &dash_direction);
     }
 
     if (position_x < stage->blast_left_q16 ||
@@ -796,6 +1290,9 @@ pf_status pf_m4_inspect(
         player->platform_drop_ticks =
             sim->world.platform_drop_ticks[player_index];
         player->active = sim->world.active[player_index];
+        player->ledge = pf_m4_ledge_from_state(
+            player->action_state,
+            player->facing);
     }
     return PF_STATUS_OK;
 }

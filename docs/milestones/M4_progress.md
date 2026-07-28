@@ -1,6 +1,6 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 deterministic movement core and browser adapter implemented
+**Status:** In progress; M4.1 deterministic movement and ledge core implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -11,16 +11,20 @@
 - A validated, hash-identified `pf_m4_content` precursor containing one
   original placeholder fighter table and one original test-stage table.
 - Real-simulation Q16.16 states for proportional walk, initial dash, run,
-  dash-dance reversal, facing, traction, crouch, jump squat, binary short/full
-  hop, configured air jump, aerial drift, fast fall, landing, moving-platform
-  support, platform drop, support edges, and blast-zone respawn.
-- A rollback-safe state-schema-2/save-format-2 migration that serializes every
-  new future-affecting movement field.
+  dash-dance reversal, run turnaround, run brake, post-turnaround run lockout,
+  facing, traction, crouch, jump squat, binary short/full hop, configured air
+  jump, aerial drift, fast fall, landing, moving-platform support, platform
+  drop, support edges, blast-zone respawn, ledge catch, catch lockout, hang,
+  release, ledge jump, and ledge climb.
+- Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
+  for simultaneous catches.
+- A rollback-safe state-schema-3/save-format-2 contract that serializes every
+  future-affecting movement field and versions the new ledge/run action IDs.
 - Replay format 1 regenerated against the new canonical state schema, with
   native and WebAssembly comparisons still using the same corpus path.
-- A public `pf_m4_inspect` surface for movement state, ledge points,
-  moving-platform geometry, and blast zones.
-- Thirteen movement/content invariants plus a 20,000-tick four-player
+- A public `pf_m4_inspect` surface for movement state, active ledge claims,
+  ledge points, moving-platform geometry, and blast zones.
+- Twenty-six movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -37,6 +41,9 @@
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
+- Opposite input during initial dash remains a dash-dance reversal. Opposite
+  input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
+  sub-threshold run input enters `RUN BRAKE`.
 
 ## New binding M4.4 scope
 
@@ -56,8 +63,6 @@
 
 ## Remaining M4.1 work
 
-- Ledge occupancy, grab transitions, release, and the movement-side ledge
-  states needed by M4.2 actions.
 - Gamepad polling for the temporary browser presentation; two keyboard slots
   and their explicit walk/dash controls are implemented.
 - Any stage wall/ceiling collision required by the final vertical-slice test
@@ -78,12 +83,12 @@
 - Release workflow: 14/14 tests.
 - Address/undefined-behavior sanitizer workflow: 14/14 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracle: 13 invariants and 20,000 deterministic four-player ticks.
+- Mechanical oracle: 26 invariants and 20,000 deterministic four-player ticks.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native/WebAssembly replay corpus: exact 180-tick match at 31,049 bytes.
-- Local Chrome execution is unavailable in this workspace and remains selected
-  for the clean browser CI lane.
+- Clean Chrome CI executes the generated Wasm, canonical replay inspector, and
+  live playtest DOM.
 
 ## Browser-adapter verification
 
@@ -94,7 +99,6 @@
 - Browser JavaScript syntax and M1 source-boundary checks: pass.
 - Focused owner controls and expected results:
   [`M4_browser_playtest.md`](M4_browser_playtest.md).
-- Generated-page execution remains pending in the clean Chrome CI lane because
-  Chrome/Chromium is unavailable locally.
+- Generated-page execution: pass in the clean Chrome CI lane.
 
 M5 content scaling remains blocked until M4 combat feel is approved.

@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(1)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(2)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(1)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -26,7 +26,11 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_CROUCH = 4,
     PF_M4_ACTION_JUMP_SQUAT = 5,
     PF_M4_ACTION_AIRBORNE = 6,
-    PF_M4_ACTION_LANDING = 7
+    PF_M4_ACTION_LANDING = 7,
+    PF_M4_ACTION_LEDGE_HANG = 8,
+    PF_M4_ACTION_LEDGE_CLIMB = 9,
+    PF_M4_ACTION_RUN_TURNAROUND = 10,
+    PF_M4_ACTION_RUN_BRAKE = 11
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -35,6 +39,13 @@ typedef enum pf_m4_surface
     PF_M4_SURFACE_FLOOR = 1,
     PF_M4_SURFACE_PLATFORM = 2
 } pf_m4_surface;
+
+typedef enum pf_m4_ledge
+{
+    PF_M4_LEDGE_NONE = 0,
+    PF_M4_LEDGE_LEFT = 1,
+    PF_M4_LEDGE_RIGHT = 2
+} pf_m4_ledge;
 
 typedef struct pf_m4_fighter_data
 {
@@ -62,8 +73,13 @@ typedef struct pf_m4_fighter_data
     uint16_t initial_dash_ticks;
     uint16_t landing_ticks;
     uint16_t platform_drop_ticks;
+    uint16_t run_turnaround_ticks;
+    uint16_t run_brake_ticks;
     uint16_t axis_dead_zone;
     uint16_t dash_axis_threshold;
+    uint16_t run_turnaround_axis_threshold;
+    uint16_t run_continue_axis_threshold;
+    uint16_t run_turnaround_lockout_ticks;
     uint16_t crouch_axis_threshold;
     uint8_t air_jump_count;
     uint8_t reserved2;
@@ -119,7 +135,7 @@ typedef struct pf_m4_player_inspection
     uint8_t short_hop_latched;
     uint8_t platform_drop_ticks;
     uint8_t active;
-    uint8_t reserved;
+    uint8_t ledge;
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection

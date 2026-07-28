@@ -662,11 +662,24 @@ static int pf_m4_player_state_consistent(
     {
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+               action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
+               action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0);
     }
-    return support == (uint8_t)PF_M4_SURFACE_NONE &&
-           action == (uint8_t)PF_M4_ACTION_AIRBORNE;
+    if (support != (uint8_t)PF_M4_SURFACE_NONE)
+    {
+        return 0;
+    }
+    if (action == (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        return 1;
+    }
+    return (action == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+            action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB) &&
+           world->velocity_x_q16[player_index] == INT32_C(0) &&
+           world->velocity_y_q16[player_index] == INT32_C(0) &&
+           world->fast_fall[player_index] == UINT8_C(0);
 }
 
 pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
@@ -677,6 +690,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         (uint32_t)PF_SIM_FAULT_INVALID_STATE;
     uint32_t player_index;
     uint8_t active_mask;
+    uint8_t ledge_claims = UINT8_C(0);
 
     if (world == NULL ||
         world->state_schema_version != PF_SIM_STATE_SCHEMA_VERSION ||
@@ -748,7 +762,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(120) ||
                 world->action_state[player_index] >
-                    (uint8_t)PF_M4_ACTION_LANDING ||
+                    (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
                 world->support[player_index] >
                     (uint8_t)PF_M4_SURFACE_PLATFORM ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
@@ -763,15 +777,44 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(-1) ||
                 world->previous_strong_direction[player_index] >
                     INT8_C(1) ||
-                (world->action_state[player_index] ==
-                     (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                ((world->action_state[player_index] ==
+                      (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+                  world->action_state[player_index] ==
+                      (uint8_t)PF_M4_ACTION_RUN_TURNAROUND) &&
                  world->dash_direction[player_index] == INT8_C(0)) ||
+                ((world->action_state[player_index] ==
+                      (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+                  world->action_state[player_index] ==
+                      (uint8_t)PF_M4_ACTION_RUN_TURNAROUND) &&
+                 world->dash_direction[player_index] !=
+                     world->facing[player_index]) ||
+                (world->action_state[player_index] !=
+                     (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                 world->action_state[player_index] !=
+                     (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+                 world->dash_direction[player_index] != INT8_C(0)) ||
                 (world->short_hop_latched[player_index] != UINT8_C(0) &&
                  world->action_state[player_index] !=
                      (uint8_t)PF_M4_ACTION_JUMP_SQUAT) ||
                 !pf_m4_player_state_consistent(world, player_index))
             {
                 return PF_STATUS_INVALID_STATE;
+            }
+            if (world->action_state[player_index] ==
+                    (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+                world->action_state[player_index] ==
+                    (uint8_t)PF_M4_ACTION_LEDGE_CLIMB)
+            {
+                const uint8_t ledge_bit =
+                    world->facing[player_index] == INT8_C(1)
+                        ? UINT8_C(1)
+                        : UINT8_C(2);
+
+                if ((ledge_claims & ledge_bit) != UINT8_C(0))
+                {
+                    return PF_STATUS_INVALID_STATE;
+                }
+                ledge_claims |= ledge_bit;
             }
         }
         else if (world->previous_buttons[player_index] != UINT64_C(0) ||

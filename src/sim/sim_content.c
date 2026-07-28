@@ -69,8 +69,13 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
     pf_m4_hash_u16(hash, fighter->platform_drop_ticks);
+    pf_m4_hash_u16(hash, fighter->run_turnaround_ticks);
+    pf_m4_hash_u16(hash, fighter->run_brake_ticks);
     pf_m4_hash_u16(hash, fighter->axis_dead_zone);
     pf_m4_hash_u16(hash, fighter->dash_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->run_turnaround_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->run_continue_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->run_turnaround_lockout_ticks);
     pf_m4_hash_u16(hash, fighter->crouch_axis_threshold);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
 }
@@ -170,8 +175,13 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->landing_ticks = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(6);
+    fighter->run_turnaround_ticks = UINT16_C(12);
+    fighter->run_brake_ticks = UINT16_C(8);
     fighter->axis_dead_zone = UINT16_C(4096);
     fighter->dash_axis_threshold = UINT16_C(24575);
+    fighter->run_turnaround_axis_threshold = UINT16_C(12288);
+    fighter->run_continue_axis_threshold = UINT16_C(20480);
+    fighter->run_turnaround_lockout_ticks = UINT16_C(10);
     fighter->crouch_axis_threshold = UINT16_C(16384);
     fighter->air_jump_count = UINT8_C(1);
 
@@ -287,8 +297,20 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->landing_ticks > UINT16_C(120) ||
         fighter->platform_drop_ticks == UINT16_C(0) ||
         fighter->platform_drop_ticks > UINT16_C(120) ||
+        fighter->run_turnaround_ticks < UINT16_C(2) ||
+        fighter->run_turnaround_ticks > UINT16_C(120) ||
+        fighter->run_brake_ticks == UINT16_C(0) ||
+        fighter->run_brake_ticks > UINT16_C(120) ||
         fighter->axis_dead_zone >= fighter->dash_axis_threshold ||
         fighter->dash_axis_threshold > UINT16_C(32767) ||
+        fighter->run_turnaround_axis_threshold <=
+            fighter->axis_dead_zone ||
+        fighter->run_turnaround_axis_threshold >=
+            fighter->run_continue_axis_threshold ||
+        fighter->run_continue_axis_threshold >
+            fighter->dash_axis_threshold ||
+        fighter->run_turnaround_lockout_ticks == UINT16_C(0) ||
+        fighter->run_turnaround_lockout_ticks > UINT16_C(120) ||
         fighter->crouch_axis_threshold <= fighter->axis_dead_zone ||
         fighter->crouch_axis_threshold > UINT16_C(32767) ||
         fighter->air_jump_count > UINT8_C(8))

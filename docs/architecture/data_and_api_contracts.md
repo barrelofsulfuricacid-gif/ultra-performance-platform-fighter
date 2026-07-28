@@ -82,9 +82,11 @@ Rules:
 - Single and batched RL entry points invoke the same internal tick semantics.
 
 Save format 1 remains the historical 305-byte state-schema-1 checkpoint.
-M4 movement state uses save format 2: a fixed 357-byte state-schema-2
-checkpoint. Exact headers, payloads, compatibility, checksum, and atomic-load
-behavior are recorded in
+M4 movement state uses save format 2: a fixed 357-byte checkpoint. The current
+state schema is 3; it extends the state-schema-2 action enum with canonical
+ledge-hang, ledge-climb, run-turnaround, and run-brake states without changing
+the byte layout. Exact headers, payloads, compatibility, checksum, and
+atomic-load behavior are recorded in
 [TDR-0006](../technology_decisions/0006-canonical-state-format.md).
 
 ## Normalized input frame

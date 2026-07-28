@@ -493,7 +493,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=1")
+                   "m4-movement=pass content_schema=2")
 
     add_executable(
         m4_web_playtest_test

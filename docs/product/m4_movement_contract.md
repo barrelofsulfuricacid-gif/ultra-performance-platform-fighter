@@ -19,11 +19,19 @@ pass-through platforms are horizontal surface heights.
 - Reversing the full horizontal value during initial dash starts a new initial
   dash in the opposite direction without requiring a neutral tick. This is the
   invariant used by keyboard and controller dash-dance tests.
+- Once initial dash has become `RUN`, an opposite input at or above the
+  data-defined 0.375 threshold enters `RUN TURNAROUND`, never another initial
+  dash. Holding at least the data-defined 0.625 threshold toward the new
+  direction on the turnaround's final tick returns to `RUN`.
+- Neutral, sub-threshold, or weak backward input from an unlocked run enters
+  `RUN BRAKE`. A turnaround-completed run has a data-defined ten-tick window
+  during which another run turnaround or run brake cannot begin.
 - Client keyboard adapters must expose both full-magnitude and reduced-magnitude
   horizontal input. The browser loop will retain explicit walk controls rather
   than collapsing every key press into a full dash value.
 - Ground acceleration, turn acceleration, traction, walk speed, run speed,
-  initial-dash speed/window, aerial acceleration, aerial speed, and facing are
+  initial-dash speed/window, run-turnaround duration/threshold/lockout,
+  run-brake duration, aerial acceleration, aerial speed, and facing are
   deterministic data fields.
 - Down on the floor enters crouch. Down on a pass-through platform drops
   through it for a data-defined exclusion window.
@@ -61,8 +69,11 @@ Crossing a support edge enters airborne movement. Crossing a blast boundary
 currently performs the M4.1 placeholder respawn and increments the canonical
 respawn counter; stocks and match termination enter in M4.2.
 
-Ledge positions are exposed by the inspector now. Ledge occupancy, grabs, and
-ledge actions remain part of the next combat-state slice.
+Falling beside a floor ledge while facing inward enters a pinned ledge catch.
+The catch has a data-derived lockout before neutral hang, down/away release,
+ledge jump, or inward climb. A ledge has one occupant; simultaneous catches use
+stable lower-player-slot priority. Grabbing restores configured air jumps, and
+ledge actions remain canonical across save/load and replay.
 
 ## Data and inspection
 
@@ -73,19 +84,20 @@ invalid. The simulation copies validated tables only during initialization.
 
 `pf_m4_inspect` exposes the deterministic movement state and current stage
 geometry without placing presentation objects in canonical state. It includes
-action, action timer, facing, support, remaining air jumps, fast-fall state,
-platform-drop timer, respawn count, ledges, moving-platform bounds, and blast
-zones.
+  action, action timer, facing, support, remaining air jumps, fast-fall state,
+  platform-drop timer, respawn count, active ledge claim, ledge points,
+  moving-platform bounds, and blast zones.
 
 ## Verification
 
 `tests/sim/test_m4_movement.c` and `tools/verify_m4_movement.sh` cover:
 
 - content validation, content-hash rejection, and a data-tuning effect;
-- proportional walk, initial dash, run, dash-dance reversal, facing, traction,
-  and crouch;
+- proportional walk, initial dash, run, dash-dance reversal, run turnaround,
+  turnaround lockout, run brake, facing, traction, and crouch;
 - binary short/full hops, double jump, aerial drift, fast fall, and landing;
-- moving-platform landing/carry, ledge geometry, platform drop, and blast-zone
-  respawn; and
+- moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
+  one-occupant priority, mid-climb save/load equivalence, platform drop, and
+  blast-zone respawn; and
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.

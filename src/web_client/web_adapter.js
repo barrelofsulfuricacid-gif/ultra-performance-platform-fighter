@@ -584,7 +584,10 @@ mergeInto(LibraryManager.library, {
       "Tap jump and release during the three-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +
       "takeoff never changes either apex. Tap opposite full directions during " +
-      "initial dash to dash-dance. R resets, P pauses, and N single-steps.";
+      "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
+      "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
+      "to grab it; after the catch, press inward to climb, down or away to " +
+      "release, or jump to ledge-jump. R resets, P pauses, and N single-steps.";
     section.appendChild(note);
 
     var stateGrid = document.createElement("div");
@@ -786,6 +789,10 @@ mergeInto(LibraryManager.library, {
       "JUMP SQUAT",
       "AIRBORNE",
       "LANDING",
+      "LEDGE HANG",
+      "LEDGE CLIMB",
+      "RUN TURNAROUND",
+      "RUN BRAKE",
     ];
 
     function sx(q16Value) {

@@ -89,11 +89,14 @@ static int32_t absolute_i32(int32_t value)
     return value < INT32_C(0) ? -value : value;
 }
 
-static int step_duel(
+static int step_duel_players(
     pf_sim *sim,
-    int16_t main_stick_x,
-    int16_t main_stick_y,
-    uint64_t buttons,
+    int16_t player0_x,
+    int16_t player0_y,
+    uint64_t player0_buttons,
+    int16_t player1_x,
+    int16_t player1_y,
+    uint64_t player1_buttons,
     pf_m4_inspection *out_inspection)
 {
     pf_m4_inspection before;
@@ -108,9 +111,12 @@ static int step_duel(
         return 0;
     }
     make_inputs(inputs, UINT8_C(2), before.tick);
-    inputs[0].main_stick_x = main_stick_x;
-    inputs[0].main_stick_y = main_stick_y;
-    inputs[0].buttons = buttons;
+    inputs[0].main_stick_x = player0_x;
+    inputs[0].main_stick_y = player0_y;
+    inputs[0].buttons = player0_buttons;
+    inputs[1].main_stick_x = player1_x;
+    inputs[1].main_stick_y = player1_y;
+    inputs[1].buttons = player1_buttons;
     if (!expect_status(
             pf_sim_tick(sim, inputs, (size_t)2, &result),
             PF_STATUS_OK,
@@ -123,6 +129,24 @@ static int step_duel(
         return 0;
     }
     return 1;
+}
+
+static int step_duel(
+    pf_sim *sim,
+    int16_t main_stick_x,
+    int16_t main_stick_y,
+    uint64_t buttons,
+    pf_m4_inspection *out_inspection)
+{
+    return step_duel_players(
+        sim,
+        main_stick_x,
+        main_stick_y,
+        buttons,
+        INT16_C(0),
+        INT16_C(0),
+        UINT64_C(0),
+        out_inspection);
 }
 
 static int run_content_contract_test(
@@ -245,7 +269,9 @@ static int run_content_contract_test(
     return 1;
 }
 
-static int run_ground_control_test(const pf_content_view *content)
+static int run_ground_control_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
 {
     test_sim_storage storage;
     pf_sim *sim = NULL;
@@ -257,7 +283,7 @@ static int run_ground_control_test(const pf_content_view *content)
 
     if (!initialize_sim(
             &storage,
-            content,
+            view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
             &sim) ||
@@ -360,18 +386,167 @@ static int run_ground_control_test(const pf_content_view *content)
 
     if (!step_duel(
             sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        inspection.players[0].dash_direction != INT8_C(1) ||
+        inspection.players[0].facing != INT8_C(1) ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        absolute_i32(inspection.players[0].velocity_x_q16) >=
+            absolute_i32(run_velocity))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-turnaround-entry\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.run_turnaround_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=run-turnaround-window\n");
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-turnaround-exit\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)content->fighter.run_turnaround_lockout_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RUN)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=run-turnaround-lockout\n");
+            return 0;
+        }
+    }
+    run_velocity = inspection.players[0].velocity_x_q16;
+    if (!step_duel(
+            sim,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+        absolute_i32(inspection.players[0].velocity_x_q16) >=
+            absolute_i32(run_velocity))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-entry\n");
+        return 0;
+    }
+    if (!step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-turnaround\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "run-brake-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    run_velocity = inspection.players[0].velocity_x_q16;
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-exit-setup\n");
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.run_brake_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         absolute_i32(inspection.players[0].velocity_x_q16) >=
             absolute_i32(run_velocity))
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=traction\n");
+            "m4-movement=fail operation=run-brake-exit\n");
         return 0;
     }
 
@@ -789,6 +964,470 @@ static int run_platform_test(const pf_m4_content *default_content)
     return 1;
 }
 
+static int drive_player0_to_right_ledge(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded == UINT8_C(0) &&
+            out_inspection->players[0].position_x_q16 >
+                out_inspection->stage.right_ledge_x_q16)
+        {
+            return 1;
+        }
+    }
+
+    (void)fprintf(
+        stderr,
+        "m4-movement=fail operation=reach-right-ledge\n");
+    return 0;
+}
+
+static int grab_player0_right_ledge(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    if (!drive_player0_to_right_ledge(sim, out_inspection) ||
+        !step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        out_inspection->players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=right-ledge-grab"
+            " action=%u ledge=%u\n",
+            (unsigned int)out_inspection->players[0].action_state,
+            (unsigned int)out_inspection->players[0].ledge);
+        return 0;
+    }
+    return 1;
+}
+
+static int make_player0_ledge_actionable(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    const uint32_t catch_ticks =
+        (uint32_t)content->fighter.landing_ticks +
+        (uint32_t)content->fighter.jump_squat_ticks;
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < catch_ticks; ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        out_inspection->players[0].action_ticks !=
+            (uint16_t)catch_ticks)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-catch-window\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_ledge_snapshot_test(
+    pf_sim *source,
+    const pf_content_view *content,
+    pf_m4_inspection *source_inspection)
+{
+    test_sim_storage loaded_storage;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[512];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t required_bytes = (size_t)0;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &loaded_storage,
+            content,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &required_bytes),
+            PF_STATUS_OK,
+            "ledge-query-save-size") ||
+        required_bytes > sizeof(save_bytes))
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "ledge-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "ledge-load") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "ledge-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "ledge-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0 ||
+        !expect_status(
+            pf_m4_inspect(loaded, &loaded_inspection),
+            PF_STATUS_OK,
+            "ledge-loaded-inspect") ||
+        loaded_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
+        loaded_inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-snapshot-round-trip\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "ledge-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "ledge-loaded-future-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ledge-snapshot-future\n");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int run_ledge_occupancy_test(
+    const pf_m4_content *default_content)
+{
+    test_sim_storage storage;
+    pf_m4_content content = *default_content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    content.stage.spawn_spacing_q16 = INT32_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "ledge-occupancy-content") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(12)),
+            PF_STATUS_OK,
+            "ledge-occupancy-reset"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        if (!step_duel_players(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[1].grounded == UINT8_C(0) &&
+            inspection.players[0].position_x_q16 >
+                inspection.stage.right_ledge_x_q16 &&
+            inspection.players[1].position_x_q16 >
+                inspection.stage.right_ledge_x_q16)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(240) ||
+        !step_duel_players(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT ||
+        inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        inspection.players[1].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-single-occupancy"
+            " p0=(%u,%u) p1=(%u,%u)\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].ledge,
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].ledge);
+        return 0;
+    }
+    return 1;
+}
+
+static int run_ledge_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t hang_x;
+    int32_t hang_y;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(8)),
+            PF_STATUS_OK,
+            "ledge-facing-reset") ||
+        !drive_player0_to_right_ledge(sim, &inspection))
+    {
+        return 0;
+    }
+    if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=outward-ledge-rejection\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(9)),
+            PF_STATUS_OK,
+            "ledge-hang-reset") ||
+        !grab_player0_right_ledge(sim, &inspection))
+    {
+        return 0;
+    }
+    hang_x = inspection.players[0].position_x_q16;
+    hang_y = inspection.players[0].position_y_q16;
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].position_x_q16 != hang_x ||
+        inspection.players[0].position_y_q16 != hang_y ||
+        inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 != INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-hang-pin\n");
+        return 0;
+    }
+    if (!make_player0_ledge_actionable(sim, content, &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE ||
+        inspection.players[0].position_y_q16 <= hang_y)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-release\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(10)),
+            PF_STATUS_OK,
+            "ledge-jump-reset") ||
+        !grab_player0_right_ledge(sim, &inspection) ||
+        !make_player0_ledge_actionable(sim, content, &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        inspection.players[0].air_jumps_remaining !=
+            content->fighter.air_jump_count)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-jump\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(11)),
+            PF_STATUS_OK,
+            "ledge-climb-reset") ||
+        !grab_player0_right_ledge(sim, &inspection) ||
+        !make_player0_ledge_actionable(sim, content, &inspection) ||
+        !step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !run_ledge_snapshot_test(sim, view, &inspection))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-climb-snapshot-setup\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (inspection.players[0].grounded != UINT8_C(0))
+        {
+            break;
+        }
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].grounded == UINT8_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LANDING ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        inspection.players[0].position_x_q16 >=
+            inspection.stage.right_ledge_x_q16 ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE ||
+        !run_ledge_occupancy_test(content))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-climb-or-occupancy\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int run_blast_zone_test(const pf_content_view *content)
 {
     test_sim_storage storage;
@@ -961,9 +1600,10 @@ int main(void)
             PF_STATUS_OK,
             "content-view") ||
         !run_content_contract_test(&content, &view) ||
-        !run_ground_control_test(&view) ||
+        !run_ground_control_test(&content, &view) ||
         !run_air_control_test(&content, &view) ||
         !run_platform_test(&content) ||
+        !run_ledge_test(&content, &view) ||
         !run_blast_zone_test(&view) ||
         !run_team_hash_trace(&view))
     {
@@ -972,7 +1612,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=13\n",
+        "movement_invariants=26\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }
