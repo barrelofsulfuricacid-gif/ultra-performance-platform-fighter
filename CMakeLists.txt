@@ -75,7 +75,9 @@ endif()
 set(
     PF_SIM_SOURCES
     src/sim/sim.c
+    src/sim/sim_content.c
     src/sim/sim_internal.h
+    src/sim/sim_movement.c
     src/sim/sim_sha256.c
     src/sim/sim_sha256.h
     src/sim/sim_rl.c
@@ -475,8 +477,21 @@ if(BUILD_TESTING)
     add_test(NAME sim.snapshot COMMAND sim_snapshot_test)
     set_tests_properties(
         sim.snapshot
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "sim-snapshot=pass bytes=357 hash_algorithm=sha256")
+
+    add_executable(m4_movement_test tests/sim/test_m4_movement.c)
+    target_link_libraries(m4_movement_test PRIVATE sim)
+    target_compile_features(m4_movement_test PRIVATE c_std_17)
+    set_target_properties(m4_movement_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_movement_test)
+    pf_apply_build_mode(m4_movement_test)
+
+    add_test(NAME sim.m4_movement COMMAND m4_movement_test)
+    set_tests_properties(
+        sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-snapshot=pass bytes=305 hash_algorithm=sha256")
+                   "m4-movement=pass content_schema=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -496,7 +511,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=30997")
+                       "sim-replay=pass ticks=180 players=4 bytes=31049")
     endif()
 
     if(PF_BUILD_HEADLESS)

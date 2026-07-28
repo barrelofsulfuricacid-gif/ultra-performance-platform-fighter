@@ -1,50 +1,7 @@
 #include "sim_internal.h"
 
-#include <limits.h>
 #include <stdint.h>
 #include <string.h>
-
-#define PF_M2_HORIZONTAL_ACCEL_Q16 INT32_C(8192)
-#define PF_M2_HORIZONTAL_FRICTION_Q16 INT32_C(4096)
-#define PF_M2_GRAVITY_Q16 INT32_C(8192)
-#define PF_M2_AXIS_DEAD_ZONE INT16_C(4096)
-
-static int32_t pf_clamp_i64_to_i32_range(
-    int64_t value,
-    int32_t minimum,
-    int32_t maximum)
-{
-    if (value < (int64_t)minimum)
-    {
-        return minimum;
-    }
-    if (value > (int64_t)maximum)
-    {
-        return maximum;
-    }
-    return (int32_t)value;
-}
-
-static int32_t pf_scale_axis_q16(int16_t axis, int32_t magnitude_q16)
-{
-    const int64_t denominator =
-        axis < INT16_C(0) ? INT64_C(32768) : INT64_C(32767);
-    return (int32_t)(((int64_t)axis * (int64_t)magnitude_q16) /
-                     denominator);
-}
-
-static int32_t pf_approach_zero(int32_t value, int32_t amount)
-{
-    if (value > amount)
-    {
-        return value - amount;
-    }
-    if (value < -amount)
-    {
-        return value + amount;
-    }
-    return INT32_C(0);
-}
 
 static void pf_write_result(const pf_world_state *world, pf_tick_result *result)
 {
@@ -141,89 +98,23 @@ pf_status pf_sim_tick_impl(
          ++player_index)
     {
         const pf_input_frame *input = &inputs[player_index];
-        int32_t velocity_x = world->velocity_x_q16[player_index];
-        int32_t velocity_y = world->velocity_y_q16[player_index];
-        uint8_t grounded = world->grounded[player_index];
-        int64_t position_x;
-        int64_t position_y;
 
         if ((input->buttons & PF_INPUT_BUTTON_FORFEIT) != UINT64_C(0))
         {
             forfeit_mask |= UINT64_C(1) << player_index;
         }
 
-        if (input->main_stick_x > PF_M2_AXIS_DEAD_ZONE ||
-            input->main_stick_x < -PF_M2_AXIS_DEAD_ZONE)
+        status = pf_m4_step_player(
+            &sim->content,
+            world,
+            scratch,
+            input,
+            player_index);
+        if (status != PF_STATUS_OK)
         {
-            const int32_t acceleration =
-                pf_scale_axis_q16(
-                    input->main_stick_x,
-                    PF_M2_HORIZONTAL_ACCEL_Q16);
-            velocity_x = pf_clamp_i64_to_i32_range(
-                (int64_t)velocity_x + (int64_t)acceleration,
-                -PF_M2_MAX_HORIZONTAL_SPEED_Q16,
-                PF_M2_MAX_HORIZONTAL_SPEED_Q16);
+            pf_write_result(world, out_result);
+            return status;
         }
-        else
-        {
-            velocity_x = pf_approach_zero(
-                velocity_x,
-                PF_M2_HORIZONTAL_FRICTION_Q16);
-        }
-
-        if (grounded != UINT8_C(0) &&
-            (input->buttons & PF_INPUT_BUTTON_JUMP) != UINT64_C(0) &&
-            (world->previous_buttons[player_index] &
-             PF_INPUT_BUTTON_JUMP) == UINT64_C(0))
-        {
-            velocity_y = PF_M2_JUMP_SPEED_Q16;
-            grounded = UINT8_C(0);
-        }
-
-        if (grounded == UINT8_C(0))
-        {
-            velocity_y = pf_clamp_i64_to_i32_range(
-                (int64_t)velocity_y - (int64_t)PF_M2_GRAVITY_Q16,
-                -PF_M2_JUMP_SPEED_Q16,
-                PF_M2_JUMP_SPEED_Q16);
-        }
-
-        position_x =
-            (int64_t)world->position_x_q16[player_index] +
-            (int64_t)velocity_x;
-        if (position_x <= -(int64_t)world->arena_half_width_q16)
-        {
-            position_x = -(int64_t)world->arena_half_width_q16;
-            velocity_x = INT32_C(0);
-        }
-        else if (position_x >=
-                 (int64_t)world->arena_half_width_q16)
-        {
-            position_x = (int64_t)world->arena_half_width_q16;
-            velocity_x = INT32_C(0);
-        }
-
-        position_y =
-            (int64_t)world->position_y_q16[player_index] +
-            (int64_t)velocity_y;
-        if (position_y <= INT64_C(0))
-        {
-            position_y = INT64_C(0);
-            velocity_y = INT32_C(0);
-            grounded = UINT8_C(1);
-        }
-        else if (position_y >= (int64_t)world->arena_ceiling_q16)
-        {
-            position_y = (int64_t)world->arena_ceiling_q16;
-            velocity_y = INT32_C(0);
-        }
-
-        scratch->position_x_q16[player_index] = (int32_t)position_x;
-        scratch->position_y_q16[player_index] = (int32_t)position_y;
-        scratch->velocity_x_q16[player_index] = velocity_x;
-        scratch->velocity_y_q16[player_index] = velocity_y;
-        scratch->previous_buttons[player_index] = input->buttons;
-        scratch->grounded[player_index] = grounded;
     }
 
     for (player_index = UINT32_C(0);
@@ -238,10 +129,32 @@ pf_status pf_sim_tick_impl(
             scratch->velocity_x_q16[player_index];
         world->velocity_y_q16[player_index] =
             scratch->velocity_y_q16[player_index];
+        world->action_ticks[player_index] =
+            scratch->action_ticks[player_index];
+        world->respawn_count[player_index] =
+            scratch->respawn_count[player_index];
         world->previous_buttons[player_index] =
             scratch->previous_buttons[player_index];
         world->grounded[player_index] =
             scratch->grounded[player_index];
+        world->action_state[player_index] =
+            scratch->action_state[player_index];
+        world->support[player_index] =
+            scratch->support[player_index];
+        world->air_jumps_remaining[player_index] =
+            scratch->air_jumps_remaining[player_index];
+        world->short_hop_latched[player_index] =
+            scratch->short_hop_latched[player_index];
+        world->platform_drop_ticks[player_index] =
+            scratch->platform_drop_ticks[player_index];
+        world->fast_fall[player_index] =
+            scratch->fast_fall[player_index];
+        world->facing[player_index] =
+            scratch->facing[player_index];
+        world->dash_direction[player_index] =
+            scratch->dash_direction[player_index];
+        world->previous_strong_direction[player_index] =
+            scratch->previous_strong_direction[player_index];
     }
 
     ++world->tick;

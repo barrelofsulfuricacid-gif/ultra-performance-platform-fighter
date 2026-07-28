@@ -127,6 +127,7 @@ foreach ($check in @(
         "m1-setup",
         "m2-kernel",
         "m2-replay",
+        "mechanical-oracle",
         "m3-regression-qualification",
         "sanitizer",
         "browser-smoke"))

@@ -81,8 +81,10 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save format 1 is fixed at 305 bytes for state schema 1. Its exact header,
-payload, compatibility, checksum, and atomic-load behavior are recorded in
+Save format 1 remains the historical 305-byte state-schema-1 checkpoint.
+M4 movement state uses save format 2: a fixed 357-byte state-schema-2
+checkpoint. Exact headers, payloads, compatibility, checksum, and atomic-load
+behavior are recorded in
 [TDR-0006](../technology_decisions/0006-canonical-state-format.md).
 
 ## Normalized input frame

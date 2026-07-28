@@ -118,6 +118,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m2_replay.sh" \
     "$pf_artifact_dir/m2_replay"
 pf_record \
+    mechanical-oracle \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_movement.sh" \
+    "$pf_artifact_dir/m4_movement"
+pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"

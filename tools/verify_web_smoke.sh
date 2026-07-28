@@ -76,7 +76,7 @@ grep -Fq \
     'webgl2=pass batch_draws=1' \
     "$dom_output"
 grep -Fq \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7' \
+    'replay=pass ticks=180 winner_mask=5 final_sha256=2206d54fa4fc6e783cd96e3b244bb546fa5a9850722576ece804a5bc4f591b23' \
     "$dom_output"
 grep -Fq \
     'id="pf-replay-inspector"' \

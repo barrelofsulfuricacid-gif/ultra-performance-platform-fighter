@@ -16,7 +16,7 @@ _Static_assert(sizeof(uint64_t) == 8U,
 _Static_assert(sizeof(int32_t) == 4U,
                "pf_sim requires an exact 32-bit int32_t");
 _Static_assert(PF_SIM_MAX_PLAYERS == UINT32_C(4),
-               "M2 state layout assumes four player slots");
+               "simulation state layout assumes four player slots");
 
 static int pf_is_aligned(const void *memory, size_t alignment)
 {
@@ -44,19 +44,6 @@ static int pf_ranges_overlap(
     left_end = left_begin + (uintptr_t)left_bytes;
     right_end = right_begin + (uintptr_t)right_bytes;
     return left_begin < right_end && right_begin < left_end;
-}
-
-static int32_t pf_clamp_q16(int64_t value, int32_t minimum, int32_t maximum)
-{
-    if (value < (int64_t)minimum)
-    {
-        return minimum;
-    }
-    if (value > (int64_t)maximum)
-    {
-        return maximum;
-    }
-    return (int32_t)value;
 }
 
 uint32_t pf_sim_abi_version(void)
@@ -205,6 +192,7 @@ pf_status pf_sim_init(
     pf_sim **out_sim)
 {
     pf_memory_requirements requirements;
+    pf_m4_content resolved_content;
     pf_status status;
     pf_sim *sim;
 
@@ -223,6 +211,11 @@ pf_status pf_sim_init(
         (content->byte_count != (size_t)0 && content->bytes == NULL))
     {
         return PF_STATUS_INVALID_ARGUMENT;
+    }
+    status = pf_m4_content_from_view(content, &resolved_content);
+    if (status != PF_STATUS_OK)
+    {
+        return status;
     }
 
     status = pf_sim_query_memory(config, &requirements);
@@ -248,6 +241,16 @@ pf_status pf_sim_init(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
+    if (resolved_content.stage.blast_left_q16 <
+            -config->arena_half_width_q16 ||
+        resolved_content.stage.blast_right_q16 >
+            config->arena_half_width_q16 ||
+        resolved_content.stage.blast_top_q16 < INT32_C(0) ||
+        resolved_content.stage.blast_bottom_q16 >
+            config->arena_ceiling_q16)
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
 
     sim = (pf_sim *)state_memory;
     (void)memset(sim, 0, sizeof(*sim));
@@ -255,6 +258,7 @@ pf_status pf_sim_init(
 
     sim->magic = PF_SIM_HANDLE_MAGIC;
     sim->scratch = (pf_sim_scratch *)scratch_memory;
+    sim->content = resolved_content;
     sim->world.content_hash = content->content_hash;
     sim->world.max_ticks = config->max_ticks;
     sim->world.state_schema_version = PF_SIM_STATE_SCHEMA_VERSION;
@@ -325,30 +329,12 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
          player_index < (uint32_t)sim->world.player_count;
          ++player_index)
     {
-        const int32_t centered_slot =
-            (int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
-            (int32_t)sim->world.player_count;
-        const int32_t base_position_q16 =
-            centered_slot * INT32_C(8) * PF_Q16_ONE;
-        const uint64_t random_value =
-            pf_sim_rng_next(&sim->world.rng_state);
-        const int32_t jitter_q16 =
-            (int32_t)((random_value >> 48U) & UINT64_C(0xFFFF)) -
-            INT32_C(32768);
-
-        sim->world.position_x_q16[player_index] = pf_clamp_q16(
-            (int64_t)base_position_q16 + (int64_t)jitter_q16,
-            -sim->world.arena_half_width_q16,
-            sim->world.arena_half_width_q16);
-        sim->world.position_y_q16[player_index] = INT32_C(0);
-        sim->world.velocity_x_q16[player_index] = INT32_C(0);
-        sim->world.velocity_y_q16[player_index] = INT32_C(0);
         sim->world.team[player_index] =
             sim->world.mode == (uint8_t)PF_SIM_MODE_TEAMS
                 ? (uint8_t)(player_index & UINT32_C(1))
                 : (uint8_t)player_index;
-        sim->world.grounded[player_index] = UINT8_C(1);
         sim->world.active[player_index] = UINT8_C(1);
+        pf_m4_reset_player(sim, player_index, 0);
     }
 
     (void)memset(sim->scratch, 0, sizeof(*sim->scratch));

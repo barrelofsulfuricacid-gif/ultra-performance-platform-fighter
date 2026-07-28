@@ -1,22 +1,24 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save format 1
-- **Date:** 2026-07-27
+- **Status:** Accepted for save formats 1 and 2
+- **Date:** 2026-07-28
 
 ## Decision
 
-Save format 1 is a fixed 305-byte, field-by-field little-endian encoding:
+Save formats are fixed, field-by-field little-endian encodings:
 
-| Region | Bytes | Contents |
-|---|---:|---|
-| Header | 140 | Magic, format/header versions, simulation compatibility versions, tick rate, content hash, configuration hash, tick, payload length, checksum identity, payload checksum |
-| Payload | 165 | Every deterministic `pf_world_state` field in schema order, excluding C padding and the separately identified content hash |
+| Format | State schema | Header | Payload | Total | Added state |
+|---|---:|---:|---:|---:|---|
+| 1 | 1 | 140 | 165 | 305 | M2 match and basic-motion state |
+| 2 | 2 | 140 | 217 | 357 | M4 action timers, respawn count, support, air-jump/short-hop/drop/fast-fall flags, facing, dash direction, and prior strong direction |
 
-The header magic is `PFSAVE01`. The configuration identity is SHA-256 over the
+The header magic is `PFSAVE01` or `PFSAVE02`. The active M4 runtime emits and
+accepts format 2; format 1 remains documented as historical M2 evidence rather
+than being silently converted. The configuration identity is SHA-256 over the
 domain `PFCFG001` followed by the canonical configuration fields. The payload
-checksum is SHA-256 over the 165 payload bytes. `pf_sim_hash` is SHA-256 over
-the complete emitted 305-byte save stream and reports both its algorithm and
-algorithm version.
+checksum is SHA-256 over the exact payload bytes. `pf_sim_hash` is SHA-256 over
+the complete emitted save stream and reports both its algorithm and algorithm
+version.
 
 Load parses into a temporary fixed-size world value, validates the complete
 header, lengths, compatibility identity, checksum, schema fields, enum values,

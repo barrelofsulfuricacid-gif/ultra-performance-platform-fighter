@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7'
+expected='sim-replay=pass ticks=180 players=4 bytes=31049 corpus_sha256=fe567c7186199c3cc92087cdf2e9d86ca7c27afd3a0b2b8ba4f6a8614a30dc56 final_sha256=2206d54fa4fc6e783cd96e3b244bb546fa5a9850722576ece804a5bc4f591b23'
 
 mkdir -p "$output_dir"
 
@@ -30,6 +30,8 @@ common_flags="
     -I"$root/src/checkpoint" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -59,4 +61,4 @@ else
     echo "m2-replay-cross-target=partial native=1 wasm=not-built ticks=180"
 fi
 
-echo "m2-replay-verification=pass bytes=30997 ticks=180 players=4"
+echo "m2-replay-verification=pass bytes=31049 ticks=180 players=4"

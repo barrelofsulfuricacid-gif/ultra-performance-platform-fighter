@@ -9,7 +9,7 @@ M2-REPLAY	simulation	active	m2-replay
 M3-PERFORMANCE	infrastructure	active	m3-performance
 M3-REGRESSION	infrastructure	active	m3-regression-qualification
 M3-RENDER-SEMANTIC	visual	active	render-semantic-reference
-M4-MECHANICS	mechanical	planned:M4	mechanical-oracle
+M4-MECHANICS	mechanical	active	mechanical-oracle
 M4-COLLISION-OVERLAY	visual	planned:M4	collision-hitbox-overlay
 M7-MENU	menu	planned:M7	menu-navigation
 M7-CONTROLLER-PROMPTS	menu	planned:M7	controller-prompt-semantics

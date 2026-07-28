@@ -1,0 +1,91 @@
+# M4 movement vertical-slice contract
+
+## Scope
+
+This contract promotes the accepted Q16.16 movement experiment into the real
+simulation. The first original placeholder content consists of one tuning
+fighter definition and one moving-platform test stage. These identifiers,
+values, and geometry are provisional design data, not final character or stage
+content.
+
+The simulation uses screen-oriented coordinates for this slice: positive X is
+right and positive Y is down. Fighter positions are center points. Floors and
+pass-through platforms are horizontal surface heights.
+
+## Input and movement rules
+
+- Main-stick magnitude below the dash threshold produces proportional walking.
+  A full horizontal value can enter initial dash and run.
+- Reversing the full horizontal value during initial dash starts a new initial
+  dash in the opposite direction without requiring a neutral tick. This is the
+  invariant used by keyboard and controller dash-dance tests.
+- Client keyboard adapters must expose both full-magnitude and reduced-magnitude
+  horizontal input. The browser loop will retain explicit walk controls rather
+  than collapsing every key press into a full dash value.
+- Ground acceleration, turn acceleration, traction, walk speed, run speed,
+  initial-dash speed/window, aerial acceleration, aerial speed, and facing are
+  deterministic data fields.
+- Down on the floor enters crouch. Down on a pass-through platform drops
+  through it for a data-defined exclusion window.
+
+## Jump rule
+
+Short hop and full hop are two discrete launches:
+
+1. Pressing jump enters a data-defined jump-squat state.
+2. Releasing jump before jump squat completes selects the short-hop launch
+   speed.
+3. Holding jump through jump squat selects the full-hop launch speed.
+4. Once launched, continuing to hold or releasing jump cannot alter that
+   launch speed or apex.
+
+Therefore key duration chooses between two heights; it never continuously
+scales jump height. The mechanical oracle compares early and late releases
+within each category and requires exact matching apexes.
+
+An airborne fresh jump press consumes one configured air jump. A deliberate
+down input after the apex enters the fixed fast-fall speed. Landing enters a
+finite landing state.
+
+## Stage interaction
+
+The initial stage table defines:
+
+- one finite floor with explicit left and right ledge points;
+- one pass-through platform with a deterministic integer triangle-wave motion;
+- spawn spacing for two- and four-player layouts; and
+- top, bottom, left, and right blast boundaries.
+
+A supported fighter inherits the moving platform's exact per-tick displacement.
+Crossing a support edge enters airborne movement. Crossing a blast boundary
+currently performs the M4.1 placeholder respawn and increments the canonical
+respawn counter; stocks and match termination enter in M4.2.
+
+Ledge positions are exposed by the inspector now. Ledge occupancy, grabs, and
+ledge actions remain part of the next combat-state slice.
+
+## Data and inspection
+
+`pf_m4_content` contains the validated fighter and stage tables. Its canonical
+SHA-256 identity is calculated field by field; native structure padding is not
+hashed. A non-empty `pf_content_view` is rejected when its data or hash is
+invalid. The simulation copies validated tables only during initialization.
+
+`pf_m4_inspect` exposes the deterministic movement state and current stage
+geometry without placing presentation objects in canonical state. It includes
+action, action timer, facing, support, remaining air jumps, fast-fall state,
+platform-drop timer, respawn count, ledges, moving-platform bounds, and blast
+zones.
+
+## Verification
+
+`tests/sim/test_m4_movement.c` and `tools/verify_m4_movement.sh` cover:
+
+- content validation, content-hash rejection, and a data-tuning effect;
+- proportional walk, initial dash, run, dash-dance reversal, facing, traction,
+  and crouch;
+- binary short/full hops, double jump, aerial drift, fast fall, and landing;
+- moving-platform landing/carry, ledge geometry, platform drop, and blast-zone
+  respawn; and
+- a 20,000-tick four-player trace whose canonical state must remain valid and
+  hashable after every tick.

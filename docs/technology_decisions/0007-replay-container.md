@@ -1,7 +1,7 @@
 # TDR-0007: Replay container and verification
 
 - **Status:** Accepted for replay format 1
-- **Date:** 2026-07-27
+- **Date:** 2026-07-28
 
 ## Decision
 
@@ -19,7 +19,7 @@ The format-1 required chunks are:
 | Type | Contents |
 |---|---|
 | Match | Simulation/state/input/arithmetic/RNG versions, content and configuration hashes, seed, tick count, tick rate, players, and mode |
-| Initial state | Canonical save-format-1 checkpoint at tick zero |
+| Initial state | Canonical checkpoint for the match's declared state/save schema at tick zero |
 | Inputs | Count followed by tick-major, slot-major normalized input frames |
 | State hashes | Initial hash plus one canonical state hash after every tick |
 | Result | Final tick, fault flags, termination, truncation, and winner mask |
@@ -54,11 +54,11 @@ used by the native/WebAssembly corpus test and browser inspector:
 - Four-player team configuration.
 - Seed `0x0123456789abcdef`.
 - 180 normalized input ticks and 181 state hashes.
-- 30,997 replay bytes.
+- 31,049 replay bytes with M4 state schema 2 / save format 2.
 - Replay SHA-256
-  `fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e`.
+  `fe567c7186199c3cc92087cdf2e9d86ca7c27afd3a0b2b8ba4f6a8614a30dc56`.
 - Final state SHA-256
-  `7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7`.
+  `2206d54fa4fc6e783cd96e3b244bb546fa5a9850722576ece804a5bc4f591b23`.
 
 The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,

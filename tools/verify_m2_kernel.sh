@@ -29,6 +29,8 @@ common_flags="
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -47,6 +49,8 @@ grep -Fqx \
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -57,7 +61,7 @@ grep -Fqx \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=305 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=357 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
@@ -65,6 +69,8 @@ grep -Fqx \
     -I"$root/include" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -84,6 +90,8 @@ grep -Fqx \
     -I"$root/src/checkpoint" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -95,7 +103,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7' \
+    'sim-replay=pass ticks=180 players=4 bytes=31049 corpus_sha256=fe567c7186199c3cc92087cdf2e9d86ca7c27afd3a0b2b8ba4f6a8614a30dc56 final_sha256=2206d54fa4fc6e783cd96e3b244bb546fa5a9850722576ece804a5bc4f591b23' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -103,6 +111,20 @@ grep -Fqx \
     -I"$root/include" \
     -c "$root/src/sim/sim.c" \
     -o "$output_dir/sim.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_content.c" \
+    -o "$output_dir/sim_content.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_movement.c" \
+    -o "$output_dir/sim_movement.o"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
@@ -139,6 +161,8 @@ grep -Fqx \
 if command -v nm >/dev/null 2>&1; then
     nm -u \
         "$output_dir/sim.o" \
+        "$output_dir/sim_content.o" \
+        "$output_dir/sim_movement.o" \
         "$output_dir/sim_replay.o" \
         "$output_dir/sim_rl.o" \
         "$output_dir/sim_sha256.o" \

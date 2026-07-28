@@ -426,7 +426,10 @@ static int complete_sample(
         rate_count == UINT64_C(0) ||
         checksum < INT64_C(0))
     {
-        set_text_error(error, "invalid benchmark timing or checksum");
+        if (error[0] == '\0')
+        {
+            set_text_error(error, "invalid benchmark timing or checksum");
+        }
         return 0;
     }
     sample->iterations = iterations;
@@ -1366,6 +1369,15 @@ int pf_benchmark_run_all(
         PF_PROFILE_FRAME_MARK();
         if (scenario_succeeded == 0)
         {
+            char detail[PF_BENCHMARK_ERROR_CAPACITY];
+
+            (void)snprintf(detail, sizeof(detail), "%s", error);
+            (void)snprintf(
+                error,
+                PF_BENCHMARK_ERROR_CAPACITY,
+                "%.48s: %.180s",
+                results[scenario_index].descriptor->name,
+                detail);
             return 0;
         }
     }
