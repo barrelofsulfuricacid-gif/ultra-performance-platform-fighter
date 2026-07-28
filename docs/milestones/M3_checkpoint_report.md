@@ -1,6 +1,6 @@
 # M3 checkpoint report
 
-**Status:** Qualified; owner approval required before M4
+**Status:** Approved by owner; M4 authorized
 
 **Checkpoint build:** `55619230599dddff2833bfc6e90e1bf6172e166c`
 
@@ -111,8 +111,6 @@ pass.
 
 ## Owner checkpoint
 
-The governing plan requires owner review of benchmark stability, graphs, and
-verifier qualification before M4 begins.
-
-- **A — Approve M3 and proceed to M4.**
-- **B — Request changes before M4.**
+The owner selected **A — Approve M3 and proceed to M4** on 2026-07-28 after
+reviewing the benchmark stability, graphs, profile status, verifier
+qualification, privacy-safe evidence, and green clean-machine matrix.

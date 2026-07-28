@@ -1,7 +1,6 @@
 # M3 performance and verifier progress
 
-**Status:** Implementation and clean-commit evidence passed; owner checkpoint
-pending
+**Status:** Complete; owner approved M3 and authorized M4
 
 ## Performance history
 
@@ -119,6 +118,4 @@ does not set that override and retains leak discovery.
 
 ## Remaining checkpoint work
 
-- Obtain the mandatory owner approval before beginning M4.
-- Present benchmark stability, graphs, profile status, and verifier
-  qualification for the mandatory owner checkpoint.
+None. The owner selected checkpoint option A on 2026-07-28.
