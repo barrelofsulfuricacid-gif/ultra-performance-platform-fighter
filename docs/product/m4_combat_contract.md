@@ -1,94 +1,139 @@
-# M4 first combat-primitive contract
+# M4 combat and hit-reaction checkpoint contract
 
 ## Scope
 
-This checkpoint adds the first production-path M4.2 combat action to the
-original placeholder fighter. It establishes the deterministic hit pipeline
-that later ground, aerial, special, grab, shield, and recovery actions will
-reuse. It does not claim the rest of M4.2 or any of the 61-technique M4
-acceptance gate.
+This checkpoint extends the first production-path M4.2 ground attack with the
+first deterministic defensive reaction layer: trajectory DI, SDI, ASDI,
+tumble, missed-tech knockdown, tech in place, and directional ground tech.
+These primitives use the same normalized input, simulation, save/load, replay,
+RL, and browser paths.
 
-The action is entered by a rising edge on the input-schema-2 attack bit while
-the fighter is grounded and outside jump squat, landing, hitlag, hitstun, or an
-existing attack. There is no universal input buffer. The default data defines
-two startup ticks, two active ticks, eight recovery ticks, and four hitlag
-ticks. Ground traction continues during the action.
+This is still an incremental checkpoint. It does not claim the remaining
+attacks, shields, wall/ceiling techs, get-up choices, tech invulnerability,
+stocks, match completion, or completion of the 61-row non-character-specific
+advanced-technique gate.
 
-## Collision and ownership
+## Attack, collision, and ownership
 
-- The fighter content table defines hitbox offset, half extents, damage, base
-  launch, damage growth, hitstun conversion, and phase durations.
-- The active hitbox is an axis-aligned box mirrored by fighter facing. A
-  fighter hurtbox is the existing data-driven body box.
-- Each target can be hit once by one execution of the action. Its player bit is
-  retained in canonical attack state through active frames and hitlag.
+The ground attack is entered by a rising edge on the input-schema-2 attack bit
+while the fighter is grounded and outside a locked action. There is no
+universal input buffer. The default data defines two startup ticks, two active
+ticks, eight recovery ticks, and four hitlag ticks.
+
+- Fighter content defines hitbox offset and extents, damage, base launch,
+  damage growth, hitstun conversion, and phase durations.
+- The active axis-aligned hitbox is mirrored by facing. The hurtbox is the
+  existing data-driven body box.
+- Each target can be hit once per attack execution.
 - Self-hits and same-team hits are rejected.
 - If multiple legal hitboxes overlap one target on the same tick, the lower
-  attacker slot owns that target. Different targets can still be hit on the
-  same tick.
+  attacker slot owns that target.
 - A simultaneous trade resolves both hits. Being hit takes precedence over
   attacker-only hitlag, so each traded fighter resumes in hitstun.
 
-Collision is resolved once after every active player has completed movement
-for the tick. This makes ownership independent of the order in which movement
-was stepped.
+Collision resolves once after every active player completes movement for the
+tick, making ownership independent of player step order.
 
 ## Damage, hitlag, launch, and hitstun
 
-Damage is unsigned Q16.16 percent and saturates at 999%. The default action
-adds 6%. Launch uses the target's post-hit damage:
+Damage is unsigned Q16.16 percent and saturates at 999%. The default attack
+adds 6%. Launch uses post-hit damage:
 
 - horizontal launch is facing-signed base X plus damage-scaled growth;
 - vertical launch is upward base Y plus half the damage-scaled growth; and
-- validated content and runtime saturation keep both components inside the
-  canonical motion-speed bound.
+- validation and runtime saturation keep both components inside the canonical
+  motion-speed bound.
 
 On impact, attacker and target enter four frozen ticks. The target retains a
-pending launch vector and hitstun duration in canonical state, then becomes
-airborne in `HITSTUN` when hitlag ends. Hitstun duration is the ceiling of the
-sum of absolute launch components divided by the data-defined velocity per
-tick, clamped to 1–600 ticks. Player control, jump, attack, fast fall, and
-aerial steering are ignored during hitstun; normal deterministic gravity and
-stage landing collision still apply.
+pending launch vector and hitstun duration, then becomes airborne in
+`HITSTUN`. Hitstun is the ceiling of the sum of absolute launch components
+divided by the data-defined velocity per tick, clamped to 1–600 ticks.
 
-Crossing a blast boundary resets damage and transient attack, hitlag, and
-hitstun state with the existing placeholder respawn. The most recent hit
-metadata remains diagnostic history until the next hit or full simulation
-reset.
+A target enters tumble when that computed hitstun reaches the data-defined
+threshold, 32 ticks by default. Jump, attack, fast fall, and ordinary steering
+remain locked during hitstun; deterministic gravity and stage collision
+continue.
+
+## DI, SDI, and ASDI
+
+The hit target can affect its reaction through the normalized main stick:
+
+- SDI reads each hitlag tick. Crossing the 0.5-axis threshold into a new
+  horizontal or vertical component applies a 0.3-unit normalized positional
+  shift. Holding the same direction does not repeat a pulse; adding the second
+  component of a diagonal does.
+- ASDI applies one 0.15-unit normalized positional shift from the final hitlag
+  input.
+- Trajectory DI reads the final hitlag input and rotates pending launch toward
+  the stick's perpendicular component. Full perpendicular input reaches the
+  data-defined 18-degree maximum. Parallel input produces no rotation.
+- The fixed-point DI path uses deterministic integer square root and
+  renormalizes the rotated vector to preserve launch speed within integer
+  truncation.
+- A hitlag shift cannot pass downward through a floor or pass-through
+  platform. A grounded shift can move upward or beyond a support edge and
+  become airborne.
+
+The attacker does not receive target SDI/ASDI/DI behavior from attacker-only
+hitlag.
+
+## Tumble landing and ground tech
+
+Either analog trigger at or above the data-defined digital threshold is the
+tech input. A rising edge opens a 20-tick tech window and starts a 40-tick
+lockout. Holding the trigger does not reopen the window; it must be released
+and pressed again after lockout.
+
+When a tumbling fighter contacts a floor or pass-through platform:
+
+- an open window plus neutral horizontal input enters `TECH_IN_PLACE` for 20
+  ticks;
+- an open window plus horizontal input enters `TECH_ROLL` for 24 ticks in that
+  direction at the data-defined roll speed; and
+- no open window enters `KNOCKDOWN` for 30 ticks.
+
+These actions currently return directly to ground idle. Invulnerability,
+missed-tech get-up choices, attack interruption, and wall/ceiling techs remain
+explicit follow-up work and are not implied by these state names.
 
 ## Canonical state and inspection
 
-State schema 4 / save format 3 appends:
+State schema 5 / save format 4 adds per-player tech-window and lockout timers,
+digital-trigger edge state, tumble, SDI pulse count and component directions,
+and tech-roll direction. The active magic is `PFSAVE04`; the fixed stream is
+541 bytes: a 140-byte header plus a 401-byte payload.
 
-- a monotonic combat-event sequence;
-- per-player damage and pending launch;
-- per-player last-hit sequence, tick, damage, and attacker;
-- per-player hitlag and hitstun timers;
-- the post-hitlag resume action; and
-- the per-attack hit mask.
+Loading validates every new timer, flag, direction, action relationship,
+inactive slot, and pending-launch bound before replacing live state. Saving
+during hitlag and continuing after load must produce the same per-tick hashes.
 
-The format is a fixed 501-byte stream and validates every timer, enum,
-relationship, player bit, attacker identity, inactive slot, and pending-launch
-bound before atomic load. Saving during hitlag and continuing after load must
-produce the same per-tick hashes.
-
-Inspection schema 3 exposes percent, hitlag, hitstun, active hitbox bounds,
-attack hit mask, and last-hit metadata. The browser adapter renders active
-hitboxes and shows percent/timers without creating presentation-only collision
-objects.
+Inspection schema 4 exposes percent, hitlag, hitstun, tumble, tech window and
+lockout, trigger-held state, SDI count/direction, tech direction, active
+hitbox bounds, and last-hit metadata. Browser view schema 3 carries the
+reaction fields used by the live state cards.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover:
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 28 focused
+invariants, including:
 
-- startup, active, recovery, facing, whiff, and one-hit-per-action behavior;
-- damage, hit ownership, hitlag freeze, launch, hitstun control lockout, and
-  simultaneous trades;
-- rejection of content whose maximum launch would exceed canonical bounds;
-- save/load and 80-tick future equality from the middle of hitlag; and
-- a 20,000-tick four-player team trace that exercises combat and validates a
-  canonical hash after every tick.
+- attack schedule, facing, whiff, damage, ownership, freeze, launch, hitstun,
+  one-hit masks, and simultaneous trades;
+- first-component SDI, held-direction rejection, diagonal second-component
+  SDI, ASDI/DI launch application, approximate speed preservation, and
+  deterministic direction;
+- missed tech, in-place tech, directional tech roll, 20-tick window, 40-tick
+  lockout, and held-trigger edge behavior;
+- rejection of invalid reaction content;
+- mid-hitlag save/load plus 80 future equal hashes; and
+- a 20,000-tick four-player team trace with a canonical hash after every tick.
 
-The shared 180-tick native/WebAssembly replay corpus now contains real attack
-inputs and confirmed hit events. The browser startup refuses readiness unless
-its movement probe and a production-path damage/hitlag probe both pass.
+The 180-tick replay corpus now includes vertical stick and trigger inputs and
+requires observed SDI and tech-window state before encoding. Native and
+WebAssembly runs must agree on all 181 state hashes, the 31,233-byte replay,
+and its final digest.
+
+The browser startup refuses readiness unless independent movement, attack, and
+reaction probes pass. Its reaction probe uses the production hit path to
+observe an SDI displacement, then verifies trigger edge, window, and lockout
+timers.

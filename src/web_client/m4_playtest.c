@@ -16,9 +16,9 @@
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 20
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 25
 #define PF_WEB_M4_VIEW_PLAYER0 14
-#define PF_WEB_M4_VIEW_COUNT 54
+#define PF_WEB_M4_VIEW_COUNT 64
 
 enum pf_web_m4_view_field
 {
@@ -55,7 +55,12 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_HITBOX_RIGHT = 16,
     PF_WEB_M4_VIEW_PLAYER_HITBOX_TOP = 17,
     PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM = 18,
-    PF_WEB_M4_VIEW_PLAYER_LAST_HIT_SEQUENCE = 19
+    PF_WEB_M4_VIEW_PLAYER_LAST_HIT_SEQUENCE = 19,
+    PF_WEB_M4_VIEW_PLAYER_TECH_WINDOW = 20,
+    PF_WEB_M4_VIEW_PLAYER_TECH_LOCKOUT = 21,
+    PF_WEB_M4_VIEW_PLAYER_TUMBLE = 22,
+    PF_WEB_M4_VIEW_PLAYER_SDI_PULSE_COUNT = 23,
+    PF_WEB_M4_VIEW_PLAYER_TECH_DIRECTION = 24
 };
 
 typedef struct pf_web_m4_storage
@@ -70,7 +75,8 @@ extern void pf_web_m4_playtest_install(
     int walk_axis,
     int dash_axis,
     int input_probe_passed,
-    int combat_probe_passed);
+    int combat_probe_passed,
+    int reaction_probe_passed);
 
 extern void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -87,9 +93,11 @@ static void pf_web_m4_make_inputs(
     int16_t player0_x,
     int16_t player0_y,
     uint64_t player0_buttons,
+    uint16_t player0_trigger,
     int16_t player1_x,
     int16_t player1_y,
-    uint64_t player1_buttons)
+    uint64_t player1_buttons,
+    uint16_t player1_trigger)
 {
     uint32_t player_index;
 
@@ -109,18 +117,22 @@ static void pf_web_m4_make_inputs(
     inputs[0].main_stick_x = player0_x;
     inputs[0].main_stick_y = player0_y;
     inputs[0].buttons = player0_buttons;
+    inputs[0].left_trigger = player0_trigger;
     inputs[1].main_stick_x = player1_x;
     inputs[1].main_stick_y = player1_y;
     inputs[1].buttons = player1_buttons;
+    inputs[1].left_trigger = player1_trigger;
 }
 
-static int pf_web_m4_tick(
+static int pf_web_m4_tick_with_triggers(
     int16_t player0_x,
     int16_t player0_y,
     uint64_t player0_buttons,
+    uint16_t player0_trigger,
     int16_t player1_x,
     int16_t player1_y,
     uint64_t player1_buttons,
+    uint16_t player1_trigger,
     pf_m4_inspection *out_inspection)
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -138,9 +150,11 @@ static int pf_web_m4_tick(
         player0_x,
         player0_y,
         player0_buttons,
+        player0_trigger,
         player1_x,
         player1_y,
-        player1_buttons);
+        player1_buttons,
+        player1_trigger);
     return pf_sim_tick(
                pf_web_m4_sim,
                inputs,
@@ -148,6 +162,27 @@ static int pf_web_m4_tick(
                &result) == PF_STATUS_OK &&
            pf_m4_inspect(pf_web_m4_sim, out_inspection) ==
                PF_STATUS_OK;
+}
+
+static int pf_web_m4_tick(
+    int16_t player0_x,
+    int16_t player0_y,
+    uint64_t player0_buttons,
+    int16_t player1_x,
+    int16_t player1_y,
+    uint64_t player1_buttons,
+    pf_m4_inspection *out_inspection)
+{
+    return pf_web_m4_tick_with_triggers(
+        player0_x,
+        player0_y,
+        player0_buttons,
+        UINT16_C(0),
+        player1_x,
+        player1_y,
+        player1_buttons,
+        UINT16_C(0),
+        out_inspection);
 }
 
 static int pf_web_m4_reset_internal(void)
@@ -364,6 +399,109 @@ static int pf_web_m4_run_combat_probe(void)
            inspection.players[1].last_hit_attacker == UINT8_C(0);
 }
 
+static int pf_web_m4_run_reaction_probe(void)
+{
+    pf_m4_inspection inspection;
+    int32_t target_x_before_sdi;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(27); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                -PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        return 0;
+    }
+    target_x_before_sdi = inspection.players[1].position_x_q16;
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[1].sdi_pulse_count != UINT8_C(1) ||
+        inspection.players[1].position_x_q16 <= target_x_before_sdi)
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].tech_window_ticks !=
+            pf_web_m4_content.fighter.tech_window_ticks ||
+        inspection.players[0].tech_lockout_ticks !=
+            pf_web_m4_content.fighter.tech_lockout_ticks ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].tech_window_ticks + UINT16_C(1) !=
+            pf_web_m4_content.fighter.tech_window_ticks ||
+        inspection.players[0].tech_lockout_ticks + UINT16_C(1) !=
+            pf_web_m4_content.fighter.tech_lockout_ticks)
+    {
+        return 0;
+    }
+    return 1;
+}
+
 static int pf_web_m4_render(void)
 {
     pf_m4_inspection inspection;
@@ -376,7 +514,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(2);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(3);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -455,6 +593,17 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_LAST_HIT_SEQUENCE] =
             (int32_t)player->last_hit_sequence;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_WINDOW] =
+            (int32_t)player->tech_window_ticks;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_LOCKOUT] =
+            (int32_t)player->tech_lockout_ticks;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_TUMBLE] =
+            (int32_t)player->tumble;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SDI_PULSE_COUNT] =
+            (int32_t)player->sdi_pulse_count;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_DIRECTION] =
+            (int32_t)player->tech_direction;
     }
 
     pf_web_m4_playtest_render(
@@ -470,6 +619,7 @@ int pf_web_m4_playtest_start(void)
     pf_sim_config config;
     int input_probe_passed;
     int combat_probe_passed;
+    int reaction_probe_passed;
 
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
         pf_m4_make_content_view(
@@ -506,8 +656,10 @@ int pf_web_m4_playtest_start(void)
 
     input_probe_passed = pf_web_m4_run_input_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
+    reaction_probe_passed = pf_web_m4_run_reaction_probe();
     if (input_probe_passed == 0 ||
         combat_probe_passed == 0 ||
+        reaction_probe_passed == 0 ||
         !pf_web_m4_reset_internal())
     {
         return 0;
@@ -516,7 +668,8 @@ int pf_web_m4_playtest_start(void)
         (int)PF_WEB_M4_WALK_AXIS,
         (int)PF_WEB_M4_DASH_AXIS,
         input_probe_passed,
-        combat_probe_passed);
+        combat_probe_passed,
+        reaction_probe_passed);
     return pf_web_m4_render();
 }
 
@@ -525,10 +678,12 @@ int pf_web_m4_playtest_step(
     int player0_y,
     int player0_jump,
     int player0_attack,
+    int player0_shield,
     int player1_x,
     int player1_y,
     int player1_jump,
-    int player1_attack)
+    int player1_attack,
+    int player1_shield)
 {
     pf_m4_inspection inspection;
     uint64_t player0_buttons = UINT64_C(0);
@@ -540,8 +695,10 @@ int pf_web_m4_playtest_step(
         player1_y < INT16_MIN || player1_y > INT16_MAX ||
         (player0_jump != 0 && player0_jump != 1) ||
         (player0_attack != 0 && player0_attack != 1) ||
+        (player0_shield != 0 && player0_shield != 1) ||
         (player1_jump != 0 && player1_jump != 1) ||
-        (player1_attack != 0 && player1_attack != 1))
+        (player1_attack != 0 && player1_attack != 1) ||
+        (player1_shield != 0 && player1_shield != 1))
     {
         return 0;
     }
@@ -561,13 +718,15 @@ int pf_web_m4_playtest_step(
     {
         player1_buttons |= PF_INPUT_BUTTON_ATTACK;
     }
-    if (!pf_web_m4_tick(
+    if (!pf_web_m4_tick_with_triggers(
             (int16_t)player0_x,
             (int16_t)player0_y,
             player0_buttons,
+            player0_shield != 0 ? UINT16_MAX : UINT16_C(0),
             (int16_t)player1_x,
             (int16_t)player1_y,
             player1_buttons,
+            player1_shield != 0 ? UINT16_MAX : UINT16_C(0),
             &inspection))
     {
         return 0;

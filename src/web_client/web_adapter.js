@@ -441,12 +441,13 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiii",
+  pf_web_m4_playtest_install__sig: "viiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
     inputProbePassed,
-    combatProbePassed
+    combatProbePassed,
+    reactionProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -523,8 +524,8 @@ mergeInto(LibraryManager.library, {
     var live = document.createElement("span");
     live.className = "pf-m4-live";
     live.textContent =
-      inputProbePassed && combatProbePassed
-        ? "INPUT + COMBAT PROBES PASSED"
+      inputProbePassed && combatProbePassed && reactionProbePassed
+        ? "INPUT + COMBAT + REACTION PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -572,13 +573,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash · Shift + A / D walk · W or Space jump · F attack · S down / fast fall"
+        "A / D dash or DI · Shift + A / D walk · W or Space jump · F attack · G tech trigger · W / S vertical DI"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash · Shift + ← / → walk · ↑ jump · / or Numpad 0 attack · ↓ down / fast fall"
+        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 attack · . or Numpad 1 tech trigger · ↑ / ↓ vertical DI"
       )
     );
     section.appendChild(controls);
@@ -593,7 +594,10 @@ mergeInto(LibraryManager.library, {
       "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
       "release, or jump to ledge-jump. F and / perform the first data-driven " +
-      "ground attack; translucent boxes show its active frames. R resets, P " +
+      "ground attack; translucent boxes show its active frames. During hitlag, " +
+      "change stick direction for SDI and hold a launch direction for DI. Press " +
+      "G or . shortly before a tumble landing to tech in place; hold left or " +
+      "right to tech-roll. R resets, P " +
       "pauses, and N single-steps.";
     section.appendChild(note);
 
@@ -627,6 +631,7 @@ mergeInto(LibraryManager.library, {
       playerStates: playerStates,
       attackQueued: [false, false],
       jumpQueued: [false, false],
+      shieldQueued: [false, false],
       running: true,
       tickLabel: tickLabel,
       walkAxis: walkAxis,
@@ -648,6 +653,13 @@ mergeInto(LibraryManager.library, {
       return held(negative) ? -magnitude : magnitude;
     }
 
+    function vertical(up, down) {
+      if (held(up) === held(down)) {
+        return 0;
+      }
+      return held(up) ? -state.dashAxis : state.dashAxis;
+    }
+
     function step() {
       var player0Jump =
         held("KeyW") || held("Space") || state.jumpQueued[0];
@@ -657,20 +669,27 @@ mergeInto(LibraryManager.library, {
         held("KeyF") || state.attackQueued[0];
       var player1Attack =
         held("Slash") || held("Numpad0") || state.attackQueued[1];
+      var player0Shield = held("KeyG") || state.shieldQueued[0];
+      var player1Shield =
+        held("Period") || held("Numpad1") || state.shieldQueued[1];
       var passed = Module._pf_web_m4_playtest_step(
         horizontal("KeyA", "KeyD"),
-        held("KeyS") ? state.dashAxis : 0,
+        vertical("KeyW", "KeyS"),
         player0Jump ? 1 : 0,
         player0Attack ? 1 : 0,
+        player0Shield ? 1 : 0,
         horizontal("ArrowLeft", "ArrowRight"),
-        held("ArrowDown") ? state.dashAxis : 0,
+        vertical("ArrowUp", "ArrowDown"),
         player1Jump ? 1 : 0,
-        player1Attack ? 1 : 0
+        player1Attack ? 1 : 0,
+        player1Shield ? 1 : 0
       );
       state.jumpQueued[0] = false;
       state.jumpQueued[1] = false;
       state.attackQueued[0] = false;
       state.attackQueued[1] = false;
+      state.shieldQueued[0] = false;
+      state.shieldQueued[1] = false;
       if (!passed) {
         state.running = false;
         state.pauseButton.textContent = "Resume";
@@ -694,6 +713,7 @@ mergeInto(LibraryManager.library, {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
       state.attackQueued = [false, false];
+      state.shieldQueued = [false, false];
       state.accumulator = 0;
       Module._pf_web_m4_playtest_reset();
     }
@@ -734,6 +754,8 @@ mergeInto(LibraryManager.library, {
           event.code === "Space" ||
           event.code === "Slash" ||
           event.code === "Numpad0" ||
+          event.code === "Period" ||
+          event.code === "Numpad1" ||
           event.code.indexOf("Arrow") === 0
         ) {
           event.preventDefault();
@@ -753,6 +775,15 @@ mergeInto(LibraryManager.library, {
           (event.code === "Slash" || event.code === "Numpad0")
         ) {
           state.attackQueued[1] = true;
+        }
+        if (!wasHeld && event.code === "KeyG") {
+          state.shieldQueued[0] = true;
+        }
+        if (
+          !wasHeld &&
+          (event.code === "Period" || event.code === "Numpad1")
+        ) {
+          state.shieldQueued[1] = true;
         }
         if (event.repeat) {
           return;
@@ -774,6 +805,7 @@ mergeInto(LibraryManager.library, {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
       state.attackQueued = [false, false];
+      state.shieldQueued = [false, false];
     });
 
     if (status) {
@@ -782,10 +814,14 @@ mergeInto(LibraryManager.library, {
         (inputProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
+        " reaction_probe=" +
+        (reactionProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
+      status.dataset.reactionProbe =
+        reactionProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -793,7 +829,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 54) {
+    if (!state || viewCount !== 64) {
       return;
     }
     state.latest = new Int32Array(
@@ -828,6 +864,9 @@ mergeInto(LibraryManager.library, {
       "GROUND ATTACK",
       "HITLAG",
       "HITSTUN",
+      "KNOCKDOWN",
+      "TECH IN PLACE",
+      "TECH ROLL",
     ];
 
     function sx(q16Value) {
@@ -878,7 +917,7 @@ mergeInto(LibraryManager.library, {
     context.stroke();
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 14 + playerIndex * 20;
+      var base = 14 + playerIndex * 25;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -958,7 +997,17 @@ mergeInto(LibraryManager.library, {
         " · hitstun " +
         view[base + 13] +
         " · hit event " +
-        view[base + 19];
+        view[base + 19] +
+        "<br>tumble " +
+        view[base + 22] +
+        " · SDI pulses " +
+        view[base + 23] +
+        " · tech window " +
+        view[base + 20] +
+        " · lockout " +
+        view[base + 21] +
+        " · tech direction " +
+        view[base + 24];
     });
 
     context.fillStyle = "#8da2bb";

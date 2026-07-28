@@ -271,6 +271,11 @@ pf_status pf_m4_resolve_combat(
                 &content->fighter,
                 scratch->pending_velocity_x_q16[target_index],
                 scratch->pending_velocity_y_q16[target_index]);
+        scratch->tumble[target_index] =
+            scratch->hitstun_ticks[target_index] >=
+                    content->fighter.tumble_hitstun_threshold_ticks
+                ? UINT8_C(1)
+                : UINT8_C(0);
         scratch->hitlag_ticks[target_index] =
             content->fighter.jab_hitlag_ticks;
         scratch->hitlag_resume_action[target_index] =
@@ -282,6 +287,10 @@ pf_status pf_m4_resolve_combat(
         scratch->short_hop_latched[target_index] = UINT8_C(0);
         scratch->fast_fall[target_index] = UINT8_C(0);
         scratch->attack_hit_mask[target_index] = UINT8_C(0);
+        scratch->sdi_pulse_count[target_index] = UINT8_C(0);
+        scratch->sdi_direction_x[target_index] = INT8_C(0);
+        scratch->sdi_direction_y[target_index] = INT8_C(0);
+        scratch->tech_direction[target_index] = INT8_C(0);
 
         if (scratch->combat_event_sequence != UINT32_MAX)
         {

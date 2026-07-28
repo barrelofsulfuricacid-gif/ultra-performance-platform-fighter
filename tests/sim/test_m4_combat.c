@@ -10,7 +10,7 @@
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
-#define TEST_SAVE_CAPACITY 512U
+#define TEST_SAVE_CAPACITY 1024U
 #define TEST_DETERMINISTIC_TICKS UINT64_C(20000)
 
 typedef struct test_sim_storage
@@ -64,6 +64,29 @@ static int make_combat_content(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
         "combat-content-view");
+}
+
+static int make_reaction_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!make_combat_content(out_content, out_view))
+    {
+        return 0;
+    }
+
+    out_content->fighter.jab_base_knockback_x_q16 =
+        (INT32_C(9) * PF_Q16_ONE) / INT32_C(10);
+    out_content->fighter.jab_base_knockback_y_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    out_content->fighter.jab_knockback_growth_q16 =
+        PF_Q16_ONE / INT32_C(4096);
+    out_content->fighter.tumble_hitstun_threshold_ticks =
+        UINT16_C(20);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "reaction-content-view");
 }
 
 static int initialize_sim(
@@ -127,12 +150,13 @@ static void make_inputs(
     }
 }
 
-static int step_players(
+static int step_players_with_triggers(
     pf_sim *sim,
     uint8_t player_count,
     const int16_t axes_x[PF_SIM_MAX_PLAYERS],
     const int16_t axes_y[PF_SIM_MAX_PLAYERS],
     const uint64_t buttons[PF_SIM_MAX_PLAYERS],
+    const uint16_t left_triggers[PF_SIM_MAX_PLAYERS],
     pf_m4_inspection *out_inspection)
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -155,6 +179,8 @@ static int step_players(
         inputs[player_index].main_stick_x = axes_x[player_index];
         inputs[player_index].main_stick_y = axes_y[player_index];
         inputs[player_index].buttons = buttons[player_index];
+        inputs[player_index].left_trigger =
+            left_triggers[player_index];
     }
     return expect_status(
                pf_sim_tick(
@@ -168,6 +194,27 @@ static int step_players(
                pf_m4_inspect(sim, out_inspection),
                PF_STATUS_OK,
                "inspect-after-step");
+}
+
+static int step_players(
+    pf_sim *sim,
+    uint8_t player_count,
+    const int16_t axes_x[PF_SIM_MAX_PLAYERS],
+    const int16_t axes_y[PF_SIM_MAX_PLAYERS],
+    const uint64_t buttons[PF_SIM_MAX_PLAYERS],
+    pf_m4_inspection *out_inspection)
+{
+    const uint16_t left_triggers[PF_SIM_MAX_PLAYERS] = {
+        UINT16_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(0)};
+
+    return step_players_with_triggers(
+        sim,
+        player_count,
+        axes_x,
+        axes_y,
+        buttons,
+        left_triggers,
+        out_inspection);
 }
 
 static int step_duel(
@@ -194,6 +241,43 @@ static int step_duel(
         axes_x,
         axes_y,
         buttons,
+        out_inspection);
+}
+
+static int step_reaction_duel(
+    pf_sim *sim,
+    int16_t player0_x,
+    int16_t player0_y,
+    uint64_t player0_buttons,
+    uint16_t player0_trigger,
+    int16_t player1_x,
+    int16_t player1_y,
+    uint64_t player1_buttons,
+    uint16_t player1_trigger,
+    pf_m4_inspection *out_inspection)
+{
+    const int16_t axes_x[PF_SIM_MAX_PLAYERS] = {
+        player0_x, player1_x, INT16_C(0), INT16_C(0)};
+    const int16_t axes_y[PF_SIM_MAX_PLAYERS] = {
+        player0_y, player1_y, INT16_C(0), INT16_C(0)};
+    const uint64_t buttons[PF_SIM_MAX_PLAYERS] = {
+        player0_buttons,
+        player1_buttons,
+        UINT64_C(0),
+        UINT64_C(0)};
+    const uint16_t left_triggers[PF_SIM_MAX_PLAYERS] = {
+        player0_trigger,
+        player1_trigger,
+        UINT16_C(0),
+        UINT16_C(0)};
+
+    return step_players_with_triggers(
+        sim,
+        UINT8_C(2),
+        axes_x,
+        axes_y,
+        buttons,
+        left_triggers,
         out_inspection);
 }
 
@@ -290,9 +374,9 @@ static int run_one_way_hit_test(
     {
         if (!step_duel(
                 sim,
-                INT16_C(32767),
+                INT16_C(0),
                 PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_ATTACK,
-                INT16_C(-32767),
+                INT16_C(0),
                 PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_ATTACK,
                 &inspection) ||
             inspection.players[0].position_x_q16 != frozen_x[0] ||
@@ -427,6 +511,353 @@ static int run_whiff_and_trade_test(
     return 1;
 }
 
+static int start_reaction_hit(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    return step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               out_inspection) &&
+           step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               out_inspection) &&
+           step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               out_inspection) &&
+           out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_HITLAG;
+}
+
+static int run_di_and_sdi_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage sdi_storage;
+    test_sim_storage neutral_storage;
+    test_sim_storage di_storage;
+    pf_sim *sdi_sim = NULL;
+    pf_sim *neutral_sim = NULL;
+    pf_sim *di_sim = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection neutral_inspection;
+    pf_m4_inspection di_inspection;
+    int32_t hit_x;
+    int32_t hit_y;
+    int32_t first_pulse_x;
+    uint32_t freeze_tick;
+    int64_t neutral_speed_squared;
+    int64_t di_speed_squared;
+    int64_t speed_difference;
+
+    if (!initialize_sim(
+            &sdi_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sdi_sim) ||
+        !initialize_sim(
+            &neutral_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &neutral_sim) ||
+        !initialize_sim(
+            &di_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &di_sim) ||
+        !start_reaction_hit(sdi_sim, &inspection))
+    {
+        return fail("reaction-init");
+    }
+
+    hit_x = inspection.players[1].position_x_q16;
+    hit_y = inspection.players[1].position_y_q16;
+    if (!step_reaction_duel(
+            sdi_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].sdi_pulse_count != UINT8_C(1) ||
+        inspection.players[1].position_x_q16 <= hit_x ||
+        inspection.players[1].position_y_q16 != hit_y)
+    {
+        return fail("sdi-first-component");
+    }
+    first_pulse_x = inspection.players[1].position_x_q16;
+
+    if (!step_reaction_duel(
+            sdi_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].sdi_pulse_count != UINT8_C(1) ||
+        inspection.players[1].position_x_q16 != first_pulse_x ||
+        !step_reaction_duel(
+            sdi_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(-32767),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].sdi_pulse_count != UINT8_C(2) ||
+        inspection.players[1].position_x_q16 <= first_pulse_x ||
+        inspection.players[1].position_y_q16 >= hit_y)
+    {
+        return fail("sdi-hold-and-quarter-circle");
+    }
+
+    if (!start_reaction_hit(neutral_sim, &neutral_inspection) ||
+        !start_reaction_hit(di_sim, &di_inspection))
+    {
+        return fail("di-hit-setup");
+    }
+    for (freeze_tick = UINT32_C(0);
+         freeze_tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++freeze_tick)
+    {
+        const int16_t di_y =
+            freeze_tick + UINT32_C(1) ==
+                    (uint32_t)content->fighter.jab_hitlag_ticks
+                ? INT16_C(-32767)
+                : INT16_C(0);
+
+        if (!step_reaction_duel(
+                neutral_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &neutral_inspection) ||
+            !step_reaction_duel(
+                di_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                di_y,
+                UINT64_C(0),
+                UINT16_C(0),
+                &di_inspection))
+        {
+            return fail("di-freeze-step");
+        }
+    }
+
+    neutral_speed_squared =
+        (int64_t)neutral_inspection.players[1].velocity_x_q16 *
+            (int64_t)neutral_inspection.players[1].velocity_x_q16 +
+        (int64_t)neutral_inspection.players[1].velocity_y_q16 *
+            (int64_t)neutral_inspection.players[1].velocity_y_q16;
+    di_speed_squared =
+        (int64_t)di_inspection.players[1].velocity_x_q16 *
+            (int64_t)di_inspection.players[1].velocity_x_q16 +
+        (int64_t)di_inspection.players[1].velocity_y_q16 *
+            (int64_t)di_inspection.players[1].velocity_y_q16;
+    speed_difference =
+        di_speed_squared >= neutral_speed_squared
+            ? di_speed_squared - neutral_speed_squared
+            : neutral_speed_squared - di_speed_squared;
+    if (neutral_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITSTUN ||
+        di_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITSTUN ||
+        neutral_inspection.players[1].tumble != UINT8_C(1) ||
+        di_inspection.players[1].velocity_y_q16 >=
+            neutral_inspection.players[1].velocity_y_q16 ||
+        di_inspection.players[1].velocity_x_q16 >=
+            neutral_inspection.players[1].velocity_x_q16 ||
+        speed_difference > neutral_speed_squared / INT64_C(100))
+    {
+        return fail("trajectory-di-angle-and-magnitude");
+    }
+    return 1;
+}
+
+static int run_until_reaction_landing(
+    pf_sim *sim,
+    int tech_mode,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+    int trigger_sent = 0;
+
+    if (!start_reaction_hit(sim, out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        const pf_m4_player_inspection *target =
+            &out_inspection->players[1];
+        const int should_trigger =
+            tech_mode != 0 &&
+            trigger_sent == 0 &&
+            target->action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            target->velocity_y_q16 > INT32_C(0) &&
+            target->position_y_q16 +
+                    PF_Q16_ONE >=
+                INT32_C(32) * PF_Q16_ONE;
+        const int16_t target_x =
+            tech_mode > 1 &&
+                    (should_trigger || trigger_sent != 0)
+                ? INT16_C(32767)
+                : INT16_C(0);
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                target_x,
+                INT16_C(0),
+                UINT64_C(0),
+                should_trigger
+                    ? UINT16_MAX
+                    : UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (should_trigger)
+        {
+            trigger_sent = 1;
+        }
+        if (out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        {
+            return tech_mode == 0 || trigger_sent != 0;
+        }
+    }
+    return 0;
+}
+
+static int run_knockdown_and_tech_test(
+    const pf_content_view *view)
+{
+    test_sim_storage missed_storage;
+    test_sim_storage in_place_storage;
+    test_sim_storage roll_storage;
+    pf_sim *missed = NULL;
+    pf_sim *in_place = NULL;
+    pf_sim *roll = NULL;
+    pf_m4_inspection missed_inspection;
+    pf_m4_inspection in_place_inspection;
+    pf_m4_inspection roll_inspection;
+
+    if (!initialize_sim(
+            &missed_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &missed) ||
+        !initialize_sim(
+            &in_place_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &in_place) ||
+        !initialize_sim(
+            &roll_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &roll) ||
+        !run_until_reaction_landing(
+            missed,
+            0,
+            &missed_inspection) ||
+        !run_until_reaction_landing(
+            in_place,
+            1,
+            &in_place_inspection) ||
+        !run_until_reaction_landing(
+            roll,
+            2,
+            &roll_inspection))
+    {
+        return fail("tech-landing-setup");
+    }
+
+    if (missed_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+        missed_inspection.players[1].grounded != UINT8_C(1) ||
+        in_place_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+        in_place_inspection.players[1].tech_direction != INT8_C(0) ||
+        in_place_inspection.players[1].tech_window_ticks !=
+            UINT16_C(0) ||
+        in_place_inspection.players[1].tech_lockout_ticks ==
+            UINT16_C(0) ||
+        roll_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+        roll_inspection.players[1].tech_direction != INT8_C(1) ||
+        roll_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
+        roll_inspection.players[1].tumble != UINT8_C(0))
+    {
+        return fail("missed-tech-in-place-and-roll");
+    }
+    return 1;
+}
+
 static int run_hitlag_snapshot_test(const pf_content_view *view)
 {
     test_sim_storage source_storage;
@@ -484,7 +915,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)501)
+        save_size != (size_t)541)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -691,9 +1122,14 @@ int main(void)
 {
     pf_m4_content content;
     pf_m4_content invalid_content;
+    pf_m4_content reaction_content;
     pf_content_view view;
+    pf_content_view reaction_view;
 
-    if (!make_combat_content(&content, &view))
+    if (!make_combat_content(&content, &view) ||
+        !make_reaction_content(
+            &reaction_content,
+            &reaction_view))
     {
         return 1;
     }
@@ -706,6 +1142,10 @@ int main(void)
             "reject-overflowing-knockback") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_whiff_and_trade_test(&content, &view) ||
+        !run_di_and_sdi_test(
+            &reaction_content,
+            &reaction_view) ||
+        !run_knockdown_and_tech_test(&reaction_view) ||
         !run_hitlag_snapshot_test(&view) ||
         !run_deterministic_trace(&view))
     {
@@ -714,7 +1154,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=14\n",
+        " combat_invariants=28\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

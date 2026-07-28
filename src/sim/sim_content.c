@@ -74,6 +74,10 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
+    pf_m4_hash_i32(hash, fighter->di_max_tangent_q16);
+    pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
+    pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
+    pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
@@ -90,6 +94,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->jab_active_ticks);
     pf_m4_hash_u16(hash, fighter->jab_recovery_ticks);
     pf_m4_hash_u16(hash, fighter->jab_hitlag_ticks);
+    pf_m4_hash_u16(hash, fighter->sdi_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->digital_trigger_threshold);
+    pf_m4_hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
+    pf_m4_hash_u16(hash, fighter->tech_window_ticks);
+    pf_m4_hash_u16(hash, fighter->tech_lockout_ticks);
+    pf_m4_hash_u16(hash, fighter->tech_in_place_ticks);
+    pf_m4_hash_u16(hash, fighter->tech_roll_ticks);
+    pf_m4_hash_u16(hash, fighter->knockdown_ticks);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
 }
 
@@ -193,6 +205,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_base_knockback_y_q16 = PF_Q16_RATIO(11, 50);
     fighter->jab_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
     fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
+    fighter->di_max_tangent_q16 = INT32_C(21294);
+    fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
+    fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
+    fighter->tech_roll_speed_q16 = PF_Q16_RATIO(1, 5);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->landing_ticks = UINT16_C(4);
@@ -209,6 +225,14 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_active_ticks = UINT16_C(2);
     fighter->jab_recovery_ticks = UINT16_C(8);
     fighter->jab_hitlag_ticks = UINT16_C(4);
+    fighter->sdi_axis_threshold = UINT16_C(16384);
+    fighter->digital_trigger_threshold = UINT16_C(32768);
+    fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
+    fighter->tech_window_ticks = UINT16_C(20);
+    fighter->tech_lockout_ticks = UINT16_C(40);
+    fighter->tech_in_place_ticks = UINT16_C(20);
+    fighter->tech_roll_ticks = UINT16_C(24);
+    fighter->knockdown_ticks = UINT16_C(30);
     fighter->air_jump_count = UINT8_C(1);
 
     stage = &out_content->stage;
@@ -323,6 +347,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->jab_knockback_growth_q16 <= INT32_C(0) ||
         fighter->hitstun_velocity_per_tick_q16 <= INT32_C(0) ||
+        fighter->di_max_tangent_q16 <= INT32_C(0) ||
+        fighter->di_max_tangent_q16 > PF_Q16_ONE ||
+        fighter->sdi_distance_q16 <= INT32_C(0) ||
+        fighter->sdi_distance_q16 >
+            INT32_C(4) * PF_Q16_ONE ||
+        fighter->asdi_distance_q16 <= INT32_C(0) ||
+        fighter->asdi_distance_q16 >
+            fighter->sdi_distance_q16 ||
+        fighter->tech_roll_speed_q16 <= INT32_C(0) ||
+        fighter->tech_roll_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_x >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_y >
@@ -387,6 +422,23 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_recovery_ticks > UINT16_C(240) ||
         fighter->jab_hitlag_ticks == UINT16_C(0) ||
         fighter->jab_hitlag_ticks > UINT16_C(120) ||
+        fighter->sdi_axis_threshold <= fighter->axis_dead_zone ||
+        fighter->sdi_axis_threshold > UINT16_C(32767) ||
+        fighter->digital_trigger_threshold == UINT16_C(0) ||
+        fighter->tumble_hitstun_threshold_ticks == UINT16_C(0) ||
+        fighter->tumble_hitstun_threshold_ticks >
+            PF_SIM_MAX_HITSTUN_TICKS ||
+        fighter->tech_window_ticks == UINT16_C(0) ||
+        fighter->tech_window_ticks > UINT16_C(120) ||
+        fighter->tech_lockout_ticks <
+            fighter->tech_window_ticks ||
+        fighter->tech_lockout_ticks > UINT16_C(240) ||
+        fighter->tech_in_place_ticks == UINT16_C(0) ||
+        fighter->tech_in_place_ticks > UINT16_C(240) ||
+        fighter->tech_roll_ticks == UINT16_C(0) ||
+        fighter->tech_roll_ticks > UINT16_C(240) ||
+        fighter->knockdown_ticks == UINT16_C(0) ||
+        fighter->knockdown_ticks > UINT16_C(480) ||
         fighter->air_jump_count > UINT8_C(8))
     {
         return PF_STATUS_INVALID_CONFIG;

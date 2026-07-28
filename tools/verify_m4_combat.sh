@@ -42,7 +42,7 @@ common_flags="
 
 "$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
 grep -Fqx \
-    'm4-combat=pass content_schema=3 deterministic_ticks=20000 combat_invariants=14' \
+    'm4-combat=pass content_schema=4 deterministic_ticks=20000 combat_invariants=28' \
     "$output_dir/m4_combat.txt"
 
-echo "m4-combat-verification=pass invariants=14 deterministic_ticks=20000"
+echo "m4-combat-verification=pass invariants=28 deterministic_ticks=20000"

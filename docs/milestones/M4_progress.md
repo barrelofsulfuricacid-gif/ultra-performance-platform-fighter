@@ -1,6 +1,7 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 movement/ledge core and first M4.2 combat primitive implemented
+**Status:** In progress; M4.1 movement/ledge core, first M4.2 combat primitive,
+and first hit-reaction/ground-tech layer implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -18,14 +19,15 @@
   release, ledge jump, and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-4/save-format-3 contract that serializes every
-  future-affecting movement and first-combat-primitive field.
+- A rollback-safe state-schema-5/save-format-4 contract that serializes every
+  future-affecting movement, attack, hit-reaction, and ground-tech field.
 - Replay format 1 regenerated against the new canonical state schema and real
   attack/hit inputs, with native and WebAssembly comparisons still using the
   same corpus path.
 - A public `pf_m4_inspect` surface for movement state, active ledge claims,
   ledge points, moving-platform geometry, blast zones, percent, hitlag,
-  hitstun, active hitbox bounds, and last-hit metadata.
+  hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
+  metadata.
 - Twenty-six movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
@@ -34,8 +36,8 @@
 - Explicit full-magnitude dash/dash-dance keys and reduced-magnitude walk keys
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
-  dash-dance reversal, short/full-hop apex, and real damage/hitlag invariants
-  pass.
+  dash-dance reversal, short/full-hop apex, real damage/hitlag, and
+  reaction-input invariants pass.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -49,11 +51,29 @@
   hitstun control lockout, gravity/landing continuation, and blast reset.
 - A monotonic rollback-safe combat-event sequence with per-target last-hit
   tick, attacker, and damage.
-- Fourteen focused combat invariants, mid-hitlag save/load continuation, and a
-  20,000-tick four-player deterministic combat trace under active
-  `M4-COMBAT` verification.
+- Twenty-eight focused attack/reaction invariants, mid-hitlag save/load
+  continuation, and a 20,000-tick four-player deterministic combat trace under
+  active `M4-COMBAT` verification.
 - Browser attack controls (`F` and `/` or Numpad `0`), active-hitbox overlay,
   percent/hitlag/hitstun inspection, and an independent combat startup probe.
+
+## Delivered in the first hit-reaction slice
+
+- Fixed-point trajectory DI read on the final hitlag tick, with a data-defined
+  18-degree maximum and deterministic launch-speed renormalization.
+- Component-edge SDI during target hitlag plus final-tick ASDI, with
+  data-defined thresholds and distances and collision-safe positional shifts.
+- Data-defined tumble threshold and explicit `KNOCKDOWN`, `TECH_IN_PLACE`, and
+  `TECH_ROLL` action states.
+- A rising analog-trigger edge opens the 20-tick tech window and 40-tick
+  lockout; held input cannot retrigger it.
+- Neutral and directional ground-tech outcomes on floor and pass-through
+  platform contact, with explicit locked-action durations.
+- Browser vertical DI and tech inputs, live tumble/SDI/tech inspection, and an
+  independent startup probe that observes production-path SDI displacement
+  and tech-timer behavior.
+- Canonical replay inputs now exercise vertical axes and trigger edges and
+  require observed SDI and tech-window state.
 
 The exact first-primitive behavior and intentional remaining scope are fixed in
 [`m4_combat_contract.md`](../product/m4_combat_contract.md).
@@ -95,9 +115,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Remaining M4.2 and M4.3 work
 
 - Remaining ground attacks, aerials, specials, recovery, grabs/throws, shields,
-  shield stun/damage, rolls, spot dodge, air dodge, launch angles, DI/SDI,
-  stale-move behavior, teching, knockdown, stocks, respawn invulnerability,
-  match result, and the complete bounded combat-event journal.
+  shield stun/damage, defensive rolls, spot dodge, air dodge, complete
+  knockback/angle data, stale-move behavior, wall/ceiling techs, missed-tech
+  get-up choices, tech invulnerability, stocks, respawn invulnerability, match
+  result, and the complete bounded combat-event journal.
 - Local setup, complete 1v1 loop, results/rematch, replay visualization,
   collision/hitbox overlay, and repeated verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
@@ -108,19 +129,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 16/16 tests.
 - Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracle: 26 invariants and 20,000 deterministic four-player ticks.
+- Mechanical oracles: 26 movement invariants, 28 attack/reaction invariants,
+  and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
-- Native replay corpus: exact 180-tick combat trace at 31,193 bytes; fresh
-  WebAssembly byte comparison remains mandatory in CI.
-- Clean Chrome CI executes the generated Wasm, canonical replay inspector, and
-  live playtest DOM.
+- Native replay corpus: exact 180-tick attack/reaction trace at 31,233 bytes,
+  replay SHA-256
+  `feb69cb963cddc95efef39560fa0da1f53a12b5b95256f01e96a373466efa400`,
+  final SHA-256
+  `8e9817abd3c9cf89189fae146a44c3acbc00c4090bf461f03b2a00956b1da532`;
+  local native/WebAssembly output is byte-identical and CI repeats it.
+- Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
+  live-playtest DOM gate.
 
 ## Browser-adapter verification
 
 - Strict-warning native adapter contract: pass
-  (`walk_axis=13500`, `dash_axis=32767`, movement/combat probes and live
-  rendering).
+  (`walk_axis=13500`, `dash_axis=32767`, movement/combat/reaction probes and
+  live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

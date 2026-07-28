@@ -179,12 +179,28 @@ pf_status pf_sim_tick_impl(
             scratch->hitlag_ticks[player_index];
         world->hitstun_ticks[player_index] =
             scratch->hitstun_ticks[player_index];
+        world->tech_window_ticks[player_index] =
+            scratch->tech_window_ticks[player_index];
+        world->tech_lockout_ticks[player_index] =
+            scratch->tech_lockout_ticks[player_index];
         world->hitlag_resume_action[player_index] =
             scratch->hitlag_resume_action[player_index];
         world->attack_hit_mask[player_index] =
             scratch->attack_hit_mask[player_index];
         world->last_hit_attacker[player_index] =
             scratch->last_hit_attacker[player_index];
+        world->shield_held[player_index] =
+            scratch->shield_held[player_index];
+        world->tumble[player_index] =
+            scratch->tumble[player_index];
+        world->sdi_pulse_count[player_index] =
+            scratch->sdi_pulse_count[player_index];
+        world->sdi_direction_x[player_index] =
+            scratch->sdi_direction_x[player_index];
+        world->sdi_direction_y[player_index] =
+            scratch->sdi_direction_y[player_index];
+        world->tech_direction[player_index] =
+            scratch->tech_direction[player_index];
     }
     world->combat_event_sequence = scratch->combat_event_sequence;
 

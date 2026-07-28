@@ -55,6 +55,33 @@ static uint16_t pf_m4_axis_magnitude(int16_t axis)
     return (uint16_t)axis;
 }
 
+static uint32_t pf_m4_u64_sqrt(uint64_t value)
+{
+    uint64_t result = UINT64_C(0);
+    uint64_t bit = UINT64_C(1) << 62U;
+
+    while (bit > value)
+    {
+        bit >>= 2U;
+    }
+    while (bit != UINT64_C(0))
+    {
+        if (value >= result + bit)
+        {
+            value -= result + bit;
+            result = (result >> 1U) + bit;
+        }
+        else
+        {
+            result >>= 1U;
+        }
+        bit >>= 2U;
+    }
+    return result > (uint64_t)UINT32_MAX
+               ? UINT32_MAX
+               : (uint32_t)result;
+}
+
 static int8_t pf_m4_axis_direction(int16_t axis, uint16_t dead_zone)
 {
     if (axis > (int16_t)dead_zone)
@@ -66,6 +93,15 @@ static int8_t pf_m4_axis_direction(int16_t axis, uint16_t dead_zone)
         return INT8_C(-1);
     }
     return INT8_C(0);
+}
+
+static int8_t pf_m4_sdi_direction(int16_t axis, uint16_t threshold)
+{
+    if (pf_m4_axis_magnitude(axis) < threshold)
+    {
+        return INT8_C(0);
+    }
+    return axis < INT16_C(0) ? INT8_C(-1) : INT8_C(1);
 }
 
 static int8_t pf_m4_strong_direction(
@@ -152,10 +188,210 @@ static void pf_m4_surface_bounds_q16(
     }
 }
 
+static pf_status pf_m4_apply_hitlag_shift(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    int16_t stick_x,
+    int16_t stick_y,
+    int32_t distance_q16)
+{
+    const pf_m4_fighter_data *fighter = &content->fighter;
+    const pf_m4_stage_data *stage = &content->stage;
+    const int64_t stick_x_64 = (int64_t)stick_x;
+    const int64_t stick_y_64 = (int64_t)stick_y;
+    const uint64_t stick_length_squared =
+        (uint64_t)(stick_x_64 * stick_x_64) +
+        (uint64_t)(stick_y_64 * stick_y_64);
+    const uint32_t stick_length =
+        pf_m4_u64_sqrt(stick_length_squared);
+    const int64_t denominator =
+        stick_length > UINT32_C(32767)
+            ? (int64_t)stick_length
+            : INT64_C(32767);
+    const int32_t old_x = scratch->position_x_q16[player_index];
+    const int32_t old_y = scratch->position_y_q16[player_index];
+    int32_t next_x;
+    int32_t next_y;
+    int64_t shifted_x;
+    int64_t shifted_y;
+
+    if (stick_length == UINT32_C(0))
+    {
+        return PF_STATUS_OK;
+    }
+
+    shifted_x =
+        (int64_t)old_x +
+        (stick_x_64 * (int64_t)distance_q16) / denominator;
+    shifted_y =
+        (int64_t)old_y +
+        (stick_y_64 * (int64_t)distance_q16) / denominator;
+    if (!pf_m4_checked_i32(shifted_x, &next_x) ||
+        !pf_m4_checked_i32(shifted_y, &next_y))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    if (scratch->grounded[player_index] != UINT8_C(0))
+    {
+        const uint8_t support = scratch->support[player_index];
+        const int32_t surface_y =
+            pf_m4_surface_y_q16(content, support);
+        const int32_t standing_y =
+            surface_y - fighter->half_height_q16;
+        int32_t surface_left;
+        int32_t surface_right;
+
+        if (next_y > standing_y)
+        {
+            next_y = standing_y;
+        }
+        pf_m4_surface_bounds_q16(
+            content,
+            support,
+            world->tick,
+            &surface_left,
+            &surface_right);
+        if (next_y < standing_y ||
+            next_x < surface_left ||
+            next_x > surface_right)
+        {
+            scratch->grounded[player_index] = UINT8_C(0);
+            scratch->support[player_index] =
+                (uint8_t)PF_M4_SURFACE_NONE;
+        }
+    }
+    else if (next_y > old_y)
+    {
+        const int32_t old_bottom =
+            old_y + fighter->half_height_q16;
+        const int32_t next_bottom =
+            next_y + fighter->half_height_q16;
+        const int32_t platform_center =
+            pf_m4_platform_center_x_q16(stage, world->tick);
+        const int32_t platform_left =
+            platform_center - stage->platform_half_width_q16;
+        const int32_t platform_right =
+            platform_center + stage->platform_half_width_q16;
+        const int crosses_platform =
+            next_x >= platform_left &&
+            next_x <= platform_right &&
+            old_bottom <= stage->platform_y_q16 &&
+            next_bottom >= stage->platform_y_q16;
+        const int crosses_floor =
+            next_x >= stage->floor_left_q16 &&
+            next_x <= stage->floor_right_q16 &&
+            old_bottom <= stage->floor_y_q16 &&
+            next_bottom >= stage->floor_y_q16;
+
+        if (crosses_platform || crosses_floor)
+        {
+            next_y = old_y;
+        }
+    }
+
+    scratch->position_x_q16[player_index] = next_x;
+    scratch->position_y_q16[player_index] = next_y;
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_m4_apply_directional_influence(
+    const pf_m4_fighter_data *fighter,
+    int16_t stick_x,
+    int16_t stick_y,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16)
+{
+    const int64_t velocity_x = (int64_t)*velocity_x_q16;
+    const int64_t velocity_y_math =
+        -(int64_t)*velocity_y_q16;
+    const int64_t stick_x_64 = (int64_t)stick_x;
+    const int64_t stick_y_math = -(int64_t)stick_y;
+    const uint64_t speed_squared =
+        (uint64_t)(velocity_x * velocity_x) +
+        (uint64_t)(velocity_y_math * velocity_y_math);
+    const uint32_t speed = pf_m4_u64_sqrt(speed_squared);
+    const int64_t denominator =
+        (int64_t)speed * INT64_C(32767);
+    int64_t cross;
+    int64_t turn_fraction_q16;
+    int64_t tangent_q16;
+    int64_t candidate_x;
+    int64_t candidate_y;
+    uint64_t candidate_speed_squared;
+    uint32_t candidate_speed;
+    int64_t influenced_x;
+    int64_t influenced_y;
+
+    if (speed == UINT32_C(0) ||
+        (pf_m4_axis_magnitude(stick_x) <= fighter->axis_dead_zone &&
+         pf_m4_axis_magnitude(stick_y) <= fighter->axis_dead_zone))
+    {
+        return PF_STATUS_OK;
+    }
+
+    cross =
+        velocity_x * stick_y_math -
+        velocity_y_math * stick_x_64;
+    if (cross > denominator)
+    {
+        cross = denominator;
+    }
+    else if (cross < -denominator)
+    {
+        cross = -denominator;
+    }
+    turn_fraction_q16 =
+        (cross * (int64_t)PF_Q16_ONE) / denominator;
+    tangent_q16 =
+        ((int64_t)fighter->di_max_tangent_q16 *
+         turn_fraction_q16) /
+        (int64_t)PF_Q16_ONE;
+
+    candidate_x =
+        velocity_x -
+        (velocity_y_math * tangent_q16) /
+            (int64_t)PF_Q16_ONE;
+    candidate_y =
+        velocity_y_math +
+        (velocity_x * tangent_q16) /
+            (int64_t)PF_Q16_ONE;
+    candidate_speed_squared =
+        (uint64_t)(candidate_x * candidate_x) +
+        (uint64_t)(candidate_y * candidate_y);
+    candidate_speed = pf_m4_u64_sqrt(candidate_speed_squared);
+    if (candidate_speed == UINT32_C(0))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    influenced_x =
+        candidate_x * (int64_t)speed /
+        (int64_t)candidate_speed;
+    influenced_y =
+        candidate_y * (int64_t)speed /
+        (int64_t)candidate_speed;
+    if (!pf_m4_checked_i32(influenced_x, velocity_x_q16) ||
+        !pf_m4_checked_i32(-influenced_y, velocity_y_q16))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    return PF_STATUS_OK;
+}
+
 static int pf_m4_action_uses_ledge(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
            action_state == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB;
+}
+
+static int pf_m4_action_locks_ground_control(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+           action_state == (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+           action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL;
 }
 
 static uint8_t pf_m4_ledge_from_state(
@@ -383,9 +619,17 @@ void pf_m4_reset_player(
     sim->world.last_hit_damage_q16[player_index] = UINT32_C(0);
     sim->world.hitlag_ticks[player_index] = UINT16_C(0);
     sim->world.hitstun_ticks[player_index] = UINT16_C(0);
+    sim->world.tech_window_ticks[player_index] = UINT16_C(0);
+    sim->world.tech_lockout_ticks[player_index] = UINT16_C(0);
     sim->world.hitlag_resume_action[player_index] = UINT8_C(0);
     sim->world.attack_hit_mask[player_index] = UINT8_C(0);
     sim->world.last_hit_attacker[player_index] = UINT8_C(0);
+    sim->world.shield_held[player_index] = UINT8_C(0);
+    sim->world.tumble[player_index] = UINT8_C(0);
+    sim->world.sdi_pulse_count[player_index] = UINT8_C(0);
+    sim->world.sdi_direction_x[player_index] = INT8_C(0);
+    sim->world.sdi_direction_y[player_index] = INT8_C(0);
+    sim->world.tech_direction[player_index] = INT8_C(0);
 }
 
 static void pf_m4_land(
@@ -413,6 +657,89 @@ static void pf_m4_land(
     *short_hop_latched = UINT8_C(0);
     *fast_fall = UINT8_C(0);
     *dash_direction = INT8_C(0);
+}
+
+static void pf_m4_land_from_air(
+    const pf_m4_fighter_data *fighter,
+    int32_t surface_y_q16,
+    uint8_t surface,
+    int16_t horizontal_input,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    int32_t *position_y,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint8_t *grounded,
+    uint8_t *action_state,
+    uint8_t *support,
+    uint8_t *air_jumps_remaining,
+    uint8_t *short_hop_latched,
+    uint8_t *fast_fall,
+    int8_t *dash_direction)
+{
+    const int8_t roll_direction =
+        pf_m4_axis_direction(
+            horizontal_input,
+            fighter->axis_dead_zone);
+
+    if (scratch->tumble[player_index] == UINT8_C(0))
+    {
+        pf_m4_land(
+            fighter,
+            surface_y_q16,
+            surface,
+            position_y,
+            velocity_y,
+            action_ticks,
+            grounded,
+            action_state,
+            support,
+            air_jumps_remaining,
+            short_hop_latched,
+            fast_fall,
+            dash_direction);
+        scratch->tech_direction[player_index] = INT8_C(0);
+        return;
+    }
+
+    *position_y = surface_y_q16 - fighter->half_height_q16;
+    *velocity_y = INT32_C(0);
+    *action_ticks = UINT16_C(0);
+    *grounded = UINT8_C(1);
+    *support = surface;
+    *air_jumps_remaining = fighter->air_jump_count;
+    *short_hop_latched = UINT8_C(0);
+    *fast_fall = UINT8_C(0);
+    *dash_direction = INT8_C(0);
+    scratch->hitstun_ticks[player_index] = UINT16_C(0);
+    scratch->tumble[player_index] = UINT8_C(0);
+
+    if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
+    {
+        scratch->tech_window_ticks[player_index] = UINT16_C(0);
+        if (roll_direction == INT8_C(0))
+        {
+            *velocity_x = INT32_C(0);
+            *action_state =
+                (uint8_t)PF_M4_ACTION_TECH_IN_PLACE;
+            scratch->tech_direction[player_index] = INT8_C(0);
+        }
+        else
+        {
+            *velocity_x =
+                (int32_t)roll_direction *
+                fighter->tech_roll_speed_q16;
+            *action_state = (uint8_t)PF_M4_ACTION_TECH_ROLL;
+            scratch->tech_direction[player_index] = roll_direction;
+        }
+    }
+    else
+    {
+        *velocity_x = INT32_C(0);
+        *action_state = (uint8_t)PF_M4_ACTION_KNOCKDOWN;
+        scratch->tech_direction[player_index] = INT8_C(0);
+    }
 }
 
 static void pf_m4_write_scratch(
@@ -479,12 +806,28 @@ static void pf_m4_copy_combat_scratch(
         world->hitlag_ticks[player_index];
     scratch->hitstun_ticks[player_index] =
         world->hitstun_ticks[player_index];
+    scratch->tech_window_ticks[player_index] =
+        world->tech_window_ticks[player_index];
+    scratch->tech_lockout_ticks[player_index] =
+        world->tech_lockout_ticks[player_index];
     scratch->hitlag_resume_action[player_index] =
         world->hitlag_resume_action[player_index];
     scratch->attack_hit_mask[player_index] =
         world->attack_hit_mask[player_index];
     scratch->last_hit_attacker[player_index] =
         world->last_hit_attacker[player_index];
+    scratch->shield_held[player_index] =
+        world->shield_held[player_index];
+    scratch->tumble[player_index] =
+        world->tumble[player_index];
+    scratch->sdi_pulse_count[player_index] =
+        world->sdi_pulse_count[player_index];
+    scratch->sdi_direction_x[player_index] =
+        world->sdi_direction_x[player_index];
+    scratch->sdi_direction_y[player_index] =
+        world->sdi_direction_y[player_index];
+    scratch->tech_direction[player_index] =
+        world->tech_direction[player_index];
 }
 
 pf_status pf_m4_step_player(
@@ -504,6 +847,12 @@ pf_status pf_m4_step_player(
     const int attack_pressed =
         (input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_ATTACK) == UINT64_C(0);
+    const int shield_held =
+        input->left_trigger >= fighter->digital_trigger_threshold ||
+        input->right_trigger >= fighter->digital_trigger_threshold;
+    const int shield_pressed =
+        shield_held != 0 &&
+        world->shield_held[player_index] == UINT8_C(0);
     const uint16_t horizontal_magnitude =
         pf_m4_axis_magnitude(input->main_stick_x);
     const int8_t horizontal_direction =
@@ -540,11 +889,77 @@ pf_status pf_m4_step_player(
     int released_ledge_this_tick = 0;
     int hitstun_locked;
     int64_t next_position;
+    pf_status status;
 
     pf_m4_copy_combat_scratch(world, scratch, player_index);
+    if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
+    {
+        --scratch->tech_window_ticks[player_index];
+    }
+    if (scratch->tech_lockout_ticks[player_index] > UINT16_C(0))
+    {
+        --scratch->tech_lockout_ticks[player_index];
+    }
+    if (shield_pressed != 0 &&
+        scratch->tech_lockout_ticks[player_index] == UINT16_C(0))
+    {
+        scratch->tech_window_ticks[player_index] =
+            fighter->tech_window_ticks;
+        scratch->tech_lockout_ticks[player_index] =
+            fighter->tech_lockout_ticks;
+    }
+    scratch->shield_held[player_index] =
+        shield_held != 0 ? UINT8_C(1) : UINT8_C(0);
 
     if (scratch->hitlag_ticks[player_index] > UINT16_C(0))
     {
+        scratch->position_x_q16[player_index] = position_x;
+        scratch->position_y_q16[player_index] = position_y;
+        scratch->grounded[player_index] = grounded;
+        scratch->support[player_index] = support;
+        if (scratch->hitlag_resume_action[player_index] ==
+            (uint8_t)PF_M4_ACTION_HITSTUN)
+        {
+            const int8_t sdi_x =
+                pf_m4_sdi_direction(
+                    input->main_stick_x,
+                    fighter->sdi_axis_threshold);
+            const int8_t sdi_y =
+                pf_m4_sdi_direction(
+                    input->main_stick_y,
+                    fighter->sdi_axis_threshold);
+            const int new_sdi_component =
+                (sdi_x != INT8_C(0) &&
+                 sdi_x !=
+                     scratch->sdi_direction_x[player_index]) ||
+                (sdi_y != INT8_C(0) &&
+                 sdi_y !=
+                     scratch->sdi_direction_y[player_index]);
+
+            if (new_sdi_component)
+            {
+                status = pf_m4_apply_hitlag_shift(
+                    content,
+                    world,
+                    scratch,
+                    player_index,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    fighter->sdi_distance_q16);
+                if (status != PF_STATUS_OK)
+                {
+                    return status;
+                }
+                if (scratch->sdi_pulse_count[player_index] !=
+                    UINT8_MAX)
+                {
+                    ++scratch->sdi_pulse_count[player_index];
+                }
+            }
+            scratch->sdi_direction_x[player_index] = sdi_x;
+            scratch->sdi_direction_y[player_index] = sdi_y;
+        }
+
         --scratch->hitlag_ticks[player_index];
         action_state = (uint8_t)PF_M4_ACTION_HITLAG;
         if (scratch->hitlag_ticks[player_index] == UINT16_C(0))
@@ -554,6 +969,30 @@ pf_status pf_m4_step_player(
             scratch->hitlag_resume_action[player_index] = UINT8_C(0);
             if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
             {
+                status = pf_m4_apply_hitlag_shift(
+                    content,
+                    world,
+                    scratch,
+                    player_index,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    fighter->asdi_distance_q16);
+                if (status != PF_STATUS_OK)
+                {
+                    return status;
+                }
+                status = pf_m4_apply_directional_influence(
+                    fighter,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    &scratch
+                         ->pending_velocity_x_q16[player_index],
+                    &scratch
+                         ->pending_velocity_y_q16[player_index]);
+                if (status != PF_STATUS_OK)
+                {
+                    return status;
+                }
                 velocity_x =
                     scratch->pending_velocity_x_q16[player_index];
                 velocity_y =
@@ -564,10 +1003,19 @@ pf_status pf_m4_step_player(
                     INT32_C(0);
                 grounded = UINT8_C(0);
                 support = (uint8_t)PF_M4_SURFACE_NONE;
+                scratch->grounded[player_index] = UINT8_C(0);
+                scratch->support[player_index] =
+                    (uint8_t)PF_M4_SURFACE_NONE;
                 fast_fall = UINT8_C(0);
                 dash_direction = INT8_C(0);
             }
+            scratch->sdi_direction_x[player_index] = INT8_C(0);
+            scratch->sdi_direction_y[player_index] = INT8_C(0);
         }
+        position_x = scratch->position_x_q16[player_index];
+        position_y = scratch->position_y_q16[player_index];
+        grounded = scratch->grounded[player_index];
+        support = scratch->support[player_index];
         pf_m4_write_scratch(
             scratch,
             player_index,
@@ -753,6 +1201,7 @@ pf_status pf_m4_step_player(
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         action_state != (uint8_t)PF_M4_ACTION_LANDING &&
         action_state != (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        !pf_m4_action_locks_ground_control(action_state) &&
         attack_pressed)
     {
         action_state = (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
@@ -768,6 +1217,7 @@ pf_status pf_m4_step_player(
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         action_state != (uint8_t)PF_M4_ACTION_LANDING &&
         action_state != (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        !pf_m4_action_locks_ground_control(action_state) &&
         jump_pressed)
     {
         action_state = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
@@ -777,6 +1227,38 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        pf_m4_action_locks_ground_control(action_state))
+    {
+        uint16_t duration;
+
+        if (action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        {
+            duration = fighter->tech_roll_ticks;
+            velocity_x =
+                (int32_t)scratch->tech_direction[player_index] *
+                fighter->tech_roll_speed_q16;
+        }
+        else
+        {
+            duration =
+                action_state ==
+                        (uint8_t)PF_M4_ACTION_TECH_IN_PLACE
+                    ? fighter->tech_in_place_ticks
+                    : fighter->knockdown_ticks;
+            velocity_x = INT32_C(0);
+        }
+        ++action_ticks;
+        if (action_ticks >= duration)
+        {
+            action_state =
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+            velocity_x = INT32_C(0);
+            scratch->tech_direction[player_index] = INT8_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
     {
@@ -1124,6 +1606,7 @@ pf_status pf_m4_step_player(
                 velocity_y = -fighter->double_jump_speed_q16;
                 --air_jumps_remaining;
                 fast_fall = UINT8_C(0);
+                scratch->tumble[player_index] = UINT8_C(0);
             }
         }
     }
@@ -1156,6 +1639,7 @@ pf_status pf_m4_step_player(
             short_hop_latched = UINT8_C(0);
             fast_fall = UINT8_C(0);
             dash_direction = INT8_C(0);
+            scratch->tech_direction[player_index] = INT8_C(0);
         }
         else
         {
@@ -1221,11 +1705,15 @@ pf_status pf_m4_step_player(
                 previous_bottom <= stage->platform_y_q16 &&
                 new_bottom >= stage->platform_y_q16)
             {
-                pf_m4_land(
+                pf_m4_land_from_air(
                     fighter,
                     stage->platform_y_q16,
                     (uint8_t)PF_M4_SURFACE_PLATFORM,
+                    input->main_stick_x,
+                    scratch,
+                    player_index,
                     &position_y,
+                    &velocity_x,
                     &velocity_y,
                     &action_ticks,
                     &grounded,
@@ -1241,11 +1729,15 @@ pf_status pf_m4_step_player(
                      previous_bottom <= stage->floor_y_q16 &&
                      new_bottom >= stage->floor_y_q16)
             {
-                pf_m4_land(
+                pf_m4_land_from_air(
                     fighter,
                     stage->floor_y_q16,
                     (uint8_t)PF_M4_SURFACE_FLOOR,
+                    input->main_stick_x,
+                    scratch,
+                    player_index,
                     &position_y,
+                    &velocity_x,
                     &velocity_y,
                     &action_ticks,
                     &grounded,
@@ -1286,24 +1778,28 @@ pf_status pf_m4_step_player(
         action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
         platform_drop_ticks == UINT8_C(0))
     {
-        (void)pf_m4_try_grab_ledge(
-            content,
-            world,
-            scratch,
-            player_index,
-            &position_x,
-            &position_y,
-            &velocity_x,
-            &velocity_y,
-            &action_ticks,
-            &grounded,
-            &action_state,
-            &support,
-            &air_jumps_remaining,
-            &short_hop_latched,
-            &fast_fall,
-            facing,
-            &dash_direction);
+        if (pf_m4_try_grab_ledge(
+                content,
+                world,
+                scratch,
+                player_index,
+                &position_x,
+                &position_y,
+                &velocity_x,
+                &velocity_y,
+                &action_ticks,
+                &grounded,
+                &action_state,
+                &support,
+                &air_jumps_remaining,
+                &short_hop_latched,
+                &fast_fall,
+                facing,
+                &dash_direction))
+        {
+            scratch->tumble[player_index] = UINT8_C(0);
+            scratch->tech_direction[player_index] = INT8_C(0);
+        }
     }
 
     if (position_x < stage->blast_left_q16 ||
@@ -1341,8 +1837,15 @@ pf_status pf_m4_step_player(
         scratch->pending_velocity_y_q16[player_index] = INT32_C(0);
         scratch->hitlag_ticks[player_index] = UINT16_C(0);
         scratch->hitstun_ticks[player_index] = UINT16_C(0);
+        scratch->tech_window_ticks[player_index] = UINT16_C(0);
+        scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
         scratch->hitlag_resume_action[player_index] = UINT8_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        scratch->shield_held[player_index] = UINT8_C(0);
+        scratch->tumble[player_index] = UINT8_C(0);
+        scratch->sdi_direction_x[player_index] = INT8_C(0);
+        scratch->sdi_direction_y[player_index] = INT8_C(0);
+        scratch->tech_direction[player_index] = INT8_C(0);
     }
     else
     {
@@ -1477,6 +1980,10 @@ pf_status pf_m4_inspect(
             sim->world.hitlag_ticks[player_index];
         player->hitstun_ticks =
             sim->world.hitstun_ticks[player_index];
+        player->tech_window_ticks =
+            sim->world.tech_window_ticks[player_index];
+        player->tech_lockout_ticks =
+            sim->world.tech_lockout_ticks[player_index];
         player->attack_hit_mask =
             sim->world.attack_hit_mask[player_index];
         player->last_hit_valid =
@@ -1485,6 +1992,17 @@ pf_status pf_m4_inspect(
                 : UINT8_C(0);
         player->last_hit_attacker =
             sim->world.last_hit_attacker[player_index];
+        player->shield_held =
+            sim->world.shield_held[player_index];
+        player->tumble = sim->world.tumble[player_index];
+        player->sdi_pulse_count =
+            sim->world.sdi_pulse_count[player_index];
+        player->sdi_direction_x =
+            sim->world.sdi_direction_x[player_index];
+        player->sdi_direction_y =
+            sim->world.sdi_direction_y[player_index];
+        player->tech_direction =
+            sim->world.tech_direction[player_index];
         player->hitbox_active = (uint8_t)pf_m4_attack_hitbox(
             &sim->content,
             player->position_x_q16,

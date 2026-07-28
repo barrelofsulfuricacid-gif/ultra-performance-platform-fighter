@@ -18,7 +18,7 @@
 #define TEST_HASH_COUNT 181U
 #define TEST_REPLAY_CAPACITY 32768U
 #define TEST_OPTIONAL_REPLAY_CAPACITY 32816U
-#define TEST_INPUT_PAYLOAD_OFFSET 785U
+#define TEST_INPUT_PAYLOAD_OFFSET 825U
 
 _Static_assert(
     TEST_INPUT_COUNT == PF_M2_REPLAY_TICKS * PF_M2_REPLAY_PLAYERS,
@@ -239,6 +239,8 @@ int main(void)
     char final_digest_hex[65];
     size_t replay_size = (size_t)0;
     uint64_t tick;
+    int sdi_observed = 0;
+    int tech_window_observed = 0;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -319,9 +321,32 @@ int main(void)
                     source_sim,
                     &corpus_hashes[(size_t)tick + (size_t)1]),
                 PF_STATUS_OK,
-                "source-tick-hash"))
+                "source-tick-hash") ||
+            !expect_status(
+                pf_m4_inspect(source_sim, &combat_inspection),
+                PF_STATUS_OK,
+                "source-tick-inspection"))
         {
             return 1;
+        }
+        {
+            uint32_t player_index;
+
+            for (player_index = UINT32_C(0);
+                 player_index < (uint32_t)PF_M2_REPLAY_PLAYERS;
+                 ++player_index)
+            {
+                if (combat_inspection.players[player_index].
+                        sdi_pulse_count > UINT8_C(0))
+                {
+                    sdi_observed = 1;
+                }
+                if (combat_inspection.players[player_index].
+                        tech_window_ticks > UINT16_C(0))
+                {
+                    tech_window_observed = 1;
+                }
+            }
         }
     }
     if (!expect_status(
@@ -335,6 +360,8 @@ int main(void)
         result.terminated != UINT8_C(1) ||
         result.truncated != UINT8_C(0) ||
         result.winner_mask != UINT8_C(5) ||
+        sdi_observed == 0 ||
+        tech_window_observed == 0 ||
         (combat_inspection.players[0].last_hit_valid == UINT8_C(0) &&
          combat_inspection.players[1].last_hit_valid == UINT8_C(0) &&
          combat_inspection.players[2].last_hit_valid == UINT8_C(0) &&
@@ -371,7 +398,7 @@ int main(void)
             pf_replay_query_size(&replay_source, &replay_size),
             PF_STATUS_OK,
             "query-replay-size") ||
-        replay_size != (size_t)31193)
+        replay_size != (size_t)31233)
     {
         (void)fprintf(
             stderr,

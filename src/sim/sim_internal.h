@@ -58,9 +58,17 @@ typedef struct pf_world_state
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
     uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t tech_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
+    uint8_t shield_held[PF_SIM_MAX_PLAYERS];
+    uint8_t tumble[PF_SIM_MAX_PLAYERS];
+    uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
+    int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
+    int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
+    int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint32_t combat_event_sequence;
 } pf_world_state;
 
@@ -91,9 +99,17 @@ typedef struct pf_sim_scratch
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
     uint16_t hitlag_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t hitstun_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t tech_window_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t tech_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
+    uint8_t shield_held[PF_SIM_MAX_PLAYERS];
+    uint8_t tumble[PF_SIM_MAX_PLAYERS];
+    uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
+    int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
+    int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
+    int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint32_t combat_event_sequence;
 } pf_sim_scratch;
 

@@ -57,6 +57,43 @@ void pf_m2_replay_make_tick_inputs(
         (tick % UINT64_C(29)) < UINT64_C(15)
             ? INT16_C(-24576)
             : INT16_C(12288);
+    inputs[0].main_stick_y =
+        (tick % UINT64_C(16)) >= UINT64_C(8) &&
+                (tick % UINT64_C(16)) < UINT64_C(12)
+            ? INT16_MIN
+            : INT16_C(0);
+    inputs[1].main_stick_y =
+        (tick % UINT64_C(18)) >= UINT64_C(9) &&
+                (tick % UINT64_C(18)) < UINT64_C(13)
+            ? INT16_MIN
+            : INT16_C(0);
+    inputs[2].main_stick_y =
+        (tick % UINT64_C(20)) >= UINT64_C(10) &&
+                (tick % UINT64_C(20)) < UINT64_C(14)
+            ? INT16_MIN
+            : INT16_C(0);
+    inputs[3].main_stick_y =
+        (tick % UINT64_C(22)) >= UINT64_C(11) &&
+                (tick % UINT64_C(22)) < UINT64_C(15)
+            ? INT16_MIN
+            : INT16_C(0);
+
+    if (tick % UINT64_C(41) == UINT64_C(7))
+    {
+        inputs[0].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(43) == UINT64_C(11))
+    {
+        inputs[1].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(47) == UINT64_C(13))
+    {
+        inputs[2].left_trigger = UINT16_MAX;
+    }
+    if (tick % UINT64_C(53) == UINT64_C(17))
+    {
+        inputs[3].left_trigger = UINT16_MAX;
+    }
 
     if (tick < UINT64_C(27))
     {

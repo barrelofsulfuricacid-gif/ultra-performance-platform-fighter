@@ -1,18 +1,21 @@
 # M4 real-simulation browser playtest
 
-This checkpoint runs the production `pf_sim_tick` M4 movement and first combat
-primitive in WebAssembly. It is no longer the disposable M0 float32/Q16.16 comparison.
-Both visible players use the same validated M4 fighter and stage content used
-by native, replay, rollback, and headless execution.
+This checkpoint runs the production `pf_sim_tick` M4 movement, first combat
+primitive, and hit-reaction controls in WebAssembly. It is no longer the
+disposable M0 float32/Q16.16 comparison. Both visible players use the same
+validated M4 fighter and stage content used by native, replay, rollback, and
+headless execution.
 
 ## Controls
 
 | Action | Player 1 | Player 2 |
 |---|---|---|
-| Full left/right input | `A` / `D` | Left / Right |
+| Full left/right input and horizontal DI | `A` / `D` | Left / Right |
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Jump | `W` or `Space` | Up |
+| Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Ground attack | `F` | `/` or Numpad `0` |
+| Tech trigger | `G` | `.` or Numpad `1` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -46,7 +49,21 @@ The first placeholder ground attack has two startup ticks, two active ticks,
 and eight recovery ticks. The translucent amber rectangle is the exact
 inspected active hitbox. A hit adds 6%, freezes both fighters for four hitlag
 ticks, then launches the target into hitstun. The state cards show percent,
-hitlag, hitstun, and the last combat-event sequence.
+hitlag, hitstun, tumble, SDI pulse count, tech window/lockout, tech direction,
+and the last combat-event sequence.
+
+During target hitlag, crossing into a new horizontal or vertical stick
+component produces one SDI pulse. Holding that component does not repeat it.
+The final hitlag input also supplies ASDI and trajectory DI, with full
+perpendicular input reaching the configured 18-degree maximum.
+
+`G`, `.`, and Numpad `1` currently drive the normalized analog-trigger path
+used for tech input; the visible shield action itself is not implemented in
+this checkpoint. A new trigger press opens a 20-tick tech window and a 40-tick
+lockout. A tumbling floor/platform impact with neutral horizontal input enters
+`TECH IN PLACE`; holding left or right enters `TECH ROLL`; missing the window
+enters `KNOCKDOWN`. The current light attack needs substantial accumulated
+damage before its hitstun reaches the 32-tick tumble threshold.
 
 ## Focused owner checks
 
@@ -74,7 +91,22 @@ hitlag, hitstun, and the last combat-event sequence.
 10. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
-11. Repeat with Player 2's arrow-key controls and try both players
+11. Pause just before contact and use `N` to step through hitlag. On the first
+    target hitlag tick, press a horizontal direction and confirm `SDI pulses`
+    becomes 1 and the target shifts. Keep holding it for another tick and
+    confirm the count stays 1. Add the vertical component and confirm the count
+    becomes 2.
+12. Compare otherwise similar launches while holding perpendicular opposite
+    vertical directions on the final hitlag tick. Confirm the visible launch
+    vector changes while the state remains deterministic after Reset.
+13. Tap the target's tech key and confirm the state card shows
+    `tech window 20` and `lockout 40`. Hold the key through the next tick and
+    confirm they count down to 19/39 rather than reopening.
+14. After building enough damage for the card to show `tumble 1`, press the
+    target's tech key within 20 ticks of landing. Use neutral horizontal input
+    for `TECH IN PLACE`, then repeat while holding a direction for `TECH ROLL`.
+    Repeat without the tech input and confirm `KNOCKDOWN`.
+15. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -94,10 +126,13 @@ through:
 - two different post-takeoff full-hop hold durations producing the same apex;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
+- a production-path target SDI pulse producing a positional shift;
+- a trigger edge producing the 20-tick tech window and 40-tick lockout, with a
+  held trigger counting down rather than retriggering; and
 - the native movement oracle covering ledge catch, hang, release, jump, climb,
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
-`playtest=ready input_probe=pass combat_probe=pass controls=keyboard-two-player`
-only after all checks pass. Clean-machine Chrome CI also requires that status
-and the live playtest DOM.
+`playtest=ready input_probe=pass combat_probe=pass reaction_probe=pass
+controls=keyboard-two-player` only after all checks pass. Clean-machine Chrome
+CI also requires that status and the live playtest DOM.

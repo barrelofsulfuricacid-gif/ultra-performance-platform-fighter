@@ -1070,7 +1070,7 @@ static int run_ledge_snapshot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[512];
+    uint8_t save_bytes[1024];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t required_bytes = (size_t)0;

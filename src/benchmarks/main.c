@@ -300,7 +300,7 @@ static void make_synthetic_results(
         results[scenario_index].sample_count =
             (uint8_t)repetition_count;
         results[scenario_index].state_bytes = UINT64_C(512);
-        results[scenario_index].snapshot_bytes = UINT64_C(501);
+        results[scenario_index].snapshot_bytes = UINT64_C(541);
         results[scenario_index].median_rate = rate;
         results[scenario_index].mad_rate = rate * 0.001;
         results[scenario_index].p50_ns = 1000000000.0 / rate;
