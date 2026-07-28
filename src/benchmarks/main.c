@@ -152,9 +152,30 @@ static int sqlite_is_locked_version(void)
            strstr(sqlite3_sourceid(), pf_sqlite_source_hash) != NULL;
 }
 
+static const char *benchmark_process_status(
+    const pf_benchmark_history_outcome *outcome)
+{
+    if (outcome->confirmed_regressions != UINT32_C(0))
+    {
+        return "regression";
+    }
+    if (outcome->suspected_regressions != UINT32_C(0))
+    {
+        return "suspected";
+    }
+    return "pass";
+}
+
+static int benchmark_process_exit_code(
+    const pf_benchmark_history_outcome *outcome)
+{
+    return outcome->confirmed_regressions == UINT32_C(0) ? 0 : 3;
+}
+
 static int run_self_test(void)
 {
     pf_benchmark_result results[PF_BENCHMARK_SCENARIO_COUNT];
+    pf_benchmark_history_outcome outcome;
     char error[PF_BENCHMARK_ERROR_CAPACITY];
 
     if (!sqlite_is_locked_version())
@@ -170,6 +191,33 @@ static int run_self_test(void)
             stderr,
             "benchmarks-self-test=fail reason=%s\n",
             error);
+        return 1;
+    }
+    (void)memset(&outcome, 0, sizeof(outcome));
+    if (strcmp(benchmark_process_status(&outcome), "pass") != 0 ||
+        benchmark_process_exit_code(&outcome) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "benchmarks-self-test=fail reason=clean-status-policy\n");
+        return 1;
+    }
+    outcome.suspected_regressions = UINT32_C(1);
+    if (strcmp(benchmark_process_status(&outcome), "suspected") != 0 ||
+        benchmark_process_exit_code(&outcome) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "benchmarks-self-test=fail reason=suspected-status-policy\n");
+        return 1;
+    }
+    outcome.confirmed_regressions = UINT32_C(1);
+    if (strcmp(benchmark_process_status(&outcome), "regression") != 0 ||
+        benchmark_process_exit_code(&outcome) != 3)
+    {
+        (void)fprintf(
+            stderr,
+            "benchmarks-self-test=fail reason=confirmed-status-policy\n");
         return 1;
     }
     (void)printf(
@@ -665,10 +713,7 @@ static int run_benchmarks(const char *run_mode)
         " invalid_comparisons=%" PRIu32
         " suspected_regressions=%" PRIu32
         " confirmed_regressions=%" PRIu32 "\n",
-        outcome.suspected_regressions == UINT32_C(0) &&
-                outcome.confirmed_regressions == UINT32_C(0)
-            ? "pass"
-            : "regression",
+        benchmark_process_status(&outcome),
         PF_BENCHMARK_SCHEMA_VERSION,
         outcome.run_id,
         outcome.available_count,
@@ -676,10 +721,7 @@ static int run_benchmarks(const char *run_mode)
         outcome.invalid_comparisons,
         outcome.suspected_regressions,
         outcome.confirmed_regressions);
-    return outcome.suspected_regressions == UINT32_C(0) &&
-                   outcome.confirmed_regressions == UINT32_C(0)
-               ? 0
-               : 3;
+    return benchmark_process_exit_code(&outcome);
 }
 
 int main(int argument_count, char **arguments)

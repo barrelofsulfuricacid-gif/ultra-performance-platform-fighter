@@ -13,7 +13,7 @@ pf_acceptance="$PF_REPOSITORY_ROOT/verifier/acceptance_manifest.tsv"
 pf_diff="$pf_output_dir/commit_files.txt"
 pf_external="$pf_output_dir/external_checks.tsv"
 pf_check_dir="$pf_output_dir/checks"
-pf_artifact_dir=${PF_VERIFIER_ARTIFACT_DIRECTORY:-"$PF_REPOSITORY_ROOT/performance/local/commits/$pf_commit/artifacts"}
+pf_artifact_dir=${PF_VERIFIER_ARTIFACT_DIRECTORY:-"$PF_REPOSITORY_ROOT/build/verifier-artifacts"}
 pf_content_hash=1728394a5b6c7d8e9fb0c1d2e3f405162738495a6b7c8d9eafc0d1e2f3041526
 
 printf '%s\n' "$pf_commit" |

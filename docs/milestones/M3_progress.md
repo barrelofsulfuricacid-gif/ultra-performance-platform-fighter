@@ -31,7 +31,9 @@ Commit runs use five calibrated repetitions targeting 20 ms per sample.
 Milestone runs use fifteen repetitions targeting 100 ms. A commit regression
 is suspected only beyond the larger of 1% or three measured MAD ratios. A
 milestone regression additionally requires a deterministic 2,000-round
-bootstrap 95% interval below zero.
+bootstrap 95% interval below zero. A suspected commit result remains visible
+in the database, manifest, graph, and verifier log but does not become a hard
+gate until milestone mode confirms it.
 
 Comparison keys include dirty state, run mode, build configuration, full
 compiler command, dependency and content hashes, executable hash, machine,
