@@ -66,13 +66,18 @@ The initial stage table defines:
 
 - one finite floor with explicit left and right ledge points;
 - one pass-through platform with a deterministic integer triangle-wave motion;
+- one raised axis-aligned block that is solid from its top, sides, and
+  underside;
 - spawn spacing for two- and four-player layouts; and
 - top, bottom, left, and right blast boundaries.
 
 A supported fighter inherits the moving platform's exact per-tick displacement.
-Crossing a support edge enters airborne movement. Crossing a blast boundary
-currently performs the M4.1 placeholder respawn and increments the canonical
-respawn counter; stocks and match termination enter in M4.2.
+The block's top is a normal support surface, its sides stop horizontal body
+motion, and its underside stops upward body motion. The floor-level clearance
+under the default block remains traversable. Crossing any support edge enters
+airborne movement. Crossing a blast boundary currently performs the M4.1
+placeholder respawn and increments the canonical respawn counter; stocks and
+match termination enter in M4.2.
 
 Falling beside a floor ledge while facing inward enters a pinned ledge catch.
 The catch has a data-derived lockout before neutral hang, down/away release,
@@ -91,7 +96,7 @@ invalid. The simulation copies validated tables only during initialization.
 geometry without placing presentation objects in canonical state. It includes
   action, action timer, facing, support, remaining air jumps, fast-fall state,
   platform-drop timer, respawn count, active ledge claim, ledge points,
-  moving-platform bounds, and blast zones.
+  moving-platform bounds, solid-block bounds, and blast zones.
 
 ## Verification
 
@@ -104,6 +109,10 @@ geometry without placing presentation objects in canonical state. It includes
   across opposite drift and air-jump input, fast fall, and landing;
 - moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
   one-occupant priority, mid-climb save/load equivalence, platform drop, and
-  blast-zone respawn; and
+  blast-zone respawn;
+- inspectable solid geometry, floor-level traversal beneath it, ordinary side
+  and underside collision, and landing/support on its top; and
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
+
+The focused movement oracle currently reports 35 invariants.

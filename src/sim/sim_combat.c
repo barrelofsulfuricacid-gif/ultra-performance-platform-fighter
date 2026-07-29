@@ -81,7 +81,10 @@ static int pf_m4_action_is_recovery_invulnerable(
 {
     if (action_state ==
             (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
-        action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+        action_state == (uint8_t)PF_M4_ACTION_WALL_TECH ||
+        action_state == (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP ||
+        action_state == (uint8_t)PF_M4_ACTION_CEILING_TECH)
     {
         return action_ticks <
                fighter->tech_invulnerability_ticks;

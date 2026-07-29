@@ -1064,6 +1064,306 @@ static int run_platform_test(const pf_m4_content *default_content)
     return 1;
 }
 
+static int make_solid_geometry_content(
+    const pf_m4_content *default_content,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    *out_content = *default_content;
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(9) * PF_Q16_ONE) / INT32_C(5);
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_half_width_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->stage.solid_left_q16 = INT32_C(0);
+    out_content->stage.solid_right_q16 =
+        INT32_C(8) * PF_Q16_ONE;
+    out_content->stage.solid_top_q16 =
+        INT32_C(25) * PF_Q16_ONE;
+    out_content->stage.solid_bottom_q16 =
+        INT32_C(28) * PF_Q16_ONE;
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "solid-geometry-content-view");
+}
+
+static int run_solid_geometry_test(
+    const pf_m4_content *default_content)
+{
+    test_sim_storage under_storage;
+    test_sim_storage wall_storage;
+    test_sim_storage ceiling_storage;
+    test_sim_storage top_storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim *under = NULL;
+    pf_sim *wall = NULL;
+    pf_sim *ceiling = NULL;
+    pf_sim *top = NULL;
+    pf_m4_inspection inspection;
+    const int32_t wall_contact_x =
+        -default_content->fighter.half_width_q16;
+    const int32_t ceiling_contact_y =
+        INT32_C(28) * PF_Q16_ONE +
+        default_content->fighter.half_height_q16;
+    const int32_t top_contact_y =
+        INT32_C(25) * PF_Q16_ONE -
+        default_content->fighter.half_height_q16;
+    int observed_wall = 0;
+    int observed_ceiling = 0;
+    uint32_t tick;
+
+    if (!make_solid_geometry_content(
+            default_content,
+            &content,
+            &view) ||
+        !initialize_sim(
+            &under_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &under) ||
+        !initialize_sim(
+            &wall_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &wall) ||
+        !initialize_sim(
+            &ceiling_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &ceiling) ||
+        !initialize_sim(
+            &top_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &top) ||
+        !expect_status(
+            pf_sim_reset(under, UINT64_C(15)),
+            PF_STATUS_OK,
+            "solid-under-reset") ||
+        !expect_status(
+            pf_sim_reset(wall, UINT64_C(16)),
+            PF_STATUS_OK,
+            "solid-wall-reset") ||
+        !expect_status(
+            pf_sim_reset(ceiling, UINT64_C(17)),
+            PF_STATUS_OK,
+            "solid-ceiling-reset") ||
+        !expect_status(
+            pf_sim_reset(top, UINT64_C(18)),
+            PF_STATUS_OK,
+            "solid-top-reset") ||
+        !expect_status(
+            pf_m4_inspect(under, &inspection),
+            PF_STATUS_OK,
+            "solid-geometry-inspect") ||
+        inspection.stage.solid_left_q16 !=
+            content.stage.solid_left_q16 ||
+        inspection.stage.solid_right_q16 !=
+            content.stage.solid_right_q16 ||
+        inspection.stage.solid_top_q16 !=
+            content.stage.solid_top_q16 ||
+        inspection.stage.solid_bottom_q16 !=
+            content.stage.solid_bottom_q16)
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
+    {
+        if (!step_duel_players(
+                under,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[1].position_x_q16 <=
+            content.stage.solid_right_q16 +
+                content.fighter.half_width_q16 ||
+        inspection.players[1].grounded == UINT8_C(0) ||
+        inspection.players[1].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=solid-walk-under"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " grounded=%u support=%u\n",
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            (unsigned int)inspection.players[1].grounded,
+            (unsigned int)inspection.players[1].support);
+        return 0;
+    }
+
+    if (!step_duel(
+            wall,
+            INT16_C(13500),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(1); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel(
+                wall,
+                INT16_C(13500),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
+    {
+        if (!step_duel(
+                wall,
+                INT16_C(13500),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].position_x_q16 == wall_contact_x &&
+            inspection.players[0].velocity_x_q16 == INT32_C(0))
+        {
+            observed_wall = 1;
+            break;
+        }
+    }
+    if (observed_wall == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=solid-side-contact"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " velocity=(%" PRId32 ",%" PRId32 ")\n",
+            inspection.players[0].position_x_q16,
+            inspection.players[0].position_y_q16,
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16);
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel_players(
+                ceiling,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
+    {
+        if (!step_duel_players(
+                ceiling,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[1].position_y_q16 ==
+                ceiling_contact_y &&
+            inspection.players[1].velocity_y_q16 ==
+                INT32_C(0))
+        {
+            observed_ceiling = 1;
+            break;
+        }
+    }
+    if (observed_ceiling == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=solid-ceiling-contact"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " velocity=(%" PRId32 ",%" PRId32 ")\n",
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            inspection.players[1].velocity_x_q16,
+            inspection.players[1].velocity_y_q16);
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel(
+                top,
+                INT16_MAX,
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
+    {
+        if (!step_duel(
+                top,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].grounded != UINT8_C(0) &&
+            inspection.players[0].support ==
+                (uint8_t)PF_M4_SURFACE_SOLID_TOP)
+        {
+            break;
+        }
+    }
+    if (inspection.players[0].grounded == UINT8_C(0) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
+        inspection.players[0].position_y_q16 != top_contact_y)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=solid-top-landing"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " grounded=%u support=%u\n",
+            inspection.players[0].position_x_q16,
+            inspection.players[0].position_y_q16,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.players[0].support);
+        return 0;
+    }
+    return 1;
+}
+
 static int drive_player0_to_right_ledge(
     pf_sim *sim,
     pf_m4_inspection *out_inspection)
@@ -1775,6 +2075,7 @@ int main(void)
         !run_air_control_test(&content, &view) ||
         !run_air_facing_lock_test(&view) ||
         !run_platform_test(&content) ||
+        !run_solid_geometry_test(&content) ||
         !run_ledge_test(&content, &view) ||
         !run_blast_zone_test(&view) ||
         !run_team_hash_trace(&view))
@@ -1784,7 +2085,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=30\n",
+        "movement_invariants=35\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

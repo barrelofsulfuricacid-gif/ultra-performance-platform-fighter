@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x37)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x38)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -938,6 +938,19 @@ static int pf_world_identity_equal(
            left->mode == right->mode;
 }
 
+static int pf_m4_snapshot_action_is_surface_tech(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_WALL_TECH ||
+           action == (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP ||
+           action == (uint8_t)PF_M4_ACTION_CEILING_TECH;
+}
+
+static int pf_m4_snapshot_action_is_surface_bounce(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_WALL_BOUNCE ||
+           action == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
+}
+
 static int pf_m4_player_state_consistent(
     const pf_world_state *world,
     uint32_t player_index)
@@ -964,7 +977,9 @@ static int pf_m4_player_state_consistent(
         return 1;
     }
     if (action == (uint8_t)PF_M4_ACTION_HITLAG ||
-        action == (uint8_t)PF_M4_ACTION_HITSTUN)
+        action == (uint8_t)PF_M4_ACTION_HITSTUN ||
+        pf_m4_snapshot_action_is_surface_tech(action) ||
+        pf_m4_snapshot_action_is_surface_bounce(action))
     {
         return 1;
     }
@@ -1075,9 +1090,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(480) ||
-                action > (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
+                action > (uint8_t)PF_M4_ACTION_CEILING_BOUNCE ||
                 world->support[player_index] >
-                    (uint8_t)PF_M4_SURFACE_PLATFORM ||
+                    (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
                 world->short_hop_latched[player_index] > UINT8_C(1) ||
                 world->platform_drop_ticks[player_index] > UINT8_C(120) ||
@@ -1201,8 +1216,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   world->pending_velocity_y_q16[player_index] !=
                       INT32_C(0))) ||
                 (hitlag == UINT16_C(0) &&
-                 ((action == (uint8_t)PF_M4_ACTION_HITSTUN) !=
-                  (hitstun > UINT16_C(0)))) ||
+                 action == (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 hitstun == UINT16_C(0)) ||
+                (hitlag == UINT16_C(0) &&
+                 hitstun > UINT16_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 !pf_m4_snapshot_action_is_surface_bounce(action)) ||
                 (action == (uint8_t)PF_M4_ACTION_HITSTUN &&
                  world->grounded[player_index] != UINT8_C(0)) ||
                 (hitlag == UINT16_C(0) &&
@@ -1244,14 +1263,18 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (tumble != UINT8_C(0) &&
                  action != (uint8_t)PF_M4_ACTION_HITLAG &&
                  action != (uint8_t)PF_M4_ACTION_HITSTUN &&
-                 action != (uint8_t)PF_M4_ACTION_AIRBORNE) ||
+                 action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                 !pf_m4_snapshot_action_is_surface_bounce(action)) ||
                 ((world->sdi_direction_x[player_index] != INT8_C(0) ||
                   world->sdi_direction_y[player_index] != INT8_C(0)) &&
                  (action != (uint8_t)PF_M4_ACTION_HITLAG ||
                   resume_action !=
                       (uint8_t)PF_M4_ACTION_HITSTUN)) ||
                 (((action == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
-                   action == (uint8_t)PF_M4_ACTION_GETUP_ROLL)) !=
+                   action == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+                   action == (uint8_t)PF_M4_ACTION_WALL_TECH ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP)) !=
                  (tech_direction != INT8_C(0))) ||
                 ((action == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
                   action ==
@@ -1262,10 +1285,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
                   action == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
                   action ==
-                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK) &&
+                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
+                  pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
                   tumble != UINT8_C(0))) ||
+                (pf_m4_snapshot_action_is_surface_bounce(action) &&
+                 (hitlag != UINT16_C(0) ||
+                  tumble == UINT8_C(0))) ||
                 (hitlag == UINT16_C(0) &&
                  (world->pending_velocity_x_q16[player_index] !=
                       INT32_C(0) ||

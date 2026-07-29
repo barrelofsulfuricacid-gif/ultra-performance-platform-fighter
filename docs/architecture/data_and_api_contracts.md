@@ -81,10 +81,10 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–6 remain historical checkpoints. The current M4
-movement/combat state uses save format 7: a fixed 569-byte checkpoint with
-state schema 8 and canonical strong-attack plus floor-recovery action
-semantics. Format 5 first
+Save formats 1–7 remain historical checkpoints. The current M4
+movement/combat state uses save format 8: a fixed 569-byte checkpoint with
+state schema 9 and canonical solid-surface tech/bounce action semantics.
+Format 5 first
 introduced the same-size payload containing shield health, shield-stun timers,
 and powershield result state. Exact headers, payloads, compatibility, checksum,
 and atomic-load behavior are recorded in

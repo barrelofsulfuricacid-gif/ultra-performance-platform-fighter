@@ -14,6 +14,15 @@ static int pf_m4_checked_i32(int64_t value, int32_t *out_value)
     return 1;
 }
 
+static int32_t pf_m4_multiply_q16(
+    int32_t value_q16,
+    int32_t multiplier_q16)
+{
+    return (int32_t)(
+        ((int64_t)value_q16 * (int64_t)multiplier_q16) /
+        (int64_t)PF_Q16_ONE);
+}
+
 static int32_t pf_m4_approach(
     int32_t value,
     int32_t target,
@@ -184,9 +193,15 @@ static int32_t pf_m4_surface_y_q16(
     const pf_m4_content *content,
     uint8_t support)
 {
-    return support == (uint8_t)PF_M4_SURFACE_PLATFORM
-               ? content->stage.platform_y_q16
-               : content->stage.floor_y_q16;
+    if (support == (uint8_t)PF_M4_SURFACE_PLATFORM)
+    {
+        return content->stage.platform_y_q16;
+    }
+    if (support == (uint8_t)PF_M4_SURFACE_SOLID_TOP)
+    {
+        return content->stage.solid_top_q16;
+    }
+    return content->stage.floor_y_q16;
 }
 
 static void pf_m4_surface_bounds_q16(
@@ -203,11 +218,38 @@ static void pf_m4_surface_bounds_q16(
         *out_left = center - content->stage.platform_half_width_q16;
         *out_right = center + content->stage.platform_half_width_q16;
     }
+    else if (support == (uint8_t)PF_M4_SURFACE_SOLID_TOP)
+    {
+        *out_left = content->stage.solid_left_q16;
+        *out_right = content->stage.solid_right_q16;
+    }
     else
     {
         *out_left = content->stage.floor_left_q16;
         *out_right = content->stage.floor_right_q16;
     }
+}
+
+static int pf_m4_body_overlaps_solid(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16)
+{
+    const pf_m4_fighter_data *fighter = &content->fighter;
+    const pf_m4_stage_data *stage = &content->stage;
+    const int64_t left =
+        (int64_t)position_x_q16 - fighter->half_width_q16;
+    const int64_t right =
+        (int64_t)position_x_q16 + fighter->half_width_q16;
+    const int64_t top =
+        (int64_t)position_y_q16 - fighter->half_height_q16;
+    const int64_t bottom =
+        (int64_t)position_y_q16 + fighter->half_height_q16;
+
+    return right > (int64_t)stage->solid_left_q16 &&
+           left < (int64_t)stage->solid_right_q16 &&
+           bottom > (int64_t)stage->solid_top_q16 &&
+           top < (int64_t)stage->solid_bottom_q16;
 }
 
 static pf_status pf_m4_apply_hitlag_shift(
@@ -254,6 +296,11 @@ static pf_status pf_m4_apply_hitlag_shift(
         !pf_m4_checked_i32(shifted_y, &next_y))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    if (pf_m4_body_overlaps_solid(content, next_x, next_y))
+    {
+        next_x = old_x;
+        next_y = old_y;
     }
 
     if (scratch->grounded[player_index] != UINT8_C(0))
@@ -420,6 +467,24 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
 }
 
+static int pf_m4_action_is_wall_tech(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_WALL_TECH ||
+           action_state == (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP;
+}
+
+static int pf_m4_action_is_surface_tech(uint8_t action_state)
+{
+    return pf_m4_action_is_wall_tech(action_state) ||
+           action_state == (uint8_t)PF_M4_ACTION_CEILING_TECH;
+}
+
+static int pf_m4_action_is_surface_bounce(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_WALL_BOUNCE ||
+           action_state == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
+}
+
 static int pf_m4_action_is_shield(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
@@ -442,6 +507,11 @@ static int pf_m4_action_is_recovery_invulnerable(
     if (action_state ==
             (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
         action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+    {
+        return action_ticks <
+               fighter->tech_invulnerability_ticks;
+    }
+    if (pf_m4_action_is_surface_tech(action_state))
     {
         return action_ticks <
                fighter->tech_invulnerability_ticks;
@@ -815,6 +885,91 @@ static void pf_m4_land_from_air(
     }
 }
 
+static void pf_m4_enter_wall_impact(
+    const pf_m4_fighter_data *fighter,
+    int wall_tech_jump,
+    int8_t away_direction,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint8_t *action_state,
+    uint8_t *fast_fall,
+    int8_t *facing)
+{
+    int32_t horizontal_magnitude =
+        *velocity_x < INT32_C(0) ? -*velocity_x : *velocity_x;
+
+    *action_ticks = UINT16_C(0);
+    *fast_fall = UINT8_C(0);
+    *facing = away_direction;
+    if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
+    {
+        *velocity_x = INT32_C(0);
+        *velocity_y = INT32_C(0);
+        *action_state =
+            wall_tech_jump != 0
+                ? (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP
+                : (uint8_t)PF_M4_ACTION_WALL_TECH;
+        scratch->hitstun_ticks[player_index] = UINT16_C(0);
+        scratch->tumble[player_index] = UINT8_C(0);
+        scratch->tech_window_ticks[player_index] = UINT16_C(0);
+        scratch->tech_direction[player_index] = away_direction;
+    }
+    else
+    {
+        *velocity_x =
+            (int32_t)away_direction *
+            pf_m4_multiply_q16(
+                horizontal_magnitude,
+                fighter->surface_bounce_multiplier_q16);
+        *velocity_y = pf_m4_multiply_q16(
+            *velocity_y,
+            fighter->surface_bounce_multiplier_q16);
+        *action_state = (uint8_t)PF_M4_ACTION_WALL_BOUNCE;
+        scratch->tech_direction[player_index] = INT8_C(0);
+    }
+}
+
+static void pf_m4_enter_ceiling_impact(
+    const pf_m4_fighter_data *fighter,
+    int16_t horizontal_input,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint8_t *action_state,
+    uint8_t *fast_fall)
+{
+    *action_ticks = UINT16_C(0);
+    *fast_fall = UINT8_C(0);
+    if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
+    {
+        *velocity_x = pf_m4_scale_axis_q16(
+            horizontal_input,
+            fighter->ceiling_tech_speed_q16);
+        *velocity_y = INT32_C(0);
+        *action_state = (uint8_t)PF_M4_ACTION_CEILING_TECH;
+        scratch->hitstun_ticks[player_index] = UINT16_C(0);
+        scratch->tumble[player_index] = UINT8_C(0);
+        scratch->tech_window_ticks[player_index] = UINT16_C(0);
+        scratch->tech_direction[player_index] = INT8_C(0);
+    }
+    else
+    {
+        *velocity_x = pf_m4_multiply_q16(
+            *velocity_x,
+            fighter->surface_bounce_multiplier_q16);
+        *velocity_y = -pf_m4_multiply_q16(
+            *velocity_y,
+            fighter->surface_bounce_multiplier_q16);
+        *action_state = (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
+        scratch->tech_direction[player_index] = INT8_C(0);
+    }
+}
+
 static void pf_m4_write_scratch(
     pf_sim_scratch *scratch,
     uint32_t player_index,
@@ -980,6 +1135,7 @@ pf_status pf_m4_step_player(
     int released_ledge_this_tick = 0;
     int shield_reset_this_tick = 0;
     int hitstun_locked;
+    int32_t previous_position_x;
     int64_t next_position;
     pf_status status;
 
@@ -1132,7 +1288,8 @@ pf_status pf_m4_step_player(
     }
 
     hitstun_locked =
-        action_state == (uint8_t)PF_M4_ACTION_HITSTUN &&
+        (action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
+         pf_m4_action_is_surface_bounce(action_state)) &&
         scratch->hitstun_ticks[player_index] > UINT16_C(0);
 
     if (platform_drop_ticks > UINT8_C(0))
@@ -1926,6 +2083,53 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
+        grounded == UINT8_C(0) &&
+        pf_m4_action_is_surface_tech(action_state))
+    {
+        dash_direction = INT8_C(0);
+        ++action_ticks;
+        if (pf_m4_action_is_wall_tech(action_state))
+        {
+            if (action_ticks < fighter->wall_tech_stall_ticks)
+            {
+                velocity_x = INT32_C(0);
+                velocity_y = INT32_C(0);
+            }
+            else if (action_ticks == fighter->wall_tech_stall_ticks)
+            {
+                if (action_state ==
+                    (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP)
+                {
+                    velocity_x =
+                        (int32_t)scratch
+                            ->tech_direction[player_index] *
+                        fighter->wall_tech_jump_speed_x_q16;
+                    velocity_y =
+                        -fighter->wall_tech_jump_speed_y_q16;
+                }
+                else
+                {
+                    velocity_x =
+                        (int32_t)scratch
+                            ->tech_direction[player_index] *
+                        fighter->wall_tech_speed_q16;
+                    velocity_y = INT32_C(0);
+                }
+            }
+            if (action_ticks >= fighter->wall_tech_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                action_ticks = UINT16_C(0);
+                scratch->tech_direction[player_index] = INT8_C(0);
+            }
+        }
+        else if (action_ticks >= fighter->ceiling_tech_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
         grounded == UINT8_C(0))
     {
         dash_direction = INT8_C(0);
@@ -1970,11 +2174,76 @@ pf_status pf_m4_step_player(
                 fighter->shield_health_q16);
     }
 
+    previous_position_x = position_x;
     next_position = (int64_t)position_x + (int64_t)velocity_x;
     if (!ledge_motion_handled &&
         !pf_m4_checked_i32(next_position, &position_x))
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    if (!ledge_motion_handled)
+    {
+        const int64_t body_top =
+            (int64_t)position_y - fighter->half_height_q16;
+        const int64_t body_bottom =
+            (int64_t)position_y + fighter->half_height_q16;
+        const int vertical_overlap =
+            body_bottom > (int64_t)stage->solid_top_q16 &&
+            body_top < (int64_t)stage->solid_bottom_q16;
+        int8_t away_direction = INT8_C(0);
+
+        if (vertical_overlap &&
+            (int64_t)previous_position_x +
+                    fighter->half_width_q16 <=
+                (int64_t)stage->solid_left_q16 &&
+            (int64_t)position_x + fighter->half_width_q16 >=
+                (int64_t)stage->solid_left_q16)
+        {
+            position_x =
+                stage->solid_left_q16 - fighter->half_width_q16;
+            away_direction = INT8_C(-1);
+        }
+        else if (
+            vertical_overlap &&
+            (int64_t)previous_position_x -
+                    fighter->half_width_q16 >=
+                (int64_t)stage->solid_right_q16 &&
+            (int64_t)position_x - fighter->half_width_q16 <=
+                (int64_t)stage->solid_right_q16)
+        {
+            position_x =
+                stage->solid_right_q16 + fighter->half_width_q16;
+            away_direction = INT8_C(1);
+        }
+
+        if (away_direction != INT8_C(0))
+        {
+            if (grounded == UINT8_C(0) &&
+                scratch->tumble[player_index] != UINT8_C(0))
+            {
+                const int up_held =
+                    input->main_stick_y <=
+                    -(int16_t)fighter->crouch_axis_threshold;
+
+                pf_m4_enter_wall_impact(
+                    fighter,
+                    jump_pressed || up_held,
+                    away_direction,
+                    scratch,
+                    player_index,
+                    &velocity_x,
+                    &velocity_y,
+                    &action_ticks,
+                    &action_state,
+                    &fast_fall,
+                    &facing);
+            }
+            else
+            {
+                velocity_x = INT32_C(0);
+            }
+        }
     }
 
     if (!ledge_motion_handled &&
@@ -2017,9 +2286,20 @@ pf_status pf_m4_step_player(
     {
         const int32_t previous_bottom =
             position_y + fighter->half_height_q16;
+        const int32_t previous_top =
+            position_y - fighter->half_height_q16;
+        const int wall_tech_stalled =
+            pf_m4_action_is_wall_tech(action_state) &&
+            action_ticks < fighter->wall_tech_stall_ticks;
         int32_t new_bottom;
+        int32_t new_top;
 
-        if (!hitstun_locked &&
+        if (wall_tech_stalled)
+        {
+            velocity_y = INT32_C(0);
+        }
+        else if (!hitstun_locked &&
+            !pf_m4_action_is_surface_tech(action_state) &&
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold &&
             velocity_y > INT32_C(0))
@@ -2039,12 +2319,15 @@ pf_status pf_m4_step_player(
                 fighter->gravity_q16);
         }
 
-        next_position = (int64_t)position_y + (int64_t)velocity_y;
+        next_position =
+            (int64_t)position_y +
+            (wall_tech_stalled ? INT64_C(0) : (int64_t)velocity_y);
         if (!pf_m4_checked_i32(next_position, &position_y))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         new_bottom = position_y + fighter->half_height_q16;
+        new_top = position_y - fighter->half_height_q16;
 
         if (velocity_y >= INT32_C(0))
         {
@@ -2060,7 +2343,31 @@ pf_status pf_m4_step_player(
                 input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
 
-            if (!down_held &&
+            if (position_x >= stage->solid_left_q16 &&
+                position_x <= stage->solid_right_q16 &&
+                previous_bottom <= stage->solid_top_q16 &&
+                new_bottom >= stage->solid_top_q16)
+            {
+                pf_m4_land_from_air(
+                    fighter,
+                    stage->solid_top_q16,
+                    (uint8_t)PF_M4_SURFACE_SOLID_TOP,
+                    input->main_stick_x,
+                    scratch,
+                    player_index,
+                    &position_y,
+                    &velocity_x,
+                    &velocity_y,
+                    &action_ticks,
+                    &grounded,
+                    &action_state,
+                    &support,
+                    &air_jumps_remaining,
+                    &short_hop_latched,
+                    &fast_fall,
+                    &dash_direction);
+            }
+            else if (!down_held &&
                 platform_drop_ticks == UINT8_C(0) &&
                 position_x >= platform_left &&
                 position_x <= platform_right &&
@@ -2109,6 +2416,32 @@ pf_status pf_m4_step_player(
                     &short_hop_latched,
                     &fast_fall,
                     &dash_direction);
+            }
+        }
+        else if (
+            position_x >= stage->solid_left_q16 &&
+            position_x <= stage->solid_right_q16 &&
+            previous_top >= stage->solid_bottom_q16 &&
+            new_top <= stage->solid_bottom_q16)
+        {
+            position_y =
+                stage->solid_bottom_q16 + fighter->half_height_q16;
+            if (scratch->tumble[player_index] != UINT8_C(0))
+            {
+                pf_m4_enter_ceiling_impact(
+                    fighter,
+                    input->main_stick_x,
+                    scratch,
+                    player_index,
+                    &velocity_x,
+                    &velocity_y,
+                    &action_ticks,
+                    &action_state,
+                    &fast_fall);
+            }
+            else
+            {
+                velocity_y = INT32_C(0);
             }
         }
     }
@@ -2280,6 +2613,14 @@ pf_status pf_m4_inspect(
         platform_center + stage->platform_half_width_q16;
     out_inspection->stage.platform_y_q16 =
         stage->platform_y_q16;
+    out_inspection->stage.solid_left_q16 =
+        stage->solid_left_q16;
+    out_inspection->stage.solid_right_q16 =
+        stage->solid_right_q16;
+    out_inspection->stage.solid_top_q16 =
+        stage->solid_top_q16;
+    out_inspection->stage.solid_bottom_q16 =
+        stage->solid_bottom_q16;
     out_inspection->stage.left_ledge_x_q16 =
         stage->floor_left_q16;
     out_inspection->stage.right_ledge_x_q16 =

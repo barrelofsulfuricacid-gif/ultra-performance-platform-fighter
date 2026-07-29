@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -451,7 +451,8 @@ mergeInto(LibraryManager.library, {
     reactionProbePassed,
     shieldProbePassed,
     tumbleProbePassed,
-    floorRecoveryProbePassed
+    floorRecoveryProbePassed,
+    surfaceTechProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -534,8 +535,9 @@ mergeInto(LibraryManager.library, {
       reactionProbePassed &&
       shieldProbePassed &&
       tumbleProbePassed &&
-      floorRecoveryProbePassed
-        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY PROBES PASSED"
+      floorRecoveryProbePassed &&
+      surfaceTechProbePassed
+        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -614,6 +616,10 @@ mergeInto(LibraryManager.library, {
       "place; hold left or right to tech-roll. After a missed tech reaches " +
       "DOWN WAIT, press up or a fresh shield input for neutral getup, left or " +
       "right to roll, or either attack key for the two-sided floor attack. " +
+      "The raised block is solid on every side: tumbling into its wall or " +
+      "underside with a fresh tech input performs a wall or ceiling tech; " +
+      "hold up for a wall-tech jump. Missing the window produces a visible " +
+      "wall or ceiling bounce while hitstun continues. " +
       "R resets, P " +
       "pauses, and N single-steps.";
     section.appendChild(note);
@@ -867,6 +873,8 @@ mergeInto(LibraryManager.library, {
         (tumbleProbePassed ? "pass" : "fail") +
         " floor_recovery_probe=" +
         (floorRecoveryProbePassed ? "pass" : "fail") +
+        " surface_tech_probe=" +
+        (surfaceTechProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -883,6 +891,8 @@ mergeInto(LibraryManager.library, {
         tumbleProbePassed ? "pass" : "fail";
       status.dataset.floorRecoveryProbe =
         floorRecoveryProbePassed ? "pass" : "fail";
+      status.dataset.surfaceTechProbe =
+        surfaceTechProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -890,7 +900,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 72) {
+    if (!state || viewCount !== 76) {
       return;
     }
     state.latest = new Int32Array(
@@ -898,7 +908,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 6) {
+    if (view[0] !== 7) {
       return;
     }
     var canvas = state.canvas;
@@ -940,6 +950,11 @@ mergeInto(LibraryManager.library, {
       "NEUTRAL GETUP",
       "GETUP ROLL",
       "FLOOR ATTACK",
+      "WALL TECH",
+      "WALL TECH JUMP",
+      "CEILING TECH",
+      "WALL BOUNCE",
+      "CEILING BOUNCE",
     ];
 
     function sx(q16Value) {
@@ -989,8 +1004,36 @@ mergeInto(LibraryManager.library, {
     context.lineTo(sx(view[6]), sy(view[7]));
     context.stroke();
 
+    var solidLeft = sx(view[14]);
+    var solidRight = sx(view[15]);
+    var solidTop = sy(view[16]);
+    var solidBottom = sy(view[17]);
+    var solidGradient = context.createLinearGradient(
+      solidLeft,
+      solidTop,
+      solidRight,
+      solidBottom
+    );
+    solidGradient.addColorStop(0, "#425a78");
+    solidGradient.addColorStop(1, "#1f3048");
+    context.fillStyle = solidGradient;
+    context.strokeStyle = "#b8c7da";
+    context.lineWidth = 3;
+    context.fillRect(
+      solidLeft,
+      solidTop,
+      solidRight - solidLeft,
+      solidBottom - solidTop
+    );
+    context.strokeRect(
+      solidLeft,
+      solidTop,
+      solidRight - solidLeft,
+      solidBottom - solidTop
+    );
+
     [0, 1].forEach(function (playerIndex) {
-      var base = 14 + playerIndex * 29;
+      var base = 18 + playerIndex * 29;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =

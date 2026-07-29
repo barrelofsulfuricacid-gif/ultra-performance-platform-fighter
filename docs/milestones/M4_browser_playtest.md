@@ -1,8 +1,9 @@
 # M4 real-simulation browser playtest
 
-This checkpoint runs the production `pf_sim_tick` M4 movement, two standing
-ground attacks, missed-tech floor recovery, hit-reaction, and dense-shield
-primitives in WebAssembly. It is no longer the
+This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
+geometry, two standing ground attacks, ground/wall/ceiling tech and
+missed-impact recovery, hit-reaction, and dense-shield primitives in
+WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
 headless execution.
@@ -110,6 +111,15 @@ frames 24–26. Prone states render as a flattened fighter, both attack phases
 draw their inspected purple hitbox, and the same dashed gold ring shows the
 exact recovery invulnerability.
 
+The raised block is production collision geometry, not decoration. Its top can
+be landed on, its floor-level clearance can be traversed, and its sides and
+underside stop body motion. Strong-launch a tumbling target into a side and
+press the target's tech key inside the 20-tick window for `WALL TECH`; hold up
+for `WALL TECH JUMP`. Launch upward into the underside for `CEILING TECH`.
+Successful surface techs clear hitstun/tumble and show the gold
+invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
+BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
+
 This shield slice does not yet include analog light shield, shield tilt/poke,
 shield SDI, shield roll/spot dodge, platform shield drop, grab, projectile
 reflection, or the complete airborne/knockdown/stun shield-break sequence.
@@ -171,23 +181,29 @@ registry row can advance from `playable` to `verified`.
     through the floor attack: confirm purple hitboxes in front on frames
     17–19 and behind on frames 24–26, with no hitbox in between. Confirm the
     gold ring clears at each option's documented invulnerability boundary.
-17. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+17. Move both fighters near the raised block and strong-launch the target into
+    its side. Tap the target's tech key during tumble for `WALL TECH`; repeat
+    while holding up for `WALL TECH JUMP`, then omit the tech input for `WALL
+    BOUNCE`. Repeat with an upward launch into the underside for `CEILING TECH`
+    and `CEILING BOUNCE`. Confirm successful techs clear tumble/hitstun while
+    missed impacts retain them.
+18. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-18. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+19. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
     fighter slides forward and slows under traction. Reset, press shield during
     `INITIAL DASH`, and confirm the fighter does not shield until run.
-19. Hold shield for more than four ticks and block an attack. Confirm no
+20. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-20. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+21. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-21. Repeat with Player 2's arrow-key controls and try both players
+22. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -217,6 +233,9 @@ through:
 - a production-path target SDI pulse producing a positional shift;
 - a trigger edge producing the 20-tick tech window and 40-tick lockout, with a
   held trigger counting down rather than retriggering;
+- default-content positioning, a real strong launch into the raised block,
+  an in-flight trigger edge plus held up input, and observed
+  `WALL_TECH_JUMP` with cleared hitstun/tumble and active invulnerability;
 - a normal physical shield block producing zero percent, shield damage,
   shield stun, hitlag, and ordinary pushback;
 - a physical attack inside the four-tick powershield window producing zero
@@ -229,6 +248,6 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
-floor_recovery_probe=pass controls=keyboard-two-player` only after all checks
-pass.
+floor_recovery_probe=pass surface_tech_probe=pass
+controls=keyboard-two-player` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

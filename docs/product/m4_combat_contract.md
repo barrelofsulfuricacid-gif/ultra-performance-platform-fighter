@@ -5,7 +5,8 @@
 This checkpoint extends the first production-path M4.2 ground attacks with
 deterministic hit reaction and the first dense-shield primitive: trajectory
 DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
-directional ground tech, neutral getup, getup roll, two-sided floor attack,
+directional ground tech, wall tech, wall-tech jump, ceiling tech,
+missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, shield damage/stun/pushback, shield release and
 regeneration, grounded shield break lockout, physical powershielding, and
 frame-2 powershield canceling into either current production ground attack.
@@ -15,7 +16,7 @@ RL, and browser paths.
 This is still an incremental checkpoint. It does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
 spot dodge, platform shield drop, grabs, projectile powershields, complete
-shield-break launch/stun, wall/ceiling techs, prone-orientation-specific
+shield-break launch/stun, prone-orientation-specific
 getup-roll asymmetry, stocks, match completion, or completion of the
 61-row non-character-specific advanced-technique gate.
 
@@ -134,6 +135,35 @@ two-sided weak attack follow SmashWiki's
 [floor-getup](https://www.ssbwiki.com/Floor_getup) and
 [floor-attack](https://www.ssbwiki.com/Floor_attack) descriptions.
 
+## Wall, ceiling, and missed surface impacts
+
+The default stage adds one raised solid block. Its top is a normal landing
+surface; its sides and underside resolve body collision. Only a tumbling
+fighter can enter the surface-tech or missed-bounce actions:
+
+- An open tech window on a side impact enters `WALL_TECH`, faces away from the
+  wall, clears hitstun/tumble/window state, stalls for three ticks, and then
+  moves away at the data-defined 0.15 speed.
+- A fresh jump edge or held up input on that same successful impact selects
+  `WALL_TECH_JUMP`; after the same stall it launches 0.30 away and 0.50 upward.
+- An open tech window on the underside enters `CEILING_TECH`, clears
+  hitstun/tumble/window state, zeros vertical velocity, and applies horizontal
+  stick input up to the data-defined 0.16 speed.
+- Missing the window enters `WALL_BOUNCE` or `CEILING_BOUNCE`. The impact
+  reflects the surface-normal component, multiplies both motion components by
+  the data-defined 0.8 coefficient, and preserves tumble and remaining
+  hitstun.
+
+Wall tech actions last 24 ticks and ceiling tech lasts 30. All successful
+surface techs use the existing exact 20-tick recovery-invulnerability rule.
+These placeholder velocities and action durations are data, while the
+transition structure follows the wall/ceiling passive checks and reflected
+damage-flight path in the pinned Melee decomp:
+[wall passive](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_PassiveWall.c),
+[ceiling passive](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_PassiveCeil.c),
+and
+[flight reflection](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_FlyReflect.c).
+
 ## Dense shield, shield stop, and release
 
 Either normalized analog trigger at or above the fighter's digital threshold
@@ -225,33 +255,35 @@ or hit interruption.
 
 ## Canonical state and inspection
 
-State schema 8 / save format 7 adds canonical `DOWN_WAIT`,
-`GETUP_NEUTRAL`, `GETUP_ROLL`, and `GETUP_ATTACK` action semantics while
+State schema 9 / save format 8 adds canonical `WALL_TECH`,
+`WALL_TECH_JUMP`, `CEILING_TECH`, `WALL_BOUNCE`, and `CEILING_BOUNCE` action
+semantics plus the solid-top support ID while
 retaining the 569-byte stream: a 140-byte header plus a 429-byte payload. The
-active magic is `PFSAVE07`. Input schema 3 still supplies the separate
+active magic is `PFSAVE08`. Input schema 3 still supplies the separate
 light- and strong-attack buttons.
 
-Content schema 8 adds missed-tech, down-wait, getup duration/invulnerability,
-roll speed, and two-phase floor-attack geometry, damage, knockback, and hitlag
-data. No new canonical state field is required: the action ID, existing action
-timer, hit mask, and direction field fully identify every floor-recovery
-outcome.
+Content schema 9 / fighter schema 9 adds wall/ceiling tech speeds and
+durations plus the missed-impact multiplier. Stage schema 2 adds the solid
+block bounds. No new canonical state field is required: the action ID,
+existing action timer, reaction state, and tech-direction field identify every
+surface outcome.
 
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 7 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 8 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived tech invulnerability, active hitbox bounds,
-and last-hit metadata. Browser view schema 6 carries those fields, the floor
+last-hit metadata, and solid-block geometry. Browser view schema 7 carries
+those fields, the floor
 action semantics, the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
-floor-attack hitbox.
+floor-attack hitbox, and renders the block.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 68 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 80 focused
 invariants, including:
 
 - light and strong attack schedules, facing, whiff, damage, ownership, freeze,
@@ -267,6 +299,10 @@ invariants, including:
   up/shield neutral getup, bidirectional getup roll, all three recovery
   durations and invulnerability cutoffs, front/back floor-attack hits with
   negative timing checks, and mid-roll save/load continuation;
+- production strong-attack routes into wall tech, wall-tech jump, ceiling
+  tech, missed wall bounce, and missed ceiling bounce; exact stall/release,
+  facing, velocity, reaction-state, and invulnerability checks; and invalid
+  solid-geometry rejection;
 - rejection of invalid reaction content;
 - run shield stop, the initial-dash shield restriction, hold depletion,
   minimum hold, bounded action timer, release lag, regeneration, and jump
@@ -288,7 +324,11 @@ and WebAssembly runs must agree on all 181 state hashes, the 31,261-byte
 replay, and its final digest.
 
 The browser startup refuses readiness unless independent movement, attack,
-reaction, shield, tumble, and floor-recovery probes pass. The floor probe
+reaction, shield, tumble, floor-recovery, and surface-tech probes pass. The
+surface probe moves the ordinary default fighters near the raised block,
+strong-launches a tumbling target, opens the real trigger window during
+flight, holds up, and requires `WALL_TECH_JUMP` with cleared reaction state.
+The floor probe
 observes exact knockdown-to-down-wait timing, all three input outcomes,
 recovery invulnerability, and both floor-attack active phases. The shield probe
 observes a normal physical block, a four-frame powershield, the frame-1

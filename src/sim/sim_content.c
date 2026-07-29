@@ -86,6 +86,11 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
+    pf_m4_hash_i32(hash, fighter->wall_tech_speed_q16);
+    pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_x_q16);
+    pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_y_q16);
+    pf_m4_hash_i32(hash, fighter->ceiling_tech_speed_q16);
+    pf_m4_hash_i32(hash, fighter->surface_bounce_multiplier_q16);
     pf_m4_hash_i32(hash, fighter->getup_roll_speed_q16);
     pf_m4_hash_i32(
         hash,
@@ -161,6 +166,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->tech_in_place_ticks);
     pf_m4_hash_u16(hash, fighter->tech_roll_ticks);
     pf_m4_hash_u16(hash, fighter->tech_invulnerability_ticks);
+    pf_m4_hash_u16(hash, fighter->wall_tech_stall_ticks);
+    pf_m4_hash_u16(hash, fighter->wall_tech_ticks);
+    pf_m4_hash_u16(hash, fighter->ceiling_tech_ticks);
     pf_m4_hash_u16(hash, fighter->knockdown_ticks);
     pf_m4_hash_u16(hash, fighter->down_wait_ticks);
     pf_m4_hash_u16(hash, fighter->getup_neutral_ticks);
@@ -213,6 +221,10 @@ static void pf_m4_hash_stage(
     pf_m4_hash_i32(hash, stage->platform_y_q16);
     pf_m4_hash_i32(hash, stage->platform_half_width_q16);
     pf_m4_hash_i32(hash, stage->platform_motion_amplitude_q16);
+    pf_m4_hash_i32(hash, stage->solid_left_q16);
+    pf_m4_hash_i32(hash, stage->solid_right_q16);
+    pf_m4_hash_i32(hash, stage->solid_top_q16);
+    pf_m4_hash_i32(hash, stage->solid_bottom_q16);
     pf_m4_hash_i32(hash, stage->blast_left_q16);
     pf_m4_hash_i32(hash, stage->blast_right_q16);
     pf_m4_hash_i32(hash, stage->blast_top_q16);
@@ -313,6 +325,11 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
     fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
     fighter->tech_roll_speed_q16 = PF_Q16_RATIO(1, 5);
+    fighter->wall_tech_speed_q16 = PF_Q16_RATIO(3, 20);
+    fighter->wall_tech_jump_speed_x_q16 = PF_Q16_RATIO(3, 10);
+    fighter->wall_tech_jump_speed_y_q16 = PF_Q16_RATIO(1, 2);
+    fighter->ceiling_tech_speed_q16 = PF_Q16_RATIO(4, 25);
+    fighter->surface_bounce_multiplier_q16 = PF_Q16_RATIO(4, 5);
     fighter->getup_roll_speed_q16 = PF_Q16_RATIO(1, 5);
     fighter->getup_attack_hitbox_offset_x_q16 =
         PF_Q16_RATIO(3, 4);
@@ -381,6 +398,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->tech_in_place_ticks = UINT16_C(26);
     fighter->tech_roll_ticks = UINT16_C(40);
     fighter->tech_invulnerability_ticks = UINT16_C(20);
+    fighter->wall_tech_stall_ticks = UINT16_C(3);
+    fighter->wall_tech_ticks = UINT16_C(24);
+    fighter->ceiling_tech_ticks = UINT16_C(30);
     fighter->knockdown_ticks = UINT16_C(26);
     fighter->down_wait_ticks = UINT16_C(180);
     fighter->getup_neutral_ticks = UINT16_C(30);
@@ -413,6 +433,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     stage->platform_half_width_q16 = INT32_C(5) * PF_Q16_ONE;
     stage->platform_motion_amplitude_q16 =
         INT32_C(4) * PF_Q16_ONE;
+    stage->solid_left_q16 = INT32_C(14) * PF_Q16_ONE;
+    stage->solid_right_q16 = INT32_C(27) * PF_Q16_ONE;
+    stage->solid_top_q16 = INT32_C(16) * PF_Q16_ONE;
+    stage->solid_bottom_q16 = INT32_C(29) * PF_Q16_ONE;
     stage->blast_left_q16 = -INT32_C(52) * PF_Q16_ONE;
     stage->blast_right_q16 = INT32_C(52) * PF_Q16_ONE;
     stage->blast_top_q16 = INT32_C(2) * PF_Q16_ONE;
@@ -441,6 +465,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_strong_knockback_y;
     int64_t maximum_getup_attack_knockback_x;
     int64_t maximum_getup_attack_knockback_y;
+    int solid_overlaps_platform;
 
     if (content == NULL)
     {
@@ -595,6 +620,20 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->tech_roll_speed_q16 <= INT32_C(0) ||
         fighter->tech_roll_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->wall_tech_speed_q16 <= INT32_C(0) ||
+        fighter->wall_tech_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->wall_tech_jump_speed_x_q16 <= INT32_C(0) ||
+        fighter->wall_tech_jump_speed_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->wall_tech_jump_speed_y_q16 <= fighter->gravity_q16 ||
+        fighter->wall_tech_jump_speed_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->ceiling_tech_speed_q16 <= INT32_C(0) ||
+        fighter->ceiling_tech_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->surface_bounce_multiplier_q16 <= INT32_C(0) ||
+        fighter->surface_bounce_multiplier_q16 > PF_Q16_ONE ||
         fighter->shield_health_q16 == UINT32_C(0) ||
         fighter->shield_health_q16 >
             PF_SIM_MAX_SHIELD_HEALTH_Q16 ||
@@ -744,6 +783,15 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->tech_in_place_ticks ||
         fighter->tech_invulnerability_ticks >
             fighter->tech_roll_ticks ||
+        fighter->wall_tech_stall_ticks == UINT16_C(0) ||
+        fighter->wall_tech_stall_ticks >= fighter->wall_tech_ticks ||
+        fighter->wall_tech_ticks > UINT16_C(240) ||
+        fighter->ceiling_tech_ticks == UINT16_C(0) ||
+        fighter->ceiling_tech_ticks > UINT16_C(240) ||
+        fighter->tech_invulnerability_ticks >
+            fighter->wall_tech_ticks ||
+        fighter->tech_invulnerability_ticks >
+            fighter->ceiling_tech_ticks ||
         fighter->knockdown_ticks == UINT16_C(0) ||
         fighter->knockdown_ticks > UINT16_C(480) ||
         fighter->down_wait_ticks == UINT16_C(0) ||
@@ -811,11 +859,23 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     spawn_right_extent =
         INT64_C(3) * (int64_t)stage->spawn_spacing_q16 +
         (int64_t)fighter->half_width_q16;
+    solid_overlaps_platform =
+        stage->platform_y_q16 >= stage->solid_top_q16 &&
+        stage->platform_y_q16 <= stage->solid_bottom_q16 &&
+        platform_right_extent >= (int64_t)stage->solid_left_q16 &&
+        platform_left_extent <= (int64_t)stage->solid_right_q16;
     if (stage->floor_left_q16 >= stage->floor_right_q16 ||
         stage->blast_left_q16 >= stage->floor_left_q16 ||
         stage->blast_right_q16 <= stage->floor_right_q16 ||
         stage->blast_top_q16 >= stage->platform_y_q16 ||
         stage->platform_y_q16 >= stage->floor_y_q16 ||
+        stage->solid_left_q16 >= stage->solid_right_q16 ||
+        stage->solid_left_q16 < stage->floor_left_q16 ||
+        stage->solid_right_q16 > stage->floor_right_q16 ||
+        stage->blast_top_q16 >= stage->solid_top_q16 ||
+        stage->solid_top_q16 >= stage->solid_bottom_q16 ||
+        stage->solid_bottom_q16 >= stage->floor_y_q16 ||
+        solid_overlaps_platform != 0 ||
         stage->floor_y_q16 >= stage->blast_bottom_q16 ||
         stage->platform_half_width_q16 <= INT32_C(0) ||
         stage->platform_motion_amplitude_q16 < INT32_C(0) ||

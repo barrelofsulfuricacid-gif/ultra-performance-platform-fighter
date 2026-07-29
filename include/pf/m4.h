@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(8)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(8)
-#define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(7)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(9)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(9)
+#define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(8)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -45,14 +45,20 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_DOWN_WAIT = 23,
     PF_M4_ACTION_GETUP_NEUTRAL = 24,
     PF_M4_ACTION_GETUP_ROLL = 25,
-    PF_M4_ACTION_GETUP_ATTACK = 26
+    PF_M4_ACTION_GETUP_ATTACK = 26,
+    PF_M4_ACTION_WALL_TECH = 27,
+    PF_M4_ACTION_WALL_TECH_JUMP = 28,
+    PF_M4_ACTION_CEILING_TECH = 29,
+    PF_M4_ACTION_WALL_BOUNCE = 30,
+    PF_M4_ACTION_CEILING_BOUNCE = 31
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
 {
     PF_M4_SURFACE_NONE = 0,
     PF_M4_SURFACE_FLOOR = 1,
-    PF_M4_SURFACE_PLATFORM = 2
+    PF_M4_SURFACE_PLATFORM = 2,
+    PF_M4_SURFACE_SOLID_TOP = 3
 } pf_m4_surface;
 
 typedef enum pf_m4_ledge
@@ -105,6 +111,11 @@ typedef struct pf_m4_fighter_data
     int32_t sdi_distance_q16;
     int32_t asdi_distance_q16;
     int32_t tech_roll_speed_q16;
+    int32_t wall_tech_speed_q16;
+    int32_t wall_tech_jump_speed_x_q16;
+    int32_t wall_tech_jump_speed_y_q16;
+    int32_t ceiling_tech_speed_q16;
+    int32_t surface_bounce_multiplier_q16;
     int32_t getup_roll_speed_q16;
     int32_t getup_attack_hitbox_offset_x_q16;
     int32_t getup_attack_hitbox_offset_y_q16;
@@ -154,6 +165,9 @@ typedef struct pf_m4_fighter_data
     uint16_t tech_in_place_ticks;
     uint16_t tech_roll_ticks;
     uint16_t tech_invulnerability_ticks;
+    uint16_t wall_tech_stall_ticks;
+    uint16_t wall_tech_ticks;
+    uint16_t ceiling_tech_ticks;
     uint16_t knockdown_ticks;
     uint16_t down_wait_ticks;
     uint16_t getup_neutral_ticks;
@@ -188,6 +202,10 @@ typedef struct pf_m4_stage_data
     int32_t platform_y_q16;
     int32_t platform_half_width_q16;
     int32_t platform_motion_amplitude_q16;
+    int32_t solid_left_q16;
+    int32_t solid_right_q16;
+    int32_t solid_top_q16;
+    int32_t solid_bottom_q16;
     int32_t blast_left_q16;
     int32_t blast_right_q16;
     int32_t blast_top_q16;
@@ -263,6 +281,10 @@ typedef struct pf_m4_stage_inspection
     int32_t platform_left_q16;
     int32_t platform_right_q16;
     int32_t platform_y_q16;
+    int32_t solid_left_q16;
+    int32_t solid_right_q16;
+    int32_t solid_top_q16;
+    int32_t solid_bottom_q16;
     int32_t left_ledge_x_q16;
     int32_t right_ledge_x_q16;
     int32_t ledge_y_q16;

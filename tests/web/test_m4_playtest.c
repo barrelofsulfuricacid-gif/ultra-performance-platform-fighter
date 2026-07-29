@@ -4,8 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 72
-#define TEST_PLAYER0_BASE 14
+#define TEST_VIEW_COUNT 76
+#define TEST_PLAYER0_BASE 18
+#define TEST_SOLID_LEFT 14
+#define TEST_SOLID_RIGHT 15
+#define TEST_SOLID_TOP 16
+#define TEST_SOLID_BOTTOM 17
 #define TEST_PLAYER_ACTION 4
 #define TEST_PLAYER_FACING 5
 #define TEST_PLAYER_HITBOX_ACTIVE 14
@@ -26,6 +30,7 @@ static int test_reaction_probe;
 static int test_shield_probe;
 static int test_tumble_probe;
 static int test_floor_recovery_probe;
+static int test_surface_tech_probe;
 static int32_t test_view[TEST_VIEW_COUNT];
 
 void pf_web_m4_playtest_install(
@@ -37,7 +42,8 @@ void pf_web_m4_playtest_install(
     int reaction_probe_passed,
     int shield_probe_passed,
     int tumble_probe_passed,
-    int floor_recovery_probe_passed);
+    int floor_recovery_probe_passed,
+    int surface_tech_probe_passed);
 
 void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -52,7 +58,8 @@ void pf_web_m4_playtest_install(
     int reaction_probe_passed,
     int shield_probe_passed,
     int tumble_probe_passed,
-    int floor_recovery_probe_passed)
+    int floor_recovery_probe_passed,
+    int surface_tech_probe_passed)
 {
     ++test_install_count;
     test_walk_axis = walk_axis;
@@ -64,6 +71,7 @@ void pf_web_m4_playtest_install(
     test_shield_probe = shield_probe_passed;
     test_tumble_probe = tumble_probe_passed;
     test_floor_recovery_probe = floor_recovery_probe_passed;
+    test_surface_tech_probe = surface_tech_probe_passed;
 }
 
 void pf_web_m4_playtest_render(
@@ -148,15 +156,21 @@ int main(void)
         test_shield_probe != 1 ||
         test_tumble_probe != 1 ||
         test_floor_recovery_probe != 1 ||
-        test_view[0] != 6 ||
-        test_view[1] != 0)
+        test_surface_tech_probe != 1 ||
+        test_view[0] != 7 ||
+        test_view[1] != 0 ||
+        test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
+        test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
+        test_view[TEST_SOLID_TOP] != 16 * 65536 ||
+        test_view[TEST_SOLID_BOTTOM] != 29 * 65536)
     {
         (void)fprintf(
             stderr,
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
             "dash=%d input_probe=%d air_facing_probe=%d combat_probe=%d "
             "reaction_probe=%d shield_probe=%d tumble_probe=%d "
-            "floor_recovery_probe=%d schema=%d tick=%d\n",
+            "floor_recovery_probe=%d surface_tech_probe=%d "
+            "schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
             test_walk_axis,
@@ -168,6 +182,7 @@ int main(void)
             test_shield_probe,
             test_tumble_probe,
             test_floor_recovery_probe,
+            test_surface_tech_probe,
             (int)test_view[0],
             (int)test_view[1]);
         return fail("start-and-input-probe");
@@ -287,7 +302,7 @@ int main(void)
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d combat_probe=%d reaction_probe=%d "
         "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
-        "floor_recovery_probe=%d renders=%d\n",
+        "floor_recovery_probe=%d surface_tech_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
@@ -298,6 +313,7 @@ int main(void)
         test_shield_probe,
         test_tumble_probe,
         test_floor_recovery_probe,
+        test_surface_tech_probe,
         test_render_count);
     return 0;
 }

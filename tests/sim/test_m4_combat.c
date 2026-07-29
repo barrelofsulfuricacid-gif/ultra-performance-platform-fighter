@@ -117,6 +117,10 @@ static int make_tech_invulnerability_content(
         INT32_C(2) * PF_Q16_ONE;
     out_content->stage.platform_motion_amplitude_q16 =
         INT32_C(0);
+    out_content->stage.solid_left_q16 =
+        INT32_C(24) * PF_Q16_ONE;
+    out_content->stage.solid_right_q16 =
+        INT32_C(30) * PF_Q16_ONE;
     out_content->stage.spawn_spacing_q16 =
         (INT32_C(2) * PF_Q16_ONE) / INT32_C(5);
     return expect_status(
@@ -600,6 +604,323 @@ static int run_default_strong_tumble_test(
     }
     return (saw_tumble_hitstun != 0 && saw_knockdown != 0) ||
            fail("default-strong-tumble-route");
+}
+
+static int make_surface_tech_content(
+    int ceiling_fixture,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "surface-tech-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_half_width_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->stage.solid_left_q16 =
+        ceiling_fixture != 0
+            ? INT32_C(0)
+            : (INT32_C(23) * PF_Q16_ONE) / INT32_C(10);
+    out_content->stage.solid_right_q16 =
+        INT32_C(6) * PF_Q16_ONE;
+    out_content->stage.solid_top_q16 =
+        INT32_C(14) * PF_Q16_ONE;
+    out_content->stage.solid_bottom_q16 =
+        INT32_C(29) * PF_Q16_ONE;
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "surface-tech-content-view");
+}
+
+static int drive_strong_to_surface(
+    pf_sim *sim,
+    int arm_tech,
+    int16_t target_x,
+    int16_t target_y,
+    uint64_t target_buttons,
+    uint8_t expected_action,
+    pf_m4_inspection *out_inspection)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("surface-tech-strong-start");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(16) &&
+         inspection.players[1].damage_q16 == UINT32_C(0);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("surface-tech-strong-active");
+        }
+    }
+    if (inspection.players[1].damage_q16 == UINT32_C(0) ||
+        inspection.players[1].tumble != UINT8_C(1))
+    {
+        return fail("surface-tech-strong-did-not-tumble");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(90); ++tick)
+    {
+        const uint16_t trigger =
+            arm_tech != 0 ? UINT16_MAX : UINT16_C(0);
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                target_x,
+                target_y,
+                target_buttons,
+                trigger,
+                &inspection))
+        {
+            return fail("surface-tech-impact-step");
+        }
+        if (inspection.players[1].action_state == expected_action)
+        {
+            *out_inspection = inspection;
+            return 1;
+        }
+    }
+    return fail("surface-tech-impact-not-observed");
+}
+
+static int run_surface_tech_test(
+    const pf_m4_content *wall_content,
+    const pf_content_view *wall_view,
+    const pf_m4_content *ceiling_content,
+    const pf_content_view *ceiling_view)
+{
+    test_sim_storage wall_storage;
+    test_sim_storage wall_jump_storage;
+    test_sim_storage wall_bounce_storage;
+    test_sim_storage ceiling_storage;
+    test_sim_storage ceiling_bounce_storage;
+    pf_sim *wall = NULL;
+    pf_sim *wall_jump = NULL;
+    pf_sim *wall_bounce = NULL;
+    pf_sim *ceiling = NULL;
+    pf_sim *ceiling_bounce = NULL;
+    pf_m4_inspection inspection;
+    int32_t bounce_x;
+    int32_t bounce_y;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &wall_storage,
+            wall_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &wall) ||
+        !initialize_sim(
+            &wall_jump_storage,
+            wall_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &wall_jump) ||
+        !initialize_sim(
+            &wall_bounce_storage,
+            wall_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &wall_bounce) ||
+        !initialize_sim(
+            &ceiling_storage,
+            ceiling_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &ceiling) ||
+        !initialize_sim(
+            &ceiling_bounce_storage,
+            ceiling_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &ceiling_bounce))
+    {
+        return fail("surface-tech-init");
+    }
+
+    if (!drive_strong_to_surface(
+            wall,
+            1,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint8_t)PF_M4_ACTION_WALL_TECH,
+            &inspection) ||
+        inspection.players[1].tumble != UINT8_C(0) ||
+        inspection.players[1].hitstun_ticks != UINT16_C(0) ||
+        inspection.players[1].tech_window_ticks != UINT16_C(0) ||
+        inspection.players[1].facing != INT8_C(-1) ||
+        inspection.players[1].velocity_x_q16 != INT32_C(0) ||
+        inspection.players[1].velocity_y_q16 != INT32_C(0) ||
+        inspection.players[1].invulnerable != UINT8_C(1))
+    {
+        return fail("wall-tech-entry");
+    }
+    for (tick = UINT32_C(1);
+         tick <= (uint32_t)wall_content->fighter.wall_tech_stall_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                wall,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("wall-tech-stall-step");
+        }
+        if (tick < (uint32_t)wall_content->fighter.wall_tech_stall_ticks &&
+            (inspection.players[1].velocity_x_q16 != INT32_C(0) ||
+             inspection.players[1].velocity_y_q16 != INT32_C(0)))
+        {
+            return fail("wall-tech-exact-stall");
+        }
+    }
+    if (inspection.players[1].velocity_x_q16 >= INT32_C(0))
+    {
+        return fail("wall-tech-away-release");
+    }
+
+    if (!drive_strong_to_surface(
+            wall_jump,
+            1,
+            INT16_C(0),
+            INT16_C(-32767),
+            UINT64_C(0),
+            (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP,
+            &inspection))
+    {
+        return fail("wall-tech-jump-entry");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)wall_content->fighter.wall_tech_stall_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                wall_jump,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("wall-tech-jump-stall-step");
+        }
+    }
+    if (inspection.players[1].velocity_x_q16 >= INT32_C(0) ||
+        inspection.players[1].velocity_y_q16 >= INT32_C(0))
+    {
+        return fail("wall-tech-jump-release");
+    }
+
+    if (!drive_strong_to_surface(
+            wall_bounce,
+            0,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint8_t)PF_M4_ACTION_WALL_BOUNCE,
+            &inspection) ||
+        inspection.players[1].tumble != UINT8_C(1) ||
+        inspection.players[1].hitstun_ticks == UINT16_C(0) ||
+        inspection.players[1].velocity_x_q16 >= INT32_C(0))
+    {
+        return fail("wall-bounce-preserves-reaction");
+    }
+    bounce_x = inspection.players[1].velocity_x_q16;
+    bounce_y = inspection.players[1].velocity_y_q16;
+    if (bounce_x == INT32_C(0) || bounce_y == INT32_C(0))
+    {
+        return fail("wall-bounce-reflects-motion");
+    }
+
+    if (!drive_strong_to_surface(
+            ceiling,
+            1,
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint8_t)PF_M4_ACTION_CEILING_TECH,
+            &inspection) ||
+        inspection.players[1].tumble != UINT8_C(0) ||
+        inspection.players[1].hitstun_ticks != UINT16_C(0) ||
+        inspection.players[1].velocity_y_q16 != INT32_C(0) ||
+        inspection.players[1].velocity_x_q16 !=
+            ceiling_content->fighter.ceiling_tech_speed_q16 ||
+        inspection.players[1].invulnerable != UINT8_C(1))
+    {
+        return fail("ceiling-tech-entry");
+    }
+
+    if (!drive_strong_to_surface(
+            ceiling_bounce,
+            0,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint8_t)PF_M4_ACTION_CEILING_BOUNCE,
+            &inspection) ||
+        inspection.players[1].tumble != UINT8_C(1) ||
+        inspection.players[1].hitstun_ticks == UINT16_C(0) ||
+        inspection.players[1].velocity_y_q16 <= INT32_C(0))
+    {
+        return fail("ceiling-bounce-preserves-reaction");
+    }
+    return 1;
 }
 
 static int run_whiff_and_trade_test(
@@ -3350,15 +3671,20 @@ int main(void)
     pf_m4_content invalid_getup_content;
     pf_m4_content invalid_shield_content;
     pf_m4_content invalid_cancel_content;
+    pf_m4_content invalid_surface_content;
     pf_m4_content reaction_content;
     pf_m4_content tech_invulnerability_content;
     pf_m4_content floor_attack_content;
     pf_m4_content shield_break_content;
+    pf_m4_content wall_tech_content;
+    pf_m4_content ceiling_tech_content;
     pf_content_view view;
     pf_content_view reaction_view;
     pf_content_view tech_invulnerability_view;
     pf_content_view floor_attack_view;
     pf_content_view shield_break_view;
+    pf_content_view wall_tech_view;
+    pf_content_view ceiling_tech_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_reaction_content(
@@ -3372,7 +3698,15 @@ int main(void)
             &floor_attack_view) ||
         !make_shield_break_content(
             &shield_break_content,
-            &shield_break_view))
+            &shield_break_view) ||
+        !make_surface_tech_content(
+            0,
+            &wall_tech_content,
+            &wall_tech_view) ||
+        !make_surface_tech_content(
+            1,
+            &ceiling_tech_content,
+            &ceiling_tech_view))
     {
         return 1;
     }
@@ -3398,6 +3732,9 @@ int main(void)
     invalid_cancel_content = content;
     invalid_cancel_content.fighter.powershield_cancel_delay_ticks =
         invalid_cancel_content.fighter.shield_release_ticks;
+    invalid_surface_content = content;
+    invalid_surface_content.stage.solid_bottom_q16 =
+        invalid_surface_content.stage.solid_top_q16;
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -3422,8 +3759,17 @@ int main(void)
             pf_m4_validate_content(&invalid_cancel_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-powershield-cancel-data") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_surface_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-solid-geometry") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_default_strong_tumble_test(&content, &view) ||
+        !run_surface_tech_test(
+            &wall_tech_content,
+            &wall_tech_view,
+            &ceiling_tech_content,
+            &ceiling_tech_view) ||
         !run_whiff_and_trade_test(&content, &view) ||
         !run_shield_state_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
@@ -3459,7 +3805,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=68\n",
+        " combat_invariants=80\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;
