@@ -79,6 +79,13 @@ static int pf_m4_action_is_recovery_invulnerable(
     uint8_t action_state,
     uint16_t action_ticks)
 {
+    if (action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE)
+    {
+        return action_ticks >=
+                   fighter->air_dodge_invulnerability_begin_tick &&
+               action_ticks <
+                   fighter->air_dodge_invulnerability_end_tick;
+    }
     if (action_state ==
             (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
         action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL ||

@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x38)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x39)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -963,6 +963,8 @@ static int pf_m4_player_state_consistent(
     {
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+               action != (uint8_t)PF_M4_ACTION_AIR_DODGE &&
+               action != (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
@@ -972,7 +974,9 @@ static int pf_m4_player_state_consistent(
     {
         return 0;
     }
-    if (action == (uint8_t)PF_M4_ACTION_AIRBORNE)
+    if (action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL)
     {
         return 1;
     }
@@ -1090,7 +1094,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(480) ||
-                action > (uint8_t)PF_M4_ACTION_CEILING_BOUNCE ||
+                action > (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
                 world->support[player_index] >
                     (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||

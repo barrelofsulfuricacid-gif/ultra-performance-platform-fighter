@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(9)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(9)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(10)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(10)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(8)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(9)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -50,7 +50,10 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_WALL_TECH_JUMP = 28,
     PF_M4_ACTION_CEILING_TECH = 29,
     PF_M4_ACTION_WALL_BOUNCE = 30,
-    PF_M4_ACTION_CEILING_BOUNCE = 31
+    PF_M4_ACTION_CEILING_BOUNCE = 31,
+    PF_M4_ACTION_AIR_DODGE = 32,
+    PF_M4_ACTION_FALL_SPECIAL = 33,
+    PF_M4_ACTION_SPECIAL_LANDING = 34
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -90,6 +93,9 @@ typedef struct pf_m4_fighter_data
     int32_t short_hop_speed_q16;
     int32_t double_jump_speed_q16;
     int32_t platform_drop_nudge_q16;
+    int32_t air_dodge_speed_q16;
+    int32_t air_dodge_decay_q16;
+    int32_t fall_special_mobility_q16;
     int32_t jab_hitbox_offset_x_q16;
     int32_t jab_hitbox_offset_y_q16;
     int32_t jab_hitbox_half_width_q16;
@@ -141,6 +147,10 @@ typedef struct pf_m4_fighter_data
     uint16_t initial_dash_ticks;
     uint16_t landing_ticks;
     uint16_t platform_drop_ticks;
+    uint16_t air_dodge_ticks;
+    uint16_t air_dodge_invulnerability_begin_tick;
+    uint16_t air_dodge_invulnerability_end_tick;
+    uint16_t special_landing_ticks;
     uint16_t run_turnaround_ticks;
     uint16_t run_brake_ticks;
     uint16_t axis_dead_zone;

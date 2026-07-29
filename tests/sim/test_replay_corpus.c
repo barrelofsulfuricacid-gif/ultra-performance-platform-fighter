@@ -241,6 +241,8 @@ int main(void)
     uint64_t tick;
     int sdi_observed = 0;
     int tech_window_observed = 0;
+    int air_dodge_observed = 0;
+    int special_landing_observed = 0;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -346,6 +348,18 @@ int main(void)
                 {
                     tech_window_observed = 1;
                 }
+                if (combat_inspection.players[player_index].
+                        action_state ==
+                    (uint8_t)PF_M4_ACTION_AIR_DODGE)
+                {
+                    air_dodge_observed = 1;
+                }
+                if (combat_inspection.players[player_index].
+                        action_state ==
+                    (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
+                {
+                    special_landing_observed = 1;
+                }
             }
         }
     }
@@ -362,6 +376,8 @@ int main(void)
         result.winner_mask != UINT8_C(5) ||
         sdi_observed == 0 ||
         tech_window_observed == 0 ||
+        air_dodge_observed == 0 ||
+        special_landing_observed == 0 ||
         (combat_inspection.players[0].last_hit_valid == UINT8_C(0) &&
          combat_inspection.players[1].last_hit_valid == UINT8_C(0) &&
          combat_inspection.players[2].last_hit_valid == UINT8_C(0) &&
@@ -370,7 +386,8 @@ int main(void)
         (void)fprintf(
             stderr,
             "sim-replay=fail operation=source-result completed=%" PRIu64
-            " terminated=%u truncated=%u winner=%u hit=%u%u%u%u\n",
+            " terminated=%u truncated=%u winner=%u hit=%u%u%u%u"
+            " sdi=%d tech=%d air_dodge=%d special_landing=%d\n",
             result.completed_tick,
             (unsigned int)result.terminated,
             (unsigned int)result.truncated,
@@ -378,7 +395,11 @@ int main(void)
             (unsigned int)combat_inspection.players[0].last_hit_valid,
             (unsigned int)combat_inspection.players[1].last_hit_valid,
             (unsigned int)combat_inspection.players[2].last_hit_valid,
-            (unsigned int)combat_inspection.players[3].last_hit_valid);
+            (unsigned int)combat_inspection.players[3].last_hit_valid,
+            sdi_observed,
+            tech_window_observed,
+            air_dodge_observed,
+            special_landing_observed);
         return 1;
     }
 

@@ -3,7 +3,7 @@
 **Status:** In progress; M4.1 movement/ledge core, light and strong M4.2 ground
 attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
-implemented
+plus directional air dodge, helpless fall, and wavedash/waveland implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -22,7 +22,7 @@ implemented
   catch lockout, hang, release, ledge jump, and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-9/save-format-8 contract that serializes every
+- A rollback-safe state-schema-10/save-format-9 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield field.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -32,7 +32,7 @@ implemented
   ledge points, moving-platform and solid-block geometry, blast zones, percent, hitlag,
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state.
-- Thirty-five movement/content invariants plus a 20,000-tick four-player
+- Fifty-three movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -163,6 +163,36 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   startup readiness probe reaches `WALL_TECH_JUMP` through ordinary movement,
   strong attack, trigger, and up inputs on the default content.
 
+## Delivered in the air-dodge and momentum-landing slice
+
+- Content/fighter schema 10 defines fixed directional air-dodge speed,
+  two-axis dead-zone behavior, per-tick decay, special-fall drift mobility,
+  total duration, exact invulnerability window, and special-landing lag.
+- A fresh airborne trigger edge enters `AIR_DODGE`; neutral input zeros both
+  velocities while directional input receives a deterministic normalized
+  fixed-speed vector. Facing remains locked and held input cannot retrigger.
+- The default dodge decays both motion components for 49 ticks, rejects hits
+  on action ticks 3–28, and then enters `FALL_SPECIAL` with gravity, fast fall,
+  limited drift, ledge catch, and ordinary air-action lockout.
+- Floor, pass-through-platform, and solid-top contact from the dodge or
+  helpless fall enters ten-tick `SPECIAL_LANDING`, preserves horizontal
+  momentum, and slides under fighter traction. Downward air dodge correctly
+  lands on a pass-through platform rather than invoking ordinary drop-through.
+- The production ordinary-input path performs a first-airborne-frame short-hop
+  air dodge, diagonal floor wavedash, and platform waveland. Neutral input,
+  held trigger, late vulnerability, and exact landing-lag boundaries provide
+  negative cases.
+- State schema 10/save format 9 adds only the three canonical action semantics;
+  the complete save remains 569 bytes. Mid-air-dodge save/load produces equal
+  continuation hashes.
+- Browser view schema 8 labels all three actions, displays the action timer,
+  retains the exact invulnerability ring, and runs an independent startup
+  probe through `AIR_DODGE`, `FALL_SPECIAL`, `SPECIAL_LANDING`, and continued
+  slide.
+- The shared replay trace observes both air dodge and special landing before
+  encoding. Registry rows 45 (short hop air dodge) and 60 (wavedash) advance
+  to `playable`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -173,6 +203,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Airborne horizontal input changes drift velocity but never changes facing;
   an opposite-direction air jump likewise preserves the takeoff-facing
   direction.
+- A fresh airborne trigger produces a neutral or directional air dodge.
+  Diagonal surface contact preserves horizontal momentum through exactly ten
+  special-landing ticks, enabling wavedash and waveland with keyboard input.
 - Opposite input during initial dash remains a dash-dance reversal. Opposite
   input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
   sub-threshold run input enters `RUN BRAKE`.
@@ -181,8 +214,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
-- This first movement slice does not claim full technique parity. Dash-dancing
-  has direct invariant coverage; other rows remain `planned` until their full
+- This incremental slice does not claim full technique parity. Dash-dancing is
+  verified; short hop air dodge and wavedash are now playable; other rows
+  remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
   playtest recipes are required for all 61 rows before M4 can be accepted; none
@@ -190,7 +224,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 5 playable, 5 primitive-ready, and 50 planned.
+  blocked: 1 verified, 7 playable, 5 primitive-ready, and 48 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -207,7 +241,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Remaining ground attacks, aerials, specials, recovery, grabs/throws, analog
   light shield, shield size/tilt/pokes and shield SDI, defensive rolls, spot
-  dodge, air dodge, platform shield drop, projectile powershield/reflection,
+  dodge, platform shield drop, projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
   complete shield-break behavior, complete
   knockback/angle data, stale-move behavior,
@@ -221,21 +255,22 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## First-slice verification
 
-- Release workflow: 16/16 tests.
-- Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
+- Release workflow: 17/17 tests.
+- Address/undefined-behavior sanitizer workflow: 17/17 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 35 movement invariants, 80
+- Mechanical oracles: 53 movement invariants, 84
   attack/reaction/shield/floor/surface
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
-- Native replay corpus: exact 180-tick attack/reaction/shield trace at 31,261
+- Native replay corpus: exact 180-tick
+  attack/reaction/shield/air-dodge trace at 31,261
   bytes,
   replay SHA-256
-  `056c0400bf589c619ac1296442e8929c7bda40561cfd0ec9e635b9f580dfa9a8`,
+  `226c7efa576933c6c7587c6522d5c2f1c2168d908ad99c2c1c01a30d876f1973`,
   final SHA-256
-  `4f93f884f9392a6a48226abe10f2b8ac6afd04abb6af147ef0a9a03ea4c1c7dd`;
+  `b8dc08e6df6c7612d1b00534d5fd7d20990d6332f7d7280bd1a1f03715736432`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -244,8 +279,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/air-facing/combat/reaction/shield-and-PSC/default-tumble/floor-
-  recovery/surface-tech probes and live rendering).
+  movement/air-facing/air-dodge-and-wavedash/combat/reaction/shield-and-PSC/
+  default-tumble/floor-recovery/surface-tech probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

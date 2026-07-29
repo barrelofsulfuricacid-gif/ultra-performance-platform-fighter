@@ -2,7 +2,8 @@
 
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
-missed-impact recovery, hit-reaction, and dense-shield primitives in
+missed-impact recovery, directional air dodge, wavedash/waveland,
+hit-reaction, and dense-shield primitives in
 WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
@@ -18,7 +19,7 @@ headless execution.
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground attack | `F` | `/` or Numpad `0` |
 | Strong ground attack | `H` | `'` or Numpad `2` |
-| Hold shield / tap tech trigger | `G` | `.` or Numpad `1` |
+| Hold shield / tap tech or air-dodge trigger | `G` | `.` or Numpad `1` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -47,6 +48,22 @@ Once airborne, horizontal input changes drift but does not change the direction
 the fighter faces. An air jump also preserves facing, even when performed while
 holding the opposite horizontal direction. Turn on the ground before takeoff
 when an inward or outward airborne facing is required.
+
+A fresh shield/tech-key press while ordinarily airborne performs an air dodge.
+Hold a stick direction with it for a fixed-speed directional dodge; neutral
+stick zeros both velocity components. Facing never follows the air-dodge
+direction. `AIR DODGE` decays momentum without gravity, becomes invulnerable on
+action ticks 3–28, and enters `FALL SPECIAL` after 49 ticks if it does not land.
+`FALL SPECIAL` restores gravity/fast fall, limits horizontal drift, allows a
+legal ledge catch, and locks ordinary air actions.
+
+For a wavedash, tap and release jump during the three-tick jump squat, then on
+the first airborne frame hold down-left or down-right and press the trigger.
+Floor contact enters `SPECIAL LANDING`, preserves the horizontal air-dodge
+component, and slides under traction for action ticks 0–9 before returning to
+idle. The same diagonal contact on a pass-through platform performs a
+waveland; the downward dodge lands instead of invoking ordinary platform
+drop-through. The state card exposes the exact action tick for these checks.
 
 To grab a ledge, fall beside it while facing inward. After the seven-tick catch
 window, press toward the stage to climb, press down or away to release, or press
@@ -143,67 +160,79 @@ registry row can advance from `playable` to `verified`.
 6. Jump while facing right, hold left until moving left, then hold right until
    moving right. Confirm the facing indicator stays right throughout both drift
    directions and an air jump. Repeat after turning left on the ground.
-7. Use an airborne fresh jump, reverse aerial drift around the apex, fast-fall
+7. Full hop and press up-right plus the trigger while airborne. Confirm `AIR
+   DODGE`, unchanged facing, the gold invulnerability ring only on action ticks
+   3–28, and `FALL SPECIAL` if the dodge finishes without touching a surface.
+   Keep holding the trigger and confirm it never starts a second dodge.
+8. Tap jump, release during jump squat, then on the first airborne frame press
+   down-right plus the trigger. Confirm immediate `SPECIAL LANDING`, a
+   horizontal slide with unchanged facing, action ticks 0–9, then idle. Repeat
+   with neutral stick and confirm it does not create the diagonal slide.
+9. Full hop upward through the moving platform. On descent, press down-left or
+   down-right plus the trigger just above it. Confirm `SPECIAL LANDING` uses
+   platform support and preserves horizontal momentum instead of dropping
+   through.
+10. Use an airborne fresh jump, reverse aerial drift around the apex, fast-fall
    with down, land on the moving platform, then press down to drop through it.
-8. Approach the right edge in `RUN`, press left before leaving it to enter
+11. Approach the right edge in `RUN`, press left before leaving it to enter
    `RUN TURNAROUND`, and let the retained rightward momentum carry the fighter
    off while facing inward. Confirm `LEDGE HANG`, then try neutral hang,
    down/away release, jump, and inward climb.
-9. Put one player on a ledge and attempt to grab it with the other player.
+12. Put one player on a ledge and attempt to grab it with the other player.
    Confirm only the original occupant enters `LEDGE HANG`.
-10. Move into range, press `F`, and confirm the amber hitbox appears only on the
+13. Move into range, press `F`, and confirm the amber hitbox appears only on the
    active frames. On contact, confirm the target gains 6%, both players visibly
    freeze, and the target then launches in `HITSTUN`.
-11. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
+14. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
-12. Pause just before contact and use `N` to step through hitlag. On the first
+15. Pause just before contact and use `N` to step through hitlag. On the first
     target hitlag tick, press a horizontal direction and confirm `SDI pulses`
     becomes 1 and the target shifts. Keep holding it for another tick and
     confirm the count stays 1. Add the vertical component and confirm the count
     becomes 2.
-13. Compare otherwise similar launches while holding perpendicular opposite
+16. Compare otherwise similar launches while holding perpendicular opposite
     vertical directions on the final hitlag tick. Confirm the visible launch
     vector changes while the state remains deterministic after Reset.
-14. Tap the target's tech key and confirm the state card shows
+17. Tap the target's tech key and confirm the state card shows
     `tech window 20` and `lockout 40`. Hold the key through the next tick and
     confirm they count down to 19/39 rather than reopening.
-15. Move into range and press `H` (or Player 2's strong-attack key). Confirm the
+18. Move into range and press `H` (or Player 2's strong-attack key). Confirm the
     pink hitbox, 12% damage, six frozen hitlag ticks, then visible rotation with
     `TUMBLE · HITSTUN`. Press the target's tech key within 20 ticks of landing.
     Use neutral horizontal input for `TECH IN PLACE`, then repeat while holding
     a direction for `TECH ROLL`. Repeat without the tech input and confirm
     `KNOCKDOWN`. Confirm the gold invulnerability ring clears after 20 ticks
     while each tech action continues.
-16. Let the missed tech finish into `DOWN WAIT`. Try up and a fresh shield
+19. Let the missed tech finish into `DOWN WAIT`. Try up and a fresh shield
     press for `NEUTRAL GETUP`, left and right for both `GETUP ROLL`
     directions, and either attack key for `FLOOR ATTACK`. Pause and step
     through the floor attack: confirm purple hitboxes in front on frames
     17–19 and behind on frames 24–26, with no hitbox in between. Confirm the
     gold ring clears at each option's documented invulnerability boundary.
-17. Move both fighters near the raised block and strong-launch the target into
+20. Move both fighters near the raised block and strong-launch the target into
     its side. Tap the target's tech key during tumble for `WALL TECH`; repeat
     while holding up for `WALL TECH JUMP`, then omit the tech input for `WALL
     BOUNCE`. Repeat with an upward launch into the underside for `CEILING TECH`
     and `CEILING BOUNCE`. Confirm successful techs clear tumble/hitstun while
     missed impacts retain them.
-18. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+21. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-19. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+22. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
     fighter slides forward and slows under traction. Reset, press shield during
     `INITIAL DASH`, and confirm the fighter does not shield until run.
-20. Hold shield for more than four ticks and block an attack. Confirm no
+23. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-21. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+24. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-22. Repeat with Player 2's arrow-key controls and try both players
+25. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -223,6 +252,9 @@ through:
 - two different post-takeoff full-hop hold durations producing the same apex;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
+- a full-hop directional air dodge reaching its exact invulnerability window
+  and `FALL SPECIAL`, plus a first-airborne-frame diagonal short-hop air dodge
+  entering `SPECIAL LANDING` and retaining horizontal slide;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
@@ -248,6 +280,6 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
-floor_recovery_probe=pass surface_tech_probe=pass
+floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
 controls=keyboard-two-player` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

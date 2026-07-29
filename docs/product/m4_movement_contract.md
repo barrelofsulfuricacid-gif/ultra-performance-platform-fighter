@@ -60,6 +60,50 @@ facing, even when the horizontal stick points opposite that facing. A
 deliberate down input after the apex enters the fixed fast-fall speed. Landing
 enters a finite landing state.
 
+## Directional air dodge and momentum landing
+
+A fresh normalized trigger edge from ordinary non-tumbling `AIRBORNE` enters
+`AIR DODGE`. The same trigger remains the ground-tech input; tumbling recovery
+therefore retains tech priority instead of being silently converted into a
+dodge.
+
+- If both stick axes are strictly inside the fighter's rectangular dead zone,
+  entry zeros both velocity components. Otherwise the integer-normalized stick
+  angle receives the fighter's fixed 0.50 air-dodge speed, independent of stick
+  magnitude outside the dead zone.
+- Ordinary aerial drift never changes facing, and neither does air dodge.
+- The entry tick uses the full vector. Each later air-dodge tick multiplies
+  both components by the data-defined 0.90 decay. Gravity, fast fall, drift,
+  jumps, and attacks do not modify the active dodge.
+- The default action lasts 49 ticks. With action tick zero as frame 1, its
+  data-defined invulnerability covers frames 4–29: action ticks 3–28. Startup
+  and all ticks beginning at 29 are vulnerable.
+- Finishing in the air enters `FALL SPECIAL`. Gravity and fast fall resume,
+  horizontal drift is capped at the data-defined 0.08 mobility, ordinary air
+  actions and another air dodge remain locked, and a legal ledge catch is
+  still possible.
+
+Touching the floor, a pass-through platform, or the solid block's top during
+`AIR DODGE` or `FALL SPECIAL` enters `SPECIAL LANDING`. Vertical velocity is
+cleared, horizontal momentum is preserved, and the fighter slides under its
+normal traction while all control remains locked for ten ticks. A downward
+air dodge collides with a pass-through platform rather than inheriting the
+ordinary down-held drop-through rule.
+
+This transition intentionally makes wavedash and waveland production
+mechanics: short hop or descend toward a surface, air dodge diagonally into it,
+then retain the angle-dependent horizontal component through special landing.
+A neutral air dodge provides the negative case because it creates no
+horizontal slide. Holding the trigger cannot retrigger the dodge; release and
+press are still insufficient once `FALL SPECIAL` has begun.
+
+The state structure follows the pinned Melee decomp's
+[air-dodge entry/decay/collision path](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_EscapeAir.c)
+and
+[special-fall gravity/drift/landing path](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_FallSpecial.c).
+The placeholder's fixed-point values remain explicit original fighter data,
+not a claim that one table represents every Melee character.
+
 ## Stage interaction
 
 The initial stage table defines:
@@ -107,6 +151,12 @@ geometry without placing presentation objects in canonical state. It includes
   turnaround lockout, run brake, facing, traction, and crouch;
 - binary short/full hops, double jump, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
+- neutral and directional air dodge, normalized vector/decay, exact
+  invulnerability boundaries, facing lock, held-trigger rejection,
+  `FALL SPECIAL`, mid-action save/load continuation, and the ordinary-input
+  first-airborne-frame short-hop air dodge;
+- diagonal floor wavedash and pass-through-platform waveland, preserved
+  horizontal momentum, traction slide, and exact ten-tick special landing;
 - moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
   one-occupant priority, mid-climb save/load equivalence, platform drop, and
   blast-zone respawn;
@@ -115,4 +165,4 @@ geometry without placing presentation objects in canonical state. It includes
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 35 invariants.
+The focused movement oracle currently reports 53 invariants.

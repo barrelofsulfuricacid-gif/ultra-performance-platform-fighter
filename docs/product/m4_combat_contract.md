@@ -13,7 +13,9 @@ frame-2 powershield canceling into either current production ground attack.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
-This is still an incremental checkpoint. It does not claim the remaining
+Directional air dodge, helpless fall, and momentum-preserving special landing
+now provide the first defensive-air action and the wavedash/waveland
+foundation. This is still an incremental checkpoint. It does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
 spot dodge, platform shield drop, grabs, projectile powershields, complete
 shield-break launch/stun, prone-orientation-specific
@@ -253,37 +255,50 @@ foundation. It does not yet claim Melee's upward shield-break launch,
 landing/knockdown sequence, damage-dependent stun, mash reduction, vulnerability,
 or hit interruption.
 
+## Air-dodge hit interaction
+
+The air-dodge action's exact data-defined invulnerability window is resolved
+by the same production hit-ownership pass as tech/getup invulnerability.
+Default action ticks 3–28 reject physical hitboxes; startup ticks 0–2 and tick
+29 onward accept them. Inspection derives the visible invulnerability marker
+from the action ID, timer, and fighter data, so it adds no redundant mutable
+flag. Hits outside the window replace the dodge with ordinary hitlag and
+hitstun.
+
 ## Canonical state and inspection
 
-State schema 9 / save format 8 adds canonical `WALL_TECH`,
+State schema 10 / save format 9 adds canonical `AIR_DODGE`, `FALL_SPECIAL`,
+and `SPECIAL_LANDING` semantics after the state-schema-9
+`WALL_TECH`,
 `WALL_TECH_JUMP`, `CEILING_TECH`, `WALL_BOUNCE`, and `CEILING_BOUNCE` action
 semantics plus the solid-top support ID while
 retaining the 569-byte stream: a 140-byte header plus a 429-byte payload. The
-active magic is `PFSAVE08`. Input schema 3 still supplies the separate
+active magic is `PFSAVE09`. Input schema 3 still supplies the separate
 light- and strong-attack buttons.
 
-Content schema 9 / fighter schema 9 adds wall/ceiling tech speeds and
-durations plus the missed-impact multiplier. Stage schema 2 adds the solid
-block bounds. No new canonical state field is required: the action ID,
-existing action timer, reaction state, and tech-direction field identify every
-surface outcome.
+Content schema 10 / fighter schema 10 adds air-dodge speed/decay,
+special-fall mobility, action/invulnerability timings, and special-landing lag
+after the schema-9 wall/ceiling data. Stage schema 2 retains the solid block
+bounds. No new canonical state field is required: action ID, action timer,
+velocity, support, and the existing reaction fields identify every new
+outcome.
 
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 8 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 9 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
-health/stun/powershield, derived tech invulnerability, active hitbox bounds,
-last-hit metadata, and solid-block geometry. Browser view schema 7 carries
-those fields, the floor
-action semantics, the live shield bubble, a visibly rotating tumble
+health/stun/powershield, derived tech/air-dodge invulnerability, active hitbox
+bounds, last-hit metadata, and solid-block geometry. Browser view schema 8
+carries those fields plus the canonical action timer, floor action semantics,
+the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
 floor-attack hitbox, and renders the block.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 80 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 84 focused
 invariants, including:
 
 - light and strong attack schedules, facing, whiff, damage, ownership, freeze,
@@ -299,6 +314,8 @@ invariants, including:
   up/shield neutral getup, bidirectional getup roll, all three recovery
   durations and invulnerability cutoffs, front/back floor-attack hits with
   negative timing checks, and mid-roll save/load continuation;
+- air-dodge invulnerability rejecting an overlapping production jab inside
+  the window and accepting the same hit on the exact expired boundary;
 - production strong-attack routes into wall tech, wall-tech jump, ceiling
   tech, missed wall bounce, and missed ceiling bounce; exact stall/release,
   facing, velocity, reaction-state, and invulnerability checks; and invalid
@@ -319,11 +336,13 @@ invariants, including:
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
 The 180-tick replay corpus includes vertical stick and trigger inputs and
-requires observed SDI, tech-window, and shield state before encoding. Native
+requires observed SDI, tech-window, air-dodge, and special-landing state before
+encoding. Native
 and WebAssembly runs must agree on all 181 state hashes, the 31,261-byte
 replay, and its final digest.
 
-The browser startup refuses readiness unless independent movement, attack,
+The browser startup refuses readiness unless independent movement, air-dodge,
+attack,
 reaction, shield, tumble, floor-recovery, and surface-tech probes pass. The
 surface probe moves the ordinary default fighters near the raised block,
 strong-launches a tumbling target, opens the real trigger window during
@@ -334,3 +353,6 @@ recovery invulnerability, and both floor-attack active phases. The shield probe
 observes a normal physical block, a four-frame powershield, the frame-1
 shield-drop delay, and a frame-2 powershield-canceled attack through the
 production collision path.
+The air-dodge probe independently reaches directional `AIR DODGE`, its
+invulnerability window, `FALL SPECIAL`, and a first-airborne-frame diagonal
+`SPECIAL LANDING` with continued horizontal slide.

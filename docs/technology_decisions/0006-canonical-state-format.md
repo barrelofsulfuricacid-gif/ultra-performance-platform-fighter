@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–8 / state schemas 1–9
+- **Status:** Accepted for save formats 1–9 / state schemas 1–10
 - **Date:** 2026-07-28
 
 ## Decision
@@ -18,10 +18,11 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 6 | 7 | 140 | 429 | 569 | Canonical strong-ground-attack action ID; no byte-layout change |
 | 7 | 8 | 140 | 429 | 569 | Canonical missed-tech down-wait, neutral-getup, getup-roll, and floor-attack action IDs; no byte-layout change |
 | 8 | 9 | 140 | 429 | 569 | Canonical wall-tech, wall-tech-jump, ceiling-tech, wall-bounce, and ceiling-bounce action IDs plus solid-top support ID; no byte-layout change |
+| 9 | 10 | 140 | 429 | 569 | Canonical air-dodge, special-fall, and special-landing action IDs; no byte-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
-`PFSAVE05`, `PFSAVE06`, `PFSAVE07`, or `PFSAVE08`. The active M4 runtime emits
-and accepts format 8 with state schema 9. Earlier
+`PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, or `PFSAVE09`. The active M4
+runtime emits and accepts format 9 with state schema 10. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -79,6 +80,10 @@ service-envelope responsibility.
 - Validation of the canonical wall/ceiling tech and missed-bounce action
   relationships, including continued hitstun/tumble for a missed impact and
   cleared reaction state for a successful tech.
+- Mid-air-dodge save/load plus equal action timer, fixed-point velocity,
+  invulnerability derivation, and future continuation hashes; validation also
+  enforces airborne dodge/special-fall and grounded special-landing
+  relationships.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

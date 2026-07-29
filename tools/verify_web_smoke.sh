@@ -105,13 +105,13 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=4f93f884f9392a6a48226abe10f2b8ac6afd04abb6af147ef0a9a03ea4c1c7dd'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=b8dc08e6df6c7612d1b00534d5fd7d20990d6332f7d7280bd1a1f03715736432'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
 pf_require_dom \
-    "M4 input/air-facing/combat/reaction/shield/tumble/floor/surface-tech probe status" \
-    'playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass surface_tech_probe=pass controls=keyboard-two-player'
+    "M4 input/air-facing/air-dodge/combat/reaction/shield/tumble/floor/surface-tech probe status" \
+    'playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass controls=keyboard-two-player'
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'

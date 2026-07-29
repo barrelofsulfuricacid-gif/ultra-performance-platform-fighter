@@ -16,9 +16,9 @@
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 29
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 30
 #define PF_WEB_M4_VIEW_PLAYER0 18
-#define PF_WEB_M4_VIEW_COUNT 76
+#define PF_WEB_M4_VIEW_COUNT 78
 
 enum pf_web_m4_view_field
 {
@@ -68,7 +68,8 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_SHIELD_HEALTH = 25,
     PF_WEB_M4_VIEW_PLAYER_SHIELD_STUN = 26,
     PF_WEB_M4_VIEW_PLAYER_POWERSHIELD = 27,
-    PF_WEB_M4_VIEW_PLAYER_INVULNERABLE = 28
+    PF_WEB_M4_VIEW_PLAYER_INVULNERABLE = 28,
+    PF_WEB_M4_VIEW_PLAYER_ACTION_TICKS = 29
 };
 
 typedef struct pf_web_m4_storage
@@ -89,7 +90,8 @@ extern void pf_web_m4_playtest_install(
     int shield_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
-    int surface_tech_probe_passed);
+    int surface_tech_probe_passed,
+    int air_dodge_probe_passed);
 
 extern void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -421,6 +423,176 @@ static int pf_web_m4_run_air_facing_probe(void)
         }
     }
     return inspection.players[0].velocity_x_q16 > INT32_C(0);
+}
+
+static int pf_web_m4_run_air_dodge_probe(void)
+{
+    pf_m4_inspection inspection;
+    int32_t landing_x;
+    int8_t takeoff_facing;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].grounded == UINT8_C(0))
+        {
+            break;
+        }
+    }
+    takeoff_facing = inspection.players[0].facing;
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            -PF_WEB_M4_DASH_AXIS,
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        inspection.players[0].facing != takeoff_facing)
+    {
+        return 0;
+    }
+    while (inspection.players[0].action_ticks <
+           pf_web_m4_content.fighter
+               .air_dodge_invulnerability_begin_tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                PF_WEB_M4_DASH_AXIS,
+                -PF_WEB_M4_DASH_AXIS,
+                UINT64_C(0),
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].invulnerable != UINT8_C(1))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick <= (uint32_t)pf_web_m4_content.fighter.air_dodge_ticks;
+         ++tick)
+    {
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL)
+        {
+            break;
+        }
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+        inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        const uint64_t buttons =
+            tick == UINT32_C(0)
+                ? PF_INPUT_BUTTON_JUMP
+                : UINT64_C(0);
+
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                buttons,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].grounded == UINT8_C(0))
+        {
+            break;
+        }
+    }
+    takeoff_facing = inspection.players[0].facing;
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            PF_WEB_M4_DASH_AXIS,
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        inspection.players[0].facing != takeoff_facing)
+    {
+        return 0;
+    }
+    landing_x = inspection.players[0].position_x_q16;
+    return pf_web_m4_tick_with_triggers(
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               &inspection) &&
+           inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+           inspection.players[0].position_x_q16 > landing_x;
 }
 
 static int pf_web_m4_run_combat_probe(void)
@@ -1200,7 +1372,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(7);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(8);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -1306,6 +1478,8 @@ static int pf_web_m4_render(void)
             (int32_t)player->powershield;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_INVULNERABLE] =
             (int32_t)player->invulnerable;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_ACTION_TICKS] =
+            (int32_t)player->action_ticks;
     }
 
     pf_web_m4_playtest_render(
@@ -1327,6 +1501,7 @@ int pf_web_m4_playtest_start(void)
     int tumble_probe_passed;
     int floor_recovery_probe_passed;
     int surface_tech_probe_passed;
+    int air_dodge_probe_passed;
 
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
         pf_m4_make_content_view(
@@ -1371,6 +1546,8 @@ int pf_web_m4_playtest_start(void)
         pf_web_m4_run_floor_recovery_probe();
     surface_tech_probe_passed =
         pf_web_m4_run_surface_tech_probe();
+    air_dodge_probe_passed =
+        pf_web_m4_run_air_dodge_probe();
     if (input_probe_passed == 0 ||
         air_facing_probe_passed == 0 ||
         combat_probe_passed == 0 ||
@@ -1379,6 +1556,7 @@ int pf_web_m4_playtest_start(void)
         tumble_probe_passed == 0 ||
         floor_recovery_probe_passed == 0 ||
         surface_tech_probe_passed == 0 ||
+        air_dodge_probe_passed == 0 ||
         !pf_web_m4_reset_internal())
     {
         return 0;
@@ -1393,7 +1571,8 @@ int pf_web_m4_playtest_start(void)
         shield_probe_passed,
         tumble_probe_passed,
         floor_recovery_probe_passed,
-        surface_tech_probe_passed);
+        surface_tech_probe_passed,
+        air_dodge_probe_passed);
     return pf_web_m4_render();
 }
 

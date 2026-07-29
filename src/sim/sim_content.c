@@ -65,6 +65,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->short_hop_speed_q16);
     pf_m4_hash_i32(hash, fighter->double_jump_speed_q16);
     pf_m4_hash_i32(hash, fighter->platform_drop_nudge_q16);
+    pf_m4_hash_i32(hash, fighter->air_dodge_speed_q16);
+    pf_m4_hash_i32(hash, fighter->air_dodge_decay_q16);
+    pf_m4_hash_i32(hash, fighter->fall_special_mobility_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_half_width_q16);
@@ -142,6 +145,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
     pf_m4_hash_u16(hash, fighter->platform_drop_ticks);
+    pf_m4_hash_u16(hash, fighter->air_dodge_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->air_dodge_invulnerability_begin_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->air_dodge_invulnerability_end_tick);
+    pf_m4_hash_u16(hash, fighter->special_landing_ticks);
     pf_m4_hash_u16(hash, fighter->run_turnaround_ticks);
     pf_m4_hash_u16(hash, fighter->run_brake_ticks);
     pf_m4_hash_u16(hash, fighter->axis_dead_zone);
@@ -304,6 +315,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->short_hop_speed_q16 = PF_Q16_RATIO(9, 25);
     fighter->double_jump_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->platform_drop_nudge_q16 = PF_Q16_RATIO(1, 256);
+    fighter->air_dodge_speed_q16 = PF_Q16_RATIO(1, 2);
+    fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
+    fighter->fall_special_mobility_q16 = PF_Q16_RATIO(2, 25);
     fighter->jab_hitbox_offset_x_q16 = PF_Q16_RATIO(3, 4);
     fighter->jab_hitbox_offset_y_q16 = INT32_C(0);
     fighter->jab_hitbox_half_width_q16 = PF_Q16_RATIO(3, 5);
@@ -374,6 +388,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->landing_ticks = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(6);
+    fighter->air_dodge_ticks = UINT16_C(49);
+    fighter->air_dodge_invulnerability_begin_tick = UINT16_C(3);
+    fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
+    fighter->special_landing_ticks = UINT16_C(10);
     fighter->run_turnaround_ticks = UINT16_C(12);
     fighter->run_brake_ticks = UINT16_C(8);
     fighter->axis_dead_zone = UINT16_C(4096);
@@ -547,6 +565,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->short_hop_speed_q16 <= INT32_C(0) ||
         fighter->double_jump_speed_q16 <= INT32_C(0) ||
         fighter->platform_drop_nudge_q16 <= INT32_C(0) ||
+        fighter->air_dodge_speed_q16 <= INT32_C(0) ||
+        fighter->air_dodge_decay_q16 <= INT32_C(0) ||
+        fighter->air_dodge_decay_q16 > PF_Q16_ONE ||
+        fighter->fall_special_mobility_q16 <= INT32_C(0) ||
+        fighter->fall_special_mobility_q16 >
+            fighter->air_speed_q16 ||
         fighter->jab_hitbox_offset_x_q16 < -maximum_fighter_extent_q16 ||
         fighter->jab_hitbox_offset_x_q16 > maximum_fighter_extent_q16 ||
         fighter->jab_hitbox_offset_y_q16 < -maximum_fighter_extent_q16 ||
@@ -709,6 +733,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->platform_drop_nudge_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->air_dodge_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->fall_special_mobility_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->jab_base_knockback_x_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->jab_base_knockback_y_q16 >
@@ -731,6 +759,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->landing_ticks > UINT16_C(120) ||
         fighter->platform_drop_ticks == UINT16_C(0) ||
         fighter->platform_drop_ticks > UINT16_C(120) ||
+        fighter->air_dodge_ticks == UINT16_C(0) ||
+        fighter->air_dodge_ticks > UINT16_C(240) ||
+        fighter->air_dodge_invulnerability_begin_tick >=
+            fighter->air_dodge_invulnerability_end_tick ||
+        fighter->air_dodge_invulnerability_end_tick >
+            fighter->air_dodge_ticks ||
+        fighter->special_landing_ticks == UINT16_C(0) ||
+        fighter->special_landing_ticks > UINT16_C(240) ||
         fighter->run_turnaround_ticks < UINT16_C(2) ||
         fighter->run_turnaround_ticks > UINT16_C(120) ||
         fighter->run_brake_ticks == UINT16_C(0) ||

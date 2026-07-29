@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -452,7 +452,8 @@ mergeInto(LibraryManager.library, {
     shieldProbePassed,
     tumbleProbePassed,
     floorRecoveryProbePassed,
-    surfaceTechProbePassed
+    surfaceTechProbePassed,
+    airDodgeProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -536,8 +537,9 @@ mergeInto(LibraryManager.library, {
       shieldProbePassed &&
       tumbleProbePassed &&
       floorRecoveryProbePassed &&
-      surfaceTechProbePassed
-        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
+      surfaceTechProbePassed &&
+      airDodgeProbePassed
+        ? "INPUT + AIR FACING + AIR DODGE / WAVEDASH + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -585,13 +587,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light attack · H strong attack · Hold G shield / tap G to tech · W / S vertical DI"
+        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light attack · H strong attack · Hold G shield / tap G to tech or air dodge · W / S vertical input"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light attack · ' or Numpad 2 strong attack · Hold . or Numpad 1 to shield / tap to tech · ↑ / ↓ vertical DI"
+        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light attack · ' or Numpad 2 strong attack · Hold . or Numpad 1 to shield / tap to tech or air dodge · ↑ / ↓ vertical input"
       )
     );
     section.appendChild(controls);
@@ -613,7 +615,14 @@ mergeInto(LibraryManager.library, {
       "Hold G or . on the ground for a real draining shield; fresh shields " +
       "powershield during their four-tick window, while releases have 15 ticks " +
       "of lag. Tap the same trigger shortly before a tumble landing to tech in " +
-      "place; hold left or right to tech-roll. After a missed tech reaches " +
+      "place; hold left or right to tech-roll. " +
+      "While airborne, a fresh trigger performs a directional air dodge; " +
+      "hold a direction with it, or leave the stick neutral to stop in place. " +
+      "For a wavedash, short hop, then press down-left or down-right plus the " +
+      "trigger on the first airborne frame. AIR DODGE becomes FALL SPECIAL if " +
+      "it finishes in the air; touching a surface instead enters ten ticks of " +
+      "SPECIAL LANDING while horizontal momentum slides under traction. " +
+      "After a missed tech reaches " +
       "DOWN WAIT, press up or a fresh shield input for neutral getup, left or " +
       "right to roll, or either attack key for the two-sided floor attack. " +
       "The raised block is solid on every side: tumbling into its wall or " +
@@ -875,6 +884,8 @@ mergeInto(LibraryManager.library, {
         (floorRecoveryProbePassed ? "pass" : "fail") +
         " surface_tech_probe=" +
         (surfaceTechProbePassed ? "pass" : "fail") +
+        " air_dodge_probe=" +
+        (airDodgeProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -893,6 +904,8 @@ mergeInto(LibraryManager.library, {
         floorRecoveryProbePassed ? "pass" : "fail";
       status.dataset.surfaceTechProbe =
         surfaceTechProbePassed ? "pass" : "fail";
+      status.dataset.airDodgeProbe =
+        airDodgeProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -900,7 +913,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 76) {
+    if (!state || viewCount !== 78) {
       return;
     }
     state.latest = new Int32Array(
@@ -908,7 +921,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 7) {
+    if (view[0] !== 8) {
       return;
     }
     var canvas = state.canvas;
@@ -955,6 +968,9 @@ mergeInto(LibraryManager.library, {
       "CEILING TECH",
       "WALL BOUNCE",
       "CEILING BOUNCE",
+      "AIR DODGE",
+      "FALL SPECIAL",
+      "SPECIAL LANDING",
     ];
 
     function sx(q16Value) {
@@ -1033,7 +1049,7 @@ mergeInto(LibraryManager.library, {
     );
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 18 + playerIndex * 29;
+      var base = 18 + playerIndex * 30;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -1205,7 +1221,9 @@ mergeInto(LibraryManager.library, {
         " · powershield " +
         view[base + 27] +
         " · invulnerable " +
-        view[base + 28];
+        view[base + 28] +
+        " · action tick " +
+        view[base + 29];
     });
 
     context.fillStyle = "#8da2bb";
