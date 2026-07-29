@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(7)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(7)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(8)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(8)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(6)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(7)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -41,7 +41,11 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_SHIELD_STUN = 19,
     PF_M4_ACTION_SHIELD_RELEASE = 20,
     PF_M4_ACTION_SHIELD_BREAK = 21,
-    PF_M4_ACTION_STRONG_ATTACK = 22
+    PF_M4_ACTION_STRONG_ATTACK = 22,
+    PF_M4_ACTION_DOWN_WAIT = 23,
+    PF_M4_ACTION_GETUP_NEUTRAL = 24,
+    PF_M4_ACTION_GETUP_ROLL = 25,
+    PF_M4_ACTION_GETUP_ATTACK = 26
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -101,6 +105,15 @@ typedef struct pf_m4_fighter_data
     int32_t sdi_distance_q16;
     int32_t asdi_distance_q16;
     int32_t tech_roll_speed_q16;
+    int32_t getup_roll_speed_q16;
+    int32_t getup_attack_hitbox_offset_x_q16;
+    int32_t getup_attack_hitbox_offset_y_q16;
+    int32_t getup_attack_hitbox_half_width_q16;
+    int32_t getup_attack_hitbox_half_height_q16;
+    uint32_t getup_attack_damage_q16;
+    int32_t getup_attack_base_knockback_x_q16;
+    int32_t getup_attack_base_knockback_y_q16;
+    int32_t getup_attack_knockback_growth_q16;
     uint32_t shield_health_q16;
     uint32_t shield_reset_health_q16;
     uint32_t shield_hold_depletion_q16;
@@ -142,6 +155,18 @@ typedef struct pf_m4_fighter_data
     uint16_t tech_roll_ticks;
     uint16_t tech_invulnerability_ticks;
     uint16_t knockdown_ticks;
+    uint16_t down_wait_ticks;
+    uint16_t getup_neutral_ticks;
+    uint16_t getup_neutral_invulnerability_ticks;
+    uint16_t getup_roll_ticks;
+    uint16_t getup_roll_invulnerability_ticks;
+    uint16_t getup_attack_ticks;
+    uint16_t getup_attack_invulnerability_ticks;
+    uint16_t getup_attack_front_active_begin_tick;
+    uint16_t getup_attack_front_active_end_tick;
+    uint16_t getup_attack_back_active_begin_tick;
+    uint16_t getup_attack_back_active_end_tick;
+    uint16_t getup_attack_hitlag_ticks;
     uint16_t shield_minimum_hold_ticks;
     uint16_t shield_release_ticks;
     uint16_t powershield_window_ticks;

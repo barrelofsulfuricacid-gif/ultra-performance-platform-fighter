@@ -4,8 +4,9 @@
 
 This checkpoint extends the first production-path M4.2 ground attacks with
 deterministic hit reaction and the first dense-shield primitive: trajectory
-DI, SDI, ASDI, tumble, missed-tech knockdown, tech in place, directional
-ground tech, shield stop, shield damage/stun/pushback, shield release and
+DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
+directional ground tech, neutral getup, getup roll, two-sided floor attack,
+shield stop, shield damage/stun/pushback, shield release and
 regeneration, grounded shield break lockout, physical powershielding, and
 frame-2 powershield canceling into either current production ground attack.
 These primitives use the same normalized input, simulation, save/load, replay,
@@ -14,8 +15,8 @@ RL, and browser paths.
 This is still an incremental checkpoint. It does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
 spot dodge, platform shield drop, grabs, projectile powershields, complete
-shield-break launch/stun, wall/ceiling techs, get-up
-choices, stocks, match completion, or completion of the
+shield-break launch/stun, wall/ceiling techs, prone-orientation-specific
+getup-roll asymmetry, stocks, match completion, or completion of the
 61-row non-character-specific advanced-technique gate.
 
 ## Attack, collision, and ownership
@@ -101,17 +102,37 @@ When a tumbling fighter contacts a floor or pass-through platform:
   ticks;
 - an open window plus horizontal input enters `TECH_ROLL` for 40 ticks in that
   direction at the data-defined roll speed; and
-- no open window enters `KNOCKDOWN` for 30 ticks.
+- no open window enters a vulnerable 26-tick `KNOCKDOWN`, followed by
+  `DOWN_WAIT`.
 
 The placeholder now uses Melee's universal 26-tick tech-in-place and 40-tick
 tech-roll durations; both reject hits for their first 20 ticks and expose that
-derived invulnerability through inspection. `KNOCKDOWN` remains vulnerable.
-These actions currently return directly to ground idle. Missed-tech get-up
-choices, attack interruption, and wall/ceiling techs remain explicit follow-up
-work and are not implied by these state names. The timing contract follows the
+derived invulnerability through inspection. `KNOCKDOWN` and `DOWN_WAIT`
+remain vulnerable. Successful techs return directly to ground idle.
+
+After the missed-tech animation, ordinary match inputs select the floor
+recovery:
+
+- up or a fresh shield edge enters a 30-tick `GETUP_NEUTRAL`, invulnerable for
+  its first 23 ticks;
+- left or right enters a 35-tick `GETUP_ROLL` in that direction, invulnerable
+  for its first 19 ticks;
+- either attack edge enters a 49-tick `GETUP_ATTACK`, invulnerable for its
+  first 26 ticks; its 6% hitbox attacks in front on frames 17–19 and behind on
+  frames 24–26; and
+- 180 inactive `DOWN_WAIT` ticks automatically select neutral getup. This
+  timeout is original placeholder content rather than a claim of one
+  universal Melee character value.
+
+The current one-fighter placeholder has one getup-roll timing table.
+Orientation-specific backward-roll differences remain explicit fighter-data
+work. The timing contract follows the
 [Melee tech frame-data summary](https://www.reddit.com/r/smashbros/comments/1svuas/when_is_it_possible_to_hit_an_opponent_who_missed/)
 alongside the 20-frame input window and 40-frame lockout described by
-[SmashWiki](https://www.ssbwiki.com/Tech).
+[SmashWiki](https://www.ssbwiki.com/Tech). Floor input choices and the
+two-sided weak attack follow SmashWiki's
+[floor-getup](https://www.ssbwiki.com/Floor_getup) and
+[floor-attack](https://www.ssbwiki.com/Floor_attack) descriptions.
 
 ## Dense shield, shield stop, and release
 
@@ -204,31 +225,33 @@ or hit interruption.
 
 ## Canonical state and inspection
 
-State schema 7 / save format 6 adds the canonical `STRONG_ATTACK` action
-semantic while retaining the 569-byte stream: a 140-byte header plus a
-429-byte payload. The active magic is `PFSAVE06`. Input schema 3 adds the
-separate strong-attack button.
+State schema 8 / save format 7 adds canonical `DOWN_WAIT`,
+`GETUP_NEUTRAL`, `GETUP_ROLL`, and `GETUP_ATTACK` action semantics while
+retaining the 569-byte stream: a 140-byte header plus a 429-byte payload. The
+active magic is `PFSAVE07`. Input schema 3 still supplies the separate
+light- and strong-attack buttons.
 
-Content schema 7 adds independent strong-attack geometry, damage, knockback,
-startup, active, recovery, and hitlag data. No new canonical state field is
-required: the new action ID and existing action timer fully identify the strong
-attack, and the existing powershield flag still distinguishes an eligible
-release.
+Content schema 8 adds missed-tech, down-wait, getup duration/invulnerability,
+roll speed, and two-phase floor-attack geometry, damage, knockback, and hitlag
+data. No new canonical state field is required: the action ID, existing action
+timer, hit mask, and direction field fully identify every floor-recovery
+outcome.
 
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 6 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 7 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived tech invulnerability, active hitbox bounds,
-and last-hit metadata. Browser
-view schema 5 carries those fields, the new action semantic, the live shield
-bubble, and a visibly rotating tumble presentation after hitlag.
+and last-hit metadata. Browser view schema 6 carries those fields, the floor
+action semantics, the live shield bubble, a visibly rotating tumble
+presentation, a prone missed-tech pose, recovery invulnerability, and the
+floor-attack hitbox.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 57 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 68 focused
 invariants, including:
 
 - light and strong attack schedules, facing, whiff, damage, ownership, freeze,
@@ -240,6 +263,10 @@ invariants, including:
 - missed tech, 26-tick in-place tech, 40-tick directional tech roll, 20-tick
   input window/lockout behavior, exact 20-tick hit rejection, vulnerability
   restoration, and held-trigger edge behavior;
+- exact 26-tick missed-tech animation, persistent/automatic down-wait,
+  up/shield neutral getup, bidirectional getup roll, all three recovery
+  durations and invulnerability cutoffs, front/back floor-attack hits with
+  negative timing checks, and mid-roll save/load continuation;
 - rejection of invalid reaction content;
 - run shield stop, the initial-dash shield restriction, hold depletion,
   minimum hold, bounded action timer, release lag, regeneration, and jump
@@ -261,6 +288,9 @@ and WebAssembly runs must agree on all 181 state hashes, the 31,261-byte
 replay, and its final digest.
 
 The browser startup refuses readiness unless independent movement, attack,
-reaction, and shield probes pass. The shield probe observes a normal physical
-block, a four-frame powershield, the frame-1 shield-drop delay, and a frame-2
-powershield-canceled attack through the production collision path.
+reaction, shield, tumble, and floor-recovery probes pass. The floor probe
+observes exact knockdown-to-down-wait timing, all three input outcomes,
+recovery invulnerability, and both floor-attack active phases. The shield probe
+observes a normal physical block, a four-frame powershield, the frame-1
+shield-drop delay, and a frame-2 powershield-canceled attack through the
+production collision path.

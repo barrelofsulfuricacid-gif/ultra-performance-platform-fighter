@@ -125,6 +125,35 @@ static int make_tech_invulnerability_content(
         "tech-invulnerability-content-view");
 }
 
+static int make_floor_attack_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!make_tech_invulnerability_content(
+            out_content,
+            out_view))
+    {
+        return 0;
+    }
+
+    out_content->fighter.ground_acceleration_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    out_content->fighter.turn_acceleration_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    out_content->fighter.traction_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    out_content->fighter.walk_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(20);
+    out_content->fighter.run_speed_q16 =
+        PF_Q16_ONE / INT32_C(5);
+    out_content->fighter.initial_dash_speed_q16 =
+        PF_Q16_ONE / INT32_C(5);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "floor-attack-content-view");
+}
+
 static int initialize_sim(
     test_sim_storage *storage,
     const pf_content_view *content,
@@ -2011,6 +2040,62 @@ static int run_until_reaction_landing(
     return 0;
 }
 
+static int advance_missed_tech_to_down_wait(
+    const pf_m4_content *content,
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint16_t knockdown_tick;
+
+    if (!run_until_reaction_landing(
+            sim,
+            0,
+            out_inspection) ||
+        out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+        out_inspection->players[1].action_ticks != UINT16_C(0) ||
+        out_inspection->players[1].invulnerable != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    for (knockdown_tick = UINT16_C(1);
+         knockdown_tick <= content->fighter.knockdown_ticks;
+         ++knockdown_tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (knockdown_tick < content->fighter.knockdown_ticks)
+        {
+            if (out_inspection->players[1].action_state !=
+                    (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+                out_inspection->players[1].action_ticks !=
+                    knockdown_tick ||
+                out_inspection->players[1].invulnerable !=
+                    UINT8_C(0))
+            {
+                return 0;
+            }
+        }
+    }
+    return out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_DOWN_WAIT &&
+           out_inspection->players[1].action_ticks == UINT16_C(0) &&
+           out_inspection->players[1].invulnerable == UINT8_C(0);
+}
+
 static int run_knockdown_and_tech_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -2115,6 +2200,637 @@ static int run_knockdown_and_tech_test(
         return fail("tech-invulnerability-exact-end");
     }
     return 1;
+}
+
+static int run_floor_getup_option_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage up_storage;
+    test_sim_storage shield_storage;
+    test_sim_storage roll_storage;
+    test_sim_storage auto_storage;
+    test_sim_storage attack_storage;
+    pf_sim *up = NULL;
+    pf_sim *shield = NULL;
+    pf_sim *roll = NULL;
+    pf_sim *automatic = NULL;
+    pf_sim *attack = NULL;
+    pf_m4_inspection up_inspection;
+    pf_m4_inspection shield_inspection;
+    pf_m4_inspection roll_inspection;
+    pf_m4_inspection auto_inspection;
+    pf_m4_inspection attack_inspection;
+    uint16_t tick;
+
+    if (!initialize_sim(
+            &up_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &up) ||
+        !initialize_sim(
+            &shield_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &shield) ||
+        !initialize_sim(
+            &roll_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &roll) ||
+        !initialize_sim(
+            &auto_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &automatic) ||
+        !initialize_sim(
+            &attack_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &attack) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            up,
+            &up_inspection) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            shield,
+            &shield_inspection) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            roll,
+            &roll_inspection) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            automatic,
+            &auto_inspection) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            attack,
+            &attack_inspection))
+    {
+        return fail("floor-getup-down-wait-setup");
+    }
+
+    if (!step_reaction_duel(
+            up,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(-32767),
+            UINT64_C(0),
+            UINT16_C(0),
+            &up_inspection) ||
+        up_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
+        up_inspection.players[1].action_ticks != UINT16_C(0) ||
+        up_inspection.players[1].invulnerable != UINT8_C(1) ||
+        !step_reaction_duel(
+            shield,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &shield_inspection) ||
+        shield_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
+        shield_inspection.players[1].tech_window_ticks !=
+            content->fighter.tech_window_ticks ||
+        shield_inspection.players[1].tech_lockout_ticks !=
+            content->fighter.tech_lockout_ticks ||
+        !step_reaction_duel(
+            roll,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(-32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &roll_inspection) ||
+        roll_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+        roll_inspection.players[1].tech_direction != INT8_C(-1) ||
+        roll_inspection.players[1].velocity_x_q16 >= INT32_C(0) ||
+        roll_inspection.players[1].invulnerable != UINT8_C(1) ||
+        !step_reaction_duel(
+            attack,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &attack_inspection) ||
+        attack_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
+        attack_inspection.players[1].action_ticks != UINT16_C(0) ||
+        attack_inspection.players[1].invulnerable != UINT8_C(1))
+    {
+        return fail("floor-getup-input-routing");
+    }
+
+    for (tick = UINT16_C(1);
+         tick <= content->fighter.getup_neutral_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                up,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &up_inspection))
+        {
+            return fail("neutral-getup-duration-step");
+        }
+        if (tick < content->fighter.getup_neutral_ticks &&
+            (up_inspection.players[1].action_state !=
+                 (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
+             up_inspection.players[1].invulnerable !=
+                 (tick <
+                          content->fighter
+                              .getup_neutral_invulnerability_ticks
+                      ? UINT8_C(1)
+                      : UINT8_C(0))))
+        {
+            return fail("neutral-getup-duration-or-invulnerability");
+        }
+    }
+    if (up_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        up_inspection.players[1].invulnerable != UINT8_C(0))
+    {
+        return fail("neutral-getup-exact-end");
+    }
+
+    for (tick = UINT16_C(1);
+         tick <= content->fighter.getup_roll_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                roll,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &roll_inspection))
+        {
+            return fail("getup-roll-duration-step");
+        }
+        if (tick < content->fighter.getup_roll_ticks &&
+            (roll_inspection.players[1].action_state !=
+                 (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+             roll_inspection.players[1].invulnerable !=
+                 (tick <
+                          content->fighter
+                              .getup_roll_invulnerability_ticks
+                      ? UINT8_C(1)
+                      : UINT8_C(0))))
+        {
+            return fail("getup-roll-duration-or-invulnerability");
+        }
+    }
+    if (roll_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        roll_inspection.players[1].tech_direction != INT8_C(0))
+    {
+        return fail("getup-roll-exact-end");
+    }
+
+    for (tick = UINT16_C(1);
+         tick <= content->fighter.down_wait_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                automatic,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &auto_inspection))
+        {
+            return fail("automatic-neutral-getup-step");
+        }
+        if (tick < content->fighter.down_wait_ticks &&
+            (auto_inspection.players[1].action_state !=
+                 (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
+             auto_inspection.players[1].action_ticks != tick))
+        {
+            return fail("down-wait-persistence");
+        }
+    }
+    if (auto_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
+        auto_inspection.players[1].action_ticks != UINT16_C(0) ||
+        auto_inspection.players[1].invulnerable != UINT8_C(1))
+    {
+        return fail("automatic-neutral-getup");
+    }
+
+    for (tick = UINT16_C(1);
+         tick <= content->fighter.getup_attack_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                attack,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &attack_inspection))
+        {
+            return fail("getup-attack-duration-step");
+        }
+        if (tick < content->fighter.getup_attack_ticks &&
+            (attack_inspection.players[1].action_state !=
+                 (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
+             attack_inspection.players[1].invulnerable !=
+                 (tick <
+                          content->fighter
+                              .getup_attack_invulnerability_ticks
+                      ? UINT8_C(1)
+                      : UINT8_C(0))))
+        {
+            return fail("getup-attack-duration-or-invulnerability");
+        }
+    }
+    if (attack_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        attack_inspection.players[1].invulnerable != UINT8_C(0))
+    {
+        return fail("getup-attack-exact-end");
+    }
+    return 1;
+}
+
+static int run_getup_attack_hit_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage front_storage;
+    test_sim_storage back_storage;
+    pf_sim *front = NULL;
+    pf_sim *back = NULL;
+    pf_m4_inspection front_inspection;
+    pf_m4_inspection back_inspection;
+    uint16_t tick;
+    int front_hit = 0;
+    int back_hit = 0;
+
+    if (!initialize_sim(
+            &front_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &front) ||
+        !initialize_sim(
+            &back_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &back) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            front,
+            &front_inspection) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            back,
+            &back_inspection) ||
+        !step_reaction_duel(
+            front,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &front_inspection))
+    {
+        return fail("getup-attack-hit-setup");
+    }
+
+    for (tick = UINT16_C(1);
+         tick <=
+             content->fighter.getup_attack_front_active_end_tick;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                front,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &front_inspection))
+        {
+            return fail("getup-attack-front-step");
+        }
+        if (front_inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            front_hit = 1;
+            break;
+        }
+    }
+    if (front_hit == 0 ||
+        front_inspection.players[0].damage_q16 !=
+            content->fighter.getup_attack_damage_q16 ||
+        front_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        front_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        (uint32_t)front_inspection.players[1].action_ticks +
+                UINT32_C(1) <
+            (uint32_t)content->fighter
+                .getup_attack_front_active_begin_tick ||
+        (uint32_t)front_inspection.players[1].action_ticks +
+                UINT32_C(1) >
+            (uint32_t)content->fighter
+                .getup_attack_front_active_end_tick)
+    {
+        return fail("getup-attack-front-hit");
+    }
+
+    for (tick = UINT16_C(0); tick < UINT16_C(8); ++tick)
+    {
+        if (!step_reaction_duel(
+                back,
+                INT16_C(32767),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &back_inspection))
+        {
+            return fail("getup-attack-back-position");
+        }
+    }
+    for (tick = UINT16_C(0); tick < UINT16_C(2); ++tick)
+    {
+        if (!step_reaction_duel(
+                back,
+                INT16_C(0),
+                INT16_C(32767),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &back_inspection))
+        {
+            return fail("getup-attack-back-stop");
+        }
+    }
+    if (back_inspection.players[0].position_x_q16 <=
+            back_inspection.players[1].position_x_q16 +
+                content->fighter.half_width_q16 ||
+        !step_reaction_duel(
+            back,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &back_inspection))
+    {
+        return fail("getup-attack-back-side-setup");
+    }
+
+    for (tick = UINT16_C(1);
+         tick <=
+             content->fighter.getup_attack_back_active_end_tick;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                back,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &back_inspection))
+        {
+            return fail("getup-attack-back-step");
+        }
+        if (back_inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            if (tick <
+                content->fighter
+                    .getup_attack_back_active_begin_tick -
+                    UINT16_C(1))
+            {
+                return fail("getup-attack-back-hit-too-early");
+            }
+            back_hit = 1;
+            break;
+        }
+    }
+    if (back_hit == 0 ||
+        back_inspection.players[0].damage_q16 !=
+            content->fighter.getup_attack_damage_q16 ||
+        back_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        back_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        (uint32_t)back_inspection.players[1].action_ticks +
+                UINT32_C(1) <
+            (uint32_t)content->fighter
+                .getup_attack_back_active_begin_tick ||
+        (uint32_t)back_inspection.players[1].action_ticks +
+                UINT32_C(1) >
+            (uint32_t)content->fighter
+                .getup_attack_back_active_end_tick)
+    {
+        return fail("getup-attack-back-hit");
+    }
+    return 1;
+}
+
+static int run_floor_recovery_snapshot_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint16_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !advance_missed_tech_to_down_wait(
+            content,
+            source,
+            &source_inspection) ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+        source_inspection.players[1].tech_direction != INT8_C(1) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "query-floor-recovery-save-size") ||
+        save_size != (size_t)569)
+    {
+        return fail("floor-recovery-snapshot-setup");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "save-floor-recovery") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "load-floor-recovery") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "hash-source-floor-recovery") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "hash-loaded-floor-recovery") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("floor-recovery-snapshot-round-trip");
+    }
+
+    for (tick = UINT16_C(0);
+         tick <
+             content->fighter.getup_roll_ticks + UINT16_C(5);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "hash-source-floor-recovery-continuation") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "hash-loaded-floor-recovery-continuation") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("floor-recovery-deterministic-continuation");
+        }
+    }
+    return source_inspection.players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                   loaded_inspection.players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE
+               ? 1
+               : fail("floor-recovery-snapshot-exact-end");
 }
 
 static int run_tech_invulnerability_hit_test(
@@ -2631,14 +3347,17 @@ int main(void)
     pf_m4_content invalid_content;
     pf_m4_content invalid_strong_content;
     pf_m4_content invalid_tech_content;
+    pf_m4_content invalid_getup_content;
     pf_m4_content invalid_shield_content;
     pf_m4_content invalid_cancel_content;
     pf_m4_content reaction_content;
     pf_m4_content tech_invulnerability_content;
+    pf_m4_content floor_attack_content;
     pf_m4_content shield_break_content;
     pf_content_view view;
     pf_content_view reaction_view;
     pf_content_view tech_invulnerability_view;
+    pf_content_view floor_attack_view;
     pf_content_view shield_break_view;
 
     if (!make_combat_content(&content, &view) ||
@@ -2648,6 +3367,9 @@ int main(void)
         !make_tech_invulnerability_content(
             &tech_invulnerability_content,
             &tech_invulnerability_view) ||
+        !make_floor_attack_content(
+            &floor_attack_content,
+            &floor_attack_view) ||
         !make_shield_break_content(
             &shield_break_content,
             &shield_break_view))
@@ -2665,6 +3387,11 @@ int main(void)
         (uint16_t)(
             invalid_tech_content.fighter.tech_in_place_ticks +
             UINT16_C(1));
+    invalid_getup_content = content;
+    invalid_getup_content.fighter
+        .getup_attack_front_active_end_tick =
+        invalid_getup_content.fighter
+            .getup_attack_back_active_begin_tick;
     invalid_shield_content = content;
     invalid_shield_content.fighter.shield_release_ticks =
         UINT16_C(0);
@@ -2683,6 +3410,10 @@ int main(void)
             pf_m4_validate_content(&invalid_tech_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-tech-invulnerability") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_getup_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-overlapping-getup-attack-windows") ||
         !expect_status(
             pf_m4_validate_content(&invalid_shield_content),
             PF_STATUS_INVALID_CONFIG,
@@ -2707,6 +3438,15 @@ int main(void)
         !run_knockdown_and_tech_test(
             &reaction_content,
             &reaction_view) ||
+        !run_floor_getup_option_test(
+            &reaction_content,
+            &reaction_view) ||
+        !run_getup_attack_hit_test(
+            &floor_attack_content,
+            &floor_attack_view) ||
+        !run_floor_recovery_snapshot_test(
+            &reaction_content,
+            &reaction_view) ||
         !run_tech_invulnerability_hit_test(
             &tech_invulnerability_content,
             &tech_invulnerability_view) ||
@@ -2719,7 +3459,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=57\n",
+        " combat_invariants=68\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

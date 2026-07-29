@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -450,7 +450,8 @@ mergeInto(LibraryManager.library, {
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
-    tumbleProbePassed
+    tumbleProbePassed,
+    floorRecoveryProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -532,8 +533,9 @@ mergeInto(LibraryManager.library, {
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
-      tumbleProbePassed
-        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC + TUMBLE PROBES PASSED"
+      tumbleProbePassed &&
+      floorRecoveryProbePassed
+        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -609,7 +611,10 @@ mergeInto(LibraryManager.library, {
       "Hold G or . on the ground for a real draining shield; fresh shields " +
       "powershield during their four-tick window, while releases have 15 ticks " +
       "of lag. Tap the same trigger shortly before a tumble landing to tech in " +
-      "place; hold left or right to tech-roll. R resets, P " +
+      "place; hold left or right to tech-roll. After a missed tech reaches " +
+      "DOWN WAIT, press up or a fresh shield input for neutral getup, left or " +
+      "right to roll, or either attack key for the two-sided floor attack. " +
+      "R resets, P " +
       "pauses, and N single-steps.";
     section.appendChild(note);
 
@@ -860,6 +865,8 @@ mergeInto(LibraryManager.library, {
         (shieldProbePassed ? "pass" : "fail") +
         " tumble_probe=" +
         (tumbleProbePassed ? "pass" : "fail") +
+        " floor_recovery_probe=" +
+        (floorRecoveryProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -874,6 +881,8 @@ mergeInto(LibraryManager.library, {
         shieldProbePassed ? "pass" : "fail";
       status.dataset.tumbleProbe =
         tumbleProbePassed ? "pass" : "fail";
+      status.dataset.floorRecoveryProbe =
+        floorRecoveryProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -889,7 +898,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 5) {
+    if (view[0] !== 6) {
       return;
     }
     var canvas = state.canvas;
@@ -927,6 +936,10 @@ mergeInto(LibraryManager.library, {
       "SHIELD RELEASE",
       "SHIELD BREAK",
       "STRONG ATTACK",
+      "DOWN WAIT",
+      "NEUTRAL GETUP",
+      "GETUP ROLL",
+      "FLOOR ATTACK",
     ];
 
     function sx(q16Value) {
@@ -990,6 +1003,10 @@ mergeInto(LibraryManager.library, {
       var actionState = view[base + 4];
       var tumbling =
         view[base + 22] !== 0 && actionState !== 13;
+      var prone =
+        actionState === 15 ||
+        actionState === 23 ||
+        actionState === 26;
       var invulnerable = view[base + 28] !== 0;
       var shielding =
         view[base + 4] === 18 ||
@@ -1003,9 +1020,17 @@ mergeInto(LibraryManager.library, {
         var hitboxBottom = sy(view[base + 18]);
 
         context.fillStyle =
-          actionState === 22 ? "#ff5f874d" : "#ffb34744";
+          actionState === 22
+            ? "#ff5f874d"
+            : actionState === 26
+              ? "#b977ff55"
+              : "#ffb34744";
         context.strokeStyle =
-          actionState === 22 ? "#ff8cab" : "#ffd089";
+          actionState === 22
+            ? "#ff8cab"
+            : actionState === 26
+              ? "#d7adff"
+              : "#ffd089";
         context.lineWidth = 2;
         context.fillRect(
           hitboxLeft,
@@ -1040,6 +1065,12 @@ mergeInto(LibraryManager.library, {
       }
 
       context.save();
+      if (prone) {
+        var standingHeight = height;
+        width = Math.max(width * 1.35, height * 1.15);
+        height = Math.max(12, width * 0.28);
+        y += (standingHeight - height) / 2;
+      }
       context.translate(x, y);
       if (tumbling) {
         context.rotate(

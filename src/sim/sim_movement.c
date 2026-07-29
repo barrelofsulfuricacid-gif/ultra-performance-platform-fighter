@@ -413,7 +413,11 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
            action_state == (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
-           action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL;
+           action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+           action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
+           action_state == (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
+           action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+           action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
 }
 
 static int pf_m4_action_is_shield(uint8_t action_state)
@@ -428,6 +432,35 @@ static int pf_m4_action_is_ground_attack(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
+}
+
+static int pf_m4_action_is_recovery_invulnerable(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    if (action_state ==
+            (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+        action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+    {
+        return action_ticks <
+               fighter->tech_invulnerability_ticks;
+    }
+    if (action_state ==
+        (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL)
+    {
+        return action_ticks <
+               fighter->getup_neutral_invulnerability_ticks;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL)
+    {
+        return action_ticks <
+               fighter->getup_roll_invulnerability_ticks;
+    }
+    return action_state ==
+               (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
+           action_ticks <
+               fighter->getup_attack_invulnerability_ticks;
 }
 
 static uint8_t pf_m4_ledge_from_state(
@@ -1448,32 +1481,128 @@ pf_status pf_m4_step_player(
         grounded != UINT8_C(0) &&
         pf_m4_action_locks_ground_control(action_state))
     {
-        uint16_t duration;
-
-        if (action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        velocity_x = INT32_C(0);
+        if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
         {
-            duration = fighter->tech_roll_ticks;
+            ++action_ticks;
+            if (action_ticks >= fighter->knockdown_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_DOWN_WAIT;
+                action_ticks = UINT16_C(0);
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT)
+        {
+            const int up_held =
+                input->main_stick_y <=
+                -(int16_t)fighter->crouch_axis_threshold;
+
+            if (attack_pressed)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
+                action_ticks = UINT16_C(0);
+                scratch->attack_hit_mask[player_index] =
+                    UINT8_C(0);
+                scratch->tech_direction[player_index] =
+                    INT8_C(0);
+            }
+            else if (horizontal_direction != INT8_C(0))
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GETUP_ROLL;
+                action_ticks = UINT16_C(0);
+                scratch->tech_direction[player_index] =
+                    horizontal_direction;
+                velocity_x =
+                    (int32_t)horizontal_direction *
+                    fighter->getup_roll_speed_q16;
+            }
+            else if (up_held || shield_pressed)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL;
+                action_ticks = UINT16_C(0);
+                scratch->tech_direction[player_index] =
+                    INT8_C(0);
+            }
+            else
+            {
+                ++action_ticks;
+                if (action_ticks >= fighter->down_wait_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL;
+                    action_ticks = UINT16_C(0);
+                }
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        {
             velocity_x =
                 (int32_t)scratch->tech_direction[player_index] *
                 fighter->tech_roll_speed_q16;
+            ++action_ticks;
+            if (action_ticks >= fighter->tech_roll_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                velocity_x = INT32_C(0);
+                scratch->tech_direction[player_index] =
+                    INT8_C(0);
+            }
+        }
+        else if (
+            action_state == (uint8_t)PF_M4_ACTION_TECH_IN_PLACE)
+        {
+            ++action_ticks;
+            if (action_ticks >= fighter->tech_in_place_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+            }
+        }
+        else if (
+            action_state == (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL)
+        {
+            ++action_ticks;
+            if (action_ticks >= fighter->getup_neutral_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+            }
+        }
+        else if (
+            action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL)
+        {
+            velocity_x =
+                (int32_t)scratch->tech_direction[player_index] *
+                fighter->getup_roll_speed_q16;
+            ++action_ticks;
+            if (action_ticks >= fighter->getup_roll_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                velocity_x = INT32_C(0);
+                scratch->tech_direction[player_index] =
+                    INT8_C(0);
+            }
         }
         else
         {
-            duration =
-                action_state ==
-                        (uint8_t)PF_M4_ACTION_TECH_IN_PLACE
-                    ? fighter->tech_in_place_ticks
-                    : fighter->knockdown_ticks;
-            velocity_x = INT32_C(0);
-        }
-        ++action_ticks;
-        if (action_ticks >= duration)
-        {
-            action_state =
-                (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-            action_ticks = UINT16_C(0);
-            velocity_x = INT32_C(0);
-            scratch->tech_direction[player_index] = INT8_C(0);
+            ++action_ticks;
+            if (action_ticks >= fighter->getup_attack_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                scratch->attack_hit_mask[player_index] =
+                    UINT8_C(0);
+            }
         }
     }
     else if (!ledge_motion_handled &&
@@ -2237,12 +2366,10 @@ pf_status pf_m4_inspect(
             sim->world.powershield[player_index];
         player->tumble = sim->world.tumble[player_index];
         player->invulnerable =
-            ((player->action_state ==
-                  (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
-              player->action_state ==
-                  (uint8_t)PF_M4_ACTION_TECH_ROLL) &&
-             player->action_ticks <
-                 sim->content.fighter.tech_invulnerability_ticks)
+            pf_m4_action_is_recovery_invulnerable(
+                &sim->content.fighter,
+                player->action_state,
+                player->action_ticks)
                 ? UINT8_C(1)
                 : UINT8_C(0);
         player->sdi_pulse_count =

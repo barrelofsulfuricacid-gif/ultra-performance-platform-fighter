@@ -1,7 +1,8 @@
 # M4 real-simulation browser playtest
 
-This checkpoint runs the production `pf_sim_tick` M4 movement, two ground attacks,
-hit-reaction, and dense-shield primitives in WebAssembly. It is no longer the
+This checkpoint runs the production `pf_sim_tick` M4 movement, two standing
+ground attacks, missed-tech floor recovery, hit-reaction, and dense-shield
+primitives in WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
 headless execution.
@@ -97,13 +98,23 @@ enters `KNOCKDOWN`. Use the strong attack for an immediate default-content
 tumble test; the light jab intentionally remains below the threshold on a
 fresh fighter. Tech in place lasts 26 ticks and tech roll lasts 40; both reject
 hits for their first 20 ticks, shown by a dashed gold ring and the
-`invulnerable` state-card field. Missed-tech knockdown has no such protection.
+`invulnerable` state-card field. Missed-tech knockdown has no such protection
+and lasts 26 ticks before entering `DOWN WAIT`.
+
+From `DOWN WAIT`, press up or make a fresh shield press for `NEUTRAL GETUP`,
+press left/right for `GETUP ROLL`, or press either attack key for `FLOOR
+ATTACK`. Neutral getup lasts 30 ticks with 23 invulnerable; getup roll lasts 35
+ticks with 19 invulnerable; floor attack lasts 49 ticks with 26 invulnerable.
+The floor attack deals 6% and attacks in front on frames 17–19, then behind on
+frames 24–26. Prone states render as a flattened fighter, both attack phases
+draw their inspected purple hitbox, and the same dashed gold ring shows the
+exact recovery invulnerability.
 
 This shield slice does not yet include analog light shield, shield tilt/poke,
-shield SDI, roll/spot dodge, platform shield drop, grab, projectile reflection,
-or the complete airborne/knockdown/stun shield-break sequence. Future ground
-actions must join the same powershield-cancel router before that registry row
-can advance from `playable` to `verified`.
+shield SDI, shield roll/spot dodge, platform shield drop, grab, projectile
+reflection, or the complete airborne/knockdown/stun shield-break sequence.
+Future ground actions must join the same powershield-cancel router before that
+registry row can advance from `playable` to `verified`.
 
 ## Focused owner checks
 
@@ -154,23 +165,29 @@ can advance from `playable` to `verified`.
     a direction for `TECH ROLL`. Repeat without the tech input and confirm
     `KNOCKDOWN`. Confirm the gold invulnerability ring clears after 20 ticks
     while each tech action continues.
-16. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+16. Let the missed tech finish into `DOWN WAIT`. Try up and a fresh shield
+    press for `NEUTRAL GETUP`, left and right for both `GETUP ROLL`
+    directions, and either attack key for `FLOOR ATTACK`. Pause and step
+    through the floor attack: confirm purple hitboxes in front on frames
+    17–19 and behind on frames 24–26, with no hitbox in between. Confirm the
+    gold ring clears at each option's documented invulnerability boundary.
+17. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-17. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+18. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
     fighter slides forward and slows under traction. Reset, press shield during
     `INITIAL DASH`, and confirm the fighter does not shield until run.
-18. Hold shield for more than four ticks and block an attack. Confirm no
+19. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-19. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+20. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-20. Repeat with Player 2's arrow-key controls and try both players
+21. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -194,6 +211,9 @@ through:
   identity, and canonical combat event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
   ticks, and canonical tumble state;
+- an exact 26-tick missed-tech animation entering `DOWN WAIT`, all three
+  floor-recovery input routes, their initial invulnerability, and both active
+  phases of the floor attack;
 - a production-path target SDI pulse producing a positional shift;
 - a trigger edge producing the 20-tick tech window and 40-tick lockout, with a
   held trigger counting down rather than retriggering;
@@ -209,5 +229,6 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
-controls=keyboard-two-player` only after all checks pass.
+floor_recovery_probe=pass controls=keyboard-two-player` only after all checks
+pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

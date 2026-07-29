@@ -25,6 +25,7 @@ static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
 static int test_tumble_probe;
+static int test_floor_recovery_probe;
 static int32_t test_view[TEST_VIEW_COUNT];
 
 void pf_web_m4_playtest_install(
@@ -35,7 +36,8 @@ void pf_web_m4_playtest_install(
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
-    int tumble_probe_passed);
+    int tumble_probe_passed,
+    int floor_recovery_probe_passed);
 
 void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -49,7 +51,8 @@ void pf_web_m4_playtest_install(
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
-    int tumble_probe_passed)
+    int tumble_probe_passed,
+    int floor_recovery_probe_passed)
 {
     ++test_install_count;
     test_walk_axis = walk_axis;
@@ -60,6 +63,7 @@ void pf_web_m4_playtest_install(
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
     test_tumble_probe = tumble_probe_passed;
+    test_floor_recovery_probe = floor_recovery_probe_passed;
 }
 
 void pf_web_m4_playtest_render(
@@ -143,7 +147,8 @@ int main(void)
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
         test_tumble_probe != 1 ||
-        test_view[0] != 5 ||
+        test_floor_recovery_probe != 1 ||
+        test_view[0] != 6 ||
         test_view[1] != 0)
     {
         (void)fprintf(
@@ -151,7 +156,7 @@ int main(void)
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
             "dash=%d input_probe=%d air_facing_probe=%d combat_probe=%d "
             "reaction_probe=%d shield_probe=%d tumble_probe=%d "
-            "schema=%d tick=%d\n",
+            "floor_recovery_probe=%d schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
             test_walk_axis,
@@ -162,6 +167,7 @@ int main(void)
             test_reaction_probe,
             test_shield_probe,
             test_tumble_probe,
+            test_floor_recovery_probe,
             (int)test_view[0],
             (int)test_view[1]);
         return fail("start-and-input-probe");
@@ -281,7 +287,7 @@ int main(void)
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d combat_probe=%d reaction_probe=%d "
         "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
-        "renders=%d\n",
+        "floor_recovery_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
@@ -291,6 +297,7 @@ int main(void)
         test_shield_probe,
         test_shield_probe,
         test_tumble_probe,
+        test_floor_recovery_probe,
         test_render_count);
     return 0;
 }

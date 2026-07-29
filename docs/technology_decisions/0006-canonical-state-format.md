@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–6 / state schemas 1–7
+- **Status:** Accepted for save formats 1–7 / state schemas 1–8
 - **Date:** 2026-07-28
 
 ## Decision
@@ -16,10 +16,11 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 4 | 5 | 140 | 401 | 541 | Tech window/lockout and trigger-edge state, tumble, SDI component/count state, and tech-roll direction |
 | 5 | 6 | 140 | 429 | 569 | Shield health, shield-stun timer, and powershield result state |
 | 6 | 7 | 140 | 429 | 569 | Canonical strong-ground-attack action ID; no byte-layout change |
+| 7 | 8 | 140 | 429 | 569 | Canonical missed-tech down-wait, neutral-getup, getup-roll, and floor-attack action IDs; no byte-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
-`PFSAVE05`, or `PFSAVE06`. The active M4 runtime emits and accepts format 6
-with state schema 7. Earlier
+`PFSAVE05`, `PFSAVE06`, or `PFSAVE07`. The active M4 runtime emits and accepts
+format 7 with state schema 8. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -68,6 +69,8 @@ service-envelope responsibility.
 - Mid-hitlag save/load plus equal future combat hashes in
   `tests/sim/test_m4_combat.c`.
 - Mid-shield-hitlag save/load plus equal shield-stun and shield-health
+  continuation hashes in `tests/sim/test_m4_combat.c`.
+- Mid-getup-roll save/load plus equal direction, invulnerability, and future
   continuation hashes in `tests/sim/test_m4_combat.c`.
 - Exact validation and future equality for DI/SDI, tumble, tech-window,
   lockout, tech outcome, shield health, shield stun, powershield, and

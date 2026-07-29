@@ -1,8 +1,8 @@
 # M4 combat vertical-slice progress
 
 **Status:** In progress; M4.1 movement/ledge core, light and strong M4.2 ground
-attacks, hit-reaction layers, dense shield, and physical powershield cancel
-implemented
+attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
+physical powershield cancel implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -21,7 +21,7 @@ implemented
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-7/save-format-6 contract that serializes every
+- A rollback-safe state-schema-8/save-format-7 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield field.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -88,6 +88,28 @@ implemented
 
 The exact first-primitive behavior and intentional remaining scope are fixed in
 [`m4_combat_contract.md`](../product/m4_combat_contract.md).
+
+## Delivered in the missed-tech floor-recovery slice
+
+- A vulnerable 26-tick missed-tech animation now enters explicit `DOWN_WAIT`
+  instead of returning directly to idle.
+- Ordinary inputs select neutral getup with up or a fresh shield edge, getup
+  roll with left/right, and a two-sided 6% floor attack with either attack
+  key. Inactive down-wait automatically selects neutral getup after the
+  data-defined placeholder timeout.
+- Data-defined 30-tick neutral getup, 35-tick roll, and 49-tick floor attack,
+  with exact 23-, 19-, and 26-tick invulnerability windows.
+- The floor attack covers front frames 17–19 and back frames 24–26, mirrors
+  with facing, uses the production one-hit mask/hitlag/launch path, and is
+  vulnerable when its invulnerability expires.
+- State schema 8/save format 7 and content schema 8 encode the four new action
+  semantics and recovery data without increasing the fixed 569-byte save.
+- Native verification covers all options, timing boundaries, front/back hits,
+  invalid content, and mid-roll save/load continuation. The independent
+  browser startup probe exercises knockdown, down-wait, all three options, and
+  both attack phases.
+- The browser now renders prone states, labels every getup action, draws the
+  floor-attack hitbox, and retains the dashed invulnerability indicator.
 
 ## Delivered in the first shield slice
 
@@ -162,8 +184,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   dodge, air dodge, platform shield drop, projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
   complete shield-break behavior, complete
-  knockback/angle data, stale-move behavior, wall/ceiling techs, missed-tech
-  get-up choices, stocks, respawn invulnerability, match
+  knockback/angle data, stale-move behavior, wall/ceiling techs,
+  prone-orientation-specific getup-roll timing, stocks, respawn
+  invulnerability, match
   result, and the complete bounded combat-event journal.
 - Local setup, complete 1v1 loop, results/rematch, replay visualization,
   collision/hitbox overlay, and repeated verifier/human matches.
@@ -175,7 +198,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 16/16 tests.
 - Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 30 movement invariants, 57 attack/reaction/shield
+- Mechanical oracles: 30 movement invariants, 68 attack/reaction/shield/floor
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
@@ -183,9 +206,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Native replay corpus: exact 180-tick attack/reaction/shield trace at 31,261
   bytes,
   replay SHA-256
-  `f70e0fd8ed46bd77d93d3027d7872a2e1afbd072b4594f9452b360c27e1d4337`,
+  `ab50e073f176f580c4e28a83430cba463485098c8756db88e92ad59a040199f3`,
   final SHA-256
-  `ff4b1ab565a1482d206bd101c33535227b225c75bca497dbf1ec7b2d22ee9302`;
+  `59463b3d7eac31a8301b6050754b4cd7069b20bbbe7e7354d25e8d92c4157bc6`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -194,8 +217,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/air-facing/combat/reaction/shield-and-PSC/default-tumble probes and
-  live rendering).
+  movement/air-facing/combat/reaction/shield-and-PSC/default-tumble/floor-
+  recovery probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

@@ -86,6 +86,29 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
+    pf_m4_hash_i32(hash, fighter->getup_roll_speed_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_hitbox_offset_x_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_hitbox_offset_y_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_hitbox_half_width_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, fighter->getup_attack_damage_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_base_knockback_x_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_base_knockback_y_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->getup_attack_knockback_growth_q16);
     pf_m4_hash_u32(hash, fighter->shield_health_q16);
     pf_m4_hash_u32(hash, fighter->shield_reset_health_q16);
     pf_m4_hash_u32(hash, fighter->shield_hold_depletion_q16);
@@ -139,6 +162,32 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->tech_roll_ticks);
     pf_m4_hash_u16(hash, fighter->tech_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->knockdown_ticks);
+    pf_m4_hash_u16(hash, fighter->down_wait_ticks);
+    pf_m4_hash_u16(hash, fighter->getup_neutral_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_neutral_invulnerability_ticks);
+    pf_m4_hash_u16(hash, fighter->getup_roll_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_roll_invulnerability_ticks);
+    pf_m4_hash_u16(hash, fighter->getup_attack_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_attack_invulnerability_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_attack_front_active_begin_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_attack_front_active_end_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_attack_back_active_begin_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_attack_back_active_end_tick);
+    pf_m4_hash_u16(hash, fighter->getup_attack_hitlag_ticks);
     pf_m4_hash_u16(hash, fighter->shield_minimum_hold_ticks);
     pf_m4_hash_u16(hash, fighter->shield_release_ticks);
     pf_m4_hash_u16(hash, fighter->powershield_window_ticks);
@@ -264,6 +313,23 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
     fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
     fighter->tech_roll_speed_q16 = PF_Q16_RATIO(1, 5);
+    fighter->getup_roll_speed_q16 = PF_Q16_RATIO(1, 5);
+    fighter->getup_attack_hitbox_offset_x_q16 =
+        PF_Q16_RATIO(3, 4);
+    fighter->getup_attack_hitbox_offset_y_q16 =
+        PF_Q16_RATIO(1, 5);
+    fighter->getup_attack_hitbox_half_width_q16 =
+        PF_Q16_RATIO(4, 5);
+    fighter->getup_attack_hitbox_half_height_q16 =
+        PF_Q16_RATIO(2, 5);
+    fighter->getup_attack_damage_q16 =
+        UINT32_C(6) * UINT32_C(65536);
+    fighter->getup_attack_base_knockback_x_q16 =
+        PF_Q16_RATIO(3, 20);
+    fighter->getup_attack_base_knockback_y_q16 =
+        PF_Q16_RATIO(1, 8);
+    fighter->getup_attack_knockback_growth_q16 =
+        PF_Q16_RATIO(1, 1024);
     fighter->shield_health_q16 =
         UINT32_C(60) * UINT32_C(65536);
     fighter->shield_reset_health_q16 =
@@ -315,7 +381,19 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->tech_in_place_ticks = UINT16_C(26);
     fighter->tech_roll_ticks = UINT16_C(40);
     fighter->tech_invulnerability_ticks = UINT16_C(20);
-    fighter->knockdown_ticks = UINT16_C(30);
+    fighter->knockdown_ticks = UINT16_C(26);
+    fighter->down_wait_ticks = UINT16_C(180);
+    fighter->getup_neutral_ticks = UINT16_C(30);
+    fighter->getup_neutral_invulnerability_ticks = UINT16_C(23);
+    fighter->getup_roll_ticks = UINT16_C(35);
+    fighter->getup_roll_invulnerability_ticks = UINT16_C(19);
+    fighter->getup_attack_ticks = UINT16_C(49);
+    fighter->getup_attack_invulnerability_ticks = UINT16_C(26);
+    fighter->getup_attack_front_active_begin_tick = UINT16_C(17);
+    fighter->getup_attack_front_active_end_tick = UINT16_C(19);
+    fighter->getup_attack_back_active_begin_tick = UINT16_C(24);
+    fighter->getup_attack_back_active_end_tick = UINT16_C(26);
+    fighter->getup_attack_hitlag_ticks = UINT16_C(3);
     fighter->shield_minimum_hold_ticks = UINT16_C(8);
     fighter->shield_release_ticks = UINT16_C(15);
     fighter->powershield_window_ticks = UINT16_C(4);
@@ -361,6 +439,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_jab_knockback_y;
     int64_t maximum_strong_knockback_x;
     int64_t maximum_strong_knockback_y;
+    int64_t maximum_getup_attack_knockback_x;
+    int64_t maximum_getup_attack_knockback_y;
 
     if (content == NULL)
     {
@@ -407,6 +487,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     maximum_strong_knockback_y =
         (int64_t)fighter->strong_base_knockback_y_q16 +
         ((((int64_t)fighter->strong_knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
+    maximum_getup_attack_knockback_x =
+        (int64_t)fighter->getup_attack_base_knockback_x_q16 +
+        (((int64_t)fighter->getup_attack_knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_getup_attack_knockback_y =
+        (int64_t)fighter->getup_attack_base_knockback_y_q16 +
+        ((((int64_t)fighter->getup_attack_knockback_growth_q16 *
            (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
           16U) /
          INT64_C(2));
@@ -467,6 +558,31 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->strong_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->strong_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->strong_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->getup_roll_speed_q16 <= INT32_C(0) ||
+        fighter->getup_roll_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->getup_attack_hitbox_offset_x_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->getup_attack_hitbox_offset_x_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->getup_attack_hitbox_offset_y_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->getup_attack_hitbox_offset_y_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->getup_attack_hitbox_half_width_q16 <=
+            INT32_C(0) ||
+        fighter->getup_attack_hitbox_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->getup_attack_hitbox_half_height_q16 <=
+            INT32_C(0) ||
+        fighter->getup_attack_hitbox_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->getup_attack_damage_q16 == UINT32_C(0) ||
+        fighter->getup_attack_damage_q16 >
+            UINT32_C(50) * UINT32_C(65536) ||
+        fighter->getup_attack_base_knockback_x_q16 <= INT32_C(0) ||
+        fighter->getup_attack_base_knockback_y_q16 <= INT32_C(0) ||
+        fighter->getup_attack_knockback_growth_q16 <= INT32_C(0) ||
         fighter->hitstun_velocity_per_tick_q16 <= INT32_C(0) ||
         fighter->di_max_tangent_q16 <= INT32_C(0) ||
         fighter->di_max_tangent_q16 > PF_Q16_ONE ||
@@ -528,6 +644,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_strong_knockback_y >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_getup_attack_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_getup_attack_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->ground_acceleration_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->turn_acceleration_q16 >
@@ -557,6 +677,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->strong_base_knockback_x_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->strong_base_knockback_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->getup_attack_base_knockback_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->getup_attack_base_knockback_y_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->hitstun_velocity_per_tick_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
@@ -622,6 +746,38 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->tech_roll_ticks ||
         fighter->knockdown_ticks == UINT16_C(0) ||
         fighter->knockdown_ticks > UINT16_C(480) ||
+        fighter->down_wait_ticks == UINT16_C(0) ||
+        fighter->down_wait_ticks > UINT16_C(480) ||
+        fighter->getup_neutral_ticks == UINT16_C(0) ||
+        fighter->getup_neutral_ticks > UINT16_C(240) ||
+        fighter->getup_neutral_invulnerability_ticks ==
+            UINT16_C(0) ||
+        fighter->getup_neutral_invulnerability_ticks >
+            fighter->getup_neutral_ticks ||
+        fighter->getup_roll_ticks == UINT16_C(0) ||
+        fighter->getup_roll_ticks > UINT16_C(240) ||
+        fighter->getup_roll_invulnerability_ticks ==
+            UINT16_C(0) ||
+        fighter->getup_roll_invulnerability_ticks >
+            fighter->getup_roll_ticks ||
+        fighter->getup_attack_ticks == UINT16_C(0) ||
+        fighter->getup_attack_ticks > UINT16_C(240) ||
+        fighter->getup_attack_invulnerability_ticks ==
+            UINT16_C(0) ||
+        fighter->getup_attack_invulnerability_ticks >
+            fighter->getup_attack_ticks ||
+        fighter->getup_attack_front_active_begin_tick ==
+            UINT16_C(0) ||
+        fighter->getup_attack_front_active_begin_tick >
+            fighter->getup_attack_front_active_end_tick ||
+        fighter->getup_attack_front_active_end_tick >=
+            fighter->getup_attack_back_active_begin_tick ||
+        fighter->getup_attack_back_active_begin_tick >
+            fighter->getup_attack_back_active_end_tick ||
+        fighter->getup_attack_back_active_end_tick >
+            fighter->getup_attack_ticks ||
+        fighter->getup_attack_hitlag_ticks == UINT16_C(0) ||
+        fighter->getup_attack_hitlag_ticks > UINT16_C(120) ||
         fighter->shield_minimum_hold_ticks == UINT16_C(0) ||
         fighter->shield_minimum_hold_ticks > UINT16_C(120) ||
         fighter->shield_release_ticks == UINT16_C(0) ||
