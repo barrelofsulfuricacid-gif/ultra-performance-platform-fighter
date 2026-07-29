@@ -424,6 +424,12 @@ static int pf_m4_action_is_shield(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
 }
 
+static int pf_m4_action_is_ground_attack(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
+}
+
 static uint8_t pf_m4_ledge_from_state(
     uint8_t action_state,
     int8_t facing)
@@ -884,9 +890,16 @@ pf_status pf_m4_step_player(
     const int jump_pressed =
         (input->buttons & PF_INPUT_BUTTON_JUMP) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0);
-    const int attack_pressed =
+    const int light_attack_pressed =
         (input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_ATTACK) == UINT64_C(0);
+    const int strong_attack_pressed =
+        (input->buttons & PF_INPUT_BUTTON_STRONG_ATTACK) !=
+            UINT64_C(0) &&
+        (previous_buttons & PF_INPUT_BUTTON_STRONG_ATTACK) ==
+            UINT64_C(0);
+    const int attack_pressed =
+        light_attack_pressed || strong_attack_pressed;
     const int shield_held =
         input->left_trigger >= fighter->digital_trigger_threshold ||
         input->right_trigger >= fighter->digital_trigger_threshold;
@@ -1247,7 +1260,7 @@ pf_status pf_m4_step_player(
         shield_held != 0 &&
         !pf_m4_action_is_shield(action_state) &&
         action_state != (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-        action_state != (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        !pf_m4_action_is_ground_attack(action_state) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         action_state != (uint8_t)PF_M4_ACTION_LANDING &&
         !pf_m4_action_locks_ground_control(action_state))
@@ -1264,12 +1277,15 @@ pf_status pf_m4_step_player(
         grounded != UINT8_C(0) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         action_state != (uint8_t)PF_M4_ACTION_LANDING &&
-        action_state != (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        !pf_m4_action_is_ground_attack(action_state) &&
         !pf_m4_action_is_shield(action_state) &&
         !pf_m4_action_locks_ground_control(action_state) &&
         attack_pressed)
     {
-        action_state = (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+        action_state =
+            strong_attack_pressed
+                ? (uint8_t)PF_M4_ACTION_STRONG_ATTACK
+                : (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
         action_ticks = UINT16_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         short_hop_latched = UINT8_C(0);
@@ -1281,7 +1297,7 @@ pf_status pf_m4_step_player(
         grounded != UINT8_C(0) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
         action_state != (uint8_t)PF_M4_ACTION_LANDING &&
-        action_state != (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        !pf_m4_action_is_ground_attack(action_state) &&
         !pf_m4_action_is_shield(action_state) &&
         !pf_m4_action_locks_ground_control(action_state) &&
         jump_pressed)
@@ -1383,7 +1399,10 @@ pf_status pf_m4_step_player(
                 fighter->powershield_cancel_delay_ticks &&
             attack_pressed)
         {
-            action_state = (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+            action_state =
+                strong_attack_pressed
+                    ? (uint8_t)PF_M4_ACTION_STRONG_ATTACK
+                    : (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
             action_ticks = UINT16_C(0);
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             short_hop_latched = UINT8_C(0);
@@ -1459,12 +1478,16 @@ pf_status pf_m4_step_player(
     }
     else if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
-        action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+        pf_m4_action_is_ground_attack(action_state))
     {
         const uint32_t attack_ticks =
-            (uint32_t)fighter->jab_startup_ticks +
-            (uint32_t)fighter->jab_active_ticks +
-            (uint32_t)fighter->jab_recovery_ticks;
+            action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK
+                ? (uint32_t)fighter->strong_startup_ticks +
+                      (uint32_t)fighter->strong_active_ticks +
+                      (uint32_t)fighter->strong_recovery_ticks
+                : (uint32_t)fighter->jab_startup_ticks +
+                      (uint32_t)fighter->jab_active_ticks +
+                      (uint32_t)fighter->jab_recovery_ticks;
 
         velocity_x = pf_m4_approach(
             velocity_x,
@@ -2213,6 +2236,15 @@ pf_status pf_m4_inspect(
         player->powershield =
             sim->world.powershield[player_index];
         player->tumble = sim->world.tumble[player_index];
+        player->invulnerable =
+            ((player->action_state ==
+                  (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+              player->action_state ==
+                  (uint8_t)PF_M4_ACTION_TECH_ROLL) &&
+             player->action_ticks <
+                 sim->content.fighter.tech_invulnerability_ticks)
+                ? UINT8_C(1)
+                : UINT8_C(0);
         player->sdi_pulse_count =
             sim->world.sdi_pulse_count[player_index];
         player->sdi_direction_x =

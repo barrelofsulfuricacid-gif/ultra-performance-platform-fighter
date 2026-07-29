@@ -1,7 +1,8 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 movement/ledge core, first M4.2 attack and
-hit-reaction layers, dense shield, and physical powershield cancel implemented
+**Status:** In progress; M4.1 movement/ledge core, light and strong M4.2 ground
+attacks, hit-reaction layers, dense shield, and physical powershield cancel
+implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -20,7 +21,7 @@ hit-reaction layers, dense shield, and physical powershield cancel implemented
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-6/save-format-5 contract that serializes every
+- A rollback-safe state-schema-7/save-format-6 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield field.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -43,9 +44,10 @@ hit-reaction layers, dense shield, and physical powershield cancel implemented
 
 ## Delivered in the first M4.2 combat slice
 
-- Input-schema-2 attack buttons for native, replay, RL, and browser callers.
-- One original data-driven grounded attack with explicit startup, active, and
-  recovery phases plus facing-mirrored hitbox geometry.
+- Input-schema-3 light- and strong-attack buttons for native, replay, RL, and
+  browser callers.
+- Two original data-driven grounded attacks with independent startup, active,
+  recovery, hitlag, damage, launch, and facing-mirrored hitbox geometry.
 - Deterministic hurtbox overlap, one-hit-per-action masks, lower-slot
   same-target ownership, team friendly-fire rejection, and simultaneous
   trades.
@@ -56,8 +58,12 @@ hit-reaction layers, dense shield, and physical powershield cancel implemented
 - Twenty-eight focused attack/reaction invariants, mid-hitlag save/load
   continuation, and a 20,000-tick four-player deterministic combat trace under
   active `M4-COMBAT` verification.
-- Browser attack controls (`F` and `/` or Numpad `0`), active-hitbox overlay,
-  percent/hitlag/hitstun inspection, and an independent combat startup probe.
+- Browser light-attack controls (`F` and `/` or Numpad `0`), strong-attack
+  controls (`H` and `'` or Numpad `2`), action-colored active-hitbox overlays,
+  percent/hitlag/hitstun inspection, and independent combat/tumble probes.
+- The default strong attack enters tumble on its first clean hit. Browser
+  fighters visibly rotate during post-hitlag tumble so the state is apparent
+  without relying on the diagnostic card.
 
 ## Delivered in the first hit-reaction slice
 
@@ -71,6 +77,9 @@ hit-reaction layers, dense shield, and physical powershield cancel implemented
   lockout; held input cannot retrigger it.
 - Neutral and directional ground-tech outcomes on floor and pass-through
   platform contact, with explicit locked-action durations.
+- Melee-style 26-tick tech-in-place and 40-tick tech-roll durations with exact
+  20-tick hit invulnerability, vulnerable missed tech, browser inspection, and
+  positive/negative hit-rejection coverage.
 - Browser vertical DI and tech inputs, live tumble/SDI/tech inspection, and an
   independent startup probe that observes production-path SDI displacement
   and tech-timer behavior.
@@ -154,7 +163,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   expansion of the powershield-cancel router to each future ground action,
   complete shield-break behavior, complete
   knockback/angle data, stale-move behavior, wall/ceiling techs, missed-tech
-  get-up choices, tech invulnerability, stocks, respawn invulnerability, match
+  get-up choices, stocks, respawn invulnerability, match
   result, and the complete bounded combat-event journal.
 - Local setup, complete 1v1 loop, results/rematch, replay visualization,
   collision/hitbox overlay, and repeated verifier/human matches.
@@ -166,7 +175,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 16/16 tests.
 - Address/undefined-behavior sanitizer workflow: 16/16 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 30 movement invariants, 51 attack/reaction/shield
+- Mechanical oracles: 30 movement invariants, 57 attack/reaction/shield
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
@@ -174,9 +183,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Native replay corpus: exact 180-tick attack/reaction/shield trace at 31,261
   bytes,
   replay SHA-256
-  `628685db3a1ce96383608dc48f356346f8a0ddfc785a8fe0a00bb21c3977e3b3`,
+  `f70e0fd8ed46bd77d93d3027d7872a2e1afbd072b4594f9452b360c27e1d4337`,
   final SHA-256
-  `d0d2eab988ab7c8597829297601d533c69259ee9f0f8203cd6c385d2ed20db17`;
+  `ff4b1ab565a1482d206bd101c33535227b225c75bca497dbf1ec7b2d22ee9302`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -185,8 +194,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/air-facing/combat/reaction/shield-and-PSC probes and live
-  rendering).
+  movement/air-facing/combat/reaction/shield-and-PSC/default-tumble probes and
+  live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

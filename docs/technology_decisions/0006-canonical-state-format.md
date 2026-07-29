@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–5 / state schemas 1–6
+- **Status:** Accepted for save formats 1–6 / state schemas 1–7
 - **Date:** 2026-07-28
 
 ## Decision
@@ -15,10 +15,11 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 3 | 4 | 140 | 361 | 501 | Damage, pending launch, sequenced last-hit metadata, hitlag/hitstun, resume action, and attack hit masks |
 | 4 | 5 | 140 | 401 | 541 | Tech window/lockout and trigger-edge state, tumble, SDI component/count state, and tech-roll direction |
 | 5 | 6 | 140 | 429 | 569 | Shield health, shield-stun timer, and powershield result state |
+| 6 | 7 | 140 | 429 | 569 | Canonical strong-ground-attack action ID; no byte-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
-`PFSAVE05`. The active M4 runtime emits and accepts format 5 with state schema
-6. Earlier
+`PFSAVE05`, or `PFSAVE06`. The active M4 runtime emits and accepts format 6
+with state schema 7. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

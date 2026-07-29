@@ -2,12 +2,12 @@
 
 ## Scope
 
-This checkpoint extends the first production-path M4.2 ground attack with
+This checkpoint extends the first production-path M4.2 ground attacks with
 deterministic hit reaction and the first dense-shield primitive: trajectory
 DI, SDI, ASDI, tumble, missed-tech knockdown, tech in place, directional
 ground tech, shield stop, shield damage/stun/pushback, shield release and
 regeneration, grounded shield break lockout, physical powershielding, and
-frame-2 powershield canceling into the current production ground attack.
+frame-2 powershield canceling into either current production ground attack.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
@@ -20,13 +20,16 @@ choices, tech invulnerability, stocks, match completion, or completion of the
 
 ## Attack, collision, and ownership
 
-The ground attack is entered by a rising edge on the input-schema-2 attack bit
-while the fighter is grounded and outside a locked action. There is no
-universal input buffer. The default data defines two startup ticks, two active
-ticks, eight recovery ticks, and four hitlag ticks.
+The light or strong ground attack is entered by a rising edge on its separate
+input-schema-3 button while the fighter is grounded and outside a locked
+action. If both edges occur on one tick, strong attack takes priority. There is
+no universal input buffer. The default light jab defines two startup ticks, two
+active ticks, eight recovery ticks, and four hitlag ticks. The default strong
+attack defines five startup ticks, three active ticks, 18 recovery ticks, and
+six hitlag ticks.
 
-- Fighter content defines hitbox offset and extents, damage, base launch,
-  damage growth, hitstun conversion, and phase durations.
+- Fighter content independently defines each attack's hitbox offset and
+  extents, damage, base launch, damage growth, and phase durations.
 - The active axis-aligned hitbox is mirrored by facing. The hurtbox is the
   existing data-driven body box.
 - Each target can be hit once per attack execution.
@@ -41,23 +44,26 @@ tick, making ownership independent of player step order.
 
 ## Damage, hitlag, launch, and hitstun
 
-Damage is unsigned Q16.16 percent and saturates at 999%. The default attack
-adds 6%. Launch uses post-hit damage:
+Damage is unsigned Q16.16 percent and saturates at 999%. The default light jab
+adds 6%; the default strong attack adds 12%. Launch uses post-hit damage:
 
 - horizontal launch is facing-signed base X plus damage-scaled growth;
 - vertical launch is upward base Y plus half the damage-scaled growth; and
 - validation and runtime saturation keep both components inside the canonical
   motion-speed bound.
 
-On impact, attacker and target enter four frozen ticks. The target retains a
-pending launch vector and hitstun duration, then becomes airborne in
-`HITSTUN`. Hitstun is the ceiling of the sum of absolute launch components
-divided by the data-defined velocity per tick, clamped to 1–600 ticks.
+On impact, attacker and target enter the selected attack's data-defined hitlag
+(four ticks for light, six for strong). The target retains a pending launch
+vector and hitstun duration, then becomes airborne in `HITSTUN`. Hitstun is the
+ceiling of the sum of absolute launch components divided by the data-defined
+velocity per tick, clamped to 1–600 ticks.
 
 A target enters tumble when that computed hitstun reaches the data-defined
-threshold, 32 ticks by default. Jump, attack, fast fall, and ordinary steering
-remain locked during hitstun; deterministic gravity and stage collision
-continue.
+threshold, 32 ticks by default. The default light jab remains below that
+threshold on a fresh fighter; the default strong attack exceeds it on its first
+hit, providing a direct tumble test path. Jump, attack, fast fall, and ordinary
+steering remain locked during hitstun; deterministic gravity and stage
+collision continue.
 
 ## DI, SDI, and ASDI
 
@@ -91,15 +97,21 @@ and pressed again after lockout.
 
 When a tumbling fighter contacts a floor or pass-through platform:
 
-- an open window plus neutral horizontal input enters `TECH_IN_PLACE` for 20
+- an open window plus neutral horizontal input enters `TECH_IN_PLACE` for 26
   ticks;
-- an open window plus horizontal input enters `TECH_ROLL` for 24 ticks in that
+- an open window plus horizontal input enters `TECH_ROLL` for 40 ticks in that
   direction at the data-defined roll speed; and
 - no open window enters `KNOCKDOWN` for 30 ticks.
 
-These actions currently return directly to ground idle. Invulnerability,
-missed-tech get-up choices, attack interruption, and wall/ceiling techs remain
-explicit follow-up work and are not implied by these state names.
+The placeholder now uses Melee's universal 26-tick tech-in-place and 40-tick
+tech-roll durations; both reject hits for their first 20 ticks and expose that
+derived invulnerability through inspection. `KNOCKDOWN` remains vulnerable.
+These actions currently return directly to ground idle. Missed-tech get-up
+choices, attack interruption, and wall/ceiling techs remain explicit follow-up
+work and are not implied by these state names. The timing contract follows the
+[Melee tech frame-data summary](https://www.reddit.com/r/smashbros/comments/1svuas/when_is_it_possible_to_hit_an_opponent_who_missed/)
+alongside the 20-frame input window and 40-frame lockout described by
+[SmashWiki](https://www.ssbwiki.com/Tech).
 
 ## Dense shield, shield stop, and release
 
@@ -126,8 +138,8 @@ so the existing tech-window/lockout contract remains intact.
 
 ## Blocking, shield stun, and powershield
 
-The current physical ground attack intersects the grounded fighter body box as
-the first shield collision volume. A legal block:
+Each current physical ground attack intersects the grounded fighter body box as
+the current shield collision volume. A legal block:
 
 - prevents percent gain and launch;
 - applies ordinary hitlag to attacker and defender;
@@ -162,9 +174,9 @@ After a physical powershield, releasing shield by the end of shield stun enters
 `SHIELD_RELEASE` with the cancel opportunity intact. The content table defines
 the one-tick delay and whether the fighter supports the technique.
 
-- Attack on frame 1 of shield drop is rejected.
-- A fresh attack edge on frame 2 or later cancels directly into the current
-  production ground attack.
+- Either attack on frame 1 of shield drop is rejected.
+- A fresh light- or strong-attack edge on frame 2 or later cancels directly
+  into the selected production action.
 - An attack pressed too early is not buffered; it must be released and pressed
   again on a legal frame.
 - Holding shield through the end of shield stun consumes the opportunity.
@@ -192,37 +204,42 @@ or hit interruption.
 
 ## Canonical state and inspection
 
-State schema 6 / save format 5 adds per-player shield health, shield-stun
-timers, and powershield result state to the existing reaction fields. The
-active magic is `PFSAVE05`; the fixed stream is 569 bytes: a 140-byte header
-plus a 429-byte payload.
+State schema 7 / save format 6 adds the canonical `STRONG_ATTACK` action
+semantic while retaining the 569-byte stream: a 140-byte header plus a
+429-byte payload. The active magic is `PFSAVE06`. Input schema 3 adds the
+separate strong-attack button.
 
-Content schema 6 adds the powershield-cancel enable flag and shield-drop delay
-to the fighter table. No new canonical state field is required: the existing
-powershield flag already distinguishes an eligible release and is serialized,
-hashed, cloned, replayed, and inspected.
+Content schema 7 adds independent strong-attack geometry, damage, knockback,
+startup, active, recovery, and hitlag data. No new canonical state field is
+required: the new action ID and existing action timer fully identify the strong
+attack, and the existing powershield flag still distinguishes an eligible
+release.
 
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 5 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 6 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
-health/stun/powershield, active hitbox bounds, and last-hit metadata. Browser
-view schema 4 carries those fields and the live shield bubble.
+health/stun/powershield, derived tech invulnerability, active hitbox bounds,
+and last-hit metadata. Browser
+view schema 5 carries those fields, the new action semantic, the live shield
+bubble, and a visibly rotating tumble presentation after hitlag.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 51 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 57 focused
 invariants, including:
 
-- attack schedule, facing, whiff, damage, ownership, freeze, launch, hitstun,
-  one-hit masks, and simultaneous trades;
+- light and strong attack schedules, facing, whiff, damage, ownership, freeze,
+  launch, hitstun, one-hit masks, simultaneous trades, and the default strong
+  attack's direct tumble-to-knockdown route;
 - first-component SDI, held-direction rejection, diagonal second-component
   SDI, ASDI/DI launch application, approximate speed preservation, and
   deterministic direction;
-- missed tech, in-place tech, directional tech roll, 20-tick window, 40-tick
-  lockout, and held-trigger edge behavior;
+- missed tech, 26-tick in-place tech, 40-tick directional tech roll, 20-tick
+  input window/lockout behavior, exact 20-tick hit rejection, vulnerability
+  restoration, and held-trigger edge behavior;
 - rejection of invalid reaction content;
 - run shield stop, the initial-dash shield restriction, hold depletion,
   minimum hold, bounded action timer, release lag, regeneration, and jump

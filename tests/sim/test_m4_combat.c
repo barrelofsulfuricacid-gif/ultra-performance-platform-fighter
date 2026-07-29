@@ -94,6 +94,37 @@ static int make_reaction_content(
         "reaction-content-view");
 }
 
+static int make_tech_invulnerability_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!make_combat_content(out_content, out_view))
+    {
+        return 0;
+    }
+
+    out_content->fighter.jab_base_knockback_x_q16 =
+        PF_Q16_ONE / INT32_C(100);
+    out_content->fighter.jab_base_knockback_y_q16 =
+        (INT32_C(17) * PF_Q16_ONE) / INT32_C(20);
+    out_content->fighter.jab_knockback_growth_q16 =
+        PF_Q16_ONE / INT32_C(4096);
+    out_content->fighter.tumble_hitstun_threshold_ticks =
+        UINT16_C(20);
+    out_content->stage.platform_center_x_q16 =
+        INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_half_width_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 =
+        INT32_C(0);
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(2) * PF_Q16_ONE) / INT32_C(5);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "tech-invulnerability-content-view");
+}
+
 static int initialize_sim(
     test_sim_storage *storage,
     const pf_content_view *content,
@@ -361,6 +392,7 @@ static int run_one_way_hit_test(
         inspection.players[1].last_hit_sequence != UINT32_C(1) ||
         inspection.players[1].last_hit_damage_q16 !=
             content->fighter.jab_damage_q16 ||
+        inspection.players[1].tumble != UINT8_C(0) ||
         inspection.players[1].last_hit_tick + UINT64_C(1) !=
             inspection.tick ||
         (inspection.players[0].attack_hit_mask & UINT8_C(2)) ==
@@ -415,6 +447,130 @@ static int run_one_way_hit_test(
     }
 
     return 1;
+}
+
+static int run_default_strong_tumble_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    int saw_tumble_hitstun = 0;
+    int saw_knockdown = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("strong-attack-startup");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.strong_startup_ticks +
+                    (uint32_t)content->fighter.strong_active_ticks +
+                    UINT32_C(2) &&
+         inspection.players[1].damage_q16 == UINT32_C(0);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("strong-attack-active-schedule");
+        }
+    }
+
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[0].hitlag_ticks !=
+            content->fighter.strong_hitlag_ticks ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].hitlag_ticks !=
+            content->fighter.strong_hitlag_ticks ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.strong_damage_q16 ||
+        inspection.players[1].last_hit_damage_q16 !=
+            content->fighter.strong_damage_q16 ||
+        inspection.players[1].hitstun_ticks <
+            content->fighter.tumble_hitstun_threshold_ticks ||
+        inspection.players[1].tumble != UINT8_C(1))
+    {
+        return fail("default-strong-attack-enters-tumble");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.strong_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("strong-hitlag-resume");
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITSTUN ||
+        inspection.players[1].tumble != UINT8_C(1))
+    {
+        return fail("strong-tumble-launch");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        if (inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_HITSTUN &&
+            inspection.players[1].tumble != UINT8_C(0))
+        {
+            saw_tumble_hitstun = 1;
+        }
+        if (inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_KNOCKDOWN)
+        {
+            saw_knockdown = 1;
+            break;
+        }
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("strong-tumble-landing");
+        }
+    }
+    return (saw_tumble_hitstun != 0 && saw_knockdown != 0) ||
+           fail("default-strong-tumble-route");
 }
 
 static int run_whiff_and_trade_test(
@@ -677,9 +833,11 @@ static int run_powershield_cancel_test(
 {
     test_sim_storage early_storage;
     test_sim_storage cancel_storage;
+    test_sim_storage strong_cancel_storage;
     test_sim_storage normal_storage;
     pf_sim *early = NULL;
     pf_sim *cancel = NULL;
+    pf_sim *strong_cancel = NULL;
     pf_sim *normal = NULL;
     pf_m4_inspection inspection;
 
@@ -704,6 +862,13 @@ static int run_powershield_cancel_test(
             PF_SIM_MODE_DUEL,
             1,
             &normal) ||
+        !initialize_sim(
+            &strong_cancel_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &strong_cancel) ||
         !advance_block_to_release(
             content,
             early,
@@ -769,6 +934,41 @@ static int run_powershield_cancel_test(
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-frame-two-attack");
+    }
+
+    if (!advance_block_to_release(
+            content,
+            strong_cancel,
+            1,
+            &inspection) ||
+        !step_reaction_duel(
+            strong_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            strong_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("powershield-cancel-frame-two-strong-attack");
     }
 
     if (!advance_block_to_release(
@@ -1770,7 +1970,7 @@ static int run_until_reaction_landing(
                 (uint8_t)PF_M4_ACTION_HITLAG &&
             target->velocity_y_q16 > INT32_C(0) &&
             target->position_y_q16 +
-                    PF_Q16_ONE >=
+                    INT32_C(4) * PF_Q16_ONE >=
                 INT32_C(32) * PF_Q16_ONE;
         const int16_t target_x =
             tech_mode > 1 &&
@@ -1812,6 +2012,7 @@ static int run_until_reaction_landing(
 }
 
 static int run_knockdown_and_tech_test(
+    const pf_m4_content *content,
     const pf_content_view *view)
 {
     test_sim_storage missed_storage;
@@ -1871,13 +2072,166 @@ static int run_knockdown_and_tech_test(
             UINT16_C(0) ||
         in_place_inspection.players[1].tech_lockout_ticks ==
             UINT16_C(0) ||
+        in_place_inspection.players[1].invulnerable != UINT8_C(1) ||
         roll_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_TECH_ROLL ||
         roll_inspection.players[1].tech_direction != INT8_C(1) ||
         roll_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
+        roll_inspection.players[1].invulnerable != UINT8_C(1) ||
+        missed_inspection.players[1].invulnerable != UINT8_C(0) ||
         roll_inspection.players[1].tumble != UINT8_C(0))
     {
         return fail("missed-tech-in-place-and-roll");
+    }
+    while (in_place_inspection.players[1].action_ticks <
+           content->fighter.tech_invulnerability_ticks)
+    {
+        if (!step_reaction_duel(
+                in_place,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &in_place_inspection))
+        {
+            return fail("tech-invulnerability-duration-step");
+        }
+        if (in_place_inspection.players[1].action_ticks <
+                content->fighter.tech_invulnerability_ticks &&
+            in_place_inspection.players[1].invulnerable !=
+                UINT8_C(1))
+        {
+            return fail("tech-invulnerability-ended-early");
+        }
+    }
+    if (in_place_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+        in_place_inspection.players[1].invulnerable != UINT8_C(0))
+    {
+        return fail("tech-invulnerability-exact-end");
+    }
+    return 1;
+}
+
+static int run_tech_invulnerability_hit_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const uint32_t initial_damage =
+        content->fighter.jab_damage_q16;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !run_until_reaction_landing(sim, 1, &inspection) ||
+        inspection.players[1].invulnerable != UINT8_C(1) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].hitbox_active != UINT8_C(1) ||
+        inspection.players[1].damage_q16 != initial_damage ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+        inspection.players[1].invulnerable != UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=debug tech-invulnerability "
+            "p0_action=%u p0_hitbox=%u p0_x=%" PRId32
+            " p1_action=%u p1_ticks=%u p1_invulnerable=%u "
+            "p1_damage=%" PRIu32 " p1_x=%" PRId32
+            " p1_y=%" PRId32 " p1_vy=%" PRId32
+            " tech_window=%u tech_lockout=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].hitbox_active,
+            inspection.players[0].position_x_q16,
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].action_ticks,
+            (unsigned int)inspection.players[1].invulnerable,
+            inspection.players[1].damage_q16,
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            inspection.players[1].velocity_y_q16,
+            (unsigned int)inspection.players[1].tech_window_ticks,
+            (unsigned int)inspection.players[1].tech_lockout_ticks);
+        return fail("tech-invulnerability-rejects-hit");
+    }
+
+    while (inspection.players[1].action_ticks <
+               content->fighter.tech_invulnerability_ticks ||
+           inspection.players[0].action_state !=
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("tech-vulnerability-window-setup");
+        }
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+        inspection.players[1].invulnerable != UINT8_C(0) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[1].damage_q16 !=
+            initial_damage + content->fighter.jab_damage_q16 ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        return fail("tech-vulnerability-restores-hit");
     }
     return 1;
 }
@@ -2275,18 +2629,25 @@ int main(void)
 {
     pf_m4_content content;
     pf_m4_content invalid_content;
+    pf_m4_content invalid_strong_content;
+    pf_m4_content invalid_tech_content;
     pf_m4_content invalid_shield_content;
     pf_m4_content invalid_cancel_content;
     pf_m4_content reaction_content;
+    pf_m4_content tech_invulnerability_content;
     pf_m4_content shield_break_content;
     pf_content_view view;
     pf_content_view reaction_view;
+    pf_content_view tech_invulnerability_view;
     pf_content_view shield_break_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_reaction_content(
             &reaction_content,
             &reaction_view) ||
+        !make_tech_invulnerability_content(
+            &tech_invulnerability_content,
+            &tech_invulnerability_view) ||
         !make_shield_break_content(
             &shield_break_content,
             &shield_break_view))
@@ -2296,6 +2657,14 @@ int main(void)
     invalid_content = content;
     invalid_content.fighter.jab_knockback_growth_q16 =
         INT32_C(4) * PF_Q16_ONE;
+    invalid_strong_content = content;
+    invalid_strong_content.fighter.strong_knockback_growth_q16 =
+        INT32_C(4) * PF_Q16_ONE;
+    invalid_tech_content = content;
+    invalid_tech_content.fighter.tech_invulnerability_ticks =
+        (uint16_t)(
+            invalid_tech_content.fighter.tech_in_place_ticks +
+            UINT16_C(1));
     invalid_shield_content = content;
     invalid_shield_content.fighter.shield_release_ticks =
         UINT16_C(0);
@@ -2307,6 +2676,14 @@ int main(void)
             PF_STATUS_INVALID_CONFIG,
             "reject-overflowing-knockback") ||
         !expect_status(
+            pf_m4_validate_content(&invalid_strong_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-overflowing-strong-knockback") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_tech_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-tech-invulnerability") ||
+        !expect_status(
             pf_m4_validate_content(&invalid_shield_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-shield-data") ||
@@ -2315,6 +2692,7 @@ int main(void)
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-powershield-cancel-data") ||
         !run_one_way_hit_test(&content, &view) ||
+        !run_default_strong_tumble_test(&content, &view) ||
         !run_whiff_and_trade_test(&content, &view) ||
         !run_shield_state_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
@@ -2326,7 +2704,12 @@ int main(void)
         !run_di_and_sdi_test(
             &reaction_content,
             &reaction_view) ||
-        !run_knockdown_and_tech_test(&reaction_view) ||
+        !run_knockdown_and_tech_test(
+            &reaction_content,
+            &reaction_view) ||
+        !run_tech_invulnerability_hit_test(
+            &tech_invulnerability_content,
+            &tech_invulnerability_view) ||
         !run_hitlag_snapshot_test(&view) ||
         !run_shield_hitlag_snapshot_test(&view) ||
         !run_deterministic_trace(&view))
@@ -2336,7 +2719,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=51\n",
+        " combat_invariants=57\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

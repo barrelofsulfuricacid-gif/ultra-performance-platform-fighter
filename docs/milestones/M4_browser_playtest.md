@@ -1,6 +1,6 @@
 # M4 real-simulation browser playtest
 
-This checkpoint runs the production `pf_sim_tick` M4 movement, first attack,
+This checkpoint runs the production `pf_sim_tick` M4 movement, two ground attacks,
 hit-reaction, and dense-shield primitives in WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
@@ -14,7 +14,8 @@ headless execution.
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
-| Ground attack | `F` | `/` or Numpad `0` |
+| Light ground attack | `F` | `/` or Numpad `0` |
+| Strong ground attack | `H` | `'` or Numpad `2` |
 | Hold shield / tap tech trigger | `G` | `.` or Numpad `1` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
@@ -50,12 +51,15 @@ window, press toward the stage to climb, press down or away to release, or press
 jump for a ledge jump. A claimed ledge rejects another fighter until its current
 occupant releases or completes the climb.
 
-The first placeholder ground attack has two startup ticks, two active ticks,
-and eight recovery ticks. The translucent amber rectangle is the exact
-inspected active hitbox. A hit adds 6%, freezes both fighters for four hitlag
-ticks, then launches the target into hitstun. The state cards show percent,
-hitlag, hitstun, tumble, SDI pulse count, tech window/lockout, tech direction,
-and the last combat-event sequence.
+The light jab has two startup ticks, two active ticks, eight recovery ticks,
+6% damage, and four hitlag ticks. Its translucent amber rectangle is the exact
+inspected active hitbox. The strong attack has five startup ticks, three active
+ticks, 18 recovery ticks, 12% damage, six hitlag ticks, and a pink active
+hitbox. Its first clean hit against a fresh default fighter exceeds the
+32-tick tumble threshold. After the frozen hitlag pose, a tumbling fighter
+visibly rotates and the state card prefixes its action with `TUMBLE`. The cards
+also show percent, hitstun, SDI pulse count, tech window/lockout, tech
+direction, and the last combat-event sequence.
 
 During target hitlag, crossing into a new horizontal or vertical stick
 component produces one SDI pulse. Holding that component does not repeat it.
@@ -89,8 +93,11 @@ and an ordinary block retains the full 15-tick release.
 A new trigger press still opens a 20-tick tech window and a 40-tick lockout. A
 tumbling floor/platform impact with neutral horizontal input enters
 `TECH IN PLACE`; holding left or right enters `TECH ROLL`; missing the window
-enters `KNOCKDOWN`. The current light attack needs substantial accumulated
-damage before its hitstun reaches the 32-tick tumble threshold.
+enters `KNOCKDOWN`. Use the strong attack for an immediate default-content
+tumble test; the light jab intentionally remains below the threshold on a
+fresh fighter. Tech in place lasts 26 ticks and tech roll lasts 40; both reject
+hits for their first 20 ticks, shown by a dashed gold ring and the
+`invulnerable` state-card field. Missed-tech knockdown has no such protection.
 
 This shield slice does not yet include analog light shield, shield tilt/poke,
 shield SDI, roll/spot dodge, platform shield drop, grab, projectile reflection,
@@ -140,10 +147,13 @@ can advance from `playable` to `verified`.
 14. Tap the target's tech key and confirm the state card shows
     `tech window 20` and `lockout 40`. Hold the key through the next tick and
     confirm they count down to 19/39 rather than reopening.
-15. After building enough damage for the card to show `tumble 1`, press the
-    target's tech key within 20 ticks of landing. Use neutral horizontal input
-    for `TECH IN PLACE`, then repeat while holding a direction for `TECH ROLL`.
-    Repeat without the tech input and confirm `KNOCKDOWN`.
+15. Move into range and press `H` (or Player 2's strong-attack key). Confirm the
+    pink hitbox, 12% damage, six frozen hitlag ticks, then visible rotation with
+    `TUMBLE · HITSTUN`. Press the target's tech key within 20 ticks of landing.
+    Use neutral horizontal input for `TECH IN PLACE`, then repeat while holding
+    a direction for `TECH ROLL`. Repeat without the tech input and confirm
+    `KNOCKDOWN`. Confirm the gold invulnerability ring clears after 20 ticks
+    while each tech action continues.
 16. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
@@ -182,6 +192,8 @@ through:
   velocity without changing takeoff facing;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
+- a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
+  ticks, and canonical tumble state;
 - a production-path target SDI pulse producing a positional shift;
 - a trigger edge producing the 20-tick tech window and 40-tick lockout, with a
   held trigger counting down rather than retriggering;
@@ -196,6 +208,6 @@ through:
 
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
-shield_probe=pass powershield_cancel_probe=pass
+shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
 controls=keyboard-two-player` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

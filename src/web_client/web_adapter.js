@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -449,7 +449,8 @@ mergeInto(LibraryManager.library, {
     airFacingProbePassed,
     combatProbePassed,
     reactionProbePassed,
-    shieldProbePassed
+    shieldProbePassed,
+    tumbleProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -530,8 +531,9 @@ mergeInto(LibraryManager.library, {
       airFacingProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
-      shieldProbePassed
-        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC PROBES PASSED"
+      shieldProbePassed &&
+      tumbleProbePassed
+        ? "INPUT + AIR FACING + COMBAT + REACTION + SHIELD / PSC + TUMBLE PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -579,13 +581,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash or DI · Shift + A / D walk · W or Space jump · F attack · Hold G shield / tap G to tech · W / S vertical DI"
+        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light attack · H strong attack · Hold G shield / tap G to tech · W / S vertical DI"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 attack · Hold . or Numpad 1 to shield / tap to tech · ↑ / ↓ vertical DI"
+        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light attack · ' or Numpad 2 strong attack · Hold . or Numpad 1 to shield / tap to tech · ↑ / ↓ vertical DI"
       )
     );
     section.appendChild(controls);
@@ -599,8 +601,10 @@ mergeInto(LibraryManager.library, {
       "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
       "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
-      "release, or jump to ledge-jump. F and / perform the first data-driven " +
-      "ground attack; translucent boxes show its active frames. During hitlag, " +
+      "release, or jump to ledge-jump. F and / perform the light jab; H and ' " +
+      "perform a slower strong attack that immediately launches the default " +
+      "fighter into tumble. Translucent boxes show active frames, and tumbling " +
+      "fighters visibly rotate after hitlag. During hitlag, " +
       "change stick direction for SDI and hold a launch direction for DI. Press " +
       "Hold G or . on the ground for a real draining shield; fresh shields " +
       "powershield during their four-tick window, while releases have 15 ticks " +
@@ -638,6 +642,7 @@ mergeInto(LibraryManager.library, {
       pauseButton: pauseButton,
       playerStates: playerStates,
       attackQueued: [false, false],
+      strongAttackQueued: [false, false],
       jumpQueued: [false, false],
       shieldQueued: [false, false],
       running: true,
@@ -677,6 +682,12 @@ mergeInto(LibraryManager.library, {
         held("KeyF") || state.attackQueued[0];
       var player1Attack =
         held("Slash") || held("Numpad0") || state.attackQueued[1];
+      var player0StrongAttack =
+        held("KeyH") || state.strongAttackQueued[0];
+      var player1StrongAttack =
+        held("Quote") ||
+        held("Numpad2") ||
+        state.strongAttackQueued[1];
       var player0Shield = held("KeyG") || state.shieldQueued[0];
       var player1Shield =
         held("Period") || held("Numpad1") || state.shieldQueued[1];
@@ -685,17 +696,21 @@ mergeInto(LibraryManager.library, {
         vertical("KeyW", "KeyS"),
         player0Jump ? 1 : 0,
         player0Attack ? 1 : 0,
+        player0StrongAttack ? 1 : 0,
         player0Shield ? 1 : 0,
         horizontal("ArrowLeft", "ArrowRight"),
         vertical("ArrowUp", "ArrowDown"),
         player1Jump ? 1 : 0,
         player1Attack ? 1 : 0,
+        player1StrongAttack ? 1 : 0,
         player1Shield ? 1 : 0
       );
       state.jumpQueued[0] = false;
       state.jumpQueued[1] = false;
       state.attackQueued[0] = false;
       state.attackQueued[1] = false;
+      state.strongAttackQueued[0] = false;
+      state.strongAttackQueued[1] = false;
       state.shieldQueued[0] = false;
       state.shieldQueued[1] = false;
       if (!passed) {
@@ -721,6 +736,7 @@ mergeInto(LibraryManager.library, {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
       state.attackQueued = [false, false];
+      state.strongAttackQueued = [false, false];
       state.shieldQueued = [false, false];
       state.accumulator = 0;
       Module._pf_web_m4_playtest_reset();
@@ -762,6 +778,8 @@ mergeInto(LibraryManager.library, {
           event.code === "Space" ||
           event.code === "Slash" ||
           event.code === "Numpad0" ||
+          event.code === "Quote" ||
+          event.code === "Numpad2" ||
           event.code === "Period" ||
           event.code === "Numpad1" ||
           event.code.indexOf("Arrow") === 0
@@ -783,6 +801,15 @@ mergeInto(LibraryManager.library, {
           (event.code === "Slash" || event.code === "Numpad0")
         ) {
           state.attackQueued[1] = true;
+        }
+        if (!wasHeld && event.code === "KeyH") {
+          state.strongAttackQueued[0] = true;
+        }
+        if (
+          !wasHeld &&
+          (event.code === "Quote" || event.code === "Numpad2")
+        ) {
+          state.strongAttackQueued[1] = true;
         }
         if (!wasHeld && event.code === "KeyG") {
           state.shieldQueued[0] = true;
@@ -813,6 +840,7 @@ mergeInto(LibraryManager.library, {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
       state.attackQueued = [false, false];
+      state.strongAttackQueued = [false, false];
       state.shieldQueued = [false, false];
     });
 
@@ -830,6 +858,8 @@ mergeInto(LibraryManager.library, {
         (shieldProbePassed ? "pass" : "fail") +
         " powershield_cancel_probe=" +
         (shieldProbePassed ? "pass" : "fail") +
+        " tumble_probe=" +
+        (tumbleProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -842,6 +872,8 @@ mergeInto(LibraryManager.library, {
         shieldProbePassed ? "pass" : "fail";
       status.dataset.powershieldCancelProbe =
         shieldProbePassed ? "pass" : "fail";
+      status.dataset.tumbleProbe =
+        tumbleProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -849,7 +881,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 70) {
+    if (!state || viewCount !== 72) {
       return;
     }
     state.latest = new Int32Array(
@@ -857,6 +889,9 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
+    if (view[0] !== 5) {
+      return;
+    }
     var canvas = state.canvas;
     var context = canvas.getContext("2d");
     var q16 = 65536;
@@ -891,6 +926,7 @@ mergeInto(LibraryManager.library, {
       "SHIELD STUN",
       "SHIELD RELEASE",
       "SHIELD BREAK",
+      "STRONG ATTACK",
     ];
 
     function sx(q16Value) {
@@ -941,7 +977,7 @@ mergeInto(LibraryManager.library, {
     context.stroke();
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 14 + playerIndex * 28;
+      var base = 14 + playerIndex * 29;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -951,6 +987,10 @@ mergeInto(LibraryManager.library, {
       var width = Math.max(14, halfWidth * 2);
       var height = Math.max(28, halfHeight * 2);
       var facing = view[base + 5];
+      var actionState = view[base + 4];
+      var tumbling =
+        view[base + 22] !== 0 && actionState !== 13;
+      var invulnerable = view[base + 28] !== 0;
       var shielding =
         view[base + 4] === 18 ||
         view[base + 4] === 19 ||
@@ -962,8 +1002,10 @@ mergeInto(LibraryManager.library, {
         var hitboxTop = sy(view[base + 17]);
         var hitboxBottom = sy(view[base + 18]);
 
-        context.fillStyle = "#ffb34744";
-        context.strokeStyle = "#ffd089";
+        context.fillStyle =
+          actionState === 22 ? "#ff5f874d" : "#ffb34744";
+        context.strokeStyle =
+          actionState === 22 ? "#ff8cab" : "#ffd089";
         context.lineWidth = 2;
         context.fillRect(
           hitboxLeft,
@@ -997,22 +1039,50 @@ mergeInto(LibraryManager.library, {
         context.stroke();
       }
 
+      context.save();
+      context.translate(x, y);
+      if (tumbling) {
+        context.rotate(
+          (view[1] % 24) *
+            (Math.PI / 12) *
+            (playerIndex === 0 ? 1 : -1)
+        );
+      }
       context.shadowColor = colors[playerIndex] + "88";
-      context.shadowBlur = 16;
+      context.shadowBlur = tumbling ? 24 : 16;
       context.fillStyle =
-        view[base + 4] === 13 ? "#ffffff" : colors[playerIndex];
-      context.fillRect(x - width / 2, y - height / 2, width, height);
+        actionState === 13 ? "#ffffff" : colors[playerIndex];
+      context.fillRect(-width / 2, -height / 2, width, height);
       context.shadowBlur = 0;
       context.fillStyle = "#07111c";
       context.beginPath();
-      context.moveTo(x + facing * width * 0.45, y - 5);
-      context.lineTo(x + facing * width * 0.75, y);
-      context.lineTo(x + facing * width * 0.45, y + 5);
+      context.moveTo(facing * width * 0.45, -5);
+      context.lineTo(facing * width * 0.75, 0);
+      context.lineTo(facing * width * 0.45, 5);
       context.closePath();
       context.fill();
+      context.restore();
+      if (invulnerable) {
+        context.strokeStyle = "#fff6a8";
+        context.lineWidth = 3;
+        context.setLineDash([5, 4]);
+        context.beginPath();
+        context.arc(
+          x,
+          y,
+          Math.max(width, height) * 0.72,
+          0,
+          Math.PI * 2
+        );
+        context.stroke();
+        context.setLineDash([]);
+      }
 
       var action =
-        actionNames[view[base + 4]] || "STATE " + view[base + 4];
+        actionNames[actionState] || "STATE " + actionState;
+      if (view[base + 22] !== 0) {
+        action = "TUMBLE · " + action;
+      }
       state.playerStates[playerIndex].innerHTML =
         "<strong>P" +
         (playerIndex + 1) +
@@ -1059,7 +1129,9 @@ mergeInto(LibraryManager.library, {
         " / 60 · shield stun " +
         view[base + 26] +
         " · powershield " +
-        view[base + 27];
+        view[base + 27] +
+        " · invulnerable " +
+        view[base + 28];
     });
 
     context.fillStyle = "#8da2bb";

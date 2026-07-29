@@ -8,11 +8,13 @@ int pf_web_m4_playtest_step(
     int player0_y,
     int player0_jump,
     int player0_attack,
+    int player0_strong_attack,
     int player0_shield,
     int player1_x,
     int player1_y,
     int player1_jump,
     int player1_attack,
+    int player1_strong_attack,
     int player1_shield);
 
 int pf_web_m4_playtest_reset(void);

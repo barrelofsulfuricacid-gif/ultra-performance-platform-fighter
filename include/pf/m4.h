@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(6)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(6)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(7)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(7)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(5)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(6)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -40,7 +40,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_SHIELD = 18,
     PF_M4_ACTION_SHIELD_STUN = 19,
     PF_M4_ACTION_SHIELD_RELEASE = 20,
-    PF_M4_ACTION_SHIELD_BREAK = 21
+    PF_M4_ACTION_SHIELD_BREAK = 21,
+    PF_M4_ACTION_STRONG_ATTACK = 22
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -87,6 +88,14 @@ typedef struct pf_m4_fighter_data
     int32_t jab_base_knockback_x_q16;
     int32_t jab_base_knockback_y_q16;
     int32_t jab_knockback_growth_q16;
+    int32_t strong_hitbox_offset_x_q16;
+    int32_t strong_hitbox_offset_y_q16;
+    int32_t strong_hitbox_half_width_q16;
+    int32_t strong_hitbox_half_height_q16;
+    uint32_t strong_damage_q16;
+    int32_t strong_base_knockback_x_q16;
+    int32_t strong_base_knockback_y_q16;
+    int32_t strong_knockback_growth_q16;
     int32_t hitstun_velocity_per_tick_q16;
     int32_t di_max_tangent_q16;
     int32_t sdi_distance_q16;
@@ -120,6 +129,10 @@ typedef struct pf_m4_fighter_data
     uint16_t jab_active_ticks;
     uint16_t jab_recovery_ticks;
     uint16_t jab_hitlag_ticks;
+    uint16_t strong_startup_ticks;
+    uint16_t strong_active_ticks;
+    uint16_t strong_recovery_ticks;
+    uint16_t strong_hitlag_ticks;
     uint16_t sdi_axis_threshold;
     uint16_t digital_trigger_threshold;
     uint16_t tumble_hitstun_threshold_ticks;
@@ -127,6 +140,7 @@ typedef struct pf_m4_fighter_data
     uint16_t tech_lockout_ticks;
     uint16_t tech_in_place_ticks;
     uint16_t tech_roll_ticks;
+    uint16_t tech_invulnerability_ticks;
     uint16_t knockdown_ticks;
     uint16_t shield_minimum_hold_ticks;
     uint16_t shield_release_ticks;
@@ -208,6 +222,7 @@ typedef struct pf_m4_player_inspection
     uint8_t shield_held;
     uint8_t powershield;
     uint8_t tumble;
+    uint8_t invulnerable;
     uint8_t sdi_pulse_count;
     int8_t sdi_direction_x;
     int8_t sdi_direction_y;
