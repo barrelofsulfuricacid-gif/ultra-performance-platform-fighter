@@ -256,9 +256,14 @@ action_uses=$(
     sed -n 's/^[[:space:]]*uses:[[:space:]]*//p' "$ci_file" |
         sort -u
 )
-[ "$action_uses" = \
-    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" ] ||
-    fail "CI actions are not restricted to the reviewed checkout commit"
+expected_action_uses=$(
+    printf '%s\n' \
+        "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" \
+        "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" |
+        sort
+)
+[ "$action_uses" = "$expected_action_uses" ] ||
+    fail "CI actions are not restricted to the reviewed commits"
 
 for runner in \
     ubuntu-24.04 \

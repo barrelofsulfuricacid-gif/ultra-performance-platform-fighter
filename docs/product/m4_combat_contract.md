@@ -15,7 +15,7 @@ This is still an incremental checkpoint. It does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
 spot dodge, platform shield drop, grabs, projectile powershields, complete
 shield-break launch/stun, wall/ceiling techs, get-up
-choices, tech invulnerability, stocks, match completion, or completion of the
+choices, stocks, match completion, or completion of the
 61-row non-character-specific advanced-technique gate.
 
 ## Attack, collision, and ownership
@@ -155,7 +155,7 @@ ordinary shield-release lag.
 A physical hit during the first four active shield ticks is a powershield. It
 takes no shield damage, retains the same hitlag and shield stun as an ordinary
 Melee physical block, and uses the larger defender pushback factor of 1. The
-The powershield result flag remains inspectable through hitlag and shield stun.
+powershield result flag remains inspectable through hitlag and shield stun.
 If shield is still held when stun ends, the flag clears and the fighter returns
 to ordinary shield. Releasing before stun ends instead carries the flag into
 shield drop and opens the cancel path described below. Projectile reflection
