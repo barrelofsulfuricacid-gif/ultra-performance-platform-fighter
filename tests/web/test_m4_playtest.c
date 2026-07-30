@@ -45,6 +45,7 @@ static int test_air_facing_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
+static int test_shield_break_probe;
 static int test_tumble_probe;
 static int test_floor_recovery_probe;
 static int test_surface_tech_probe;
@@ -64,6 +65,7 @@ void pf_web_m4_playtest_install(
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
+    int shield_break_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
@@ -86,6 +88,7 @@ void pf_web_m4_playtest_install(
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
+    int shield_break_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
@@ -104,6 +107,7 @@ void pf_web_m4_playtest_install(
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
+    test_shield_break_probe = shield_break_probe_passed;
     test_tumble_probe = tumble_probe_passed;
     test_floor_recovery_probe = floor_recovery_probe_passed;
     test_surface_tech_probe = surface_tech_probe_passed;
@@ -196,6 +200,7 @@ int main(void)
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
+        test_shield_break_probe != 1 ||
         test_tumble_probe != 1 ||
         test_floor_recovery_probe != 1 ||
         test_surface_tech_probe != 1 ||
@@ -205,7 +210,7 @@ int main(void)
         test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 13 ||
+        test_view[0] != 14 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -221,7 +226,8 @@ int main(void)
             stderr,
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
             "dash=%d input_probe=%d air_facing_probe=%d combat_probe=%d "
-            "reaction_probe=%d shield_probe=%d tumble_probe=%d "
+            "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
+            "tumble_probe=%d "
             "floor_recovery_probe=%d surface_tech_probe=%d "
             "air_dodge_probe=%d ground_dodge_probe=%d "
             "aerial_l_cancel_probe=%d match_probe=%d "
@@ -236,6 +242,7 @@ int main(void)
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
+            test_shield_break_probe,
             test_tumble_probe,
             test_floor_recovery_probe,
             test_surface_tech_probe,
@@ -472,7 +479,8 @@ int main(void)
     (void)printf(
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d combat_probe=%d reaction_probe=%d "
-        "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
+        "shield_probe=%d shield_break_probe=%d "
+        "powershield_cancel_probe=%d tumble_probe=%d "
         "floor_recovery_probe=%d surface_tech_probe=%d "
         "air_dodge_probe=%d ground_dodge_probe=%d "
         "aerial_l_cancel_probe=%d match_probe=%d "
@@ -484,6 +492,7 @@ int main(void)
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,
+        test_shield_break_probe,
         test_shield_probe,
         test_tumble_probe,
         test_floor_recovery_probe,

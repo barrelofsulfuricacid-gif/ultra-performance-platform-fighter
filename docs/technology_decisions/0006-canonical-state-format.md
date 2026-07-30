@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–14 / state schemas 1–15
+- **Status:** Accepted for save formats 1–15 / state schemas 1–16
 - **Date:** 2026-07-28
 
 ## Decision
@@ -24,11 +24,12 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 12 | 13 | 140 | 437 | 577 | Canonical strong-aerial-attack, strong-aerial-landing, and strong-L-cancel-landing action IDs; no byte-layout change |
 | 13 | 14 | 140 | 463 | 603 | Match stock count, respawn-delay and invulnerability rules, sudden-death state, per-player stocks/timers, and respawn-wait/eliminated action IDs |
 | 14 | 15 | 140 | 463 | 603 | ABI-4 typed per-tick event journal and authoritative event-sequence semantics; no payload-layout change |
+| 15 | 16 | 140 | 463 | 603 | Canonical shield-break flight/down/stand/stun action semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
-`PFSAVE11`, `PFSAVE12`, `PFSAVE13`, or `PFSAVE14`.
-The active M4 runtime emits and accepts format 14 with state schema 15. Earlier
+`PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, or `PFSAVE15`.
+The active M4 runtime emits and accepts format 15 with state schema 16. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -48,6 +49,10 @@ the save payload. The existing canonical event sequence remains serialized.
 After load, identical subsequent inputs must therefore reproduce the same
 typed events and sequence IDs. The format/state bump makes that new semantic
 contract fail closed even though the 463-byte payload layout is unchanged.
+Format 15 applies the same fail-closed rule to the new shield-break action IDs
+and action-timer semantics: no new mutable field is needed, but a format-14
+reader must not silently reinterpret down/stand elapsed ticks or stun
+remaining ticks.
 
 ## Why SHA-256
 
@@ -87,8 +92,8 @@ service-envelope responsibility.
 - Mid-getup-roll save/load plus equal direction, invulnerability, and future
   continuation hashes in `tests/sim/test_m4_combat.c`.
 - Exact validation and future equality for DI/SDI, tumble, tech-window,
-  lockout, tech outcome, shield health, shield stun, powershield, and
-  shield-break state in `tests/sim/test_m4_combat.c`.
+  lockout, tech outcome, shield health, shield stun, powershield, and the
+  shield-break flight/down/stand/stun route in `tests/sim/test_m4_combat.c`.
 - Validation of the canonical wall/ceiling tech and missed-bounce action
   relationships, including continued hitstun/tumble for a missed impact and
   cleared reaction state for a successful tech.

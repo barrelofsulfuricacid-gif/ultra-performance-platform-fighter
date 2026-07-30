@@ -8,7 +8,8 @@ DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
 directional ground tech, wall tech, wall-tech jump, ceiling tech,
 missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, shield damage/stun/pushback, shield release and
-regeneration, grounded shield break lockout, physical powershielding, and
+regeneration, complete shield-break launch/down/stand/stun/recovery,
+physical powershielding, and
 frame-2 powershield canceling into either current production ground attack.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
@@ -26,7 +27,7 @@ reusing the production strong hit data and adding a deliberately conspicuous
 does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI,
 platform shield drop, grabs, projectile powershields, complete
-shield-break launch/stun, prone-orientation-specific
+prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
 respawn, respawn invulnerability, elimination, team results, rematch, and
@@ -216,7 +217,8 @@ The current full-density values are data, not hidden constants:
   release lag;
 - immediate jump cancel from an already active shield or its release state;
   and
-- reset to 30 HP after the current shield-break lockout.
+- reset to 30 HP after shield-break stun ends or a flinching punish
+  interrupts it.
 
 Shield release regenerates health because the blocking volume is no longer
 active. Holding shield cannot reopen a tech window without a new trigger edge,
@@ -281,12 +283,36 @@ coverage.
 ## Shield break checkpoint boundary
 
 Reaching zero HP, either from holding shield or blocking the current attack,
-enters `SHIELD_BREAK`. The state is grounded, locked, and deterministic for
-180 ticks, ignores further hitboxes during this placeholder lockout, then
-restores 30 shield HP. This is only the canonical state and serialization
-foundation. It does not yet claim Melee's upward shield-break launch,
-landing/knockdown sequence, damage-dependent stun, mash reduction, vulnerability,
-or hit interruption.
+enters the complete deterministic shield-break route:
+
+1. `SHIELD_BREAK` clears support and launches straight upward at the
+   content-defined speed. Input cannot steer, fast-fall, reverse facing, grab a
+   ledge, or otherwise cancel this flight.
+2. Gravity and normal stage collision continue. The first legal floor,
+   platform, or solid-top contact enters `SHIELD_BREAK_DOWN`; holding down
+   cannot pass through a platform during this forced landing.
+3. The original placeholder fighter spends 30 data-defined ticks down and 30
+   standing before entering `SHIELD_BREAK_STUN`.
+4. Stun begins with
+   `max(90, 490 - floor(current_percent))` remaining ticks. Each fresh jump,
+   light attack, strong attack, trigger, full-horizontal flick, or down flick
+   removes three additional ticks; holding an input does not retrigger it.
+5. Flight, down, and stand reject hitboxes. Stun is vulnerable. A flinching
+   hit immediately leaves stun through ordinary hitlag/hitstun and restores
+   the shield to 30 HP; natural stun expiry returns to idle with the same
+   reset.
+
+The phase order and stun equation follow Melee's documented
+[shield-break sequence](https://www.ssbwiki.com/Shield#Shield_breaking) and
+[dazed-duration formula](https://www.ssbwiki.com/Dazed). The launch speed and
+down/stand animation durations remain explicit original-fighter content, not
+hidden engine constants. If a moving support leaves a downed, standing, or
+stunned fighter unsupported, the fighter returns to locked
+`SHIELD_BREAK` fall and repeats the landing phase.
+
+Both hit-caused and hold-depletion breaks emit the typed shield-break event.
+The latter uses source `255` (system/no player), the actual depleted health as
+its value, the launch vector as velocity, and detail zero.
 
 ## Air-dodge hit interaction
 
@@ -347,10 +373,14 @@ and replays cannot load under different match rules.
 
 ## Canonical state and inspection
 
-State schema 15 / save format 14 retains the 603-byte stream (140-byte header
-plus 463-byte payload) and changes the active magic to `PFSAVE14`. It defines
-the ABI-4 typed per-tick event journal while keeping only its authoritative
-monotonic sequence in canonical state. It follows state schema 14 / save
+State schema 16 / save format 15 retains the 603-byte stream (140-byte header
+plus 463-byte payload) and changes the active magic to `PFSAVE15`. It adds the
+canonical `SHIELD_BREAK_DOWN`, `SHIELD_BREAK_STAND`, and
+`SHIELD_BREAK_STUN` action semantics without adding mutable fields: the
+existing action timer is elapsed time for down/stand and remaining time for
+stun. It follows state schema 15 / save format 14, which defined the ABI-4
+typed per-tick event journal while keeping only its authoritative monotonic
+sequence in canonical state, and state schema 14 / save
 format 13, which added the stock rules, per-player stocks, respawn timers,
 sudden-death state, and `RESPAWN_WAIT`/`ELIMINATED` action semantics, and state
 schema 13 / save format 12, which added `STRONG_AERIAL_ATTACK`,
@@ -367,8 +397,10 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 13 / fighter schema 13 adds the independently validated
-strong-aerial landing-lag duration. It follows schema 12's roll
+Content schema 14 / fighter schema 14 adds independently validated
+shield-break launch speed, base/minimum stun, down/stand durations, and mash
+reduction. It follows schema 13's strong-aerial landing-lag duration and
+schema 12's roll
 speeds/durations, shared roll movement and invulnerability windows, and
 spot-dodge duration/invulnerability, plus schema 11's light-aerial hitbox,
 phase, landing-lag, and L-cancel data. Stage schema 2 retains the solid block
@@ -378,18 +410,20 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 13 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 14 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 13
+sudden death, and result. Browser view schema 14
 carries those fields plus the canonical action timer, floor action semantics,
 the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
 floor-attack hitbox, the strong-aerial states, the landing-result banner/ring
 and countdown, stock HUD, countdown/result overlays, the most recent per-tick
-event records, and renders the block.
+event records, and renders the block. It labels every shield-break phase,
+renders the down phase prone, and gives vulnerable stun an orbiting-star
+`MASH · Nf` countdown.
 
 ## Deterministic event journal
 
@@ -409,7 +443,8 @@ and event order follow stable slot order, with match resolution last.
 | Event | Value / velocity | Detail |
 |---|---|---|
 | Hit | Attack damage / pending launch | Attacker action |
-| Shield block, powershield, shield break | Applied shield damage / physical pushback | Attacker action |
+| Shield block, powershield, hit-caused shield break | Applied shield damage / physical pushback | Attacker action |
+| Hold-depletion shield break | Actual depleted shield health / upward launch | Zero |
 | KO | Pre-reset percent / blast-crossing velocity | Stocks remaining |
 | Respawn | Respawn percent / spawn velocity | Invulnerability ticks |
 | Sudden death | `300%` / zero | Player count |
@@ -429,7 +464,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 110 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 126 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -471,8 +506,11 @@ mechanics invariants plus 30 journal invariants, including:
 - physical powershield opportunity preservation, frame-1 rejection, frame-2
   attack cancel, ordinary-shield negative behavior, content validation, and a
   focused encode/verify replay that performs the cancel;
-- deterministic shield break, placeholder re-hit lockout, reset health, and
-  invalid shield-data rejection;
+- deterministic hit/depletion shield-break events, upward flight and gravity,
+  forced landing, exact down/stand order, percent-scaled vulnerable stun,
+  fresh-input mash reduction with a held-input negative case, early-phase hit
+  rejection, stun interruption, 30-HP reset, invalid content rejection, and
+  mid-stun save/load with equal future hashes;
 - mid-hitlag and mid-shield-hitlag save/load with equal future hashes; and
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
@@ -493,9 +531,8 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-ground-dodge, air-dodge,
-attack,
-reaction, shield, tumble, floor-recovery, and surface-tech probes pass. The
+ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
+floor-recovery, and surface-tech probes pass. The
 surface probe moves the ordinary default fighters near the raised block,
 strong-launches a tumbling target, opens the real trigger window during
 flight, holds up, and requires `WALL_TECH_JUMP` with cleared reaction state.
@@ -505,6 +542,10 @@ recovery invulnerability, and both floor-attack active phases. The shield probe
 observes a normal physical block, a four-frame powershield, the frame-1
 shield-drop delay, and a frame-2 powershield-canceled attack through the
 production collision path.
+The independent shield-break probe holds the ordinary trigger through
+depletion, requires the system-authored break event and upward launch, observes
+down/stand/stun in order, proves fresh-versus-held mash timing, and reaches the
+30-HP recovery.
 The air-dodge probe independently reaches directional `AIR DODGE`, its
 invulnerability window, `FALL SPECIAL`, and a first-airborne-frame diagonal
 `SPECIAL LANDING` with continued horizontal slide.

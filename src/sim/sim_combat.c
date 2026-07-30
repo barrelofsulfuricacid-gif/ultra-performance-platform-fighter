@@ -79,6 +79,14 @@ static int pf_m4_action_is_recovery_invulnerable(
     uint8_t action_state,
     uint16_t action_ticks)
 {
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND)
+    {
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE)
     {
         return action_ticks >=
@@ -554,8 +562,6 @@ pf_status pf_m4_resolve_combat(
                         ->respawn_invulnerability_ticks[target_index] !=
                     UINT16_C(0) ||
                 target_owner[target_index] != UINT8_MAX ||
-                scratch->action_state[target_index] ==
-                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
                 pf_m4_action_is_recovery_invulnerable(
                     &content->fighter,
                     scratch->action_state[target_index],
@@ -708,6 +714,12 @@ pf_status pf_m4_resolve_combat(
             continue;
         }
 
+        if (scratch->action_state[target_index] ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+        {
+            scratch->shield_health_q16[target_index] =
+                content->fighter.shield_reset_health_q16;
+        }
         scratch->damage_q16[target_index] = pf_m4_saturating_damage(
             scratch->damage_q16[target_index],
             attack.damage_q16);

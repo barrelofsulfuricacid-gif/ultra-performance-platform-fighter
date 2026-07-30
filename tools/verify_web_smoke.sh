@@ -105,13 +105,13 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=a6f0201c7de7322b1a03f86ff8e9270cc45cd85afa87808954ab67e708d06562'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=ff4f441ae65ef09babd3c66db0b293eaa0d7967275d27c84b8285c888c1b8a9d'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
 pf_require_dom \
     "M4 input/ground-dodge/air-facing/air-dodge/combat/event-journal/reaction/shield/tumble/floor/surface-tech probe status" \
-    'playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass event_journal_probe=pass reaction_probe=pass shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass ground_dodge_probe=pass aerial_l_cancel_probe=pass match_probe=pass controls=keyboard-two-player'
+    'playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass event_journal_probe=pass reaction_probe=pass shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass ground_dodge_probe=pass aerial_l_cancel_probe=pass match_probe=pass controls=keyboard-two-player'
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'

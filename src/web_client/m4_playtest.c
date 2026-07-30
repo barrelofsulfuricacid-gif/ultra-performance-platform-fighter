@@ -113,6 +113,7 @@ extern void pf_web_m4_playtest_install(
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
+    int shield_break_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
@@ -1979,6 +1980,158 @@ static int pf_web_m4_run_shield_probe(void)
            inspection.players[1].powershield == UINT8_C(0);
 }
 
+static int pf_web_m4_run_shield_break_probe(void)
+{
+    pf_m4_inspection inspection;
+    int saw_down = 0;
+    int saw_stand = 0;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(300) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        inspection.players[0].shield_health_q16 != UINT32_C(0) ||
+        inspection.players[0].invulnerable != UINT8_C(1) ||
+        pf_web_m4_last_result.event_count != UINT8_C(1) ||
+        pf_web_m4_last_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_SHIELD_BREAK ||
+        pf_web_m4_last_result.events[0].source_player !=
+            PF_SIM_EVENT_NO_PLAYER ||
+        pf_web_m4_last_result.events[0].target_player != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+        {
+            break;
+        }
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN)
+        {
+            saw_down = 1;
+        }
+        else if (
+            inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND)
+        {
+            if (saw_down == 0)
+            {
+                return 0;
+            }
+            saw_stand = 1;
+        }
+    }
+    if (tick == UINT32_C(300) ||
+        saw_down == 0 ||
+        saw_stand == 0 ||
+        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].invulnerable != UINT8_C(0) ||
+        inspection.players[0].action_ticks !=
+            pf_web_m4_content.fighter.shield_break_stun_ticks)
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_ticks !=
+            pf_web_m4_content.fighter.shield_break_stun_ticks -
+                UINT16_C(1) -
+                pf_web_m4_content.fighter
+                    .shield_break_mash_reduction_ticks ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_ticks !=
+            pf_web_m4_content.fighter.shield_break_stun_ticks -
+                UINT16_C(2) -
+                pf_web_m4_content.fighter
+                    .shield_break_mash_reduction_ticks)
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(200); ++tick)
+    {
+        const uint64_t buttons =
+            (tick & UINT32_C(1)) != UINT32_C(0)
+                ? PF_INPUT_BUTTON_JUMP
+                : PF_INPUT_BUTTON_ATTACK;
+
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                buttons,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    return tick < UINT32_C(200) &&
+           inspection.players[0].shield_health_q16 ==
+               pf_web_m4_content.fighter.shield_reset_health_q16;
+}
+
 static int pf_web_m4_run_match_probe(void)
 {
     pf_m4_inspection inspection;
@@ -2061,7 +2214,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(13);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(14);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -2254,6 +2407,7 @@ int pf_web_m4_playtest_start(void)
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
+    int shield_break_probe_passed;
     int tumble_probe_passed;
     int floor_recovery_probe_passed;
     int surface_tech_probe_passed;
@@ -2300,6 +2454,8 @@ int pf_web_m4_playtest_start(void)
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
+    shield_break_probe_passed =
+        pf_web_m4_run_shield_break_probe();
     tumble_probe_passed = pf_web_m4_run_tumble_probe();
     floor_recovery_probe_passed =
         pf_web_m4_run_floor_recovery_probe();
@@ -2317,6 +2473,7 @@ int pf_web_m4_playtest_start(void)
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
+        shield_break_probe_passed == 0 ||
         tumble_probe_passed == 0 ||
         floor_recovery_probe_passed == 0 ||
         surface_tech_probe_passed == 0 ||
@@ -2336,6 +2493,7 @@ int pf_web_m4_playtest_start(void)
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,
+        shield_break_probe_passed,
         tumble_probe_passed,
         floor_recovery_probe_passed,
         surface_tech_probe_passed,

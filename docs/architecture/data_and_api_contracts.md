@@ -81,17 +81,19 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–13 remain historical checkpoints. The current M4
-movement/combat state uses save format 14: a fixed 603-byte checkpoint with
-state schema 15 and canonical solid-surface tech/bounce,
+Save formats 1–14 remain historical checkpoints. The current M4
+movement/combat state uses save format 15: a fixed 603-byte checkpoint with
+state schema 16 and canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
 the strong-aerial/normal-landing/L-cancel-landing action semantics. It also
 stores configurable stock/respawn rules, per-player stocks and respawn timers,
 respawn-wait/eliminated actions, sudden-death state, and the authoritative
-monotonic event sequence. Format 14 changes the public tick-result semantics
-without adding journal payloads to canonical state.
+monotonic event sequence. It also defines the shield-break
+flight/down/stand/stun action semantics without adding payload fields. Format
+14 changed the public tick-result semantics without adding journal payloads to
+canonical state.
 Format 5 first
 introduced the same-size payload containing shield health, shield-stun timers,
 and powershield result state. Exact headers, payloads, compatibility, checksum,

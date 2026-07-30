@@ -169,6 +169,17 @@ of `SHIELD RELEASE` cannot start a ground attack; a fresh attack press on frame
 attack is not buffered. Holding shield until stun ends consumes the opportunity,
 and an ordinary block retains the full 15-tick release.
 
+When shield health reaches zero from holding or a physical hit, the fighter
+launches straight upward in `SHIELD BREAK`; ordinary input cannot steer or
+fast-fall it. Landing is forced even through held-down platform input and
+enters `SHIELD BREAK DOWN`, then `SHIELD BREAK STAND`, then vulnerable
+`SHIELD BREAK STUN`. The first two grounded phases and flight show the
+invulnerability ring; stun replaces it with orbiting stars and a live
+`MASH · Nf` counter. Alternate fresh jump/attack presses, trigger presses, or
+stick flicks to remove three extra frames per input. Holding a key does not
+repeat the reduction. Natural recovery restores 30 shield HP; an opponent hit
+during stun interrupts it through ordinary hitlag/hitstun.
+
 A new trigger press still opens a 20-tick tech window and a 40-tick lockout. A
 tumbling floor/platform impact with neutral horizontal input enters
 `TECH IN PLACE`; holding left or right enters `TECH ROLL`; missing the window
@@ -199,7 +210,7 @@ BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
 This shield slice does not yet include analog light shield, shield tilt/poke,
 shield SDI, platform shield drop, grab, projectile
-reflection, or the complete airborne/knockdown/stun shield-break sequence.
+reflection.
 Future ground actions must join the same powershield-cancel router before that
 registry row can advance from `playable` to `verified`.
 
@@ -304,26 +315,32 @@ registry row can advance from `playable` to `verified`.
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-27. Full hop and use the aerial late enough to land during its startup
+27. Hold shield until it reaches zero. Confirm upward `SHIELD BREAK`, forced
+    landing, prone `SHIELD BREAK DOWN`, `SHIELD BREAK STAND`, then the
+    vulnerable orbiting-star stun and `MASH · Nf` counter. Hold one mash key
+    and confirm only the first tick gets the extra reduction; alternate fresh
+    inputs to recover faster and confirm shield health resets to 30. Repeat
+    and have the opponent hit during stun to confirm ordinary hitlag/hitstun.
+28. Full hop and use the aerial late enough to land during its startup
     auto-cancel frames; confirm generic `LANDING`. Then short-hop aerial,
     fast-fall, and land without the trigger for 12 ticks of `AERIAL LANDING`.
     Repeat with a fresh trigger in the last seven ticks and confirm six ticks
     of `L-CANCEL LANDING`. Pause and step while watching trigger age: 0–6 must
     say eligible and 7 must not.
-28. Short hop, press the strong-attack key while airborne, hold down to
+29. Short hop, press the strong-attack key while airborne, hold down to
     fast-fall, and intentionally omit the trigger. Confirm the pink hitbox,
     `STRONG AERIAL LANDING`, a red missed-L-cancel banner/ring, and a countdown
     from 30 frames. Repeat with a fresh trigger shortly before contact and
     confirm `STRONG L-CANCEL LANDING`, a green success banner/ring, and a
     15-frame countdown.
-29. Run Player 1 beyond a blast boundary. Confirm one stock disappears,
+30. Run Player 1 beyond a blast boundary. Confirm one stock disappears,
     `RESPAWN WAIT` counts down from 60, then the fighter returns at zero
     percent with the dashed ring and 120-frame invulnerability timer. Move and
     attack during that timer, then confirm the ring expires. Repeat until the
     final stock and confirm the result banner, paused match, and Rematch
     button. Confirm the feed records KO, respawn, and final match result in
     increasing sequence order.
-30. Repeat with Player 2's arrow-key controls and try both players
+31. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -376,13 +393,17 @@ through:
   shield damage and the powershield result;
 - release after that physical powershield preserving the cancel opportunity,
   followed by the one-frame delay and frame-2 ground attack; and
+- full held-shield depletion producing the typed system-source break event,
+  upward launch, down/stand/stun phase order, fresh-versus-held mash behavior,
+  and 30-HP recovery; and
 - the native movement oracle covering ledge catch, hang, release, jump, climb,
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
-shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
+shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
+tumble_probe=pass
 floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
 ground_dodge_probe=pass
 aerial_l_cancel_probe=pass match_probe=pass

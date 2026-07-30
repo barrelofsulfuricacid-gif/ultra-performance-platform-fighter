@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -450,6 +450,7 @@ mergeInto(LibraryManager.library, {
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
+    shieldBreakProbePassed,
     tumbleProbePassed,
     floorRecoveryProbePassed,
     surfaceTechProbePassed,
@@ -547,6 +548,7 @@ mergeInto(LibraryManager.library, {
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
+      shieldBreakProbePassed &&
       tumbleProbePassed &&
       floorRecoveryProbePassed &&
       surfaceTechProbePassed &&
@@ -554,7 +556,7 @@ mergeInto(LibraryManager.library, {
       groundDodgeProbePassed &&
       aerialLCancelProbePassed &&
       matchProbePassed
-        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT EVENT JOURNAL + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
+        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT EVENT JOURNAL + REACTION + SHIELD / PSC / BREAK + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -945,6 +947,8 @@ mergeInto(LibraryManager.library, {
         (reactionProbePassed ? "pass" : "fail") +
         " shield_probe=" +
         (shieldProbePassed ? "pass" : "fail") +
+        " shield_break_probe=" +
+        (shieldBreakProbePassed ? "pass" : "fail") +
         " powershield_cancel_probe=" +
         (shieldProbePassed ? "pass" : "fail") +
         " tumble_probe=" +
@@ -973,6 +977,8 @@ mergeInto(LibraryManager.library, {
         reactionProbePassed ? "pass" : "fail";
       status.dataset.shieldProbe =
         shieldProbePassed ? "pass" : "fail";
+      status.dataset.shieldBreakProbe =
+        shieldBreakProbePassed ? "pass" : "fail";
       status.dataset.powershieldCancelProbe =
         shieldProbePassed ? "pass" : "fail";
       status.dataset.tumbleProbe =
@@ -1004,7 +1010,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 13) {
+    if (view[0] !== 14) {
       return;
     }
     var canvas = state.canvas;
@@ -1065,6 +1071,9 @@ mergeInto(LibraryManager.library, {
       "STRONG L-CANCEL LANDING",
       "RESPAWN WAIT",
       "ELIMINATED",
+      "SHIELD BREAK DOWN",
+      "SHIELD BREAK STAND",
+      "SHIELD BREAK STUN",
     ];
 
     if (view[1] < previousTick) {
@@ -1309,7 +1318,8 @@ mergeInto(LibraryManager.library, {
       var prone =
         actionState === 15 ||
         actionState === 23 ||
-        actionState === 26;
+        actionState === 26 ||
+        actionState === 46;
       var invulnerable = view[base + 28] !== 0;
       var shielding =
         view[base + 4] === 18 ||
@@ -1411,6 +1421,37 @@ mergeInto(LibraryManager.library, {
         );
         context.stroke();
         context.setLineDash([]);
+      }
+      if (actionState === 48) {
+        var orbit = (view[1] % 60) * (Math.PI / 30);
+        var starRadius = Math.max(width, height) * 0.92;
+        var starIndex;
+
+        context.save();
+        context.fillStyle = "#fff19a";
+        context.font = "bold 20px system-ui, sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        for (starIndex = 0; starIndex < 3; starIndex += 1) {
+          var starAngle = orbit + starIndex * ((Math.PI * 2) / 3);
+          context.fillText(
+            "✦",
+            x + Math.cos(starAngle) * starRadius,
+            y - height * 0.7 + Math.sin(starAngle) * starRadius * 0.28
+          );
+        }
+        context.fillStyle = "#351f09dd";
+        context.strokeStyle = "#fff19a";
+        context.lineWidth = 2;
+        context.font = "bold 14px ui-monospace, monospace";
+        var mashLabel = "MASH · " + view[base + 29] + "f";
+        var mashWidth = context.measureText(mashLabel).width + 16;
+        var mashY = Math.max(24, y - height / 2 - 36);
+        context.fillRect(x - mashWidth / 2, mashY - 12, mashWidth, 24);
+        context.strokeRect(x - mashWidth / 2, mashY - 12, mashWidth, 24);
+        context.fillStyle = "#fffbd2";
+        context.fillText(mashLabel, x, mashY);
+        context.restore();
       }
       context.globalAlpha = 1;
 

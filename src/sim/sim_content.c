@@ -68,6 +68,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->air_dodge_speed_q16);
     pf_m4_hash_i32(hash, fighter->air_dodge_decay_q16);
     pf_m4_hash_i32(hash, fighter->fall_special_mobility_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_break_launch_speed_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_half_width_q16);
@@ -256,7 +259,15 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(
         hash,
         fighter->powershield_cancel_delay_ticks);
-    pf_m4_hash_u16(hash, fighter->shield_break_ticks);
+    pf_m4_hash_u16(hash, fighter->shield_break_stun_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->shield_break_minimum_stun_ticks);
+    pf_m4_hash_u16(hash, fighter->shield_break_down_ticks);
+    pf_m4_hash_u16(hash, fighter->shield_break_stand_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->shield_break_mash_reduction_ticks);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
     pf_m4_hash_u8(
         hash,
@@ -361,6 +372,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->air_dodge_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
     fighter->fall_special_mobility_q16 = PF_Q16_RATIO(2, 25);
+    fighter->shield_break_launch_speed_q16 =
+        PF_Q16_RATIO(7, 10);
     fighter->jab_hitbox_offset_x_q16 = PF_Q16_RATIO(3, 4);
     fighter->jab_hitbox_offset_y_q16 = INT32_C(0);
     fighter->jab_hitbox_half_width_q16 = PF_Q16_RATIO(3, 5);
@@ -508,7 +521,11 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->shield_release_ticks = UINT16_C(15);
     fighter->powershield_window_ticks = UINT16_C(4);
     fighter->powershield_cancel_delay_ticks = UINT16_C(1);
-    fighter->shield_break_ticks = UINT16_C(180);
+    fighter->shield_break_stun_ticks = UINT16_C(490);
+    fighter->shield_break_minimum_stun_ticks = UINT16_C(90);
+    fighter->shield_break_down_ticks = UINT16_C(30);
+    fighter->shield_break_stand_ticks = UINT16_C(30);
+    fighter->shield_break_mash_reduction_ticks = UINT16_C(3);
     fighter->air_jump_count = UINT8_C(1);
     fighter->powershield_cancel_enabled = UINT8_C(1);
 
@@ -1035,8 +1052,23 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->powershield_cancel_delay_ticks == UINT16_C(0) ||
         fighter->powershield_cancel_delay_ticks >=
             fighter->shield_release_ticks ||
-        fighter->shield_break_ticks == UINT16_C(0) ||
-        fighter->shield_break_ticks > UINT16_C(480) ||
+        fighter->shield_break_launch_speed_q16 <=
+            fighter->gravity_q16 ||
+        fighter->shield_break_launch_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->shield_break_stun_ticks == UINT16_C(0) ||
+        fighter->shield_break_stun_ticks > UINT16_C(600) ||
+        fighter->shield_break_minimum_stun_ticks == UINT16_C(0) ||
+        fighter->shield_break_minimum_stun_ticks >
+            fighter->shield_break_stun_ticks ||
+        fighter->shield_break_down_ticks == UINT16_C(0) ||
+        fighter->shield_break_down_ticks > UINT16_C(240) ||
+        fighter->shield_break_stand_ticks == UINT16_C(0) ||
+        fighter->shield_break_stand_ticks > UINT16_C(240) ||
+        fighter->shield_break_mash_reduction_ticks ==
+            UINT16_C(0) ||
+        fighter->shield_break_mash_reduction_ticks >
+            UINT16_C(60) ||
         fighter->air_jump_count > UINT8_C(8) ||
         fighter->powershield_cancel_enabled > UINT8_C(1))
     {

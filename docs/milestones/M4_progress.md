@@ -7,7 +7,8 @@ plus directional air dodge, helpless fall, wavedash/waveland, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
-results, rematch, and the bounded rollback-safe typed event feed implemented
+results, rematch, the bounded rollback-safe typed event feed, and complete
+shield-break launch/down/stand/stun/recovery implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -27,7 +28,7 @@ results, rematch, and the bounded rollback-safe typed event feed implemented
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-15/save-format-14 contract that serializes every
+- A rollback-safe state-schema-16/save-format-15 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield and match field plus the authoritative event sequence.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -47,8 +48,9 @@ results, rematch, and the bounded rollback-safe typed event feed implemented
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
   dash-dance reversal, short/full-hop apex, aerial landing/L-cancel timing,
-  strong-aerial 30/15-tick landing timing, real damage/hitlag, and
-  reaction-input and stock/respawn invariants pass.
+  strong-aerial 30/15-tick landing timing, real damage/hitlag,
+  shield-break phase/mash/recovery, and reaction-input and stock/respawn
+  invariants pass.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -135,12 +137,13 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Melee-style physical powershield canceling: release by shield-stun end,
   reject attack on shield-drop frame 1, and accept a fresh ground-attack edge
   on frame 2. Ordinary blocks retain all 15 release ticks.
-- A deterministic grounded shield-break lockout/reset foundation. The Melee
-  launch, landing, vulnerable mashable stun, and interruption sequence remains
-  explicit follow-up work; the placeholder lockout ignores further hitboxes.
+- Complete shield-break flight, forced landing, down/stand phases,
+  damage-dependent vulnerable stun, fresh-input mash reduction, interruption,
+  and 30-HP recovery supersede the former grounded placeholder lockout.
 - Browser shield bubbles, health/stun/powershield diagnostics, hold-to-shield
-  controls on `G` and `.`/Numpad `1`, and an independent normal-block plus
-  powershield startup probe.
+  controls on `G` and `.`/Numpad `1`, independent normal-block/powershield and
+  shield-break startup probes, plus a prone phase and orbiting-star
+  `MASH · Nf` countdown.
 - Mid-shield-hitlag save/load with equal future hashes and focused shield
   invariants inside the 20,000-tick combat verifier.
 
@@ -293,8 +296,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - That slice introduced ABI 3, state schema 14/save format 13, RL schema 3,
   and browser view schema 12 for the rule/runtime state; the active journal
   slice supersedes them with ABI 4, state schema 15/save format 14, RL schema
-  4, and browser view schema 13. Config/observation/identity schema 2 and
-  inspection schema 13 remain current. The canonical save is still 603 bytes.
+  4, and browser view schema 13. The shield-break slice supersedes those state
+  and presentation versions with state schema 16/save format 15, content and
+  fighter schema 14, inspection schema 14, and browser view schema 14.
+  Config/observation/identity schema 2 and RL schema 4 remain current. The
+  canonical save is still 603 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -316,7 +322,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Only the existing sequence authority is canonical. Per-tick arrays are
   caller-owned scratch output, so state remains bounded while save/load and
   rollback re-simulation reproduce byte-identical event records.
-- State schema 15/save format 14 and magic `PFSAVE14` fail closed on the new
+- State schema 15/save format 14 and magic `PFSAVE14` failed closed on the new
   journal semantics without changing the 463-byte payload or 603-byte complete
   checkpoint. Replay API/verification schema 2 and RL/transition schema 4
   carry the enlarged tick-result ABI.
@@ -324,10 +330,37 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `PFEVT001` domain in addition to its per-tick state hashes. Replay wire
   format 1 remains byte-compatible at 31,295 bytes and deterministically
   re-emits, rather than stores, event payloads.
-- Browser view schema 13 exposes the current tick's 16 slots. The client keeps
+- Browser view schema 13 exposed the current tick's 16 slots. The client keeps
   only the newest ten for presentation, clears that history after a rewind or
   reset, and labels hit/shield/KO/respawn/sudden-death/result events by
   canonical sequence.
+
+## Delivered in the complete shield-break slice
+
+- Zero shield HP from either a physical hit or held-shield depletion launches
+  the fighter upward in locked `SHIELD_BREAK`, applies gravity without drift
+  or fast fall, and forces the first legal surface contact.
+- Landing enters data-defined `SHIELD_BREAK_DOWN` and
+  `SHIELD_BREAK_STAND` phases before vulnerable `SHIELD_BREAK_STUN`.
+  Flight/down/stand reject hitboxes; an ordinary flinching hit interrupts
+  stun.
+- Default stun uses Melee's `max(90, 490 - floor(percent))` duration. Fresh
+  buttons, trigger presses, full-horizontal flicks, and down flicks remove
+  three extra ticks while held inputs do not repeat.
+- Natural expiry and interruption restore 30 shield HP. A lost moving support
+  returns any grounded break phase to locked fall.
+- Hit-caused and hold-depletion routes both emit canonical shield-break events;
+  the latter uses the system source and its actual depleted health/launch.
+- State schema 16/save format 15 and `PFSAVE15` add only the three action
+  semantics, retaining the 463-byte payload and 603-byte checkpoint. Content
+  and fighter schema 14 validate launch/timing/mash data; inspection and
+  browser view schema 14 expose and label the result.
+- Browser readiness now includes an ordinary-input full-depletion probe through
+  launch, down, stand, stun, fresh-versus-held mash, and recovery. The live
+  view renders down prone and stun with orbiting stars plus a remaining-frame
+  mash counter.
+- Registry row 40, Shield break combo, advances to `playable` with a focused
+  deterministic punish and mid-stun save/load continuation oracle.
 
 ## Explicitly preserved playtest requirements
 
@@ -369,7 +402,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 10 playable, 8 primitive-ready, and 42 planned.
+  blocked: 1 verified, 11 playable, 7 primitive-ready, and 42 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -388,8 +421,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   light shield, shield size/tilt/pokes and shield SDI, platform shield drop,
   projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
-  complete shield-break behavior, complete
-  knockback/angle data, stale-move behavior,
+  complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
 - Local setup/menu flow, replay-file event visualization,
@@ -402,7 +434,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 94 movement invariants, 110
+- Mechanical oracles: 94 movement invariants, 126
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -413,9 +445,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,295
   bytes,
   replay SHA-256
-  `0a532f538fd875a339e83b8c6ee521a77c5f4945268acad52780f3f87f0df155`,
+  `2af600d2b7582a9b6b1d8f4fbd4db2e95360cef5e2fc70718bed8883cc4530ff`,
   final SHA-256
-  `a6f0201c7de7322b1a03f86ff8e9270cc45cd85afa87808954ab67e708d06562`,
+  `ff4f441ae65ef09babd3c66db0b293eaa0d7967275d27c84b8285c888c1b8a9d`,
   and event-journal SHA-256
   `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -428,7 +460,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   (`walk_axis=13500`, `dash_axis=32767`,
   movement/ground-dodge-and-roll/air-facing/air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
-  combat-and-event-journal/reaction/shield-and-PSC/default-tumble/
+  combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/surface-tech
   /stock-respawn probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.

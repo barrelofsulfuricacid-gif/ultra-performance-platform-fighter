@@ -2522,35 +2522,42 @@ static int make_shield_break_content(
         INT32_C(1);
     out_content->fighter.shield_attacker_pushback_base_q16 =
         INT32_C(1);
-    out_content->fighter.shield_break_ticks = UINT16_C(20);
+    out_content->fighter.gravity_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    out_content->fighter.fall_speed_q16 =
+        (INT32_C(2) * PF_Q16_ONE) / INT32_C(5);
+    out_content->fighter.shield_break_launch_speed_q16 =
+        PF_Q16_ONE / INT32_C(2);
+    out_content->fighter.shield_break_stun_ticks = UINT16_C(20);
+    out_content->fighter.shield_break_minimum_stun_ticks =
+        UINT16_C(8);
+    out_content->fighter.shield_break_down_ticks = UINT16_C(12);
+    out_content->fighter.shield_break_stand_ticks = UINT16_C(12);
+    out_content->fighter.shield_break_mash_reduction_ticks =
+        UINT16_C(3);
     return expect_status(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
         "shield-break-content-view");
 }
 
-static int run_shield_break_test(
+static int advance_shield_break_to_stun(
     const pf_m4_content *content,
-    const pf_content_view *view)
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection,
+    int test_early_invulnerability)
 {
-    test_sim_storage storage;
-    pf_sim *sim = NULL;
-    pf_m4_inspection inspection;
-    uint32_t break_elapsed = UINT32_C(0);
+    int tested_early_invulnerability = 0;
+    int saw_down = 0;
+    int saw_stand = 0;
     uint32_t tick;
 
-    if (!initialize_sim(
-            &storage,
-            view,
-            UINT8_C(2),
-            PF_SIM_MODE_DUEL,
-            1,
-            &sim) ||
-        !start_normal_shield_block(sim, &inspection) ||
-        inspection.players[1].action_state !=
+    if (!start_normal_shield_block(sim, out_inspection) ||
+        out_inspection->players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
-        inspection.players[1].shield_health_q16 != UINT32_C(0) ||
-        inspection.players[1].powershield != UINT8_C(0) ||
+        out_inspection->players[1].shield_health_q16 !=
+            UINT32_C(0) ||
+        out_inspection->players[1].powershield != UINT8_C(0) ||
         test_last_result.event_count != UINT8_C(1) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BREAK ||
@@ -2559,6 +2566,7 @@ static int run_shield_break_test(
     {
         return fail("shield-break-hit-setup");
     }
+
     for (tick = UINT32_C(0);
          tick < (uint32_t)content->fighter.jab_hitlag_ticks;
          ++tick)
@@ -2573,22 +2581,73 @@ static int run_shield_break_test(
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_MAX,
-                &inspection))
+                out_inspection))
         {
             return fail("shield-break-hitlag");
         }
     }
-    if (inspection.players[1].action_state !=
-        (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+    if (out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
+        out_inspection->players[1].grounded != UINT8_C(0) ||
+        out_inspection->players[1].support !=
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        out_inspection->players[1].velocity_x_q16 != INT32_C(0) ||
+        out_inspection->players[1].velocity_y_q16 !=
+            -content->fighter.shield_break_launch_speed_q16 ||
+        out_inspection->players[1].invulnerable != UINT8_C(1))
     {
-        return fail("shield-break-state");
+        return fail("shield-break-launch");
     }
-    for (tick = UINT32_C(0);
-         tick < UINT32_C(16) &&
-         inspection.players[0].action_state !=
-             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-         ++tick)
+
+    for (tick = UINT32_C(0); tick < UINT32_C(256); ++tick)
     {
+        uint32_t attack_tick;
+
+        if (out_inspection->players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+        {
+            break;
+        }
+        if (test_early_invulnerability != 0 &&
+            tested_early_invulnerability == 0 &&
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            for (attack_tick = UINT32_C(0);
+                 attack_tick < UINT32_C(3);
+                 ++attack_tick)
+            {
+                if (!step_reaction_duel(
+                        sim,
+                        INT16_C(0),
+                        INT16_C(0),
+                        attack_tick == UINT32_C(0)
+                            ? PF_INPUT_BUTTON_ATTACK
+                            : UINT64_C(0),
+                        UINT16_C(0),
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        UINT16_C(0),
+                        out_inspection) ||
+                    out_inspection->players[1].damage_q16 !=
+                        UINT32_C(0) ||
+                    out_inspection->players[1].shield_health_q16 !=
+                        UINT32_C(0) ||
+                    out_inspection->players[1].action_state ==
+                        (uint8_t)PF_M4_ACTION_HITLAG ||
+                    out_inspection->players[1].invulnerable !=
+                        UINT8_C(1))
+                {
+                    return fail(
+                        "shield-break-early-invulnerability");
+                }
+            }
+            tested_early_invulnerability = 1;
+            continue;
+        }
         if (!step_reaction_duel(
                 sim,
                 INT16_C(0),
@@ -2598,27 +2657,335 @@ static int run_shield_break_test(
                 INT16_C(0),
                 INT16_C(0),
                 UINT64_C(0),
-                UINT16_MAX,
-                &inspection))
+                UINT16_C(0),
+                out_inspection))
         {
-            return fail("shield-break-lockout");
+            return fail("shield-break-sequence-step");
         }
-        ++break_elapsed;
-        if (inspection.players[1].action_state !=
+        if (out_inspection->players[1].shield_health_q16 !=
+            UINT32_C(0))
+        {
+            return fail("shield-break-sequence-health");
+        }
+        if (out_inspection->players[1].action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
         {
-            return fail("shield-break-ended-before-rehit");
+            if (out_inspection->players[1].grounded != UINT8_C(0) ||
+                out_inspection->players[1].velocity_x_q16 !=
+                    INT32_C(0) ||
+                out_inspection->players[1].invulnerable != UINT8_C(1))
+            {
+                return fail("shield-break-flight");
+            }
+        }
+        else if (out_inspection->players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN)
+        {
+            saw_down = 1;
+            if (out_inspection->players[1].grounded != UINT8_C(1) ||
+                out_inspection->players[1].invulnerable != UINT8_C(1))
+            {
+                return fail("shield-break-down");
+            }
+        }
+        else if (out_inspection->players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND)
+        {
+            saw_stand = 1;
+            if (saw_down == 0 ||
+                out_inspection->players[1].grounded != UINT8_C(1) ||
+                out_inspection->players[1].invulnerable != UINT8_C(1))
+            {
+                return fail("shield-break-stand");
+            }
+        }
+        else if (out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+        {
+            return fail("shield-break-phase-order");
         }
     }
-    if (inspection.players[0].action_state !=
-        (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+
+    if (tick == UINT32_C(256) ||
+        saw_down == 0 ||
+        saw_stand == 0 ||
+        (test_early_invulnerability != 0 &&
+         tested_early_invulnerability == 0) ||
+        out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+        out_inspection->players[1].action_ticks !=
+            content->fighter.shield_break_stun_ticks ||
+        out_inspection->players[1].grounded != UINT8_C(1) ||
+        out_inspection->players[1].invulnerable != UINT8_C(0))
     {
-        return fail("shield-break-rehit-attacker-ready");
+        return fail("shield-break-stun-entry");
+    }
+    return 1;
+}
+
+static int run_shield_break_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage punish_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *punish = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection punish_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !advance_shield_break_to_stun(
+            content,
+            source,
+            &source_inspection,
+            1) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "query-shield-break-save-size") ||
+        save_size != (size_t)603)
+    {
+        return fail("shield-break-snapshot-setup");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "save-shield-break-stun") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "load-shield-break-stun") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "hash-source-shield-break") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "hash-loaded-shield-break") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("shield-break-snapshot-round-trip");
+    }
+
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            &source_inspection) ||
+        !step_reaction_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            &loaded_inspection) ||
+        source_inspection.players[1].action_ticks !=
+            content->fighter.shield_break_stun_ticks -
+                UINT16_C(1) -
+                content->fighter
+                    .shield_break_mash_reduction_ticks ||
+        source_inspection.players[1].tech_window_ticks !=
+            UINT16_C(0) ||
+        source_inspection.players[1].tech_lockout_ticks !=
+            UINT16_C(0) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "hash-source-shield-break-mash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "hash-loaded-shield-break-mash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("shield-break-fresh-mash");
+    }
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            &source_inspection) ||
+        !step_reaction_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            &loaded_inspection) ||
+        source_inspection.players[1].action_ticks !=
+            content->fighter.shield_break_stun_ticks -
+                UINT16_C(2) -
+                content->fighter
+                    .shield_break_mash_reduction_ticks)
+    {
+        return fail("shield-break-held-input-no-remash");
+    }
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        !step_reaction_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &loaded_inspection) ||
+        source_inspection.players[1].action_ticks !=
+            content->fighter.shield_break_stun_ticks -
+                UINT16_C(3) -
+                UINT16_C(2) *
+                    content->fighter
+                        .shield_break_mash_reduction_ticks ||
+        source_inspection.players[1].tech_window_ticks !=
+            UINT16_C(0) ||
+        source_inspection.players[1].tech_lockout_ticks !=
+            UINT16_C(0))
+    {
+        return fail("shield-break-trigger-mash-no-tech-buffer");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        const uint64_t mash =
+            (tick & UINT32_C(1)) != UINT32_C(0)
+                ? PF_INPUT_BUTTON_JUMP
+                : UINT64_C(0);
+
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                mash,
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                mash,
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "hash-source-shield-break-continuation") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "hash-loaded-shield-break-continuation") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail(
+                "shield-break-deterministic-continuation");
+        }
+        if (source_inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(32) ||
+        source_inspection.players[1].shield_health_q16 !=
+            content->fighter.shield_reset_health_q16 ||
+        loaded_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return fail("shield-break-mash-recovery");
+    }
+
+    if (!initialize_sim(
+            &punish_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &punish) ||
+        !advance_shield_break_to_stun(
+            content,
+            punish,
+            &punish_inspection,
+            0) ||
+        punish_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return fail("shield-break-punish-setup");
     }
     for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
     {
         if (!step_reaction_duel(
-                sim,
+                punish,
                 INT16_C(0),
                 INT16_C(0),
                 tick == UINT32_C(0)
@@ -2628,52 +2995,23 @@ static int run_shield_break_test(
                 INT16_C(0),
                 INT16_C(0),
                 UINT64_C(0),
-                UINT16_MAX,
-                &inspection))
-        {
-            return fail("shield-break-rehit-step");
-        }
-        ++break_elapsed;
-    }
-    if (inspection.players[1].action_state !=
-            (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
-        inspection.players[1].damage_q16 != UINT32_C(0) ||
-        inspection.players[1].shield_health_q16 != UINT32_C(0))
-    {
-        return fail("shield-break-placeholder-rehit-lockout");
-    }
-    while (break_elapsed <
-           (uint32_t)content->fighter.shield_break_ticks)
-    {
-        if (!step_reaction_duel(
-                sim,
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
                 UINT16_C(0),
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                UINT16_MAX,
-                &inspection))
+                &punish_inspection))
         {
-            return fail("shield-break-lockout-completion");
-        }
-        ++break_elapsed;
-        if (break_elapsed <
-                (uint32_t)content->fighter.shield_break_ticks &&
-            inspection.players[1].action_state !=
-                (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
-        {
-            return fail("shield-break-lockout-duration");
+            return fail("shield-break-punish-step");
         }
     }
-    if (inspection.players[1].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
-        inspection.players[1].shield_health_q16 !=
-            content->fighter.shield_reset_health_q16)
+    if (punish_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        punish_inspection.players[1].damage_q16 !=
+            content->fighter.jab_damage_q16 ||
+        punish_inspection.players[1].shield_health_q16 !=
+            content->fighter.shield_reset_health_q16 ||
+        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_HIT)
     {
-        return fail("shield-break-reset-health");
+        return fail("shield-break-vulnerable-stun-punish");
     }
     return 1;
 }
@@ -4745,6 +5083,7 @@ int main(void)
     pf_m4_content invalid_tech_content;
     pf_m4_content invalid_getup_content;
     pf_m4_content invalid_shield_content;
+    pf_m4_content invalid_shield_break_content;
     pf_m4_content invalid_cancel_content;
     pf_m4_content invalid_surface_content;
     pf_m4_content reaction_content;
@@ -4804,6 +5143,10 @@ int main(void)
     invalid_shield_content = content;
     invalid_shield_content.fighter.shield_release_ticks =
         UINT16_C(0);
+    invalid_shield_break_content = content;
+    invalid_shield_break_content.fighter
+        .shield_break_launch_speed_q16 =
+        invalid_shield_break_content.fighter.gravity_q16;
     invalid_cancel_content = content;
     invalid_cancel_content.fighter.powershield_cancel_delay_ticks =
         invalid_cancel_content.fighter.shield_release_ticks;
@@ -4830,6 +5173,10 @@ int main(void)
             pf_m4_validate_content(&invalid_shield_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-shield-data") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_shield_break_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-shield-break-data") ||
         !expect_status(
             pf_m4_validate_content(&invalid_cancel_content),
             PF_STATUS_INVALID_CONFIG,
@@ -4889,7 +5236,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=110 journal_invariants=30\n",
+        " combat_invariants=126 journal_invariants=30\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

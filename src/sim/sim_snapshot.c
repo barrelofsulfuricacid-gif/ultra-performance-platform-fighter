@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x34)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x35)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1043,6 +1043,17 @@ static int pf_m4_snapshot_action_is_surface_bounce(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
 }
 
+static int pf_m4_snapshot_action_is_shield_break(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
+           action ==
+               (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
+           action ==
+               (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
+           action ==
+               (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN;
+}
+
 static int pf_m4_player_state_consistent(
     const pf_world_state *world,
     uint32_t player_index)
@@ -1088,6 +1099,7 @@ static int pf_m4_player_state_consistent(
     {
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+               action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                action != (uint8_t)PF_M4_ACTION_AIR_DODGE &&
                action != (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
                action != (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
@@ -1103,6 +1115,7 @@ static int pf_m4_player_state_consistent(
         return 0;
     }
     if (action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
         action == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
@@ -1234,9 +1247,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->action_ticks[player_index] > UINT16_C(480) ||
+                world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_ELIMINATED ||
+                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1419,16 +1432,23 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   resume_action !=
                       (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
                 (shield_health == UINT32_C(0) &&
-                 action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+                 !pf_m4_snapshot_action_is_shield_break(action) &&
                  (action != (uint8_t)PF_M4_ACTION_HITLAG ||
                   resume_action !=
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK)) ||
-                (action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+                (pf_m4_snapshot_action_is_shield_break(action) &&
                  (shield_health != UINT32_C(0) ||
                   shield_stun != UINT16_C(0) ||
                   hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
-                  world->grounded[player_index] == UINT8_C(0))) ||
+                  (action ==
+                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK
+                       ? world->grounded[player_index] !=
+                             UINT8_C(0)
+                       : world->grounded[player_index] ==
+                             UINT8_C(0)) ||
+                  world->velocity_x_q16[player_index] !=
+                      INT32_C(0))) ||
                 ((action == (uint8_t)PF_M4_ACTION_SHIELD ||
                   action ==
                       (uint8_t)PF_M4_ACTION_SHIELD_RELEASE) &&
@@ -1477,6 +1497,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_ROLL_BACKWARD ||
                   action ==
                       (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
