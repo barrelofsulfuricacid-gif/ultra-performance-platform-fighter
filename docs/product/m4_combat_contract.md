@@ -14,8 +14,11 @@ These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
 Directional air dodge, helpless fall, and momentum-preserving special landing
-now provide the first defensive-air action and the wavedash/waveland
-foundation. This is still an incremental checkpoint. It does not claim the remaining
+provide the first defensive-air action and the wavedash/waveland foundation.
+The first original aerial attack now uses the production hit path and composes
+with auto-cancel, normal aerial landing lag, exact seven-frame L-cancel timing,
+and short-hop-fast-fall-L-cancel. This is still an incremental checkpoint. It
+does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI, rolls,
 spot dodge, platform shield drop, grabs, projectile powershields, complete
 shield-break launch/stun, prone-orientation-specific
@@ -26,11 +29,14 @@ getup-roll asymmetry, stocks, match completion, or completion of the
 
 The light or strong ground attack is entered by a rising edge on its separate
 input-schema-3 button while the fighter is grounded and outside a locked
-action. If both edges occur on one tick, strong attack takes priority. There is
+action. If both edges occur on one tick, strong attack takes priority. An
+airborne light-attack edge instead enters the original aerial attack. There is
 no universal input buffer. The default light jab defines two startup ticks, two
 active ticks, eight recovery ticks, and four hitlag ticks. The default strong
 attack defines five startup ticks, three active ticks, 18 recovery ticks, and
-six hitlag ticks.
+six hitlag ticks. The aerial defines four startup ticks, five active ticks, 23
+recovery ticks, and five hitlag ticks while retaining aerial drift, gravity,
+and fast fall.
 
 - Fighter content independently defines each attack's hitbox offset and
   extents, damage, base launch, damage growth, and phase durations.
@@ -45,6 +51,13 @@ six hitlag ticks.
 
 Collision resolves once after every active player completes movement for the
 tick, making ownership independent of player step order.
+
+The aerial adds 8% on hit and uses its independent base launch and growth data.
+Landing during action ticks 4–24 normally enters 12 ticks of
+`AERIAL_LANDING`. A fresh trigger age below seven replaces that with six ticks
+of `L_CANCEL_LANDING`; age seven is ineligible. Landing outside the active
+window auto-cancels into ordinary `LANDING`. Trigger timing is canonical and
+independent from the existing tech window and lockout.
 
 ## Damage, hitlag, launch, and hitstun
 
@@ -267,30 +280,29 @@ hitstun.
 
 ## Canonical state and inspection
 
-State schema 10 / save format 9 adds canonical `AIR_DODGE`, `FALL_SPECIAL`,
-and `SPECIAL_LANDING` semantics after the state-schema-9
-`WALL_TECH`,
+State schema 11 / save format 10 adds `AERIAL_ATTACK`, `AERIAL_LANDING`, and
+`L_CANCEL_LANDING` semantics plus one canonical trigger-age byte per player
+after state schema 10's `AIR_DODGE`, `FALL_SPECIAL`, and `SPECIAL_LANDING`
+semantics and the state-schema-9 `WALL_TECH`,
 `WALL_TECH_JUMP`, `CEILING_TECH`, `WALL_BOUNCE`, and `CEILING_BOUNCE` action
-semantics plus the solid-top support ID while
-retaining the 569-byte stream: a 140-byte header plus a 429-byte payload. The
-active magic is `PFSAVE09`. Input schema 3 still supplies the separate
-light- and strong-attack buttons.
+semantics plus the solid-top support ID. The stream is now 573 bytes: a
+140-byte header plus a 433-byte payload. The active magic is `PFSAVE10`. Input
+schema 3 still supplies the separate light- and strong-attack buttons.
 
-Content schema 10 / fighter schema 10 adds air-dodge speed/decay,
-special-fall mobility, action/invulnerability timings, and special-landing lag
-after the schema-9 wall/ceiling data. Stage schema 2 retains the solid block
-bounds. No new canonical state field is required: action ID, action timer,
-velocity, support, and the existing reaction fields identify every new
-outcome.
+Content schema 11 / fighter schema 11 adds aerial hitbox, damage, launch,
+phase/hitlag timing, landing-lag window, landing lag, exact seven-tick
+L-cancel window, and fixed divisor after schema 10's air-dodge data. Stage
+schema 2 retains the solid block bounds.
 
 Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 9 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 10 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived tech/air-dodge invulnerability, active hitbox
-bounds, last-hit metadata, and solid-block geometry. Browser view schema 8
+bounds, last-hit metadata, solid-block geometry, trigger age, and derived
+L-cancel eligibility. Browser view schema 9
 carries those fields plus the canonical action timer, floor action semantics,
 the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
@@ -298,12 +310,16 @@ floor-attack hitbox, and renders the block.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 84 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 96 focused
 invariants, including:
 
-- light and strong attack schedules, facing, whiff, damage, ownership, freeze,
+- light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
+  freeze,
   launch, hitstun, one-hit masks, simultaneous trades, and the default strong
   attack's direct tumble-to-knockdown route;
+- aerial hitlag freezing both airborne fighters, resuming the attacker in its
+  aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
+  records short hop, aerial, fast fall, eligible trigger, and L-cancel landing;
 - first-component SDI, held-direction rejection, diagonal second-component
   SDI, ASDI/DI launch application, approximate speed preservation, and
   deterministic direction;
@@ -338,7 +354,7 @@ invariants, including:
 The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed SDI, tech-window, air-dodge, and special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,261-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,265-byte
 replay, and its final digest.
 
 The browser startup refuses readiness unless independent movement, air-dodge,
@@ -356,3 +372,6 @@ production collision path.
 The air-dodge probe independently reaches directional `AIR DODGE`, its
 invulnerability window, `FALL SPECIAL`, and a first-airborne-frame diagonal
 `SPECIAL LANDING` with continued horizontal slide.
+The aerial probe independently compares generic auto-cancel landing, 12-tick
+normal aerial landing, and six-tick L-cancel landing, then proves eligible
+trigger ages 0–6 and the exact ineligible age-7 boundary.

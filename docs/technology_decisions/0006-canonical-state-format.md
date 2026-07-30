@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–9 / state schemas 1–10
+- **Status:** Accepted for save formats 1–10 / state schemas 1–11
 - **Date:** 2026-07-28
 
 ## Decision
@@ -19,10 +19,11 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 7 | 8 | 140 | 429 | 569 | Canonical missed-tech down-wait, neutral-getup, getup-roll, and floor-attack action IDs; no byte-layout change |
 | 8 | 9 | 140 | 429 | 569 | Canonical wall-tech, wall-tech-jump, ceiling-tech, wall-bounce, and ceiling-bounce action IDs plus solid-top support ID; no byte-layout change |
 | 9 | 10 | 140 | 429 | 569 | Canonical air-dodge, special-fall, and special-landing action IDs; no byte-layout change |
+| 10 | 11 | 140 | 433 | 573 | Canonical aerial-attack, aerial-landing, and L-cancel-landing action IDs plus one fresh-trigger age byte per player |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
-`PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, or `PFSAVE09`. The active M4
-runtime emits and accepts format 9 with state schema 10. Earlier
+`PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, or `PFSAVE10`.
+The active M4 runtime emits and accepts format 10 with state schema 11. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -84,6 +85,9 @@ service-envelope responsibility.
   invulnerability derivation, and future continuation hashes; validation also
   enforces airborne dodge/special-fall and grounded special-landing
   relationships.
+- Mid-aerial save/load plus equal trigger age, L-cancel eligibility, action,
+  and future hash; validation enforces airborne aerial attack, grounded aerial
+  landing states, and inactive-slot trigger-age rules.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

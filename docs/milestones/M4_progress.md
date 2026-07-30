@@ -3,7 +3,8 @@
 **Status:** In progress; M4.1 movement/ledge core, light and strong M4.2 ground
 attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
-plus directional air dodge, helpless fall, and wavedash/waveland implemented
+plus directional air dodge, helpless fall, wavedash/waveland, the first
+production aerial, auto-cancel, L-cancel, and SHFFL implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -22,7 +23,7 @@ plus directional air dodge, helpless fall, and wavedash/waveland implemented
   catch lockout, hang, release, ledge jump, and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-10/save-format-9 contract that serializes every
+- A rollback-safe state-schema-11/save-format-10 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield field.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -31,8 +32,9 @@ plus directional air dodge, helpless fall, and wavedash/waveland implemented
 - A public `pf_m4_inspect` surface for movement state, active ledge claims,
   ledge points, moving-platform and solid-block geometry, blast zones, percent, hitlag,
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
-  metadata, plus shield health/stun/powershield state.
-- Fifty-three movement/content invariants plus a 20,000-tick four-player
+  metadata, plus shield health/stun/powershield state, trigger age, and
+  L-cancel eligibility.
+- Sixty-six movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -40,8 +42,8 @@ plus directional air dodge, helpless fall, and wavedash/waveland implemented
 - Explicit full-magnitude dash/dash-dance keys and reduced-magnitude walk keys
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
-  dash-dance reversal, short/full-hop apex, real damage/hitlag, and
-  reaction-input invariants pass.
+  dash-dance reversal, short/full-hop apex, aerial landing/L-cancel timing,
+  real damage/hitlag, and reaction-input invariants pass.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -193,6 +195,30 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   encoding. Registry rows 45 (short hop air dodge) and 60 (wavedash) advance
   to `playable`.
 
+## Delivered in the aerial landing and L-cancel slice
+
+- Content/fighter schema 11 defines one original aerial hitbox, damage, launch,
+  startup/active/recovery/hitlag phases, landing-lag-active window, ordinary
+  landing lag, exact seven-frame L-cancel window, and fixed divisor.
+- Airborne light attack enters `AERIAL_ATTACK` while ordinary drift, gravity,
+  and fast fall continue. Its hitbox resolves through the existing production
+  ownership, damage, hitlag, launch, hitstun, and one-hit-mask path.
+- Landing outside action ticks 4–24 auto-cancels into generic `LANDING`.
+  Landing inside that window enters 12-tick `AERIAL_LANDING`, or six-tick
+  `L_CANCEL_LANDING` when the independent trigger age is 0–6; age 7 is the
+  exact negative boundary.
+- State schema 11/save format 10 serializes the independent trigger-age byte
+  for each player. The complete save is 573 bytes, and mid-aerial save/load
+  produces equal canonical hashes.
+- Native oracles cover early auto-cancel, normal and reduced lag, every timer
+  boundary, invalid data, aerial hitlag/resume/single-hit behavior, and a
+  focused per-tick-hash replay of the complete SHFFL route.
+- Browser view schema 9 labels all three actions and exposes trigger age and
+  eligibility. Its startup probe compares auto-cancel, 12-tick normal landing,
+  six-tick L-cancel landing, and timer ages 0–6 versus 7.
+- Registry rows 2 (auto-canceling), 29 (L-cancelling), and 46 (short hop fast
+  fall l-cancel) advance to `playable`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -206,6 +232,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A fresh airborne trigger produces a neutral or directional air dodge.
   Diagonal surface contact preserves horizontal momentum through exactly ten
   special-landing ticks, enabling wavedash and waveland with keyboard input.
+- During an aerial, that same fresh trigger arms the independent seven-frame
+  L-cancel timer instead of replacing the attack with an air dodge.
 - Opposite input during initial dash remains a dash-dance reversal. Opposite
   input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
   sub-threshold run input enters `RUN BRAKE`.
@@ -215,7 +243,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; short hop air dodge and wavedash are now playable; other rows
+  verified; auto-canceling, L-cancelling, SHFFL, short hop air dodge, and
+  wavedash are now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -224,7 +253,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 7 playable, 5 primitive-ready, and 48 planned.
+  blocked: 1 verified, 10 playable, 5 primitive-ready, and 45 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -258,19 +287,19 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 17/17 tests.
 - Address/undefined-behavior sanitizer workflow: 17/17 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 53 movement invariants, 84
+- Mechanical oracles: 66 movement invariants, 96
   attack/reaction/shield/floor/surface
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/air-dodge trace at 31,261
+  attack/reaction/shield/air-dodge trace at 31,265
   bytes,
   replay SHA-256
-  `226c7efa576933c6c7587c6522d5c2f1c2168d908ad99c2c1c01a30d876f1973`,
+  `f3ff682f3dad705ab72101a6bc933d714c4fa5e077de6f2a01edddca8458fe9a`,
   final SHA-256
-  `b8dc08e6df6c7612d1b00534d5fd7d20990d6332f7d7280bd1a1f03715736432`;
+  `bba4e8c923ad98821827f4293070e9f02021b8359b672c4e6769190ff08c796c`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -279,8 +308,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/air-facing/air-dodge-and-wavedash/combat/reaction/shield-and-PSC/
-  default-tumble/floor-recovery/surface-tech probes and live rendering).
+  movement/air-facing/air-dodge-and-wavedash/aerial-auto-cancel-and-L-cancel/
+  combat/reaction/shield-and-PSC/default-tumble/floor-recovery/surface-tech
+  probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

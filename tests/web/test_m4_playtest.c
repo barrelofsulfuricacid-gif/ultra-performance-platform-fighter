@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 78
+#define TEST_VIEW_COUNT 82
 #define TEST_PLAYER0_BASE 18
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
@@ -21,6 +21,8 @@
 #define TEST_PLAYER_SHIELD_STUN 26
 #define TEST_PLAYER_POWERSHIELD 27
 #define TEST_PLAYER_ACTION_TICKS 29
+#define TEST_PLAYER_TRIGGER_INPUT_AGE 30
+#define TEST_PLAYER_L_CANCEL_ELIGIBLE 31
 
 static int test_install_count;
 static int test_render_count;
@@ -35,6 +37,7 @@ static int test_tumble_probe;
 static int test_floor_recovery_probe;
 static int test_surface_tech_probe;
 static int test_air_dodge_probe;
+static int test_aerial_l_cancel_probe;
 static int32_t test_view[TEST_VIEW_COUNT];
 
 void pf_web_m4_playtest_install(
@@ -48,7 +51,8 @@ void pf_web_m4_playtest_install(
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
-    int air_dodge_probe_passed);
+    int air_dodge_probe_passed,
+    int aerial_l_cancel_probe_passed);
 
 void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -65,7 +69,8 @@ void pf_web_m4_playtest_install(
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
-    int air_dodge_probe_passed)
+    int air_dodge_probe_passed,
+    int aerial_l_cancel_probe_passed)
 {
     ++test_install_count;
     test_walk_axis = walk_axis;
@@ -79,6 +84,7 @@ void pf_web_m4_playtest_install(
     test_floor_recovery_probe = floor_recovery_probe_passed;
     test_surface_tech_probe = surface_tech_probe_passed;
     test_air_dodge_probe = air_dodge_probe_passed;
+    test_aerial_l_cancel_probe = aerial_l_cancel_probe_passed;
 }
 
 void pf_web_m4_playtest_render(
@@ -165,7 +171,8 @@ int main(void)
         test_floor_recovery_probe != 1 ||
         test_surface_tech_probe != 1 ||
         test_air_dodge_probe != 1 ||
-        test_view[0] != 8 ||
+        test_aerial_l_cancel_probe != 1 ||
+        test_view[0] != 9 ||
         test_view[1] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
@@ -178,7 +185,7 @@ int main(void)
             "dash=%d input_probe=%d air_facing_probe=%d combat_probe=%d "
             "reaction_probe=%d shield_probe=%d tumble_probe=%d "
             "floor_recovery_probe=%d surface_tech_probe=%d "
-            "air_dodge_probe=%d "
+            "air_dodge_probe=%d aerial_l_cancel_probe=%d "
             "schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
@@ -193,6 +200,7 @@ int main(void)
             test_floor_recovery_probe,
             test_surface_tech_probe,
             test_air_dodge_probe,
+            test_aerial_l_cancel_probe,
             (int)test_view[0],
             (int)test_view[1]);
         return fail("start-and-input-probe");
@@ -287,6 +295,28 @@ int main(void)
     }
 
     if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(
+            0, 0, 1, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 6 ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 35 ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 35 ||
+        test_view[
+            TEST_PLAYER0_BASE + TEST_PLAYER_TRIGGER_INPUT_AGE] != 0 ||
+        test_view[
+            TEST_PLAYER0_BASE + TEST_PLAYER_L_CANCEL_ELIGIBLE] != 1)
+    {
+        return fail("keyboard-aerial-and-l-cancel-trigger");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
         !test_player0_strong_step() ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 22 ||
         !pf_web_m4_playtest_step(
@@ -328,7 +358,7 @@ int main(void)
         "input_probe=%d air_facing_probe=%d combat_probe=%d reaction_probe=%d "
         "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
         "floor_recovery_probe=%d surface_tech_probe=%d "
-        "air_dodge_probe=%d renders=%d\n",
+        "air_dodge_probe=%d aerial_l_cancel_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
@@ -341,6 +371,7 @@ int main(void)
         test_floor_recovery_probe,
         test_surface_tech_probe,
         test_air_dodge_probe,
+        test_aerial_l_cancel_probe,
         test_render_count);
     return 0;
 }

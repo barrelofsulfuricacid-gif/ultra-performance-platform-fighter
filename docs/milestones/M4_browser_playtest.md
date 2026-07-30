@@ -3,6 +3,7 @@
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, directional air dodge, wavedash/waveland,
+the first production aerial with auto-cancel/L-cancel landing,
 hit-reaction, and dense-shield primitives in
 WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
@@ -17,9 +18,9 @@ headless execution.
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
-| Light ground attack | `F` | `/` or Numpad `0` |
+| Light ground/aerial attack | `F` | `/` or Numpad `0` |
 | Strong ground attack | `H` | `'` or Numpad `2` |
-| Hold shield / tap tech or air-dodge trigger | `G` | `.` or Numpad `1` |
+| Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -64,6 +65,21 @@ component, and slides under traction for action ticks 0–9 before returning to
 idle. The same diagonal contact on a pass-through platform performs a
 waveland; the downward dodge lands instead of invoking ordinary platform
 drop-through. The state card exposes the exact action tick for these checks.
+
+Press the light-attack key while airborne for the original 8% aerial. It has
+four startup ticks, five active ticks, 23 recovery ticks, five hitlag ticks,
+and keeps normal drift, gravity, and fast-fall control. Landing outside its
+action-tick `[4, 25)` landing-lag window auto-cancels into generic four-tick
+`LANDING`. Landing inside that window normally produces 12 ticks of
+`AERIAL LANDING`.
+
+For an L-cancel, make a fresh trigger press during the seven ticks before
+landing while the aerial's landing-lag window is active. Trigger ages 0–6 are
+eligible; age 7 is not. Success shows `L-CANCEL LANDING` for six ticks. The
+state card exposes both trigger age and eligibility. For SHFFL, tap and release
+jump during jump squat, press the aerial, hold down after the apex to fast-fall,
+then make the fresh trigger press shortly before contact. A trigger pressed
+during the active aerial arms this timer rather than starting an air dodge.
 
 To grab a ledge, fall beside it while facing inward. After the seven-tick catch
 window, press toward the stage to climb, press down or away to release, or press
@@ -232,7 +248,13 @@ registry row can advance from `playable` to `verified`.
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-25. Repeat with Player 2's arrow-key controls and try both players
+25. Full hop and use the aerial late enough to land during its startup
+    auto-cancel frames; confirm generic `LANDING`. Then short-hop aerial,
+    fast-fall, and land without the trigger for 12 ticks of `AERIAL LANDING`.
+    Repeat with a fresh trigger in the last seven ticks and confirm six ticks
+    of `L-CANCEL LANDING`. Pause and step while watching trigger age: 0–6 must
+    say eligible and 7 must not.
+26. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -255,6 +277,9 @@ through:
 - a full-hop directional air dodge reaching its exact invulnerability window
   and `FALL SPECIAL`, plus a first-airborne-frame diagonal short-hop air dodge
   entering `SPECIAL LANDING` and retaining horizontal slide;
+- a default-content aerial auto-cancel route, 12-tick normal aerial landing,
+  six-tick L-cancel landing, and exact eligible trigger ages 0–6 versus the
+  ineligible age-7 boundary;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
@@ -281,5 +306,6 @@ The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
 floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
-controls=keyboard-two-player` only after all checks pass.
+aerial_l_cancel_probe=pass controls=keyboard-two-player` only after all checks
+pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

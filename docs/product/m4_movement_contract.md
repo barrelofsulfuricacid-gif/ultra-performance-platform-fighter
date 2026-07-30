@@ -60,6 +60,36 @@ facing, even when the horizontal stick points opposite that facing. A
 deliberate down input after the apex enters the fixed fast-fall speed. Landing
 enters a finite landing state.
 
+## Aerial attack, auto-cancel, and L-cancel landing
+
+A fresh light-attack edge from ordinary non-tumbling airborne movement enters
+the first original aerial attack. Its placeholder data defines four startup
+ticks, five active ticks, 23 recovery ticks, an 8% facing-mirrored hitbox, and
+five hitlag ticks. Aerial drift, gravity, and fast fall remain active throughout
+the action. Each target can be hit once through the same production collision,
+ownership, hitlag, damage, launch, and hitstun path as a ground attack.
+
+The aerial defines a landing-lag-active half-open action-tick window `[4, 25)`.
+Landing outside that window auto-cancels into the ordinary four-tick `LANDING`
+state. Landing inside it normally enters `AERIAL_LANDING` for 12 ticks.
+
+A fresh normalized trigger edge maintains a separate saturating age counter.
+During an aerial, that edge arms L-cancel timing instead of starting an air
+dodge. Trigger ages 0–6 are eligible; age 7 is the exact expired boundary.
+Landing inside the active window while eligible enters `L_CANCEL_LANDING` for
+the integer quotient of ordinary aerial lag and the fixed divisor: 12 / 2 =
+six ticks. The independent counter prevents tech lockout from silently changing
+the L-cancel window.
+
+This transition and timer structure follows the pinned Melee decomp's
+[aerial landing selection](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_AttackAir.c),
+[auto-cancel/L-cancel branch](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_LandingAir.c),
+and
+[fresh-trigger age update](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/fighter.c).
+The exact seven-frame window and halving rule are compatibility constraints.
+The placeholder aerial's hitbox, damage, and phase timings are explicit
+original content, not copied character move data.
+
 ## Directional air dodge and momentum landing
 
 A fresh normalized trigger edge from ordinary non-tumbling `AIRBORNE` enters
@@ -138,9 +168,10 @@ invalid. The simulation copies validated tables only during initialization.
 
 `pf_m4_inspect` exposes the deterministic movement state and current stage
 geometry without placing presentation objects in canonical state. It includes
-  action, action timer, facing, support, remaining air jumps, fast-fall state,
-  platform-drop timer, respawn count, active ledge claim, ledge points,
-  moving-platform bounds, solid-block bounds, and blast zones.
+action, action timer, facing, support, remaining air jumps, fast-fall state,
+platform-drop timer, trigger-input age, derived L-cancel eligibility, respawn
+count, active ledge claim, ledge points, moving-platform bounds, solid-block
+bounds, and blast zones.
 
 ## Verification
 
@@ -151,6 +182,9 @@ geometry without placing presentation objects in canonical state. It includes
   turnaround lockout, run brake, facing, traction, and crouch;
 - binary short/full hops, double jump, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
+- the ordinary airborne light-attack route, early auto-cancel, normal 12-tick
+  aerial landing, six-tick L-cancel landing, exact trigger ages 0–6 versus 7,
+  invalid timing data, and mid-aerial timer save/load equivalence;
 - neutral and directional air dodge, normalized vector/decay, exact
   invulnerability boundaries, facing lock, held-trigger rejection,
   `FALL SPECIAL`, mid-action save/load continuation, and the ordinary-input
@@ -165,4 +199,4 @@ geometry without placing presentation objects in canonical state. It includes
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 53 invariants.
+The focused movement oracle currently reports 66 invariants.

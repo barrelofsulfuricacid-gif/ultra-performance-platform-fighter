@@ -819,6 +819,7 @@ void pf_m4_reset_player(
     sim->world.attack_hit_mask[player_index] = UINT8_C(0);
     sim->world.last_hit_attacker[player_index] = UINT8_C(0);
     sim->world.shield_held[player_index] = UINT8_C(0);
+    sim->world.trigger_input_age[player_index] = UINT8_MAX;
     sim->world.powershield[player_index] = UINT8_C(0);
     sim->world.tumble[player_index] = UINT8_C(0);
     sim->world.sdi_pulse_count[player_index] = UINT8_C(0);
@@ -893,6 +894,41 @@ static void pf_m4_land_from_air(
         *dash_direction = INT8_C(0);
         scratch->hitstun_ticks[player_index] = UINT16_C(0);
         scratch->tumble[player_index] = UINT8_C(0);
+        scratch->tech_direction[player_index] = INT8_C(0);
+        return;
+    }
+
+    if (*action_state == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
+    {
+        const int landing_lag_active =
+            *action_ticks >=
+                fighter->aerial_landing_lag_begin_tick &&
+            *action_ticks <
+                fighter->aerial_landing_lag_end_tick;
+
+        pf_m4_land(
+            fighter,
+            surface_y_q16,
+            surface,
+            position_y,
+            velocity_y,
+            action_ticks,
+            grounded,
+            action_state,
+            support,
+            air_jumps_remaining,
+            short_hop_latched,
+            fast_fall,
+            dash_direction);
+        if (landing_lag_active)
+        {
+            *action_state =
+                scratch->trigger_input_age[player_index] <
+                        fighter->l_cancel_window_ticks
+                    ? (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING
+                    : (uint8_t)PF_M4_ACTION_AERIAL_LANDING;
+        }
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
         scratch->tech_direction[player_index] = INT8_C(0);
         return;
     }
@@ -1121,6 +1157,8 @@ static void pf_m4_copy_combat_scratch(
         world->last_hit_attacker[player_index];
     scratch->shield_held[player_index] =
         world->shield_held[player_index];
+    scratch->trigger_input_age[player_index] =
+        world->trigger_input_age[player_index];
     scratch->powershield[player_index] =
         world->powershield[player_index];
     scratch->tumble[player_index] =
@@ -1229,6 +1267,14 @@ pf_status pf_m4_step_player(
     }
     scratch->shield_held[player_index] =
         shield_held != 0 ? UINT8_C(1) : UINT8_C(0);
+    if (shield_pressed != 0)
+    {
+        scratch->trigger_input_age[player_index] = UINT8_C(0);
+    }
+    else if (scratch->trigger_input_age[player_index] < UINT8_MAX)
+    {
+        ++scratch->trigger_input_age[player_index];
+    }
 
     if (scratch->hitlag_ticks[player_index] > UINT16_C(0))
     {
@@ -1906,6 +1952,37 @@ pf_status pf_m4_step_player(
     }
     else if (!ledge_motion_handled &&
              grounded != UINT8_C(0) &&
+             (action_state ==
+                  (uint8_t)PF_M4_ACTION_AERIAL_LANDING ||
+              action_state ==
+                  (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING))
+    {
+        uint16_t landing_ticks = fighter->aerial_landing_lag_ticks;
+
+        if (action_state ==
+            (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING)
+        {
+            landing_ticks =
+                (uint16_t)(
+                    landing_ticks / fighter->l_cancel_divisor);
+            if (landing_ticks == UINT16_C(0))
+            {
+                landing_ticks = UINT16_C(1);
+            }
+        }
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if (action_ticks >= landing_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
              action_state ==
                  (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
     {
@@ -2264,8 +2341,42 @@ pf_status pf_m4_step_player(
             const int32_t air_target = pf_m4_scale_axis_q16(
                 input->main_stick_x,
                 fighter->air_speed_q16);
+            const uint32_t aerial_attack_ticks =
+                (uint32_t)fighter->aerial_startup_ticks +
+                (uint32_t)fighter->aerial_active_ticks +
+                (uint32_t)fighter->aerial_recovery_ticks;
 
-            if (shield_pressed != 0 &&
+            if (action_state ==
+                (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
+            {
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    air_target,
+                    fighter->air_acceleration_q16);
+                ++action_ticks;
+                if ((uint32_t)action_ticks >= aerial_attack_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                    scratch->attack_hit_mask[player_index] =
+                        UINT8_C(0);
+                }
+            }
+            else if (light_attack_pressed &&
+                     scratch->tumble[player_index] == UINT8_C(0))
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+                action_ticks = UINT16_C(0);
+                scratch->attack_hit_mask[player_index] =
+                    UINT8_C(0);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    air_target,
+                    fighter->air_acceleration_q16);
+            }
+            else if (shield_pressed != 0 &&
                 scratch->tumble[player_index] == UINT8_C(0))
             {
                 status = pf_m4_enter_air_dodge(
@@ -2692,6 +2803,7 @@ pf_status pf_m4_step_player(
         scratch->hitlag_resume_action[player_index] = UINT8_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         scratch->shield_held[player_index] = UINT8_C(0);
+        scratch->trigger_input_age[player_index] = UINT8_MAX;
         scratch->powershield[player_index] = UINT8_C(0);
         scratch->tumble[player_index] = UINT8_C(0);
         scratch->sdi_direction_x[player_index] = INT8_C(0);
@@ -2855,6 +2967,13 @@ pf_status pf_m4_inspect(
             sim->world.last_hit_attacker[player_index];
         player->shield_held =
             sim->world.shield_held[player_index];
+        player->trigger_input_age =
+            sim->world.trigger_input_age[player_index];
+        player->l_cancel_eligible =
+            player->trigger_input_age <
+                    sim->content.fighter.l_cancel_window_ticks
+                ? UINT8_C(1)
+                : UINT8_C(0);
         player->powershield =
             sim->world.powershield[player_index];
         player->tumble = sim->world.tumble[player_index];

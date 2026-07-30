@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -453,7 +453,8 @@ mergeInto(LibraryManager.library, {
     tumbleProbePassed,
     floorRecoveryProbePassed,
     surfaceTechProbePassed,
-    airDodgeProbePassed
+    airDodgeProbePassed,
+    aerialLCancelProbePassed
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -538,8 +539,9 @@ mergeInto(LibraryManager.library, {
       tumbleProbePassed &&
       floorRecoveryProbePassed &&
       surfaceTechProbePassed &&
-      airDodgeProbePassed
-        ? "INPUT + AIR FACING + AIR DODGE / WAVEDASH + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
+      airDodgeProbePassed &&
+      aerialLCancelProbePassed
+        ? "INPUT + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -587,13 +589,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light attack · H strong attack · Hold G shield / tap G to tech or air dodge · W / S vertical input"
+        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light or aerial attack · H strong attack · Hold G shield / tap G to tech, air dodge, or L-cancel · W / S vertical input"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light attack · ' or Numpad 2 strong attack · Hold . or Numpad 1 to shield / tap to tech or air dodge · ↑ / ↓ vertical input"
+        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light or aerial attack · ' or Numpad 2 strong attack · Hold . or Numpad 1 to shield / tap to tech, air dodge, or L-cancel · ↑ / ↓ vertical input"
       )
     );
     section.appendChild(controls);
@@ -612,6 +614,12 @@ mergeInto(LibraryManager.library, {
       "fighter into tumble. Translucent boxes show active frames, and tumbling " +
       "fighters visibly rotate after hitlag. During hitlag, " +
       "change stick direction for SDI and hold a launch direction for DI. Press " +
+      "a light-attack key while airborne for the original aerial. For SHFFL, " +
+      "short hop, press the aerial, hold down after the apex to fast-fall, then " +
+      "tap the trigger within the seven-frame pre-landing window. A normal " +
+      "aerial landing shows 12 ticks of AERIAL LANDING; success shows six " +
+      "ticks of L-CANCEL LANDING. The live state card exposes trigger age " +
+      "(eligible at ages 0–6) so the boundary is directly observable. " +
       "Hold G or . on the ground for a real draining shield; fresh shields " +
       "powershield during their four-tick window, while releases have 15 ticks " +
       "of lag. Tap the same trigger shortly before a tumble landing to tech in " +
@@ -886,6 +894,8 @@ mergeInto(LibraryManager.library, {
         (surfaceTechProbePassed ? "pass" : "fail") +
         " air_dodge_probe=" +
         (airDodgeProbePassed ? "pass" : "fail") +
+        " aerial_l_cancel_probe=" +
+        (aerialLCancelProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -906,6 +916,8 @@ mergeInto(LibraryManager.library, {
         surfaceTechProbePassed ? "pass" : "fail";
       status.dataset.airDodgeProbe =
         airDodgeProbePassed ? "pass" : "fail";
+      status.dataset.aerialLCancelProbe =
+        aerialLCancelProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -913,7 +925,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 78) {
+    if (!state || viewCount !== 82) {
       return;
     }
     state.latest = new Int32Array(
@@ -921,7 +933,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 8) {
+    if (view[0] !== 9) {
       return;
     }
     var canvas = state.canvas;
@@ -971,6 +983,9 @@ mergeInto(LibraryManager.library, {
       "AIR DODGE",
       "FALL SPECIAL",
       "SPECIAL LANDING",
+      "AERIAL ATTACK",
+      "AERIAL LANDING",
+      "L-CANCEL LANDING",
     ];
 
     function sx(q16Value) {
@@ -1049,7 +1064,7 @@ mergeInto(LibraryManager.library, {
     );
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 18 + playerIndex * 30;
+      var base = 18 + playerIndex * 32;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -1223,7 +1238,11 @@ mergeInto(LibraryManager.library, {
         " · invulnerable " +
         view[base + 28] +
         " · action tick " +
-        view[base + 29];
+        view[base + 29] +
+        "<br>L-cancel trigger age " +
+        (view[base + 30] === 255 ? "not armed" : view[base + 30]) +
+        " · eligible " +
+        view[base + 31];
     });
 
     context.fillStyle = "#8da2bb";

@@ -9,8 +9,9 @@ simulation is complete, and its reinforcement-learning contract has been
 accepted by the owner with schema-2 qualification complete and merge review
 pending. M4 is in progress with production-path movement, two ground attacks,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
-physical powershield canceling, ledges, and a live two-player browser
-playtest. M0 selected Q16.16 deterministic motion and geometry after benchmark,
+physical powershield canceling, ledges, directional air dodge/wavedash, the
+first production aerial, auto-cancel, L-cancel, SHFFL, and a live two-player
+browser playtest. M0 selected Q16.16 deterministic motion and geometry after benchmark,
 verifier, and blind human-playtest evidence. The accepted
 milestones are summarized in
 [`docs/milestones/M0_checkpoint_report.md`](docs/milestones/M0_checkpoint_report.md)
@@ -108,7 +109,8 @@ the authored-C 180-tick four-player replay, presents a draggable timeline, and
 runs the real two-player M4 simulation at 60 Hz. The playtest includes explicit
 walk/dash keyboard magnitudes, binary short/full hops, attacks, hitlag,
 hitstun, tumble, ground/wall/ceiling teching, missed-impact bounce, floor
-recovery, and shield behavior. It must report
+recovery, shields, directional air dodge/wavedash, aerial attacks,
+auto-cancel, and L-cancel/SHFFL behavior. It must report
 `web-client-smoke=pass sim_abi=2 tick_hz=60`, `webgl2=pass batch_draws=1`,
 `replay=pass ticks=180 winner_mask=5`, and every M4 startup probe as `pass`.
 Controls and focused human checks are documented in

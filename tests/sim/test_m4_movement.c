@@ -260,7 +260,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)569)
+        required_bytes != (size_t)573)
     {
         return 0;
     }
@@ -1505,6 +1505,419 @@ static int run_air_facing_lock_test(const pf_content_view *view)
     return 1;
 }
 
+static int start_aerial_attack(
+    pf_sim *sim,
+    int short_hop,
+    pf_m4_inspection *out_inspection)
+{
+    if (!launch_player0(sim, short_hop, out_inspection) ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        out_inspection->players[0].action_ticks != UINT16_C(0) ||
+        out_inspection->players[0].grounded != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=start-aerial"
+            " action=%u ticks=%u grounded=%u\n",
+            (unsigned int)out_inspection->players[0].action_state,
+            (unsigned int)out_inspection->players[0].action_ticks,
+            (unsigned int)out_inspection->players[0].grounded);
+        return 0;
+    }
+    return 1;
+}
+
+static int run_aerial_trigger_snapshot_test(
+    pf_sim *source,
+    const pf_content_view *content,
+    uint8_t expected_age)
+{
+    test_sim_storage loaded_storage;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t required_bytes = (size_t)0;
+
+    if (!initialize_sim(
+            &loaded_storage,
+            content,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &required_bytes),
+            PF_STATUS_OK,
+            "aerial-query-save-size") ||
+        required_bytes != (size_t)573)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "aerial-save") ||
+        destination.size != required_bytes)
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "aerial-load") ||
+        !expect_status(
+            pf_m4_inspect(loaded, &loaded_inspection),
+            PF_STATUS_OK,
+            "aerial-loaded-inspect") ||
+        loaded_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        loaded_inspection.players[0].trigger_input_age !=
+            expected_age ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "aerial-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "aerial-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        return 0;
+    }
+    return 1;
+}
+
+static int run_aerial_landing_test(
+    const pf_m4_content *default_content,
+    const pf_content_view *default_view)
+{
+    test_sim_storage normal_storage;
+    test_sim_storage cancel_storage;
+    test_sim_storage timer_storage;
+    test_sim_storage auto_storage;
+    pf_sim *normal = NULL;
+    pf_sim *cancel = NULL;
+    pf_sim *timer = NULL;
+    pf_sim *auto_cancel = NULL;
+    pf_m4_content invalid_content = *default_content;
+    pf_m4_content auto_content = *default_content;
+    pf_content_view auto_view;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    uint32_t landing_ticks;
+
+    invalid_content.fighter.l_cancel_window_ticks = UINT16_C(6);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-non-melee-l-cancel-window"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.aerial_landing_lag_end_tick =
+        invalid_content.fighter.aerial_landing_lag_begin_tick;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-empty-aerial-landing-window"))
+    {
+        return 0;
+    }
+
+    auto_content.fighter.gravity_q16 =
+        PF_Q16_ONE / INT32_C(20);
+    auto_content.fighter.fall_speed_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    auto_content.fighter.fast_fall_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(20);
+    auto_content.fighter.short_hop_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(50);
+    auto_content.fighter.full_hop_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(25);
+    auto_content.fighter.double_jump_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(25);
+    if (!expect_status(
+            pf_m4_make_content_view(&auto_content, &auto_view),
+            PF_STATUS_OK,
+            "auto-cancel-content-view") ||
+        !initialize_sim(
+            &auto_storage,
+            &auto_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &auto_cancel) ||
+        !expect_status(
+            pf_sim_reset(auto_cancel, UINT64_C(0xa470ca)),
+            PF_STATUS_OK,
+            "auto-cancel-reset") ||
+        !launch_player0(auto_cancel, 1, &inspection) ||
+        !step_duel_trigger(
+            auto_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(4) &&
+         inspection.players[0].grounded == UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                auto_cancel,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].grounded == UINT8_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LANDING)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=aerial-early-auto-cancel"
+            " action=%u ticks=%u grounded=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded);
+        return 0;
+    }
+
+    if (!initialize_sim(
+            &normal_storage,
+            default_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &normal) ||
+        !expect_status(
+            pf_sim_reset(normal, UINT64_C(0xae11a1)),
+            PF_STATUS_OK,
+            "aerial-normal-reset") ||
+        !start_aerial_attack(normal, 1, &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(80) &&
+         inspection.players[0].grounded == UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                normal,
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_LANDING ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=aerial-normal-landing"
+            " action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    landing_ticks = UINT32_C(0);
+    while (inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_LANDING &&
+           landing_ticks < UINT32_C(40))
+    {
+        if (!step_duel_trigger(
+                normal,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        ++landing_ticks;
+    }
+    if (landing_ticks !=
+            (uint32_t)default_content->fighter
+                .aerial_landing_lag_ticks ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return 0;
+    }
+
+    if (!initialize_sim(
+            &cancel_storage,
+            default_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &cancel) ||
+        !expect_status(
+            pf_sim_reset(cancel, UINT64_C(0x1ca11ce1)),
+            PF_STATUS_OK,
+            "l-cancel-reset") ||
+        !start_aerial_attack(cancel, 1, &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(80) &&
+         inspection.players[0].grounded == UINT8_C(0);
+         ++tick)
+    {
+        const int descending =
+            inspection.players[0].velocity_y_q16 >= INT32_C(0);
+
+        if (!step_duel_trigger(
+                cancel,
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                descending ? UINT16_MAX : UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].trigger_input_age >=
+            default_content->fighter.l_cancel_window_ticks)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=l-cancel-landing"
+            " action=%u ticks=%u age=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].trigger_input_age);
+        return 0;
+    }
+    landing_ticks = UINT32_C(0);
+    while (inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING &&
+           landing_ticks < UINT32_C(40))
+    {
+        if (!step_duel_trigger(
+                cancel,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        ++landing_ticks;
+    }
+    if (landing_ticks !=
+            (uint32_t)(
+                default_content->fighter.aerial_landing_lag_ticks /
+                default_content->fighter.l_cancel_divisor) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return 0;
+    }
+
+    if (!initialize_sim(
+            &timer_storage,
+            default_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &timer) ||
+        !expect_status(
+            pf_sim_reset(timer, UINT64_C(0x7a1e)),
+            PF_STATUS_OK,
+            "l-cancel-timer-reset") ||
+        !start_aerial_attack(timer, 0, &inspection) ||
+        !step_duel_trigger(
+            timer,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].trigger_input_age != UINT8_C(0) ||
+        inspection.players[0].l_cancel_eligible != UINT8_C(1))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(1); tick < UINT32_C(7); ++tick)
+    {
+        if (!step_duel_trigger(
+                timer,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection) ||
+            inspection.players[0].trigger_input_age !=
+                (uint8_t)tick ||
+            inspection.players[0].l_cancel_eligible != UINT8_C(1))
+        {
+            return 0;
+        }
+        if (tick == UINT32_C(3) &&
+            !run_aerial_trigger_snapshot_test(
+                timer,
+                default_view,
+                UINT8_C(3)))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel_trigger(
+            timer,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].trigger_input_age != UINT8_C(7) ||
+        inspection.players[0].l_cancel_eligible != UINT8_C(0))
+    {
+        return 0;
+    }
+    return 1;
+}
+
 static int run_platform_test(const pf_m4_content *default_content)
 {
     test_sim_storage storage;
@@ -2651,6 +3064,7 @@ int main(void)
         !run_air_control_test(&content, &view) ||
         !run_air_facing_lock_test(&view) ||
         !run_air_dodge_test(&content, &view) ||
+        !run_aerial_landing_test(&content, &view) ||
         !run_platform_test(&content) ||
         !run_solid_geometry_test(&content) ||
         !run_ledge_test(&content, &view) ||
@@ -2662,7 +3076,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=53\n",
+        "movement_invariants=66\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

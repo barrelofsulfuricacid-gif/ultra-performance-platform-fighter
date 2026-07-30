@@ -84,6 +84,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->strong_base_knockback_x_q16);
     pf_m4_hash_i32(hash, fighter->strong_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->strong_knockback_growth_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_hitbox_offset_x_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_hitbox_offset_y_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_hitbox_half_width_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, fighter->aerial_damage_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_base_knockback_x_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_base_knockback_y_q16);
+    pf_m4_hash_i32(hash, fighter->aerial_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
     pf_m4_hash_i32(hash, fighter->di_max_tangent_q16);
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
@@ -169,6 +177,19 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->strong_active_ticks);
     pf_m4_hash_u16(hash, fighter->strong_recovery_ticks);
     pf_m4_hash_u16(hash, fighter->strong_hitlag_ticks);
+    pf_m4_hash_u16(hash, fighter->aerial_startup_ticks);
+    pf_m4_hash_u16(hash, fighter->aerial_active_ticks);
+    pf_m4_hash_u16(hash, fighter->aerial_recovery_ticks);
+    pf_m4_hash_u16(hash, fighter->aerial_hitlag_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->aerial_landing_lag_begin_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->aerial_landing_lag_end_tick);
+    pf_m4_hash_u16(hash, fighter->aerial_landing_lag_ticks);
+    pf_m4_hash_u16(hash, fighter->l_cancel_window_ticks);
+    pf_m4_hash_u16(hash, fighter->l_cancel_divisor);
     pf_m4_hash_u16(hash, fighter->sdi_axis_threshold);
     pf_m4_hash_u16(hash, fighter->digital_trigger_threshold);
     pf_m4_hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
@@ -334,6 +355,14 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->strong_base_knockback_x_q16 = PF_Q16_RATIO(9, 20);
     fighter->strong_base_knockback_y_q16 = PF_Q16_RATIO(17, 20);
     fighter->strong_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
+    fighter->aerial_hitbox_offset_x_q16 = PF_Q16_RATIO(7, 20);
+    fighter->aerial_hitbox_offset_y_q16 = INT32_C(0);
+    fighter->aerial_hitbox_half_width_q16 = PF_Q16_RATIO(17, 20);
+    fighter->aerial_hitbox_half_height_q16 = PF_Q16_RATIO(13, 20);
+    fighter->aerial_damage_q16 = UINT32_C(8) * UINT32_C(65536);
+    fighter->aerial_base_knockback_x_q16 = PF_Q16_RATIO(1, 4);
+    fighter->aerial_base_knockback_y_q16 = PF_Q16_RATIO(7, 20);
+    fighter->aerial_knockback_growth_q16 = PF_Q16_RATIO(1, 1024);
     fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
     fighter->di_max_tangent_q16 = INT32_C(21294);
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
@@ -408,6 +437,15 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->strong_active_ticks = UINT16_C(3);
     fighter->strong_recovery_ticks = UINT16_C(18);
     fighter->strong_hitlag_ticks = UINT16_C(6);
+    fighter->aerial_startup_ticks = UINT16_C(4);
+    fighter->aerial_active_ticks = UINT16_C(5);
+    fighter->aerial_recovery_ticks = UINT16_C(23);
+    fighter->aerial_hitlag_ticks = UINT16_C(5);
+    fighter->aerial_landing_lag_begin_tick = UINT16_C(4);
+    fighter->aerial_landing_lag_end_tick = UINT16_C(25);
+    fighter->aerial_landing_lag_ticks = UINT16_C(12);
+    fighter->l_cancel_window_ticks = UINT16_C(7);
+    fighter->l_cancel_divisor = UINT16_C(2);
     fighter->sdi_axis_threshold = UINT16_C(16384);
     fighter->digital_trigger_threshold = UINT16_C(32768);
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
@@ -481,6 +519,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_jab_knockback_y;
     int64_t maximum_strong_knockback_x;
     int64_t maximum_strong_knockback_y;
+    int64_t maximum_aerial_knockback_x;
+    int64_t maximum_aerial_knockback_y;
     int64_t maximum_getup_attack_knockback_x;
     int64_t maximum_getup_attack_knockback_y;
     int solid_overlaps_platform;
@@ -530,6 +570,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     maximum_strong_knockback_y =
         (int64_t)fighter->strong_base_knockback_y_q16 +
         ((((int64_t)fighter->strong_knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
+    maximum_aerial_knockback_x =
+        (int64_t)fighter->aerial_base_knockback_x_q16 +
+        (((int64_t)fighter->aerial_knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_aerial_knockback_y =
+        (int64_t)fighter->aerial_base_knockback_y_q16 +
+        ((((int64_t)fighter->aerial_knockback_growth_q16 *
            (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
           16U) /
          INT64_C(2));
@@ -607,6 +658,26 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->strong_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->strong_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->strong_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->aerial_hitbox_offset_x_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->aerial_hitbox_offset_x_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->aerial_hitbox_offset_y_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->aerial_hitbox_offset_y_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->aerial_hitbox_half_width_q16 <= INT32_C(0) ||
+        fighter->aerial_hitbox_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->aerial_hitbox_half_height_q16 <= INT32_C(0) ||
+        fighter->aerial_hitbox_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->aerial_damage_q16 == UINT32_C(0) ||
+        fighter->aerial_damage_q16 >
+            UINT32_C(50) * UINT32_C(65536) ||
+        fighter->aerial_base_knockback_x_q16 <= INT32_C(0) ||
+        fighter->aerial_base_knockback_y_q16 <= INT32_C(0) ||
+        fighter->aerial_knockback_growth_q16 <= INT32_C(0) ||
         fighter->getup_roll_speed_q16 <= INT32_C(0) ||
         fighter->getup_roll_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
@@ -707,6 +778,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_strong_knockback_y >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_aerial_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_aerial_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_getup_attack_knockback_x >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_getup_attack_knockback_y >
@@ -744,6 +819,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->strong_base_knockback_x_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->strong_base_knockback_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->aerial_base_knockback_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->aerial_base_knockback_y_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->getup_attack_base_knockback_x_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
@@ -799,6 +878,26 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->strong_recovery_ticks > UINT16_C(240) ||
         fighter->strong_hitlag_ticks == UINT16_C(0) ||
         fighter->strong_hitlag_ticks > UINT16_C(120) ||
+        fighter->aerial_startup_ticks == UINT16_C(0) ||
+        fighter->aerial_startup_ticks > UINT16_C(120) ||
+        fighter->aerial_active_ticks == UINT16_C(0) ||
+        fighter->aerial_active_ticks > UINT16_C(120) ||
+        fighter->aerial_recovery_ticks == UINT16_C(0) ||
+        fighter->aerial_recovery_ticks > UINT16_C(240) ||
+        fighter->aerial_hitlag_ticks == UINT16_C(0) ||
+        fighter->aerial_hitlag_ticks > UINT16_C(120) ||
+        fighter->aerial_landing_lag_begin_tick >
+            fighter->aerial_startup_ticks ||
+        fighter->aerial_landing_lag_end_tick <=
+            fighter->aerial_landing_lag_begin_tick ||
+        fighter->aerial_landing_lag_end_tick >
+            fighter->aerial_startup_ticks +
+                fighter->aerial_active_ticks +
+                fighter->aerial_recovery_ticks ||
+        fighter->aerial_landing_lag_ticks == UINT16_C(0) ||
+        fighter->aerial_landing_lag_ticks > UINT16_C(240) ||
+        fighter->l_cancel_window_ticks != UINT16_C(7) ||
+        fighter->l_cancel_divisor != UINT16_C(2) ||
         fighter->sdi_axis_threshold <= fighter->axis_dead_zone ||
         fighter->sdi_axis_threshold > UINT16_C(32767) ||
         fighter->digital_trigger_threshold == UINT16_C(0) ||

@@ -140,6 +140,10 @@ void pf_m2_replay_make_tick_inputs(
         inputs[0].buttons |= PF_INPUT_BUTTON_ATTACK;
         inputs[2].buttons |= PF_INPUT_BUTTON_ATTACK;
     }
+    if (tick == UINT64_C(72))
+    {
+        inputs[1].main_stick_x = INT16_MAX;
+    }
     if (tick + UINT64_C(1) == PF_M2_REPLAY_TICKS)
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_FORFEIT;

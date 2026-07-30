@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(10)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(10)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(11)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(11)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(9)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(10)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -53,7 +53,10 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_CEILING_BOUNCE = 31,
     PF_M4_ACTION_AIR_DODGE = 32,
     PF_M4_ACTION_FALL_SPECIAL = 33,
-    PF_M4_ACTION_SPECIAL_LANDING = 34
+    PF_M4_ACTION_SPECIAL_LANDING = 34,
+    PF_M4_ACTION_AERIAL_ATTACK = 35,
+    PF_M4_ACTION_AERIAL_LANDING = 36,
+    PF_M4_ACTION_L_CANCEL_LANDING = 37
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -112,6 +115,14 @@ typedef struct pf_m4_fighter_data
     int32_t strong_base_knockback_x_q16;
     int32_t strong_base_knockback_y_q16;
     int32_t strong_knockback_growth_q16;
+    int32_t aerial_hitbox_offset_x_q16;
+    int32_t aerial_hitbox_offset_y_q16;
+    int32_t aerial_hitbox_half_width_q16;
+    int32_t aerial_hitbox_half_height_q16;
+    uint32_t aerial_damage_q16;
+    int32_t aerial_base_knockback_x_q16;
+    int32_t aerial_base_knockback_y_q16;
+    int32_t aerial_knockback_growth_q16;
     int32_t hitstun_velocity_per_tick_q16;
     int32_t di_max_tangent_q16;
     int32_t sdi_distance_q16;
@@ -167,6 +178,15 @@ typedef struct pf_m4_fighter_data
     uint16_t strong_active_ticks;
     uint16_t strong_recovery_ticks;
     uint16_t strong_hitlag_ticks;
+    uint16_t aerial_startup_ticks;
+    uint16_t aerial_active_ticks;
+    uint16_t aerial_recovery_ticks;
+    uint16_t aerial_hitlag_ticks;
+    uint16_t aerial_landing_lag_begin_tick;
+    uint16_t aerial_landing_lag_end_tick;
+    uint16_t aerial_landing_lag_ticks;
+    uint16_t l_cancel_window_ticks;
+    uint16_t l_cancel_divisor;
     uint16_t sdi_axis_threshold;
     uint16_t digital_trigger_threshold;
     uint16_t tumble_hitstun_threshold_ticks;
@@ -276,6 +296,8 @@ typedef struct pf_m4_player_inspection
     uint8_t powershield;
     uint8_t tumble;
     uint8_t invulnerable;
+    uint8_t trigger_input_age;
+    uint8_t l_cancel_eligible;
     uint8_t sdi_pulse_count;
     int8_t sdi_direction_x;
     int8_t sdi_direction_y;

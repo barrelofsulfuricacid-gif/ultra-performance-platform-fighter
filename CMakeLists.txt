@@ -493,7 +493,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=569 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=573 hash_algorithm=sha256")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -506,7 +506,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=10 deterministic_ticks=20000 movement_invariants=53")
+                   "m4-movement=pass content_schema=11 deterministic_ticks=20000 movement_invariants=66")
 
     add_executable(m4_combat_test tests/sim/test_m4_combat.c)
     target_link_libraries(m4_combat_test PRIVATE sim)
@@ -519,7 +519,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=10 deterministic_ticks=20000 combat_invariants=84")
+                   "m4-combat=pass content_schema=11 deterministic_ticks=20000 combat_invariants=96")
 
     add_executable(
         m4_web_playtest_test
@@ -540,7 +540,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 aerial_l_cancel_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -560,7 +560,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=31261")
+                       "sim-replay=pass ticks=180 players=4 bytes=31265")
     endif()
 
     if(PF_BUILD_HEADLESS)

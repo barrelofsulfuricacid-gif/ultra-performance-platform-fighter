@@ -68,6 +68,7 @@ typedef struct pf_world_state
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
+    uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
@@ -112,6 +113,7 @@ typedef struct pf_sim_scratch
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
+    uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];

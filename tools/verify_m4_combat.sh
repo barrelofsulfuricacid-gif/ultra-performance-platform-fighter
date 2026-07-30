@@ -42,9 +42,9 @@ common_flags="
 
 "$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
 grep -Fqx \
-    'm4-combat=pass content_schema=10 deterministic_ticks=20000 combat_invariants=84' \
+    'm4-combat=pass content_schema=11 deterministic_ticks=20000 combat_invariants=96' \
     "$output_dir/m4_combat.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"
 
-echo "m4-combat-verification=pass invariants=84 deterministic_ticks=20000"
+echo "m4-combat-verification=pass invariants=96 deterministic_ticks=20000"

@@ -195,6 +195,8 @@ pf_status pf_sim_tick_impl(
             scratch->last_hit_attacker[player_index];
         world->shield_held[player_index] =
             scratch->shield_held[player_index];
+        world->trigger_input_age[player_index] =
+            scratch->trigger_input_age[player_index];
         world->powershield[player_index] =
             scratch->powershield[player_index];
         world->tumble[player_index] =

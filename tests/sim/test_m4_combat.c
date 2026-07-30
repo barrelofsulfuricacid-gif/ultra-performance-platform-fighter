@@ -17,6 +17,10 @@
 #define TEST_PSC_REPLAY_INPUT_COUNT 40U
 #define TEST_PSC_REPLAY_HASH_COUNT 21U
 #define TEST_PSC_REPLAY_CAPACITY 8192U
+#define TEST_ALC_REPLAY_TICKS UINT64_C(96)
+#define TEST_ALC_REPLAY_INPUT_COUNT 192U
+#define TEST_ALC_REPLAY_HASH_COUNT 97U
+#define TEST_ALC_REPLAY_CAPACITY 16384U
 
 typedef struct test_sim_storage
 {
@@ -479,6 +483,195 @@ static int run_one_way_hit_test(
         return fail("knockback-hitstun-and-single-hit");
     }
 
+    return 1;
+}
+
+static int run_aerial_hit_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t frozen_x[2];
+    int32_t frozen_y[2];
+    uint32_t tick;
+    uint32_t hit_sequence;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("aerial-hit-jump-start");
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         (inspection.players[0].grounded != UINT8_C(0) ||
+          inspection.players[1].grounded != UINT8_C(0));
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("aerial-hit-jump-squat");
+        }
+    }
+    if (inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[1].grounded != UINT8_C(0) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("aerial-hit-attack-start");
+    }
+
+    for (tick = UINT32_C(0);
+         tick <
+                 (uint32_t)content->fighter.aerial_startup_ticks +
+                     (uint32_t)content->fighter.aerial_active_ticks +
+                     UINT32_C(2) &&
+         inspection.players[1].damage_q16 == UINT32_C(0);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("aerial-hit-active-schedule");
+        }
+    }
+
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[0].action_ticks !=
+            content->fighter.aerial_startup_ticks ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[0].hitlag_ticks !=
+            content->fighter.aerial_hitlag_ticks ||
+        inspection.players[1].hitlag_ticks !=
+            content->fighter.aerial_hitlag_ticks ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.aerial_damage_q16 ||
+        inspection.players[1].last_hit_damage_q16 !=
+            content->fighter.aerial_damage_q16 ||
+        inspection.players[1].last_hit_attacker != UINT8_C(0) ||
+        inspection.players[1].last_hit_valid != UINT8_C(1) ||
+        (inspection.players[0].attack_hit_mask & UINT8_C(2)) ==
+            UINT8_C(0))
+    {
+        return fail("aerial-hit-damage-hitlag-and-event");
+    }
+
+    hit_sequence = inspection.players[1].last_hit_sequence;
+    frozen_x[0] = inspection.players[0].position_x_q16;
+    frozen_x[1] = inspection.players[1].position_x_q16;
+    frozen_y[0] = inspection.players[0].position_y_q16;
+    frozen_y[1] = inspection.players[1].position_y_q16;
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.aerial_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                &inspection) ||
+            inspection.players[0].position_x_q16 != frozen_x[0] ||
+            inspection.players[1].position_x_q16 != frozen_x[1] ||
+            inspection.players[0].position_y_q16 != frozen_y[0] ||
+            inspection.players[1].position_y_q16 != frozen_y[1])
+        {
+            return fail("aerial-hitlag-freeze");
+        }
+    }
+
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITSTUN ||
+        inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
+        inspection.players[1].velocity_y_q16 >= INT32_C(0))
+    {
+        return fail("aerial-hitlag-resume");
+    }
+
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)content->fighter.aerial_active_ticks +
+                 UINT32_C(2);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection) ||
+            inspection.players[1].damage_q16 !=
+                content->fighter.aerial_damage_q16 ||
+            inspection.players[1].last_hit_sequence !=
+                hit_sequence)
+        {
+            return fail("aerial-single-hit-per-target");
+        }
+    }
     return 1;
 }
 
@@ -1534,6 +1727,217 @@ static int run_powershield_cancel_replay_test(
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-replay-result");
+    }
+    return 1;
+}
+
+static int run_aerial_l_cancel_replay_test(void)
+{
+    test_sim_storage initial_storage;
+    test_sim_storage source_storage;
+    test_sim_storage playback_storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim *initial = NULL;
+    pf_sim *source = NULL;
+    pf_sim *playback = NULL;
+    pf_input_frame inputs[TEST_ALC_REPLAY_INPUT_COUNT];
+    pf_state_hash hashes[TEST_ALC_REPLAY_HASH_COUNT];
+    pf_input_frame tick_inputs[PF_SIM_MAX_PLAYERS];
+    pf_replay_source replay_source;
+    pf_replay_verification verification;
+    pf_tick_result result;
+    pf_mut_bytes destination;
+    pf_bytes replay;
+    pf_m4_inspection inspection;
+    uint8_t replay_bytes[TEST_ALC_REPLAY_CAPACITY];
+    size_t replay_size = (size_t)0;
+    uint64_t tick;
+    int attack_started = 0;
+    int trigger_pressed = 0;
+    int saw_aerial = 0;
+    int saw_fast_fall = 0;
+    int saw_l_cancel_eligible = 0;
+    int saw_l_cancel_landing = 0;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "aerial-replay-default-content") ||
+        !expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "aerial-replay-content-view") ||
+        !initialize_sim(
+            &initial_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &initial) ||
+        !initialize_sim(
+            &source_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &source) ||
+        !initialize_sim(
+            &playback_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &playback) ||
+        !expect_status(
+            pf_sim_clone(source, initial),
+            PF_STATUS_OK,
+            "aerial-replay-clone") ||
+        !expect_status(
+            pf_sim_hash(initial, &hashes[0]),
+            PF_STATUS_OK,
+            "aerial-replay-initial-hash") ||
+        !expect_status(
+            pf_m4_inspect(source, &inspection),
+            PF_STATUS_OK,
+            "aerial-replay-initial-inspect"))
+    {
+        return fail("aerial-replay-init");
+    }
+
+    for (tick = UINT64_C(0);
+         tick < TEST_ALC_REPLAY_TICKS;
+         ++tick)
+    {
+        pf_input_frame *stored =
+            &inputs[(size_t)tick * (size_t)UINT8_C(2)];
+
+        make_inputs(tick_inputs, UINT8_C(2), tick);
+        if (tick == UINT64_C(0))
+        {
+            tick_inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+        }
+        else if (
+            attack_started == 0 &&
+            inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_AIRBORNE)
+        {
+            tick_inputs[0].buttons = PF_INPUT_BUTTON_ATTACK;
+            attack_started = 1;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
+        {
+            tick_inputs[0].main_stick_y = INT16_MAX;
+            if (trigger_pressed == 0 &&
+                inspection.players[0].velocity_y_q16 >= INT32_C(0))
+            {
+                tick_inputs[0].left_trigger = UINT16_MAX;
+                trigger_pressed = 1;
+            }
+        }
+
+        (void)memcpy(
+            stored,
+            tick_inputs,
+            sizeof(*stored) * (size_t)UINT8_C(2));
+        if (!expect_status(
+                pf_sim_tick(
+                    source,
+                    tick_inputs,
+                    (size_t)UINT8_C(2),
+                    &result),
+                PF_STATUS_OK,
+                "aerial-replay-tick") ||
+            !expect_status(
+                pf_sim_hash(
+                    source,
+                    &hashes[(size_t)tick + (size_t)1]),
+                PF_STATUS_OK,
+                "aerial-replay-hash") ||
+            !expect_status(
+                pf_m4_inspect(source, &inspection),
+                PF_STATUS_OK,
+                "aerial-replay-inspect"))
+        {
+            return fail("aerial-replay-record");
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
+        {
+            saw_aerial = 1;
+        }
+        if (inspection.players[0].fast_fall != UINT8_C(0))
+        {
+            saw_fast_fall = 1;
+        }
+        if (inspection.players[0].l_cancel_eligible != UINT8_C(0))
+        {
+            saw_l_cancel_eligible = 1;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING)
+        {
+            saw_l_cancel_landing = 1;
+        }
+    }
+
+    (void)memset(&replay_source, 0, sizeof(replay_source));
+    replay_source.struct_size = (uint32_t)sizeof(replay_source);
+    replay_source.schema_version = PF_REPLAY_SCHEMA_VERSION;
+    replay_source.flags = PF_REPLAY_FLAG_PER_TICK_HASHES;
+    replay_source.initial_state = initial;
+    replay_source.input_frames = inputs;
+    replay_source.input_frame_count =
+        (size_t)TEST_ALC_REPLAY_INPUT_COUNT;
+    replay_source.state_hashes = hashes;
+    replay_source.state_hash_count =
+        (size_t)TEST_ALC_REPLAY_HASH_COUNT;
+    replay_source.tick_count = TEST_ALC_REPLAY_TICKS;
+    replay_source.final_result = result;
+    destination.bytes = replay_bytes;
+    destination.capacity = sizeof(replay_bytes);
+    replay.bytes = replay_bytes;
+
+    if (saw_aerial == 0 ||
+        saw_fast_fall == 0 ||
+        saw_l_cancel_eligible == 0 ||
+        saw_l_cancel_landing == 0 ||
+        !expect_status(
+            pf_replay_query_size(&replay_source, &replay_size),
+            PF_STATUS_OK,
+            "aerial-replay-query") ||
+        replay_size > sizeof(replay_bytes))
+    {
+        return fail("aerial-replay-trace");
+    }
+    destination.size = replay_size;
+    if (!expect_status(
+            pf_replay_encode(&replay_source, &destination),
+            PF_STATUS_OK,
+            "aerial-replay-encode"))
+    {
+        return fail("aerial-replay-encode");
+    }
+    replay.size = destination.size;
+    if (!expect_status(
+            pf_replay_verify(
+                playback,
+                replay,
+                &verification),
+            PF_STATUS_OK,
+            "aerial-replay-verify") ||
+        verification.verified_ticks != TEST_ALC_REPLAY_TICKS ||
+        !expect_status(
+            pf_m4_inspect(playback, &inspection),
+            PF_STATUS_OK,
+            "aerial-replay-final-inspect") ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].grounded != UINT8_C(1))
+    {
+        return fail("aerial-replay-result");
     }
     return 1;
 }
@@ -3074,7 +3478,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)569)
+        save_size != (size_t)573)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -3548,7 +3952,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)569)
+        save_size != (size_t)573)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -3657,7 +4061,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)569)
+        save_size != (size_t)573)
     {
         return fail("mid-shield-hitlag-save-setup");
     }
@@ -3982,6 +4386,7 @@ int main(void)
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-solid-geometry") ||
         !run_one_way_hit_test(&content, &view) ||
+        !run_aerial_hit_test(&content, &view) ||
         !run_default_strong_tumble_test(&content, &view) ||
         !run_surface_tech_test(
             &wall_tech_content,
@@ -3993,6 +4398,7 @@ int main(void)
         !run_shield_block_test(&content, &view) ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
+        !run_aerial_l_cancel_replay_test() ||
         !run_shield_break_test(
             &shield_break_content,
             &shield_break_view) ||
@@ -4026,7 +4432,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=84\n",
+        " combat_invariants=96\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;
