@@ -561,6 +561,8 @@ pf_status pf_m4_resolve_combat(
                 scratch
                         ->respawn_invulnerability_ticks[target_index] !=
                     UINT16_C(0) ||
+                scratch->ledge_invulnerability_ticks[target_index] !=
+                    UINT16_C(0) ||
                 target_owner[target_index] != UINT8_MAX ||
                 pf_m4_action_is_recovery_invulnerable(
                     &content->fighter,

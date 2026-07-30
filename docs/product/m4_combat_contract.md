@@ -373,8 +373,12 @@ and replays cannot load under different match rules.
 
 ## Canonical state and inspection
 
-State schema 16 / save format 15 retains the 603-byte stream (140-byte header
-plus 463-byte payload) and changes the active magic to `PFSAVE15`. It adds the
+State schema 17 / save format 16 expands the stream to 611 bytes (140-byte
+header plus 471-byte payload) and changes the active magic to `PFSAVE16`. It
+adds one remaining ledge-invulnerability timer per player. The timer is
+refreshed by a legal catch, survives ledge options, and participates in the
+same production hit-ownership rejection as other invulnerability. It follows
+state schema 16 / save format 15, which retained the 603-byte stream and added the
 canonical `SHIELD_BREAK_DOWN`, `SHIELD_BREAK_STAND`, and
 `SHIELD_BREAK_STUN` action semantics without adding mutable fields: the
 existing action timer is elapsed time for down/stand and remaining time for
@@ -397,9 +401,10 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 14 / fighter schema 14 adds independently validated
+Content schema 15 / fighter schema 15 adds the validated 37-tick default ledge
+invulnerability duration. It follows schema 14's independently validated
 shield-break launch speed, base/minimum stun, down/stand durations, and mash
-reduction. It follows schema 13's strong-aerial landing-lag duration and
+reduction, and schema 13's strong-aerial landing-lag duration and
 schema 12's roll
 speeds/durations, shared roll movement and invulnerability windows, and
 spot-dodge duration/invulnerability, plus schema 11's light-aerial hitbox,
@@ -412,7 +417,7 @@ during hitlag and continuing after load must produce the same per-tick hashes.
 
 Inspection schema 14 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
-health/stun/powershield, derived tech/air-dodge invulnerability, active hitbox
+health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
 sudden death, and result. Browser view schema 14
@@ -526,7 +531,7 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,295-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,303-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 

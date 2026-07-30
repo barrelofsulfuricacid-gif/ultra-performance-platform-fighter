@@ -769,6 +769,7 @@ static int pf_m4_try_grab_ledge(
     uint8_t *air_jumps_remaining,
     uint8_t *short_hop_latched,
     uint8_t *fast_fall,
+    uint16_t *ledge_invulnerability_ticks,
     int8_t facing,
     int8_t *dash_direction)
 {
@@ -832,6 +833,8 @@ static int pf_m4_try_grab_ledge(
     *air_jumps_remaining = fighter->air_jump_count;
     *short_hop_latched = UINT8_C(0);
     *fast_fall = UINT8_C(0);
+    *ledge_invulnerability_ticks =
+        fighter->ledge_invulnerability_ticks;
     *dash_direction = INT8_C(0);
     return 1;
 }
@@ -866,6 +869,8 @@ void pf_m4_reset_player(
     sim->world.respawn_count[player_index] = respawn_count;
     sim->world.respawn_ticks[player_index] = UINT16_C(0);
     sim->world.respawn_invulnerability_ticks[player_index] =
+        UINT16_C(0);
+    sim->world.ledge_invulnerability_ticks[player_index] =
         UINT16_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
     sim->world.active[player_index] = UINT8_C(1);
@@ -1293,6 +1298,8 @@ static void pf_m4_copy_combat_scratch(
         world->respawn_ticks[player_index];
     scratch->respawn_invulnerability_ticks[player_index] =
         world->respawn_invulnerability_ticks[player_index];
+    scratch->ledge_invulnerability_ticks[player_index] =
+        world->ledge_invulnerability_ticks[player_index];
     scratch->damage_q16[player_index] =
         world->damage_q16[player_index];
     scratch->pending_velocity_x_q16[player_index] =
@@ -1500,6 +1507,11 @@ pf_status pf_m4_step_player(
     pf_status status;
 
     pf_m4_copy_combat_scratch(world, scratch, player_index);
+    if (scratch->ledge_invulnerability_ticks[player_index] >
+        UINT16_C(0))
+    {
+        --scratch->ledge_invulnerability_ticks[player_index];
+    }
     if (world->active[player_index] == UINT8_C(0))
     {
         if (world->stock_count != UINT8_C(0) &&
@@ -3392,6 +3404,7 @@ pf_status pf_m4_step_player(
                 &air_jumps_remaining,
                 &short_hop_latched,
                 &fast_fall,
+                &scratch->ledge_invulnerability_ticks[player_index],
                 facing,
                 &dash_direction))
         {
@@ -3675,6 +3688,8 @@ pf_status pf_m4_inspect(
         player->tumble = sim->world.tumble[player_index];
         player->invulnerable =
             sim->world.respawn_invulnerability_ticks[player_index] !=
+                    UINT16_C(0) ||
+                sim->world.ledge_invulnerability_ticks[player_index] !=
                     UINT16_C(0) ||
                 pf_m4_action_is_recovery_invulnerable(
                     &sim->content.fighter,

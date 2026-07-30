@@ -301,8 +301,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   4, and browser view schema 13. The shield-break slice supersedes those state
   and presentation versions with state schema 16/save format 15, content and
   fighter schema 14, inspection schema 14, and browser view schema 14.
-  Config/observation/identity schema 2 and RL schema 4 remain current. The
-  canonical save is still 603 bytes.
+  The ledge-invulnerability slice supersedes the canonical state and content
+  versions with state schema 17/save format 16 and content/fighter schema 15.
+  Config/observation/identity schema 2, inspection schema 14, browser view
+  schema 14, and RL schema 4 remain current. The canonical save is 611 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -363,6 +365,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   mash counter.
 - Registry row 40, Shield break combo, advances to `playable` with a focused
   deterministic punish and mid-stun save/load continuation oracle.
+
+## Delivered in the ledge-invulnerability foundation
+
+- A legal catch now refreshes a data-defined 37-tick timer: the seven-tick
+  catch transition plus 30 additional ticks, matching the documented Melee
+  `CliffCatch` rule used by
+  [ledgestalls](https://www.ssbwiki.com/Ledgestall).
+- The timer survives release, ledge jump, climb, aerial movement, and landing
+  until it naturally reaches zero. It rejects production hit ownership and is
+  reflected by the existing inspection/browser invulnerability marker.
+- State schema 17/save format 16 and `PFSAVE16` serialize one remaining timer
+  per player, expanding the checkpoint from 603 to 611 bytes. Content/fighter
+  schema 15 hashes and validates the configured duration.
+- Native movement coverage proves invalid-data rejection, exact expiry,
+  post-release carry, hit rejection while nonzero, hit acceptance on expiry,
+  and save/load continuation. This is a foundation for edge hopping, edge
+  dashing, planking, and ledge-option completion; it does not promote those
+  registry rows by itself.
 
 ## Delivered in the instant-double-jump slice
 
@@ -453,7 +473,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 104 movement invariants, 126
+- Mechanical oracles: 110 movement invariants, 126
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -461,12 +481,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,295
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,303
   bytes,
   replay SHA-256
-  `2af600d2b7582a9b6b1d8f4fbd4db2e95360cef5e2fc70718bed8883cc4530ff`,
+  `0a48c51b303ccd8a7f2f6bc8d65763e9f96205cc374dd7b1b721e894c44bb43f`,
   final SHA-256
-  `ff4f441ae65ef09babd3c66db0b293eaa0d7967275d27c84b8285c888c1b8a9d`,
+  `d015347ede291c4f8f3dd08cc794ac12d04a74bc1b789d5ecb86facef7e36745`,
   and event-journal SHA-256
   `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`;
   local native/WebAssembly output is byte-identical and CI repeats it.

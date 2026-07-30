@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)463)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)471)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x35)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x36)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -327,6 +327,14 @@ static void pf_write_payload(
         pf_writer_u16(
             writer,
             world->respawn_invulnerability_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            world->ledge_invulnerability_ticks[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -654,6 +662,13 @@ static void pf_read_payload(
          ++player_index)
     {
         world->respawn_invulnerability_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->ledge_invulnerability_ticks[player_index] =
             pf_reader_u16(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1086,6 +1101,8 @@ static int pf_m4_player_state_consistent(
                    INT32_C(0) &&
                world->respawn_invulnerability_ticks[player_index] ==
                    UINT16_C(0) &&
+               world->ledge_invulnerability_ticks[player_index] ==
+                   UINT16_C(0) &&
                ((waiting &&
                  world->respawn_ticks[player_index] > UINT16_C(0) &&
                  (world->stock_count == UINT8_C(0) ||
@@ -1256,6 +1273,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                          : UINT16_C(1)) ||
                 world->respawn_invulnerability_ticks[player_index] >
                     world->respawn_invulnerability_config_ticks ||
+                world->ledge_invulnerability_ticks[player_index] >
+                    UINT16_C(600) ||
                 (world->active[player_index] != UINT8_C(0) &&
                  world->respawn_ticks[player_index] != UINT16_C(0)) ||
                 (world->stock_count == UINT8_C(0) &&
@@ -1605,6 +1624,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->tech_direction[player_index] != INT8_C(0) ||
                  world->respawn_ticks[player_index] != UINT16_C(0) ||
                  world->respawn_invulnerability_ticks[player_index] !=
+                     UINT16_C(0) ||
+                 world->ledge_invulnerability_ticks[player_index] !=
                      UINT16_C(0) ||
                  world->stocks_remaining[player_index] != UINT8_C(0))
         {

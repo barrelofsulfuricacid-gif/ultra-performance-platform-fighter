@@ -18,7 +18,7 @@
 #define TEST_HASH_COUNT 181U
 #define TEST_REPLAY_CAPACITY 32768U
 #define TEST_OPTIONAL_REPLAY_CAPACITY 32816U
-#define TEST_INPUT_PAYLOAD_OFFSET 859U
+#define TEST_INPUT_PAYLOAD_OFFSET 867U
 
 _Static_assert(
     TEST_INPUT_COUNT == PF_M2_REPLAY_TICKS * PF_M2_REPLAY_PLAYERS,
@@ -498,7 +498,7 @@ int main(void)
             pf_replay_query_size(&replay_source, &replay_size),
             PF_STATUS_OK,
             "query-replay-size") ||
-        replay_size != (size_t)31295)
+        replay_size != (size_t)31303)
     {
         (void)fprintf(
             stderr,

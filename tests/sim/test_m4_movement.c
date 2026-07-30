@@ -279,7 +279,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)603)
+        required_bytes != (size_t)611)
     {
         return 0;
     }
@@ -770,7 +770,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)603)
+        required_bytes != (size_t)611)
     {
         return 0;
     }
@@ -2150,7 +2150,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)603)
+        save_size != (size_t)611)
     {
         return 0;
     }
@@ -2659,7 +2659,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)603)
+        required_bytes != (size_t)611)
     {
         return 0;
     }
@@ -3915,18 +3915,136 @@ static int run_ledge_occupancy_test(
     return 1;
 }
 
+static int run_ledge_hit_rejection_test(
+    const pf_m4_content *default_content)
+{
+    test_sim_storage storage;
+    pf_m4_content content = *default_content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    content.fighter.jab_hitbox_half_width_q16 =
+        INT32_C(64) * PF_Q16_ONE;
+    content.fighter.jab_hitbox_half_height_q16 =
+        INT32_C(64) * PF_Q16_ONE;
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "ledge-hit-rejection-content") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0x1ed6e117)),
+            PF_STATUS_OK,
+            "ledge-hit-rejection-reset") ||
+        !grab_player0_right_ledge(sim, &inspection))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_duel_players(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[0].invulnerable != UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-invulnerability-hit-reject\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(80) &&
+         inspection.players[0].invulnerable != UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel_players(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_duel_players(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].damage_q16 !=
+        content.fighter.jab_damage_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-invulnerability-hit-expiry"
+            " damage=%" PRIu32 "\n",
+            inspection.players[0].damage_q16);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_ledge_test(
     const pf_m4_content *content,
     const pf_content_view *view)
 {
     test_sim_storage storage;
+    pf_m4_content invalid_content = *content;
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     int32_t hang_x;
     int32_t hang_y;
     uint32_t tick;
 
-    if (!initialize_sim(
+    invalid_content.fighter.ledge_invulnerability_ticks =
+        UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "ledge-invulnerability-invalid-content") ||
+        !initialize_sim(
             &storage,
             view,
             UINT8_C(2),
@@ -3961,7 +4079,8 @@ static int run_ledge_test(
     }
     hang_x = inspection.players[0].position_x_q16;
     hang_y = inspection.players[0].position_y_q16;
-    if (!step_duel(
+    if (inspection.players[0].invulnerable != UINT8_C(1) ||
+        !step_duel(
             sim,
             INT16_C(0),
             INT16_C(0),
@@ -3970,7 +4089,8 @@ static int run_ledge_test(
         inspection.players[0].position_x_q16 != hang_x ||
         inspection.players[0].position_y_q16 != hang_y ||
         inspection.players[0].velocity_x_q16 != INT32_C(0) ||
-        inspection.players[0].velocity_y_q16 != INT32_C(0))
+        inspection.players[0].velocity_y_q16 != INT32_C(0) ||
+        inspection.players[0].invulnerable != UINT8_C(1))
     {
         (void)fprintf(
             stderr,
@@ -3988,11 +4108,55 @@ static int run_ledge_test(
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
         inspection.players[0].ledge !=
             (uint8_t)PF_M4_LEDGE_NONE ||
-        inspection.players[0].position_y_q16 <= hang_y)
+        inspection.players[0].position_y_q16 <= hang_y ||
+        inspection.players[0].invulnerable != UINT8_C(1))
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=ledge-release\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x1ed6e)),
+            PF_STATUS_OK,
+            "ledge-invulnerability-reset") ||
+        !grab_player0_right_ledge(sim, &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)
+             content->fighter.ledge_invulnerability_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].invulnerable != UINT8_C(1))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ledge-invulnerability-window"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-invulnerability-end\n");
         return 0;
     }
 
@@ -4078,7 +4242,8 @@ static int run_ledge_test(
             inspection.stage.right_ledge_x_q16 ||
         inspection.players[0].ledge !=
             (uint8_t)PF_M4_LEDGE_NONE ||
-        !run_ledge_occupancy_test(content))
+        !run_ledge_occupancy_test(content) ||
+        !run_ledge_hit_rejection_test(content))
     {
         (void)fprintf(
             stderr,
@@ -4279,7 +4444,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=104\n",
+        "movement_invariants=110\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

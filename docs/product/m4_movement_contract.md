@@ -218,7 +218,10 @@ Falling beside a floor ledge while facing inward enters a pinned ledge catch.
 The catch has a data-derived lockout before neutral hang, down/away release,
 ledge jump, or inward climb. A ledge has one occupant; simultaneous catches use
 stable lower-player-slot priority. Grabbing restores configured air jumps, and
-ledge actions remain canonical across save/load and replay.
+refreshes the original-equivalent 37-tick ledge-invulnerability timer: the
+seven-tick catch followed by 30 additional ticks. The remaining timer survives
+release, jump, and climb, rejects production hits while nonzero, and remains
+canonical across save/load and replay.
 
 ## Data and inspection
 
@@ -261,12 +264,13 @@ bounds, and blast zones.
 - diagonal floor wavedash and pass-through-platform waveland, preserved
   horizontal momentum, traction slide, and exact ten-tick special landing;
 - moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
-  one-occupant priority, mid-climb save/load equivalence, platform drop, and
-  blast-zone respawn;
+  exact 37-tick catch invulnerability and post-release carry, one-occupant
+  priority, mid-climb save/load equivalence, platform drop, and blast-zone
+  respawn;
 - inspectable solid geometry, floor-level traversal beneath it, ordinary side
   and underside collision, landing/support on its top, and mirrored upper-left
   and upper-right inward-drift regressions that never overlap the block; and
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 94 invariants.
+The focused movement oracle currently reports 110 invariants.

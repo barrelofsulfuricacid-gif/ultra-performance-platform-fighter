@@ -165,6 +165,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(
         hash,
         fighter->air_dodge_invulnerability_end_tick);
+    pf_m4_hash_u16(hash, fighter->ledge_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->special_landing_ticks);
     pf_m4_hash_u16(hash, fighter->run_turnaround_ticks);
     pf_m4_hash_u16(hash, fighter->run_brake_ticks);
@@ -457,6 +458,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->air_dodge_ticks = UINT16_C(49);
     fighter->air_dodge_invulnerability_begin_tick = UINT16_C(3);
     fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
+    fighter->ledge_invulnerability_ticks = UINT16_C(37);
     fighter->special_landing_ticks = UINT16_C(10);
     fighter->run_turnaround_ticks = UINT16_C(12);
     fighter->run_brake_ticks = UINT16_C(8);
@@ -901,6 +903,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->air_dodge_invulnerability_end_tick ||
         fighter->air_dodge_invulnerability_end_tick >
             fighter->air_dodge_ticks ||
+        fighter->ledge_invulnerability_ticks == UINT16_C(0) ||
+        fighter->ledge_invulnerability_ticks > UINT16_C(600) ||
         fighter->special_landing_ticks == UINT16_C(0) ||
         fighter->special_landing_ticks > UINT16_C(240) ||
         fighter->run_turnaround_ticks < UINT16_C(2) ||

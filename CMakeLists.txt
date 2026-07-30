@@ -507,7 +507,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=14 deterministic_ticks=20000 movement_invariants=104")
+                   "m4-movement=pass content_schema=15 deterministic_ticks=20000 movement_invariants=110")
 
     add_executable(m4_combat_test tests/sim/test_m4_combat.c)
     target_link_libraries(m4_combat_test PRIVATE sim)
@@ -520,7 +520,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=14 deterministic_ticks=20000 combat_invariants=126 journal_invariants=30")
+                   "m4-combat=pass content_schema=15 deterministic_ticks=20000 combat_invariants=126 journal_invariants=30")
 
     add_executable(m4_match_test tests/sim/test_m4_match.c)
     target_link_libraries(m4_match_test PRIVATE sim)
@@ -574,7 +574,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=31295")
+                       "sim-replay=pass ticks=180 players=4 bytes=31303")
     endif()
 
     if(PF_BUILD_HEADLESS)

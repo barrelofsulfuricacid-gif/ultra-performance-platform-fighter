@@ -2767,7 +2767,7 @@ static int run_shield_break_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-break-save-size") ||
-        save_size != (size_t)603)
+        save_size != (size_t)611)
     {
         return fail("shield-break-snapshot-setup");
     }
@@ -4005,7 +4005,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)603)
+        save_size != (size_t)611)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -4743,7 +4743,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)603)
+        save_size != (size_t)611)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -4852,7 +4852,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)603)
+        save_size != (size_t)611)
     {
         return fail("mid-shield-hitlag-save-setup");
     }

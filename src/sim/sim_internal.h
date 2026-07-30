@@ -46,6 +46,7 @@ typedef struct pf_world_state
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t team[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
@@ -97,6 +98,7 @@ typedef struct pf_sim_scratch
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
     uint8_t stocks_remaining[PF_SIM_MAX_PLAYERS];
