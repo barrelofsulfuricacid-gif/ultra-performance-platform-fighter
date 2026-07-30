@@ -273,4 +273,4 @@ bounds, and blast zones.
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 110 invariants.
+The focused movement oracle currently reports 117 invariants.

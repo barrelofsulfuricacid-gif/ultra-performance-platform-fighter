@@ -42,7 +42,7 @@ current build can perform the technique.
 | 13 | Double jump cancel counter | planned | M4.4 | Double jump cancel plus defensive counter action and hit resolution | — | Future: counter an incoming attack during the double-jump-cancel route and compare an early/late miss |
 | 14 | Drop cancel | planned | M4.4 | Platform drop, aerial attack, landing/cancel windows | — | Future: drop through the platform, attack, and land inside the cancel window; repeat one tick late |
 | 15 | Edge dashing | planned | M4.4 | Production 37-tick ledge invulnerability, ledge jump/release, air dodge, wavedash landing; complete ordinary-input route and overlap oracle remain | `tests/sim/test_m4_movement.c` covers exact ledge-invulnerability duration, post-release carry, and canonical save/load as a foundation only | Future: leave the ledge, air dodge onto stage, and measure actionable/invulnerable overlap |
-| 16 | Edge hopping | planned | M4.4 | Production 37-tick ledge invulnerability, complete ledge release/jump options, and aerial actions exist; complete ordinary-input route oracle remains | `tests/sim/test_m4_movement.c` covers exact ledge-invulnerability duration, post-release carry, release/jump, and aerial actions separately | Future: release and jump from ledge into a legal aerial; compare with neutral hang |
+| 16 | Edge hopping | playable | M4.4 | Production 37-tick ledge invulnerability, ledge release, fresh-edge air jump, and aerial action compose through ordinary input while facing remains fixed | `tests/sim/test_m4_movement.c` covers down-release into an immediate inward air jump, air-jump consumption, exhausted-jump rejection, aerial follow-up, retained invulnerability, neutral-hang comparison, and mid-route save/load continuation; `src/web_client/m4_playtest.c` and `tools/verify_m4_browser.sh` run the same positive and negative startup routes | Grab a ledge while facing inward, wait through `LEDGE CATCH`, press down and release it, then on the next tick press jump while holding inward. Confirm `air jumps` changes from 1 to 0, follow with an aerial, and compare neutral hang and an exhausted second jump |
 | 17 | Fox-trotting | planned | M4.4 | Consecutive initial-dash restart windows and character data fixture | — | Future: rhythmically re-enter initial dash without reaching run and compare with held run |
 | 18 | Glide toss | planned | M4.4 | Production grounded roll now exists; item carry/drop, roll-to-throw momentum transfer, and throw/drop input priority remain | `tests/sim/test_m4_movement.c` covers the roll foundation only | Future: initiate roll and item throw/drop in the legal window, then compare item and fighter travel |
 | 19 | Gimp | primitive-ready | M4.4 | Air jump/dodge, ledge interaction, aerial edgeguard attacks, and deterministic stock/KO result exist; an original special-recovery route and repeatable victim policy remain | `tests/sim/test_m4_movement.c` covers aerial/ledge recovery foundations; `tests/sim/test_m4_combat.c` covers aerial hits; `tests/sim/test_m4_match.c` covers stock/KO result, but no complete gimp route | Future: force a low-percent recovery failure through legal edgeguarding and prove the unchallenged recovery succeeds |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 12 `playable`, 7
-`primitive-ready`, and 41 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 13 `playable`, 7
+`primitive-ready`, and 40 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.

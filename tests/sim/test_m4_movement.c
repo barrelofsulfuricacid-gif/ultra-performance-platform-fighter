@@ -4026,6 +4026,211 @@ static int run_ledge_hit_rejection_test(
     return 1;
 }
 
+static int run_edge_hop_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    int32_t before_exhausted_jump_velocity_y;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0xed6e0a)),
+            PF_STATUS_OK,
+            "edge-hop-reset") ||
+        !grab_player0_right_ledge(source, &source_inspection) ||
+        !make_player0_ledge_actionable(
+            source,
+            content,
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].air_jumps_remaining !=
+            content->fighter.air_jump_count ||
+        source_inspection.players[0].invulnerable != UINT8_C(1) ||
+        !step_duel(
+            source,
+            INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        source_inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        source_inspection.players[0].facing != INT8_C(-1) ||
+        source_inspection.players[0].invulnerable != UINT8_C(1) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "edge-hop-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "edge-hop-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "edge-hop-load") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "edge-hop-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "edge-hop-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0 ||
+        !step_duel(
+            source,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &loaded_inspection))
+    {
+        return 0;
+    }
+    before_exhausted_jump_velocity_y =
+        source_inspection.players[0].velocity_y_q16;
+    if (!step_duel(
+            source,
+            INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &loaded_inspection) ||
+        source_inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        source_inspection.players[0].velocity_y_q16 <=
+            before_exhausted_jump_velocity_y ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "edge-hop-source-negative-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "edge-hop-loaded-negative-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0 ||
+        !step_duel(
+            source,
+            INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        source_inspection.players[0].invulnerable != UINT8_C(1) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "edge-hop-source-aerial-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "edge-hop-loaded-aerial-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-hop-route\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xed6e0b)),
+            PF_STATUS_OK,
+            "edge-hop-neutral-reset") ||
+        !grab_player0_right_ledge(source, &source_inspection) ||
+        !make_player0_ledge_actionable(
+            source,
+            content,
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        source_inspection.players[0].air_jumps_remaining !=
+            content->fighter.air_jump_count)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-hop-neutral-control\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int run_ledge_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -4243,7 +4448,8 @@ static int run_ledge_test(
         inspection.players[0].ledge !=
             (uint8_t)PF_M4_LEDGE_NONE ||
         !run_ledge_occupancy_test(content) ||
-        !run_ledge_hit_rejection_test(content))
+        !run_ledge_hit_rejection_test(content) ||
+        !run_edge_hop_test(content, view))
     {
         (void)fprintf(
             stderr,
@@ -4444,7 +4650,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=110\n",
+        "movement_invariants=117\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

@@ -116,6 +116,13 @@ window, press toward the stage to climb, press down or away to release, or press
 jump for a ledge jump. A claimed ledge rejects another fighter until its current
 occupant releases or completes the climb.
 
+For an edge hop, wait until `LEDGE HANG`, tap down to release, then release down
+and press jump while holding toward the stage on the next tick. The fresh jump
+consumes the air jump while the fighter keeps its inward facing; press either
+attack key for the aerial follow-up. The dashed invulnerability ring remains
+until the original 37-tick ledge timer expires. Neutral hang and a second jump
+after the counter reaches zero are the negative cases.
+
 The light jab has two startup ticks, two active ticks, eight recovery ticks,
 6% damage, and four hitlag ticks. Its translucent amber rectangle is the exact
 inspected active hitbox. The strong attack has five startup ticks, three active
@@ -258,6 +265,11 @@ registry row can advance from `playable` to `verified`.
    down/away release, jump, and inward climb.
 12. Put one player on a ledge and attempt to grab it with the other player.
    Confirm only the original occupant enters `LEDGE HANG`.
+13. From `LEDGE HANG`, tap down, release it, then press jump plus inward on the
+   next tick and follow with an aerial. Confirm `air jumps` changes from 1 to 0,
+   facing remains inward, and the ledge-invulnerability ring persists. Repeat
+   without leaving hang and after exhausting the air jump for the two negative
+   cases.
 13. Move into range, press `F`, and confirm the amber hitbox appears only on the
    active frames. On contact, confirm the target gains 6%, both players visibly
    freeze, the target then launches in `HITSTUN`, and the event feed adds one

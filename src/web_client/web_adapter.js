@@ -441,13 +441,14 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
     inputProbePassed,
     airFacingProbePassed,
     instantDoubleJumpProbePassed,
+    edgeHopProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -629,7 +630,9 @@ mergeInto(LibraryManager.library, {
       "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
       "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
-      "release, or jump to ledge-jump. F and / perform the light jab; H and ' " +
+      "release, or jump to ledge-jump. For an edge hop, tap down from hang, " +
+      "release it, then press jump plus inward on the next tick and follow " +
+      "with an aerial. F and / perform the light jab; H and ' " +
       "perform a slower strong attack on the ground or in the air that " +
       "immediately launches the default fighter into tumble. Translucent boxes " +
       "show active frames, and tumbling " +
@@ -946,6 +949,8 @@ mergeInto(LibraryManager.library, {
         (airFacingProbePassed ? "pass" : "fail") +
         " instant_double_jump_probe=" +
         (instantDoubleJumpProbePassed ? "pass" : "fail") +
+        " edge_hop_probe=" +
+        (edgeHopProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -979,6 +984,7 @@ mergeInto(LibraryManager.library, {
         airFacingProbePassed ? "pass" : "fail";
       status.dataset.instantDoubleJumpProbe =
         instantDoubleJumpProbePassed ? "pass" : "fail";
+      status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";
