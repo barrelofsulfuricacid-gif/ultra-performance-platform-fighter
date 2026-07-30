@@ -79,6 +79,8 @@ static int initialize_throughput_environments(void)
         return 0;
     }
     config.max_ticks = UINT64_C(1000000000);
+    /* Empty benchmark content must not end calibration through stock loss. */
+    config.stock_count = UINT8_C(0);
     if (pf_sim_query_memory(&config, &requirements) != PF_STATUS_OK ||
         requirements.state_bytes > (size_t)PF_HEADLESS_MEMORY_BYTES ||
         requirements.scratch_bytes > (size_t)PF_HEADLESS_MEMORY_BYTES ||
