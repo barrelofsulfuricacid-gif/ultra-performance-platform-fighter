@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–10 / state schemas 1–11
+- **Status:** Accepted for save formats 1–12 / state schemas 1–13
 - **Date:** 2026-07-28
 
 ## Decision
@@ -20,10 +20,13 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 8 | 9 | 140 | 429 | 569 | Canonical wall-tech, wall-tech-jump, ceiling-tech, wall-bounce, and ceiling-bounce action IDs plus solid-top support ID; no byte-layout change |
 | 9 | 10 | 140 | 429 | 569 | Canonical air-dodge, special-fall, and special-landing action IDs; no byte-layout change |
 | 10 | 11 | 140 | 433 | 573 | Canonical aerial-attack, aerial-landing, and L-cancel-landing action IDs plus one fresh-trigger age byte per player |
+| 11 | 12 | 140 | 437 | 577 | Canonical forward-roll, backward-roll, and spot-dodge action IDs plus one fresh-down history byte per player |
+| 12 | 13 | 140 | 437 | 577 | Canonical strong-aerial-attack, strong-aerial-landing, and strong-L-cancel-landing action IDs; no byte-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
-`PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, or `PFSAVE10`.
-The active M4 runtime emits and accepts format 10 with state schema 11. Earlier
+`PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
+`PFSAVE11`, or `PFSAVE12`.
+The active M4 runtime emits and accepts format 12 with state schema 13. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -88,6 +91,12 @@ service-envelope responsibility.
 - Mid-aerial save/load plus equal trigger age, L-cancel eligibility, action,
   and future hash; validation enforces airborne aerial attack, grounded aerial
   landing states, and inactive-slot trigger-age rules.
+- Mid-spot-dodge save/load plus equal fresh-down history, action,
+  invulnerability derivation, and future hashes; validation enforces grounded
+  roll/spot-dodge reaction-state rules and inactive-slot fresh-down history.
+- Strong-aerial action, airborne hitlag-resume, grounded 30-tick landing, and
+  grounded 15-tick L-cancel action relationships, while retaining the fixed
+  437-byte payload.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

@@ -163,6 +163,8 @@ pf_status pf_sim_tick_impl(
             scratch->dash_direction[player_index];
         world->previous_strong_direction[player_index] =
             scratch->previous_strong_direction[player_index];
+        world->previous_dodge_down[player_index] =
+            scratch->previous_dodge_down[player_index];
         world->damage_q16[player_index] =
             scratch->damage_q16[player_index];
         world->pending_velocity_x_q16[player_index] =

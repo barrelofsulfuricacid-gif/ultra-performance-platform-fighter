@@ -675,6 +675,151 @@ static int run_aerial_hit_test(
     return 1;
 }
 
+static int run_strong_aerial_hit_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("strong-aerial-hit-jump-start");
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         (inspection.players[0].grounded != UINT8_C(0) ||
+          inspection.players[1].grounded != UINT8_C(0));
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("strong-aerial-hit-jump-squat");
+        }
+    }
+    if (inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[1].grounded != UINT8_C(0) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("strong-aerial-hit-attack-start");
+    }
+
+    for (tick = UINT32_C(0);
+         tick <
+                 (uint32_t)content->fighter.strong_startup_ticks +
+                     (uint32_t)content->fighter.strong_active_ticks +
+                     UINT32_C(2) &&
+         inspection.players[1].damage_q16 == UINT32_C(0);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("strong-aerial-hit-active-schedule");
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[0].hitlag_ticks !=
+            content->fighter.strong_hitlag_ticks ||
+        inspection.players[1].hitlag_ticks !=
+            content->fighter.strong_hitlag_ticks ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.strong_damage_q16 ||
+        inspection.players[1].last_hit_damage_q16 !=
+            content->fighter.strong_damage_q16 ||
+        inspection.players[1].last_hit_attacker != UINT8_C(0) ||
+        inspection.players[1].last_hit_valid != UINT8_C(1) ||
+        (inspection.players[0].attack_hit_mask & UINT8_C(2)) ==
+            UINT8_C(0))
+    {
+        return fail("strong-aerial-hit-damage-hitlag-and-event");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.strong_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("strong-aerial-hitlag-step");
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITSTUN)
+    {
+        return fail("strong-aerial-hitlag-resume");
+    }
+    return 1;
+}
+
 static int run_default_strong_tumble_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -3478,7 +3623,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)573)
+        save_size != (size_t)577)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -3895,6 +4040,270 @@ static int run_air_dodge_invulnerability_hit_test(
     return 1;
 }
 
+static int run_ground_dodge_invulnerability_hit_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return 0;
+    }
+
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        inspection.players[1].action_ticks != UINT16_C(1) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].invulnerable != UINT8_C(0) ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.jab_damage_q16)
+    {
+        return fail("spot-dodge-startup-accepts-hit");
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x5d07d0d6e)),
+            PF_STATUS_OK,
+            "spot-dodge-invulnerable-reset") ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].hitbox_active != UINT8_C(1) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        inspection.players[1].action_ticks !=
+            content->fighter.spot_dodge_invulnerability_begin_tick ||
+        inspection.players[1].invulnerable != UINT8_C(1) ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("spot-dodge-invulnerability-rejects-hit");
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x5d07d0d6f)),
+            PF_STATUS_OK,
+            "spot-dodge-expired-reset") ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection))
+    {
+        return 0;
+    }
+    while (inspection.players[1].action_ticks <
+           (uint16_t)(
+               content->fighter
+                   .spot_dodge_invulnerability_end_tick -
+               UINT16_C(3)))
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("spot-dodge-expired-window-setup");
+        }
+    }
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].invulnerable != UINT8_C(0) ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.jab_damage_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=debug spot-dodge-expired"
+            " action=%u ticks=%u invulnerable=%u damage=%" PRIu32 "\n",
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].action_ticks,
+            (unsigned int)inspection.players[1].invulnerable,
+            inspection.players[1].damage_q16);
+        return fail("spot-dodge-expired-window-accepts-hit");
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x5d07d0d70)),
+            PF_STATUS_OK,
+            "roll-invulnerable-reset") ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].hitbox_active != UINT8_C(1) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        inspection.players[1].action_ticks !=
+            content->fighter.roll_invulnerability_begin_tick ||
+        inspection.players[1].invulnerable != UINT8_C(1) ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("roll-invulnerability-rejects-hit");
+    }
+    return 1;
+}
+
 static int run_hitlag_snapshot_test(const pf_content_view *view)
 {
     test_sim_storage source_storage;
@@ -3952,7 +4361,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)573)
+        save_size != (size_t)577)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -4061,7 +4470,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)573)
+        save_size != (size_t)577)
     {
         return fail("mid-shield-hitlag-save-setup");
     }
@@ -4387,6 +4796,7 @@ int main(void)
             "reject-invalid-solid-geometry") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_aerial_hit_test(&content, &view) ||
+        !run_strong_aerial_hit_test(&content, &view) ||
         !run_default_strong_tumble_test(&content, &view) ||
         !run_surface_tech_test(
             &wall_tech_content,
@@ -4423,6 +4833,9 @@ int main(void)
         !run_air_dodge_invulnerability_hit_test(
             &content,
             &view) ||
+        !run_ground_dodge_invulnerability_hit_test(
+            &content,
+            &view) ||
         !run_hitlag_snapshot_test(&view) ||
         !run_shield_hitlag_snapshot_test(&view) ||
         !run_deterministic_trace(&view))
@@ -4432,7 +4845,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=96\n",
+        " combat_invariants=110\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

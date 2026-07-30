@@ -63,7 +63,7 @@ grep -Fqx \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=573 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=577 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
@@ -107,7 +107,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31265 corpus_sha256=f3ff682f3dad705ab72101a6bc933d714c4fa5e077de6f2a01edddca8458fe9a final_sha256=bba4e8c923ad98821827f4293070e9f02021b8359b672c4e6769190ff08c796c' \
+    'sim-replay=pass ticks=180 players=4 bytes=31269 corpus_sha256=2ed88053530905bf9b0a13a16076f8f721c5b11170f53def8ceb290eebb6e584 final_sha256=27cb7b0fbeb117b6cc63ad4f79766b509bf08f210e27426e8d09c3f4099e3d9e' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086

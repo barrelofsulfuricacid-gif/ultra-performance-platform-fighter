@@ -60,7 +60,46 @@ facing, even when the horizontal stick points opposite that facing. A
 deliberate down input after the apex enters the fixed fast-fall speed. Landing
 enters a finite landing state.
 
-## Aerial attack, auto-cancel, and L-cancel landing
+## Grounded rolls and spot dodge
+
+A supported fighter can enter one of three locked grounded defensive actions
+through the same normalized trigger used by shield, tech, air dodge, and
+L-cancel:
+
+- A fresh full horizontal input while the trigger is held enters a roll.
+  Pressing trigger and direction together is legal, as is raising shield first
+  and then flicking the direction.
+- Horizontal input matching fixed facing selects `ROLL_FORWARD`; the opposite
+  direction selects `ROLL_BACKWARD`. Neither action changes facing.
+- Fresh down plus trigger selects `SPOT_DODGE`. If down and a full horizontal
+  edge arrive together, spot dodge has priority.
+- A direction held before the trigger is not fresh and cannot start a roll.
+  Down held before the trigger likewise produces ordinary shield instead of a
+  spot dodge. Initial dash and other locked actions remain excluded.
+
+All timing is deterministic fighter data. The current original placeholder
+uses:
+
+| Action | Total ticks | Motion | Invulnerability |
+|---|---:|---|---|
+| Forward roll | 31 | `9/50` Q16 units/tick on action ticks `[3, 20)` | action ticks `[4, 17)` |
+| Backward roll | 35 | `4/25` Q16 units/tick on action ticks `[3, 20)` | action ticks `[4, 17)` |
+| Spot dodge | 25 | none | action ticks `[3, 16)` |
+
+The half-open ranges make startup and recovery visibly punishable. Rolls use
+the ordinary production surface and solid-side collision path: a solid wall
+clips motion without tunneling, while crossing a floor/platform edge clears
+support and enters airborne movement. The action does not acquire a separate
+presentation-only position or invulnerability flag.
+
+The entry priority and relative-to-facing selection follow the grounded escape
+structure in the pinned Melee decomp's
+[common escape path](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_Escape.c).
+The placeholder speeds, durations, movement window, and invulnerability
+windows above are independently authored data, not copied character frame
+tables.
+
+## Aerial attacks, auto-cancel, and L-cancel landing
 
 A fresh light-attack edge from ordinary non-tumbling airborne movement enters
 the first original aerial attack. Its placeholder data defines four startup
@@ -68,6 +107,12 @@ ticks, five active ticks, 23 recovery ticks, an 8% facing-mirrored hitbox, and
 five hitlag ticks. Aerial drift, gravity, and fast fall remain active throughout
 the action. Each target can be hit once through the same production collision,
 ownership, hitlag, damage, launch, and hitstun path as a ground attack.
+
+A fresh strong-attack edge from the same airborne state enters
+`STRONG_AERIAL_ATTACK`. It deliberately reuses the current strong attack's
+five-startup, three-active, 18-recovery, facing-mirrored hitbox, 12% damage,
+launch, and six-hitlag data. This gives the browser playtest a strong,
+easy-to-see aerial without adding presentation-only combat behavior.
 
 The aerial defines a landing-lag-active half-open action-tick window `[4, 25)`.
 Landing outside that window auto-cancels into the ordinary four-tick `LANDING`
@@ -80,6 +125,13 @@ Landing inside the active window while eligible enters `L_CANCEL_LANDING` for
 the integer quotient of ordinary aerial lag and the fixed divisor: 12 / 2 =
 six ticks. The independent counter prevents tech lockout from silently changing
 the L-cancel window.
+
+Landing while `STRONG_AERIAL_ATTACK` is active always uses its independently
+validated 30-tick `STRONG_AERIAL_LANDING` test lag. An eligible trigger age
+selects `STRONG_L_CANCEL_LANDING` and the same fixed divisor reduces that lag to
+15 ticks. Both landing states are fully locked; fresh attack, movement, shield,
+and jump inputs cannot bypass their timers. The ordinary light aerial retains
+its auto-cancel window and 12/6-tick landing route.
 
 This transition and timer structure follows the pinned Melee decomp's
 [aerial landing selection](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_AttackAir.c),
@@ -148,7 +200,10 @@ The initial stage table defines:
 A supported fighter inherits the moving platform's exact per-tick displacement.
 The block's top is a normal support surface, its sides stop horizontal body
 motion, and its underside stops upward body motion. The floor-level clearance
-under the default block remains traversable. Crossing any support edge enters
+under the default block remains traversable. Top and underside sweeps use the
+fighter's full horizontal body extent, so diagonal motion into either corner
+resolves at the contacted face before any part of the body can enter the solid.
+Exact edge tangency remains non-overlapping. Crossing any support edge enters
 airborne movement. Crossing a blast boundary currently performs the M4.1
 placeholder respawn and increments the canonical respawn counter; stocks and
 match termination enter in M4.2.
@@ -180,11 +235,19 @@ bounds, and blast zones.
 - content validation, content-hash rejection, and a data-tuning effect;
 - proportional walk, initial dash, run, dash-dance reversal, run turnaround,
   turnaround lockout, run brake, facing, traction, and crouch;
+- neutral trigger-to-shield behavior; fresh and shield-held forward/backward
+  roll entry; spot-dodge down priority; held-direction negative cases; fixed
+  facing; exact motion, duration, and invulnerability windows; solid-wall
+  clipping; roll-off-edge airborne transition; and mid-dodge save/load future
+  equality;
 - binary short/full hops, double jump, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
 - the ordinary airborne light-attack route, early auto-cancel, normal 12-tick
   aerial landing, six-tick L-cancel landing, exact trigger ages 0–6 versus 7,
   invalid timing data, and mid-aerial timer save/load equivalence;
+- the airborne strong-attack route, production strong hit schedule, locked
+  30-tick normal landing, locked 15-tick L-cancel landing, and invalid
+  strong-landing-lag rejection;
 - neutral and directional air dodge, normalized vector/decay, exact
   invulnerability boundaries, facing lock, held-trigger rejection,
   `FALL SPECIAL`, mid-action save/load continuation, and the ordinary-input
@@ -195,8 +258,9 @@ bounds, and blast zones.
   one-occupant priority, mid-climb save/load equivalence, platform drop, and
   blast-zone respawn;
 - inspectable solid geometry, floor-level traversal beneath it, ordinary side
-  and underside collision, and landing/support on its top; and
+  and underside collision, landing/support on its top, and mirrored upper-left
+  and upper-right inward-drift regressions that never overlap the block; and
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 66 invariants.
+The focused movement oracle currently reports 94 invariants.

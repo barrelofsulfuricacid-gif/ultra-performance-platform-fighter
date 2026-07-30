@@ -37,7 +37,10 @@ static int test_tumble_probe;
 static int test_floor_recovery_probe;
 static int test_surface_tech_probe;
 static int test_air_dodge_probe;
+static int test_ground_dodge_probe;
 static int test_aerial_l_cancel_probe;
+static int test_aerial_landing_lag_ticks;
+static int test_strong_aerial_landing_lag_ticks;
 static int32_t test_view[TEST_VIEW_COUNT];
 
 void pf_web_m4_playtest_install(
@@ -52,7 +55,10 @@ void pf_web_m4_playtest_install(
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
     int air_dodge_probe_passed,
-    int aerial_l_cancel_probe_passed);
+    int ground_dodge_probe_passed,
+    int aerial_l_cancel_probe_passed,
+    int aerial_landing_lag_ticks,
+    int strong_aerial_landing_lag_ticks);
 
 void pf_web_m4_playtest_render(
     const int32_t *view,
@@ -70,7 +76,10 @@ void pf_web_m4_playtest_install(
     int floor_recovery_probe_passed,
     int surface_tech_probe_passed,
     int air_dodge_probe_passed,
-    int aerial_l_cancel_probe_passed)
+    int ground_dodge_probe_passed,
+    int aerial_l_cancel_probe_passed,
+    int aerial_landing_lag_ticks,
+    int strong_aerial_landing_lag_ticks)
 {
     ++test_install_count;
     test_walk_axis = walk_axis;
@@ -84,7 +93,11 @@ void pf_web_m4_playtest_install(
     test_floor_recovery_probe = floor_recovery_probe_passed;
     test_surface_tech_probe = surface_tech_probe_passed;
     test_air_dodge_probe = air_dodge_probe_passed;
+    test_ground_dodge_probe = ground_dodge_probe_passed;
     test_aerial_l_cancel_probe = aerial_l_cancel_probe_passed;
+    test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
+    test_strong_aerial_landing_lag_ticks =
+        strong_aerial_landing_lag_ticks;
 }
 
 void pf_web_m4_playtest_render(
@@ -171,8 +184,11 @@ int main(void)
         test_floor_recovery_probe != 1 ||
         test_surface_tech_probe != 1 ||
         test_air_dodge_probe != 1 ||
+        test_ground_dodge_probe != 1 ||
         test_aerial_l_cancel_probe != 1 ||
-        test_view[0] != 9 ||
+        test_aerial_landing_lag_ticks != 12 ||
+        test_strong_aerial_landing_lag_ticks != 30 ||
+        test_view[0] != 11 ||
         test_view[1] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
@@ -185,7 +201,9 @@ int main(void)
             "dash=%d input_probe=%d air_facing_probe=%d combat_probe=%d "
             "reaction_probe=%d shield_probe=%d tumble_probe=%d "
             "floor_recovery_probe=%d surface_tech_probe=%d "
-            "air_dodge_probe=%d aerial_l_cancel_probe=%d "
+            "air_dodge_probe=%d ground_dodge_probe=%d "
+            "aerial_l_cancel_probe=%d "
+            "aerial_lag=%d strong_aerial_lag=%d "
             "schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
@@ -200,7 +218,10 @@ int main(void)
             test_floor_recovery_probe,
             test_surface_tech_probe,
             test_air_dodge_probe,
+            test_ground_dodge_probe,
             test_aerial_l_cancel_probe,
+            test_aerial_landing_lag_ticks,
+            test_strong_aerial_landing_lag_ticks,
             (int)test_view[0],
             (int)test_view[1]);
         return fail("start-and-input-probe");
@@ -250,6 +271,36 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1)
     {
         return fail("keyboard-dash-dance");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(
+            test_dash_axis,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 38 ||
+        !pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(
+            0,
+            test_dash_axis,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 40)
+    {
+        return fail("keyboard-ground-roll-and-spot-dodge");
     }
 
     if (!pf_web_m4_playtest_reset() ||
@@ -358,7 +409,8 @@ int main(void)
         "input_probe=%d air_facing_probe=%d combat_probe=%d reaction_probe=%d "
         "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
         "floor_recovery_probe=%d surface_tech_probe=%d "
-        "air_dodge_probe=%d aerial_l_cancel_probe=%d renders=%d\n",
+        "air_dodge_probe=%d ground_dodge_probe=%d "
+        "aerial_l_cancel_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
@@ -371,6 +423,7 @@ int main(void)
         test_floor_recovery_probe,
         test_surface_tech_probe,
         test_air_dodge_probe,
+        test_ground_dodge_probe,
         test_aerial_l_cancel_probe,
         test_render_count);
     return 0;

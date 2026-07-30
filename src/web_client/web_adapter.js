@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -454,7 +454,10 @@ mergeInto(LibraryManager.library, {
     floorRecoveryProbePassed,
     surfaceTechProbePassed,
     airDodgeProbePassed,
-    aerialLCancelProbePassed
+    groundDodgeProbePassed,
+    aerialLCancelProbePassed,
+    aerialLandingLagTicks,
+    strongAerialLandingLagTicks
   ) {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
@@ -540,8 +543,9 @@ mergeInto(LibraryManager.library, {
       floorRecoveryProbePassed &&
       surfaceTechProbePassed &&
       airDodgeProbePassed &&
+      groundDodgeProbePassed &&
       aerialLCancelProbePassed
-        ? "INPUT + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
+        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -589,13 +593,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light or aerial attack · H strong attack · Hold G shield / tap G to tech, air dodge, or L-cancel · W / S vertical input"
+        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light attack · H strong ground or aerial attack · Hold G shield; G + fresh A / D rolls; G + fresh S spot dodges; tap G to tech, air dodge, or L-cancel · W / S vertical input"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light or aerial attack · ' or Numpad 2 strong attack · Hold . or Numpad 1 to shield / tap to tech, air dodge, or L-cancel · ↑ / ↓ vertical input"
+        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light attack · ' or Numpad 2 strong ground or aerial attack · Hold . or Numpad 1 to shield; trigger + fresh ← / → rolls; trigger + fresh ↓ spot dodges; tap to tech, air dodge, or L-cancel · ↑ / ↓ vertical input"
       )
     );
     section.appendChild(controls);
@@ -610,19 +614,28 @@ mergeInto(LibraryManager.library, {
       "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
       "release, or jump to ledge-jump. F and / perform the light jab; H and ' " +
-      "perform a slower strong attack that immediately launches the default " +
-      "fighter into tumble. Translucent boxes show active frames, and tumbling " +
+      "perform a slower strong attack on the ground or in the air that " +
+      "immediately launches the default fighter into tumble. Translucent boxes " +
+      "show active frames, and tumbling " +
       "fighters visibly rotate after hitlag. During hitlag, " +
       "change stick direction for SDI and hold a launch direction for DI. Press " +
       "a light-attack key while airborne for the original aerial. For SHFFL, " +
       "short hop, press the aerial, hold down after the apex to fast-fall, then " +
       "tap the trigger within the seven-frame pre-landing window. A normal " +
       "aerial landing shows 12 ticks of AERIAL LANDING; success shows six " +
-      "ticks of L-CANCEL LANDING. The live state card exposes trigger age " +
+      "ticks of L-CANCEL LANDING. The strong aerial is the easy timing drill: " +
+      "missing produces 30 ticks of landing lag and L-cancelling reduces it " +
+      "to 15. A large red MISS or green L-CANCEL banner, ring, and live " +
+      "remaining-frame count appear over the fighter on every aerial landing. " +
+      "The live state card exposes trigger age " +
       "(eligible at ages 0–6) so the boundary is directly observable. " +
       "Hold G or . on the ground for a real draining shield; fresh shields " +
       "powershield during their four-tick window, while releases have 15 ticks " +
-      "of lag. Tap the same trigger shortly before a tumble landing to tech in " +
+      "of lag. Press a fresh full horizontal direction with the trigger for a " +
+      "forward or backward roll relative to facing; press fresh down with the " +
+      "trigger for a spot dodge. These grounded dodges have fixed movement, " +
+      "recovery, and invulnerability windows and never flip facing. Tap the " +
+      "same trigger shortly before a tumble landing to tech in " +
       "place; hold left or right to tech-roll. " +
       "While airborne, a fresh trigger performs a directional air dodge; " +
       "hold a direction with it, or leave the stick neutral to stop in place. " +
@@ -662,6 +675,7 @@ mergeInto(LibraryManager.library, {
 
     var state = {
       accumulator: 0,
+      aerialLandingLagTicks: aerialLandingLagTicks,
       canvas: canvas,
       dashAxis: dashAxis,
       keys: Object.create(null),
@@ -673,6 +687,7 @@ mergeInto(LibraryManager.library, {
       strongAttackQueued: [false, false],
       jumpQueued: [false, false],
       shieldQueued: [false, false],
+      strongAerialLandingLagTicks: strongAerialLandingLagTicks,
       running: true,
       tickLabel: tickLabel,
       walkAxis: walkAxis,
@@ -894,6 +909,8 @@ mergeInto(LibraryManager.library, {
         (surfaceTechProbePassed ? "pass" : "fail") +
         " air_dodge_probe=" +
         (airDodgeProbePassed ? "pass" : "fail") +
+        " ground_dodge_probe=" +
+        (groundDodgeProbePassed ? "pass" : "fail") +
         " aerial_l_cancel_probe=" +
         (aerialLCancelProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
@@ -916,6 +933,8 @@ mergeInto(LibraryManager.library, {
         surfaceTechProbePassed ? "pass" : "fail";
       status.dataset.airDodgeProbe =
         airDodgeProbePassed ? "pass" : "fail";
+      status.dataset.groundDodgeProbe =
+        groundDodgeProbePassed ? "pass" : "fail";
       status.dataset.aerialLCancelProbe =
         aerialLCancelProbePassed ? "pass" : "fail";
     }
@@ -933,7 +952,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 9) {
+    if (view[0] !== 11) {
       return;
     }
     var canvas = state.canvas;
@@ -986,6 +1005,12 @@ mergeInto(LibraryManager.library, {
       "AERIAL ATTACK",
       "AERIAL LANDING",
       "L-CANCEL LANDING",
+      "FORWARD ROLL",
+      "BACKWARD ROLL",
+      "SPOT DODGE",
+      "STRONG AERIAL",
+      "STRONG AERIAL LANDING",
+      "STRONG L-CANCEL LANDING",
     ];
 
     function sx(q16Value) {
@@ -1094,13 +1119,13 @@ mergeInto(LibraryManager.library, {
         var hitboxBottom = sy(view[base + 18]);
 
         context.fillStyle =
-          actionState === 22
+          actionState === 22 || actionState === 41
             ? "#ff5f874d"
             : actionState === 26
               ? "#b977ff55"
               : "#ffb34744";
         context.strokeStyle =
-          actionState === 22
+          actionState === 22 || actionState === 41
             ? "#ff8cab"
             : actionState === 26
               ? "#d7adff"
@@ -1181,6 +1206,70 @@ mergeInto(LibraryManager.library, {
         );
         context.stroke();
         context.setLineDash([]);
+      }
+
+      var landingFeedback = null;
+      var landingLagTotal = 0;
+      var landingSucceeded = false;
+      if (actionState === 36) {
+        landingFeedback = "MISSED L-CANCEL";
+        landingLagTotal = state.aerialLandingLagTicks;
+      } else if (actionState === 37) {
+        landingFeedback = "L-CANCEL!";
+        landingLagTotal = Math.max(
+          1,
+          Math.floor(state.aerialLandingLagTicks / 2)
+        );
+        landingSucceeded = true;
+      } else if (actionState === 42) {
+        landingFeedback = "MISSED STRONG L-CANCEL";
+        landingLagTotal = state.strongAerialLandingLagTicks;
+      } else if (actionState === 43) {
+        landingFeedback = "STRONG L-CANCEL!";
+        landingLagTotal = Math.max(
+          1,
+          Math.floor(state.strongAerialLandingLagTicks / 2)
+        );
+        landingSucceeded = true;
+      }
+      if (landingFeedback !== null) {
+        var landingLagRemaining = Math.max(
+          0,
+          landingLagTotal - view[base + 29]
+        );
+        var landingLabel =
+          landingFeedback + " · " + landingLagRemaining + "f";
+        var landingLabelY = Math.max(24, y - height / 2 - 34);
+        var landingLabelWidth;
+
+        context.save();
+        context.font = "bold 16px ui-monospace, monospace";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        landingLabelWidth = context.measureText(landingLabel).width + 18;
+        context.fillStyle = landingSucceeded ? "#0b4f3fee" : "#64263aee";
+        context.strokeStyle = landingSucceeded ? "#79ffd3" : "#ff9ab0";
+        context.lineWidth = 2;
+        context.fillRect(
+          x - landingLabelWidth / 2,
+          landingLabelY - 13,
+          landingLabelWidth,
+          26
+        );
+        context.strokeRect(
+          x - landingLabelWidth / 2,
+          landingLabelY - 13,
+          landingLabelWidth,
+          26
+        );
+        context.fillStyle = landingSucceeded ? "#baffea" : "#ffe1e8";
+        context.fillText(landingLabel, x, landingLabelY);
+        context.strokeStyle = landingSucceeded ? "#79ffd3" : "#ff6f91";
+        context.lineWidth = 4;
+        context.beginPath();
+        context.arc(x, y, Math.max(width, height) * 0.88, 0, Math.PI * 2);
+        context.stroke();
+        context.restore();
       }
 
       var action =

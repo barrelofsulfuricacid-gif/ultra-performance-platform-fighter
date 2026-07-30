@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(11)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(11)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(13)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(13)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(10)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(12)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -56,7 +56,13 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_SPECIAL_LANDING = 34,
     PF_M4_ACTION_AERIAL_ATTACK = 35,
     PF_M4_ACTION_AERIAL_LANDING = 36,
-    PF_M4_ACTION_L_CANCEL_LANDING = 37
+    PF_M4_ACTION_L_CANCEL_LANDING = 37,
+    PF_M4_ACTION_ROLL_FORWARD = 38,
+    PF_M4_ACTION_ROLL_BACKWARD = 39,
+    PF_M4_ACTION_SPOT_DODGE = 40,
+    PF_M4_ACTION_STRONG_AERIAL_ATTACK = 41,
+    PF_M4_ACTION_STRONG_AERIAL_LANDING = 42,
+    PF_M4_ACTION_STRONG_L_CANCEL_LANDING = 43
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -134,6 +140,8 @@ typedef struct pf_m4_fighter_data
     int32_t ceiling_tech_speed_q16;
     int32_t surface_bounce_multiplier_q16;
     int32_t getup_roll_speed_q16;
+    int32_t forward_roll_speed_q16;
+    int32_t backward_roll_speed_q16;
     int32_t getup_attack_hitbox_offset_x_q16;
     int32_t getup_attack_hitbox_offset_y_q16;
     int32_t getup_attack_hitbox_half_width_q16;
@@ -185,6 +193,7 @@ typedef struct pf_m4_fighter_data
     uint16_t aerial_landing_lag_begin_tick;
     uint16_t aerial_landing_lag_end_tick;
     uint16_t aerial_landing_lag_ticks;
+    uint16_t strong_aerial_landing_lag_ticks;
     uint16_t l_cancel_window_ticks;
     uint16_t l_cancel_divisor;
     uint16_t sdi_axis_threshold;
@@ -211,6 +220,15 @@ typedef struct pf_m4_fighter_data
     uint16_t getup_attack_back_active_begin_tick;
     uint16_t getup_attack_back_active_end_tick;
     uint16_t getup_attack_hitlag_ticks;
+    uint16_t forward_roll_ticks;
+    uint16_t backward_roll_ticks;
+    uint16_t roll_movement_begin_tick;
+    uint16_t roll_movement_end_tick;
+    uint16_t roll_invulnerability_begin_tick;
+    uint16_t roll_invulnerability_end_tick;
+    uint16_t spot_dodge_ticks;
+    uint16_t spot_dodge_invulnerability_begin_tick;
+    uint16_t spot_dodge_invulnerability_end_tick;
     uint16_t shield_minimum_hold_ticks;
     uint16_t shield_release_ticks;
     uint16_t powershield_window_ticks;

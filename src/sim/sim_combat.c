@@ -86,6 +86,21 @@ static int pf_m4_action_is_recovery_invulnerable(
                action_ticks <
                    fighter->air_dodge_invulnerability_end_tick;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD)
+    {
+        return action_ticks >=
+                   fighter->roll_invulnerability_begin_tick &&
+               action_ticks <
+                   fighter->roll_invulnerability_end_tick;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+    {
+        return action_ticks >=
+                   fighter->spot_dodge_invulnerability_begin_tick &&
+               action_ticks <
+                   fighter->spot_dodge_invulnerability_end_tick;
+    }
     if (action_state ==
             (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
         action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
@@ -169,7 +184,9 @@ static int pf_m4_attack_for_action(
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
         return 1;
     }
-    if (action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK)
+    if (action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK)
     {
         out_attack->hitbox_offset_x_q16 =
             fighter->strong_hitbox_offset_x_q16;
@@ -193,8 +210,7 @@ static int pf_m4_attack_for_action(
             fighter->strong_active_ticks;
         out_attack->hitlag_ticks = fighter->strong_hitlag_ticks;
         out_attack->direction = INT8_C(1);
-        out_attack->action_state =
-            (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
+        out_attack->action_state = action_state;
         return 1;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)

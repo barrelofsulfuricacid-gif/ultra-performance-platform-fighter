@@ -18,7 +18,7 @@
 #define TEST_HASH_COUNT 181U
 #define TEST_REPLAY_CAPACITY 32768U
 #define TEST_OPTIONAL_REPLAY_CAPACITY 32816U
-#define TEST_INPUT_PAYLOAD_OFFSET 829U
+#define TEST_INPUT_PAYLOAD_OFFSET 833U
 
 _Static_assert(
     TEST_INPUT_COUNT == PF_M2_REPLAY_TICKS * PF_M2_REPLAY_PLAYERS,
@@ -243,6 +243,8 @@ int main(void)
     int tech_window_observed = 0;
     int air_dodge_observed = 0;
     int special_landing_observed = 0;
+    int grounded_roll_observed = 0;
+    int spot_dodge_observed = 0;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -360,6 +362,21 @@ int main(void)
                 {
                     special_landing_observed = 1;
                 }
+                if (combat_inspection.players[player_index].
+                        action_state ==
+                        (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+                    combat_inspection.players[player_index].
+                        action_state ==
+                        (uint8_t)PF_M4_ACTION_ROLL_BACKWARD)
+                {
+                    grounded_roll_observed = 1;
+                }
+                if (combat_inspection.players[player_index].
+                        action_state ==
+                    (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+                {
+                    spot_dodge_observed = 1;
+                }
             }
         }
     }
@@ -378,6 +395,8 @@ int main(void)
         tech_window_observed == 0 ||
         air_dodge_observed == 0 ||
         special_landing_observed == 0 ||
+        grounded_roll_observed == 0 ||
+        spot_dodge_observed == 0 ||
         (combat_inspection.players[0].last_hit_valid == UINT8_C(0) &&
          combat_inspection.players[1].last_hit_valid == UINT8_C(0) &&
          combat_inspection.players[2].last_hit_valid == UINT8_C(0) &&
@@ -387,7 +406,8 @@ int main(void)
             stderr,
             "sim-replay=fail operation=source-result completed=%" PRIu64
             " terminated=%u truncated=%u winner=%u hit=%u%u%u%u"
-            " sdi=%d tech=%d air_dodge=%d special_landing=%d\n",
+            " sdi=%d tech=%d air_dodge=%d special_landing=%d"
+            " grounded_roll=%d spot_dodge=%d\n",
             result.completed_tick,
             (unsigned int)result.terminated,
             (unsigned int)result.truncated,
@@ -399,7 +419,9 @@ int main(void)
             sdi_observed,
             tech_window_observed,
             air_dodge_observed,
-            special_landing_observed);
+            special_landing_observed,
+            grounded_roll_observed,
+            spot_dodge_observed);
         return 1;
     }
 
@@ -419,7 +441,7 @@ int main(void)
             pf_replay_query_size(&replay_source, &replay_size),
             PF_STATUS_OK,
             "query-replay-size") ||
-        replay_size != (size_t)31265)
+        replay_size != (size_t)31269)
     {
         (void)fprintf(
             stderr,

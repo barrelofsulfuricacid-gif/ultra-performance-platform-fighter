@@ -54,14 +54,14 @@ used by the native/WebAssembly corpus test and browser inspector:
 - Four-player team configuration.
 - Seed `0x0123456789abcdef`.
 - 180 normalized input ticks and 181 state hashes.
-- 31,265 replay bytes with M4 state schema 11 / save format 10.
+- 31,269 replay bytes with M4 state schema 13 / save format 12.
 - Ground-attack, vertical-stick, and trigger inputs plus confirmed damage/hit,
-  SDI, tech-window, shield, air-dodge, and special-landing state in the
-  production combat path.
+  grounded-roll, spot-dodge, SDI, tech-window, shield, air-dodge, and
+  special-landing state in the production combat path.
 - Replay SHA-256
-  `f3ff682f3dad705ab72101a6bc933d714c4fa5e077de6f2a01edddca8458fe9a`.
+  `2ed88053530905bf9b0a13a16076f8f721c5b11170f53def8ceb290eebb6e584`.
 - Final state SHA-256
-  `bba4e8c923ad98821827f4293070e9f02021b8359b672c4e6769190ff08c796c`.
+  `27cb7b0fbeb117b6cc63ad4f79766b509bf08f210e27426e8d09c3f4099e3d9e`.
 
 The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,

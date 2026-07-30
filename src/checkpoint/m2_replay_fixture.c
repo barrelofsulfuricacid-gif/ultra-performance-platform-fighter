@@ -102,6 +102,12 @@ void pf_m2_replay_make_tick_inputs(
         inputs[2].main_stick_x = INT16_C(32767);
         inputs[3].main_stick_x = INT16_C(-32767);
     }
+    if (tick == UINT64_C(0))
+    {
+        inputs[0].left_trigger = UINT16_MAX;
+        inputs[1].main_stick_y = INT16_MAX;
+        inputs[1].left_trigger = UINT16_MAX;
+    }
 
     if (tick == UINT64_C(8) || tick == UINT64_C(87))
     {

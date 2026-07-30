@@ -3,8 +3,9 @@
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, directional air dodge, wavedash/waveland,
-the first production aerial with auto-cancel/L-cancel landing,
-hit-reaction, and dense-shield primitives in
+light and strong production aerial routes with auto-cancel/L-cancel landing,
+grounded forward/backward rolls, spot dodge, hit-reaction, and dense-shield
+primitives in
 WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
@@ -19,8 +20,10 @@ headless execution.
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack | `F` | `/` or Numpad `0` |
-| Strong ground attack | `H` | `'` or Numpad `2` |
+| Strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
+| Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
+| Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset both players | `R` or Reset button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -81,6 +84,15 @@ jump during jump squat, press the aerial, hold down after the apex to fast-fall,
 then make the fresh trigger press shortly before contact. A trigger pressed
 during the active aerial arms this timer rather than starting an air dodge.
 
+For easier L-cancel practice, press the strong-attack key while airborne. The
+strong aerial reuses the visible pink strong hitbox and its five-startup,
+three-active, 18-recovery, 12%-damage, and six-hitlag data. Landing while that
+action is active always enters a deliberately long 30-tick `STRONG AERIAL
+LANDING`; an eligible trigger press halves it to 15 ticks of `STRONG L-CANCEL
+LANDING`. Every aerial landing displays a large red missed-L-cancel or green
+successful-L-cancel banner, matching ring, and live remaining-frame count over
+the fighter. The light aerial remains the ordinary 12/6-frame SHFFL route.
+
 To grab a ledge, fall beside it while facing inward. After the seven-tick catch
 window, press toward the stage to climb, press down or away to release, or press
 jump for a ledge jump. A claimed ledge rejects another fighter until its current
@@ -111,6 +123,16 @@ Holding shield drains 0.28 health per tick. Releasing before eight ticks keeps
 the shield active until that minimum completes, then starts the 15-tick
 `SHIELD RELEASE`; jumping cancels an already active shield or release. Shield
 health regenerates by 0.07 per non-shield tick.
+
+From an otherwise actionable grounded state, press a fresh full horizontal
+direction with the trigger to roll. Direction is interpreted relative to the
+fighter's fixed facing: toward facing is `FORWARD ROLL`, away is `BACKWARD
+ROLL`, and neither option flips the facing arrow. Press fresh down with the
+trigger for `SPOT DODGE`; down wins over a simultaneous horizontal input.
+Forward roll lasts 31 ticks, backward roll 35, and spot dodge 25. The dashed
+gold ring shows the exact roll action-tick window `[4, 17)` or spot-dodge
+window `[3, 16)`. Holding the direction before pressing trigger is the
+negative case because the direction is no longer fresh.
 
 Blocking the current physical attack prevents percent and launch, freezes both
 players in hitlag, applies damage-scaled pushback, and resumes the defender in
@@ -154,7 +176,7 @@ invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
 This shield slice does not yet include analog light shield, shield tilt/poke,
-shield SDI, shield roll/spot dodge, platform shield drop, grab, projectile
+shield SDI, platform shield drop, grab, projectile
 reflection, or the complete airborne/knockdown/stun shield-break sequence.
 Future ground actions must join the same powershield-cancel router before that
 registry row can advance from `playable` to `verified`.
@@ -232,29 +254,46 @@ registry row can advance from `playable` to `verified`.
     BOUNCE`. Repeat with an upward launch into the underside for `CEILING TECH`
     and `CEILING BOUNCE`. Confirm successful techs clear tumble/hitstun while
     missed impacts retain them.
-21. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+21. Get above the raised block with a full/double jump or launch, descend
+    beside its upper-left corner, and hold toward the block. Confirm the
+    fighter lands or stays flush with the contacted face and no part of the
+    body enters the block. Repeat from the upper-right corner.
+22. From idle, press trigger plus the direction the fighter faces. Confirm
+    `FORWARD ROLL`, unchanged facing, movement only during its middle window,
+    the gold ring only on action ticks 4–16, and idle after 31 ticks. Repeat
+    away from facing for `BACKWARD ROLL` and its 35-tick duration. Then press
+    trigger plus fresh down for `SPOT DODGE`, confirm no horizontal movement,
+    the ring only on ticks 3–15, and idle after 25 ticks. Hold down before
+    pressing trigger and confirm ordinary `SHIELD` instead.
+23. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-22. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+24. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
     fighter slides forward and slows under traction. Reset, press shield during
     `INITIAL DASH`, and confirm the fighter does not shield until run.
-23. Hold shield for more than four ticks and block an attack. Confirm no
+25. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-24. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+26. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-25. Full hop and use the aerial late enough to land during its startup
+27. Full hop and use the aerial late enough to land during its startup
     auto-cancel frames; confirm generic `LANDING`. Then short-hop aerial,
     fast-fall, and land without the trigger for 12 ticks of `AERIAL LANDING`.
     Repeat with a fresh trigger in the last seven ticks and confirm six ticks
     of `L-CANCEL LANDING`. Pause and step while watching trigger age: 0–6 must
     say eligible and 7 must not.
-26. Repeat with Player 2's arrow-key controls and try both players
+28. Short hop, press the strong-attack key while airborne, hold down to
+    fast-fall, and intentionally omit the trigger. Confirm the pink hitbox,
+    `STRONG AERIAL LANDING`, a red missed-L-cancel banner/ring, and a countdown
+    from 30 frames. Repeat with a fresh trigger shortly before contact and
+    confirm `STRONG L-CANCEL LANDING`, a green success banner/ring, and a
+    15-frame countdown.
+29. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -270,6 +309,9 @@ through:
 - an opposite full magnitude producing an immediate dash-dance reversal;
 - an opposite full magnitude after `RUN` producing `RUN TURNAROUND`, never a
   new initial dash;
+- fresh trigger-plus-horizontal input selecting forward/backward roll relative
+  to facing, fresh trigger-plus-down selecting spot dodge, and both actions
+  reaching their authored invulnerability windows without changing facing;
 - two different short-hop release timings producing the same apex;
 - two different post-takeoff full-hop hold durations producing the same apex;
 - opposite-direction aerial drift and an opposite-direction air jump changing
@@ -280,6 +322,8 @@ through:
 - a default-content aerial auto-cancel route, 12-tick normal aerial landing,
   six-tick L-cancel landing, and exact eligible trigger ages 0–6 versus the
   ineligible age-7 boundary;
+- a strong airborne attack route with production hit data, 30-tick normal
+  landing lag, and 15-tick L-cancel landing lag;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
@@ -306,6 +350,7 @@ The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
 floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
+ground_dodge_probe=pass
 aerial_l_cancel_probe=pass controls=keyboard-two-player` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

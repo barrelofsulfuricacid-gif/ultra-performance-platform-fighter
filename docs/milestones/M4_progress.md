@@ -4,7 +4,9 @@
 attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland, the first
-production aerial, auto-cancel, L-cancel, and SHFFL implemented
+light and strong production aerial routes, auto-cancel, visibly scored
+L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
+implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -19,11 +21,12 @@ production aerial, auto-cancel, L-cancel, and SHFFL implemented
   facing, traction, crouch, jump squat, binary short/full hop, configured air
   jump, independently steerable aerial drift with takeoff-facing lock, fast
   fall, landing, moving-platform support, platform drop, support edges,
-  solid-block top/side/underside collision, blast-zone respawn, ledge catch,
-  catch lockout, hang, release, ledge jump, and ledge climb.
+  solid-block top/side/underside collision with sealed upper-corner seams,
+  blast-zone respawn, ledge catch, catch lockout, hang, release, ledge jump,
+  and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-11/save-format-10 contract that serializes every
+- A rollback-safe state-schema-13/save-format-12 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield field.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -34,7 +37,7 @@ production aerial, auto-cancel, L-cancel, and SHFFL implemented
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state, trigger age, and
   L-cancel eligibility.
-- Sixty-six movement/content invariants plus a 20,000-tick four-player
+- Ninety-four movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -43,7 +46,8 @@ production aerial, auto-cancel, L-cancel, and SHFFL implemented
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
   dash-dance reversal, short/full-hop apex, aerial landing/L-cancel timing,
-  real damage/hitlag, and reaction-input invariants pass.
+  strong-aerial 30/15-tick landing timing, real damage/hitlag, and
+  reaction-input invariants pass.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -159,8 +163,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   semantics, so the save remains 569 bytes.
 - Native verification now covers default-attack entry, positive and negative
   wall/ceiling outcomes, exact wall stall/release, facing, launch,
-  invulnerability, invalid geometry, and the five solid-geometry movement
-  checks.
+  invulnerability, invalid geometry, and seven solid-geometry movement checks,
+  including mirrored upper-corner inward-drift penetration regressions.
 - Browser view schema 7 renders the block and labels all five actions. Its
   startup readiness probe reaches `WALL_TECH_JUMP` through ordinary movement,
   strong attack, trigger, and up inputs on the default content.
@@ -219,6 +223,60 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry rows 2 (auto-canceling), 29 (L-cancelling), and 46 (short hop fast
   fall l-cancel) advance to `playable`.
 
+## Delivered in the grounded dodge and roll slice
+
+- Content/fighter schema 12 defines original placeholder forward- and
+  backward-roll speeds and durations, one shared half-open movement window,
+  one shared roll-invulnerability window, and independent spot-dodge duration
+  and invulnerability data.
+- A fresh full horizontal input with a held or newly pressed trigger enters
+  forward or backward roll relative to the fighter's fixed facing. Fresh down
+  plus trigger enters spot dodge and wins over a simultaneous horizontal
+  input. Held direction alone cannot retrigger an option.
+- The placeholder forward roll lasts 31 ticks at `9/50` Q16 units/tick, the
+  backward roll lasts 35 ticks at `4/25` Q16 units/tick, and both move only on
+  action ticks `[3, 20)` and reject hits on `[4, 17)`. Spot dodge lasts 25
+  ticks and rejects hits on `[3, 16)`.
+- Rolls preserve facing, stop safely against solid sides, and become airborne
+  when their authored motion crosses a support edge.
+- State schema 12/save format 11 adds one canonical fresh-down history byte
+  per player. The complete stream is 577 bytes, and a mid-spot-dodge
+  round-trip produces identical immediate and future hashes.
+- Native movement and combat oracles cover neutral-shield and held-down
+  negatives, shield-held flick entry, exact duration/distance/invulnerability
+  boundaries, wall and edge collision, hit rejection inside each dodge type,
+  and hit acceptance immediately before and after spot-dodge invulnerability.
+- Browser view schema 10 labels all three actions, retains the derived
+  invulnerability ring, exposes ordinary keyboard recipes, and requires an
+  independent grounded-dodge startup probe before readiness.
+- The shared 180-tick replay now deliberately observes both a grounded roll
+  and spot dodge before encoding.
+
+## Delivered in the strong-aerial L-cancel testability slice
+
+- A fresh strong-attack edge while airborne enters
+  `STRONG_AERIAL_ATTACK`. It reuses the existing strong attack's startup,
+  active, recovery, pink hitbox, 12% damage, launch, and hitlag data through
+  the production ownership path; attacker hitlag resumes into the airborne
+  action.
+- Landing while that action is active always enters a locked 30-tick
+  `STRONG_AERIAL_LANDING`. A trigger age of 0–6 instead enters the locked
+  15-tick `STRONG_L_CANCEL_LANDING`, making both the failure and success easy
+  to count.
+- Content/fighter schema 13 adds the independently validated strong landing-lag
+  value. State schema 13/save format 12 adds the three action semantics without
+  changing the 577-byte stream; inspection schema 12 and browser view schema
+  11 expose and label the new outcomes.
+- The browser draws a large red missed-L-cancel or green successful-L-cancel
+  banner, matching fighter ring, and live remaining-frame counter for light
+  and strong aerial landings.
+- Solid-top and underside collision sweeps now test the fighter's complete
+  horizontal body extent. Mirrored deterministic regressions prevent inward
+  drift from entering either raised-block upper corner.
+- Native oracles cover strong-aerial entry/hit/resume, locked 30/15-tick
+  landing outcomes, invalid data, and both collision corners; the independent
+  browser startup probe exercises both strong landing paths before readiness.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -234,6 +292,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   special-landing ticks, enabling wavedash and waveland with keyboard input.
 - During an aerial, that same fresh trigger arms the independent seven-frame
   L-cancel timer instead of replacing the attack with an air dodge.
+- The strong-attack input remains usable airborne as the conspicuous L-cancel
+  drill: 30 normal landing ticks versus 15 after an eligible trigger, with a
+  red/green browser result cue.
+- On the ground, trigger plus a fresh full horizontal direction enters a
+  forward/backward roll relative to facing; trigger plus fresh down enters
+  spot dodge and takes priority. Neither option changes facing.
 - Opposite input during initial dash remains a dash-dance reversal. Opposite
   input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
   sub-threshold run input enters `RUN BRAKE`.
@@ -269,8 +333,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Remaining M4.2 and M4.3 work
 
 - Remaining ground attacks, aerials, specials, recovery, grabs/throws, analog
-  light shield, shield size/tilt/pokes and shield SDI, defensive rolls, spot
-  dodge, platform shield drop, projectile powershield/reflection,
+  light shield, shield size/tilt/pokes and shield SDI, platform shield drop,
+  projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
   complete shield-break behavior, complete
   knockback/angle data, stale-move behavior,
@@ -287,19 +351,19 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 17/17 tests.
 - Address/undefined-behavior sanitizer workflow: 17/17 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 66 movement invariants, 96
+- Mechanical oracles: 94 movement invariants, 110
   attack/reaction/shield/floor/surface
   invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/air-dodge trace at 31,265
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,269
   bytes,
   replay SHA-256
-  `f3ff682f3dad705ab72101a6bc933d714c4fa5e077de6f2a01edddca8458fe9a`,
+  `2ed88053530905bf9b0a13a16076f8f721c5b11170f53def8ceb290eebb6e584`,
   final SHA-256
-  `bba4e8c923ad98821827f4293070e9f02021b8359b672c4e6769190ff08c796c`;
+  `27cb7b0fbeb117b6cc63ad4f79766b509bf08f210e27426e8d09c3f4099e3d9e`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -308,7 +372,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/air-facing/air-dodge-and-wavedash/aerial-auto-cancel-and-L-cancel/
+  movement/ground-dodge-and-roll/air-facing/air-dodge-and-wavedash/
+  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
   combat/reaction/shield-and-PSC/default-tumble/floor-recovery/surface-tech
   probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
