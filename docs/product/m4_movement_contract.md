@@ -56,9 +56,15 @@ scales jump height. The mechanical oracle compares early and late releases
 within each category and requires exact matching apexes.
 
 An airborne fresh jump press consumes one configured air jump without changing
-facing, even when the horizontal stick points opposite that facing. A
-deliberate down input after the apex enters the fixed fast-fall speed. Landing
-enters a finite landing state.
+facing, even when the horizontal stick points opposite that facing. Instant
+double jump is the earliest legal case: release the first jump during jump
+squat, then send a fresh jump edge on the first airborne tick. The takeoff tick
+is explicitly excluded, holding one jump input cannot retrigger it, and an
+exhausted air jump is rejected. The accepted edge applies the configured
+double-jump velocity before that tick's ordinary gravity and motion, so the
+result is deterministic across save/load and rollback. A deliberate down input
+after the apex enters the fixed fast-fall speed. Landing enters a finite
+landing state.
 
 ## Grounded rolls and spot dodge
 

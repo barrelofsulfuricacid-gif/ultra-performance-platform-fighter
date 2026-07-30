@@ -47,7 +47,10 @@ rules follow the documented Melee `RUN`/`TURNRUN` behavior in
 Jump has a three-tick jump squat. Release during jump squat for the one fixed
 short-hop launch speed; hold through takeoff for the one fixed full-hop launch
 speed. Releasing or continuing to hold after takeoff cannot change the selected
-apex.
+apex. For an instant double jump, release the first jump during jump squat and
+press the other jump key on the first airborne frame. The live `air jumps`
+counter changes from 1 to 0; holding one key through takeoff does not consume
+the air jump because only a fresh edge is accepted.
 
 Once airborne, horizontal input changes drift but does not change the direction
 the fighter faces. An air jump also preserves facing, even when performed while
@@ -228,9 +231,13 @@ registry row can advance from `playable` to `verified`.
    height.
 5. Hold jump through takeoff, then vary when it is released. Confirm every full
    hop reaches the same height and is higher than every short hop.
-6. Jump while facing right, hold left until moving left, then hold right until
-   moving right. Confirm the facing indicator stays right throughout both drift
-   directions and an air jump. Repeat after turning left on the ground.
+6. Tap `Space`, release it during jump squat, then tap `W` on the first
+   airborne frame. Confirm the immediate double-jump arc and the `air jumps`
+   counter changing from 1 to 0. Repeat while holding only one jump key through
+   takeoff and confirm the counter remains 1. Then jump while facing right,
+   hold left until moving left, and hold right until moving right. Confirm the
+   facing indicator stays right throughout both drift directions and the air
+   jump. Repeat after turning left on the ground.
 7. Full hop and press up-right plus the trigger while airborne. Confirm `AIR
    DODGE`, unchanged facing, the gold invulnerability ring only on action ticks
    3–28, and `FALL SPECIAL` if the dodge finishes without touching a surface.
@@ -361,6 +368,9 @@ through:
   reaching their authored invulnerability windows without changing facing;
 - two different short-hop release timings producing the same apex;
 - two different post-takeoff full-hop hold durations producing the same apex;
+- an exact first-airborne-frame instant double jump consuming one air jump and
+  applying its authored velocity, plus a held jump through takeoff proving
+  edge-triggered non-repeat;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -400,7 +410,8 @@ through:
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
-`playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass
+`playtest=ready input_probe=pass air_facing_probe=pass
+instant_double_jump_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

@@ -47,7 +47,7 @@ current build can perform the technique.
 | 18 | Glide toss | planned | M4.4 | Production grounded roll now exists; item carry/drop, roll-to-throw momentum transfer, and throw/drop input priority remain | `tests/sim/test_m4_movement.c` covers the roll foundation only | Future: initiate roll and item throw/drop in the legal window, then compare item and fighter travel |
 | 19 | Gimp | primitive-ready | M4.4 | Air jump/dodge, ledge interaction, aerial edgeguard attacks, and deterministic stock/KO result exist; an original special-recovery route and repeatable victim policy remain | `tests/sim/test_m4_movement.c` covers aerial/ledge recovery foundations; `tests/sim/test_m4_combat.c` covers aerial hits; `tests/sim/test_m4_match.c` covers stock/KO result, but no complete gimp route | Future: force a low-percent recovery failure through legal edgeguarding and prove the unchallenged recovery succeeds |
 | 20 | Infinite | planned | M4.4 | Multi-action combo fixtures, escape policy, repeated-state detector | — | Future: demonstrate a repeatable non-escaping loop and an input/state change that breaks it |
-| 21 | Instant double jump | planned | M4.4 | Airborne jump timing, jump-squat exit, exact first-airborne-frame oracle | — | Future: double jump on the first legal airborne frame and compare height/timing with a delayed input |
+| 21 | Instant double jump | playable | M4.4 | Production jump squat, binary first jump, fresh-edge air jump, and remaining-air-jump state compose through ordinary input on the first legal airborne frame | `tests/sim/test_m4_movement.c` covers the exact first-airborne-frame velocity/position, launch-tick exclusion, held-input non-repeat, exhausted-jump rejection, and mid-IDJ save/load continuation; `src/web_client/m4_playtest.c` and `tools/verify_m4_browser.sh` run the positive and held-input routes before browser readiness | Tap and release one jump key during the three-tick jump squat, then press the other jump key on the first airborne frame. Confirm the fighter immediately takes the double-jump arc while the live `air jumps` counter changes from 1 to 0; hold one jump key through takeoff for the negative case and confirm the counter remains 1 |
 | 22 | Jab cancel | planned | M4.4 | Jab sequence, cancel windows, follow-up actions, hit/whiff variants | — | Future: cancel jab on hit and whiff inside the legal window and repeat one tick late |
 | 23 | Jab reset | primitive-ready | M4.4 | Knockdown, down-wait, and getup choices exist; grounded low-knockback reset reaction remains | `tests/sim/test_m4_combat.c` covers the complete missed-tech/getup choice foundation, not a jab reset | Future: jab a vulnerable down-wait target into the forced reset state and compare invulnerable/late cases |
 | 24 | Juggling | planned | M4.4 | Aerial attacks, repeated launch, recovery/DI policy, stock result | — | Future: keep a target airborne through multiple legal hits while a DI/escape policy remains active |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 10 `playable`, 8
-`primitive-ready`, and 42 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 12 `playable`, 7
+`primitive-ready`, and 41 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.

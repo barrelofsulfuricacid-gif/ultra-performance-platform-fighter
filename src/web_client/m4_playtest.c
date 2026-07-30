@@ -110,6 +110,7 @@ extern void pf_web_m4_playtest_install(
     int dash_axis,
     int input_probe_passed,
     int air_facing_probe_passed,
+    int instant_double_jump_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -571,6 +572,91 @@ static int pf_web_m4_run_air_facing_probe(void)
         }
     }
     return inspection.players[0].velocity_x_q16 > INT32_C(0);
+}
+
+static int pf_web_m4_run_instant_double_jump_probe(void)
+{
+    pf_m4_inspection inspection;
+    int32_t launch_y;
+    const int32_t expected_velocity_y =
+        -pf_web_m4_content.fighter.double_jump_speed_q16 +
+        pf_web_m4_content.fighter.gravity_q16;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].air_jumps_remaining != UINT8_C(1))
+    {
+        return 0;
+    }
+
+    launch_y = inspection.players[0].position_y_q16;
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        inspection.players[0].velocity_y_q16 !=
+            expected_velocity_y ||
+        inspection.players[0].position_y_q16 !=
+            launch_y + expected_velocity_y)
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    return inspection.players[0].grounded == UINT8_C(0) &&
+           inspection.players[0].air_jumps_remaining == UINT8_C(1);
 }
 
 static int pf_web_m4_start_short_hop_aerial(
@@ -2404,6 +2490,7 @@ int pf_web_m4_playtest_start(void)
     pf_sim_config config;
     int input_probe_passed;
     int air_facing_probe_passed;
+    int instant_double_jump_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -2451,6 +2538,8 @@ int pf_web_m4_playtest_start(void)
 
     input_probe_passed = pf_web_m4_run_input_probe();
     air_facing_probe_passed = pf_web_m4_run_air_facing_probe();
+    instant_double_jump_probe_passed =
+        pf_web_m4_run_instant_double_jump_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -2470,6 +2559,7 @@ int pf_web_m4_playtest_start(void)
     match_probe_passed = pf_web_m4_run_match_probe();
     if (input_probe_passed == 0 ||
         air_facing_probe_passed == 0 ||
+        instant_double_jump_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -2490,6 +2580,7 @@ int pf_web_m4_playtest_start(void)
         (int)PF_WEB_M4_DASH_AXIS,
         input_probe_passed,
         air_facing_probe_passed,
+        instant_double_jump_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

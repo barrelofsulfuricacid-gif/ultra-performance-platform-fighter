@@ -6,6 +6,7 @@ physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
+plus explicit first-airborne-frame instant double jump verification
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
 results, rematch, the bounded rollback-safe typed event feed, and complete
 shield-break launch/down/stand/stun/recovery implemented
@@ -39,7 +40,7 @@ shield-break launch/down/stand/stun/recovery implemented
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state, trigger age, and
   L-cancel eligibility, stocks, respawn timers, sudden death, and result.
-- Ninety-four movement/content invariants plus a 20,000-tick four-player
+- One hundred four movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -48,6 +49,7 @@ shield-break launch/down/stand/stun/recovery implemented
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
   dash-dance reversal, short/full-hop apex, aerial landing/L-cancel timing,
+  instant-double-jump timing and held-input rejection,
   strong-aerial 30/15-tick landing timing, real damage/hitlag,
   shield-break phase/mash/recovery, and reaction-input and stock/respawn
   invariants pass.
@@ -362,6 +364,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 40, Shield break combo, advances to `playable` with a focused
   deterministic punish and mid-stun save/load continuation oracle.
 
+## Delivered in the instant-double-jump slice
+
+- A released first jump followed by a fresh jump edge on the first legal
+  airborne frame consumes exactly one configured air jump and applies the
+  exact data-defined double-jump velocity before ordinary gravity.
+- A jump edge on the takeoff tick cannot consume the air jump, holding one jump
+  input through takeoff cannot repeat it, and an exhausted air jump cannot be
+  reused.
+- The focused movement oracle checks exact first-frame position/velocity and a
+  mid-IDJ save/load continuation with matching future canonical hashes.
+- Browser readiness runs both the positive route and the held-input negative
+  route. The live state card already exposes the remaining-air-jump counter,
+  and the playtest text gives a two-key keyboard recipe.
+- Registry row 21, Instant double jump, advances from `planned` to `playable`;
+  owner execution and the remaining acceptance evidence are still required
+  before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -392,8 +411,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, L-cancelling, SHFFL, short hop air dodge, and
-  wavedash are now playable; other rows
+  verified; auto-canceling, instant double jump, L-cancelling, SHFFL, short
+  hop air dodge, and wavedash are now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -402,7 +421,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 11 playable, 7 primitive-ready, and 42 planned.
+  blocked: 1 verified, 12 playable, 7 primitive-ready, and 41 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -434,7 +453,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 94 movement invariants, 126
+- Mechanical oracles: 104 movement invariants, 126
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,

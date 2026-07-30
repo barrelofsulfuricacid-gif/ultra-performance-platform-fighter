@@ -441,12 +441,13 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
     inputProbePassed,
     airFacingProbePassed,
+    instantDoubleJumpProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -545,6 +546,7 @@ mergeInto(LibraryManager.library, {
     live.textContent =
       inputProbePassed &&
       airFacingProbePassed &&
+      instantDoubleJumpProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -556,7 +558,7 @@ mergeInto(LibraryManager.library, {
       groundDodgeProbePassed &&
       aerialLCancelProbePassed &&
       matchProbePassed
-        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT EVENT JOURNAL + REACTION + SHIELD / PSC / BREAK + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
+        ? "INPUT + IDJ + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT EVENT JOURNAL + REACTION + SHIELD / PSC / BREAK + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -620,7 +622,10 @@ mergeInto(LibraryManager.library, {
     note.textContent =
       "Tap jump and release during the three-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +
-      "takeoff never changes either apex. Tap opposite full directions during " +
+      "takeoff never changes either apex. For an instant double jump, release " +
+      "the first jump during jump squat, then press the other jump key on the " +
+      "first airborne frame; the live air-jumps counter changes from 1 to 0. " +
+      "Holding one jump key never repeats the input. Tap opposite full directions during " +
       "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
       "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
@@ -939,6 +944,8 @@ mergeInto(LibraryManager.library, {
         (inputProbePassed ? "pass" : "fail") +
         " air_facing_probe=" +
         (airFacingProbePassed ? "pass" : "fail") +
+        " instant_double_jump_probe=" +
+        (instantDoubleJumpProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -970,6 +977,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
       status.dataset.airFacingProbe =
         airFacingProbePassed ? "pass" : "fail";
+      status.dataset.instantDoubleJumpProbe =
+        instantDoubleJumpProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

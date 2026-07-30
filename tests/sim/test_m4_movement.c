@@ -2023,6 +2023,269 @@ static int run_air_control_test(
     return 1;
 }
 
+static int run_instant_double_jump_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage held_storage;
+    test_sim_storage takeoff_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *held = NULL;
+    pf_sim *takeoff = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection held_inspection;
+    pf_m4_inspection takeoff_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    int32_t launch_y;
+    int32_t expected_velocity_y;
+    uint32_t tick;
+
+    if (content->fighter.air_jump_count != UINT8_C(1) ||
+        !initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !initialize_sim(
+            &held_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &held) ||
+        !initialize_sim(
+            &takeoff_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &takeoff) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x1d100001)),
+            PF_STATUS_OK,
+            "idj-source-reset") ||
+        !expect_status(
+            pf_sim_reset(held, UINT64_C(0x1d100002)),
+            PF_STATUS_OK,
+            "idj-held-reset") ||
+        !expect_status(
+            pf_sim_reset(takeoff, UINT64_C(0x1d100003)),
+            PF_STATUS_OK,
+            "idj-takeoff-reset"))
+    {
+        return 0;
+    }
+
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].air_jumps_remaining !=
+            UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=idj-first-airborne-setup\n");
+        return 0;
+    }
+
+    launch_y = source_inspection.players[0].position_y_q16;
+    expected_velocity_y =
+        -content->fighter.double_jump_speed_q16 +
+        content->fighter.gravity_q16;
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].air_jumps_remaining !=
+            UINT8_C(0) ||
+        source_inspection.players[0].velocity_y_q16 !=
+            expected_velocity_y ||
+        source_inspection.players[0].position_y_q16 !=
+            launch_y + expected_velocity_y)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=idj-first-airborne-input\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "idj-query-save-size") ||
+        save_size != (size_t)603)
+    {
+        return 0;
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "idj-save"))
+    {
+        return 0;
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "idj-load") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "idj-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "idj-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        const uint64_t buttons =
+            tick == UINT32_C(1)
+                ? PF_INPUT_BUTTON_JUMP
+                : UINT64_C(0);
+
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                buttons,
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                buttons,
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "idj-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "idj-loaded-future-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0 ||
+            source_inspection.players[0].position_y_q16 !=
+                loaded_inspection.players[0].position_y_q16 ||
+            source_inspection.players[0].velocity_y_q16 !=
+                loaded_inspection.players[0].velocity_y_q16 ||
+            source_inspection.players[0].air_jumps_remaining !=
+                UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=idj-snapshot-continuation"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_duel(
+                held,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                &held_inspection))
+        {
+            return 0;
+        }
+    }
+    if (held_inspection.players[0].grounded != UINT8_C(0) ||
+        held_inspection.players[0].air_jumps_remaining !=
+            UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=idj-held-no-repeat\n");
+        return 0;
+    }
+
+    if (!step_duel(
+            takeoff,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &takeoff_inspection) ||
+        !step_duel(
+            takeoff,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &takeoff_inspection) ||
+        !step_duel(
+            takeoff,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &takeoff_inspection) ||
+        takeoff_inspection.players[0].grounded != UINT8_C(0) ||
+        takeoff_inspection.players[0].air_jumps_remaining !=
+            UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=idj-takeoff-edge-guard\n");
+        return 0;
+    }
+
+    return 1;
+}
+
 static int run_air_facing_lock_test(const pf_content_view *view)
 {
     test_sim_storage storage;
@@ -3999,6 +4262,7 @@ int main(void)
         !run_content_contract_test(&content, &view) ||
         !run_ground_control_test(&content, &view) ||
         !run_air_control_test(&content, &view) ||
+        !run_instant_double_jump_test(&content, &view) ||
         !run_air_facing_lock_test(&view) ||
         !run_air_dodge_test(&content, &view) ||
         !run_ground_dodge_test(&content, &view) ||
@@ -4015,7 +4279,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=94\n",
+        "movement_invariants=104\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }
