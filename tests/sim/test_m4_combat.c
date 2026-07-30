@@ -180,6 +180,7 @@ static int initialize_sim(
         return 0;
     }
     config.max_ticks = UINT64_C(100000);
+    config.stock_count = UINT8_C(0);
     if (!expect_status(
             pf_sim_init(
                 storage->state,
@@ -3623,7 +3624,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)577)
+        save_size != (size_t)603)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -4361,7 +4362,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)577)
+        save_size != (size_t)603)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -4470,7 +4471,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)577)
+        save_size != (size_t)603)
     {
         return fail("mid-shield-hitlag-save-setup");
     }

@@ -52,9 +52,14 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         self.assertTrue(
             np.array_equal(first_observation, second_observation)
         )
-        self.assertEqual(first_observation.shape, (6, 36))
+        self.assertEqual(first_observation.shape, (6, 48))
         self.assertEqual(first_observation.dtype, np.int32)
         self.assertTrue(np.all(first_observation[:, 2:4] == 0))
+        self.assertTrue(
+            np.all((first_observation[:, 7] >> 19) & 0x7F == 4)
+        )
+        self.assertTrue(np.all(first_observation[:, [15, 25]] == 4))
+        self.assertTrue(np.all(first_observation[:, [16, 17, 26, 27]] == 0))
         self.assertTrue(np.all(first_info["_legal_buttons"]))
         self.assertTrue(
             np.array_equal(

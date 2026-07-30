@@ -11,14 +11,14 @@ from typing import Iterable
 import numpy as np
 
 PF_STATUS_OK = 0
-PF_SIM_ABI_VERSION = 2
+PF_SIM_ABI_VERSION = 3
 PF_SIM_CONTENT_SCHEMA_VERSION = 1
-PF_RL_SCHEMA_VERSION = 2
+PF_RL_SCHEMA_VERSION = 3
 PF_RL_ACTION_SCHEMA_VERSION = 1
-PF_RL_TRANSITION_SCHEMA_VERSION = 2
-PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 2
+PF_RL_TRANSITION_SCHEMA_VERSION = 3
+PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 3
 PF_SIM_MAX_PLAYERS = 4
-PF_RL_COMPACT_VALUE_COUNT = 36
+PF_RL_COMPACT_VALUE_COUNT = 48
 PF_Q16_ONE = 65_536
 PF_RL_REWARD_COMPONENT_TERMINAL = 1 << 0
 PF_RL_REWARD_COMPONENT_ENGAGEMENT = 1 << 1
@@ -60,6 +60,11 @@ class _SimConfig(ct.Structure):
         ("max_ticks", ct.c_uint64),
         ("arena_half_width_q16", ct.c_int32),
         ("arena_ceiling_q16", ct.c_int32),
+        ("stock_count", ct.c_uint8),
+        ("reserved2", ct.c_uint8),
+        ("respawn_delay_ticks", ct.c_uint16),
+        ("respawn_invulnerability_ticks", ct.c_uint16),
+        ("reserved3", ct.c_uint16),
     ]
 
 
@@ -94,6 +99,11 @@ class _PlayerObservation(ct.Structure):
         ("team", ct.c_uint8),
         ("grounded", ct.c_uint8),
         ("active", ct.c_uint8),
+        ("stocks_remaining", ct.c_uint8),
+        ("reserved", ct.c_uint8),
+        ("respawn_ticks", ct.c_uint16),
+        ("respawn_invulnerability_ticks", ct.c_uint16),
+        ("reserved2", ct.c_uint16),
     ]
 
 
@@ -108,7 +118,9 @@ class _SimObservation(ct.Structure):
         ("terminated", ct.c_uint8),
         ("truncated", ct.c_uint8),
         ("winner_mask", ct.c_uint8),
-        ("reserved", ct.c_uint8 * 3),
+        ("sudden_death", ct.c_uint8),
+        ("stock_count", ct.c_uint8),
+        ("reserved", ct.c_uint8),
         ("players", _PlayerObservation * PF_SIM_MAX_PLAYERS),
     ]
 
@@ -206,15 +218,15 @@ _ACTION_DTYPE = np.dtype(
 def _assert_layouts() -> None:
     expected = {
         "_ContentView": (_ContentView, 56),
-        "_SimConfig": (_SimConfig, 24),
+        "_SimConfig": (_SimConfig, 32),
         "_MemoryRequirements": (_MemoryRequirements, 32),
         "_TickResult": (_TickResult, 16),
-        "_PlayerObservation": (_PlayerObservation, 32),
-        "_SimObservation": (_SimObservation, 160),
+        "_PlayerObservation": (_PlayerObservation, 40),
+        "_SimObservation": (_SimObservation, 192),
         "_RlAction": (_RlAction, 24),
         "_RlSpec": (_RlSpec, 48),
-        "_RlCompactObservation": (_RlCompactObservation, 152),
-        "_RlTransition": (_RlTransition, 392),
+        "_RlCompactObservation": (_RlCompactObservation, 200),
+        "_RlTransition": (_RlTransition, 472),
     }
     mismatches = [
         f"{name}={ct.sizeof(struct_type)} expected={size}"

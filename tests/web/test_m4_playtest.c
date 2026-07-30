@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 82
-#define TEST_PLAYER0_BASE 18
+#define TEST_VIEW_COUNT 95
+#define TEST_PLAYER0_BASE 25
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
 #define TEST_SOLID_TOP 16
@@ -23,6 +23,10 @@
 #define TEST_PLAYER_ACTION_TICKS 29
 #define TEST_PLAYER_TRIGGER_INPUT_AGE 30
 #define TEST_PLAYER_L_CANCEL_ELIGIBLE 31
+#define TEST_PLAYER_STOCKS 32
+#define TEST_STOCK_COUNT 18
+#define TEST_RESPAWN_DELAY 19
+#define TEST_RESPAWN_INVULNERABILITY 20
 
 static int test_install_count;
 static int test_render_count;
@@ -39,6 +43,7 @@ static int test_surface_tech_probe;
 static int test_air_dodge_probe;
 static int test_ground_dodge_probe;
 static int test_aerial_l_cancel_probe;
+static int test_match_probe;
 static int test_aerial_landing_lag_ticks;
 static int test_strong_aerial_landing_lag_ticks;
 static int32_t test_view[TEST_VIEW_COUNT];
@@ -57,6 +62,7 @@ void pf_web_m4_playtest_install(
     int air_dodge_probe_passed,
     int ground_dodge_probe_passed,
     int aerial_l_cancel_probe_passed,
+    int match_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -78,6 +84,7 @@ void pf_web_m4_playtest_install(
     int air_dodge_probe_passed,
     int ground_dodge_probe_passed,
     int aerial_l_cancel_probe_passed,
+    int match_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks)
 {
@@ -95,6 +102,7 @@ void pf_web_m4_playtest_install(
     test_air_dodge_probe = air_dodge_probe_passed;
     test_ground_dodge_probe = ground_dodge_probe_passed;
     test_aerial_l_cancel_probe = aerial_l_cancel_probe_passed;
+    test_match_probe = match_probe_passed;
     test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
     test_strong_aerial_landing_lag_ticks =
         strong_aerial_landing_lag_ticks;
@@ -186,10 +194,15 @@ int main(void)
         test_air_dodge_probe != 1 ||
         test_ground_dodge_probe != 1 ||
         test_aerial_l_cancel_probe != 1 ||
+        test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 11 ||
+        test_view[0] != 12 ||
         test_view[1] != 0 ||
+        test_view[TEST_STOCK_COUNT] != 4 ||
+        test_view[TEST_RESPAWN_DELAY] != 60 ||
+        test_view[TEST_RESPAWN_INVULNERABILITY] != 120 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 4 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||
@@ -202,7 +215,7 @@ int main(void)
             "reaction_probe=%d shield_probe=%d tumble_probe=%d "
             "floor_recovery_probe=%d surface_tech_probe=%d "
             "air_dodge_probe=%d ground_dodge_probe=%d "
-            "aerial_l_cancel_probe=%d "
+            "aerial_l_cancel_probe=%d match_probe=%d "
             "aerial_lag=%d strong_aerial_lag=%d "
             "schema=%d tick=%d\n",
             test_install_count,
@@ -220,6 +233,7 @@ int main(void)
             test_air_dodge_probe,
             test_ground_dodge_probe,
             test_aerial_l_cancel_probe,
+            test_match_probe,
             test_aerial_landing_lag_ticks,
             test_strong_aerial_landing_lag_ticks,
             (int)test_view[0],
@@ -410,7 +424,7 @@ int main(void)
         "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
         "floor_recovery_probe=%d surface_tech_probe=%d "
         "air_dodge_probe=%d ground_dodge_probe=%d "
-        "aerial_l_cancel_probe=%d renders=%d\n",
+        "aerial_l_cancel_probe=%d match_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
@@ -425,6 +439,7 @@ int main(void)
         test_air_dodge_probe,
         test_ground_dodge_probe,
         test_aerial_l_cancel_probe,
+        test_match_probe,
         test_render_count);
     return 0;
 }

@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–12 / state schemas 1–13
+- **Status:** Accepted for save formats 1–13 / state schemas 1–14
 - **Date:** 2026-07-28
 
 ## Decision
@@ -22,11 +22,12 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 10 | 11 | 140 | 433 | 573 | Canonical aerial-attack, aerial-landing, and L-cancel-landing action IDs plus one fresh-trigger age byte per player |
 | 11 | 12 | 140 | 437 | 577 | Canonical forward-roll, backward-roll, and spot-dodge action IDs plus one fresh-down history byte per player |
 | 12 | 13 | 140 | 437 | 577 | Canonical strong-aerial-attack, strong-aerial-landing, and strong-L-cancel-landing action IDs; no byte-layout change |
+| 13 | 14 | 140 | 463 | 603 | Match stock count, respawn-delay and invulnerability rules, sudden-death state, per-player stocks/timers, and respawn-wait/eliminated action IDs |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
-`PFSAVE11`, or `PFSAVE12`.
-The active M4 runtime emits and accepts format 12 with state schema 13. Earlier
+`PFSAVE11`, `PFSAVE12`, or `PFSAVE13`.
+The active M4 runtime emits and accepts format 13 with state schema 14. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -97,6 +98,10 @@ service-envelope responsibility.
 - Strong-aerial action, airborne hitlag-resume, grounded 30-tick landing, and
   grounded 15-tick L-cancel action relationships, while retaining the fixed
   437-byte payload.
+- Mid-respawn save/load plus equal future hashes, stock-loss and elimination
+  invariants, exact respawn-delay and invulnerability timers, 300% sudden-death
+  setup, deterministic repeated-tie resolution, and team winner masks in
+  `tests/sim/test_m4_match.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

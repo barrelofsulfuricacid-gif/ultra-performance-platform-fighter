@@ -48,6 +48,128 @@ static pf_status pf_validate_inputs(
     return PF_STATUS_OK;
 }
 
+static uint8_t pf_m4_winner_mask_for_team(
+    const pf_world_state *world,
+    uint8_t team)
+{
+    uint8_t winner_mask = UINT8_C(0);
+    uint32_t player_index;
+
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
+        if (world->team[player_index] == team)
+        {
+            winner_mask |=
+                (uint8_t)(UINT32_C(1) << player_index);
+        }
+    }
+    return winner_mask;
+}
+
+static void pf_m4_begin_sudden_death(pf_sim *sim)
+{
+    pf_world_state *world = &sim->world;
+    uint32_t player_index;
+
+    world->sudden_death = UINT8_C(1);
+    world->winner_mask = UINT8_C(0);
+    if (world->combat_event_sequence != UINT32_MAX)
+    {
+        ++world->combat_event_sequence;
+    }
+
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
+        const uint16_t respawn_count =
+            world->respawn_count[player_index];
+
+        pf_m4_reset_player(sim, player_index, 0);
+        world->respawn_count[player_index] = respawn_count;
+        world->stocks_remaining[player_index] = UINT8_C(1);
+        world->active[player_index] = UINT8_C(0);
+        world->respawn_ticks[player_index] =
+            world->respawn_delay_config_ticks != UINT16_C(0)
+                ? world->respawn_delay_config_ticks
+                : UINT16_C(1);
+        world->respawn_invulnerability_ticks[player_index] =
+            UINT16_C(0);
+        world->grounded[player_index] = UINT8_C(0);
+        world->support[player_index] =
+            (uint8_t)PF_M4_SURFACE_NONE;
+        world->action_state[player_index] =
+            (uint8_t)PF_M4_ACTION_RESPAWN_WAIT;
+        world->damage_q16[player_index] =
+            UINT32_C(300) * (uint32_t)PF_Q16_ONE;
+    }
+}
+
+static void pf_m4_resolve_stock_result(pf_sim *sim)
+{
+    pf_world_state *world = &sim->world;
+    uint8_t alive_teams = UINT8_C(0);
+    uint32_t player_index;
+
+    if (world->stock_count == UINT8_C(0))
+    {
+        return;
+    }
+
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
+        if (world->stocks_remaining[player_index] != UINT8_C(0))
+        {
+            alive_teams |=
+                (uint8_t)(UINT32_C(1) << world->team[player_index]);
+        }
+    }
+
+    if (alive_teams != UINT8_C(0) &&
+        (alive_teams & (uint8_t)(alive_teams - UINT8_C(1))) ==
+            UINT8_C(0))
+    {
+        uint8_t winning_team = UINT8_C(0);
+
+        while ((alive_teams &
+                (uint8_t)(UINT32_C(1) << winning_team)) ==
+               UINT8_C(0))
+        {
+            ++winning_team;
+        }
+        world->terminated = UINT8_C(1);
+        world->winner_mask =
+            pf_m4_winner_mask_for_team(world, winning_team);
+        if (world->combat_event_sequence != UINT32_MAX)
+        {
+            ++world->combat_event_sequence;
+        }
+        return;
+    }
+    if (alive_teams != UINT8_C(0))
+    {
+        return;
+    }
+
+    if (world->sudden_death == UINT8_C(0))
+    {
+        pf_m4_begin_sudden_death(sim);
+        return;
+    }
+
+    world->terminated = UINT8_C(1);
+    world->winner_mask =
+        pf_m4_winner_mask_for_team(world, world->team[0]);
+    if (world->combat_event_sequence != UINT32_MAX)
+    {
+        ++world->combat_event_sequence;
+    }
+}
+
 pf_status pf_sim_tick_impl(
     pf_sim *sim,
     const pf_input_frame *inputs,
@@ -141,10 +263,19 @@ pf_status pf_sim_tick_impl(
             scratch->action_ticks[player_index];
         world->respawn_count[player_index] =
             scratch->respawn_count[player_index];
+        world->respawn_ticks[player_index] =
+            scratch->respawn_ticks[player_index];
+        world->respawn_invulnerability_ticks[player_index] =
+            scratch
+                ->respawn_invulnerability_ticks[player_index];
         world->previous_buttons[player_index] =
             scratch->previous_buttons[player_index];
         world->grounded[player_index] =
             scratch->grounded[player_index];
+        world->active[player_index] =
+            scratch->active[player_index];
+        world->stocks_remaining[player_index] =
+            scratch->stocks_remaining[player_index];
         world->action_state[player_index] =
             scratch->action_state[player_index];
         world->support[player_index] =
@@ -264,7 +395,12 @@ pf_status pf_sim_tick_impl(
             }
         }
     }
-    if (world->tick >= world->max_ticks)
+    if (world->terminated == UINT8_C(0))
+    {
+        pf_m4_resolve_stock_result(sim);
+    }
+    if (world->terminated == UINT8_C(0) &&
+        world->tick >= world->max_ticks)
     {
         world->truncated = UINT8_C(1);
     }

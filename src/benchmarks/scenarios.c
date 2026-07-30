@@ -303,6 +303,7 @@ static int initialize_sim(
         return 0;
     }
     config.max_ticks = UINT64_C(1000000000);
+    config.stock_count = UINT8_C(0);
     status = pf_sim_query_memory(&config, &requirements);
     if (status != PF_STATUS_OK)
     {

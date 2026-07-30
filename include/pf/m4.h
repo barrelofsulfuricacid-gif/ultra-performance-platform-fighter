@@ -13,7 +13,7 @@ extern "C"
 #define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(13)
 #define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(13)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(12)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(13)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -62,7 +62,9 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_SPOT_DODGE = 40,
     PF_M4_ACTION_STRONG_AERIAL_ATTACK = 41,
     PF_M4_ACTION_STRONG_AERIAL_LANDING = 42,
-    PF_M4_ACTION_STRONG_L_CANCEL_LANDING = 43
+    PF_M4_ACTION_STRONG_L_CANCEL_LANDING = 43,
+    PF_M4_ACTION_RESPAWN_WAIT = 44,
+    PF_M4_ACTION_ELIMINATED = 45
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -321,6 +323,10 @@ typedef struct pf_m4_player_inspection
     int8_t sdi_direction_y;
     int8_t tech_direction;
     uint32_t shield_health_q16;
+    uint16_t respawn_ticks;
+    uint16_t respawn_invulnerability_ticks;
+    uint8_t stocks_remaining;
+    uint8_t reserved;
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection
@@ -349,8 +355,14 @@ typedef struct pf_m4_inspection
     uint32_t struct_size;
     uint16_t schema_version;
     uint8_t player_count;
-    uint8_t reserved;
+    uint8_t stock_count;
     uint64_t tick;
+    uint16_t respawn_delay_ticks;
+    uint16_t respawn_invulnerability_ticks;
+    uint8_t sudden_death;
+    uint8_t terminated;
+    uint8_t truncated;
+    uint8_t winner_mask;
     pf_m4_stage_inspection stage;
     pf_m4_player_inspection players[PF_SIM_MAX_PLAYERS];
 } pf_m4_inspection;

@@ -6,13 +6,15 @@ native, web, rollback, headless, and reinforcement-learning targets.
 The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
 simulation is complete, and its reinforcement-learning contract has been
-accepted by the owner with schema-2 qualification complete and merge review
-pending. M4 is in progress with production-path movement, two ground attacks,
+accepted by the owner; its current schema-3 observation includes M4 stock and
+respawn state. M4 is in progress with production-path movement, two ground
+attacks,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the
 first light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge, and
-a live two-player browser playtest. M0 selected
+a deterministic four-stock KO/respawn/match-result loop in the live
+two-player browser playtest. M0 selected
 Q16.16 deterministic motion and geometry after benchmark,
 verifier, and blind human-playtest evidence. The accepted
 milestones are summarized in
@@ -114,8 +116,10 @@ hitstun, tumble, ground/wall/ceiling teching, missed-impact bounce, floor
 recovery, shields, directional air dodge/wavedash, aerial attacks,
 auto-cancel, L-cancel/SHFFL, a 30-frame strong-aerial landing-lag drill with
 red/green success feedback, grounded forward/backward rolls, and spot-dodge
-behavior. It must report
-`web-client-smoke=pass sim_abi=2 tick_hz=60`, `webgl2=pass batch_draws=1`,
+behavior. The HUD exposes stocks, respawn countdown and invulnerability; final
+stock KOs show results/rematch, and simultaneous final-stock KOs enter the
+300% sudden-death fixture. It must report
+`web-client-smoke=pass sim_abi=3 tick_hz=60`, `webgl2=pass batch_draws=1`,
 `replay=pass ticks=180 winner_mask=5`, and every M4 startup probe as `pass`.
 Controls and focused human checks are documented in
 [`docs/milestones/M4_browser_playtest.md`](docs/milestones/M4_browser_playtest.md).
@@ -154,6 +158,7 @@ Run the focused native M4 contracts without a browser:
 ```sh
 ./tools/verify_m4_movement.sh
 ./tools/verify_m4_combat.sh
+./tools/verify_m4_match.sh
 ./tools/verify_m4_browser.sh
 ```
 

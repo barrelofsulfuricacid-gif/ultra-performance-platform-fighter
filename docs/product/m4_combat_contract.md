@@ -27,8 +27,10 @@ does not claim the remaining
 attacks, analog light shields, shield tilt/size/pokes, shield SDI,
 platform shield drop, grabs, projectile powershields, complete
 shield-break launch/stun, prone-orientation-specific
-getup-roll asymmetry, stocks, match completion, or completion of the
-61-row non-character-specific advanced-technique gate.
+getup-roll asymmetry, a moving revival platform, or completion of the 61-row
+non-character-specific advanced-technique gate. Configurable stocks, delayed
+respawn, respawn invulnerability, elimination, team results, rematch, and
+simultaneous-final-stock sudden death are now part of the checkpoint.
 
 ## Attack, collision, and ownership
 
@@ -309,11 +311,49 @@ timer, and fighter data. A hit outside the legal window replaces the defensive
 action with ordinary hitlag and hitstun; there is no redundant mutable
 invulnerability flag.
 
+## Stocks, respawn, and match result
+
+`pf_sim_config` carries the deterministic match rules. The default is four
+stocks, a 60-tick respawn wait, and 120 ticks of post-spawn invulnerability.
+Stock count accepts 1–99; zero is the explicit unlimited-stock practice mode
+used by legacy movement/combat traces. Both timers accept 0–3600. A zero
+respawn delay still spends one canonical tick in `RESPAWN_WAIT`, while zero
+invulnerability makes the fighter hittable on its spawn tick.
+
+Crossing a blast boundary increments the bounded respawn count and consumes
+one stock. A fighter with stocks remaining becomes inactive in
+`RESPAWN_WAIT`, then reappears at its deterministic stage spawn with damage,
+reaction, shield, attack, and per-life last-hit state reset. The configured
+invulnerability timer rejects production hitboxes without locking movement or
+attacks. A fighter with no stock enters `ELIMINATED` and no longer participates
+in collision. This checkpoint returns the fighter directly to the authored
+ground spawn after the wait; a moving revival-platform presentation and its
+drop-off interaction remain later M4 stage work.
+
+The match terminates as soon as only one team retains any stock. `winner_mask`
+contains every slot on that team, including an eliminated teammate. If all
+teams lose their final stock on the same tick, the match instead enters a
+deterministic sudden-death fixture: all players receive one stock, wait for the
+configured respawn delay, and return at 300%. If every team is again KO'd on
+the same sudden-death tick, the lowest controller port wins; in teams, that
+port's complete team mask wins. This follows Melee's simultaneous-final-stock
+sudden-death rule and deterministic port tie resolution while avoiding an
+unbounded repeat.
+
+Stocks, timers, sudden-death state, and match result are observable through
+the structured simulation, M4 inspection, RL compact, save/load, replay,
+native, and browser paths. They also enter the configuration hash, so snapshots
+and replays cannot load under different match rules.
+
 ## Canonical state and inspection
 
-State schema 13 / save format 12 adds `STRONG_AERIAL_ATTACK`,
-`STRONG_AERIAL_LANDING`, and `STRONG_L_CANCEL_LANDING` semantics without
-changing the byte layout. It follows state schema 12 / save format 11, which
+State schema 14 / save format 13 adds the stock rules, per-player stocks,
+respawn timers, sudden-death state, and `RESPAWN_WAIT`/`ELIMINATED` action
+semantics. The stream is now 603 bytes: a 140-byte header plus a 463-byte
+payload, with active magic `PFSAVE13`. It follows state schema 13 / save format
+12, which added `STRONG_AERIAL_ATTACK`, `STRONG_AERIAL_LANDING`, and
+`STRONG_L_CANCEL_LANDING` semantics without changing the byte layout, and
+state schema 12 / save format 11, which
 added `ROLL_FORWARD`, `ROLL_BACKWARD`, and `SPOT_DODGE` semantics plus one
 canonical fresh-down history byte per player, and state schema 11 / save format
 10, which added `AERIAL_ATTACK`,
@@ -321,9 +361,8 @@ canonical fresh-down history byte per player, and state schema 11 / save format
 trigger-age byte per player, and state schema 10's `AIR_DODGE`, `FALL_SPECIAL`,
 and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 `WALL_TECH_JUMP`, `CEILING_TECH`, `WALL_BOUNCE`, and `CEILING_BOUNCE` action
-semantics plus the solid-top support ID. The stream is now 577 bytes: a
-140-byte header plus a 437-byte payload. The active magic is `PFSAVE12`. Input
-schema 3 still supplies the separate light- and strong-attack buttons.
+semantics plus the solid-top support ID. Input schema 3 still supplies the
+separate light- and strong-attack buttons.
 
 Content schema 13 / fighter schema 13 adds the independently validated
 strong-aerial landing-lag duration. It follows schema 12's roll
@@ -336,16 +375,17 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 12 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 13 exposes percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
-L-cancel eligibility. Browser view schema 11
+L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
+sudden death, and result. Browser view schema 12
 carries those fields plus the canonical action timer, floor action semantics,
 the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
 floor-attack hitbox, the strong-aerial states, the landing-result banner/ring
-and countdown, and renders the block.
+and countdown, stock HUD, countdown/result overlays, and renders the block.
 
 ## Verification
 
@@ -396,11 +436,18 @@ invariants, including:
 - mid-hitlag and mid-shield-hitlag save/load with equal future hashes; and
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
+`tests/sim/test_m4_match.c` and `tools/verify_m4_match.sh` add 24 match
+invariants: rule defaults and invalid bounds, stock loss, exact respawn and
+invulnerability boundaries, hit rejection/acceptance around invulnerability,
+mid-respawn save/load continuation, final-stock result, 300% simultaneous-KO
+sudden death, deterministic repeated-tie resolution, and 2v2 team winner
+masks.
+
 The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,269-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,295-byte
 replay, and its final digest.
 
 The browser startup refuses readiness unless independent movement,
@@ -426,3 +473,6 @@ The aerial probe independently compares generic auto-cancel landing, 12-tick
 normal aerial landing, and six-tick L-cancel landing, then proves eligible
 trigger ages 0–6 and the exact ineligible age-7 boundary. It then exercises the
 strong aerial and requires exactly 30 normal or 15 L-cancel landing ticks.
+The match probe uses ordinary horizontal input to cross a blast boundary,
+requires exactly one stock loss and the full 60-tick inactive wait, then
+requires an active respawn with the full 120-tick invulnerability timer.

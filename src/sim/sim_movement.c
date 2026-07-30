@@ -828,7 +828,13 @@ void pf_m4_reset_player(
     sim->world.velocity_y_q16[player_index] = INT32_C(0);
     sim->world.action_ticks[player_index] = UINT16_C(0);
     sim->world.respawn_count[player_index] = respawn_count;
+    sim->world.respawn_ticks[player_index] = UINT16_C(0);
+    sim->world.respawn_invulnerability_ticks[player_index] =
+        UINT16_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
+    sim->world.active[player_index] = UINT8_C(1);
+    sim->world.stocks_remaining[player_index] =
+        sim->world.stock_count;
     sim->world.action_state[player_index] =
         (uint8_t)PF_M4_ACTION_GROUND_IDLE;
     sim->world.support[player_index] =
@@ -1190,6 +1196,14 @@ static void pf_m4_copy_combat_scratch(
     pf_sim_scratch *scratch,
     uint32_t player_index)
 {
+    scratch->active[player_index] =
+        world->active[player_index];
+    scratch->stocks_remaining[player_index] =
+        world->stocks_remaining[player_index];
+    scratch->respawn_ticks[player_index] =
+        world->respawn_ticks[player_index];
+    scratch->respawn_invulnerability_ticks[player_index] =
+        world->respawn_invulnerability_ticks[player_index];
     scratch->damage_q16[player_index] =
         world->damage_q16[player_index];
     scratch->pending_velocity_x_q16[player_index] =
@@ -1236,6 +1250,76 @@ static void pf_m4_copy_combat_scratch(
         world->sdi_direction_y[player_index];
     scratch->tech_direction[player_index] =
         world->tech_direction[player_index];
+}
+
+static void pf_m4_prepare_spawn(
+    const pf_m4_fighter_data *fighter,
+    const pf_m4_stage_data *stage,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    int32_t *position_x,
+    int32_t *position_y,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint8_t *grounded,
+    uint8_t *action_state,
+    uint8_t *support,
+    uint8_t *air_jumps_remaining,
+    uint8_t *short_hop_latched,
+    uint8_t *platform_drop_ticks,
+    uint8_t *fast_fall,
+    int8_t *facing,
+    int8_t *dash_direction,
+    int8_t *previous_strong_direction,
+    uint8_t *previous_dodge_down)
+{
+    const int32_t centered_slot =
+        (int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
+        (int32_t)world->player_count;
+
+    *position_x = centered_slot * stage->spawn_spacing_q16;
+    *position_y = stage->floor_y_q16 - fighter->half_height_q16;
+    *velocity_x = INT32_C(0);
+    *velocity_y = INT32_C(0);
+    *action_ticks = UINT16_C(0);
+    *grounded = UINT8_C(1);
+    *action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+    *support = (uint8_t)PF_M4_SURFACE_FLOOR;
+    *air_jumps_remaining = fighter->air_jump_count;
+    *short_hop_latched = UINT8_C(0);
+    *platform_drop_ticks = UINT8_C(0);
+    *fast_fall = UINT8_C(0);
+    *facing =
+        centered_slot <= INT32_C(0) ? INT8_C(1) : INT8_C(-1);
+    *dash_direction = INT8_C(0);
+    *previous_strong_direction = INT8_C(0);
+    *previous_dodge_down = UINT8_C(0);
+    scratch->damage_q16[player_index] = UINT32_C(0);
+    scratch->pending_velocity_x_q16[player_index] = INT32_C(0);
+    scratch->pending_velocity_y_q16[player_index] = INT32_C(0);
+    scratch->last_hit_sequence[player_index] = UINT32_C(0);
+    scratch->last_hit_tick[player_index] = UINT64_C(0);
+    scratch->last_hit_damage_q16[player_index] = UINT32_C(0);
+    scratch->hitlag_ticks[player_index] = UINT16_C(0);
+    scratch->hitstun_ticks[player_index] = UINT16_C(0);
+    scratch->tech_window_ticks[player_index] = UINT16_C(0);
+    scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
+    scratch->shield_stun_ticks[player_index] = UINT16_C(0);
+    scratch->shield_health_q16[player_index] =
+        fighter->shield_health_q16;
+    scratch->hitlag_resume_action[player_index] = UINT8_C(0);
+    scratch->attack_hit_mask[player_index] = UINT8_C(0);
+    scratch->last_hit_attacker[player_index] = UINT8_C(0);
+    scratch->shield_held[player_index] = UINT8_C(0);
+    scratch->trigger_input_age[player_index] = UINT8_MAX;
+    scratch->powershield[player_index] = UINT8_C(0);
+    scratch->tumble[player_index] = UINT8_C(0);
+    scratch->sdi_pulse_count[player_index] = UINT8_C(0);
+    scratch->sdi_direction_x[player_index] = INT8_C(0);
+    scratch->sdi_direction_y[player_index] = INT8_C(0);
+    scratch->tech_direction[player_index] = INT8_C(0);
 }
 
 pf_status pf_m4_step_player(
@@ -1327,6 +1411,100 @@ pf_status pf_m4_step_player(
     pf_status status;
 
     pf_m4_copy_combat_scratch(world, scratch, player_index);
+    if (world->active[player_index] == UINT8_C(0))
+    {
+        if (world->stock_count != UINT8_C(0) &&
+            scratch->stocks_remaining[player_index] == UINT8_C(0))
+        {
+            action_state = (uint8_t)PF_M4_ACTION_ELIMINATED;
+            action_ticks = UINT16_C(0);
+            grounded = UINT8_C(0);
+            support = (uint8_t)PF_M4_SURFACE_NONE;
+            velocity_x = INT32_C(0);
+            velocity_y = INT32_C(0);
+        }
+        else
+        {
+            if (scratch->respawn_ticks[player_index] > UINT16_C(0))
+            {
+                --scratch->respawn_ticks[player_index];
+            }
+            if (scratch->respawn_ticks[player_index] == UINT16_C(0))
+            {
+                pf_m4_prepare_spawn(
+                    fighter,
+                    stage,
+                    world,
+                    scratch,
+                    player_index,
+                    &position_x,
+                    &position_y,
+                    &velocity_x,
+                    &velocity_y,
+                    &action_ticks,
+                    &grounded,
+                    &action_state,
+                    &support,
+                    &air_jumps_remaining,
+                    &short_hop_latched,
+                    &platform_drop_ticks,
+                    &fast_fall,
+                    &facing,
+                    &dash_direction,
+                    &previous_strong_direction,
+                    &previous_dodge_down);
+                scratch->active[player_index] = UINT8_C(1);
+                scratch->respawn_invulnerability_ticks[player_index] =
+                    world->respawn_invulnerability_config_ticks;
+                if (world->sudden_death != UINT8_C(0))
+                {
+                    scratch->damage_q16[player_index] =
+                        UINT32_C(300) * (uint32_t)PF_Q16_ONE;
+                }
+                if (scratch->combat_event_sequence != UINT32_MAX)
+                {
+                    ++scratch->combat_event_sequence;
+                }
+            }
+            else
+            {
+                action_state = (uint8_t)PF_M4_ACTION_RESPAWN_WAIT;
+                action_ticks = UINT16_C(0);
+                grounded = UINT8_C(0);
+                support = (uint8_t)PF_M4_SURFACE_NONE;
+                velocity_x = INT32_C(0);
+                velocity_y = INT32_C(0);
+            }
+        }
+
+        pf_m4_write_scratch(
+            scratch,
+            player_index,
+            input,
+            position_x,
+            position_y,
+            velocity_x,
+            velocity_y,
+            action_ticks,
+            respawn_count,
+            grounded,
+            action_state,
+            support,
+            air_jumps_remaining,
+            short_hop_latched,
+            platform_drop_ticks,
+            fast_fall,
+            facing,
+            dash_direction,
+            previous_strong_direction,
+            previous_dodge_down);
+        return PF_STATUS_OK;
+    }
+    if (scratch->respawn_invulnerability_ticks[player_index] >
+        UINT16_C(0))
+    {
+        --scratch->respawn_invulnerability_ticks[player_index];
+    }
     if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
     {
         --scratch->tech_window_ticks[player_index];
@@ -2984,51 +3162,60 @@ pf_status pf_m4_step_player(
         position_y < stage->blast_top_q16 ||
         position_y > stage->blast_bottom_q16)
     {
-        const int32_t centered_slot =
-            (int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
-            (int32_t)world->player_count;
-
-        position_x = centered_slot * stage->spawn_spacing_q16;
-        position_y =
-            stage->floor_y_q16 - fighter->half_height_q16;
-        velocity_x = INT32_C(0);
-        velocity_y = INT32_C(0);
-        action_ticks = UINT16_C(0);
+        pf_m4_prepare_spawn(
+            fighter,
+            stage,
+            world,
+            scratch,
+            player_index,
+            &position_x,
+            &position_y,
+            &velocity_x,
+            &velocity_y,
+            &action_ticks,
+            &grounded,
+            &action_state,
+            &support,
+            &air_jumps_remaining,
+            &short_hop_latched,
+            &platform_drop_ticks,
+            &fast_fall,
+            &facing,
+            &dash_direction,
+            &previous_strong_direction,
+            &previous_dodge_down);
         if (respawn_count != UINT16_MAX)
         {
             ++respawn_count;
         }
-        grounded = UINT8_C(1);
-        action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-        support = (uint8_t)PF_M4_SURFACE_FLOOR;
-        air_jumps_remaining = fighter->air_jump_count;
-        short_hop_latched = UINT8_C(0);
-        platform_drop_ticks = UINT8_C(0);
-        fast_fall = UINT8_C(0);
-        facing =
-            centered_slot <= INT32_C(0) ? INT8_C(1) : INT8_C(-1);
-        dash_direction = INT8_C(0);
-        previous_strong_direction = INT8_C(0);
-        previous_dodge_down = UINT8_C(0);
-        scratch->damage_q16[player_index] = UINT32_C(0);
-        scratch->pending_velocity_x_q16[player_index] = INT32_C(0);
-        scratch->pending_velocity_y_q16[player_index] = INT32_C(0);
-        scratch->hitlag_ticks[player_index] = UINT16_C(0);
-        scratch->hitstun_ticks[player_index] = UINT16_C(0);
-        scratch->tech_window_ticks[player_index] = UINT16_C(0);
-        scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
-        scratch->shield_stun_ticks[player_index] = UINT16_C(0);
-        scratch->shield_health_q16[player_index] =
-            fighter->shield_health_q16;
-        scratch->hitlag_resume_action[player_index] = UINT8_C(0);
-        scratch->attack_hit_mask[player_index] = UINT8_C(0);
-        scratch->shield_held[player_index] = UINT8_C(0);
-        scratch->trigger_input_age[player_index] = UINT8_MAX;
-        scratch->powershield[player_index] = UINT8_C(0);
-        scratch->tumble[player_index] = UINT8_C(0);
-        scratch->sdi_direction_x[player_index] = INT8_C(0);
-        scratch->sdi_direction_y[player_index] = INT8_C(0);
-        scratch->tech_direction[player_index] = INT8_C(0);
+        if (world->stock_count != UINT8_C(0) &&
+            scratch->stocks_remaining[player_index] > UINT8_C(0))
+        {
+            --scratch->stocks_remaining[player_index];
+        }
+        scratch->active[player_index] = UINT8_C(0);
+        scratch->respawn_invulnerability_ticks[player_index] =
+            UINT16_C(0);
+        grounded = UINT8_C(0);
+        support = (uint8_t)PF_M4_SURFACE_NONE;
+        if (world->stock_count != UINT8_C(0) &&
+            scratch->stocks_remaining[player_index] == UINT8_C(0))
+        {
+            scratch->respawn_ticks[player_index] = UINT16_C(0);
+            action_state = (uint8_t)PF_M4_ACTION_ELIMINATED;
+        }
+        else
+        {
+            scratch->respawn_ticks[player_index] =
+                world->respawn_delay_config_ticks != UINT16_C(0)
+                    ? world->respawn_delay_config_ticks
+                    : UINT16_C(1);
+            action_state = (uint8_t)PF_M4_ACTION_RESPAWN_WAIT;
+        }
+        if (scratch->combat_event_sequence != UINT32_MAX)
+        {
+            ++scratch->combat_event_sequence;
+        }
     }
     else
     {
@@ -3082,7 +3269,16 @@ pf_status pf_m4_inspect(
     out_inspection->schema_version =
         PF_M4_INSPECTION_SCHEMA_VERSION;
     out_inspection->player_count = sim->world.player_count;
+    out_inspection->stock_count = sim->world.stock_count;
     out_inspection->tick = sim->world.tick;
+    out_inspection->respawn_delay_ticks =
+        sim->world.respawn_delay_config_ticks;
+    out_inspection->respawn_invulnerability_ticks =
+        sim->world.respawn_invulnerability_config_ticks;
+    out_inspection->sudden_death = sim->world.sudden_death;
+    out_inspection->terminated = sim->world.terminated;
+    out_inspection->truncated = sim->world.truncated;
+    out_inspection->winner_mask = sim->world.winner_mask;
 
     stage = &sim->content.stage;
     platform_center =
@@ -3199,10 +3395,12 @@ pf_status pf_m4_inspect(
             sim->world.powershield[player_index];
         player->tumble = sim->world.tumble[player_index];
         player->invulnerable =
-            pf_m4_action_is_recovery_invulnerable(
-                &sim->content.fighter,
-                player->action_state,
-                player->action_ticks)
+            sim->world.respawn_invulnerability_ticks[player_index] !=
+                    UINT16_C(0) ||
+                pf_m4_action_is_recovery_invulnerable(
+                    &sim->content.fighter,
+                    player->action_state,
+                    player->action_ticks)
                 ? UINT8_C(1)
                 : UINT8_C(0);
         player->sdi_pulse_count =
@@ -3215,6 +3413,13 @@ pf_status pf_m4_inspect(
             sim->world.tech_direction[player_index];
         player->shield_health_q16 =
             sim->world.shield_health_q16[player_index];
+        player->respawn_ticks =
+            sim->world.respawn_ticks[player_index];
+        player->respawn_invulnerability_ticks =
+            sim->world
+                .respawn_invulnerability_ticks[player_index];
+        player->stocks_remaining =
+            sim->world.stocks_remaining[player_index];
         player->hitbox_active = (uint8_t)pf_m4_attack_hitbox(
             &sim->content,
             player->position_x_q16,

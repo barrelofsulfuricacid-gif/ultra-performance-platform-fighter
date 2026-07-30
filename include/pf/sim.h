@@ -9,21 +9,26 @@ extern "C"
 {
 #endif
 
-#define PF_SIM_ABI_VERSION UINT32_C(2)
+#define PF_SIM_ABI_VERSION UINT32_C(3)
 #define PF_SIM_TICK_RATE_HZ UINT32_C(60)
-#define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(3)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(13)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(1)
-#define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(1)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(14)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(2)
+#define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(12)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(13)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
 #define PF_SIM_MAX_PLAYERS UINT32_C(4)
+#define PF_SIM_MAX_STOCK_COUNT UINT8_C(99)
+#define PF_SIM_MAX_RESPAWN_TICKS UINT16_C(3600)
+#define PF_SIM_DEFAULT_STOCK_COUNT UINT8_C(4)
+#define PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS UINT16_C(60)
+#define PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS UINT16_C(120)
 #define PF_Q16_ONE INT32_C(65536)
 
 #define PF_INPUT_BUTTON_JUMP (UINT64_C(1) << 0U)
@@ -123,6 +128,11 @@ typedef struct pf_sim_identity
     uint64_t max_ticks;
     int32_t arena_half_width_q16;
     int32_t arena_ceiling_q16;
+    uint8_t stock_count;
+    uint8_t reserved3;
+    uint16_t respawn_delay_ticks;
+    uint16_t respawn_invulnerability_ticks;
+    uint16_t reserved4;
     pf_hash256 content_hash;
     pf_hash256 config_hash;
 } pf_sim_identity;
@@ -136,6 +146,11 @@ typedef struct pf_sim_config
     uint64_t max_ticks;
     int32_t arena_half_width_q16;
     int32_t arena_ceiling_q16;
+    uint8_t stock_count;
+    uint8_t reserved2;
+    uint16_t respawn_delay_ticks;
+    uint16_t respawn_invulnerability_ticks;
+    uint16_t reserved3;
 } pf_sim_config;
 
 typedef struct pf_memory_requirements
@@ -182,6 +197,11 @@ typedef struct pf_player_observation
     uint8_t team;
     uint8_t grounded;
     uint8_t active;
+    uint8_t stocks_remaining;
+    uint8_t reserved;
+    uint16_t respawn_ticks;
+    uint16_t respawn_invulnerability_ticks;
+    uint16_t reserved2;
 } pf_player_observation;
 
 typedef struct pf_sim_observation
@@ -195,7 +215,9 @@ typedef struct pf_sim_observation
     uint8_t terminated;
     uint8_t truncated;
     uint8_t winner_mask;
-    uint8_t reserved[3];
+    uint8_t sudden_death;
+    uint8_t stock_count;
+    uint8_t reserved;
     pf_player_observation players[PF_SIM_MAX_PLAYERS];
 } pf_sim_observation;
 

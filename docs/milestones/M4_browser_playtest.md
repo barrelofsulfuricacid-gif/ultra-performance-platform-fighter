@@ -5,7 +5,8 @@ geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, directional air dodge, wavedash/waveland,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, hit-reaction, and dense-shield
-primitives in
+primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
+result/rematch loop in
 WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
@@ -25,7 +26,7 @@ headless execution.
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Crouch, platform drop, fast fall | `S` | Down |
-| Reset both players | `R` or Reset button | Same |
+| Reset/rematch both players | `R` or Reset/Rematch button | Same |
 | Pause/resume | `P` or Pause button | Same |
 | One tick while paused | `N` or Step button | Same |
 
@@ -92,6 +93,20 @@ LANDING`; an eligible trigger press halves it to 15 ticks of `STRONG L-CANCEL
 LANDING`. Every aerial landing displays a large red missed-L-cancel or green
 successful-L-cancel banner, matching ring, and live remaining-frame count over
 the fighter. The light aerial remains the ordinary 12/6-frame SHFFL route.
+
+The live fixture is a four-stock match. Crossing any blast boundary consumes
+one stock and shows `RESPAWN WAIT` with a 60-frame countdown. The fighter then
+returns at its authored ground spawn with zero damage and 120 frames of
+hitbox-rejecting invulnerability; the dashed gold ring and state card expose
+the exact timer while movement and attacks remain available. Losing the final
+stock enters `ELIMINATED`, pauses the match, displays the winner, and changes
+Reset to Rematch.
+
+If both players lose their final stock on the same tick, neither is awarded an
+immediate win. The page displays `SUDDEN DEATH · 300%`, gives each fighter one
+stock, waits through the same respawn countdown, and returns both at 300%. A
+second simultaneous KO resolves deterministically to Player 1 rather than
+looping forever.
 
 To grab a ledge, fall beside it while facing inward. After the seven-tick catch
 window, press toward the stage to climb, press down or away to release, or press
@@ -293,7 +308,13 @@ registry row can advance from `playable` to `verified`.
     from 30 frames. Repeat with a fresh trigger shortly before contact and
     confirm `STRONG L-CANCEL LANDING`, a green success banner/ring, and a
     15-frame countdown.
-29. Repeat with Player 2's arrow-key controls and try both players
+29. Run Player 1 beyond a blast boundary. Confirm one stock disappears,
+    `RESPAWN WAIT` counts down from 60, then the fighter returns at zero
+    percent with the dashed ring and 120-frame invulnerability timer. Move and
+    attack during that timer, then confirm the ring expires. Repeat until the
+    final stock and confirm the result banner, paused match, and Rematch
+    button.
+30. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
@@ -324,6 +345,9 @@ through:
   ineligible age-7 boundary;
 - a strong airborne attack route with production hit data, 30-tick normal
   landing lag, and 15-tick L-cancel landing lag;
+- an ordinary-input blast KO consuming exactly one of four stocks, entering
+  the exact 60-tick respawn wait, then returning active with the exact
+  120-tick hitbox-rejecting invulnerability timer;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and canonical combat event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
@@ -351,6 +375,7 @@ The page reports
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
 floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
 ground_dodge_probe=pass
-aerial_l_cancel_probe=pass controls=keyboard-two-player` only after all checks
+aerial_l_cancel_probe=pass match_probe=pass
+controls=keyboard-two-player` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

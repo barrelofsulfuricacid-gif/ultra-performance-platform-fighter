@@ -63,7 +63,7 @@ grep -Fqx \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=577 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=603 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
@@ -84,7 +84,7 @@ grep -Fqx \
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=36 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=2' \
+    'rl-api=pass compact_values=48 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=3' \
     "$output_dir/rl_api.txt"
 
 # shellcheck disable=SC2086
@@ -107,7 +107,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31269 corpus_sha256=2ed88053530905bf9b0a13a16076f8f721c5b11170f53def8ceb290eebb6e584 final_sha256=27cb7b0fbeb117b6cc63ad4f79766b509bf08f210e27426e8d09c3f4099e3d9e' \
+    'sim-replay=pass ticks=180 players=4 bytes=31295 corpus_sha256=3d97ed60fcf0e16477944c4cd9652490df51c59c0d1b11d28f55d18d9e5ab79d final_sha256=9b5405f2fb4435abf774866f478b090d7b15ec8e68155776c2a1c90f5b2ec046' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -192,4 +192,4 @@ else
     echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
 fi
 
-echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 rl_batch=6 players=4 abi=2"
+echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 rl_batch=6 players=4 abi=3"

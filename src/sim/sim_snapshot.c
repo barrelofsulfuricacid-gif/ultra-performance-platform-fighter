@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)437)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)463)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x32)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x33)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -260,8 +260,14 @@ static void pf_write_payload(
     pf_writer_u16(writer, world->input_schema_version);
     pf_writer_i32(writer, world->arena_half_width_q16);
     pf_writer_i32(writer, world->arena_ceiling_q16);
+    pf_writer_u16(writer, world->respawn_delay_config_ticks);
+    pf_writer_u16(
+        writer,
+        world->respawn_invulnerability_config_ticks);
     pf_writer_u8(writer, world->player_count);
     pf_writer_u8(writer, world->mode);
+    pf_writer_u8(writer, world->stock_count);
+    pf_writer_u8(writer, world->sudden_death);
     pf_writer_u8(writer, world->terminated);
     pf_writer_u8(writer, world->truncated);
     pf_writer_u8(writer, world->winner_mask);
@@ -312,6 +318,20 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(writer, world->respawn_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            world->respawn_invulnerability_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->team[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -325,6 +345,12 @@ static void pf_write_payload(
          ++player_index)
     {
         pf_writer_u8(writer, world->active[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->stocks_remaining[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -564,8 +590,13 @@ static void pf_read_payload(
     world->input_schema_version = pf_reader_u16(reader);
     world->arena_half_width_q16 = pf_reader_i32(reader);
     world->arena_ceiling_q16 = pf_reader_i32(reader);
+    world->respawn_delay_config_ticks = pf_reader_u16(reader);
+    world->respawn_invulnerability_config_ticks =
+        pf_reader_u16(reader);
     world->player_count = pf_reader_u8(reader);
     world->mode = pf_reader_u8(reader);
+    world->stock_count = pf_reader_u8(reader);
+    world->sudden_death = pf_reader_u8(reader);
     world->terminated = pf_reader_u8(reader);
     world->truncated = pf_reader_u8(reader);
     world->winner_mask = pf_reader_u8(reader);
@@ -616,6 +647,19 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->respawn_ticks[player_index] = pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->respawn_invulnerability_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->team[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -629,6 +673,13 @@ static void pf_read_payload(
          ++player_index)
     {
         world->active[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->stocks_remaining[player_index] =
+            pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -877,7 +928,7 @@ void pf_sim_snapshot_config_hash(
 
     pf_sha256_init(&hash);
     writer.bytes = NULL;
-    writer.capacity = (size_t)28;
+    writer.capacity = (size_t)34;
     writer.position = (size_t)0;
     writer.hash = &hash;
     writer.failed = 0;
@@ -891,6 +942,12 @@ void pf_sim_snapshot_config_hash(
     pf_writer_u64(&writer, world->max_ticks);
     pf_writer_i32(&writer, world->arena_half_width_q16);
     pf_writer_i32(&writer, world->arena_ceiling_q16);
+    pf_writer_u8(&writer, world->stock_count);
+    pf_writer_u8(&writer, UINT8_C(0));
+    pf_writer_u16(&writer, world->respawn_delay_config_ticks);
+    pf_writer_u16(
+        &writer,
+        world->respawn_invulnerability_config_ticks);
     pf_sha256_finish(&hash, digest);
 }
 
@@ -964,6 +1021,11 @@ static int pf_world_identity_equal(
            left->input_schema_version == right->input_schema_version &&
            left->arena_half_width_q16 == right->arena_half_width_q16 &&
            left->arena_ceiling_q16 == right->arena_ceiling_q16 &&
+           left->stock_count == right->stock_count &&
+           left->respawn_delay_config_ticks ==
+               right->respawn_delay_config_ticks &&
+           left->respawn_invulnerability_config_ticks ==
+               right->respawn_invulnerability_config_ticks &&
            left->player_count == right->player_count &&
            left->mode == right->mode;
 }
@@ -989,6 +1051,39 @@ static int pf_m4_player_state_consistent(
     const uint8_t action = world->action_state[player_index];
     const uint8_t support = world->support[player_index];
 
+    if (world->active[player_index] == UINT8_C(0))
+    {
+        const int waiting =
+            action == (uint8_t)PF_M4_ACTION_RESPAWN_WAIT;
+        const int eliminated =
+            action == (uint8_t)PF_M4_ACTION_ELIMINATED;
+
+        return (waiting || eliminated) &&
+               grounded == UINT8_C(0) &&
+               support == (uint8_t)PF_M4_SURFACE_NONE &&
+               world->velocity_x_q16[player_index] == INT32_C(0) &&
+               world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->fast_fall[player_index] == UINT8_C(0) &&
+               world->dash_direction[player_index] == INT8_C(0) &&
+               world->hitlag_ticks[player_index] == UINT16_C(0) &&
+               world->hitstun_ticks[player_index] == UINT16_C(0) &&
+               world->shield_stun_ticks[player_index] == UINT16_C(0) &&
+               world->hitlag_resume_action[player_index] == UINT8_C(0) &&
+               world->pending_velocity_x_q16[player_index] ==
+                   INT32_C(0) &&
+               world->pending_velocity_y_q16[player_index] ==
+                   INT32_C(0) &&
+               world->respawn_invulnerability_ticks[player_index] ==
+                   UINT16_C(0) &&
+               ((waiting &&
+                 world->respawn_ticks[player_index] > UINT16_C(0) &&
+                 (world->stock_count == UINT8_C(0) ||
+                  world->stocks_remaining[player_index] > UINT8_C(0))) ||
+                (eliminated &&
+                 world->stock_count != UINT8_C(0) &&
+                 world->stocks_remaining[player_index] == UINT8_C(0) &&
+                 world->respawn_ticks[player_index] == UINT16_C(0)));
+    }
     if (grounded != UINT8_C(0))
     {
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
@@ -1058,6 +1153,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         world->arena_half_width_q16 > INT32_C(4096) * PF_Q16_ONE ||
         world->arena_ceiling_q16 < INT32_C(16) * PF_Q16_ONE ||
         world->arena_ceiling_q16 > INT32_C(4096) * PF_Q16_ONE ||
+        world->stock_count > PF_SIM_MAX_STOCK_COUNT ||
+        world->respawn_delay_config_ticks > PF_SIM_MAX_RESPAWN_TICKS ||
+        world->respawn_invulnerability_config_ticks >
+            PF_SIM_MAX_RESPAWN_TICKS ||
+        world->sudden_death > UINT8_C(1) ||
+        (world->sudden_death != UINT8_C(0) &&
+         world->stock_count == UINT8_C(0)) ||
+        world->reserved != UINT8_C(0) ||
         world->terminated > UINT8_C(1) ||
         world->truncated > UINT8_C(1))
     {
@@ -1069,9 +1172,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
     if ((world->winner_mask & (uint8_t)~active_mask) != UINT8_C(0) ||
         (world->terminated == UINT8_C(0) &&
          world->winner_mask != UINT8_C(0)) ||
+        (world->terminated != UINT8_C(0) &&
+         world->truncated != UINT8_C(0)) ||
         (world->tick < world->max_ticks &&
          world->truncated != UINT8_C(0)) ||
         (world->tick == world->max_ticks &&
+         world->terminated == UINT8_C(0) &&
          world->truncated != UINT8_C(1)))
     {
         return PF_STATUS_INVALID_STATE;
@@ -1108,7 +1214,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
             const uint8_t tumble = world->tumble[player_index];
             const int8_t tech_direction =
                 world->tech_direction[player_index];
-            if (world->active[player_index] != UINT8_C(1) ||
+            if (world->active[player_index] > UINT8_C(1) ||
                 world->team[player_index] != expected_team ||
                 world->grounded[player_index] > UINT8_C(1) ||
                 (world->previous_buttons[player_index] &
@@ -1130,7 +1236,26 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(480) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_STRONG_L_CANCEL_LANDING ||
+                    (uint8_t)PF_M4_ACTION_ELIMINATED ||
+                world->respawn_ticks[player_index] >
+                    (world->respawn_delay_config_ticks != UINT16_C(0)
+                         ? world->respawn_delay_config_ticks
+                         : UINT16_C(1)) ||
+                world->respawn_invulnerability_ticks[player_index] >
+                    world->respawn_invulnerability_config_ticks ||
+                (world->active[player_index] != UINT8_C(0) &&
+                 world->respawn_ticks[player_index] != UINT16_C(0)) ||
+                (world->stock_count == UINT8_C(0) &&
+                 world->stocks_remaining[player_index] != UINT8_C(0)) ||
+                (world->stock_count != UINT8_C(0) &&
+                 world->sudden_death == UINT8_C(0) &&
+                 world->stocks_remaining[player_index] >
+                     world->stock_count) ||
+                (world->sudden_death != UINT8_C(0) &&
+                 world->stocks_remaining[player_index] > UINT8_C(1)) ||
+                (world->active[player_index] != UINT8_C(0) &&
+                 world->stock_count != UINT8_C(0) &&
+                 world->stocks_remaining[player_index] == UINT8_C(0)) ||
                 world->support[player_index] >
                     (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
@@ -1451,7 +1576,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->sdi_pulse_count[player_index] != UINT8_C(0) ||
                  world->sdi_direction_x[player_index] != INT8_C(0) ||
                  world->sdi_direction_y[player_index] != INT8_C(0) ||
-                 world->tech_direction[player_index] != INT8_C(0))
+                 world->tech_direction[player_index] != INT8_C(0) ||
+                 world->respawn_ticks[player_index] != UINT16_C(0) ||
+                 world->respawn_invulnerability_ticks[player_index] !=
+                     UINT16_C(0) ||
+                 world->stocks_remaining[player_index] != UINT8_C(0))
         {
             return PF_STATUS_INVALID_STATE;
         }
@@ -1512,6 +1641,11 @@ pf_status pf_sim_query_identity(
         PF_SIM_SAVE_FORMAT_VERSION;
     out_identity->player_count = sim->world.player_count;
     out_identity->mode = sim->world.mode;
+    out_identity->stock_count = sim->world.stock_count;
+    out_identity->respawn_delay_ticks =
+        sim->world.respawn_delay_config_ticks;
+    out_identity->respawn_invulnerability_ticks =
+        sim->world.respawn_invulnerability_config_ticks;
     out_identity->max_ticks = sim->world.max_ticks;
     out_identity->arena_half_width_q16 =
         sim->world.arena_half_width_q16;

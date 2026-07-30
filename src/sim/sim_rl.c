@@ -197,7 +197,9 @@ static void pf_rl_fill_compact(
                  ((uint32_t)observation->mode << 8U) |
                  ((uint32_t)observation->terminated << 16U) |
                  ((uint32_t)observation->truncated << 17U) |
-                 ((uint32_t)observation->winner_mask << 24U);
+                 ((uint32_t)observation->sudden_death << 18U) |
+                 ((uint32_t)observation->stock_count << 19U) |
+                 ((uint32_t)observation->winner_mask << 26U);
     compact->values[PF_RL_COMPACT_MATCH_BITS_INDEX] =
         pf_rl_u32_bits(match_bits);
 
@@ -229,6 +231,16 @@ static void pf_rl_fill_compact(
             player->velocity_y_q16;
         compact->values[base + UINT16_C(6)] =
             pf_rl_u32_bits(player_bits);
+        compact->values[
+            base + PF_RL_COMPACT_PLAYER_STOCKS_OFFSET] =
+            (int32_t)player->stocks_remaining;
+        compact->values[
+            base + PF_RL_COMPACT_PLAYER_RESPAWN_OFFSET] =
+            (int32_t)player->respawn_ticks;
+        compact->values[
+            base +
+            PF_RL_COMPACT_PLAYER_INVULNERABILITY_OFFSET] =
+            (int32_t)player->respawn_invulnerability_ticks;
     }
 }
 
@@ -274,7 +286,9 @@ static pf_status pf_rl_fill_transition(
              ++player_index)
         {
             transition->legal_buttons[player_index] =
-                PF_INPUT_KNOWN_BUTTONS;
+                sim->world.active[player_index] != UINT8_C(0)
+                    ? PF_INPUT_KNOWN_BUTTONS
+                    : PF_INPUT_BUTTON_FORFEIT;
         }
     }
 

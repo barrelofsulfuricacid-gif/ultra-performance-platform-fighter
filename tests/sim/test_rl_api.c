@@ -138,7 +138,13 @@ static int verify_transition_contract(
         transition->structured_observation.seed != UINT64_C(0) ||
         transition->structured_observation.tick != tick ||
         transition->tick_result.completed_tick != tick ||
-        (match_bits & UINT32_C(0xff)) != (uint32_t)player_count)
+        (match_bits & UINT32_C(0xff)) != (uint32_t)player_count ||
+        ((match_bits >> 18U) & UINT32_C(0x1)) !=
+            (uint32_t)transition->structured_observation.sudden_death ||
+        ((match_bits >> 19U) & UINT32_C(0x7f)) !=
+            (uint32_t)transition->structured_observation.stock_count ||
+        ((match_bits >> 26U) & UINT32_C(0xf)) !=
+            (uint32_t)transition->structured_observation.winner_mask)
     {
         (void)fprintf(
             stderr,
@@ -163,7 +169,17 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 base + UINT16_C(4)] != player->velocity_x_q16 ||
             transition->compact_observation.values[
-                base + UINT16_C(5)] != player->velocity_y_q16)
+                base + UINT16_C(5)] != player->velocity_y_q16 ||
+            transition->compact_observation.values[
+                base + PF_RL_COMPACT_PLAYER_STOCKS_OFFSET] !=
+                (int32_t)player->stocks_remaining ||
+            transition->compact_observation.values[
+                base + PF_RL_COMPACT_PLAYER_RESPAWN_OFFSET] !=
+                (int32_t)player->respawn_ticks ||
+            transition->compact_observation.values[
+                base +
+                PF_RL_COMPACT_PLAYER_INVULNERABILITY_OFFSET] !=
+                (int32_t)player->respawn_invulnerability_ticks)
         {
             (void)fprintf(
                 stderr,
@@ -211,6 +227,11 @@ static int run_duel_test(const pf_content_view *content)
         identity.player_count != UINT8_C(2) ||
         identity.mode != (uint8_t)PF_SIM_MODE_DUEL ||
         identity.max_ticks != config.max_ticks ||
+        identity.stock_count != PF_SIM_DEFAULT_STOCK_COUNT ||
+        identity.respawn_delay_ticks !=
+            PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS ||
+        identity.respawn_invulnerability_ticks !=
+            PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS ||
         memcmp(
             identity.content_hash.bytes,
             content->content_hash.bytes,
@@ -229,6 +250,16 @@ static int run_duel_test(const pf_content_view *content)
         transition.legal_buttons[2] != UINT64_C(0) ||
         transition.reward_q16[0] != INT32_C(0) ||
         transition.reward_q16[1] != INT32_C(0) ||
+        transition.structured_observation.stock_count !=
+            PF_SIM_DEFAULT_STOCK_COUNT ||
+        transition.structured_observation.players[0].stocks_remaining !=
+            PF_SIM_DEFAULT_STOCK_COUNT ||
+        transition.structured_observation.players[1].stocks_remaining !=
+            PF_SIM_DEFAULT_STOCK_COUNT ||
+        transition.structured_observation.players[0].respawn_ticks !=
+            UINT16_C(0) ||
+        transition.structured_observation.players[0].
+                respawn_invulnerability_ticks != UINT16_C(0) ||
         !expect_status(
             pf_sim_observe(sim, &diagnostic_observation),
             PF_STATUS_OK,

@@ -523,7 +523,7 @@ pf_status pf_m4_resolve_combat(
         int32_t hitbox_top;
         int32_t hitbox_bottom;
 
-        if (world->active[attacker_index] == UINT8_C(0) ||
+        if (scratch->active[attacker_index] == UINT8_C(0) ||
             !pf_m4_attack_hitbox(
                 content,
                 scratch->position_x_q16[attacker_index],
@@ -549,7 +549,10 @@ pf_status pf_m4_resolve_combat(
                 (uint8_t)(UINT32_C(1) << target_index);
 
             if (target_index == attacker_index ||
-                world->active[target_index] == UINT8_C(0) ||
+                scratch->active[target_index] == UINT8_C(0) ||
+                scratch
+                        ->respawn_invulnerability_ticks[target_index] !=
+                    UINT16_C(0) ||
                 target_owner[target_index] != UINT8_MAX ||
                 scratch->action_state[target_index] ==
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||

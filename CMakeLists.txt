@@ -260,7 +260,7 @@ function(pf_add_smoke_product target product_name render_probe)
         set_tests_properties(
             ${target}.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "${product_name}-smoke=pass sim_abi=2 tick_hz=60")
+                       "${product_name}-smoke=pass sim_abi=3 tick_hz=60")
     endif()
 endfunction()
 
@@ -283,7 +283,7 @@ if(PF_BUILD_NATIVE_CLIENT)
             set_tests_properties(
                 native_client.smoke
                 PROPERTIES PASS_REGULAR_EXPRESSION
-                           "native-client-smoke=pass sim_abi=2 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
+                           "native-client-smoke=pass sim_abi=3 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
         endif()
     else()
         pf_add_smoke_product(native_client "native-client" 0)
@@ -460,7 +460,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.contract
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-contract=pass abi=2 tick_hz=60")
+                   "sim-contract=pass abi=3 tick_hz=60")
 
     add_executable(sim_world_test tests/sim/test_sim_world.c)
     target_link_libraries(sim_world_test PRIVATE sim)
@@ -493,7 +493,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=577 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=603 hash_algorithm=sha256")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -521,6 +521,19 @@ if(BUILD_TESTING)
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-combat=pass content_schema=13 deterministic_ticks=20000 combat_invariants=110")
 
+    add_executable(m4_match_test tests/sim/test_m4_match.c)
+    target_link_libraries(m4_match_test PRIVATE sim)
+    target_compile_features(m4_match_test PRIVATE c_std_17)
+    set_target_properties(m4_match_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_match_test)
+    pf_apply_build_mode(m4_match_test)
+
+    add_test(NAME sim.m4_match COMMAND m4_match_test)
+    set_tests_properties(
+        sim.m4_match
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24")
+
     add_executable(
         m4_web_playtest_test
         src/web_client/m4_playtest.c
@@ -540,7 +553,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -553,14 +566,14 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.rl_api
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "rl-api=pass compact_values=36 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=2")
+                   "rl-api=pass compact_values=48 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=3")
 
     if(PF_BUILD_DETERMINISM_CORPUS)
         add_test(NAME sim.replay_corpus COMMAND replay_corpus)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=31269")
+                       "sim-replay=pass ticks=180 players=4 bytes=31295")
     endif()
 
     if(PF_BUILD_HEADLESS)
@@ -568,7 +581,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             headless.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "headless-smoke=pass sim_abi=2 tick_hz=60")
+                       "headless-smoke=pass sim_abi=3 tick_hz=60")
 
         add_test(
             NAME headless.throughput_smoke

@@ -52,6 +52,7 @@ static int initialize_sim(
         return 0;
     }
     config.max_ticks = UINT64_C(100000);
+    config.stock_count = UINT8_C(0);
     return expect_status(
         pf_sim_init(
             storage->state,
@@ -278,7 +279,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)577)
+        required_bytes != (size_t)603)
     {
         return 0;
     }
@@ -769,7 +770,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)577)
+        required_bytes != (size_t)603)
     {
         return 0;
     }
@@ -2395,7 +2396,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)577)
+        required_bytes != (size_t)603)
     {
         return 0;
     }

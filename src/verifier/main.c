@@ -155,6 +155,7 @@ static int initialize_sim(
         return 0;
     }
     config.max_ticks = max_ticks;
+    config.stock_count = UINT8_C(0);
     if (pf_sim_query_memory(&config, &requirements) != PF_STATUS_OK ||
         requirements.state_bytes > (size_t)PF_VERIFIER_MEMORY_BYTES ||
         requirements.scratch_bytes > (size_t)PF_VERIFIER_MEMORY_BYTES ||
@@ -350,7 +351,7 @@ static int run_action_layer_invariant(
         "Two seeded exploratory runs match exactly; policy views redact "
         "the seed while diagnostic observation retains it.",
         passed != 0
-            ? "240 exploratory ticks matched with the RL schema-2 contract."
+            ? "240 exploratory ticks matched with the RL schema-3 contract."
             : "The exploratory runs, state hashes, or seed visibility diverged.",
         "public pf_rl_reset/pf_rl_step and pf_sim_observe APIs");
 }

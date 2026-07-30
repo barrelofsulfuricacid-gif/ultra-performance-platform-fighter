@@ -6,7 +6,8 @@ physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
-implemented
+plus configurable stocks, delayed respawn, invulnerability, sudden death,
+results, and rematch implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -22,13 +23,13 @@ implemented
   jump, independently steerable aerial drift with takeoff-facing lock, fast
   fall, landing, moving-platform support, platform drop, support edges,
   solid-block top/side/underside collision with sealed upper-corner seams,
-  blast-zone respawn, ledge catch, catch lockout, hang, release, ledge jump,
+  blast-zone stock loss/respawn, ledge catch, catch lockout, hang, release, ledge jump,
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-13/save-format-12 contract that serializes every
+- A rollback-safe state-schema-14/save-format-13 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
-  shield field.
+  shield and match field.
 - Replay format 1 regenerated against the new canonical state schema and real
   attack/hit inputs, with native and WebAssembly comparisons still using the
   same corpus path.
@@ -36,18 +37,18 @@ implemented
   ledge points, moving-platform and solid-block geometry, blast zones, percent, hitlag,
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state, trigger age, and
-  L-cancel eligibility.
+  L-cancel eligibility, stocks, respawn timers, sudden death, and result.
 - Ninety-four movement/content invariants plus a 20,000-tick four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
-  single-step, and reset.
+  single-step, reset/rematch, stock HUD, respawn countdown, and result overlays.
 - Explicit full-magnitude dash/dash-dance keys and reduced-magnitude walk keys
   for both keyboard players, with the real binary jump-squat selection rule.
 - A native and Wasm startup contract that refuses readiness unless walk,
   dash-dance reversal, short/full-hop apex, aerial landing/L-cancel timing,
   strong-aerial 30/15-tick landing timing, real damage/hitlag, and
-  reaction-input invariants pass.
+  reaction-input and stock/respawn invariants pass.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -277,6 +278,30 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   landing outcomes, invalid data, and both collision corners; the independent
   browser startup probe exercises both strong landing paths before readiness.
 
+## Delivered in the stock, respawn, and result slice
+
+- `pf_sim_config` and the compatibility identity now carry configurable stock
+  count, respawn delay, and respawn-invulnerability duration. Defaults are
+  four stocks, 60 wait ticks, and 120 invulnerable ticks; stock count zero is
+  the explicit unlimited-stock practice mode.
+- Blast-boundary crossings consume stock, enter canonical `RESPAWN_WAIT`, and
+  either respawn with per-life state reset and hitbox-rejecting
+  invulnerability or enter `ELIMINATED` on the final stock.
+- The last surviving team terminates the match with a deterministic winner
+  mask. Simultaneous final-stock KOs start all players at one stock and 300%;
+  a repeated simultaneous sudden-death KO resolves to the lowest port/team.
+- ABI 3, config/observation/identity schema 2, state schema 14/save format 13,
+  inspection schema 13, RL schema 3, and browser view schema 12 expose the
+  rule and runtime state. The canonical save is 603 bytes.
+- A 24-invariant match oracle covers configuration bounds, stock loss,
+  respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
+  save/load continuation, final-stock result, sudden death, and 2v2 team
+  result.
+- The browser HUD shows stocks and both timers, fades respawning/eliminated
+  fighters, draws respawn invulnerability, pauses on the result, turns Reset
+  into Rematch, and requires an independent ordinary-input KO/respawn startup
+  probe.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -317,7 +342,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 10 playable, 5 primitive-ready, and 45 planned.
+  blocked: 1 verified, 10 playable, 8 primitive-ready, and 42 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -338,32 +363,31 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   expansion of the powershield-cancel router to each future ground action,
   complete shield-break behavior, complete
   knockback/angle data, stale-move behavior,
-  prone-orientation-specific getup-roll timing, stocks, respawn
-  invulnerability, match
-  result, and the complete bounded combat-event journal.
-- Local setup, complete 1v1 loop, results/rematch, replay visualization,
+  prone-orientation-specific getup-roll timing, a moving revival platform,
+  and the complete bounded combat-event journal.
+- Local setup/menu flow, replay visualization,
   collision/hitbox overlay, and repeated verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
   combat playtest.
 
 ## First-slice verification
 
-- Release workflow: 17/17 tests.
-- Address/undefined-behavior sanitizer workflow: 17/17 tests; leak discovery
+- Release workflow: 18/18 tests.
+- Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
 - Mechanical oracles: 94 movement invariants, 110
   attack/reaction/shield/floor/surface
-  invariants,
+  invariants, 24 stock/respawn/result invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,269
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,295
   bytes,
   replay SHA-256
-  `2ed88053530905bf9b0a13a16076f8f721c5b11170f53def8ceb290eebb6e584`,
+  `3d97ed60fcf0e16477944c4cd9652490df51c59c0d1b11d28f55d18d9e5ab79d`,
   final SHA-256
-  `27cb7b0fbeb117b6cc63ad4f79766b509bf08f210e27426e8d09c3f4099e3d9e`;
+  `9b5405f2fb4435abf774866f478b090d7b15ec8e68155776c2a1c90f5b2ec046`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -375,7 +399,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   movement/ground-dodge-and-roll/air-facing/air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
   combat/reaction/shield-and-PSC/default-tumble/floor-recovery/surface-tech
-  probes and live rendering).
+  /stock-respawn probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

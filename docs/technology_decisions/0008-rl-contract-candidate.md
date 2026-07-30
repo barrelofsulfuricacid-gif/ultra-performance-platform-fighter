@@ -1,6 +1,6 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner and implemented as RL schema 2
+- **Status:** Accepted by owner; current implementation is RL schema 3
 - **Date:** 2026-07-27
 
 ## Scope
@@ -8,8 +8,9 @@
 This record defines the C contract exposed by `pf/rl.h`. The owner accepted
 raw analog actions, both observation forms with seed redaction, shaped rewards,
 and the fixed-stride independent-error batch contract. Those decisions are
-implemented in RL schema 2 before later combat, mode, and content work makes
-the interface expensive to change.
+implemented in RL schema 2 before later combat, mode, and content work made
+the interface expensive to change. RL schema 3 preserves those decisions and
+adds the M4 stock, respawn, invulnerability, and sudden-death observations.
 
 ## Actions
 
@@ -28,8 +29,9 @@ requires exactly the configured player count. Batched actions use a fixed
 four-action stride so duel and team environments share one memory layout.
 
 Legal-button masks report the accepted versioned button vocabulary for active
-players while an episode can advance, and zero after termination, truncation,
-or a deterministic fault. Analog ranges are fixed in `pf_rl_spec`.
+players while an episode can advance. A player waiting to respawn or already
+eliminated exposes only forfeit; all masks become zero after termination,
+truncation, or a deterministic fault. Analog ranges are fixed in `pf_rl_spec`.
 
 ## Observations
 
@@ -37,7 +39,7 @@ Every RL transition contains both:
 
 - A structured `pf_sim_observation`, preserving named fields for bindings and
   schema review.
-- A flat 36-element signed-32-bit observation for low-overhead contiguous
+- A flat 48-element signed-32-bit observation for low-overhead contiguous
   transfer.
 
 Both normal RL views redact the reset seed. The structured seed field is zero,
@@ -55,11 +57,11 @@ The compact layout is:
 | 2–3 | Reserved zero; seed is not a policy observation |
 | 4–5 | Maximum ticks, low/high 32-bit words |
 | 6 | Deterministic fault flags |
-| 7 | Packed player count, mode, termination, truncation, and winner mask |
-| 8–14 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active |
-| 15–21 | Player 1 fields |
-| 22–28 | Player 2 fields |
-| 29–35 | Player 3 fields |
+| 7 | Packed player count (bits 0–7), mode (8–15), termination (16), truncation (17), sudden death (18), configured stock count (19–25), and winner mask (26–29) |
+| 8–17 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
+| 18–27 | Player 1 fields |
+| 28–37 | Player 2 fields |
+| 38–47 | Player 3 fields |
 
 Bit patterns are copied rather than implementation-defined signed casts.
 Inactive slots remain canonical zero except for their implicit packed slot.
@@ -104,7 +106,7 @@ terminal component zero-sum. Reset, invalid operations, and post-terminal
 steps produce zero; a time-limit step can still contain its final engagement
 delta.
 
-M4 combat work may add damage, stock, or knockout shaping through a new
+M4 combat work may add damage, stock-loss, or knockout shaping through a new
 advertised reward-component/schema version. It must not silently reinterpret
 the M2 engagement component.
 
@@ -121,6 +123,8 @@ not suppress valid independent environments.
 `tests/sim/test_rl_api.c` checks:
 
 - Schema/spec metadata and compact/structured correspondence.
+- Stock, respawn, invulnerability, sudden-death, and winner-bit
+  compact/structured correspondence.
 - Seed redaction in both normal RL observation forms.
 - Reset, approach/separation shaping, and legal masks.
 - Atomic invalid-action rejection.

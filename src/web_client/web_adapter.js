@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -456,6 +456,7 @@ mergeInto(LibraryManager.library, {
     airDodgeProbePassed,
     groundDodgeProbePassed,
     aerialLCancelProbePassed,
+    matchProbePassed,
     aerialLandingLagTicks,
     strongAerialLandingLagTicks
   ) {
@@ -544,8 +545,9 @@ mergeInto(LibraryManager.library, {
       surfaceTechProbePassed &&
       airDodgeProbePassed &&
       groundDodgeProbePassed &&
-      aerialLCancelProbePassed
-        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH PROBES PASSED"
+      aerialLCancelProbePassed &&
+      matchProbePassed
+        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -629,6 +631,11 @@ mergeInto(LibraryManager.library, {
       "remaining-frame count appear over the fighter on every aerial landing. " +
       "The live state card exposes trigger age " +
       "(eligible at ages 0–6) so the boundary is directly observable. " +
+      "This is now a four-stock match: crossing a blast boundary consumes one " +
+      "stock, waits 60 frames, and grants 120 frames of dashed-ring respawn " +
+      "invulnerability. The HUD shows stocks and both timers; final-stock KOs " +
+      "show a result banner and turn Reset into Rematch. Simultaneous final-stock " +
+      "KOs enter the deterministic 300% sudden-death fixture. " +
       "Hold G or . on the ground for a real draining shield; fresh shields " +
       "powershield during their four-tick window, while releases have 15 ticks " +
       "of lag. Press a fresh full horizontal direction with the trigger for a " +
@@ -683,6 +690,7 @@ mergeInto(LibraryManager.library, {
       latest: null,
       pauseButton: pauseButton,
       playerStates: playerStates,
+      resetButton: resetButton,
       attackQueued: [false, false],
       strongAttackQueued: [false, false],
       jumpQueued: [false, false],
@@ -776,6 +784,9 @@ mergeInto(LibraryManager.library, {
     }
 
     function reset() {
+      var completed =
+        state.latest &&
+        (state.latest[22] !== 0 || state.latest[23] !== 0);
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
       state.attackQueued = [false, false];
@@ -783,6 +794,9 @@ mergeInto(LibraryManager.library, {
       state.shieldQueued = [false, false];
       state.accumulator = 0;
       Module._pf_web_m4_playtest_reset();
+      if (completed) {
+        setRunning(true);
+      }
     }
 
     function frame(time) {
@@ -913,6 +927,8 @@ mergeInto(LibraryManager.library, {
         (groundDodgeProbePassed ? "pass" : "fail") +
         " aerial_l_cancel_probe=" +
         (aerialLCancelProbePassed ? "pass" : "fail") +
+        " match_probe=" +
+        (matchProbePassed ? "pass" : "fail") +
         " controls=keyboard-two-player";
       status.dataset.playtest = "ready";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -937,6 +953,7 @@ mergeInto(LibraryManager.library, {
         groundDodgeProbePassed ? "pass" : "fail";
       status.dataset.aerialLCancelProbe =
         aerialLCancelProbePassed ? "pass" : "fail";
+      status.dataset.matchProbe = matchProbePassed ? "pass" : "fail";
     }
     requestAnimationFrame(frame);
   },
@@ -944,7 +961,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 82) {
+    if (!state || viewCount !== 95) {
       return;
     }
     state.latest = new Int32Array(
@@ -952,7 +969,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 11) {
+    if (view[0] !== 12) {
       return;
     }
     var canvas = state.canvas;
@@ -1011,6 +1028,8 @@ mergeInto(LibraryManager.library, {
       "STRONG AERIAL",
       "STRONG AERIAL LANDING",
       "STRONG L-CANCEL LANDING",
+      "RESPAWN WAIT",
+      "ELIMINATED",
     ];
 
     function sx(q16Value) {
@@ -1088,8 +1107,22 @@ mergeInto(LibraryManager.library, {
       solidBottom - solidTop
     );
 
+    context.save();
+    context.fillStyle = "#eaf3ff";
+    context.font = "bold 16px ui-monospace, monospace";
+    context.textAlign = "center";
+    context.fillText(
+      "P1 STOCKS " +
+        view[25 + 32] +
+        "  ·  P2 STOCKS " +
+        view[25 + 35 + 32],
+      canvas.width / 2,
+      25
+    );
+    context.restore();
+
     [0, 1].forEach(function (playerIndex) {
-      var base = 18 + playerIndex * 32;
+      var base = 25 + playerIndex * 35;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -1100,6 +1133,8 @@ mergeInto(LibraryManager.library, {
       var height = Math.max(28, halfHeight * 2);
       var facing = view[base + 5];
       var actionState = view[base + 4];
+      var respawning = actionState === 44;
+      var eliminated = actionState === 45;
       var tumbling =
         view[base + 22] !== 0 && actionState !== 13;
       var prone =
@@ -1112,6 +1147,7 @@ mergeInto(LibraryManager.library, {
         view[base + 4] === 19 ||
         (view[base + 4] === 13 && view[base + 26] > 0);
 
+      context.globalAlpha = eliminated ? 0.12 : respawning ? 0.32 : 1;
       if (view[base + 14]) {
         var hitboxLeft = sx(view[base + 15]);
         var hitboxRight = sx(view[base + 16]);
@@ -1207,6 +1243,20 @@ mergeInto(LibraryManager.library, {
         context.stroke();
         context.setLineDash([]);
       }
+      context.globalAlpha = 1;
+
+      if (respawning) {
+        context.save();
+        context.fillStyle = "#fff6a8";
+        context.font = "bold 15px ui-monospace, monospace";
+        context.textAlign = "center";
+        context.fillText(
+          "RESPAWN " + view[base + 33] + "f",
+          x,
+          Math.max(22, y - height / 2 - 18)
+        );
+        context.restore();
+      }
 
       var landingFeedback = null;
       var landingLagTotal = 0;
@@ -1300,6 +1350,13 @@ mergeInto(LibraryManager.library, {
         view[base + 9] +
         " · respawns " +
         view[base + 10] +
+        " · stocks " +
+        view[base + 32] +
+        "<br>respawn wait " +
+        view[base + 33] +
+        "f · respawn invulnerability " +
+        view[base + 34] +
+        "f" +
         "<br>damage " +
         (view[base + 11] / q16).toFixed(1) +
         "% · hitlag " +
@@ -1334,6 +1391,43 @@ mergeInto(LibraryManager.library, {
         view[base + 31];
     });
 
+    if (view[21] !== 0 || view[22] !== 0 || view[23] !== 0) {
+      var resultLabel;
+      var resultColor;
+
+      if (view[22] !== 0) {
+        if ((view[24] & 1) !== 0 && (view[24] & 2) === 0) {
+          resultLabel = "PLAYER 1 WINS";
+          resultColor = colors[0];
+        } else if ((view[24] & 2) !== 0 && (view[24] & 1) === 0) {
+          resultLabel = "PLAYER 2 WINS";
+          resultColor = colors[1];
+        } else {
+          resultLabel = "MATCH DRAW";
+          resultColor = "#f3f7ff";
+        }
+      } else if (view[23] !== 0) {
+        resultLabel = "TIME LIMIT";
+        resultColor = "#f3f7ff";
+      } else {
+        resultLabel = "SUDDEN DEATH · 300%";
+        resultColor = "#ffd166";
+      }
+
+      context.save();
+      context.fillStyle = "#07101add";
+      context.fillRect(canvas.width / 2 - 190, 48, 380, 48);
+      context.strokeStyle = resultColor;
+      context.lineWidth = 3;
+      context.strokeRect(canvas.width / 2 - 190, 48, 380, 48);
+      context.fillStyle = resultColor;
+      context.font = "bold 22px ui-monospace, monospace";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(resultLabel, canvas.width / 2, 72);
+      context.restore();
+    }
+
     context.fillStyle = "#8da2bb";
     context.font = "12px ui-monospace, monospace";
     context.textAlign = "left";
@@ -1341,6 +1435,17 @@ mergeInto(LibraryManager.library, {
     context.textAlign = "right";
     context.fillText("real sim · Q16.16 · 60 Hz", canvas.width - padding, 22);
 
-    state.tickLabel.textContent = "tick " + view[1] + " · fixed 60 Hz";
+    state.tickLabel.textContent =
+      "tick " +
+      view[1] +
+      " · fixed 60 Hz · " +
+      view[18] +
+      "-stock match";
+    state.resetButton.textContent = view[22] !== 0 ? "Rematch" : "Reset";
+    if (view[22] !== 0 || view[23] !== 0) {
+      state.running = false;
+      state.pauseButton.textContent = "Resume";
+      state.pauseButton.setAttribute("aria-pressed", "true");
+    }
   },
 });

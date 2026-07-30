@@ -109,6 +109,11 @@ pf_status pf_sim_default_config(
     out_config->max_ticks = UINT64_C(3600);
     out_config->arena_half_width_q16 = INT32_C(64) * PF_Q16_ONE;
     out_config->arena_ceiling_q16 = INT32_C(64) * PF_Q16_ONE;
+    out_config->stock_count = PF_SIM_DEFAULT_STOCK_COUNT;
+    out_config->respawn_delay_ticks =
+        PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS;
+    out_config->respawn_invulnerability_ticks =
+        PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS;
 
     return pf_sim_validate_config(out_config);
 }
@@ -145,6 +150,15 @@ pf_status pf_sim_validate_config(const pf_sim_config *config)
         config->arena_half_width_q16 > maximum_arena_q16 ||
         config->arena_ceiling_q16 < minimum_arena_q16 ||
         config->arena_ceiling_q16 > maximum_arena_q16)
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
+    if (config->reserved2 != UINT8_C(0) ||
+        config->reserved3 != UINT16_C(0) ||
+        config->stock_count > PF_SIM_MAX_STOCK_COUNT ||
+        config->respawn_delay_ticks > PF_SIM_MAX_RESPAWN_TICKS ||
+        config->respawn_invulnerability_ticks >
+            PF_SIM_MAX_RESPAWN_TICKS)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -267,8 +281,13 @@ pf_status pf_sim_init(
     sim->world.input_schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
     sim->world.arena_half_width_q16 = config->arena_half_width_q16;
     sim->world.arena_ceiling_q16 = config->arena_ceiling_q16;
+    sim->world.respawn_delay_config_ticks =
+        config->respawn_delay_ticks;
+    sim->world.respawn_invulnerability_config_ticks =
+        config->respawn_invulnerability_ticks;
     sim->world.player_count = config->player_count;
     sim->world.mode = config->mode;
+    sim->world.stock_count = config->stock_count;
 
     *out_sim = sim;
     return PF_STATUS_OK;
@@ -320,8 +339,13 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
     sim->world.input_schema_version = preserved.input_schema_version;
     sim->world.arena_half_width_q16 = preserved.arena_half_width_q16;
     sim->world.arena_ceiling_q16 = preserved.arena_ceiling_q16;
+    sim->world.respawn_delay_config_ticks =
+        preserved.respawn_delay_config_ticks;
+    sim->world.respawn_invulnerability_config_ticks =
+        preserved.respawn_invulnerability_config_ticks;
     sim->world.player_count = preserved.player_count;
     sim->world.mode = preserved.mode;
+    sim->world.stock_count = preserved.stock_count;
     sim->world.seed = seed;
     sim->world.rng_state = seed;
 
@@ -377,6 +401,8 @@ pf_status pf_sim_observe(
     out_observation->terminated = sim->world.terminated;
     out_observation->truncated = sim->world.truncated;
     out_observation->winner_mask = sim->world.winner_mask;
+    out_observation->sudden_death = sim->world.sudden_death;
+    out_observation->stock_count = sim->world.stock_count;
 
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -398,6 +424,13 @@ pf_status pf_sim_observe(
         player->team = sim->world.team[player_index];
         player->grounded = sim->world.grounded[player_index];
         player->active = sim->world.active[player_index];
+        player->stocks_remaining =
+            sim->world.stocks_remaining[player_index];
+        player->respawn_ticks =
+            sim->world.respawn_ticks[player_index];
+        player->respawn_invulnerability_ticks =
+            sim->world
+                .respawn_invulnerability_ticks[player_index];
     }
 
     return PF_STATUS_OK;
