@@ -7,7 +7,7 @@ plus directional air dodge, helpless fall, wavedash/waveland, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
-results, and rematch implemented
+results, rematch, and the bounded rollback-safe typed event feed implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -27,9 +27,9 @@ results, and rematch implemented
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-14/save-format-13 contract that serializes every
+- A rollback-safe state-schema-15/save-format-14 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
-  shield and match field.
+  shield and match field plus the authoritative event sequence.
 - Replay format 1 regenerated against the new canonical state schema and real
   attack/hit inputs, with native and WebAssembly comparisons still using the
   same corpus path.
@@ -62,7 +62,7 @@ results, and rematch implemented
 - Q16.16 percent, percent-scaled launch, hitlag freeze, pending launch,
   hitstun control lockout, gravity/landing continuation, and blast reset.
 - A monotonic rollback-safe combat-event sequence with per-target last-hit
-  tick, attacker, and damage.
+  tick, attacker, and damage, now paired with typed per-tick event records.
 - Twenty-eight focused attack/reaction invariants, mid-hitlag save/load
   continuation, and a 20,000-tick four-player deterministic combat trace under
   active `M4-COMBAT` verification.
@@ -290,9 +290,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The last surviving team terminates the match with a deterministic winner
   mask. Simultaneous final-stock KOs start all players at one stock and 300%;
   a repeated simultaneous sudden-death KO resolves to the lowest port/team.
-- ABI 3, config/observation/identity schema 2, state schema 14/save format 13,
-  inspection schema 13, RL schema 3, and browser view schema 12 expose the
-  rule and runtime state. The canonical save is 603 bytes.
+- That slice introduced ABI 3, state schema 14/save format 13, RL schema 3,
+  and browser view schema 12 for the rule/runtime state; the active journal
+  slice supersedes them with ABI 4, state schema 15/save format 14, RL schema
+  4, and browser view schema 13. Config/observation/identity schema 2 and
+  inspection schema 13 remain current. The canonical save is still 603 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -301,6 +303,31 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   fighters, draws respawn invulnerability, pauses on the result, turns Reset
   into Rematch, and requires an independent ordinary-input KO/respawn startup
   probe.
+
+## Delivered in the deterministic event-journal slice
+
+- ABI 4 adds a fixed 16-entry `pf_tick_result` journal with 32-byte typed
+  records for hits, shield blocks, powershields, shield breaks, KOs, respawns,
+  sudden death, match results, forfeits, and time limits.
+- Every event carries its processed input tick, match-monotonic sequence,
+  source/target slots, Q16.16 value and velocity, flags, and type-specific
+  detail. Stable player-slot production order and match-resolution-last order
+  are deterministic.
+- Only the existing sequence authority is canonical. Per-tick arrays are
+  caller-owned scratch output, so state remains bounded while save/load and
+  rollback re-simulation reproduce byte-identical event records.
+- State schema 15/save format 14 and magic `PFSAVE14` fail closed on the new
+  journal semantics without changing the 463-byte payload or 603-byte complete
+  checkpoint. Replay API/verification schema 2 and RL/transition schema 4
+  carry the enlarged tick-result ABI.
+- The 180-tick native/WebAssembly corpus now hashes every event under the
+  `PFEVT001` domain in addition to its per-tick state hashes. Replay wire
+  format 1 remains byte-compatible at 31,295 bytes and deterministically
+  re-emits, rather than stores, event payloads.
+- Browser view schema 13 exposes the current tick's 16 slots. The client keeps
+  only the newest ten for presentation, clears that history after a rewind or
+  reset, and labels hit/shield/KO/respawn/sudden-death/result events by
+  canonical sequence.
 
 ## Explicitly preserved playtest requirements
 
@@ -364,8 +391,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete shield-break behavior, complete
   knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
-  and the complete bounded combat-event journal.
-- Local setup/menu flow, replay visualization,
+  and journal producers for every remaining action.
+- Local setup/menu flow, replay-file event visualization,
   collision/hitbox overlay, and repeated verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
   combat playtest.
@@ -377,7 +404,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 94 movement invariants, 110
   attack/reaction/shield/floor/surface
-  invariants, 24 stock/respawn/result invariants,
+  invariants plus 30 combat-journal invariants, 24 stock/respawn/result
+  invariants plus 44 match-journal invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
@@ -385,9 +413,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,295
   bytes,
   replay SHA-256
-  `3d97ed60fcf0e16477944c4cd9652490df51c59c0d1b11d28f55d18d9e5ab79d`,
+  `0a532f538fd875a339e83b8c6ee521a77c5f4945268acad52780f3f87f0df155`,
   final SHA-256
-  `9b5405f2fb4435abf774866f478b090d7b15ec8e68155776c2a1c90f5b2ec046`;
+  `a6f0201c7de7322b1a03f86ff8e9270cc45cd85afa87808954ab67e708d06562`,
+  and event-journal SHA-256
+  `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -398,7 +428,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   (`walk_axis=13500`, `dash_axis=32767`,
   movement/ground-dodge-and-roll/air-facing/air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
-  combat/reaction/shield-and-PSC/default-tumble/floor-recovery/surface-tech
+  combat-and-event-journal/reaction/shield-and-PSC/default-tumble/
+  floor-recovery/surface-tech
   /stock-respawn probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.

@@ -118,8 +118,9 @@ auto-cancel, L-cancel/SHFFL, a 30-frame strong-aerial landing-lag drill with
 red/green success feedback, grounded forward/backward rolls, and spot-dodge
 behavior. The HUD exposes stocks, respawn countdown and invulnerability; final
 stock KOs show results/rematch, and simultaneous final-stock KOs enter the
-300% sudden-death fixture. It must report
-`web-client-smoke=pass sim_abi=3 tick_hz=60`, `webgl2=pass batch_draws=1`,
+300% sudden-death fixture. A sequenced deterministic feed shows the current
+hit, shield, KO, respawn, sudden-death, and result events. It must report
+`web-client-smoke=pass sim_abi=4 tick_hz=60`, `webgl2=pass batch_draws=1`,
 `replay=pass ticks=180 winner_mask=5`, and every M4 startup probe as `pass`.
 Controls and focused human checks are documented in
 [`docs/milestones/M4_browser_playtest.md`](docs/milestones/M4_browser_playtest.md).

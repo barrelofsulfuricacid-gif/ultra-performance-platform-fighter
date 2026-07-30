@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 95
+#define TEST_VIEW_COUNT 256
 #define TEST_PLAYER0_BASE 25
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
@@ -27,6 +27,14 @@
 #define TEST_STOCK_COUNT 18
 #define TEST_RESPAWN_DELAY 19
 #define TEST_RESPAWN_INVULNERABILITY 20
+#define TEST_EVENT_COUNT 95
+#define TEST_EVENT0 96
+#define TEST_EVENT_SEQUENCE 0
+#define TEST_EVENT_TICK 1
+#define TEST_EVENT_TYPE 2
+#define TEST_EVENT_SOURCE 3
+#define TEST_EVENT_TARGET 4
+#define TEST_EVENT_VALUE 5
 
 static int test_install_count;
 static int test_render_count;
@@ -197,12 +205,13 @@ int main(void)
         test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 12 ||
+        test_view[0] != 13 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
         test_view[TEST_RESPAWN_INVULNERABILITY] != 120 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_EVENT_COUNT] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||
@@ -359,6 +368,48 @@ int main(void)
         return fail("keyboard-attack-and-hitbox-view");
     }
 
+    if (!pf_web_m4_playtest_reset())
+    {
+        return fail("event-journal-reset");
+    }
+    {
+        int approach_tick;
+
+        for (approach_tick = 0; approach_tick < 27; ++approach_tick)
+        {
+            if (!pf_web_m4_playtest_step(
+                    test_dash_axis,
+                    0,
+                    0,
+                    0,
+                    0,
+                    -test_dash_axis,
+                    0,
+                    0,
+                    0,
+                    0))
+            {
+                return fail("event-journal-approach");
+            }
+        }
+    }
+    if (!pf_web_m4_playtest_step(
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        test_view[TEST_EVENT_COUNT] != 1 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_SEQUENCE] <= 0 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_TICK] != test_view[1] - 1 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 1 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_SOURCE] != 0 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_TARGET] != 1 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_VALUE] <= 0)
+    {
+        return fail("event-journal-hit-view");
+    }
+
     if (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step(
             0, 0, 1, 0, 0, 0, 0, 0, 0, 0) ||
@@ -424,7 +475,8 @@ int main(void)
         "shield_probe=%d powershield_cancel_probe=%d tumble_probe=%d "
         "floor_recovery_probe=%d surface_tech_probe=%d "
         "air_dodge_probe=%d ground_dodge_probe=%d "
-        "aerial_l_cancel_probe=%d match_probe=%d renders=%d\n",
+        "aerial_l_cancel_probe=%d match_probe=%d "
+        "event_journal_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
         test_input_probe,
@@ -440,6 +492,7 @@ int main(void)
         test_ground_dodge_probe,
         test_aerial_l_cancel_probe,
         test_match_probe,
+        test_combat_probe,
         test_render_count);
     return 0;
 }

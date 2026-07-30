@@ -32,6 +32,7 @@ common_flags="
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -44,7 +45,7 @@ common_flags="
 
 "$output_dir/m4_web_playtest_test" >"$output_dir/m4_web_playtest.txt"
 grep -Fq \
-    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1' \
+    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 event_journal_probe=1' \
     "$output_dir/m4_web_playtest.txt"
 
 command -v node >/dev/null 2>&1 ||
@@ -76,7 +77,13 @@ grep -Fq \
     'shieldQueued: [false, false]' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 95' \
+    'viewCount !== 256' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" event_journal_probe="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"Deterministic combat event feed"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '" shield_probe="' \
@@ -118,4 +125,4 @@ grep -Fq \
     'controls=keyboard-two-player' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1"

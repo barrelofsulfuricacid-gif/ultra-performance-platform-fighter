@@ -3,7 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 
-static void pf_write_result(const pf_world_state *world, pf_tick_result *result)
+static void pf_write_result(
+    const pf_world_state *world,
+    const pf_sim_scratch *scratch,
+    pf_tick_result *result)
 {
     (void)memset(result, 0, sizeof(*result));
     result->completed_tick = world->tick;
@@ -11,6 +14,15 @@ static void pf_write_result(const pf_world_state *world, pf_tick_result *result)
     result->terminated = world->terminated;
     result->truncated = world->truncated;
     result->winner_mask = world->winner_mask;
+    if (scratch != NULL)
+    {
+        result->event_count = scratch->combat_event_count;
+        (void)memcpy(
+            result->events,
+            scratch->combat_events,
+            sizeof(result->events[0]) *
+                (size_t)result->event_count);
+    }
 }
 
 static pf_status pf_validate_inputs(
@@ -68,17 +80,31 @@ static uint8_t pf_m4_winner_mask_for_team(
     return winner_mask;
 }
 
-static void pf_m4_begin_sudden_death(pf_sim *sim)
+static pf_status pf_m4_begin_sudden_death(
+    pf_sim *sim,
+    pf_sim_scratch *scratch,
+    uint64_t event_tick)
 {
     pf_world_state *world = &sim->world;
     uint32_t player_index;
 
+    if (pf_sim_push_event(
+            scratch,
+            event_tick,
+            PF_SIM_EVENT_SUDDEN_DEATH,
+            PF_SIM_EVENT_NO_PLAYER,
+            PF_SIM_EVENT_NO_PLAYER,
+            UINT32_C(300) * (uint32_t)PF_Q16_ONE,
+            INT32_C(0),
+            INT32_C(0),
+            (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH,
+            (uint16_t)world->player_count,
+            NULL) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
     world->sudden_death = UINT8_C(1);
     world->winner_mask = UINT8_C(0);
-    if (world->combat_event_sequence != UINT32_MAX)
-    {
-        ++world->combat_event_sequence;
-    }
 
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
@@ -105,9 +131,13 @@ static void pf_m4_begin_sudden_death(pf_sim *sim)
         world->damage_q16[player_index] =
             UINT32_C(300) * (uint32_t)PF_Q16_ONE;
     }
+    return PF_STATUS_OK;
 }
 
-static void pf_m4_resolve_stock_result(pf_sim *sim)
+static pf_status pf_m4_resolve_stock_result(
+    pf_sim *sim,
+    pf_sim_scratch *scratch,
+    uint64_t event_tick)
 {
     pf_world_state *world = &sim->world;
     uint8_t alive_teams = UINT8_C(0);
@@ -115,7 +145,7 @@ static void pf_m4_resolve_stock_result(pf_sim *sim)
 
     if (world->stock_count == UINT8_C(0))
     {
-        return;
+        return PF_STATUS_OK;
     }
 
     for (player_index = UINT32_C(0);
@@ -134,6 +164,7 @@ static void pf_m4_resolve_stock_result(pf_sim *sim)
             UINT8_C(0))
     {
         uint8_t winning_team = UINT8_C(0);
+        uint8_t winner_mask;
 
         while ((alive_teams &
                 (uint8_t)(UINT32_C(1) << winning_team)) ==
@@ -141,33 +172,63 @@ static void pf_m4_resolve_stock_result(pf_sim *sim)
         {
             ++winning_team;
         }
-        world->terminated = UINT8_C(1);
-        world->winner_mask =
+        winner_mask =
             pf_m4_winner_mask_for_team(world, winning_team);
-        if (world->combat_event_sequence != UINT32_MAX)
+        if (pf_sim_push_event(
+                scratch,
+                event_tick,
+                PF_SIM_EVENT_MATCH_RESULT,
+                PF_SIM_EVENT_NO_PLAYER,
+                PF_SIM_EVENT_NO_PLAYER,
+                UINT32_C(0),
+                INT32_C(0),
+                INT32_C(0),
+                world->sudden_death != UINT8_C(0)
+                    ? (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH
+                    : UINT16_C(0),
+                (uint16_t)winner_mask,
+                NULL) != PF_STATUS_OK)
         {
-            ++world->combat_event_sequence;
+            return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        return;
+        world->terminated = UINT8_C(1);
+        world->winner_mask = winner_mask;
+        return PF_STATUS_OK;
     }
     if (alive_teams != UINT8_C(0))
     {
-        return;
+        return PF_STATUS_OK;
     }
 
     if (world->sudden_death == UINT8_C(0))
     {
-        pf_m4_begin_sudden_death(sim);
-        return;
+        return pf_m4_begin_sudden_death(
+            sim,
+            scratch,
+            event_tick);
     }
 
+    if (pf_sim_push_event(
+            scratch,
+            event_tick,
+            PF_SIM_EVENT_MATCH_RESULT,
+            PF_SIM_EVENT_NO_PLAYER,
+            PF_SIM_EVENT_NO_PLAYER,
+            UINT32_C(0),
+            INT32_C(0),
+            INT32_C(0),
+            (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH,
+            (uint16_t)pf_m4_winner_mask_for_team(
+                world,
+                world->team[0]),
+            NULL) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
     world->terminated = UINT8_C(1);
     world->winner_mask =
         pf_m4_winner_mask_for_team(world, world->team[0]);
-    if (world->combat_event_sequence != UINT32_MAX)
-    {
-        ++world->combat_event_sequence;
-    }
+    return PF_STATUS_OK;
 }
 
 pf_status pf_sim_tick_impl(
@@ -198,24 +259,38 @@ pf_status pf_sim_tick_impl(
 
     if (world->fault_flags != UINT32_C(0))
     {
-        pf_write_result(world, out_result);
+        pf_write_result(world, NULL, out_result);
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
     if (world->terminated != UINT8_C(0) ||
         world->truncated != UINT8_C(0))
     {
-        pf_write_result(world, out_result);
+        pf_write_result(world, NULL, out_result);
         return PF_STATUS_EPISODE_DONE;
     }
 
     status = pf_validate_inputs(world, inputs, player_count);
     if (status != PF_STATUS_OK)
     {
-        pf_write_result(world, out_result);
+        pf_write_result(world, NULL, out_result);
         return status;
+    }
+    if (world->combat_event_sequence >
+        UINT32_MAX -
+            (UINT32_C(3) * (uint32_t)world->player_count +
+             UINT32_C(1)))
+    {
+        world->fault_flags |= (uint32_t)PF_SIM_FAULT_CAPACITY;
+        pf_write_result(world, NULL, out_result);
+        return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
     scratch->combat_event_sequence = world->combat_event_sequence;
+    scratch->combat_event_count = UINT8_C(0);
+    (void)memset(
+        scratch->combat_events,
+        0,
+        sizeof(scratch->combat_events));
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
          ++player_index)
@@ -235,7 +310,7 @@ pf_status pf_sim_tick_impl(
             player_index);
         if (status != PF_STATUS_OK)
         {
-            pf_write_result(world, out_result);
+            pf_write_result(world, NULL, out_result);
             return status;
         }
     }
@@ -243,7 +318,7 @@ pf_status pf_sim_tick_impl(
     status = pf_m4_resolve_combat(&sim->content, world, scratch);
     if (status != PF_STATUS_OK)
     {
-        pf_write_result(world, out_result);
+        pf_write_result(world, NULL, out_result);
         return status;
     }
 
@@ -343,19 +418,17 @@ pf_status pf_sim_tick_impl(
         world->tech_direction[player_index] =
             scratch->tech_direction[player_index];
     }
-    world->combat_event_sequence = scratch->combat_event_sequence;
-
     ++world->tick;
 
     if (forfeit_mask != UINT64_C(0))
     {
         const uint64_t active_mask =
             (UINT64_C(1) << world->player_count) - UINT64_C(1);
-        world->terminated = UINT8_C(1);
+        uint8_t winner_mask = UINT8_C(0);
+
         if (world->mode == (uint8_t)PF_SIM_MODE_DUEL)
         {
-            world->winner_mask =
-                (uint8_t)(active_mask & ~forfeit_mask);
+            winner_mask = (uint8_t)(active_mask & ~forfeit_mask);
         }
         else
         {
@@ -374,7 +447,6 @@ pf_status pf_sim_tick_impl(
                 }
             }
 
-            world->winner_mask = UINT8_C(0);
             if (forfeiting_teams == UINT8_C(1) ||
                 forfeiting_teams == UINT8_C(2))
             {
@@ -388,23 +460,85 @@ pf_status pf_sim_tick_impl(
                 {
                     if (world->team[player_index] == winning_team)
                     {
-                        world->winner_mask |=
+                        winner_mask |=
                             (uint8_t)(UINT32_C(1) << player_index);
                     }
                 }
             }
         }
+        for (player_index = UINT32_C(0);
+             player_index < (uint32_t)world->player_count;
+             ++player_index)
+        {
+            if ((forfeit_mask &
+                 (UINT64_C(1) << player_index)) != UINT64_C(0) &&
+                pf_sim_push_event(
+                    scratch,
+                    world->tick - UINT64_C(1),
+                    PF_SIM_EVENT_FORFEIT,
+                    PF_SIM_EVENT_NO_PLAYER,
+                    (uint8_t)player_index,
+                    UINT32_C(0),
+                    INT32_C(0),
+                    INT32_C(0),
+                    UINT16_C(0),
+                    UINT16_C(0),
+                    NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+        }
+        if (pf_sim_push_event(
+                scratch,
+                world->tick - UINT64_C(1),
+                PF_SIM_EVENT_MATCH_RESULT,
+                PF_SIM_EVENT_NO_PLAYER,
+                PF_SIM_EVENT_NO_PLAYER,
+                UINT32_C(0),
+                INT32_C(0),
+                INT32_C(0),
+                UINT16_C(0),
+                (uint16_t)winner_mask,
+                NULL) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        world->terminated = UINT8_C(1);
+        world->winner_mask = winner_mask;
     }
     if (world->terminated == UINT8_C(0))
     {
-        pf_m4_resolve_stock_result(sim);
+        status = pf_m4_resolve_stock_result(
+            sim,
+            scratch,
+            world->tick - UINT64_C(1));
+        if (status != PF_STATUS_OK)
+        {
+            return status;
+        }
     }
     if (world->terminated == UINT8_C(0) &&
         world->tick >= world->max_ticks)
     {
+        if (pf_sim_push_event(
+                scratch,
+                world->tick - UINT64_C(1),
+                PF_SIM_EVENT_TIME_LIMIT,
+                PF_SIM_EVENT_NO_PLAYER,
+                PF_SIM_EVENT_NO_PLAYER,
+                UINT32_C(0),
+                INT32_C(0),
+                INT32_C(0),
+                UINT16_C(0),
+                UINT16_C(0),
+                NULL) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
         world->truncated = UINT8_C(1);
     }
 
-    pf_write_result(world, out_result);
+    world->combat_event_sequence = scratch->combat_event_sequence;
+    pf_write_result(world, scratch, out_result);
     return PF_STATUS_OK;
 }

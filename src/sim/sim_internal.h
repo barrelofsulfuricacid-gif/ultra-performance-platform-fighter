@@ -134,6 +134,8 @@ typedef struct pf_sim_scratch
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint32_t combat_event_sequence;
+    uint8_t combat_event_count;
+    pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
 } pf_sim_scratch;
 
 struct pf_sim
@@ -149,6 +151,18 @@ struct pf_sim
 pf_status pf_sim_validate_config(const pf_sim_config *config);
 int pf_sim_is_valid(const pf_sim *sim);
 uint64_t pf_sim_rng_next(uint64_t *state);
+pf_status pf_sim_push_event(
+    pf_sim_scratch *scratch,
+    uint64_t tick,
+    pf_sim_event_type type,
+    uint8_t source_player,
+    uint8_t target_player,
+    uint32_t value_q16,
+    int32_t velocity_x_q16,
+    int32_t velocity_y_q16,
+    uint16_t flags,
+    uint16_t detail,
+    uint32_t *out_sequence);
 pf_status pf_m4_content_from_view(
     const pf_content_view *view,
     pf_m4_content *out_content);

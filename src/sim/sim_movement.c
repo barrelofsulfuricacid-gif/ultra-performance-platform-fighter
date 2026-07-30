@@ -1461,9 +1461,23 @@ pf_status pf_m4_step_player(
                     scratch->damage_q16[player_index] =
                         UINT32_C(300) * (uint32_t)PF_Q16_ONE;
                 }
-                if (scratch->combat_event_sequence != UINT32_MAX)
+                status = pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    PF_SIM_EVENT_RESPAWN,
+                    PF_SIM_EVENT_NO_PLAYER,
+                    (uint8_t)player_index,
+                    scratch->damage_q16[player_index],
+                    velocity_x,
+                    velocity_y,
+                    world->sudden_death != UINT8_C(0)
+                        ? (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH
+                        : UINT16_C(0),
+                    world->respawn_invulnerability_config_ticks,
+                    NULL);
+                if (status != PF_STATUS_OK)
                 {
-                    ++scratch->combat_event_sequence;
+                    return status;
                 }
             }
             else
@@ -3162,6 +3176,18 @@ pf_status pf_m4_step_player(
         position_y < stage->blast_top_q16 ||
         position_y > stage->blast_bottom_q16)
     {
+        const uint32_t ko_damage_q16 =
+            scratch->damage_q16[player_index];
+        const int32_t ko_velocity_x_q16 = velocity_x;
+        const int32_t ko_velocity_y_q16 = velocity_y;
+        const uint8_t ko_source_player =
+            scratch->last_hit_sequence[player_index] != UINT32_C(0) &&
+                    scratch->last_hit_attacker[player_index] <
+                        world->player_count
+                ? scratch->last_hit_attacker[player_index]
+                : PF_SIM_EVENT_NO_PLAYER;
+        uint16_t event_flags = UINT16_C(0);
+
         pf_m4_prepare_spawn(
             fighter,
             stage,
@@ -3212,9 +3238,33 @@ pf_status pf_m4_step_player(
                     : UINT16_C(1);
             action_state = (uint8_t)PF_M4_ACTION_RESPAWN_WAIT;
         }
-        if (scratch->combat_event_sequence != UINT32_MAX)
+        if (world->stock_count != UINT8_C(0) &&
+            scratch->stocks_remaining[player_index] == UINT8_C(0))
         {
-            ++scratch->combat_event_sequence;
+            event_flags |=
+                (uint16_t)PF_SIM_EVENT_FLAG_ELIMINATED |
+                (uint16_t)PF_SIM_EVENT_FLAG_LAST_STOCK;
+        }
+        if (world->sudden_death != UINT8_C(0))
+        {
+            event_flags |=
+                (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH;
+        }
+        status = pf_sim_push_event(
+            scratch,
+            world->tick,
+            PF_SIM_EVENT_KO,
+            ko_source_player,
+            (uint8_t)player_index,
+            ko_damage_q16,
+            ko_velocity_x_q16,
+            ko_velocity_y_q16,
+            event_flags,
+            (uint16_t)scratch->stocks_remaining[player_index],
+            NULL);
+        if (status != PF_STATUS_OK)
+        {
+            return status;
         }
     }
     else

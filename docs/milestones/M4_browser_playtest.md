@@ -6,7 +6,7 @@ missed-impact recovery, directional air dodge, wavedash/waveland,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, hit-reaction, and dense-shield
 primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
-result/rematch loop in
+result/rematch loop and a deterministic combat-event feed in
 WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. Both visible players use the same
 validated M4 fighter and stage content used by native, replay, rollback, and
@@ -123,6 +123,13 @@ visibly rotates and the state card prefixes its action with `TUMBLE`. The cards
 also show percent, hitstun, SDI pulse count, tech window/lockout, tech
 direction, and the last combat-event sequence.
 
+The event panel is driven by the ABI-4 per-tick journal rather than inferred
+from the rendered state. It shows canonical sequence/tick labels for hits,
+shield interactions, KOs, respawns, sudden death, results, forfeits, and time
+limits. The simulation returns at most 16 records for the current tick; the
+browser keeps only the newest ten as non-authoritative presentation history
+and clears them on Reset or any observed rewind.
+
 During target hitlag, crossing into a new horizontal or vertical stick
 component produces one SDI pulse. Holding that component does not repeat it.
 The final hitlag input also supplies ASDI and trajectory DI, with full
@@ -235,7 +242,8 @@ registry row can advance from `playable` to `verified`.
    Confirm only the original occupant enters `LEDGE HANG`.
 13. Move into range, press `F`, and confirm the amber hitbox appears only on the
    active frames. On contact, confirm the target gains 6%, both players visibly
-   freeze, and the target then launches in `HITSTUN`.
+   freeze, the target then launches in `HITSTUN`, and the event feed adds one
+   sequenced 6% `hit` entry naming both players.
 14. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
@@ -313,7 +321,8 @@ registry row can advance from `playable` to `verified`.
     percent with the dashed ring and 120-frame invulnerability timer. Move and
     attack during that timer, then confirm the ring expires. Repeat until the
     final stock and confirm the result banner, paused match, and Rematch
-    button.
+    button. Confirm the feed records KO, respawn, and final match result in
+    increasing sequence order.
 30. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
@@ -349,7 +358,7 @@ through:
   the exact 60-tick respawn wait, then returning active with the exact
   120-tick hitbox-rejecting invulnerability timer;
 - a real grounded attack producing the configured damage, hitlag, attacker
-  identity, and canonical combat event; and
+  identity, and typed ABI-4 hit event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
   ticks, and canonical tumble state;
 - an exact 26-tick missed-tech animation entering `DOWN WAIT`, all three
@@ -371,7 +380,8 @@ through:
   simultaneous occupancy, and mid-climb save/load equivalence.
 
 The page reports
-`playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass reaction_probe=pass
+`playtest=ready input_probe=pass air_facing_probe=pass combat_probe=pass
+event_journal_probe=pass reaction_probe=pass
 shield_probe=pass powershield_cancel_probe=pass tumble_probe=pass
 floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
 ground_dodge_probe=pass

@@ -9,21 +9,23 @@ extern "C"
 {
 #endif
 
-#define PF_SIM_ABI_VERSION UINT32_C(3)
+#define PF_SIM_ABI_VERSION UINT32_C(4)
 #define PF_SIM_TICK_RATE_HZ UINT32_C(60)
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(3)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(14)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(15)
 #define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(13)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(14)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
 #define PF_SIM_MAX_PLAYERS UINT32_C(4)
+#define PF_SIM_MAX_EVENTS_PER_TICK UINT8_C(16)
+#define PF_SIM_EVENT_NO_PLAYER UINT8_MAX
 #define PF_SIM_MAX_STOCK_COUNT UINT8_C(99)
 #define PF_SIM_MAX_RESPAWN_TICKS UINT16_C(3600)
 #define PF_SIM_DEFAULT_STOCK_COUNT UINT8_C(4)
@@ -69,6 +71,44 @@ typedef enum pf_sim_fault
     PF_SIM_FAULT_CAPACITY = 1 << 1,
     PF_SIM_FAULT_INVALID_STATE = 1 << 2
 } pf_sim_fault;
+
+typedef enum pf_sim_event_type
+{
+    PF_SIM_EVENT_NONE = 0,
+    PF_SIM_EVENT_HIT = 1,
+    PF_SIM_EVENT_SHIELD_BLOCK = 2,
+    PF_SIM_EVENT_POWERSHIELD = 3,
+    PF_SIM_EVENT_SHIELD_BREAK = 4,
+    PF_SIM_EVENT_KO = 5,
+    PF_SIM_EVENT_RESPAWN = 6,
+    PF_SIM_EVENT_SUDDEN_DEATH = 7,
+    PF_SIM_EVENT_MATCH_RESULT = 8,
+    PF_SIM_EVENT_FORFEIT = 9,
+    PF_SIM_EVENT_TIME_LIMIT = 10
+} pf_sim_event_type;
+
+typedef enum pf_sim_event_flag
+{
+    PF_SIM_EVENT_FLAG_NONE = 0,
+    PF_SIM_EVENT_FLAG_TUMBLE = 1 << 0,
+    PF_SIM_EVENT_FLAG_ELIMINATED = 1 << 1,
+    PF_SIM_EVENT_FLAG_LAST_STOCK = 1 << 2,
+    PF_SIM_EVENT_FLAG_SUDDEN_DEATH = 1 << 3
+} pf_sim_event_flag;
+
+typedef struct pf_sim_event
+{
+    uint64_t tick;
+    uint32_t sequence;
+    uint32_t value_q16;
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint16_t type;
+    uint16_t flags;
+    uint16_t detail;
+    uint8_t source_player;
+    uint8_t target_player;
+} pf_sim_event;
 
 typedef struct pf_hash256
 {
@@ -184,6 +224,10 @@ typedef struct pf_tick_result
     uint8_t truncated;
     uint8_t winner_mask;
     uint8_t reserved;
+    uint8_t event_count;
+    uint8_t reserved2;
+    uint16_t reserved3;
+    pf_sim_event events[PF_SIM_MAX_EVENTS_PER_TICK];
 } pf_tick_result;
 
 typedef struct pf_player_observation

@@ -347,11 +347,14 @@ and replays cannot load under different match rules.
 
 ## Canonical state and inspection
 
-State schema 14 / save format 13 adds the stock rules, per-player stocks,
-respawn timers, sudden-death state, and `RESPAWN_WAIT`/`ELIMINATED` action
-semantics. The stream is now 603 bytes: a 140-byte header plus a 463-byte
-payload, with active magic `PFSAVE13`. It follows state schema 13 / save format
-12, which added `STRONG_AERIAL_ATTACK`, `STRONG_AERIAL_LANDING`, and
+State schema 15 / save format 14 retains the 603-byte stream (140-byte header
+plus 463-byte payload) and changes the active magic to `PFSAVE14`. It defines
+the ABI-4 typed per-tick event journal while keeping only its authoritative
+monotonic sequence in canonical state. It follows state schema 14 / save
+format 13, which added the stock rules, per-player stocks, respawn timers,
+sudden-death state, and `RESPAWN_WAIT`/`ELIMINATED` action semantics, and state
+schema 13 / save format 12, which added `STRONG_AERIAL_ATTACK`,
+`STRONG_AERIAL_LANDING`, and
 `STRONG_L_CANCEL_LANDING` semantics without changing the byte layout, and
 state schema 12 / save format 11, which
 added `ROLL_FORWARD`, `ROLL_BACKWARD`, and `SPOT_DODGE` semantics plus one
@@ -380,17 +383,54 @@ lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 12
+sudden death, and result. Browser view schema 13
 carries those fields plus the canonical action timer, floor action semantics,
 the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
 floor-attack hitbox, the strong-aerial states, the landing-result banner/ring
-and countdown, stock HUD, countdown/result overlays, and renders the block.
+and countdown, stock HUD, countdown/result overlays, the most recent per-tick
+event records, and renders the block.
+
+## Deterministic event journal
+
+Every successful ABI-4 tick returns a zero-initialized fixed-capacity journal
+of up to 16 typed events. Current combat and match producers emit:
+
+- hit, shield block, powershield, and shield break;
+- KO and respawn, including remaining-stock, elimination, and sudden-death
+  flags;
+- sudden-death setup, match result, forfeit, and time limit.
+
+Each fixed 32-byte record contains the processed input tick, match-monotonic
+sequence, source/target slots, Q16.16 value and velocity fields, flags, and a
+type-specific detail. Player `255` means system/no player. Target resolution
+and event order follow stable slot order, with match resolution last.
+
+| Event | Value / velocity | Detail |
+|---|---|---|
+| Hit | Attack damage / pending launch | Attacker action |
+| Shield block, powershield, shield break | Applied shield damage / physical pushback | Attacker action |
+| KO | Pre-reset percent / blast-crossing velocity | Stocks remaining |
+| Respawn | Respawn percent / spawn velocity | Invulnerability ticks |
+| Sudden death | `300%` / zero | Player count |
+| Match result | Zero | Winner mask |
+| Forfeit | Zero | Zero |
+| Time limit | Zero | Zero |
+
+The tumble flag annotates a hit; eliminated/last-stock annotate a KO; and
+sudden-death annotates setup, respawn, KO, and result events where applicable.
+
+The array is caller-owned output for one tick and is not serialized as rolling
+history. The canonical save stores the sequence authority. A mid-match save,
+load, and identical continuation must return byte-identical journals, which
+prevents duplicated or renumbered rollback effects without making state size
+depend on match length. Capacity 16 exceeds the statically proven current
+maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
 `tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 110 focused
-invariants, including:
+mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
@@ -437,7 +477,8 @@ invariants, including:
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
 `tests/sim/test_m4_match.c` and `tools/verify_m4_match.sh` add 24 match
-invariants: rule defaults and invalid bounds, stock loss, exact respawn and
+invariants plus 44 journal invariants: rule defaults and invalid bounds, stock
+loss, exact respawn and
 invulnerability boundaries, hit rejection/acceptance around invulnerability,
 mid-respawn save/load continuation, final-stock result, 300% simultaneous-KO
 sudden death, deterministic repeated-tie resolution, and 2v2 team winner
@@ -448,7 +489,8 @@ requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
 and WebAssembly runs must agree on all 181 state hashes, the 31,295-byte
-replay, and its final digest.
+replay, its final digest, and the complete typed event stream digest under the
+`PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
 ground-dodge, air-dodge,

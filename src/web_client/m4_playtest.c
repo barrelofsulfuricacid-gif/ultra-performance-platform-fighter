@@ -18,7 +18,9 @@
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
 #define PF_WEB_M4_VIEW_PLAYER_STRIDE 35
 #define PF_WEB_M4_VIEW_PLAYER0 25
-#define PF_WEB_M4_VIEW_COUNT 95
+#define PF_WEB_M4_VIEW_EVENT_STRIDE 10
+#define PF_WEB_M4_VIEW_EVENT0 96
+#define PF_WEB_M4_VIEW_COUNT 256
 
 enum pf_web_m4_view_field
 {
@@ -47,6 +49,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_TERMINATED = 22,
     PF_WEB_M4_VIEW_TRUNCATED = 23,
     PF_WEB_M4_VIEW_WINNER_MASK = 24,
+    PF_WEB_M4_VIEW_EVENT_COUNT = 95,
     PF_WEB_M4_VIEW_PLAYER_X = 0,
     PF_WEB_M4_VIEW_PLAYER_Y = 1,
     PF_WEB_M4_VIEW_PLAYER_VX = 2,
@@ -81,7 +84,17 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_L_CANCEL_ELIGIBLE = 31,
     PF_WEB_M4_VIEW_PLAYER_STOCKS = 32,
     PF_WEB_M4_VIEW_PLAYER_RESPAWN_TICKS = 33,
-    PF_WEB_M4_VIEW_PLAYER_RESPAWN_INVULNERABILITY = 34
+    PF_WEB_M4_VIEW_PLAYER_RESPAWN_INVULNERABILITY = 34,
+    PF_WEB_M4_VIEW_EVENT_SEQUENCE = 0,
+    PF_WEB_M4_VIEW_EVENT_TICK = 1,
+    PF_WEB_M4_VIEW_EVENT_TYPE = 2,
+    PF_WEB_M4_VIEW_EVENT_SOURCE = 3,
+    PF_WEB_M4_VIEW_EVENT_TARGET = 4,
+    PF_WEB_M4_VIEW_EVENT_VALUE = 5,
+    PF_WEB_M4_VIEW_EVENT_VELOCITY_X = 6,
+    PF_WEB_M4_VIEW_EVENT_VELOCITY_Y = 7,
+    PF_WEB_M4_VIEW_EVENT_FLAGS = 8,
+    PF_WEB_M4_VIEW_EVENT_DETAIL = 9
 };
 
 typedef struct pf_web_m4_storage
@@ -117,6 +130,7 @@ extern void pf_web_m4_playtest_render(
 static pf_web_m4_storage pf_web_m4_sim_storage;
 static pf_m4_content pf_web_m4_content;
 static pf_sim *pf_web_m4_sim;
+static pf_tick_result pf_web_m4_last_result;
 static int32_t pf_web_m4_view[PF_WEB_M4_VIEW_COUNT];
 
 static void pf_web_m4_make_inputs(
@@ -187,13 +201,17 @@ static int pf_web_m4_tick_with_triggers(
         player1_y,
         player1_buttons,
         player1_trigger);
-    return pf_sim_tick(
-               pf_web_m4_sim,
-               inputs,
-               (size_t)PF_WEB_M4_PLAYER_COUNT,
-               &result) == PF_STATUS_OK &&
-           pf_m4_inspect(pf_web_m4_sim, out_inspection) ==
-               PF_STATUS_OK;
+    if (pf_sim_tick(
+            pf_web_m4_sim,
+            inputs,
+            (size_t)PF_WEB_M4_PLAYER_COUNT,
+            &result) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    pf_web_m4_last_result = result;
+    return pf_m4_inspect(pf_web_m4_sim, out_inspection) ==
+           PF_STATUS_OK;
 }
 
 static int pf_web_m4_tick(
@@ -219,10 +237,18 @@ static int pf_web_m4_tick(
 
 static int pf_web_m4_reset_internal(void)
 {
-    return pf_web_m4_sim != NULL &&
-           pf_sim_reset(
-               pf_web_m4_sim,
-               PF_WEB_M4_RESET_SEED) == PF_STATUS_OK;
+    if (pf_web_m4_sim == NULL ||
+        pf_sim_reset(
+            pf_web_m4_sim,
+            PF_WEB_M4_RESET_SEED) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    (void)memset(
+        &pf_web_m4_last_result,
+        0,
+        sizeof(pf_web_m4_last_result));
+    return 1;
 }
 
 static int pf_web_m4_capture_hop_apex(
@@ -1233,7 +1259,16 @@ static int pf_web_m4_run_combat_probe(void)
                pf_web_m4_content.fighter.jab_damage_q16 &&
            inspection.players[1].action_state ==
                (uint8_t)PF_M4_ACTION_HITLAG &&
-           inspection.players[1].last_hit_attacker == UINT8_C(0);
+           inspection.players[1].last_hit_attacker == UINT8_C(0) &&
+           pf_web_m4_last_result.event_count == UINT8_C(1) &&
+           pf_web_m4_last_result.events[0].type ==
+               (uint16_t)PF_SIM_EVENT_HIT &&
+           pf_web_m4_last_result.events[0].source_player ==
+               UINT8_C(0) &&
+           pf_web_m4_last_result.events[0].target_player ==
+               UINT8_C(1) &&
+           pf_web_m4_last_result.events[0].sequence ==
+               inspection.players[1].last_hit_sequence;
 }
 
 static int pf_web_m4_run_tumble_probe(void)
@@ -2016,6 +2051,7 @@ static int pf_web_m4_run_match_probe(void)
 static int pf_web_m4_render(void)
 {
     pf_m4_inspection inspection;
+    uint32_t event_index;
     uint32_t player_index;
 
     if (pf_m4_inspect(pf_web_m4_sim, &inspection) != PF_STATUS_OK ||
@@ -2025,7 +2061,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(12);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(13);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -2160,6 +2196,46 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_RESPAWN_INVULNERABILITY] =
             (int32_t)player->respawn_invulnerability_ticks;
+    }
+    pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
+        (int32_t)pf_web_m4_last_result.event_count;
+    for (event_index = UINT32_C(0);
+         event_index <
+         (uint32_t)pf_web_m4_last_result.event_count;
+         ++event_index)
+    {
+        const pf_sim_event *event =
+            &pf_web_m4_last_result.events[event_index];
+        const int base =
+            PF_WEB_M4_VIEW_EVENT0 +
+            (int)event_index * PF_WEB_M4_VIEW_EVENT_STRIDE;
+
+        if (event->tick > (uint64_t)INT32_MAX ||
+            event->sequence > (uint32_t)INT32_MAX ||
+            event->value_q16 > (uint32_t)INT32_MAX)
+        {
+            return 0;
+        }
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_SEQUENCE] =
+            (int32_t)event->sequence;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_TICK] =
+            (int32_t)event->tick;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_TYPE] =
+            (int32_t)event->type;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_SOURCE] =
+            (int32_t)event->source_player;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_TARGET] =
+            (int32_t)event->target_player;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_VALUE] =
+            (int32_t)event->value_q16;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_VELOCITY_X] =
+            event->velocity_x_q16;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_VELOCITY_Y] =
+            event->velocity_y_q16;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_FLAGS] =
+            (int32_t)event->flags;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_EVENT_DETAIL] =
+            (int32_t)event->detail;
     }
 
     pf_web_m4_playtest_render(

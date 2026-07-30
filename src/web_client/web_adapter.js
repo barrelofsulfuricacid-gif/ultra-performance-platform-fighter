@@ -507,6 +507,13 @@ mergeInto(LibraryManager.library, {
         ".pf-m4-state{background:#0a111d;border:1px solid #263851;" +
         "border-radius:10px;padding:10px 12px;font:12px/1.5 ui-monospace,monospace;" +
         "color:#9fb0c7}.pf-m4-state strong{color:#edf5ff}" +
+        ".pf-m4-event-panel{grid-column:1/-1}.pf-m4-event-help{" +
+        "color:#7287a4;margin:3px 0 8px}.pf-m4-event-feed{" +
+        "list-style:none;padding:0;margin:0;display:grid;gap:5px}" +
+        ".pf-m4-event-feed li{display:grid;grid-template-columns:112px 1fr;" +
+        "gap:10px;padding:6px 8px;border-left:3px solid #3a587d;" +
+        "background:#101a29;color:#bed0e8}.pf-m4-event-feed code{" +
+        "color:#75dfff}.pf-m4-event-empty{color:#7287a4!important}" +
         ".pf-m4-note{color:#8294ad;font-size:12px;margin:13px 0 0}" +
         "@media(max-width:680px){.pf-m4-heading{flex-direction:column}" +
         ".pf-m4-controls,.pf-m4-state-grid{grid-template-columns:1fr}" +
@@ -547,7 +554,7 @@ mergeInto(LibraryManager.library, {
       groundDodgeProbePassed &&
       aerialLCancelProbePassed &&
       matchProbePassed
-        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
+        ? "INPUT + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT EVENT JOURNAL + REACTION + SHIELD / PSC + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -657,6 +664,8 @@ mergeInto(LibraryManager.library, {
       "underside with a fresh tech input performs a wall or ceiling tech; " +
       "hold up for a wall-tech jump. Missing the window produces a visible " +
       "wall or ceiling bounce while hitstun continues. " +
+      "The deterministic event feed below records hits, shield interactions, " +
+      "KOs, respawns, sudden death, and results in canonical sequence order. " +
       "R resets, P " +
       "pauses, and N single-steps.";
     section.appendChild(note);
@@ -672,6 +681,24 @@ mergeInto(LibraryManager.library, {
       stateGrid.appendChild(card);
       playerStates.push(card);
     });
+    var eventPanel = document.createElement("div");
+    eventPanel.className = "pf-m4-state pf-m4-event-panel";
+    var eventTitle = document.createElement("strong");
+    eventTitle.textContent = "Deterministic combat event feed";
+    var eventHelp = document.createElement("div");
+    eventHelp.className = "pf-m4-event-help";
+    eventHelp.textContent =
+      "Newest last · fixed-capacity per-tick journal · rollback-reproducible";
+    var eventFeed = document.createElement("ol");
+    eventFeed.className = "pf-m4-event-feed";
+    var eventEmpty = document.createElement("li");
+    eventEmpty.className = "pf-m4-event-empty";
+    eventEmpty.textContent = "No combat events yet.";
+    eventFeed.appendChild(eventEmpty);
+    eventPanel.appendChild(eventTitle);
+    eventPanel.appendChild(eventHelp);
+    eventPanel.appendChild(eventFeed);
+    stateGrid.appendChild(eventPanel);
     section.appendChild(stateGrid);
 
     if (replayInspector) {
@@ -685,7 +712,10 @@ mergeInto(LibraryManager.library, {
       aerialLandingLagTicks: aerialLandingLagTicks,
       canvas: canvas,
       dashAxis: dashAxis,
+      eventFeed: eventFeed,
+      eventLog: [],
       keys: Object.create(null),
+      lastEventSequence: 0,
       lastTime: 0,
       latest: null,
       pauseButton: pauseButton,
@@ -909,6 +939,8 @@ mergeInto(LibraryManager.library, {
         (airFacingProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
+        " event_journal_probe=" +
+        (combatProbePassed ? "pass" : "fail") +
         " reaction_probe=" +
         (reactionProbePassed ? "pass" : "fail") +
         " shield_probe=" +
@@ -935,6 +967,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.airFacingProbe =
         airFacingProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
+      status.dataset.eventJournalProbe =
+        combatProbePassed ? "pass" : "fail";
       status.dataset.reactionProbe =
         reactionProbePassed ? "pass" : "fail";
       status.dataset.shieldProbe =
@@ -961,15 +995,16 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 95) {
+    if (!state || viewCount !== 256) {
       return;
     }
+    var previousTick = state.latest ? state.latest[1] : -1;
     state.latest = new Int32Array(
       HEAP32.subarray(viewPointer >> 2, (viewPointer >> 2) + viewCount)
     );
 
     var view = state.latest;
-    if (view[0] !== 12) {
+    if (view[0] !== 13) {
       return;
     }
     var canvas = state.canvas;
@@ -1031,6 +1066,140 @@ mergeInto(LibraryManager.library, {
       "RESPAWN WAIT",
       "ELIMINATED",
     ];
+
+    if (view[1] < previousTick) {
+      state.eventLog = [];
+      state.lastEventSequence = 0;
+    }
+
+    function eventPlayer(slot) {
+      return slot === 255 ? "system" : "P" + (slot + 1);
+    }
+
+    function eventWinners(mask) {
+      var winners = [];
+      var slot;
+      for (slot = 0; slot < 4; ++slot) {
+        if ((mask & (1 << slot)) !== 0) {
+          winners.push("P" + (slot + 1));
+        }
+      }
+      return winners.length ? winners.join(" + ") : "draw";
+    }
+
+    function eventDescription(event) {
+      var source = eventPlayer(event.source);
+      var target = eventPlayer(event.target);
+      var value = (event.value / q16).toFixed(1);
+      var velocity =
+        "(" +
+        (event.velocityX / q16).toFixed(2) +
+        ", " +
+        (event.velocityY / q16).toFixed(2) +
+        ")";
+
+      switch (event.type) {
+        case 1:
+          return (
+            source +
+            " hit " +
+            target +
+            " for " +
+            value +
+            "% · launch " +
+            velocity +
+            ((event.flags & 1) !== 0 ? " · TUMBLE" : "")
+          );
+        case 2:
+          return (
+            target +
+            " shielded " +
+            source +
+            " · shield damage " +
+            value
+          );
+        case 3:
+          return target + " POWERSHIELDED " + source + " · zero shield damage";
+        case 4:
+          return target + " SHIELD BROKE against " + source;
+        case 5:
+          return (
+            target +
+            " KO · " +
+            event.detail +
+            " stock" +
+            (event.detail === 1 ? "" : "s") +
+            " remain" +
+            ((event.flags & 2) !== 0 ? " · ELIMINATED" : "")
+          );
+        case 6:
+          return (
+            target +
+            " respawned · " +
+            event.detail +
+            "f invulnerability" +
+            ((event.flags & 8) !== 0 ? " · 300%" : "")
+          );
+        case 7:
+          return "SUDDEN DEATH · " + value + "% · all players respawn";
+        case 8:
+          return "MATCH RESULT · " + eventWinners(event.detail) + " win";
+        case 9:
+          return target + " forfeited";
+        case 10:
+          return "TIME LIMIT";
+        default:
+          return "unknown event type " + event.type;
+      }
+    }
+
+    function renderEventFeed() {
+      state.eventFeed.textContent = "";
+      if (state.eventLog.length === 0) {
+        var empty = document.createElement("li");
+        empty.className = "pf-m4-event-empty";
+        empty.textContent = "No combat events yet.";
+        state.eventFeed.appendChild(empty);
+        return;
+      }
+      state.eventLog.forEach(function (event) {
+        var row = document.createElement("li");
+        var key = document.createElement("code");
+        var description = document.createElement("span");
+        key.textContent = "#" + event.sequence + " · tick " + event.tick;
+        description.textContent = eventDescription(event);
+        row.appendChild(key);
+        row.appendChild(description);
+        state.eventFeed.appendChild(row);
+      });
+    }
+
+    var eventCount = Math.max(0, Math.min(16, view[95]));
+    var eventIndex;
+    for (eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
+      var eventBase = 96 + eventIndex * 10;
+      var sequence = view[eventBase];
+      if (sequence <= state.lastEventSequence) {
+        continue;
+      }
+      state.eventLog.push({
+        sequence: sequence,
+        tick: view[eventBase + 1],
+        type: view[eventBase + 2],
+        source: view[eventBase + 3],
+        target: view[eventBase + 4],
+        value: view[eventBase + 5],
+        velocityX: view[eventBase + 6],
+        velocityY: view[eventBase + 7],
+        flags: view[eventBase + 8],
+        detail: view[eventBase + 9],
+      });
+      state.lastEventSequence = sequence;
+    }
+    if (state.eventLog.length > 10) {
+      state.eventLog = state.eventLog.slice(state.eventLog.length - 10);
+    }
+    renderEventFeed();
 
     function sx(q16Value) {
       return (

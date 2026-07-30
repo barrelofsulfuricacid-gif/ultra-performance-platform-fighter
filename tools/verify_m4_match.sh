@@ -31,6 +31,7 @@ common_flags="
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -42,7 +43,7 @@ common_flags="
 
 "$output_dir/m4_match_test" >"$output_dir/m4_match.txt"
 grep -Fqx \
-    'm4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24' \
+    'm4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24 journal_invariants=44' \
     "$output_dir/m4_match.txt"
 
-echo "m4-match-verification=pass invariants=24"
+echo "m4-match-verification=pass invariants=24 journal_invariants=44"

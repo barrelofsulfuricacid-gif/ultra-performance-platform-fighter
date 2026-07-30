@@ -81,15 +81,17 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–12 remain historical checkpoints. The current M4
-movement/combat state uses save format 13: a fixed 603-byte checkpoint with
-state schema 14 and canonical solid-surface tech/bounce,
+Save formats 1–13 remain historical checkpoints. The current M4
+movement/combat state uses save format 14: a fixed 603-byte checkpoint with
+state schema 15 and canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
 the strong-aerial/normal-landing/L-cancel-landing action semantics. It also
 stores configurable stock/respawn rules, per-player stocks and respawn timers,
-respawn-wait/eliminated actions, and sudden-death state.
+respawn-wait/eliminated actions, sudden-death state, and the authoritative
+monotonic event sequence. Format 14 changes the public tick-result semantics
+without adding journal payloads to canonical state.
 Format 5 first
 introduced the same-size payload containing shield health, shield-stun timers,
 and powershield result state. Exact headers, payloads, compatibility, checksum,
@@ -136,9 +138,25 @@ not duplicated per match.
 
 ## Event journal
 
-The tick result exposes a caller-owned bounded array of fixed-header events.
-Large optional payloads use offsets into a same-tick bounded byte buffer.
-Overflow is a deterministic simulation fault and a test failure; events are
+ABI 4 exposes up to 16 caller-owned, fixed-size events in every tick result.
+Each event records the processed input tick, a match-monotonic sequence,
+type, flags, source and target slots, one Q16.16 value, one Q16.16 velocity
+pair, and a type-specific 16-bit detail. `255` denotes a system/no-player
+endpoint. The currently produced types are hit, shield block, powershield,
+shield break, KO, respawn, sudden death, match result, forfeit, and time
+limit.
+
+The event array itself is same-tick output scratch, not rolling canonical
+history. Canonical state stores the next sequence authority. Loading a
+checkpoint and replaying the same inputs therefore reproduces exactly the
+same event records and sequence IDs without making rollback memory grow with
+match length. Presentation clients may retain a bounded recent history and
+must discard/reconcile it when the simulation tick rewinds.
+
+The current production path has a statically proven upper bound of 13 events
+per tick: at most one movement, one combat, and one forfeit event per player,
+plus one match-resolution event. Capacity is 16. Sequence exhaustion or
+capacity overflow faults before the tick mutates canonical state; events are
 never silently dropped.
 
 Event categories include:
@@ -162,7 +180,7 @@ The replay is a chunked, length-delimited binary container:
 | Header | Magic, replay version, simulation ABI, content/config hashes, seed, players/teams, tick rate |
 | Inputs | Delta-compressed normalized frames in tick order |
 | Checkpoints | Optional canonical save states plus per-tick or periodic hashes |
-| Result | Final deterministic result and journal digest |
+| Result | Final deterministic result; a later chunk version may add a journal digest |
 | Metadata | Non-authoritative display names, client platform, annotations |
 | Verification envelope | Server protocol version, signer ID, signature, acceptance/rejection reason |
 
@@ -174,8 +192,12 @@ server re-simulates it with the identified headless build/content pair before
 rating is finalized.
 
 Replay format 1 uses five checksummed required chunks and mandatory per-tick
-hashes. Its exact ownership, compatibility, failure, and golden-corpus rules
-are recorded in
+hashes. Replay API schema 2 carries ABI-4 tick results, but the format-1 result
+chunk intentionally retains its original 16-byte terminal summary and does
+not encode the inline last-tick journal. Verification re-simulates the journal;
+the canonical cross-target corpus separately hashes every emitted event under
+the `PFEVT001` domain. Its exact ownership, compatibility, failure, and
+golden-corpus rules are recorded in
 [TDR-0007](../technology_decisions/0007-replay-container.md).
 
 The owner-approved action, structured/compact observation, reward, legal-mask,

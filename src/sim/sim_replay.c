@@ -465,6 +465,51 @@ static int pf_replay_result_equal(
            left->reserved == right->reserved;
 }
 
+static int pf_replay_tick_events_valid(
+    const pf_tick_result *result,
+    uint8_t player_count)
+{
+    const uint16_t known_flags =
+        (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE |
+        (uint16_t)PF_SIM_EVENT_FLAG_ELIMINATED |
+        (uint16_t)PF_SIM_EVENT_FLAG_LAST_STOCK |
+        (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH;
+    uint32_t event_index;
+    uint32_t previous_sequence = UINT32_C(0);
+
+    if (result->reserved2 != UINT8_C(0) ||
+        result->reserved3 != UINT16_C(0) ||
+        result->event_count > PF_SIM_MAX_EVENTS_PER_TICK ||
+        (result->completed_tick == UINT64_C(0) &&
+         result->event_count != UINT8_C(0)))
+    {
+        return 0;
+    }
+    for (event_index = UINT32_C(0);
+         event_index < (uint32_t)result->event_count;
+         ++event_index)
+    {
+        const pf_sim_event *event = &result->events[event_index];
+
+        if (event->tick != result->completed_tick - UINT64_C(1) ||
+            event->sequence == UINT32_C(0) ||
+            (event_index != UINT32_C(0) &&
+             event->sequence != previous_sequence + UINT32_C(1)) ||
+            event->type <= (uint16_t)PF_SIM_EVENT_NONE ||
+            event->type > (uint16_t)PF_SIM_EVENT_TIME_LIMIT ||
+            (event->flags & (uint16_t)~known_flags) != UINT16_C(0) ||
+            (event->source_player != PF_SIM_EVENT_NO_PLAYER &&
+             event->source_player >= player_count) ||
+            (event->target_player != PF_SIM_EVENT_NO_PLAYER &&
+             event->target_player >= player_count))
+        {
+            return 0;
+        }
+        previous_sequence = event->sequence;
+    }
+    return 1;
+}
+
 static void pf_replay_world_result(
     const pf_world_state *world,
     pf_tick_result *result)
@@ -613,6 +658,9 @@ static pf_status pf_replay_calculate_layout(
 
     if (source->final_result.completed_tick != source->tick_count ||
         source->final_result.reserved != UINT8_C(0) ||
+        !pf_replay_tick_events_valid(
+            &source->final_result,
+            source->initial_state->world.player_count) ||
         source->final_result.terminated > UINT8_C(1) ||
         source->final_result.truncated > UINT8_C(1) ||
         (source->final_result.fault_flags & ~known_faults) !=

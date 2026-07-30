@@ -1,6 +1,6 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner; current implementation is RL schema 3
+- **Status:** Accepted by owner; current implementation is RL schema 4
 - **Date:** 2026-07-27
 
 ## Scope
@@ -9,8 +9,11 @@ This record defines the C contract exposed by `pf/rl.h`. The owner accepted
 raw analog actions, both observation forms with seed redaction, shaped rewards,
 and the fixed-stride independent-error batch contract. Those decisions are
 implemented in RL schema 2 before later combat, mode, and content work made
-the interface expensive to change. RL schema 3 preserves those decisions and
-adds the M4 stock, respawn, invulnerability, and sudden-death observations.
+the interface expensive to change. RL schema 3 preserved those decisions and
+added the M4 stock, respawn, invulnerability, and sudden-death observations.
+RL schema/transition schema 4 retain the same action, observation, reward, and
+batch semantics while embedding the ABI-4 per-tick event journal in every
+transition result.
 
 ## Actions
 

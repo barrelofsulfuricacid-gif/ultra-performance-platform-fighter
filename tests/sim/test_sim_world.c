@@ -128,6 +128,7 @@ static int run_determinism_test(const pf_content_view *content)
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
     pf_input_frame invalid_inputs[PF_SIM_MAX_PLAYERS];
     pf_tick_result result;
+    pf_tick_result forfeit_result;
     uint64_t tick;
 
     if (!expect_status(
@@ -250,12 +251,20 @@ static int run_determinism_test(const pf_content_view *content)
     make_inputs(inputs, UINT8_C(2), UINT64_C(180));
     inputs[0].buttons = PF_INPUT_BUTTON_FORFEIT;
     if (!expect_status(
-            pf_sim_tick(first, inputs, (size_t)2, &result),
+            pf_sim_tick(first, inputs, (size_t)2, &forfeit_result),
             PF_STATUS_OK,
             "forfeit") ||
-        result.terminated != UINT8_C(1) ||
-        result.truncated != UINT8_C(0) ||
-        result.winner_mask != UINT8_C(2) ||
+        forfeit_result.terminated != UINT8_C(1) ||
+        forfeit_result.truncated != UINT8_C(0) ||
+        forfeit_result.winner_mask != UINT8_C(2) ||
+        forfeit_result.event_count != UINT8_C(2) ||
+        forfeit_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_FORFEIT ||
+        forfeit_result.events[0].target_player != UINT8_C(0) ||
+        forfeit_result.events[0].tick != UINT64_C(180) ||
+        forfeit_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_MATCH_RESULT ||
+        forfeit_result.events[1].detail != UINT16_C(2) ||
         !expect_status(
             pf_sim_tick(first, inputs, (size_t)2, &result),
             PF_STATUS_EPISODE_DONE,
@@ -342,7 +351,11 @@ static int run_truncation_test(const pf_content_view *content)
 
     if (result.completed_tick != UINT64_C(3) ||
         result.terminated != UINT8_C(0) ||
-        result.truncated != UINT8_C(1))
+        result.truncated != UINT8_C(1) ||
+        result.event_count != UINT8_C(1) ||
+        result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_TIME_LIMIT ||
+        result.events[0].tick != UINT64_C(2))
     {
         (void)fprintf(stderr, "sim-world=fail operation=truncation\n");
         return 0;

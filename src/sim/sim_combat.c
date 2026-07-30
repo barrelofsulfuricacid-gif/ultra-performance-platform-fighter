@@ -685,9 +685,25 @@ pf_status pf_m4_resolve_combat(
                 scratch->hitlag_resume_action[target_index] =
                     (uint8_t)PF_M4_ACTION_SHIELD_STUN;
             }
-            if (scratch->combat_event_sequence != UINT32_MAX)
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    powershield
+                        ? PF_SIM_EVENT_POWERSHIELD
+                        : (scratch->shield_health_q16[target_index] ==
+                                   UINT32_C(0)
+                               ? PF_SIM_EVENT_SHIELD_BREAK
+                               : PF_SIM_EVENT_SHIELD_BLOCK),
+                    owner,
+                    (uint8_t)target_index,
+                    powershield ? UINT32_C(0) : shield_damage,
+                    scratch->velocity_x_q16[target_index],
+                    scratch->velocity_y_q16[target_index],
+                    UINT16_C(0),
+                    (uint16_t)attacker_action[owner],
+                    NULL) != PF_STATUS_OK)
             {
-                ++scratch->combat_event_sequence;
+                return PF_STATUS_DETERMINISTIC_FAULT;
             }
             continue;
         }
@@ -739,12 +755,30 @@ pf_status pf_m4_resolve_combat(
         scratch->sdi_direction_y[target_index] = INT8_C(0);
         scratch->tech_direction[target_index] = INT8_C(0);
 
-        if (scratch->combat_event_sequence != UINT32_MAX)
         {
-            ++scratch->combat_event_sequence;
+            uint32_t hit_sequence;
+            const uint16_t event_flags =
+                scratch->tumble[target_index] != UINT8_C(0)
+                    ? (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE
+                    : UINT16_C(0);
+
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    PF_SIM_EVENT_HIT,
+                    owner,
+                    (uint8_t)target_index,
+                    attack.damage_q16,
+                    scratch->pending_velocity_x_q16[target_index],
+                    scratch->pending_velocity_y_q16[target_index],
+                    event_flags,
+                    (uint16_t)attacker_action[owner],
+                    &hit_sequence) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            scratch->last_hit_sequence[target_index] = hit_sequence;
         }
-        scratch->last_hit_sequence[target_index] =
-            scratch->combat_event_sequence;
         scratch->last_hit_tick[target_index] = world->tick;
         scratch->last_hit_damage_q16[target_index] =
             attack.damage_q16;

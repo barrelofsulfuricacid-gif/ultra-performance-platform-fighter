@@ -258,6 +258,13 @@ static int transitions_equal(
                right->tick_result.truncated &&
            left->tick_result.winner_mask ==
                right->tick_result.winner_mask &&
+           left->tick_result.event_count ==
+               right->tick_result.event_count &&
+           memcmp(
+               left->tick_result.events,
+               right->tick_result.events,
+               sizeof(left->tick_result.events[0]) *
+                   (size_t)left->tick_result.event_count) == 0 &&
            memcmp(
                left->compact_observation.values,
                right->compact_observation.values,

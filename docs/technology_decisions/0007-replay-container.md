@@ -1,6 +1,6 @@
 # TDR-0007: Replay container and verification
 
-- **Status:** Accepted for replay format 1
+- **Status:** Accepted for replay format 1 / API schema 2
 - **Date:** 2026-07-28
 
 ## Decision
@@ -29,6 +29,13 @@ canonical oracle against which a later delta-compressed chunk can be tested.
 Compression can be introduced as a new chunk version without changing
 simulation input semantics.
 
+Replay API schema 2 and verification schema 2 embed the ABI-4 tick-result
+layout, including its last-tick event array. The format-1 result chunk remains
+the original 16-byte terminal summary above, so event payloads are not added
+to or read from the wire. Verification deterministically re-emits them while
+stepping; a future required chunk version is needed before an arbitrary replay
+can carry and authenticate its expected event digest.
+
 ## API and ownership
 
 `pf_replay_query_size` and `pf_replay_encode` consume a `pf_replay_source`
@@ -54,21 +61,24 @@ used by the native/WebAssembly corpus test and browser inspector:
 - Four-player team configuration.
 - Seed `0x0123456789abcdef`.
 - 180 normalized input ticks and 181 state hashes.
-- 31,295 replay bytes with M4 state schema 14 / save format 13.
+- 31,295 replay bytes with M4 state schema 15 / save format 14.
 - Ground-attack, vertical-stick, and trigger inputs plus confirmed damage/hit,
   grounded-roll, spot-dodge, SDI, tech-window, shield, air-dodge, and
   special-landing state in the production combat path.
 - Replay SHA-256
-  `3d97ed60fcf0e16477944c4cd9652490df51c59c0d1b11d28f55d18d9e5ab79d`.
+  `0a532f538fd875a339e83b8c6ee521a77c5f4945268acad52780f3f87f0df155`.
 - Final state SHA-256
-  `9b5405f2fb4435abf774866f478b090d7b15ec8e68155776c2a1c90f5b2ec046`.
+  `a6f0201c7de7322b1a03f86ff8e9270cc45cd85afa87808954ab67e708d06562`.
+- Per-tick event-journal SHA-256 under domain `PFEVT001`
+  `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`.
 
 The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,
 unknown-required rejection, and unknown-optional skipping.
 
 `tools/verify_m2_replay.sh` compiles and runs the corpus natively, runs the
-Emscripten build through Node when present, and requires byte-identical output.
+Emscripten build through Node when present, and requires byte-identical output
+including the event digest.
 The Web CI job makes the WebAssembly comparison mandatory. The browser build
 also generates, encodes, verifies, and displays the same trace inside
 WebAssembly, with a draggable tick timeline and the canonical state hash at

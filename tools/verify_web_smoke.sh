@@ -99,13 +99,13 @@ pf_require_dom()
 
 pf_require_dom \
     "simulation ABI status" \
-    'web-client-smoke=pass sim_abi=3 tick_hz=60'
+    'web-client-smoke=pass sim_abi=4 tick_hz=60'
 pf_require_dom \
     "WebGL2 status" \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=9b5405f2fb4435abf774866f478b090d7b15ec8e68155776c2a1c90f5b2ec046'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=a6f0201c7de7322b1a03f86ff8e9270cc45cd85afa87808954ab67e708d06562'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'

@@ -11,13 +11,14 @@ from typing import Iterable
 import numpy as np
 
 PF_STATUS_OK = 0
-PF_SIM_ABI_VERSION = 3
+PF_SIM_ABI_VERSION = 4
 PF_SIM_CONTENT_SCHEMA_VERSION = 1
-PF_RL_SCHEMA_VERSION = 3
+PF_RL_SCHEMA_VERSION = 4
 PF_RL_ACTION_SCHEMA_VERSION = 1
-PF_RL_TRANSITION_SCHEMA_VERSION = 3
+PF_RL_TRANSITION_SCHEMA_VERSION = 4
 PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 3
 PF_SIM_MAX_PLAYERS = 4
+PF_SIM_MAX_EVENTS_PER_TICK = 16
 PF_RL_COMPACT_VALUE_COUNT = 48
 PF_Q16_ONE = 65_536
 PF_RL_REWARD_COMPONENT_TERMINAL = 1 << 0
@@ -77,6 +78,21 @@ class _MemoryRequirements(ct.Structure):
     ]
 
 
+class _SimEvent(ct.Structure):
+    _fields_ = [
+        ("tick", ct.c_uint64),
+        ("sequence", ct.c_uint32),
+        ("value_q16", ct.c_uint32),
+        ("velocity_x_q16", ct.c_int32),
+        ("velocity_y_q16", ct.c_int32),
+        ("type", ct.c_uint16),
+        ("flags", ct.c_uint16),
+        ("detail", ct.c_uint16),
+        ("source_player", ct.c_uint8),
+        ("target_player", ct.c_uint8),
+    ]
+
+
 class _TickResult(ct.Structure):
     _fields_ = [
         ("completed_tick", ct.c_uint64),
@@ -85,6 +101,10 @@ class _TickResult(ct.Structure):
         ("truncated", ct.c_uint8),
         ("winner_mask", ct.c_uint8),
         ("reserved", ct.c_uint8),
+        ("event_count", ct.c_uint8),
+        ("reserved2", ct.c_uint8),
+        ("reserved3", ct.c_uint16),
+        ("events", _SimEvent * PF_SIM_MAX_EVENTS_PER_TICK),
     ]
 
 
@@ -220,13 +240,14 @@ def _assert_layouts() -> None:
         "_ContentView": (_ContentView, 56),
         "_SimConfig": (_SimConfig, 32),
         "_MemoryRequirements": (_MemoryRequirements, 32),
-        "_TickResult": (_TickResult, 16),
+        "_SimEvent": (_SimEvent, 32),
+        "_TickResult": (_TickResult, 536),
         "_PlayerObservation": (_PlayerObservation, 40),
         "_SimObservation": (_SimObservation, 192),
         "_RlAction": (_RlAction, 24),
         "_RlSpec": (_RlSpec, 48),
         "_RlCompactObservation": (_RlCompactObservation, 200),
-        "_RlTransition": (_RlTransition, 472),
+        "_RlTransition": (_RlTransition, 992),
     }
     mismatches = [
         f"{name}={ct.sizeof(struct_type)} expected={size}"

@@ -31,6 +31,8 @@ static const char expected_corpus_sha256[] =
     PF_M2_REPLAY_CORPUS_SHA256;
 static const char expected_final_sha256[] =
     PF_M2_REPLAY_FINAL_SHA256;
+static const char expected_events_sha256[] =
+    PF_M2_REPLAY_EVENTS_SHA256;
 
 typedef struct test_sim_storage
 {
@@ -100,6 +102,12 @@ static void write_u32_le(uint8_t *bytes, uint32_t value)
     bytes[3] = (uint8_t)(value >> 24U);
 }
 
+static void write_u16_le(uint8_t *bytes, uint16_t value)
+{
+    bytes[0] = (uint8_t)value;
+    bytes[1] = (uint8_t)(value >> 8U);
+}
+
 static void write_u64_le(uint8_t *bytes, uint64_t value)
 {
     uint32_t byte_index;
@@ -142,6 +150,46 @@ static void sha256_bytes(
     pf_sha256_init(&hash);
     pf_sha256_update(&hash, bytes, byte_count);
     pf_sha256_finish(&hash, digest);
+}
+
+static void hash_tick_events(
+    pf_sha256 *hash,
+    const pf_tick_result *result)
+{
+    uint8_t bytes[8];
+    uint32_t event_index;
+
+    write_u64_le(bytes, result->completed_tick);
+    pf_sha256_update(hash, bytes, (size_t)8);
+    bytes[0] = result->event_count;
+    pf_sha256_update(hash, bytes, (size_t)1);
+
+    for (event_index = UINT32_C(0);
+         event_index < (uint32_t)result->event_count;
+         ++event_index)
+    {
+        const pf_sim_event *event = &result->events[event_index];
+
+        write_u64_le(bytes, event->tick);
+        pf_sha256_update(hash, bytes, (size_t)8);
+        write_u32_le(bytes, event->sequence);
+        pf_sha256_update(hash, bytes, (size_t)4);
+        write_u32_le(bytes, event->value_q16);
+        pf_sha256_update(hash, bytes, (size_t)4);
+        write_u32_le(bytes, (uint32_t)event->velocity_x_q16);
+        pf_sha256_update(hash, bytes, (size_t)4);
+        write_u32_le(bytes, (uint32_t)event->velocity_y_q16);
+        pf_sha256_update(hash, bytes, (size_t)4);
+        write_u16_le(bytes, event->type);
+        pf_sha256_update(hash, bytes, (size_t)2);
+        write_u16_le(bytes, event->flags);
+        pf_sha256_update(hash, bytes, (size_t)2);
+        write_u16_le(bytes, event->detail);
+        pf_sha256_update(hash, bytes, (size_t)2);
+        bytes[0] = event->source_player;
+        bytes[1] = event->target_player;
+        pf_sha256_update(hash, bytes, (size_t)2);
+    }
 }
 
 static int verify_unmodified_hash(
@@ -235,8 +283,11 @@ int main(void)
     pf_state_hash malformed_before;
     pf_m4_inspection combat_inspection;
     uint8_t replay_digest[32];
+    uint8_t events_digest[32];
     char replay_digest_hex[65];
     char final_digest_hex[65];
+    char events_digest_hex[65];
+    pf_sha256 events_hash;
     size_t replay_size = (size_t)0;
     uint64_t tick;
     int sdi_observed = 0;
@@ -305,6 +356,11 @@ int main(void)
     {
         return 1;
     }
+    pf_sha256_init(&events_hash);
+    pf_sha256_update(
+        &events_hash,
+        (const uint8_t *)"PFEVT001",
+        (size_t)8);
 
     for (tick = UINT64_C(0); tick < PF_M2_REPLAY_TICKS; ++tick)
     {
@@ -333,6 +389,7 @@ int main(void)
         {
             return 1;
         }
+        hash_tick_events(&events_hash, &result);
         {
             uint32_t player_index;
 
@@ -601,24 +658,30 @@ int main(void)
     digest_hex(
         corpus_hashes[TEST_HASH_COUNT - 1U].bytes,
         final_digest_hex);
+    pf_sha256_finish(&events_hash, events_digest);
+    digest_hex(events_digest, events_digest_hex);
     if (strcmp(replay_digest_hex, expected_corpus_sha256) != 0 ||
-        strcmp(final_digest_hex, expected_final_sha256) != 0)
+        strcmp(final_digest_hex, expected_final_sha256) != 0 ||
+        strcmp(events_digest_hex, expected_events_sha256) != 0)
     {
         (void)fprintf(
             stderr,
             "sim-replay=fail operation=golden-corpus"
-            " corpus=%s final=%s\n",
+            " corpus=%s final=%s events=%s\n",
             replay_digest_hex,
-            final_digest_hex);
+            final_digest_hex,
+            events_digest_hex);
         return 1;
     }
     (void)printf(
         "sim-replay=pass ticks=%" PRIu64
-        " players=%u bytes=%zu corpus_sha256=%s final_sha256=%s\n",
+        " players=%u bytes=%zu corpus_sha256=%s final_sha256=%s"
+        " events_sha256=%s\n",
         PF_M2_REPLAY_TICKS,
         (unsigned int)PF_M2_REPLAY_PLAYERS,
         replay_size,
         replay_digest_hex,
-        final_digest_hex);
+        final_digest_hex,
+        events_digest_hex);
     return 0;
 }

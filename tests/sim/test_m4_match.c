@@ -225,6 +225,18 @@ static int hash_equal(
                PF_SIM_STATE_HASH_BYTES) == 0;
 }
 
+static int events_equal(
+    const pf_tick_result *left,
+    const pf_tick_result *right)
+{
+    return left->event_count == right->event_count &&
+           memcmp(
+               left->events,
+               right->events,
+               sizeof(left->events[0]) *
+                   (size_t)left->event_count) == 0;
+}
+
 static int run_player0_to_ko(
     pf_sim *sim,
     pf_m4_inspection *out_inspection,
@@ -324,7 +336,12 @@ static int run_stock_respawn_match_test(
         inspection.players[0].respawn_ticks != UINT16_C(3) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
-        result.terminated != UINT8_C(0))
+        result.terminated != UINT8_C(0) ||
+        result.event_count != UINT8_C(1) ||
+        result.events[0].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[0].target_player != UINT8_C(0) ||
+        result.events[0].detail != UINT16_C(1) ||
+        result.events[0].flags != UINT16_C(0))
     {
         return fail("first-stock-loss");
     }
@@ -411,7 +428,13 @@ static int run_stock_respawn_match_test(
         inspection.players[0].respawn_ticks != UINT16_C(0) ||
         inspection.players[0].respawn_invulnerability_ticks !=
             UINT16_C(5) ||
-        inspection.players[0].damage_q16 != UINT32_C(0))
+        inspection.players[0].damage_q16 != UINT32_C(0) ||
+        result.event_count != UINT8_C(1) ||
+        result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_RESPAWN ||
+        result.events[0].target_player != UINT8_C(0) ||
+        result.events[0].detail != UINT16_C(5) ||
+        !events_equal(&result, &loaded_result))
     {
         return fail("respawn-delay-boundary");
     }
@@ -509,7 +532,21 @@ static int run_stock_respawn_match_test(
         inspection.terminated != UINT8_C(1) ||
         inspection.winner_mask != UINT8_C(2) ||
         result.terminated != UINT8_C(1) ||
-        result.winner_mask != UINT8_C(2))
+        result.winner_mask != UINT8_C(2) ||
+        result.event_count != UINT8_C(2) ||
+        result.events[0].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[0].target_player != UINT8_C(0) ||
+        (result.events[0].flags &
+         ((uint16_t)PF_SIM_EVENT_FLAG_ELIMINATED |
+          (uint16_t)PF_SIM_EVENT_FLAG_LAST_STOCK)) !=
+            ((uint16_t)PF_SIM_EVENT_FLAG_ELIMINATED |
+             (uint16_t)PF_SIM_EVENT_FLAG_LAST_STOCK) ||
+        result.events[0].detail != UINT16_C(0) ||
+        result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_MATCH_RESULT ||
+        result.events[1].detail != UINT16_C(2) ||
+        result.events[1].sequence !=
+            result.events[0].sequence + UINT32_C(1))
     {
         return fail("final-stock-match-result");
     }
@@ -568,7 +605,16 @@ static int run_simultaneous_ko_sudden_death_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
         inspection.players[1].action_state !=
-            (uint8_t)PF_M4_ACTION_RESPAWN_WAIT)
+            (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
+        result.event_count != UINT8_C(3) ||
+        result.events[0].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[0].target_player != UINT8_C(0) ||
+        result.events[1].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[1].target_player != UINT8_C(1) ||
+        result.events[2].type !=
+            (uint16_t)PF_SIM_EVENT_SUDDEN_DEATH ||
+        result.events[2].value_q16 !=
+            UINT32_C(300) * (uint32_t)PF_Q16_ONE)
     {
         return fail("simultaneous-final-stock-enters-sudden-death");
     }
@@ -592,6 +638,15 @@ static int run_simultaneous_ko_sudden_death_test(
         inspection.players[0].damage_q16 !=
             UINT32_C(300) * (uint32_t)PF_Q16_ONE ||
         inspection.players[1].damage_q16 !=
+            UINT32_C(300) * (uint32_t)PF_Q16_ONE ||
+        result.event_count != UINT8_C(2) ||
+        result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_RESPAWN ||
+        result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_RESPAWN ||
+        (result.events[0].flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH) == UINT16_C(0) ||
+        result.events[0].value_q16 !=
             UINT32_C(300) * (uint32_t)PF_Q16_ONE)
     {
         return fail("sudden-death-spawn-retains-300-percent");
@@ -619,7 +674,15 @@ static int run_simultaneous_ko_sudden_death_test(
         inspection.winner_mask != UINT8_C(1) ||
         result.winner_mask != UINT8_C(1) ||
         inspection.players[0].stocks_remaining != UINT8_C(0) ||
-        inspection.players[1].stocks_remaining != UINT8_C(0))
+        inspection.players[1].stocks_remaining != UINT8_C(0) ||
+        result.event_count != UINT8_C(3) ||
+        result.events[0].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[1].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[2].type !=
+            (uint16_t)PF_SIM_EVENT_MATCH_RESULT ||
+        result.events[2].detail != UINT16_C(1) ||
+        (result.events[2].flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH) == UINT16_C(0))
     {
         return fail("sudden-death-lowest-port-resolution");
     }
@@ -682,7 +745,13 @@ static int run_team_result_test(const pf_content_view *content)
         inspection.players[0].stocks_remaining != UINT8_C(0) ||
         inspection.players[2].stocks_remaining != UINT8_C(0) ||
         inspection.players[1].stocks_remaining != UINT8_C(1) ||
-        inspection.players[3].stocks_remaining != UINT8_C(1))
+        inspection.players[3].stocks_remaining != UINT8_C(1) ||
+        result.event_count != UINT8_C(2) ||
+        result.events[0].type != (uint16_t)PF_SIM_EVENT_KO ||
+        result.events[0].target_player != UINT8_C(2) ||
+        result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_MATCH_RESULT ||
+        result.events[1].detail != UINT16_C(10))
     {
         return fail("team-stock-result");
     }
@@ -760,6 +829,6 @@ int main(void)
     (void)printf(
         "m4-match=pass stocks=4 respawn_delay=60 "
         "respawn_invulnerability=120 sudden_death=1 "
-        "team_result=1 invariants=24\n");
+        "team_result=1 invariants=24 journal_invariants=44\n");
     return 0;
 }

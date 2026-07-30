@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=180 players=4 bytes=31295 corpus_sha256=3d97ed60fcf0e16477944c4cd9652490df51c59c0d1b11d28f55d18d9e5ab79d final_sha256=9b5405f2fb4435abf774866f478b090d7b15ec8e68155776c2a1c90f5b2ec046'
+expected='sim-replay=pass ticks=180 players=4 bytes=31295 corpus_sha256=0a532f538fd875a339e83b8c6ee521a77c5f4945268acad52780f3f87f0df155 final_sha256=a6f0201c7de7322b1a03f86ff8e9270cc45cd85afa87808954ab67e708d06562 events_sha256=d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f'
 
 mkdir -p "$output_dir"
 
@@ -32,6 +32,7 @@ common_flags="
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
