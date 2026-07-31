@@ -194,6 +194,34 @@ action, mutable state, or content field exists. Longer chains, percent and
 fighter coverage, stock conversions, owner execution, and complete encoded
 replay/rollback evidence remain before the row can become fully verified.
 
+## Kill confirm
+
+A [kill confirm](https://www.ssbwiki.com/KO_setup) links a relatively fast,
+safe setup into a stronger move that takes the stock in a percent range where
+throwing out the finisher alone would be riskier. The playable fixture composes
+that route entirely from existing production systems. Its data-defined jab has
+short recovery and low horizontal launch, while the ordinary strong attack
+retains percent-scaled vertical knockback. Twenty legal buildup jabs establish
+120%; the setup jab raises the target to 126%, holds it in canonical
+hitlag/hitstun without an actionable frame, and the earliest strong follow-up
+connects for a typed attacker-attributed KO at 138%.
+
+Two controls establish the useful window rather than merely proving that a
+strong attack can KO. From 0%, the same jab-to-strong input reaches only 18%
+and the target returns to neutral without losing a stock. At 120%, outward DI
+during the setup hit changes the airborne route enough that the same strong
+hitbox becomes active but whiffs, leaving the target at 126%. This DI-dependent
+escape is expected for this fixture and remains visible in the oracle.
+
+The native test saves immediately after the high-percent setup connects, loads
+the state into a second simulation, and compares every future hash through the
+KO event. The browser startup probe initializes the same validated content,
+runs the high-percent conversion and both negative routes through ordinary
+input, then reinitializes the default content before exposing the live page.
+No kill-confirm action, mutable state, or special-case combat branch exists.
+Broader fighter/percent windows, owner execution, and encoded replay/rollback
+coverage remain before the row can become fully verified.
+
 ## Spacing
 
 [Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,
@@ -682,7 +710,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 312 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 330 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -716,6 +744,9 @@ mechanics invariants plus 30 journal invariants, including:
 - a 12% grounded launcher into an 8% airborne aerial before landing,
   mid-launch save/load with equal future hashes, and an active follow-up whiff
   against directional influence plus a fresh directional air dodge;
+- a 126% jab setup remaining locked into a 138% strong-attack KO, typed
+  attacker attribution, setup-to-KO save/load hashes, an 18% low-percent
+  survival control, and a high-percent outward-DI active whiff;
 - below-platform light-aerial initiation into an 8% platform-opponent hit, a
   too-early active-hitbox whiff, ordinary held-shield damage with a typed block
   event, and mid-aerial save/load with 32 equal future hashes;

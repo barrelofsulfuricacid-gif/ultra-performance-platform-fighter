@@ -204,6 +204,52 @@ static int make_juggling_content(
         "juggling-content-view");
 }
 
+static int make_kill_confirm_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "kill-confirm-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->fighter.jab_base_knockback_x_q16 = INT32_C(1);
+    out_content->fighter.jab_base_knockback_y_q16 =
+        PF_Q16_ONE / INT32_C(5);
+    out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.strong_base_knockback_x_q16 =
+        PF_Q16_ONE / INT32_C(20);
+    out_content->fighter.hitstun_velocity_per_tick_q16 =
+        PF_Q16_ONE / INT32_C(200);
+    out_content->fighter.jab_recovery_ticks = UINT16_C(3);
+    out_content->fighter.tumble_hitstun_threshold_ticks = UINT16_C(600);
+    out_content->stage.floor_left_q16 =
+        -INT32_C(60) * PF_Q16_ONE;
+    out_content->stage.floor_right_q16 =
+        INT32_C(60) * PF_Q16_ONE;
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(30) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->stage.solid_left_q16 =
+        -INT32_C(55) * PF_Q16_ONE;
+    out_content->stage.solid_right_q16 =
+        -INT32_C(45) * PF_Q16_ONE;
+    out_content->stage.blast_left_q16 =
+        -INT32_C(64) * PF_Q16_ONE;
+    out_content->stage.blast_right_q16 =
+        INT32_C(64) * PF_Q16_ONE;
+    out_content->stage.blast_top_q16 = INT32_C(8) * PF_Q16_ONE;
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "kill-confirm-content-view");
+}
+
 static int make_reaction_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -4039,6 +4085,421 @@ static int run_juggling_test(
 {
     return run_juggling_route(content, view, 0) &&
            run_juggling_route(content, view, 1);
+}
+
+static int wait_for_kill_confirm_neutral(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
+    {
+        if (out_inspection->players[0].grounded != UINT8_C(0) &&
+            out_inspection->players[1].grounded != UINT8_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(160))
+    {
+        return fail("kill-confirm-neutral-timeout");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(320); ++tick)
+    {
+        const int32_t gap =
+            out_inspection->players[1].position_x_q16 -
+            out_inspection->players[0].position_x_q16;
+        const int16_t attacker_axis =
+            gap > (INT32_C(3) * PF_Q16_ONE) / INT32_C(2)
+                ? INT16_C(13500)
+                : INT16_C(0);
+
+        if (attacker_axis == INT16_C(0) &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            gap > PF_Q16_ONE / INT32_C(2) &&
+            gap < (INT32_C(9) * PF_Q16_ONE) / INT32_C(5))
+        {
+            return 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                attacker_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return fail("kill-confirm-spacing-timeout");
+}
+
+static int run_kill_confirm_route(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    uint32_t buildup_jabs,
+    int16_t target_di_x,
+    int16_t target_di_y,
+    int expect_ko,
+    int verify_save_load)
+{
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    pf_tick_result source_result;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t setup_sequence;
+    uint32_t tick;
+    uint32_t jab_index;
+    int strong_started = 0;
+    int finisher_hit = 0;
+    int defender_escaped = 0;
+    int saw_strong_hitbox = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        (verify_save_load != 0 &&
+         !initialize_sim(
+             &loaded_storage,
+             view,
+             UINT8_C(2),
+             PF_SIM_MODE_DUEL,
+             0,
+             &loaded)) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "kill-confirm-initial-inspect"))
+    {
+        return fail("kill-confirm-initialize");
+    }
+
+    for (jab_index = UINT32_C(0);
+         jab_index < buildup_jabs;
+         ++jab_index)
+    {
+        const uint32_t previous_sequence =
+            inspection.players[1].last_hit_sequence;
+        const uint32_t expected_damage =
+            (jab_index + UINT32_C(1)) *
+            content->fighter.jab_damage_q16;
+
+        if (!wait_for_kill_confirm_neutral(sim, &inspection) ||
+            !step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("kill-confirm-buildup-start");
+        }
+        for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+        {
+            if (inspection.players[1].last_hit_sequence !=
+                previous_sequence)
+            {
+                break;
+            }
+            if (!step_reaction_duel(
+                    sim,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    &inspection))
+            {
+                return fail("kill-confirm-buildup-step");
+            }
+        }
+        if (tick == UINT32_C(32) ||
+            inspection.players[1].damage_q16 != expected_damage)
+        {
+            return fail("kill-confirm-buildup-hit");
+        }
+    }
+
+    if (!wait_for_kill_confirm_neutral(sim, &inspection))
+    {
+        return 0;
+    }
+    setup_sequence = inspection.players[1].last_hit_sequence;
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("kill-confirm-setup-start");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (inspection.players[1].last_hit_sequence != setup_sequence)
+        {
+            setup_sequence =
+                inspection.players[1].last_hit_sequence;
+            break;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("kill-confirm-setup-step");
+        }
+    }
+    if (tick == UINT32_C(32) || setup_sequence == UINT32_C(0) ||
+        inspection.players[1].damage_q16 !=
+            (buildup_jabs + UINT32_C(1)) *
+                content->fighter.jab_damage_q16)
+    {
+        return fail("kill-confirm-setup-hit");
+    }
+
+    if (verify_save_load != 0)
+    {
+        destination.bytes = save_bytes;
+        destination.capacity = sizeof(save_bytes);
+        destination.size = (size_t)0;
+        if (!expect_status(
+                pf_sim_query_save_size(sim, &save_size),
+                PF_STATUS_OK,
+                "kill-confirm-query-save-size") ||
+            save_size != (size_t)611 ||
+            !expect_status(
+                pf_sim_save(sim, &destination),
+                PF_STATUS_OK,
+                "kill-confirm-save-after-setup") ||
+            destination.size != save_size)
+        {
+            return fail("kill-confirm-save-setup");
+        }
+        save.bytes = save_bytes;
+        save.size = save_size;
+        if (!expect_status(
+                pf_sim_load(loaded, save),
+                PF_STATUS_OK,
+                "kill-confirm-load-after-setup") ||
+            !expect_status(
+                pf_sim_hash(sim, &source_hash),
+                PF_STATUS_OK,
+                "kill-confirm-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "kill-confirm-loaded-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("kill-confirm-setup-round-trip");
+        }
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        uint64_t attacker_buttons = UINT64_C(0);
+
+        if (strong_started == 0 &&
+            inspection.players[0].grounded != UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            attacker_buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+            strong_started = 1;
+        }
+        if (finisher_hit == 0 &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITSTUN)
+        {
+            if (target_di_x == INT16_C(0) &&
+                target_di_y == INT16_C(0))
+            {
+                return fail("kill-confirm-defender-action-window");
+            }
+            defender_escaped = 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                attacker_buttons,
+                UINT16_C(0),
+                target_di_x,
+                target_di_y,
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("kill-confirm-finisher-step");
+        }
+        source_result = test_last_result;
+        if (verify_save_load != 0 &&
+            (!step_reaction_duel(
+                 loaded,
+                 INT16_C(0),
+                 INT16_C(0),
+                 attacker_buttons,
+                 UINT16_C(0),
+                 target_di_x,
+                 target_di_y,
+                 UINT64_C(0),
+                 UINT16_C(0),
+                 &loaded_inspection) ||
+             !expect_status(
+                 pf_sim_hash(sim, &source_hash),
+                 PF_STATUS_OK,
+                 "kill-confirm-source-continuation-hash") ||
+             !expect_status(
+                 pf_sim_hash(loaded, &loaded_hash),
+                 PF_STATUS_OK,
+                 "kill-confirm-loaded-continuation-hash") ||
+             !hash_equal(&source_hash, &loaded_hash)))
+        {
+            return fail("kill-confirm-deterministic-continuation");
+        }
+        if (inspection.players[1].last_hit_sequence !=
+            setup_sequence)
+        {
+            finisher_hit = 1;
+        }
+        if (strong_started != 0 &&
+            inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_strong_hitbox = 1;
+        }
+        if (expect_ko == 0 && target_di_x != INT16_C(0) &&
+            defender_escaped != 0 &&
+            saw_strong_hitbox != 0 && finisher_hit == 0 &&
+            inspection.players[0].hitbox_active == UINT8_C(0) &&
+            inspection.players[1].damage_q16 ==
+                (buildup_jabs + UINT32_C(1)) *
+                    content->fighter.jab_damage_q16 &&
+            inspection.players[1].respawn_count == UINT16_C(0))
+        {
+            return 1;
+        }
+        if (inspection.players[1].respawn_count != UINT16_C(0))
+        {
+            if (expect_ko == 0 || finisher_hit == 0 ||
+                source_result.event_count != UINT8_C(1) ||
+                source_result.events[0].type !=
+                    (uint16_t)PF_SIM_EVENT_KO ||
+                source_result.events[0].source_player != UINT8_C(0) ||
+                source_result.events[0].target_player != UINT8_C(1) ||
+                source_result.events[0].value_q16 !=
+                    (buildup_jabs + UINT32_C(1)) *
+                            content->fighter.jab_damage_q16 +
+                        content->fighter.strong_damage_q16)
+            {
+                return fail("kill-confirm-ko-result");
+            }
+            return 1;
+        }
+        if (expect_ko == 0 && finisher_hit != 0 &&
+            inspection.players[1].grounded != UINT8_C(0) &&
+            inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            return 1;
+        }
+    }
+    return fail(
+        expect_ko != 0
+            ? "kill-confirm-ko-timeout"
+            : "kill-confirm-survival-timeout");
+}
+
+static int run_kill_confirm_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    return run_kill_confirm_route(
+               content,
+               view,
+               UINT32_C(20),
+               INT16_C(0),
+               INT16_C(0),
+               1,
+               1) &&
+           run_kill_confirm_route(
+               content,
+               view,
+               UINT32_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               0,
+               0) &&
+           run_kill_confirm_route(
+               content,
+               view,
+               UINT32_C(20),
+               INT16_C(32767),
+               INT16_C(0),
+               0,
+               0);
 }
 
 static int make_surface_tech_content(
@@ -9478,6 +9939,7 @@ int main(void)
     pf_m4_content spacing_far_content;
     pf_m4_content cross_up_content;
     pf_m4_content juggling_content;
+    pf_m4_content kill_confirm_content;
     pf_m4_content wall_tech_content;
     pf_m4_content ceiling_tech_content;
     pf_content_view view;
@@ -9495,6 +9957,7 @@ int main(void)
     pf_content_view spacing_far_view;
     pf_content_view cross_up_view;
     pf_content_view juggling_view;
+    pf_content_view kill_confirm_view;
     pf_content_view wall_tech_view;
     pf_content_view ceiling_tech_view;
 
@@ -9547,6 +10010,9 @@ int main(void)
         !make_juggling_content(
             &juggling_content,
             &juggling_view) ||
+        !make_kill_confirm_content(
+            &kill_confirm_content,
+            &kill_confirm_view) ||
         !make_surface_tech_content(
             0,
             &wall_tech_content,
@@ -9660,6 +10126,9 @@ int main(void)
         !run_juggling_test(
             &juggling_content,
             &juggling_view) ||
+        !run_kill_confirm_test(
+            &kill_confirm_content,
+            &kill_confirm_view) ||
         !run_surface_tech_test(
             &wall_tech_content,
             &wall_tech_view,
@@ -9726,7 +10195,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=312 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1\n",
+        " combat_invariants=330 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 kill_confirm=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

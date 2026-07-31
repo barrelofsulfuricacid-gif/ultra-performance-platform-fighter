@@ -12,7 +12,7 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
-  ordinary-input approach, spacing, mindgame, cross-up, juggling, and
+  ordinary-input approach, spacing, mindgame, cross-up, juggling, kill confirm, and
   platform-sharking routes, plus two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
@@ -691,6 +691,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   owner execution, and complete encoded replay/rollback evidence remain before
   `verified`.
 
+## Delivered in the kill-confirm route
+
+- A validated technique-support fixture composes a fast, low-launch 6% jab
+  into the existing 12% strong finisher. Twenty ordinary buildup jabs establish
+  120%; the final jab holds the target in canonical hitlag/hitstun until the
+  earliest strong follow-up connects and takes the stock at 138%.
+- The percent and DI controls remain real match outcomes. Starting from 0%
+  makes the same jab-to-strong route land safely at 18%, while outward DI at
+  120% makes the same active finisher whiff and leaves the target at 126%.
+- The native oracle saves immediately after the setup hit and compares every
+  future hash through the attacker-attributed typed KO. Browser readiness runs
+  the conversion and both controls in the WebAssembly-facing simulation, then
+  restores default content before exposing the live playtest.
+- Registry row 28, Kill confirm, advances from `primitive-ready` to `playable`;
+  broader fighter/percent windows, owner execution, and complete encoded
+  replay/rollback evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -758,6 +775,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The juggling route must record at least two legal hits with no grounded
   target state between them. Directional influence plus a fresh air dodge must
   make the attempted airborne follow-up visibly active but non-connecting.
+- The kill-confirm route must keep the defender in hitlag or hitstun from the
+  setup through the neutral-DI finisher, attribute the resulting high-percent
+  KO to the attacker, preserve the low-percent non-KO control, and show an
+  active whiff for the outward-DI escape.
 
 ## New binding M4.4 scope
 
@@ -766,7 +787,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  juggling, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
+  juggling, kill confirm, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable; other rows
   remain lower evidence states until their full
@@ -777,7 +798,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 29 playable, 6 primitive-ready, and 25 planned.
+  blocked: 1 verified, 30 playable, 5 primitive-ready, and 25 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -810,7 +831,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 312
+- Mechanical oracles: 170 movement invariants, 330
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -834,7 +855,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/kill-confirm/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

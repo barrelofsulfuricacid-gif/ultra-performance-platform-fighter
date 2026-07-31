@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -464,6 +464,7 @@ mergeInto(LibraryManager.library, {
     crossUpProbePassed,
     mindgameProbePassed,
     jugglingProbePassed,
+    killConfirmProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -760,6 +761,7 @@ mergeInto(LibraryManager.library, {
       crossUpProbePassed &&
       mindgameProbePassed &&
       jugglingProbePassed &&
+      killConfirmProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -1264,6 +1266,8 @@ mergeInto(LibraryManager.library, {
         (mindgameProbePassed ? "pass" : "fail") +
         " juggling_probe=" +
         (jugglingProbePassed ? "pass" : "fail") +
+        " kill_confirm_probe=" +
+        (killConfirmProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1332,6 +1336,8 @@ mergeInto(LibraryManager.library, {
         mindgameProbePassed ? "pass" : "fail";
       status.dataset.jugglingProbe =
         jugglingProbePassed ? "pass" : "fail";
+      status.dataset.killConfirmProbe =
+        killConfirmProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";
