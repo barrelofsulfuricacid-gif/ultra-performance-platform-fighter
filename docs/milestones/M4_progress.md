@@ -691,6 +691,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   owner execution, and complete encoded replay/rollback evidence remain before
   `verified`.
 
+## Delivered in the ladder route
+
+- A validated upward-aerial fixture now composes a full hop, three legal 4%
+  light aerials, a double jump after hit two, and the ordinary 12% strong
+  aerial finisher. The route carries the defender more than two units upward,
+  crosses above the pass-through platform, and takes the stock at the upper
+  blast line at 24%.
+- The defender remains in canonical hitlag or hitstun from first contact
+  through the typed KO. Outward DI beginning after the first hit instead makes
+  the next active aerial whiff, returns the defender to an actionable state,
+  and preserves the stock.
+- The native oracle saves after hit two and compares every future hash through
+  the finisher. Browser readiness repeats the ladder and escape routes in the
+  WebAssembly-facing simulation, then restores default content.
+- Registry row 30, Ladder, advances from `planned` to `playable`; broader
+  fighter/route coverage, owner execution, and complete encoded
+  replay/rollback evidence remain before `verified`.
+
 ## Delivered in the kill-confirm route
 
 - A validated technique-support fixture composes a fast, low-launch 6% jab
@@ -794,6 +812,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The juggling route must record at least two legal hits with no grounded
   target state between them. Directional influence plus a fresh air dodge must
   make the attempted airborne follow-up visibly active but non-connecting.
+- The ladder route must use multiple upward aerials and an airborne finisher,
+  carry the defender above the pass-through platform without an actionable
+  frame, take the stock through the upper blast line, and show an active
+  outward-DI follow-up whiff before the defender escapes.
 - The kill-confirm route must keep the defender in hitlag or hitstun from the
   setup through the neutral-DI finisher, attribute the resulting high-percent
   KO to the attacker, preserve the low-percent non-KO control, and show an
@@ -810,7 +832,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  juggling, kill confirm, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
+  juggling, kill confirm, ladder, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -821,7 +843,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 31 playable, 4 primitive-ready, and 25 planned.
+  blocked: 1 verified, 32 playable, 4 primitive-ready, and 24 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -854,7 +876,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 348
+- Mechanical oracles: 170 movement invariants, 366
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -878,7 +900,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/kill-confirm/zero-to-death/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

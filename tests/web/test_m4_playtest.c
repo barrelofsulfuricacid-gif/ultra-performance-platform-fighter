@@ -59,6 +59,7 @@ static int test_sharking_probe;
 static int test_cross_up_probe;
 static int test_mindgame_probe;
 static int test_juggling_probe;
+static int test_ladder_probe;
 static int test_kill_confirm_probe;
 static int test_zero_to_death_probe;
 static int test_combat_probe;
@@ -99,6 +100,7 @@ void pf_web_m4_playtest_install(
     int cross_up_probe_passed,
     int mindgame_probe_passed,
     int juggling_probe_passed,
+    int ladder_probe_passed,
     int kill_confirm_probe_passed,
     int zero_to_death_probe_passed,
     int combat_probe_passed,
@@ -142,6 +144,7 @@ void pf_web_m4_playtest_install(
     int cross_up_probe_passed,
     int mindgame_probe_passed,
     int juggling_probe_passed,
+    int ladder_probe_passed,
     int kill_confirm_probe_passed,
     int zero_to_death_probe_passed,
     int combat_probe_passed,
@@ -184,6 +187,7 @@ void pf_web_m4_playtest_install(
     test_cross_up_probe = cross_up_probe_passed;
     test_mindgame_probe = mindgame_probe_passed;
     test_juggling_probe = juggling_probe_passed;
+    test_ladder_probe = ladder_probe_passed;
     test_kill_confirm_probe = kill_confirm_probe_passed;
     test_zero_to_death_probe = zero_to_death_probe_passed;
     test_combat_probe = combat_probe_passed;
@@ -321,6 +325,7 @@ int main(void)
         test_cross_up_probe != 1 ||
         test_mindgame_probe != 1 ||
         test_juggling_probe != 1 ||
+        test_ladder_probe != 1 ||
         test_kill_confirm_probe != 1 ||
         test_zero_to_death_probe != 1 ||
         test_combat_probe != 1 ||
@@ -366,6 +371,7 @@ int main(void)
             "cross_up_probe=%d "
             "mindgame_probe=%d "
             "juggling_probe=%d "
+            "ladder_probe=%d "
             "kill_confirm_probe=%d "
             "zero_to_death_probe=%d "
             "combat_probe=%d "
@@ -400,6 +406,7 @@ int main(void)
             test_cross_up_probe,
             test_mindgame_probe,
             test_juggling_probe,
+            test_ladder_probe,
             test_kill_confirm_probe,
             test_zero_to_death_probe,
             test_combat_probe,
@@ -746,6 +753,7 @@ int main(void)
         "cross_up_probe=%d "
         "mindgame_probe=%d "
         "juggling_probe=%d "
+        "ladder_probe=%d "
         "kill_confirm_probe=%d "
         "zero_to_death_probe=%d "
         "combat_probe=%d reaction_probe=%d "
@@ -777,6 +785,7 @@ int main(void)
         test_cross_up_probe,
         test_mindgame_probe,
         test_juggling_probe,
+        test_ladder_probe,
         test_kill_confirm_probe,
         test_zero_to_death_probe,
         test_combat_probe,

@@ -591,6 +591,9 @@ through:
 - a grounded launcher into an airborne light-aerial juggle before landing,
   plus a DI-and-directional-air-dodge route that makes the active follow-up
   whiff;
+- a full-hop ladder of three upward light aerials, a double jump after hit two,
+  and a strong-aerial upper-blast finisher after carrying the target above the
+  pass-through platform, plus outward DI making the next active aerial whiff;
 - a validated kill-confirm fixture building 120% through legal jabs, linking
   the 126% setup into a 138% typed KO without an actionable defender frame,
   and comparing an 18% non-KO route with a 126% outward-DI active whiff before
@@ -656,7 +659,7 @@ dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
-mindgame_probe=pass juggling_probe=pass kill_confirm_probe=pass
+mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
 zero_to_death_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass

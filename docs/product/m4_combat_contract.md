@@ -194,6 +194,31 @@ action, mutable state, or content field exists. Longer chains, percent and
 fighter coverage, stock conversions, owner execution, and complete encoded
 replay/rollback evidence remain before the row can become fully verified.
 
+## Ladder combo
+
+A [ladder combo](https://www.ssbwiki.com/Combo#Types_of_combos) links
+multiple moves, commonly upward aerials, to carry the defender toward the
+upper blast line before a kill move. The playable fixture authors that shape
+with existing production fields and actions. Player 0 full hops into three
+four-percent light aerials, uses the ordinary double jump after hit two, and
+then performs the production strong aerial for the 12% finisher. The sequence
+carries Player 1 upward by more than two units, crosses above the pass-through
+platform, and takes the stock at 24% through the typed top-blast KO path.
+
+Every follow-up begins on the earliest legal `AIRBORNE` action tick, and the
+defender remains in canonical `HITLAG` or `HITSTUN` from the first aerial
+through stock loss. The declared defense starts outward DI only after first
+contact. Its hitlag displacement and launch influence move the defender out of
+the next light aerial: that follow-up becomes active but does not change the
+hit sequence, then the defender becomes actionable and survives.
+
+The native oracle saves after the second aerial, loads a second simulation,
+and compares every future hash through the strong-aerial KO. Browser readiness
+repeats the ladder and DI escape in the WebAssembly-facing simulation before
+restoring default content. No ladder-only action, mutable state, or combat
+branch exists. Broader fighter and route coverage, owner execution, and
+complete encoded replay/rollback evidence remain before full verification.
+
 ## Kill confirm
 
 A [kill confirm](https://www.ssbwiki.com/KO_setup) links a relatively fast,

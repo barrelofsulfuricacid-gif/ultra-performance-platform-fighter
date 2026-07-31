@@ -204,6 +204,71 @@ static int make_juggling_content(
         "juggling-content-view");
 }
 
+static int make_ladder_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "ladder-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->fighter.aerial_hitbox_offset_x_q16 = INT32_C(0);
+    out_content->fighter.aerial_hitbox_offset_y_q16 =
+        -PF_Q16_ONE / INT32_C(4);
+    out_content->fighter.aerial_hitbox_half_width_q16 = PF_Q16_ONE;
+    out_content->fighter.aerial_hitbox_half_height_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    out_content->fighter.aerial_damage_q16 =
+        UINT32_C(4) * UINT32_C(65536);
+    out_content->fighter.aerial_base_knockback_x_q16 = INT32_C(1);
+    out_content->fighter.aerial_base_knockback_y_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    out_content->fighter.aerial_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.aerial_startup_ticks = UINT16_C(1);
+    out_content->fighter.aerial_active_ticks = UINT16_C(2);
+    out_content->fighter.aerial_recovery_ticks = UINT16_C(2);
+    out_content->fighter.aerial_hitlag_ticks = UINT16_C(3);
+    out_content->fighter.platform_drop_ticks = UINT16_C(4);
+    out_content->fighter.aerial_landing_lag_begin_tick = UINT16_C(1);
+    out_content->fighter.aerial_landing_lag_end_tick = UINT16_C(4);
+    out_content->fighter.strong_hitbox_offset_x_q16 = INT32_C(0);
+    out_content->fighter.strong_hitbox_offset_y_q16 =
+        -PF_Q16_ONE / INT32_C(4);
+    out_content->fighter.strong_hitbox_half_width_q16 = PF_Q16_ONE;
+    out_content->fighter.strong_hitbox_half_height_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    out_content->fighter.strong_base_knockback_x_q16 = INT32_C(1);
+    out_content->fighter.strong_base_knockback_y_q16 =
+        (INT32_C(15) * PF_Q16_ONE) / INT32_C(16);
+    out_content->fighter.strong_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.strong_startup_ticks = UINT16_C(2);
+    out_content->fighter.strong_active_ticks = UINT16_C(2);
+    out_content->fighter.strong_recovery_ticks = UINT16_C(6);
+    out_content->fighter.strong_hitlag_ticks = UINT16_C(4);
+    out_content->fighter.hitstun_velocity_per_tick_q16 =
+        PF_Q16_ONE / INT32_C(200);
+    out_content->fighter.full_hop_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    out_content->fighter.double_jump_speed_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    out_content->fighter.gravity_q16 = PF_Q16_ONE / INT32_C(100);
+    out_content->fighter.tumble_hitstun_threshold_ticks = UINT16_C(600);
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->stage.solid_left_q16 = INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.solid_right_q16 = INT32_C(30) * PF_Q16_ONE;
+    out_content->stage.blast_top_q16 = INT32_C(4) * PF_Q16_ONE;
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "ladder-content-view");
+}
+
 static int make_kill_confirm_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -4743,6 +4808,315 @@ static int run_zero_to_death_test(
                1,
                1) &&
            run_zero_to_death_route(
+               content,
+               view,
+               INT16_C(32767),
+               0,
+               0);
+}
+
+static int run_ladder_route(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    int16_t target_di_x,
+    int expect_ko,
+    int verify_save_load)
+{
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    pf_tick_result source_result;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t last_sequence = UINT32_C(0);
+    uint32_t hit_count = UINT32_C(0);
+    uint32_t light_attack_starts = UINT32_C(0);
+    uint32_t tick;
+    int32_t first_hit_y_q16 = INT32_MAX;
+    int chain_started = 0;
+    int chain_broken = 0;
+    int double_jump_used = 0;
+    int saved = 0;
+    int strong_started = 0;
+    int saw_escape_followup_hitbox = 0;
+    int saw_above_platform = 0;
+    int saw_vertical_carry = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        (verify_save_load != 0 &&
+         !initialize_sim(
+             &loaded_storage,
+             view,
+             UINT8_C(2),
+             PF_SIM_MODE_DUEL,
+             0,
+             &loaded)) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "ladder-initial-inspect"))
+    {
+        return fail("ladder-initialize");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("ladder-full-hop-step");
+        }
+        if (inspection.players[0].grounded == UINT8_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(8) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        return fail("ladder-full-hop-start");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(480); ++tick)
+    {
+        uint64_t attacker_buttons = UINT64_C(0);
+        int16_t defender_axis;
+
+        if (chain_started != 0 &&
+            inspection.players[1].respawn_count == UINT16_C(0) &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITSTUN)
+        {
+            if (expect_ko != 0)
+            {
+                return fail("ladder-interrupted");
+            }
+            chain_broken = 1;
+        }
+        if (expect_ko != 0 && chain_started != 0 &&
+            inspection.players[0].grounded != UINT8_C(0))
+        {
+            return fail("ladder-attacker-landed");
+        }
+        defender_axis =
+            chain_started != 0 && chain_broken == 0
+                ? target_di_x
+                : INT16_C(0);
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_AIRBORNE)
+        {
+            if (hit_count == UINT32_C(2) &&
+                double_jump_used == 0)
+            {
+                attacker_buttons = PF_INPUT_BUTTON_JUMP;
+                double_jump_used = 1;
+            }
+            else if (hit_count < UINT32_C(3))
+            {
+                attacker_buttons = PF_INPUT_BUTTON_ATTACK;
+                ++light_attack_starts;
+            }
+            else if (strong_started == 0)
+            {
+                attacker_buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+                strong_started = 1;
+            }
+        }
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                attacker_buttons,
+                UINT16_C(0),
+                defender_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("ladder-step");
+        }
+        source_result = test_last_result;
+
+        if (inspection.players[1].last_hit_sequence != last_sequence &&
+            inspection.players[1].last_hit_sequence != UINT32_C(0))
+        {
+            last_sequence =
+                inspection.players[1].last_hit_sequence;
+            ++hit_count;
+            chain_started = 1;
+            if (hit_count == UINT32_C(1))
+            {
+                first_hit_y_q16 =
+                    inspection.players[1].position_y_q16;
+            }
+            else if (
+                inspection.players[1].position_y_q16 <=
+                first_hit_y_q16 - INT32_C(2) * PF_Q16_ONE)
+            {
+                saw_vertical_carry = 1;
+            }
+            if (inspection.players[1].position_y_q16 <
+                content->stage.platform_y_q16)
+            {
+                saw_above_platform = 1;
+            }
+        }
+
+        if (verify_save_load != 0 && saved == 0 &&
+            hit_count == UINT32_C(2))
+        {
+            destination.bytes = save_bytes;
+            destination.capacity = sizeof(save_bytes);
+            destination.size = (size_t)0;
+            if (!expect_status(
+                    pf_sim_query_save_size(sim, &save_size),
+                    PF_STATUS_OK,
+                    "ladder-query-save-size") ||
+                save_size != (size_t)611 ||
+                !expect_status(
+                    pf_sim_save(sim, &destination),
+                    PF_STATUS_OK,
+                    "ladder-save-mid-route") ||
+                destination.size != save_size)
+            {
+                return fail("ladder-save");
+            }
+            save.bytes = save_bytes;
+            save.size = save_size;
+            if (!expect_status(
+                    pf_sim_load(loaded, save),
+                    PF_STATUS_OK,
+                    "ladder-load-mid-route") ||
+                !expect_status(
+                    pf_m4_inspect(loaded, &loaded_inspection),
+                    PF_STATUS_OK,
+                    "ladder-loaded-inspect") ||
+                !expect_status(
+                    pf_sim_hash(sim, &source_hash),
+                    PF_STATUS_OK,
+                    "ladder-source-hash") ||
+                !expect_status(
+                    pf_sim_hash(loaded, &loaded_hash),
+                    PF_STATUS_OK,
+                    "ladder-loaded-hash") ||
+                !hash_equal(&source_hash, &loaded_hash))
+            {
+                return fail("ladder-mid-route-round-trip");
+            }
+            saved = 1;
+        }
+        else if (verify_save_load != 0 && saved != 0)
+        {
+            if (!step_reaction_duel(
+                    loaded,
+                    INT16_C(0),
+                    INT16_C(0),
+                    attacker_buttons,
+                    UINT16_C(0),
+                    defender_axis,
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    &loaded_inspection) ||
+                !expect_status(
+                    pf_sim_hash(sim, &source_hash),
+                    PF_STATUS_OK,
+                    "ladder-source-continuation-hash") ||
+                !expect_status(
+                    pf_sim_hash(loaded, &loaded_hash),
+                    PF_STATUS_OK,
+                    "ladder-loaded-continuation-hash") ||
+                !hash_equal(&source_hash, &loaded_hash))
+            {
+                return fail("ladder-deterministic-continuation");
+            }
+        }
+
+        if (expect_ko == 0 &&
+            light_attack_starts > hit_count &&
+            inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_escape_followup_hitbox = 1;
+        }
+        if (expect_ko == 0 && chain_broken != 0 &&
+            saw_escape_followup_hitbox != 0 &&
+            inspection.players[1].respawn_count == UINT16_C(0))
+        {
+            return (hit_count > UINT32_C(0) &&
+                    hit_count < UINT32_C(3) &&
+                    strong_started == 0 &&
+                    inspection.players[1].damage_q16 ==
+                        hit_count *
+                            content->fighter.aerial_damage_q16) ||
+                   fail("ladder-di-route-still-connected");
+        }
+        if (inspection.players[1].respawn_count != UINT16_C(0))
+        {
+            if (expect_ko == 0 || strong_started == 0 ||
+                hit_count != UINT32_C(4) ||
+                double_jump_used == 0 || saved == 0 ||
+                saw_above_platform == 0 ||
+                saw_vertical_carry == 0 ||
+                inspection.players[1].damage_q16 != UINT32_C(0) ||
+                source_result.event_count != UINT8_C(1) ||
+                source_result.events[0].type !=
+                    (uint16_t)PF_SIM_EVENT_KO ||
+                source_result.events[0].source_player != UINT8_C(0) ||
+                source_result.events[0].target_player != UINT8_C(1) ||
+                source_result.events[0].value_q16 !=
+                    UINT32_C(3) *
+                            content->fighter.aerial_damage_q16 +
+                        content->fighter.strong_damage_q16)
+            {
+                return fail("ladder-ko-result");
+            }
+            return 1;
+        }
+    }
+    return fail(
+        expect_ko != 0
+            ? "ladder-ko-timeout"
+            : "ladder-di-escape-timeout");
+}
+
+static int run_ladder_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    return run_ladder_route(
+               content,
+               view,
+               INT16_C(0),
+               1,
+               1) &&
+           run_ladder_route(
                content,
                view,
                INT16_C(32767),
@@ -10187,6 +10561,7 @@ int main(void)
     pf_m4_content spacing_far_content;
     pf_m4_content cross_up_content;
     pf_m4_content juggling_content;
+    pf_m4_content ladder_content;
     pf_m4_content kill_confirm_content;
     pf_m4_content wall_tech_content;
     pf_m4_content ceiling_tech_content;
@@ -10205,6 +10580,7 @@ int main(void)
     pf_content_view spacing_far_view;
     pf_content_view cross_up_view;
     pf_content_view juggling_view;
+    pf_content_view ladder_view;
     pf_content_view kill_confirm_view;
     pf_content_view wall_tech_view;
     pf_content_view ceiling_tech_view;
@@ -10258,6 +10634,9 @@ int main(void)
         !make_juggling_content(
             &juggling_content,
             &juggling_view) ||
+        !make_ladder_content(
+            &ladder_content,
+            &ladder_view) ||
         !make_kill_confirm_content(
             &kill_confirm_content,
             &kill_confirm_view) ||
@@ -10374,6 +10753,9 @@ int main(void)
         !run_juggling_test(
             &juggling_content,
             &juggling_view) ||
+        !run_ladder_test(
+            &ladder_content,
+            &ladder_view) ||
         !run_kill_confirm_test(
             &kill_confirm_content,
             &kill_confirm_view) ||
@@ -10446,7 +10828,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=348 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 kill_confirm=1 zero_to_death=1\n",
+        " combat_invariants=366 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;
