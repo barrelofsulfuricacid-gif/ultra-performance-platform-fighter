@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)495)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)522)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x34)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x35)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -605,6 +605,18 @@ static void pf_write_payload(
     {
         pf_writer_u8(writer, world->grab_owner_slot[player_index]);
     }
+    pf_writer_i32(writer, world->item_position_x_q16);
+    pf_writer_i32(writer, world->item_position_y_q16);
+    pf_writer_i32(writer, world->item_velocity_x_q16);
+    pf_writer_i32(writer, world->item_velocity_y_q16);
+    pf_writer_u16(writer, world->item_lifetime_ticks);
+    pf_writer_u16(writer, world->item_respawn_ticks);
+    pf_writer_u16(writer, world->item_pickup_lockout_ticks);
+    pf_writer_u8(writer, world->item_state);
+    pf_writer_u8(writer, world->item_holder_slot);
+    pf_writer_u8(writer, world->item_source_slot);
+    pf_writer_u8(writer, world->item_hit_mask);
+    pf_writer_u8(writer, world->item_throw_direction);
 }
 
 static void pf_read_payload(
@@ -967,6 +979,18 @@ static void pf_read_payload(
     {
         world->grab_owner_slot[player_index] = pf_reader_u8(reader);
     }
+    world->item_position_x_q16 = pf_reader_i32(reader);
+    world->item_position_y_q16 = pf_reader_i32(reader);
+    world->item_velocity_x_q16 = pf_reader_i32(reader);
+    world->item_velocity_y_q16 = pf_reader_i32(reader);
+    world->item_lifetime_ticks = pf_reader_u16(reader);
+    world->item_respawn_ticks = pf_reader_u16(reader);
+    world->item_pickup_lockout_ticks = pf_reader_u16(reader);
+    world->item_state = pf_reader_u8(reader);
+    world->item_holder_slot = pf_reader_u8(reader);
+    world->item_source_slot = pf_reader_u8(reader);
+    world->item_hit_mask = pf_reader_u8(reader);
+    world->item_throw_direction = pf_reader_u8(reader);
 }
 
 static void pf_hash_payload(
@@ -1282,6 +1306,95 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         return PF_STATUS_INVALID_STATE;
     }
 
+    if (world->item_position_x_q16 <
+            -world->arena_half_width_q16 ||
+        world->item_position_x_q16 > world->arena_half_width_q16 ||
+        world->item_position_y_q16 < INT32_C(0) ||
+        world->item_position_y_q16 > world->arena_ceiling_q16 ||
+        world->item_velocity_x_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->item_velocity_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->item_velocity_y_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->item_velocity_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->item_lifetime_ticks > UINT16_C(3600) ||
+        world->item_respawn_ticks > UINT16_C(3600) ||
+        world->item_pickup_lockout_ticks > UINT16_C(240) ||
+        world->item_state >
+            (uint8_t)PF_M4_ITEM_STATE_RESPAWN_WAIT ||
+        world->item_holder_slot > world->player_count ||
+        world->item_source_slot > world->player_count ||
+        (world->item_hit_mask & (uint8_t)~active_mask) != UINT8_C(0) ||
+        world->item_throw_direction >
+            (uint8_t)PF_M4_ITEM_THROW_DOWN ||
+        (world->item_source_slot != UINT8_C(0) &&
+         (world->item_hit_mask &
+          (uint8_t)(UINT32_C(1) <<
+                    ((uint32_t)world->item_source_slot -
+                     UINT32_C(1)))) != UINT8_C(0)) ||
+        (world->item_state == (uint8_t)PF_M4_ITEM_STATE_INACTIVE &&
+         (world->item_position_x_q16 != INT32_C(0) ||
+          world->item_position_y_q16 != INT32_C(0) ||
+          world->item_velocity_x_q16 != INT32_C(0) ||
+          world->item_velocity_y_q16 != INT32_C(0) ||
+          world->item_lifetime_ticks != UINT16_C(0) ||
+          world->item_respawn_ticks != UINT16_C(0) ||
+          world->item_pickup_lockout_ticks != UINT16_C(0) ||
+          world->item_holder_slot != UINT8_C(0) ||
+          world->item_source_slot != UINT8_C(0) ||
+          world->item_hit_mask != UINT8_C(0) ||
+          world->item_throw_direction !=
+              (uint8_t)PF_M4_ITEM_THROW_NONE)) ||
+        (world->item_state == (uint8_t)PF_M4_ITEM_STATE_GROUND &&
+         (world->item_velocity_x_q16 != INT32_C(0) ||
+          world->item_velocity_y_q16 != INT32_C(0) ||
+          world->item_lifetime_ticks == UINT16_C(0) ||
+          world->item_respawn_ticks != UINT16_C(0) ||
+          world->item_holder_slot != UINT8_C(0) ||
+          world->item_source_slot != UINT8_C(0) ||
+          world->item_hit_mask != UINT8_C(0) ||
+          world->item_throw_direction !=
+              (uint8_t)PF_M4_ITEM_THROW_NONE)) ||
+        (world->item_state == (uint8_t)PF_M4_ITEM_STATE_HELD &&
+         (world->item_velocity_x_q16 != INT32_C(0) ||
+          world->item_velocity_y_q16 != INT32_C(0) ||
+          world->item_lifetime_ticks == UINT16_C(0) ||
+          world->item_respawn_ticks != UINT16_C(0) ||
+          world->item_pickup_lockout_ticks != UINT16_C(0) ||
+          world->item_holder_slot == UINT8_C(0) ||
+          world->item_source_slot != UINT8_C(0) ||
+          world->item_hit_mask != UINT8_C(0) ||
+          world->item_throw_direction !=
+              (uint8_t)PF_M4_ITEM_THROW_NONE ||
+          world->active[
+              (uint32_t)world->item_holder_slot - UINT32_C(1)] ==
+              UINT8_C(0))) ||
+        (world->item_state ==
+             (uint8_t)PF_M4_ITEM_STATE_AIRBORNE &&
+         (world->item_lifetime_ticks == UINT16_C(0) ||
+          world->item_respawn_ticks != UINT16_C(0) ||
+          world->item_holder_slot != UINT8_C(0) ||
+          world->item_source_slot == UINT8_C(0))) ||
+        (world->item_state ==
+             (uint8_t)PF_M4_ITEM_STATE_RESPAWN_WAIT &&
+         (world->item_position_x_q16 != INT32_C(0) ||
+          world->item_position_y_q16 != INT32_C(0) ||
+          world->item_velocity_x_q16 != INT32_C(0) ||
+          world->item_velocity_y_q16 != INT32_C(0) ||
+          world->item_lifetime_ticks != UINT16_C(0) ||
+          world->item_respawn_ticks == UINT16_C(0) ||
+          world->item_pickup_lockout_ticks != UINT16_C(0) ||
+          world->item_holder_slot != UINT8_C(0) ||
+          world->item_source_slot != UINT8_C(0) ||
+          world->item_hit_mask != UINT8_C(0) ||
+          world->item_throw_direction !=
+              (uint8_t)PF_M4_ITEM_THROW_NONE)))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
@@ -1335,7 +1448,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+                    (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1636,6 +1749,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   action == (uint8_t)PF_M4_ACTION_GRABBED ||
                   action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
                   pf_m4_snapshot_action_is_throw(action) ||
+                  action == (uint8_t)PF_M4_ACTION_ITEM_THROW ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||

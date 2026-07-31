@@ -443,6 +443,50 @@ static void pf_m4_hash_stage(
     pf_m4_hash_u16(hash, stage->platform_motion_period_ticks);
 }
 
+static void pf_m4_hash_item(
+    pf_sha256 *hash,
+    const pf_m4_item_data *item)
+{
+    pf_m4_hash_u16(hash, item->schema_version);
+    pf_m4_hash_u8(hash, item->enabled);
+    pf_m4_hash_i32(hash, item->half_width_q16);
+    pf_m4_hash_i32(hash, item->half_height_q16);
+    pf_m4_hash_i32(hash, item->spawn_x_q16);
+    pf_m4_hash_i32(hash, item->spawn_y_q16);
+    pf_m4_hash_i32(hash, item->pickup_half_width_q16);
+    pf_m4_hash_i32(hash, item->pickup_half_height_q16);
+    pf_m4_hash_i32(hash, item->held_offset_x_q16);
+    pf_m4_hash_i32(hash, item->held_offset_y_q16);
+    pf_m4_hash_i32(hash, item->gravity_q16);
+    pf_m4_hash_i32(hash, item->fall_speed_q16);
+    pf_m4_hash_i32(hash, item->drop_velocity_y_q16);
+    pf_m4_hash_i32(hash, item->forward_throw.velocity_x_q16);
+    pf_m4_hash_i32(hash, item->forward_throw.velocity_y_q16);
+    pf_m4_hash_i32(hash, item->back_throw.velocity_x_q16);
+    pf_m4_hash_i32(hash, item->back_throw.velocity_y_q16);
+    pf_m4_hash_i32(hash, item->up_throw.velocity_x_q16);
+    pf_m4_hash_i32(hash, item->up_throw.velocity_y_q16);
+    pf_m4_hash_i32(hash, item->down_throw.velocity_x_q16);
+    pf_m4_hash_i32(hash, item->down_throw.velocity_y_q16);
+    pf_m4_hash_i32(hash, item->momentum_transfer_q16);
+    pf_m4_hash_i32(hash, item->hitbox_half_width_q16);
+    pf_m4_hash_i32(hash, item->hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, item->damage_q16);
+    pf_m4_hash_i32(hash, item->base_knockback_x_q16);
+    pf_m4_hash_i32(hash, item->base_knockback_y_q16);
+    pf_m4_hash_i32(hash, item->knockback_growth_q16);
+    pf_m4_hash_i32(hash, item->hit_bounce_velocity_y_q16);
+    pf_m4_hash_i32(hash, item->dash_throw_speed_q16);
+    pf_m4_hash_u16(hash, item->throw_recovery_ticks);
+    pf_m4_hash_u16(hash, item->dash_throw_recovery_ticks);
+    pf_m4_hash_u16(hash, item->glide_toss_begin_tick);
+    pf_m4_hash_u16(hash, item->glide_toss_end_tick);
+    pf_m4_hash_u16(hash, item->pickup_lockout_ticks);
+    pf_m4_hash_u16(hash, item->lifetime_ticks);
+    pf_m4_hash_u16(hash, item->respawn_ticks);
+    pf_m4_hash_u16(hash, item->hitlag_ticks);
+}
+
 static void pf_m4_content_hash(
     const pf_m4_content *content,
     uint8_t digest[32])
@@ -457,8 +501,10 @@ static void pf_m4_content_hash(
     pf_m4_hash_u16(&hash, content->schema_version);
     pf_m4_hash_u8(&hash, content->fighter_count);
     pf_m4_hash_u8(&hash, content->stage_count);
+    pf_m4_hash_u8(&hash, content->item_count);
     pf_m4_hash_fighter(&hash, &content->fighter);
     pf_m4_hash_stage(&hash, &content->stage);
+    pf_m4_hash_item(&hash, &content->item);
     pf_sha256_finish(&hash, digest);
 }
 
@@ -482,6 +528,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
 {
     pf_m4_fighter_data *fighter;
     pf_m4_stage_data *stage;
+    pf_m4_item_data *item;
 
     if (out_content == NULL)
     {
@@ -493,6 +540,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     out_content->schema_version = PF_M4_CONTENT_SCHEMA_VERSION;
     out_content->fighter_count = PF_M4_PLACEHOLDER_FIGHTER_COUNT;
     out_content->stage_count = PF_M4_TEST_STAGE_COUNT;
+    out_content->item_count = PF_M4_TEST_ITEM_COUNT;
 
     fighter = &out_content->fighter;
     fighter->struct_size = (uint32_t)sizeof(*fighter);
@@ -814,6 +862,48 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     stage->spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
     stage->platform_motion_period_ticks = UINT16_C(120);
 
+    item = &out_content->item;
+    item->struct_size = (uint32_t)sizeof(*item);
+    item->schema_version = PF_M4_ITEM_SCHEMA_VERSION;
+    item->enabled = UINT8_C(0);
+    item->half_width_q16 = PF_Q16_RATIO(1, 8);
+    item->half_height_q16 = PF_Q16_RATIO(1, 2);
+    item->spawn_x_q16 = -INT32_C(7) * PF_Q16_ONE;
+    item->spawn_y_q16 =
+        stage->floor_y_q16 - item->half_height_q16;
+    item->pickup_half_width_q16 = PF_Q16_RATIO(3, 2);
+    item->pickup_half_height_q16 = PF_Q16_RATIO(5, 4);
+    item->held_offset_x_q16 = PF_Q16_RATIO(3, 4);
+    item->held_offset_y_q16 = -PF_Q16_RATIO(3, 4);
+    item->gravity_q16 = PF_Q16_RATIO(1, 40);
+    item->fall_speed_q16 = PF_Q16_RATIO(1, 2);
+    item->drop_velocity_y_q16 = INT32_C(0);
+    item->forward_throw.velocity_x_q16 = PF_Q16_RATIO(1, 2);
+    item->forward_throw.velocity_y_q16 = -PF_Q16_RATIO(1, 10);
+    item->back_throw.velocity_x_q16 = -PF_Q16_RATIO(9, 20);
+    item->back_throw.velocity_y_q16 = -PF_Q16_RATIO(3, 25);
+    item->up_throw.velocity_x_q16 = PF_Q16_RATIO(1, 20);
+    item->up_throw.velocity_y_q16 = -PF_Q16_RATIO(11, 20);
+    item->down_throw.velocity_x_q16 = PF_Q16_RATIO(1, 20);
+    item->down_throw.velocity_y_q16 = PF_Q16_RATIO(3, 5);
+    item->momentum_transfer_q16 = PF_Q16_RATIO(3, 4);
+    item->hitbox_half_width_q16 = PF_Q16_RATIO(7, 20);
+    item->hitbox_half_height_q16 = PF_Q16_RATIO(11, 20);
+    item->damage_q16 = UINT32_C(7) * UINT32_C(65536);
+    item->base_knockback_x_q16 = PF_Q16_RATIO(9, 50);
+    item->base_knockback_y_q16 = PF_Q16_RATIO(11, 50);
+    item->knockback_growth_q16 = PF_Q16_RATIO(1, 768);
+    item->hit_bounce_velocity_y_q16 = -PF_Q16_RATIO(7, 20);
+    item->dash_throw_speed_q16 = PF_Q16_RATIO(1, 20);
+    item->throw_recovery_ticks = UINT16_C(12);
+    item->dash_throw_recovery_ticks = UINT16_C(20);
+    item->glide_toss_begin_tick = UINT16_C(0);
+    item->glide_toss_end_tick = UINT16_C(4);
+    item->pickup_lockout_ticks = UINT16_C(8);
+    item->lifetime_ticks = UINT16_C(600);
+    item->respawn_ticks = UINT16_C(60);
+    item->hitlag_ticks = UINT16_C(4);
+
     return PF_STATUS_OK;
 }
 
@@ -821,6 +911,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
 {
     const pf_m4_fighter_data *fighter;
     const pf_m4_stage_data *stage;
+    const pf_m4_item_data *item;
     const int32_t maximum_coordinate_q16 =
         INT32_C(4096) * PF_Q16_ONE;
     const int32_t maximum_fighter_extent_q16 =
@@ -841,6 +932,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_aerial_knockback_y;
     int64_t maximum_getup_attack_knockback_x;
     int64_t maximum_getup_attack_knockback_y;
+    int64_t maximum_item_knockback_x;
+    int64_t maximum_item_knockback_y;
     int solid_overlaps_platform;
 
     if (content == NULL)
@@ -855,15 +948,24 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             PF_M4_FIGHTER_SCHEMA_VERSION ||
         content->stage.struct_size !=
             (uint32_t)sizeof(content->stage) ||
-        content->stage.schema_version != PF_M4_STAGE_SCHEMA_VERSION)
+        content->stage.schema_version != PF_M4_STAGE_SCHEMA_VERSION ||
+        content->item.struct_size !=
+            (uint32_t)sizeof(content->item) ||
+        content->item.schema_version != PF_M4_ITEM_SCHEMA_VERSION)
     {
         return PF_STATUS_UNSUPPORTED_VERSION;
     }
     if (content->fighter_count != PF_M4_PLACEHOLDER_FIGHTER_COUNT ||
         content->stage_count != PF_M4_TEST_STAGE_COUNT ||
+        content->item_count != PF_M4_TEST_ITEM_COUNT ||
+        content->reserved[0] != UINT8_C(0) ||
+        content->reserved[1] != UINT8_C(0) ||
+        content->reserved[2] != UINT8_C(0) ||
         content->fighter.reserved != UINT16_C(0) ||
         content->stage.reserved != UINT16_C(0) ||
-        content->stage.reserved2 != UINT16_C(0))
+        content->stage.reserved2 != UINT16_C(0) ||
+        content->item.reserved != UINT8_C(0) ||
+        content->item.reserved2 != UINT16_C(0))
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -1593,6 +1695,118 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         stage->platform_motion_period_ticks < UINT16_C(4) ||
         (stage->platform_motion_period_ticks % UINT16_C(4)) !=
             UINT16_C(0))
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
+
+    item = &content->item;
+    maximum_item_knockback_x =
+        (int64_t)item->base_knockback_x_q16 +
+        (((int64_t)item->knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_item_knockback_y =
+        (int64_t)item->base_knockback_y_q16 +
+        ((((int64_t)item->knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
+    if (item->enabled > UINT8_C(1) ||
+        item->half_width_q16 <= INT32_C(0) ||
+        item->half_height_q16 <= INT32_C(0) ||
+        item->half_width_q16 > maximum_fighter_extent_q16 ||
+        item->half_height_q16 > maximum_fighter_extent_q16 ||
+        item->spawn_x_q16 < -maximum_coordinate_q16 ||
+        item->spawn_x_q16 > maximum_coordinate_q16 ||
+        item->spawn_y_q16 < INT32_C(0) ||
+        item->spawn_y_q16 > maximum_coordinate_q16 ||
+        item->pickup_half_width_q16 < item->half_width_q16 ||
+        item->pickup_half_height_q16 < item->half_height_q16 ||
+        item->pickup_half_width_q16 > maximum_fighter_extent_q16 ||
+        item->pickup_half_height_q16 > maximum_fighter_extent_q16 ||
+        item->held_offset_x_q16 < -maximum_fighter_extent_q16 ||
+        item->held_offset_x_q16 > maximum_fighter_extent_q16 ||
+        item->held_offset_y_q16 < -maximum_fighter_extent_q16 ||
+        item->held_offset_y_q16 > maximum_fighter_extent_q16 ||
+        item->gravity_q16 <= INT32_C(0) ||
+        item->gravity_q16 > PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->fall_speed_q16 < item->gravity_q16 ||
+        item->fall_speed_q16 > PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->drop_velocity_y_q16 < INT32_C(0) ||
+        item->drop_velocity_y_q16 > item->fall_speed_q16 ||
+        item->forward_throw.velocity_x_q16 <= INT32_C(0) ||
+        item->forward_throw.velocity_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->forward_throw.velocity_y_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->forward_throw.velocity_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->back_throw.velocity_x_q16 >= INT32_C(0) ||
+        item->back_throw.velocity_x_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->back_throw.velocity_y_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->back_throw.velocity_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->up_throw.velocity_y_q16 >= INT32_C(0) ||
+        item->up_throw.velocity_x_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->up_throw.velocity_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->up_throw.velocity_y_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->down_throw.velocity_y_q16 <= INT32_C(0) ||
+        item->down_throw.velocity_x_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->down_throw.velocity_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->down_throw.velocity_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->momentum_transfer_q16 < INT32_C(0) ||
+        item->momentum_transfer_q16 > PF_Q16_ONE ||
+        item->hitbox_half_width_q16 < item->half_width_q16 ||
+        item->hitbox_half_height_q16 < item->half_height_q16 ||
+        item->hitbox_half_width_q16 > maximum_fighter_extent_q16 ||
+        item->hitbox_half_height_q16 > maximum_fighter_extent_q16 ||
+        item->damage_q16 == UINT32_C(0) ||
+        item->damage_q16 > UINT32_C(50) * UINT32_C(65536) ||
+        item->base_knockback_x_q16 <= INT32_C(0) ||
+        item->base_knockback_y_q16 <= INT32_C(0) ||
+        item->knockback_growth_q16 < INT32_C(0) ||
+        maximum_item_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_item_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->hit_bounce_velocity_y_q16 >= INT32_C(0) ||
+        item->hit_bounce_velocity_y_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->dash_throw_speed_q16 < INT32_C(0) ||
+        item->dash_throw_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        item->throw_recovery_ticks == UINT16_C(0) ||
+        item->throw_recovery_ticks > UINT16_C(240) ||
+        item->dash_throw_recovery_ticks <=
+            item->throw_recovery_ticks ||
+        item->dash_throw_recovery_ticks > UINT16_C(240) ||
+        item->glide_toss_begin_tick >
+            item->glide_toss_end_tick ||
+        item->glide_toss_end_tick >= fighter->forward_roll_ticks ||
+        item->glide_toss_end_tick >= fighter->backward_roll_ticks ||
+        item->pickup_lockout_ticks == UINT16_C(0) ||
+        item->pickup_lockout_ticks > UINT16_C(240) ||
+        item->lifetime_ticks == UINT16_C(0) ||
+        item->lifetime_ticks > UINT16_C(3600) ||
+        item->respawn_ticks == UINT16_C(0) ||
+        item->respawn_ticks > UINT16_C(3600) ||
+        item->hitlag_ticks == UINT16_C(0) ||
+        item->hitlag_ticks > UINT16_C(120) ||
+        (item->enabled != UINT8_C(0) &&
+         (item->spawn_x_q16 - item->half_width_q16 <
+              stage->floor_left_q16 ||
+          item->spawn_x_q16 + item->half_width_q16 >
+              stage->floor_right_q16 ||
+          item->spawn_y_q16 !=
+              stage->floor_y_q16 - item->half_height_q16)))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

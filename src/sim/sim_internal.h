@@ -88,6 +88,18 @@ typedef struct pf_world_state
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
+    int32_t item_position_x_q16;
+    int32_t item_position_y_q16;
+    int32_t item_velocity_x_q16;
+    int32_t item_velocity_y_q16;
+    uint16_t item_lifetime_ticks;
+    uint16_t item_respawn_ticks;
+    uint16_t item_pickup_lockout_ticks;
+    uint8_t item_state;
+    uint8_t item_holder_slot;
+    uint8_t item_source_slot;
+    uint8_t item_hit_mask;
+    uint8_t item_throw_direction;
     uint32_t combat_event_sequence;
 } pf_world_state;
 
@@ -143,6 +155,18 @@ typedef struct pf_sim_scratch
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
+    int32_t item_position_x_q16;
+    int32_t item_position_y_q16;
+    int32_t item_velocity_x_q16;
+    int32_t item_velocity_y_q16;
+    uint16_t item_lifetime_ticks;
+    uint16_t item_respawn_ticks;
+    uint16_t item_pickup_lockout_ticks;
+    uint8_t item_state;
+    uint8_t item_holder_slot;
+    uint8_t item_source_slot;
+    uint8_t item_hit_mask;
+    uint8_t item_throw_direction;
     uint32_t combat_event_sequence;
     uint8_t combat_event_count;
     pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
@@ -157,6 +181,17 @@ struct pf_sim
     pf_m4_content content;
     pf_world_state world;
 };
+
+typedef enum pf_m4_item_input_intent
+{
+    PF_M4_ITEM_INPUT_NONE = 0,
+    PF_M4_ITEM_INPUT_PICKUP = 1,
+    PF_M4_ITEM_INPUT_DROP = 2,
+    PF_M4_ITEM_INPUT_THROW = 3,
+    PF_M4_ITEM_INPUT_GLIDE_TOSS = 4,
+    PF_M4_ITEM_INPUT_JUMP_CANCEL_THROW = 5,
+    PF_M4_ITEM_INPUT_DASH_THROW = 6
+} pf_m4_item_input_intent;
 
 pf_status pf_sim_validate_config(const pf_sim_config *config);
 int pf_sim_is_valid(const pf_sim *sim);
@@ -183,6 +218,28 @@ void pf_m4_reset_player(
     pf_sim *sim,
     uint32_t player_index,
     int count_respawn);
+void pf_m4_reset_item(pf_sim *sim);
+void pf_m4_begin_item_tick(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch);
+pf_m4_item_input_intent pf_m4_prepare_item_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    const pf_sim_scratch *scratch,
+    const pf_input_frame *input,
+    uint32_t player_index,
+    pf_input_frame *effective_input);
+pf_status pf_m4_apply_item_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    const pf_input_frame *input,
+    uint32_t player_index,
+    pf_m4_item_input_intent intent);
+pf_status pf_m4_step_item(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch);
 pf_status pf_m4_step_player(
     const pf_m4_content *content,
     const pf_world_state *world,

@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -450,6 +450,9 @@ mergeInto(LibraryManager.library, {
     instantDoubleJumpProbePassed,
     doubleJumpCancelProbePassed,
     doubleJumpCancelCounterProbePassed,
+    batDropProbePassed,
+    glideTossProbePassed,
+    jumpCancelThrowProbePassed,
     edgeHopProbePassed,
     edgeDashProbePassed,
     foxTrotProbePassed,
@@ -713,6 +716,7 @@ mergeInto(LibraryManager.library, {
         ".pf-m4-state{background:#0a111d;border:1px solid #263851;" +
         "border-radius:10px;padding:10px 12px;font:12px/1.5 ui-monospace,monospace;" +
         "color:#9fb0c7}.pf-m4-state strong{color:#edf5ff}" +
+        ".pf-m4-item-state{grid-column:1/-1}" +
         ".pf-m4-event-panel{grid-column:1/-1}.pf-m4-event-help{" +
         "color:#7287a4;margin:3px 0 8px}.pf-m4-event-feed{" +
         "list-style:none;padding:0;margin:0;display:grid;gap:5px}" +
@@ -735,6 +739,10 @@ mergeInto(LibraryManager.library, {
     section.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
+    section.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
+    section.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
+    section.dataset.jumpCancelThrowProbe =
+      jumpCancelThrowProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -756,6 +764,11 @@ mergeInto(LibraryManager.library, {
       inputProbePassed &&
       airFacingProbePassed &&
       instantDoubleJumpProbePassed &&
+      doubleJumpCancelProbePassed &&
+      doubleJumpCancelCounterProbePassed &&
+      batDropProbePassed &&
+      glideTossProbePassed &&
+      jumpCancelThrowProbePassed &&
       edgeHopProbePassed &&
       edgeDashProbePassed &&
       foxTrotProbePassed &&
@@ -849,13 +862,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger · F + G grab. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield · light + shield grab"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield · light + shield grab/item"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger · light + shield grab. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -948,6 +961,12 @@ mergeInto(LibraryManager.library, {
       "to facing, while up/down select the vertical throws. Low-percent down " +
       "throws can lead to another grab; accumulated percent and outward DI move " +
       "the defender beyond the regrab window. " +
+      "The gold Relay Rod starts left of Player 1. Near it, light plus shield " +
+      "picks it up; while holding it, light or strong plus a direction throws, " +
+      "and light plus shield drops it, including an aerial bat drop. Start a " +
+      "ground roll and press light during action ticks 0–4 for a glide toss. " +
+      "Dash, jump, then press light during jump squat for a jump-cancel throw; " +
+      "waiting until airborne produces an ordinary aerial item throw instead. " +
       "The deterministic event feed below records hits, shield interactions, " +
       "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
       "sequence order. " +
@@ -966,6 +985,11 @@ mergeInto(LibraryManager.library, {
       stateGrid.appendChild(card);
       playerStates.push(card);
     });
+    var itemState = document.createElement("div");
+    itemState.className = "pf-m4-state pf-m4-item-state";
+    itemState.id = "pf-m4-item";
+    itemState.textContent = "Relay Rod waiting for first state";
+    stateGrid.appendChild(itemState);
     var eventPanel = document.createElement("div");
     eventPanel.className = "pf-m4-state pf-m4-event-panel";
     var eventTitle = document.createElement("strong");
@@ -1001,6 +1025,7 @@ mergeInto(LibraryManager.library, {
       eventLog: [],
       gamepadLabel: gamepadLabel,
       keys: Object.create(null),
+      itemState: itemState,
       lastEventSequence: 0,
       lastTime: 0,
       latest: null,
@@ -1267,6 +1292,12 @@ mergeInto(LibraryManager.library, {
         (doubleJumpCancelProbePassed ? "pass" : "fail") +
         " double_jump_cancel_counter_probe=" +
         (doubleJumpCancelCounterProbePassed ? "pass" : "fail") +
+        " bat_drop_probe=" +
+        (batDropProbePassed ? "pass" : "fail") +
+        " glide_toss_probe=" +
+        (glideTossProbePassed ? "pass" : "fail") +
+        " jump_cancel_throw_probe=" +
+        (jumpCancelThrowProbePassed ? "pass" : "fail") +
         " edge_hop_probe=" +
         (edgeHopProbePassed ? "pass" : "fail") +
         " edge_dash_probe=" +
@@ -1363,6 +1394,10 @@ mergeInto(LibraryManager.library, {
         doubleJumpCancelProbePassed ? "pass" : "fail";
       status.dataset.doubleJumpCancelCounterProbe =
         doubleJumpCancelCounterProbePassed ? "pass" : "fail";
+      status.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
+      status.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
+      status.dataset.jumpCancelThrowProbe =
+        jumpCancelThrowProbePassed ? "pass" : "fail";
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
@@ -1445,7 +1480,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 272) {
+    if (!state || viewCount !== 290) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -1454,7 +1489,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 21) {
+    if (view[0] !== 22) {
       return;
     }
     var canvas = state.canvas;
@@ -1531,6 +1566,8 @@ mergeInto(LibraryManager.library, {
       "RESET BOUND",
       "FORCED GETUP",
       "DELAYED AIR JUMP",
+      "ITEM THROW",
+      "DASH ITEM THROW",
     ];
 
     if (view[1] < previousTick) {
@@ -1632,6 +1669,31 @@ mergeInto(LibraryManager.library, {
             "% · launch " +
             velocity
           );
+        case 14:
+          return source + " picked up the Relay Rod";
+        case 15:
+          return source + " dropped the Relay Rod";
+        case 16:
+          return (
+            source +
+            " threw the Relay Rod " +
+            (["", "forward", "back", "up", "down"][event.detail] ||
+              "direction " + event.detail) +
+            " · velocity " +
+            velocity
+          );
+        case 17:
+          return (
+            source +
+            " hit " +
+            target +
+            " with the Relay Rod for " +
+            value +
+            "% · launch " +
+            velocity
+          );
+        case 18:
+          return "Relay Rod reset to its authored spawn";
         default:
           return "unknown event type " + event.type;
       }
@@ -1773,6 +1835,81 @@ mergeInto(LibraryManager.library, {
       25
     );
     context.restore();
+
+    var itemBase = 272;
+    var itemStateCode = view[itemBase + 1];
+    if (view[itemBase] !== 0 && itemStateCode > 0 && itemStateCode < 4) {
+      var itemWorldX = view[itemBase + 6];
+      var itemWorldY = view[itemBase + 7];
+      var itemX = sx(itemWorldX);
+      var itemY = sy(itemWorldY);
+      var itemWidth =
+        sx(itemWorldX + view[itemBase + 14]) -
+        sx(itemWorldX - view[itemBase + 14]);
+      var itemHeight =
+        sy(itemWorldY + view[itemBase + 15]) -
+        sy(itemWorldY - view[itemBase + 15]);
+
+      if (view[itemBase + 5] !== 0) {
+        var itemHitboxLeft = sx(itemWorldX - view[itemBase + 16]);
+        var itemHitboxRight = sx(itemWorldX + view[itemBase + 16]);
+        var itemHitboxTop = sy(itemWorldY - view[itemBase + 17]);
+        var itemHitboxBottom = sy(itemWorldY + view[itemBase + 17]);
+        context.fillStyle = "#ffbd4a2b";
+        context.strokeStyle = "#ffd36a";
+        context.lineWidth = 2;
+        context.fillRect(
+          itemHitboxLeft,
+          itemHitboxTop,
+          itemHitboxRight - itemHitboxLeft,
+          itemHitboxBottom - itemHitboxTop
+        );
+        context.strokeRect(
+          itemHitboxLeft,
+          itemHitboxTop,
+          itemHitboxRight - itemHitboxLeft,
+          itemHitboxBottom - itemHitboxTop
+        );
+      }
+
+      context.save();
+      context.translate(itemX, itemY);
+      if (itemStateCode === 3) {
+        context.rotate(
+          Math.atan2(view[itemBase + 9], view[itemBase + 8]) + Math.PI / 2
+        );
+      }
+      var rodGradient = context.createLinearGradient(
+        -itemWidth / 2,
+        0,
+        itemWidth / 2,
+        0
+      );
+      rodGradient.addColorStop(0, "#f29b24");
+      rodGradient.addColorStop(0.5, "#fff2a8");
+      rodGradient.addColorStop(1, "#d56b1b");
+      context.fillStyle = rodGradient;
+      context.strokeStyle = "#fff1b8";
+      context.lineWidth = 2;
+      context.fillRect(
+        -Math.max(4, itemWidth) / 2,
+        -Math.max(10, itemHeight) / 2,
+        Math.max(4, itemWidth),
+        Math.max(10, itemHeight)
+      );
+      context.strokeRect(
+        -Math.max(4, itemWidth) / 2,
+        -Math.max(10, itemHeight) / 2,
+        Math.max(4, itemWidth),
+        Math.max(10, itemHeight)
+      );
+      context.restore();
+
+      context.fillStyle = "#ffe7a0";
+      context.font = "bold 10px ui-monospace, monospace";
+      context.textAlign = "center";
+      context.fillText("RELAY ROD", itemX, itemY - Math.max(10, itemHeight) / 2 - 8);
+    }
 
     [0, 1].forEach(function (playerIndex) {
       var base = 25 + playerIndex * 43;
@@ -2135,6 +2272,46 @@ mergeInto(LibraryManager.library, {
         view[base + 40] +
         "f";
     });
+
+    var itemStateNames = [
+      "INACTIVE",
+      "GROUND",
+      "HELD",
+      "AIRBORNE",
+      "RESPAWN WAIT",
+    ];
+    var itemDirectionNames = ["none", "forward", "back", "up", "down"];
+    state.itemState.innerHTML =
+      "<strong>Relay Rod · " +
+      (itemStateNames[itemStateCode] || "STATE " + itemStateCode) +
+      "</strong><br>x " +
+      (view[itemBase + 6] / q16).toFixed(3) +
+      " · y " +
+      (view[itemBase + 7] / q16).toFixed(3) +
+      " · vx " +
+      (view[itemBase + 8] / q16).toFixed(3) +
+      " · vy " +
+      (view[itemBase + 9] / q16).toFixed(3) +
+      "<br>holder " +
+      (view[itemBase + 2] === 255
+        ? "none"
+        : "P" + (view[itemBase + 2] + 1)) +
+      " · source " +
+      (view[itemBase + 3] === 255
+        ? "none"
+        : "P" + (view[itemBase + 3] + 1)) +
+      " · throw " +
+      (itemDirectionNames[view[itemBase + 4]] || view[itemBase + 4]) +
+      " · hitbox " +
+      view[itemBase + 5] +
+      "<br>lifetime " +
+      view[itemBase + 10] +
+      "f · respawn " +
+      view[itemBase + 11] +
+      "f · pickup lockout " +
+      view[itemBase + 12] +
+      "f · hit mask " +
+      view[itemBase + 13];
 
     if (view[21] !== 0 || view[22] !== 0 || view[23] !== 0) {
       var resultLabel;

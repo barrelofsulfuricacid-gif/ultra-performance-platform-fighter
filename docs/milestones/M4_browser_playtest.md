@@ -9,6 +9,8 @@ with ordinary/boost-grab routes, a production two-hit jab with shield cancel
 and a weak-hit jab-reset route,
 and four directional
 throws with a low-percent chain-grab route,
+one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
+plus bat-drop, glide-toss, and jump-cancel-throw routes,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction, and dense-shield
@@ -32,6 +34,8 @@ headless execution.
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
+| Pick up / drop the nearby Relay Rod | Near the rod, or while holding it: hold `G`, tap `F` | Near the rod, or while holding it: hold `.`/Numpad `1`, tap `/`/Numpad `0` |
+| Directional item throw | While holding the rod: direction + fresh `F` or `H` | While holding the rod: direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Shield platform drop | Hold trigger, then `Shift+S` | Hold trigger, then `Shift+Down` |
@@ -57,6 +61,17 @@ dash. Reversing them during the ten-tick initial-dash window performs a
 dash-dance reversal. Holding `Shift` emits a reduced magnitude below the dash
 threshold and therefore walks. `Shift` also reduces vertical magnitude, making
 the shield-drop band distinct from full-down spot dodge.
+
+The gold Relay Rod begins left of Player 1 and has its own live state card.
+Walk near it and press light plus shield to pick it up. The same combination
+drops it; do this airborne above the opponent for bat dropping, and repeat at
+safe spacing for the miss control. While holding it, a fresh light or strong
+attack plus direction performs one of four item throws. For glide toss, start a
+grounded roll and press light during roll action frames 0–4; frame 5 retains the
+roll and item. For jump-cancel throw, dash, press jump, then press light during
+`JUMP SQUAT`; waiting until `AIRBORNE` keeps the jump and performs an ordinary
+aerial item throw. The gold collision overlay appears only while the item
+hitbox is active.
 
 For a fox-trot, tap and release one full direction, then repeat that same
 direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
@@ -756,6 +771,10 @@ through:
   while preserving its trajectory/action tick, followed by an immediate
   aerial counter-hit, plus first-late and strong-aerial ordinary-launch
   negatives before default content is restored;
+- an aerial Relay Rod drop hitting and bouncing from an aligned target plus a
+  spacing miss, grounded glide toss on the final legal roll frame plus the
+  first-late rejection, and dash-to-jump-squat cancel throw plus the
+  first-airborne-frame ordinary throw before the live item lab is installed;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -802,6 +821,7 @@ The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass double_jump_cancel_probe=pass
 double_jump_cancel_counter_probe=pass
+bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass

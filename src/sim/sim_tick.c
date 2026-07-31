@@ -278,7 +278,7 @@ pf_status pf_sim_tick_impl(
     if (world->combat_event_sequence >
         UINT32_MAX -
             (UINT32_C(3) * (uint32_t)world->player_count +
-             UINT32_C(1)))
+             UINT32_C(3)))
     {
         world->fault_flags |= (uint32_t)PF_SIM_FAULT_CAPACITY;
         pf_write_result(world, NULL, out_result);
@@ -291,11 +291,21 @@ pf_status pf_sim_tick_impl(
         scratch->combat_events,
         0,
         sizeof(scratch->combat_events));
+    pf_m4_begin_item_tick(world, scratch);
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
          ++player_index)
     {
         const pf_input_frame *input = &inputs[player_index];
+        pf_input_frame effective_input;
+        const pf_m4_item_input_intent item_intent =
+            pf_m4_prepare_item_input(
+                &sim->content,
+                world,
+                scratch,
+                input,
+                player_index,
+                &effective_input);
 
         if ((input->buttons & PF_INPUT_BUTTON_FORFEIT) != UINT64_C(0))
         {
@@ -306,13 +316,45 @@ pf_status pf_sim_tick_impl(
             &sim->content,
             world,
             scratch,
-            input,
+            &effective_input,
             player_index);
         if (status != PF_STATUS_OK)
         {
             pf_write_result(world, NULL, out_result);
             return status;
         }
+        if (item_intent != PF_M4_ITEM_INPUT_NONE)
+        {
+            scratch->previous_buttons[player_index] = input->buttons;
+            scratch->shield_held[player_index] =
+                input->left_trigger >=
+                            sim->content.fighter
+                                .digital_trigger_threshold ||
+                        input->right_trigger >=
+                            sim->content.fighter
+                                .digital_trigger_threshold
+                    ? UINT8_C(1)
+                    : UINT8_C(0);
+            status = pf_m4_apply_item_input(
+                &sim->content,
+                world,
+                scratch,
+                input,
+                player_index,
+                item_intent);
+            if (status != PF_STATUS_OK)
+            {
+                pf_write_result(world, NULL, out_result);
+                return status;
+            }
+        }
+    }
+
+    status = pf_m4_step_item(&sim->content, world, scratch);
+    if (status != PF_STATUS_OK)
+    {
+        pf_write_result(world, NULL, out_result);
+        return status;
     }
 
     status = pf_m4_resolve_combat(&sim->content, world, scratch);
@@ -428,6 +470,19 @@ pf_status pf_sim_tick_impl(
         world->tech_direction[player_index] =
             scratch->tech_direction[player_index];
     }
+    world->item_position_x_q16 = scratch->item_position_x_q16;
+    world->item_position_y_q16 = scratch->item_position_y_q16;
+    world->item_velocity_x_q16 = scratch->item_velocity_x_q16;
+    world->item_velocity_y_q16 = scratch->item_velocity_y_q16;
+    world->item_lifetime_ticks = scratch->item_lifetime_ticks;
+    world->item_respawn_ticks = scratch->item_respawn_ticks;
+    world->item_pickup_lockout_ticks =
+        scratch->item_pickup_lockout_ticks;
+    world->item_state = scratch->item_state;
+    world->item_holder_slot = scratch->item_holder_slot;
+    world->item_source_slot = scratch->item_source_slot;
+    world->item_hit_mask = scratch->item_hit_mask;
+    world->item_throw_direction = scratch->item_throw_direction;
     ++world->tick;
 
     if (forfeit_mask != UINT64_C(0))

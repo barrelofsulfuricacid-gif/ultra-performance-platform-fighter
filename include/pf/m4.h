@@ -10,12 +10,14 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(27)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(28)
 #define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(27)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(22)
+#define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(23)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
+#define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
 
 typedef enum pf_m4_action_state
 {
@@ -80,7 +82,9 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_JAB_FINAL = 58,
     PF_M4_ACTION_RESET_BOUND = 59,
     PF_M4_ACTION_FORCED_GETUP = 60,
-    PF_M4_ACTION_DELAYED_AIR_JUMP = 61
+    PF_M4_ACTION_DELAYED_AIR_JUMP = 61,
+    PF_M4_ACTION_ITEM_THROW = 62,
+    PF_M4_ACTION_ITEM_DASH_THROW = 63
 } pf_m4_action_state;
 
 typedef struct pf_m4_throw_data
@@ -95,6 +99,71 @@ typedef struct pf_m4_throw_data
     uint16_t hitlag_ticks;
     uint16_t reserved;
 } pf_m4_throw_data;
+
+typedef enum pf_m4_item_state
+{
+    PF_M4_ITEM_STATE_INACTIVE = 0,
+    PF_M4_ITEM_STATE_GROUND = 1,
+    PF_M4_ITEM_STATE_HELD = 2,
+    PF_M4_ITEM_STATE_AIRBORNE = 3,
+    PF_M4_ITEM_STATE_RESPAWN_WAIT = 4
+} pf_m4_item_state;
+
+typedef enum pf_m4_item_throw_direction
+{
+    PF_M4_ITEM_THROW_NONE = 0,
+    PF_M4_ITEM_THROW_FORWARD = 1,
+    PF_M4_ITEM_THROW_BACK = 2,
+    PF_M4_ITEM_THROW_UP = 3,
+    PF_M4_ITEM_THROW_DOWN = 4
+} pf_m4_item_throw_direction;
+
+typedef struct pf_m4_item_velocity
+{
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+} pf_m4_item_velocity;
+
+typedef struct pf_m4_item_data
+{
+    uint32_t struct_size;
+    uint16_t schema_version;
+    uint8_t enabled;
+    uint8_t reserved;
+    int32_t half_width_q16;
+    int32_t half_height_q16;
+    int32_t spawn_x_q16;
+    int32_t spawn_y_q16;
+    int32_t pickup_half_width_q16;
+    int32_t pickup_half_height_q16;
+    int32_t held_offset_x_q16;
+    int32_t held_offset_y_q16;
+    int32_t gravity_q16;
+    int32_t fall_speed_q16;
+    int32_t drop_velocity_y_q16;
+    pf_m4_item_velocity forward_throw;
+    pf_m4_item_velocity back_throw;
+    pf_m4_item_velocity up_throw;
+    pf_m4_item_velocity down_throw;
+    int32_t momentum_transfer_q16;
+    int32_t hitbox_half_width_q16;
+    int32_t hitbox_half_height_q16;
+    uint32_t damage_q16;
+    int32_t base_knockback_x_q16;
+    int32_t base_knockback_y_q16;
+    int32_t knockback_growth_q16;
+    int32_t hit_bounce_velocity_y_q16;
+    int32_t dash_throw_speed_q16;
+    uint16_t throw_recovery_ticks;
+    uint16_t dash_throw_recovery_ticks;
+    uint16_t glide_toss_begin_tick;
+    uint16_t glide_toss_end_tick;
+    uint16_t pickup_lockout_ticks;
+    uint16_t lifetime_ticks;
+    uint16_t respawn_ticks;
+    uint16_t hitlag_ticks;
+    uint16_t reserved2;
+} pf_m4_item_data;
 
 typedef enum pf_m4_surface
 {
@@ -366,8 +435,11 @@ typedef struct pf_m4_content
     uint16_t schema_version;
     uint8_t fighter_count;
     uint8_t stage_count;
+    uint8_t item_count;
+    uint8_t reserved[3];
     pf_m4_fighter_data fighter;
     pf_m4_stage_data stage;
+    pf_m4_item_data item;
 } pf_m4_content;
 
 typedef struct pf_m4_player_inspection
@@ -455,6 +527,25 @@ typedef struct pf_m4_stage_inspection
     int32_t blast_bottom_q16;
 } pf_m4_stage_inspection;
 
+typedef struct pf_m4_item_inspection
+{
+    int32_t position_x_q16;
+    int32_t position_y_q16;
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint16_t lifetime_ticks;
+    uint16_t respawn_ticks;
+    uint16_t pickup_lockout_ticks;
+    uint8_t enabled;
+    uint8_t state;
+    uint8_t holder;
+    uint8_t source;
+    uint8_t throw_direction;
+    uint8_t hit_mask;
+    uint8_t hitbox_active;
+    uint8_t reserved;
+} pf_m4_item_inspection;
+
 typedef struct pf_m4_inspection
 {
     uint32_t struct_size;
@@ -469,6 +560,7 @@ typedef struct pf_m4_inspection
     uint8_t truncated;
     uint8_t winner_mask;
     pf_m4_stage_inspection stage;
+    pf_m4_item_inspection item;
     pf_m4_player_inspection players[PF_SIM_MAX_PLAYERS];
 } pf_m4_inspection;
 

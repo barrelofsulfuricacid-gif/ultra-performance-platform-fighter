@@ -10,8 +10,9 @@
 _Static_assert(
     PF_RL_COMPACT_VALUE_COUNT ==
         PF_RL_COMPACT_GLOBAL_VALUES +
-            PF_SIM_MAX_PLAYERS * PF_RL_COMPACT_PLAYER_STRIDE,
-    "compact RL observation dimensions must cover every player slot");
+            PF_SIM_MAX_PLAYERS * PF_RL_COMPACT_PLAYER_STRIDE +
+            PF_RL_COMPACT_ITEM_VALUES,
+    "compact RL observation dimensions must cover players and item state");
 _Static_assert(
     (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
         PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16,
@@ -240,7 +241,41 @@ static void pf_rl_fill_compact(
         compact->values[
             base +
             PF_RL_COMPACT_PLAYER_INVULNERABILITY_OFFSET] =
-            (int32_t)player->respawn_invulnerability_ticks;
+                (int32_t)player->respawn_invulnerability_ticks;
+    }
+    {
+        const pf_item_observation *item = &observation->item;
+        const uint32_t item_bits =
+            (uint32_t)item->state |
+            ((uint32_t)item->holder_slot << 3U) |
+            ((uint32_t)item->source_slot << 6U) |
+            ((uint32_t)item->throw_direction << 9U) |
+            ((uint32_t)item->hit_mask << 12U);
+
+        compact->values[PF_RL_COMPACT_ITEM_BASE] =
+            item->position_x_q16;
+        compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(1)] =
+            item->position_y_q16;
+        compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(2)] =
+            item->velocity_x_q16;
+        compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(3)] =
+            item->velocity_y_q16;
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_STATE_BITS_OFFSET] =
+            pf_rl_u32_bits(item_bits);
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_LIFETIME_OFFSET] =
+            (int32_t)item->lifetime_ticks;
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_RESPAWN_OFFSET] =
+            (int32_t)item->respawn_ticks;
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_LOCKOUT_OFFSET] =
+            (int32_t)item->pickup_lockout_ticks;
     }
 }
 

@@ -2,7 +2,7 @@
 set -eu
 
 root=$(git rev-parse --show-toplevel)
-output_dir=${1:-"$root/performance/local/m4_combat"}
+output_dir=${1:-"$root/performance/local/m4_item"}
 compiler=${CC:-cc}
 
 mkdir -p "$output_dir"
@@ -39,14 +39,14 @@ common_flags="
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
-    "$root/tests/sim/test_m4_combat.c" \
-    -o "$output_dir/m4_combat_test"
+    "$root/tests/sim/test_m4_item.c" \
+    -o "$output_dir/m4_item_test"
 
-"$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
+"$output_dir/m4_item_test" >"$output_dir/m4_item.txt"
 grep -Fqx \
-    'm4-combat=pass content_schema=28 deterministic_ticks=20000 combat_invariants=560 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1' \
-    "$output_dir/m4_combat.txt"
+    'm4-item=pass content_schema=28 state_schema=26 save_bytes=662 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1' \
+    "$output_dir/m4_item.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"
 
-echo "m4-combat-verification=pass invariants=529 journal_invariants=50 deterministic_ticks=20000 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1"
+echo "m4-item-verification=pass item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1"

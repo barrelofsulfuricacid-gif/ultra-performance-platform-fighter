@@ -352,9 +352,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   slice advances state schema to 25/save format 24, content/fighter schema to
   27, inspection schema to 22, and browser view schema to 21 for authored
   knockback-based armor, preserved delayed-action hitlag resume, and readiness
-  evidence.
-  Config/observation/identity schema 2 and RL
-  schema 4 remain current. The canonical save is 635 bytes.
+  evidence. The Relay Rod slice advances state schema to 26/save format 25,
+  content schema to 28 with fighter schema 27 and item schema 1, inspection
+  schema to 23, and browser view schema to 22 for fixed-capacity item state,
+  actions, events, and readiness evidence.
+  Config/identity schema 2 remains current; observation schema 3 and RL schema
+  5 expose the item. The canonical save is 662 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -991,6 +994,32 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   broader surfaces/actions, owner execution, and complete encoded
   replay/rollback evidence remain before `verified`.
 
+## Delivered in the Relay Rod item slice
+
+- One original fixed-capacity Relay Rod now supplies data-driven pickup,
+  carry, grounded/aerial drop, four directional throws, an airborne hitbox,
+  damage/knockback/bounce, pickup lockout, lifetime, despawn, and reset without
+  allocation or dynamic entity creation.
+- Ordinary input priority composes three registry routes: aerial light plus
+  shield drops the held item; a fresh attack during grounded roll frames 0–4
+  glide-tosses it while preserving roll momentum; and a fresh attack during
+  jump squat cancels takeoff while preserving dash momentum. Spacing, frame-5,
+  and first-airborne-frame controls prove the corresponding negative routes.
+- `tests/sim/test_m4_item.c` adds 44 focused invariants, all four throw
+  directions, typed item events, save/load future equality, encoded replay
+  verification, structured and compact RL observation, and despawn/reset.
+  `tools/verify_m4_item.sh` makes the result a verifier-readable check.
+- State schema 26/save format 25 and `PFSAVE25` expand the canonical payload
+  from 495 to 522 bytes and the checkpoint from 635 to 662 bytes. Structured
+  observation schema 3 and RL schema 5 expose the fixed item; compact
+  observation schema 4 appends eight values for a 56-value vector.
+- Browser startup repeats positive and negative bat-drop, glide-toss, and
+  jump-cancel-throw routes before readiness. View schema 22 appends exact item
+  state/collision data after all prior offsets, renders the Relay Rod and its
+  active box, and exposes an ordinary live pickup/throw practice route.
+- Registry rows 3, 18, and 25 advance from `planned` to `playable`; cross-target
+  evidence and owner execution remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1093,7 +1122,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 41 playable, 3 primitive-ready, and 16 planned.
+  blocked: 1 verified, 44 playable, 3 primitive-ready, and 13 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1124,8 +1153,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## First-slice verification
 
-- Release workflow: 18/18 tests.
-- Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
+- Release workflow: 19/19 tests.
+- Address/undefined-behavior sanitizer workflow: 19/19 tests; leak discovery
   disabled only for the restricted workspace.
 - Mechanical oracles: 243 movement invariants, 560
   attack/reaction/shield/floor/surface
@@ -1135,12 +1164,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,327
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,354
   bytes,
   replay SHA-256
-  `bc930671111a7bd821efc8d67f862e06425ea34d3ccc011f3ba52f69c5a96507`,
+  `cc0bb0092fc382d0f17ac8996bd3cc3d639c12dda741717ffd393b84052bddd0`,
   final SHA-256
-  `2c8bacffc869812c9c4a576a796cbcde7a7f923166fba6e17b16d595bc43366d`,
+  `d6446a15e39dac2fc45696c57b68dc80cc7a8e800fcda9a47596caa6d9bd1958`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1151,7 +1180,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

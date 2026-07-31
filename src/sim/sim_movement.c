@@ -606,7 +606,10 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
            action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
-           pf_m4_action_is_throw(action_state);
+           pf_m4_action_is_throw(action_state) ||
+           action_state == (uint8_t)PF_M4_ACTION_ITEM_THROW ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -2793,6 +2796,28 @@ pf_status pf_m4_step_player(
     }
     else if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
+        (action_state == (uint8_t)PF_M4_ACTION_ITEM_THROW ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW))
+    {
+        const uint16_t recovery_ticks =
+            action_state == (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW
+                ? content->item.dash_throw_recovery_ticks
+                : content->item.throw_recovery_ticks;
+
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if (action_ticks >= recovery_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
         pf_m4_action_locks_ground_control(action_state))
     {
         velocity_x = INT32_C(0);
@@ -4221,6 +4246,39 @@ pf_status pf_m4_inspect(
         stage->blast_top_q16;
     out_inspection->stage.blast_bottom_q16 =
         stage->blast_bottom_q16;
+    out_inspection->item.position_x_q16 =
+        sim->world.item_position_x_q16;
+    out_inspection->item.position_y_q16 =
+        sim->world.item_position_y_q16;
+    out_inspection->item.velocity_x_q16 =
+        sim->world.item_velocity_x_q16;
+    out_inspection->item.velocity_y_q16 =
+        sim->world.item_velocity_y_q16;
+    out_inspection->item.lifetime_ticks =
+        sim->world.item_lifetime_ticks;
+    out_inspection->item.respawn_ticks =
+        sim->world.item_respawn_ticks;
+    out_inspection->item.pickup_lockout_ticks =
+        sim->world.item_pickup_lockout_ticks;
+    out_inspection->item.enabled = sim->content.item.enabled;
+    out_inspection->item.state = sim->world.item_state;
+    out_inspection->item.holder =
+        sim->world.item_holder_slot != UINT8_C(0)
+            ? (uint8_t)(sim->world.item_holder_slot - UINT8_C(1))
+            : PF_SIM_EVENT_NO_PLAYER;
+    out_inspection->item.source =
+        sim->world.item_source_slot != UINT8_C(0)
+            ? (uint8_t)(sim->world.item_source_slot - UINT8_C(1))
+            : PF_SIM_EVENT_NO_PLAYER;
+    out_inspection->item.throw_direction =
+        sim->world.item_throw_direction;
+    out_inspection->item.hit_mask = sim->world.item_hit_mask;
+    out_inspection->item.hitbox_active =
+        sim->world.item_state ==
+                (uint8_t)PF_M4_ITEM_STATE_AIRBORNE &&
+            sim->world.item_source_slot != UINT8_C(0)
+        ? UINT8_C(1)
+        : UINT8_C(0);
 
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;

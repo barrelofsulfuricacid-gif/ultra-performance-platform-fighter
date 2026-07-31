@@ -81,9 +81,13 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–23 remain historical checkpoints. The current M4
-movement/combat state uses save format 24: a fixed 635-byte checkpoint with
-state schema 25 and canonical solid-surface tech/bounce,
+Save formats 1–24 remain historical checkpoints. The current M4
+movement/combat/item state uses save format 25: a fixed 662-byte checkpoint
+with state schema 26. Its 522-byte payload adds one fixed canonical item
+entity with position/velocity, lifecycle timers, state, holder/source slots,
+hit mask, and throw direction; load validates all state/ownership/timer
+relationships before atomic replacement. The preceding state schema 25 and
+save format 24 define canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
@@ -109,7 +113,11 @@ simultaneous jump-plus-attack non-consumption fail closed, again without
 changing the byte layout. State schema 25 makes knockback-based
 delayed-air-jump armor, zero-launch hit events, preserved trajectory/action
 timing, and delayed-action hitlag resume fail closed without changing the byte
-layout. Format 14 changed the
+layout. State schema 26 adds fixed-capacity item pickup/drop/throw/hit/reset
+semantics, two item-throw action IDs, and typed item events. Structured
+observation schema 3 and RL schema 5 expose the same item state; compact
+observation schema 4 appends eight values without changing existing indices.
+Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.
 Format 5 first

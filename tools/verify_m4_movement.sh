@@ -32,6 +32,7 @@ common_flags="
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
+    "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -43,7 +44,7 @@ common_flags="
 
 "$output_dir/m4_movement_test" >"$output_dir/m4_movement.txt"
 grep -Fqx \
-    'm4-movement=pass content_schema=27 deterministic_ticks=20000 movement_invariants=243 double_jump_cancel=1 ledge_cancel=1 planking=1' \
+    'm4-movement=pass content_schema=28 deterministic_ticks=20000 movement_invariants=243 double_jump_cancel=1 ledge_cancel=1 planking=1' \
     "$output_dir/m4_movement.txt"
 
 echo "m4-movement-verification=pass invariants=243 deterministic_ticks=20000 double_jump_cancel=1 ledge_cancel=1 planking=1"

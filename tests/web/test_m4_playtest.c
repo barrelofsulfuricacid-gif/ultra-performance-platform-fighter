@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 272
+#define TEST_VIEW_COUNT 290
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 43
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -42,6 +42,25 @@
 #define TEST_EVENT_TARGET 4
 #define TEST_EVENT_VALUE 5
 #define TEST_EVENT_DETAIL 9
+#define TEST_ITEM_BASE 272
+#define TEST_ITEM_ENABLED 0
+#define TEST_ITEM_STATE 1
+#define TEST_ITEM_HOLDER 2
+#define TEST_ITEM_SOURCE 3
+#define TEST_ITEM_THROW_DIRECTION 4
+#define TEST_ITEM_HITBOX_ACTIVE 5
+#define TEST_ITEM_X 6
+#define TEST_ITEM_Y 7
+#define TEST_ITEM_VX 8
+#define TEST_ITEM_VY 9
+#define TEST_ITEM_LIFETIME 10
+#define TEST_ITEM_RESPAWN 11
+#define TEST_ITEM_PICKUP_LOCKOUT 12
+#define TEST_ITEM_HIT_MASK 13
+#define TEST_ITEM_HALF_WIDTH 14
+#define TEST_ITEM_HALF_HEIGHT 15
+#define TEST_ITEM_HITBOX_HALF_WIDTH 16
+#define TEST_ITEM_HITBOX_HALF_HEIGHT 17
 
 static int test_install_count;
 static int test_render_count;
@@ -52,6 +71,9 @@ static int test_air_facing_probe;
 static int test_instant_double_jump_probe;
 static int test_double_jump_cancel_probe;
 static int test_double_jump_cancel_counter_probe;
+static int test_bat_drop_probe;
+static int test_glide_toss_probe;
+static int test_jump_cancel_throw_probe;
 static int test_edge_hop_probe;
 static int test_edge_dash_probe;
 static int test_fox_trot_probe;
@@ -102,6 +124,9 @@ void pf_web_m4_playtest_install(
     int instant_double_jump_probe_passed,
     int double_jump_cancel_probe_passed,
     int double_jump_cancel_counter_probe_passed,
+    int bat_drop_probe_passed,
+    int glide_toss_probe_passed,
+    int jump_cancel_throw_probe_passed,
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
@@ -155,6 +180,9 @@ void pf_web_m4_playtest_install(
     int instant_double_jump_probe_passed,
     int double_jump_cancel_probe_passed,
     int double_jump_cancel_counter_probe_passed,
+    int bat_drop_probe_passed,
+    int glide_toss_probe_passed,
+    int jump_cancel_throw_probe_passed,
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
@@ -207,6 +235,9 @@ void pf_web_m4_playtest_install(
         double_jump_cancel_probe_passed;
     test_double_jump_cancel_counter_probe =
         double_jump_cancel_counter_probe_passed;
+    test_bat_drop_probe = bat_drop_probe_passed;
+    test_glide_toss_probe = glide_toss_probe_passed;
+    test_jump_cancel_throw_probe = jump_cancel_throw_probe_passed;
     test_edge_hop_probe = edge_hop_probe_passed;
     test_edge_dash_probe = edge_dash_probe_passed;
     test_fox_trot_probe = fox_trot_probe_passed;
@@ -357,6 +388,9 @@ int main(void)
         test_instant_double_jump_probe != 1 ||
         test_double_jump_cancel_probe != 1 ||
         test_double_jump_cancel_counter_probe != 1 ||
+        test_bat_drop_probe != 1 ||
+        test_glide_toss_probe != 1 ||
+        test_jump_cancel_throw_probe != 1 ||
         test_edge_hop_probe != 1 ||
         test_edge_dash_probe != 1 ||
         test_fox_trot_probe != 1 ||
@@ -397,7 +431,7 @@ int main(void)
         test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 21 ||
+        test_view[0] != 22 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -408,6 +442,27 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET] != 255 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_OWNER] != 255 ||
         test_view[TEST_EVENT_COUNT] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_ENABLED] != 1 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_STATE] != 1 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HOLDER] != 255 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_SOURCE] != 255 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_THROW_DIRECTION] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HITBOX_ACTIVE] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_X] != -7 * 65536 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_Y] !=
+            32 * 65536 - 32768 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_VX] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_VY] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_LIFETIME] != 3600 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_RESPAWN] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_PICKUP_LOCKOUT] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HIT_MASK] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HALF_WIDTH] != 8192 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HALF_HEIGHT] != 32768 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HITBOX_HALF_WIDTH] !=
+            7 * 65536 / 20 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_HITBOX_HALF_HEIGHT] !=
+            11 * 65536 / 20 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||
@@ -931,12 +986,67 @@ int main(void)
         return fail("keyboard-tech-trigger-edge");
     }
 
+    {
+        uint32_t tick;
+
+        if (!pf_web_m4_playtest_reset())
+        {
+            return fail("live-item-reset");
+        }
+        for (tick = UINT32_C(0); tick < UINT32_C(40); ++tick)
+        {
+            const int32_t delta =
+                test_view[TEST_PLAYER0_BASE] -
+                test_view[TEST_ITEM_BASE + TEST_ITEM_X];
+
+            if (delta >= -65536 && delta <= 65536)
+            {
+                break;
+            }
+            if (!pf_web_m4_playtest_step(
+                    -test_dash_axis,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0))
+            {
+                return fail("live-item-approach");
+            }
+        }
+        if (tick == UINT32_C(40) ||
+            !pf_web_m4_playtest_step(
+                0, 0, 0, 1, 1, 0, 0, 0, 0, 0) ||
+            test_view[TEST_EVENT_COUNT] != 1 ||
+            test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 14 ||
+            test_view[TEST_ITEM_BASE + TEST_ITEM_STATE] != 2 ||
+            test_view[TEST_ITEM_BASE + TEST_ITEM_HOLDER] != 0 ||
+            !pf_web_m4_playtest_step(
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+            !pf_web_m4_playtest_step(
+                0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
+            test_view[TEST_EVENT_COUNT] != 1 ||
+            test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 16 ||
+            test_view[TEST_ITEM_BASE + TEST_ITEM_STATE] != 3 ||
+            test_view[TEST_ITEM_BASE + TEST_ITEM_SOURCE] != 0 ||
+            test_view[TEST_ITEM_BASE + TEST_ITEM_HOLDER] != 255)
+        {
+            return fail("live-item-pickup-and-throw");
+        }
+    }
+
     (void)printf(
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d "
         "instant_double_jump_probe=%d "
         "double_jump_cancel_probe=%d "
-        "double_jump_cancel_counter_probe=%d edge_hop_probe=%d "
+        "double_jump_cancel_counter_probe=%d bat_drop_probe=%d "
+        "glide_toss_probe=%d jump_cancel_throw_probe=%d "
+        "edge_hop_probe=%d "
         "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
         "dash_cancel_probe=%d dashing_shield_probe=%d "
         "shield_platform_drop_probe=%d "
@@ -974,6 +1084,9 @@ int main(void)
         test_instant_double_jump_probe,
         test_double_jump_cancel_probe,
         test_double_jump_cancel_counter_probe,
+        test_bat_drop_probe,
+        test_glide_toss_probe,
+        test_jump_cancel_throw_probe,
         test_edge_hop_probe,
         test_edge_dash_probe,
         test_fox_trot_probe,

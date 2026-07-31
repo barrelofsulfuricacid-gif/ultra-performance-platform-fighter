@@ -883,10 +883,55 @@ all four directional throws, the complete low-percent chain, and the neutral
 input negative before restoring default content; the live adapter exposes all
 four action labels and the typed throw event.
 
+## Relay Rod item contract
+
+The original Relay Rod is one fixed-capacity canonical entity. Default content
+keeps it disabled so established combat fixtures remain isolated; the browser
+lab deliberately enables it at its authored `x=-7` ground spawn. No pickup,
+throw, collision, despawn, or reset path allocates memory or creates a dynamic
+entity.
+
+The item state machine is `INACTIVE`, `GROUND`, `HELD`, `AIRBORNE`, and
+`RESPAWN_WAIT`. Its data defines pickup extents, held offset, gravity and fall
+speed, four directional throw vectors, 3/4 momentum transfer, an axis-aligned
+airborne hitbox, 7% damage, knockback growth, hit bounce, pickup lockout,
+600-tick ordinary lifetime, and 60-tick respawn. The long-lived browser lab
+uses the same content with a 3,600-tick lifetime so the practice object does not
+reset during an ordinary session.
+
+Grounded light plus shield picks up a nearby ground item. While held, fresh
+light or strong attack throws in the selected forward/back/up/down direction;
+light plus shield drops instead. An aerial drop is immediately an airborne
+item and may hit a legal opponent. During grounded forward/back roll action
+ticks 0–4, fresh attack performs glide toss without replacing roll velocity;
+the first-late input leaves both roll and held item intact. Fresh attack during
+jump squat performs jump-cancel throw, restores the grounded pose, preserves
+dash velocity, and transfers momentum to the item. Once takeoff occurs, the
+same input is an ordinary aerial throw and cannot cancel the jump.
+
+Typed events 14–18 are `ITEM_PICKUP`, `ITEM_DROP`, `ITEM_THROW`, `ITEM_HIT`,
+and `ITEM_RESET`. State schema 26 serializes the complete item state, and
+structured observation schema 3 exposes it. RL schema 5 uses compact
+observation schema 4 with eight item values at indices 48–55 (position,
+velocity, packed state/ownership/direction/hit mask, and three timers). Browser
+view schema 22 appends the item and its exact collision extents after the
+existing event journal, for 290 values without changing any earlier offset.
+
+`tests/sim/test_m4_item.c` supplies 44 focused invariants, all four directional
+throws, positive/negative bat drop, glide toss, and jump-cancel-throw routes,
+save/load future equality, encoded replay verification, RL visibility, and
+despawn/reset. Browser startup repeats both timing/spacing outcomes for the
+three registry techniques before readiness, and the live adapter test performs
+an ordinary pickup and throw.
+
 ## Canonical state and inspection
 
-State schema 25 / save format 24 retains the 635-byte stream (140-byte header
-plus 495-byte payload) and changes the active magic to `PFSAVE24`. It makes
+State schema 26 / save format 25 expands the stream to 662 bytes (140-byte
+header plus 522-byte payload) and changes the active magic to `PFSAVE25`. It
+adds the fixed item entity, timers, ownership/attribution, hit mask, throw
+direction, `ITEM_THROW`/`ITEM_DASH_THROW` action semantics, and typed item
+events. It follows state schema 25 / save format 24, which retained the
+635-byte stream and made
 knockback-based delayed-air-jump armor, zero-launch hit events, preserved
 trajectory/action timing, and `DELAYED_AIR_JUMP` hitlag resume fail closed
 without adding mutable fields. It follows state schema 24 / save format 23,
@@ -1169,12 +1214,13 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,327-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,354-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, planking, jump-canceled-grab, boost-grab, jab-cancel,
+drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, planking,
+jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,
 attack, reaction, shield, shield-break, tumble,

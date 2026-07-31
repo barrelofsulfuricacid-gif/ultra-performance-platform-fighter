@@ -14,12 +14,12 @@ extern "C"
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(3)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(25)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(2)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(26)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(3)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(24)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(25)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
@@ -87,7 +87,12 @@ typedef enum pf_sim_event_type
     PF_SIM_EVENT_TIME_LIMIT = 10,
     PF_SIM_EVENT_GRAB = 11,
     PF_SIM_EVENT_GRAB_ESCAPE = 12,
-    PF_SIM_EVENT_THROW = 13
+    PF_SIM_EVENT_THROW = 13,
+    PF_SIM_EVENT_ITEM_PICKUP = 14,
+    PF_SIM_EVENT_ITEM_DROP = 15,
+    PF_SIM_EVENT_ITEM_THROW = 16,
+    PF_SIM_EVENT_ITEM_HIT = 17,
+    PF_SIM_EVENT_ITEM_RESET = 18
 } pf_sim_event_type;
 
 typedef enum pf_sim_event_flag
@@ -251,6 +256,23 @@ typedef struct pf_player_observation
     uint16_t reserved2;
 } pf_player_observation;
 
+typedef struct pf_item_observation
+{
+    int32_t position_x_q16;
+    int32_t position_y_q16;
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint16_t lifetime_ticks;
+    uint16_t respawn_ticks;
+    uint16_t pickup_lockout_ticks;
+    uint8_t state;
+    uint8_t holder_slot;
+    uint8_t source_slot;
+    uint8_t throw_direction;
+    uint8_t hit_mask;
+    uint8_t reserved[3];
+} pf_item_observation;
+
 typedef struct pf_sim_observation
 {
     uint64_t tick;
@@ -265,6 +287,7 @@ typedef struct pf_sim_observation
     uint8_t sudden_death;
     uint8_t stock_count;
     uint8_t reserved;
+    pf_item_observation item;
     pf_player_observation players[PF_SIM_MAX_PLAYERS];
 } pf_sim_observation;
 

@@ -33,6 +33,7 @@ common_flags="
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
+    "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -45,7 +46,7 @@ common_flags="
 
 "$output_dir/m4_web_playtest_test" >"$output_dir/m4_web_playtest.txt"
 grep -Fq \
-    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 event_journal_probe=1' \
+    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 event_journal_probe=1' \
     "$output_dir/m4_web_playtest.txt"
 
 command -v node >/dev/null 2>&1 ||
@@ -72,6 +73,15 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '" double_jump_cancel_probe="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" bat_drop_probe="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" glide_toss_probe="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" jump_cancel_throw_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '" double_jump_cancel_counter_probe="' \
@@ -140,7 +150,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 21' \
+    'view[0] !== 22' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DASH ATTACK"' \
@@ -156,6 +166,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DELAYED AIR JUMP"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"ITEM THROW"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'case 18:' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DOWN THROW"' \
@@ -185,7 +201,7 @@ grep -Fq \
     'shieldQueued: [false, false]' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 272' \
+    'viewCount !== 290' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MASH OUT · "' \
