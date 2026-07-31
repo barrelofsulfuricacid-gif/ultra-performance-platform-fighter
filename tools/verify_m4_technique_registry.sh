@@ -91,8 +91,8 @@ END {
             rows > "/dev/stderr"
         exit 1
     }
-    if (planned != 36 || primitive_ready != 7 ||
-        playable != 17 || verified != 1)
+    if (planned != 35 || primitive_ready != 7 ||
+        playable != 18 || verified != 1)
     {
         printf "M4 technique registry status counts changed: planned=%d primitive_ready=%d playable=%d verified=%d\n",
             planned, primitive_ready, playable, verified > "/dev/stderr"
