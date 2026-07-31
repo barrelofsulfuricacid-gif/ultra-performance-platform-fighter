@@ -12,7 +12,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
-  two-pad browser polling implemented
+  ordinary-input approach, spacing, and platform-sharking routes, plus two-pad
+  browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -620,6 +621,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   execution plus complete encoded replay/rollback evidence remain before
   `verified`.
 
+## Delivered in the platform-sharking route
+
+- A target can remain on the one-way platform while the attacker stands in
+  legal floor space below, full hops, and initiates the existing light aerial
+  before crossing the platform line. The positive route deals the authored 8%
+  and preserves player-0 hit ownership.
+- An aerial started immediately after takeoff reaches active frames too low and
+  whiffs. Holding the target's trigger instead converts the correctly timed hit
+  into an ordinary shield block with zero percent, reduced shield health, no
+  powershield, and the typed block event.
+- The native oracle saves immediately after aerial startup and proves 32 equal
+  future hashes after load. Browser readiness repeats the hit, early whiff, and
+  shield routes on the default moving platform, tracking it through ordinary
+  floor walking and full airborne steering.
+- Registry row 39, Sharking, advances from `planned` to `playable`; upward
+  attack variety, broader opponent movement responses, owner execution, and
+  complete encoded replay/rollback evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -675,6 +694,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The supporting approach must begin at the default neutral spawn and reach
   those bands through reduced-stick walking; a pre-positioned-only result does
   not satisfy the tactical route.
+- Platform sharking must begin with the attacker in legal floor space below a
+  target supported by the pass-through platform. A too-early aerial must whiff,
+  while the correctly timed route must damage either the target or held shield.
 
 ## New binding M4.4 scope
 
@@ -684,7 +706,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
   shield platform dropping, short hop air dodge, small step forward smash,
-  spacing, tech-chasing, V-cancelling, and wavedash are
+  sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
@@ -694,7 +716,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 25 playable, 6 primitive-ready, and 29 planned.
+  blocked: 1 verified, 26 playable, 6 primitive-ready, and 28 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -727,7 +749,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 246
+- Mechanical oracles: 170 movement invariants, 270
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -751,7 +773,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

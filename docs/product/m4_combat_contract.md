@@ -146,6 +146,28 @@ browser startup probe reaches the same close, safe, and far bands through
 reduced-stick walking on the default stage, then repeats the jab-first policy
 and the shield control. No mutable state, action, or content schema was added.
 
+## Sharking
+
+[Sharking](https://www.ssbwiki.com/Sharking) is represented as an attack on a
+platform opponent from underneath the stage surface. The focused route uses
+the existing one-way platform collision: the target stands on top while the
+attacker remains in legal floor space below it, full hops upward, and begins
+the production light aerial before crossing the platform line. The attacker
+may then pass through the semisoft platform while the active hitbox connects.
+
+The positive route deals the authored 8% aerial damage and records player 0 as
+the attacker. Starting the same aerial immediately after takeoff activates its
+hitbox too far below the target and whiffs, proving the hit is geometric rather
+than scripted. Holding the target trigger produces a normal shield block with
+zero percent, reduced shield health, no powershield, and a typed
+`SHIELD_BLOCK` event, so platform sharking also supplies real shield pressure.
+
+The native oracle saves immediately after below-platform aerial startup,
+reloads, and compares 32 future hashes through the hit. Browser readiness
+repeats the hit, early-whiff, and held-shield routes on the default moving
+platform, using ordinary floor walking and full airborne steering to track its
+motion. No sharking-only action, state field, or content data exists.
+
 ## V-cancelling
 
 The production route follows the documented Melee defensive input: fully press
@@ -590,7 +612,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 246 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 270 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -615,6 +637,9 @@ mechanics invariants plus 30 journal invariants, including:
 - reduced-stick walking from the default 16-unit neutral separation into that
   safe band, the resulting whiff conversion, and the overextended approach
   being intercepted by the same jab-first responder;
+- below-platform light-aerial initiation into an 8% platform-opponent hit, a
+  too-early active-hitbox whiff, ordinary held-shield damage with a typed block
+  event, and mid-aerial save/load with 32 equal future hashes;
 - strong-aerial entry, active-frame damage/hitlag/event ownership, and exact
   post-hitlag resume into the airborne strong action;
 - first-component SDI, held-direction rejection, diagonal second-component

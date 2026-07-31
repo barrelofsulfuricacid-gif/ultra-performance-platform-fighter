@@ -511,6 +511,12 @@ registry row can advance from `playable` to `verified`.
     convert the whiff with Player 1's strong attack. Reset and continue walking
     into close range instead; confirm Player 2's jab intercepts the reckless
     approach before Player 1 can counter.
+41. Put Player 2 on the pass-through platform, drop Player 1 to the floor, and
+    move underneath. Full hop and press light attack shortly before crossing
+    the platform; confirm the aerial hits Player 2 from below. Repeat with the
+    attack immediately after takeoff and confirm its active frames whiff too
+    low, then hold Player 2's shield and confirm the timed route damages the
+    shield without adding percent.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -559,6 +565,8 @@ through:
 - default-stage reduced-stick walking from the full neutral separation into
   the safe whiff conversion, plus an overextended walk being intercepted by
   the same responder;
+- floor-to-platform full-hop aerial sharking on the default moving platform,
+  plus a too-early active-hitbox whiff and a correctly timed held-shield block;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -615,7 +623,7 @@ fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
-spacing_probe=pass combat_probe=pass
+spacing_probe=pass sharking_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

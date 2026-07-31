@@ -2892,6 +2892,399 @@ static int run_drop_cancel_test(
     return 1;
 }
 
+static int prepare_sharking_target(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[1].grounded != UINT8_C(0) &&
+            out_inspection->players[1].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            break;
+        }
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(20) &&
+         out_inspection->players[1].action_state !=
+             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return out_inspection->players[0].grounded != UINT8_C(0) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_FLOOR &&
+           out_inspection->players[1].grounded != UINT8_C(0) &&
+           out_inspection->players[1].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+}
+
+static int start_sharking_aerial(
+    pf_sim *sim,
+    int early_attack,
+    uint16_t target_trigger,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                target_trigger,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[0].grounded != UINT8_C(0) ||
+        out_inspection->players[1].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM)
+    {
+        return 0;
+    }
+    if (early_attack == 0)
+    {
+        for (tick = UINT32_C(0); tick < UINT32_C(40); ++tick)
+        {
+            if (out_inspection->players[0].position_y_q16 -
+                    out_inspection->players[1].position_y_q16 <=
+                INT32_C(4) * PF_Q16_ONE)
+            {
+                break;
+            }
+            if (!step_reaction_duel(
+                    sim,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    target_trigger,
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+        if (tick == UINT32_C(40))
+        {
+            return 0;
+        }
+    }
+    return step_reaction_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               target_trigger,
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
+           out_inspection->players[0].position_y_q16 >
+               out_inspection->stage.platform_y_q16 &&
+           out_inspection->players[1].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM;
+}
+
+static int run_sharking_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage early_storage;
+    test_sim_storage shield_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *early = NULL;
+    pf_sim *shield = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection early_inspection;
+    pf_m4_inspection shield_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int saw_platform_shark_hit = 0;
+    int saw_early_hitbox = 0;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !prepare_sharking_target(source, &source_inspection) ||
+        !start_sharking_aerial(
+            source,
+            0,
+            UINT16_C(0),
+            &source_inspection) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "sharking-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return fail("sharking-hit-setup");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "sharking-save-mid-aerial") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "sharking-load-mid-aerial") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "sharking-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "sharking-loaded-hash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("sharking-mid-aerial-round-trip");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "sharking-source-continuation-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "sharking-loaded-continuation-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("sharking-deterministic-continuation");
+        }
+        if (source_inspection.players[1].damage_q16 ==
+            content->fighter.aerial_damage_q16)
+        {
+            if (source_inspection.players[1].last_hit_attacker !=
+                    UINT8_C(0))
+            {
+                return fail("sharking-hit-origin");
+            }
+            saw_platform_shark_hit = 1;
+        }
+    }
+    if (saw_platform_shark_hit == 0)
+    {
+        return fail("sharking-aerial-did-not-hit");
+    }
+
+    if (!initialize_sim(
+            &early_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &early) ||
+        !prepare_sharking_target(early, &early_inspection) ||
+        !start_sharking_aerial(
+            early,
+            1,
+            UINT16_C(0),
+            &early_inspection))
+    {
+        return fail("sharking-early-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    {
+        if (!step_reaction_duel(
+                early,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &early_inspection))
+        {
+            return fail("sharking-early-step");
+        }
+        if (early_inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_early_hitbox = 1;
+        }
+    }
+    if (saw_early_hitbox == 0 ||
+        early_inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("sharking-early-whiff");
+    }
+
+    if (!initialize_sim(
+            &shield_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &shield) ||
+        !prepare_sharking_target(shield, &shield_inspection) ||
+        !step_reaction_duel(
+            shield,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &shield_inspection) ||
+        !start_sharking_aerial(
+            shield,
+            0,
+            UINT16_MAX,
+            &shield_inspection))
+    {
+        return fail("sharking-shield-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        if (!step_reaction_duel(
+                shield,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &shield_inspection))
+        {
+            return fail("sharking-shield-step");
+        }
+        if (shield_inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            break;
+        }
+    }
+    return (tick < UINT32_C(20) &&
+            shield_inspection.players[1].damage_q16 == UINT32_C(0) &&
+            shield_inspection.players[1].shield_health_q16 <
+                content->fighter.shield_health_q16 &&
+            shield_inspection.players[1].powershield == UINT8_C(0) &&
+            test_last_result.event_count == UINT8_C(1) &&
+            test_last_result.events[0].type ==
+                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK) ||
+           fail("sharking-shield-pressure");
+}
+
 static int make_surface_tech_content(
     int ceiling_fixture,
     pf_m4_content *out_content,
@@ -8492,6 +8885,9 @@ int main(void)
             &drop_cancel_content,
             &drop_cancel_view,
             &drop_cancel_whiff_view) ||
+        !run_sharking_test(
+            &drop_cancel_content,
+            &drop_cancel_view) ||
         !run_surface_tech_test(
             &wall_tech_content,
             &wall_tech_view,
@@ -8558,7 +8954,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=246 journal_invariants=30 approach=1 spacing=1\n",
+        " combat_invariants=270 journal_invariants=30 approach=1 spacing=1 sharking=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

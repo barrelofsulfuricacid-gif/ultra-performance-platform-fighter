@@ -123,6 +123,7 @@ extern void pf_web_m4_playtest_install(
     int v_cancel_probe_passed,
     int approach_probe_passed,
     int spacing_probe_passed,
+    int sharking_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -1582,6 +1583,280 @@ static int pf_web_m4_run_drop_cancel_probe(void)
            inspection.players[0].grounded == UINT8_C(0) &&
            inspection.players[0].support ==
                (uint8_t)PF_M4_SURFACE_NONE;
+}
+
+static int pf_web_m4_capture_v_cancel_launch(
+    int trigger_on_hit,
+    int target_attacks,
+    int preexisting_lockout,
+    int32_t *out_velocity_x_q16,
+    int32_t *out_velocity_y_q16,
+    uint16_t *out_hitstun_ticks,
+    uint16_t *out_tech_lockout_ticks,
+    uint8_t *out_trigger_input_age);
+
+static int16_t pf_web_m4_sharking_axis(
+    const pf_m4_inspection *inspection)
+{
+    const int16_t magnitude =
+        inspection->players[0].grounded != UINT8_C(0)
+            ? PF_WEB_M4_WALK_AXIS
+            : PF_WEB_M4_DASH_AXIS;
+
+    return inspection->players[1].position_x_q16 >=
+                   inspection->players[0].position_x_q16
+               ? magnitude
+               : (int16_t)-magnitude;
+}
+
+static int pf_web_m4_prepare_sharking_target(
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!pf_web_m4_prepare_drop_cancel_platform(out_inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) &&
+            out_inspection->players[0].support ==
+                (uint8_t)PF_M4_SURFACE_FLOOR &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(240) ||
+        out_inspection->players[1].grounded == UINT8_C(0) ||
+        out_inspection->players[1].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        const int32_t delta_x =
+            out_inspection->players[1].position_x_q16 -
+            out_inspection->players[0].position_x_q16;
+        const int32_t distance_x =
+            delta_x < INT32_C(0) ? -delta_x : delta_x;
+        const int16_t walk_axis =
+            distance_x > PF_Q16_ONE
+                ? pf_web_m4_sharking_axis(out_inspection)
+                : INT16_C(0);
+
+        if (walk_axis == INT16_C(0) &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+        if (!pf_web_m4_tick(
+                walk_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(240))
+    {
+        return 0;
+    }
+    {
+        const int32_t delta_x =
+            out_inspection->players[1].position_x_q16 -
+            out_inspection->players[0].position_x_q16;
+        const int32_t distance_x =
+            delta_x < INT32_C(0) ? -delta_x : delta_x;
+
+        return distance_x <= PF_Q16_ONE &&
+               out_inspection->players[0].support ==
+                   (uint8_t)PF_M4_SURFACE_FLOOR &&
+               out_inspection->players[1].support ==
+                   (uint8_t)PF_M4_SURFACE_PLATFORM;
+    }
+}
+
+static int pf_web_m4_start_sharking_aerial(
+    int early_attack,
+    uint16_t target_trigger,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                pf_web_m4_sharking_axis(out_inspection),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                target_trigger,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[0].grounded != UINT8_C(0) ||
+        out_inspection->players[1].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM)
+    {
+        return 0;
+    }
+    if (early_attack == 0)
+    {
+        for (tick = UINT32_C(0); tick < UINT32_C(40); ++tick)
+        {
+            if (out_inspection->players[0].position_y_q16 -
+                    out_inspection->players[1].position_y_q16 <=
+                INT32_C(4) * PF_Q16_ONE)
+            {
+                break;
+            }
+            if (!pf_web_m4_tick_with_triggers(
+                    pf_web_m4_sharking_axis(out_inspection),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    target_trigger,
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+        if (tick == UINT32_C(40))
+        {
+            return 0;
+        }
+    }
+    return pf_web_m4_tick_with_triggers(
+               pf_web_m4_sharking_axis(out_inspection),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               target_trigger,
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
+           out_inspection->players[0].position_y_q16 >
+               out_inspection->stage.platform_y_q16;
+}
+
+static int pf_web_m4_run_sharking_route(int route)
+{
+    pf_m4_inspection inspection;
+    const uint16_t target_trigger =
+        route == 2 ? UINT16_MAX : UINT16_C(0);
+    uint32_t tick;
+    int saw_hitbox = 0;
+
+    if (!pf_web_m4_prepare_sharking_target(&inspection) ||
+        (route == 2 &&
+         !pf_web_m4_tick_with_triggers(
+             INT16_C(0),
+             INT16_C(0),
+             UINT64_C(0),
+             UINT16_C(0),
+             INT16_C(0),
+             INT16_C(0),
+             UINT64_C(0),
+             UINT16_MAX,
+             &inspection)) ||
+        !pf_web_m4_start_sharking_aerial(
+            route == 1,
+            target_trigger,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(56); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                pf_web_m4_sharking_axis(&inspection),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                target_trigger,
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_hitbox = 1;
+        }
+        if (inspection.players[1].damage_q16 != UINT32_C(0) ||
+            (route == 2 &&
+             inspection.players[1].action_state ==
+                 (uint8_t)PF_M4_ACTION_HITLAG))
+        {
+            break;
+        }
+    }
+    if (route == 0)
+    {
+        return inspection.players[1].damage_q16 ==
+                   pf_web_m4_content.fighter.aerial_damage_q16 &&
+               inspection.players[1].last_hit_attacker == UINT8_C(0);
+    }
+    if (route == 1)
+    {
+        return saw_hitbox != 0 &&
+               inspection.players[1].damage_q16 == UINT32_C(0);
+    }
+    return tick < UINT32_C(56) &&
+           inspection.players[1].damage_q16 == UINT32_C(0) &&
+           inspection.players[1].shield_health_q16 <
+               pf_web_m4_content.fighter.shield_health_q16 &&
+           inspection.players[1].powershield == UINT8_C(0) &&
+           pf_web_m4_last_result.event_count == UINT8_C(1) &&
+           pf_web_m4_last_result.events[0].type ==
+               (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK;
+}
+
+static int pf_web_m4_run_sharking_probe(void)
+{
+    return pf_web_m4_run_sharking_route(0) &&
+           pf_web_m4_run_sharking_route(1) &&
+           pf_web_m4_run_sharking_route(2);
 }
 
 static int pf_web_m4_capture_v_cancel_launch(
@@ -4904,6 +5179,7 @@ int pf_web_m4_playtest_start(void)
     int v_cancel_probe_passed;
     int approach_probe_passed;
     int spacing_probe_passed;
+    int sharking_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -4971,6 +5247,7 @@ int pf_web_m4_playtest_start(void)
     approach_probe_passed = pf_web_m4_run_approach_probe();
     spacing_probe_passed =
         pf_web_m4_run_spacing_probe(approach_probe_passed);
+    sharking_probe_passed = pf_web_m4_run_sharking_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -5005,6 +5282,7 @@ int pf_web_m4_playtest_start(void)
         v_cancel_probe_passed == 0 ||
         approach_probe_passed == 0 ||
         spacing_probe_passed == 0 ||
+        sharking_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -5039,6 +5317,7 @@ int pf_web_m4_playtest_start(void)
         v_cancel_probe_passed,
         approach_probe_passed,
         spacing_probe_passed,
+        sharking_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,
