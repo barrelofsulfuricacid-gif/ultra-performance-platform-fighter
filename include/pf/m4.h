@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(16)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(16)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(17)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(17)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(14)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
@@ -107,6 +107,7 @@ typedef struct pf_m4_fighter_data
     int32_t short_hop_speed_q16;
     int32_t double_jump_speed_q16;
     int32_t platform_drop_nudge_q16;
+    int32_t drop_cancel_snap_distance_q16;
     int32_t air_dodge_speed_q16;
     int32_t air_dodge_decay_q16;
     int32_t fall_special_mobility_q16;

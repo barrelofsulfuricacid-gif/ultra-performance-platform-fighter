@@ -4066,7 +4066,10 @@ static int run_platform_test(const pf_m4_content *default_content)
         inspection.players[0].grounded != UINT8_C(0) ||
         inspection.players[0].support !=
             (uint8_t)PF_M4_SURFACE_NONE ||
-        inspection.players[0].platform_drop_ticks == UINT8_C(0))
+        inspection.players[0].platform_drop_ticks == UINT8_C(0) ||
+        inspection.players[0].fast_fall != UINT8_C(0) ||
+        inspection.players[0].velocity_y_q16 >=
+            default_content->fighter.fast_fall_speed_q16)
     {
         (void)fprintf(
             stderr,
@@ -6068,7 +6071,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=150\n",
+        "movement_invariants=152\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

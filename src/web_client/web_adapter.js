@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -455,6 +455,7 @@ mergeInto(LibraryManager.library, {
     dashCancelProbePassed,
     dashingShieldProbePassed,
     smallStepForwardSmashProbePassed,
+    dropCancelProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -742,6 +743,7 @@ mergeInto(LibraryManager.library, {
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
       smallStepForwardSmashProbePassed &&
+      dropCancelProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -847,6 +849,10 @@ mergeInto(LibraryManager.library, {
       "the initial-dash travel extends the strong hitbox's reach. Pressing " +
       "direction plus light simultaneously gives the standing comparison, " +
       "while waiting four ticks produces the ordinary non-smash attack. " +
+      "For a drop cancel, put both fighters close together on the moving " +
+      "platform, press down with the attacker, then press light attack on the " +
+      "first airborne tick; a hit returns the attacker to AERIAL LANDING on " +
+      "that platform. Waiting one extra tick or whiffing falls through. " +
       "To dash-cancel a run, press down for a traction slide into CROUCH, then " +
       "attack; jump and shield are the other live cancel routes. Shield remains " +
       "locked out during INITIAL DASH and down cannot cancel RUN TURNAROUND. " +
@@ -1220,6 +1226,8 @@ mergeInto(LibraryManager.library, {
         (dashingShieldProbePassed ? "pass" : "fail") +
         " small_step_forward_smash_probe=" +
         (smallStepForwardSmashProbePassed ? "pass" : "fail") +
+        " drop_cancel_probe=" +
+        (dropCancelProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1270,6 +1278,8 @@ mergeInto(LibraryManager.library, {
         dashingShieldProbePassed ? "pass" : "fail";
       status.dataset.smallStepForwardSmashProbe =
         smallStepForwardSmashProbePassed ? "pass" : "fail";
+      status.dataset.dropCancelProbe =
+        dropCancelProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

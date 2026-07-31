@@ -1154,6 +1154,26 @@ static void pf_m4_land_from_air(
     }
 }
 
+static int pf_m4_drop_cancel_hitlag_is_eligible(
+    const pf_m4_fighter_data *fighter,
+    uint16_t action_ticks,
+    uint16_t hitlag_ticks,
+    uint8_t hitlag_resume_action,
+    uint8_t platform_drop_ticks)
+{
+    const int32_t expected_timer_delta =
+        (int32_t)fighter->platform_drop_ticks -
+        (int32_t)fighter->aerial_startup_ticks - INT32_C(1) -
+        (int32_t)fighter->aerial_hitlag_ticks;
+    const int32_t timer_delta =
+        (int32_t)platform_drop_ticks - (int32_t)hitlag_ticks;
+
+    return hitlag_resume_action ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
+           action_ticks == fighter->aerial_startup_ticks &&
+           timer_delta == expected_timer_delta;
+}
+
 static void pf_m4_enter_wall_impact(
     const pf_m4_fighter_data *fighter,
     int wall_tech_jump,
@@ -1517,6 +1537,7 @@ pf_status pf_m4_step_player(
     uint8_t previous_dodge_down =
         dodge_down_held != 0 ? UINT8_C(1) : UINT8_C(0);
     int launched_this_tick = 0;
+    int dropped_platform_this_tick = 0;
     int ledge_motion_handled = 0;
     int released_ledge_this_tick = 0;
     int shield_reset_this_tick = 0;
@@ -1669,10 +1690,72 @@ pf_status pf_m4_step_player(
 
     if (scratch->hitlag_ticks[player_index] > UINT16_C(0))
     {
+        const int drop_cancel_eligible =
+            pf_m4_drop_cancel_hitlag_is_eligible(
+                fighter,
+                action_ticks,
+                scratch->hitlag_ticks[player_index],
+                scratch->hitlag_resume_action[player_index],
+                platform_drop_ticks);
+
         scratch->position_x_q16[player_index] = position_x;
         scratch->position_y_q16[player_index] = position_y;
         scratch->grounded[player_index] = grounded;
         scratch->support[player_index] = support;
+        if (platform_drop_ticks > UINT8_C(0))
+        {
+            --platform_drop_ticks;
+        }
+        if (drop_cancel_eligible != 0 &&
+            platform_drop_ticks == UINT8_C(0) &&
+            scratch->hitlag_ticks[player_index] == UINT16_C(1))
+        {
+            const int32_t platform_center =
+                pf_m4_platform_center_x_q16(
+                    stage,
+                    world->tick + UINT64_C(1));
+            const int32_t platform_left =
+                platform_center - stage->platform_half_width_q16;
+            const int32_t platform_right =
+                platform_center + stage->platform_half_width_q16;
+            const int64_t drop_distance =
+                (int64_t)position_y + fighter->half_height_q16 -
+                stage->platform_y_q16;
+
+            if (position_x >= platform_left &&
+                position_x <= platform_right &&
+                drop_distance >= INT64_C(0) &&
+                drop_distance <=
+                    fighter->drop_cancel_snap_distance_q16)
+            {
+                uint8_t landing_action =
+                    scratch->hitlag_resume_action[player_index];
+
+                pf_m4_land_from_air(
+                    fighter,
+                    stage->platform_y_q16,
+                    (uint8_t)PF_M4_SURFACE_PLATFORM,
+                    input->main_stick_x,
+                    scratch,
+                    player_index,
+                    &position_y,
+                    &velocity_x,
+                    &velocity_y,
+                    &action_ticks,
+                    &grounded,
+                    &landing_action,
+                    &support,
+                    &air_jumps_remaining,
+                    &short_hop_latched,
+                    &fast_fall,
+                    &dash_direction);
+                scratch->hitlag_resume_action[player_index] =
+                    landing_action;
+                scratch->position_y_q16[player_index] = position_y;
+                scratch->grounded[player_index] = grounded;
+                scratch->support[player_index] = support;
+            }
+        }
         if (scratch->hitlag_resume_action[player_index] ==
             (uint8_t)PF_M4_ACTION_HITSTUN)
         {
@@ -2631,6 +2714,7 @@ pf_status pf_m4_step_player(
             position_y += fighter->platform_drop_nudge_q16;
             velocity_y = fighter->gravity_q16;
             fast_fall = UINT8_C(0);
+            dropped_platform_this_tick = 1;
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
         {
@@ -3225,6 +3309,7 @@ pf_status pf_m4_step_player(
             fast_fall = UINT8_C(0);
         }
         else if (!hitstun_locked &&
+            !dropped_platform_this_tick &&
             action_state !=
                 (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
             !pf_m4_action_is_surface_tech(action_state) &&

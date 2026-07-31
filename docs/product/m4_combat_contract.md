@@ -10,8 +10,9 @@ wall-tech jump, ceiling tech,
 missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, dashing shield, shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
-physical powershielding, and
-frame-2 powershield canceling into either current production ground attack.
+physical powershielding, frame-2 powershield canceling into either current
+production ground attack, and the hitlag-assisted same-platform drop-cancel
+route.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
@@ -87,6 +88,23 @@ Landing while the strong aerial is active always enters 30 ticks of
 the browser renders missed and successful outcomes with red/green banners,
 rings, and remaining-frame counts. They do not alter the ordinary light
 aerial's 12/6-tick route.
+
+## Drop cancel
+
+The production route follows the documented Melee interaction: start a drop
+through a pass-through platform, press light attack on the first airborne
+frame, and hit the nearby target. Attacker hitlag continues counting down the
+nine-tick pass-through timer. On the final hitlag tick, an exact-timing hit
+within the validated five-eighths-unit vertical snap distance returns the
+attacker to `AERIAL_LANDING` on that same platform. This is a composition of
+the existing platform drop, aerial, hitlag, and landing actions; there is no
+drop-cancel-only action or mutable flag. See the
+[Drop cancel description](https://www.ssbwiki.com/Drop_cancel).
+
+Starting the aerial one tick late deliberately falls below the snap geometry
+even when the attack connects. A frame-perfect whiff has no attacker hitlag to
+expire the pass timer and also falls through. The drop-input tick cannot
+simultaneously enable fast fall, keeping the authored frame boundary explicit.
 
 ## Damage, hitlag, launch, and hitstun
 
@@ -438,8 +456,10 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 16 / fighter schema 16 adds and hashes the validated
-three-tick forward-smash input window. It follows schema 15's validated
+Content schema 17 / fighter schema 17 adds and hashes the validated drop-cancel
+snap distance and advances the default platform pass timer from six to nine
+ticks. It follows schema 16's validated three-tick forward-smash input window
+and schema 15's validated
 37-tick default ledge invulnerability duration and schema 14's independently validated
 shield-break launch speed, base/minimum stun, down/stand durations, and mash
 reduction, and schema 13's strong-aerial landing-lag duration and
@@ -507,7 +527,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 149 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 181 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -517,6 +537,10 @@ mechanics invariants plus 30 journal invariants, including:
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
   records short hop, aerial, fast fall, eligible trigger, and L-cancel landing;
+- frame-perfect drop-cancel hitlag expiring the platform timer, exact
+  same-platform snap and 12-tick aerial landing lag, a one-tick-late connecting
+  attack and a frame-perfect whiff both falling through, invalid data, and
+  mid-route save/load future-hash equality;
 - strong-aerial entry, active-frame damage/hitlag/event ownership, and exact
   post-hitlag resume into the airborne strong action;
 - first-component SDI, held-direction rejection, diagonal second-component
@@ -581,7 +605,7 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
+drop-cancel, ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
 strong-launches the target, follows its airborne path, reacts separately to
 tech in place and a right tech roll, jabs after invulnerability, and requires a

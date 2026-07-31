@@ -9,8 +9,9 @@ L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump verification
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
 results, rematch, the bounded rollback-safe typed event feed, and complete
-shield-break launch/down/stand/stun/recovery plus the three-tick small-step
-forward-smash route and two-pad browser polling implemented
+  shield-break launch/down/stand/stun/recovery, the three-tick small-step
+  forward-smash route, the hitlag-assisted same-platform drop cancel, and
+  two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -30,7 +31,7 @@ forward-smash route and two-pad browser polling implemented
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-16/save-format-15 contract that serializes every
+- A rollback-safe state-schema-17/save-format-16 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield and match field plus the authoritative event sequence.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -307,6 +308,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   versions with state schema 17/save format 16 and content/fighter schema 15.
   The small-step-forward-smash slice advances content/fighter schema to 16
   for its hashed, validated three-tick input window without changing state.
+  The drop-cancel slice advances content/fighter schema to 17 for its hashed,
+  validated snap distance and nine-tick platform pass window, again without
+  changing canonical state.
   Config/observation/identity schema 2, inspection schema 14, browser view
   schema 14, and RL schema 4 remain current. The canonical save is 611 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -524,6 +528,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   and full native/WebAssembly replay and rollback evidence remain before
   `verified`.
 
+## Delivered in the drop-cancel route
+
+- The platform pass-through timer is now nine ticks, and the drop-input tick
+  applies the authored nudge and ordinary gravity without also enabling fast
+  fall. A light aerial started on the first airborne frame can therefore hit
+  before the pass timer expires.
+- Attacker hitlag counts down that timer. On the final hitlag tick, the exact
+  first-frame route snaps within the validated five-eighths-unit distance and
+  enters the ordinary 12-tick `AERIAL_LANDING` on the same platform. No
+  technique-only action or mutable flag was added.
+- The focused combat oracle proves the hit/snap/landing route, one-tick-late
+  connecting and frame-perfect whiff fall-through negatives, invalid content,
+  exact landing lag, and save/load future-hash equality. Browser readiness
+  repeats the positive and one-tick-late ordinary-input routes.
+- Registry row 14, Drop cancel, advances from `planned` to `playable`; owner
+  execution plus complete native/WebAssembly replay and rollback evidence
+  remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -574,7 +596,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, dash canceling, dashing shield, edge dashing, edge
+  verified; auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
   short hop air dodge, small step forward smash, tech-chasing, and wavedash are
   now playable; other rows
@@ -586,7 +608,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 20 playable, 6 primitive-ready, and 34 planned.
+  blocked: 1 verified, 21 playable, 6 primitive-ready, and 33 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -619,7 +641,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 150 movement invariants, 163
+- Mechanical oracles: 152 movement invariants, 181
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -643,7 +665,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

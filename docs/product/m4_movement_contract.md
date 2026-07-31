@@ -76,8 +76,10 @@ to the simulation.
   acceleration only. It does not change facing. Facing is inherited at
   takeoff and can change only through an explicit action transition, never
   from ordinary aerial drift.
-- Down on the floor enters crouch. Down on a pass-through platform drops
-  through it for a data-defined exclusion window.
+- Down on the floor enters crouch. Down on a pass-through platform starts the
+  data-defined nine-tick pass-through window. The drop tick applies only the
+  authored nudge and ordinary gravity; it cannot also trigger fast fall.
+  Subsequent down input may fast-fall normally.
 
 ## Jump rule
 
@@ -309,6 +311,8 @@ bounds, and blast zones.
   equality;
 - binary short/full hops, double jump, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
+- exact nine-tick platform-drop entry, timer exposure, and the same-tick
+  fast-fall exclusion used by the drop-cancel combat route;
 - the ordinary airborne light-attack route, early auto-cancel, normal 12-tick
   aerial landing, six-tick L-cancel landing, exact trigger ages 0–6 versus 7,
   invalid timing data, and mid-aerial timer save/load equivalence;
@@ -338,8 +342,8 @@ per-tick polling, analog quantization/dead zone, D-pad override, face and
 shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
 and browser-specific device exposure remain part of the owner playtest.
 
-The focused movement oracle currently reports 150 invariants. The focused
-combat oracle adds the dashing-shield tap-versus-held travel/action boundary,
-idle no-travel negative case, mid-route save/load continuation, and the
-reaction-driven tech-in-place/right-roll chase routes within its 149 combat
-invariants.
+The focused movement oracle currently reports 152 invariants. The focused
+combat oracle reports 181 invariants, including the dashing-shield
+tap-versus-held boundary, reaction-driven tech-chase routes, and the
+frame-perfect drop-cancel hit/snap versus one-tick-late and whiff fall-through
+cases.

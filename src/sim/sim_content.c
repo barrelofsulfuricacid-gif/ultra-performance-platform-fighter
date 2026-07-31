@@ -65,6 +65,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->short_hop_speed_q16);
     pf_m4_hash_i32(hash, fighter->double_jump_speed_q16);
     pf_m4_hash_i32(hash, fighter->platform_drop_nudge_q16);
+    pf_m4_hash_i32(hash, fighter->drop_cancel_snap_distance_q16);
     pf_m4_hash_i32(hash, fighter->air_dodge_speed_q16);
     pf_m4_hash_i32(hash, fighter->air_dodge_decay_q16);
     pf_m4_hash_i32(hash, fighter->fall_special_mobility_q16);
@@ -373,6 +374,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->short_hop_speed_q16 = PF_Q16_RATIO(9, 25);
     fighter->double_jump_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->platform_drop_nudge_q16 = PF_Q16_RATIO(1, 256);
+    fighter->drop_cancel_snap_distance_q16 = PF_Q16_RATIO(5, 8);
     fighter->air_dodge_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
     fighter->fall_special_mobility_q16 = PF_Q16_RATIO(2, 25);
@@ -458,7 +460,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
     fighter->landing_ticks = UINT16_C(4);
-    fighter->platform_drop_ticks = UINT16_C(6);
+    fighter->platform_drop_ticks = UINT16_C(9);
     fighter->air_dodge_ticks = UINT16_C(49);
     fighter->air_dodge_invulnerability_begin_tick = UINT16_C(3);
     fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
@@ -673,6 +675,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->short_hop_speed_q16 <= INT32_C(0) ||
         fighter->double_jump_speed_q16 <= INT32_C(0) ||
         fighter->platform_drop_nudge_q16 <= INT32_C(0) ||
+        fighter->drop_cancel_snap_distance_q16 <=
+            fighter->platform_drop_nudge_q16 ||
+        fighter->drop_cancel_snap_distance_q16 >
+            fighter->half_height_q16 ||
         fighter->air_dodge_speed_q16 <= INT32_C(0) ||
         fighter->air_dodge_decay_q16 <= INT32_C(0) ||
         fighter->air_dodge_decay_q16 > PF_Q16_ONE ||
@@ -954,6 +960,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->aerial_recovery_ticks > UINT16_C(240) ||
         fighter->aerial_hitlag_ticks == UINT16_C(0) ||
         fighter->aerial_hitlag_ticks > UINT16_C(120) ||
+        fighter->platform_drop_ticks <=
+            fighter->aerial_startup_ticks + UINT16_C(1) ||
+        fighter->platform_drop_ticks >
+            fighter->aerial_startup_ticks + UINT16_C(1) +
+                fighter->aerial_hitlag_ticks ||
         fighter->aerial_landing_lag_begin_tick >
             fighter->aerial_startup_ticks ||
         fighter->aerial_landing_lag_end_tick <=

@@ -125,6 +125,15 @@ action-tick `[4, 25)` landing-lag window auto-cancels into generic four-tick
 `LANDING`. Landing inside that window normally produces 12 ticks of
 `AERIAL LANDING`.
 
+For a drop cancel, place both fighters close together on the moving
+pass-through platform and leave the target still. Press down with the attacker,
+then press light attack on the first airborne tick. A connecting hit uses its
+hitlag to expire the nine-tick pass timer and returns the attacker to
+`AERIAL LANDING` on the same platform. Wait one extra tick before attacking, or
+move the target out of range, and the attacker falls through. The initial down
+tick never also starts fast fall. This follows the documented
+[Drop cancel](https://www.ssbwiki.com/Drop_cancel) interaction.
+
 For an L-cancel, make a fresh trigger press during the seven ticks before
 landing while the aerial's landing-lag window is active. Trigger ages 0–6 are
 eligible; age 7 is not. Success shows `L-CANCEL LANDING` for six ticks. The
@@ -330,6 +339,11 @@ registry row can advance from `playable` to `verified`.
    through.
 11. Use an airborne fresh jump, reverse aerial drift around the apex, fast-fall
    with down, land on the moving platform, then press down to drop through it.
+   Next, put both fighters close together on that platform, leave the target
+   still, press down with the attacker, and press light attack on the first
+   airborne tick. Confirm the hit returns the attacker to `AERIAL LANDING` on
+   the same platform. Repeat one tick late and with the target out of range;
+   both negative routes must fall through.
 12. Approach the right edge in `RUN`, press left before leaving it to enter
    `RUN TURNAROUND`, and let the retained rightward momentum carry the fighter
    off while facing inward. Confirm `LEDGE HANG`, then try neutral hang,
@@ -485,6 +499,9 @@ through:
   smash, a frame-3 delayed light input producing the farther-traveled strong
   attack, and frame-4 plus missing-direction negative routes producing the
   ordinary non-smash attack;
+- a first-airborne-frame drop aerial hitting, expiring the nine-tick pass timer
+  during attacker hitlag, and returning to aerial landing on the same platform,
+  plus a one-tick-late connecting route that falls through;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -538,7 +555,8 @@ The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
-dashing_shield_probe=pass small_step_forward_smash_probe=pass combat_probe=pass
+dashing_shield_probe=pass small_step_forward_smash_probe=pass
+drop_cancel_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

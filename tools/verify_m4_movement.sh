@@ -43,7 +43,7 @@ common_flags="
 
 "$output_dir/m4_movement_test" >"$output_dir/m4_movement.txt"
 grep -Fqx \
-    'm4-movement=pass content_schema=16 deterministic_ticks=20000 movement_invariants=150' \
+    'm4-movement=pass content_schema=17 deterministic_ticks=20000 movement_invariants=152' \
     "$output_dir/m4_movement.txt"
 
-echo "m4-movement-verification=pass invariants=150 deterministic_ticks=20000"
+echo "m4-movement-verification=pass invariants=152 deterministic_ticks=20000"

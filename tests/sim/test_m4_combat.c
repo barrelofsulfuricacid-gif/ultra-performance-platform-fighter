@@ -97,6 +97,30 @@ static int make_small_step_forward_smash_content(
         "small-step-forward-smash-content-view");
 }
 
+static int make_drop_cancel_content(
+    int whiff_fixture,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "drop-cancel-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        whiff_fixture != 0
+            ? INT32_C(4) * PF_Q16_ONE
+            : PF_Q16_ONE / INT32_C(2);
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "drop-cancel-content-view");
+}
+
 static int make_reaction_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -385,6 +409,90 @@ static int hash_equal(
            left->digest_size == right->digest_size &&
            left->reserved == right->reserved &&
            memcmp(left->bytes, right->bytes, sizeof(left->bytes)) == 0;
+}
+
+static int prepare_drop_cancel_platform(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) &&
+            out_inspection->players[1].grounded != UINT8_C(0) &&
+            out_inspection->players[0].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM &&
+            out_inspection->players[1].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            break;
+        }
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(20) &&
+         (out_inspection->players[0].action_state !=
+              (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+          out_inspection->players[1].action_state !=
+              (uint8_t)PF_M4_ACTION_GROUND_IDLE);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return out_inspection->players[0].grounded != UINT8_C(0) &&
+           out_inspection->players[1].grounded != UINT8_C(0) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[1].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+           out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
 }
 
 static int run_one_way_hit_test(
@@ -1361,6 +1469,491 @@ static int run_small_step_forward_smash_test(
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
     {
         return fail("small-step-forward-smash-direction-negative");
+    }
+    return 1;
+}
+
+static int run_drop_cancel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    const pf_content_view *whiff_view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage late_storage;
+    test_sim_storage whiff_storage;
+    pf_m4_content invalid_content = *content;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *late = NULL;
+    pf_sim *whiff = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection late_inspection;
+    pf_m4_inspection whiff_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t landing_ticks = UINT32_C(0);
+    uint32_t tick;
+    int saw_hit = 0;
+    int saw_platform_snap = 0;
+    int saw_landing = 0;
+    int saw_late_hit = 0;
+    int saw_late_platform_snap = 0;
+    int saw_whiff_hitlag = 0;
+    int saw_whiff_platform_snap = 0;
+
+    if (content->fighter.platform_drop_ticks != UINT16_C(9) ||
+        content->fighter.drop_cancel_snap_distance_q16 !=
+            (INT32_C(5) * PF_Q16_ONE) / INT32_C(8))
+    {
+        return fail("drop-cancel-default-data");
+    }
+    invalid_content.fighter.drop_cancel_snap_distance_q16 =
+        invalid_content.fighter.platform_drop_nudge_q16;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-short-drop-cancel-snap"))
+    {
+        return 0;
+    }
+    invalid_content = *content;
+    invalid_content.fighter.drop_cancel_snap_distance_q16 =
+        invalid_content.fighter.half_height_q16 + INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-long-drop-cancel-snap"))
+    {
+        return 0;
+    }
+    invalid_content = *content;
+    invalid_content.fighter.platform_drop_ticks =
+        (uint16_t)(
+            invalid_content.fighter.aerial_startup_ticks +
+            UINT16_C(1));
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-short-drop-cancel-timer"))
+    {
+        return 0;
+    }
+    invalid_content = *content;
+    invalid_content.fighter.platform_drop_ticks =
+        (uint16_t)(
+            invalid_content.fighter.aerial_startup_ticks +
+            invalid_content.fighter.aerial_hitlag_ticks +
+            UINT16_C(2));
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-long-drop-cancel-timer") ||
+        !initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !initialize_sim(
+            &late_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &late) ||
+        !initialize_sim(
+            &whiff_storage,
+            whiff_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &whiff) ||
+        !prepare_drop_cancel_platform(source, &source_inspection))
+    {
+        return fail("drop-cancel-setup");
+    }
+
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].platform_drop_ticks != UINT8_C(9) ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].platform_drop_ticks != UINT8_C(8) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "drop-cancel-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return fail("drop-cancel-first-airborne-frame");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "drop-cancel-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "drop-cancel-load"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "drop-cancel-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "drop-cancel-loaded-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("drop-cancel-save-load-continuation");
+        }
+        if (source_inspection.players[1].damage_q16 ==
+            content->fighter.aerial_damage_q16)
+        {
+            saw_hit = 1;
+        }
+        if (source_inspection.players[0].grounded != UINT8_C(0) &&
+            source_inspection.players[0].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            if (source_inspection.players[0].position_y_q16 !=
+                source_inspection.stage.platform_y_q16 -
+                    content->fighter.half_height_q16)
+            {
+                return fail("drop-cancel-platform-snap-position");
+            }
+            saw_platform_snap = 1;
+        }
+        if (saw_platform_snap != 0 &&
+            source_inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_AERIAL_LANDING)
+        {
+            saw_landing = 1;
+            break;
+        }
+    }
+    if (saw_hit == 0 ||
+        saw_platform_snap == 0 ||
+        saw_landing == 0 ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].platform_drop_ticks != UINT8_C(0) ||
+        loaded_inspection.players[1].damage_q16 !=
+            content->fighter.aerial_damage_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=fail operation=drop-cancel-hitlag-platform-return"
+            " hit=%d snap=%d landing=%d action=%u action_ticks=%u"
+            " drop_ticks=%u grounded=%u support=%u damage=%" PRIu32
+            " y=%" PRId32 " platform_y=%" PRId32 "\n",
+            saw_hit,
+            saw_platform_snap,
+            saw_landing,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (unsigned int)
+                source_inspection.players[0].platform_drop_ticks,
+            (unsigned int)source_inspection.players[0].grounded,
+            (unsigned int)source_inspection.players[0].support,
+            source_inspection.players[1].damage_q16,
+            source_inspection.players[0].position_y_q16,
+            source_inspection.stage.platform_y_q16);
+        return 0;
+    }
+
+    while (source_inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_LANDING &&
+           landing_ticks < UINT32_C(30))
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "drop-cancel-landing-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "drop-cancel-landing-loaded-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("drop-cancel-landing-continuation");
+        }
+        ++landing_ticks;
+    }
+    if (landing_ticks !=
+            (uint32_t)content->fighter.aerial_landing_lag_ticks ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM)
+    {
+        return fail("drop-cancel-exact-landing-lag");
+    }
+
+    if (!prepare_drop_cancel_platform(late, &late_inspection) ||
+        !step_reaction_duel(
+            late,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &late_inspection) ||
+        !step_reaction_duel(
+            late,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &late_inspection) ||
+        !step_reaction_duel(
+            late,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &late_inspection) ||
+        late_inspection.players[0].platform_drop_ticks != UINT8_C(7))
+    {
+        return fail("drop-cancel-late-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (!step_reaction_duel(
+                late,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &late_inspection))
+        {
+            return fail("drop-cancel-late-step");
+        }
+        if (late_inspection.players[1].damage_q16 ==
+            content->fighter.aerial_damage_q16)
+        {
+            saw_late_hit = 1;
+        }
+        if (late_inspection.players[0].grounded != UINT8_C(0) &&
+            late_inspection.players[0].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            saw_late_platform_snap = 1;
+        }
+        if (saw_late_hit != 0 &&
+            late_inspection.players[0].hitlag_ticks == UINT16_C(0) &&
+            late_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            break;
+        }
+    }
+    if (saw_late_hit == 0 ||
+        saw_late_platform_snap != 0 ||
+        late_inspection.players[0].grounded != UINT8_C(0) ||
+        late_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_NONE)
+    {
+        return fail("drop-cancel-one-tick-late-negative");
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(120) &&
+         late_inspection.players[0].grounded == UINT8_C(0);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                late,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &late_inspection))
+        {
+            return fail("drop-cancel-late-floor-step");
+        }
+    }
+    if (late_inspection.players[0].support !=
+        (uint8_t)PF_M4_SURFACE_FLOOR)
+    {
+        return fail("drop-cancel-late-falls-through");
+    }
+
+    if (!prepare_drop_cancel_platform(whiff, &whiff_inspection) ||
+        !step_reaction_duel(
+            whiff,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &whiff_inspection) ||
+        !step_reaction_duel(
+            whiff,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &whiff_inspection))
+    {
+        return fail("drop-cancel-whiff-setup");
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(120) &&
+         whiff_inspection.players[0].grounded == UINT8_C(0);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                whiff,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &whiff_inspection))
+        {
+            return fail("drop-cancel-whiff-step");
+        }
+        if (whiff_inspection.players[0].hitlag_ticks > UINT16_C(0))
+        {
+            saw_whiff_hitlag = 1;
+        }
+        if (whiff_inspection.players[0].grounded != UINT8_C(0) &&
+            whiff_inspection.players[0].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            saw_whiff_platform_snap = 1;
+        }
+    }
+    if (whiff_inspection.players[1].damage_q16 != UINT32_C(0) ||
+        saw_whiff_hitlag != 0 ||
+        saw_whiff_platform_snap != 0 ||
+        whiff_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR)
+    {
+        return fail("drop-cancel-whiff-negative");
     }
     return 1;
 }
@@ -6231,6 +6824,8 @@ int main(void)
     pf_m4_content floor_attack_content;
     pf_m4_content shield_break_content;
     pf_m4_content small_step_forward_smash_content;
+    pf_m4_content drop_cancel_content;
+    pf_m4_content drop_cancel_whiff_content;
     pf_m4_content wall_tech_content;
     pf_m4_content ceiling_tech_content;
     pf_content_view view;
@@ -6239,6 +6834,8 @@ int main(void)
     pf_content_view floor_attack_view;
     pf_content_view shield_break_view;
     pf_content_view small_step_forward_smash_view;
+    pf_content_view drop_cancel_view;
+    pf_content_view drop_cancel_whiff_view;
     pf_content_view wall_tech_view;
     pf_content_view ceiling_tech_view;
 
@@ -6258,6 +6855,14 @@ int main(void)
         !make_small_step_forward_smash_content(
             &small_step_forward_smash_content,
             &small_step_forward_smash_view) ||
+        !make_drop_cancel_content(
+            0,
+            &drop_cancel_content,
+            &drop_cancel_view) ||
+        !make_drop_cancel_content(
+            1,
+            &drop_cancel_whiff_content,
+            &drop_cancel_whiff_view) ||
         !make_surface_tech_content(
             0,
             &wall_tech_content,
@@ -6337,6 +6942,10 @@ int main(void)
         !run_small_step_forward_smash_test(
             &small_step_forward_smash_content,
             &small_step_forward_smash_view) ||
+        !run_drop_cancel_test(
+            &drop_cancel_content,
+            &drop_cancel_view,
+            &drop_cancel_whiff_view) ||
         !run_surface_tech_test(
             &wall_tech_content,
             &wall_tech_view,
@@ -6388,7 +6997,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=163 journal_invariants=30\n",
+        " combat_invariants=181 journal_invariants=30\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;
