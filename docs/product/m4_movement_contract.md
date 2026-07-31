@@ -343,7 +343,7 @@ shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
 and browser-specific device exposure remain part of the owner playtest.
 
 The focused movement oracle currently reports 152 invariants. The focused
-combat oracle reports 181 invariants, including the dashing-shield
+combat oracle reports 205 invariants, including the dashing-shield
 tap-versus-held boundary, reaction-driven tech-chase routes, and the
 frame-perfect drop-cancel hit/snap versus one-tick-late and whiff fall-through
-cases.
+cases, plus V-cancel timing, exclusions, lockout, and scaled-launch behavior.

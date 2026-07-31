@@ -68,6 +68,42 @@ static uint16_t pf_m4_hitstun_ticks(
     return (uint16_t)ticks;
 }
 
+static int32_t pf_m4_scale_velocity_q16(
+    int32_t velocity_q16,
+    int32_t scale_q16)
+{
+    return (int32_t)(
+        ((int64_t)velocity_q16 * (int64_t)scale_q16) /
+        (int64_t)PF_Q16_ONE);
+}
+
+static int pf_m4_action_is_v_cancel_eligible(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+           action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+           action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE;
+}
+
+static int pf_m4_player_v_cancelled(
+    const pf_m4_fighter_data *fighter,
+    const pf_sim_scratch *scratch,
+    uint32_t player_index)
+{
+    const uint8_t input_age =
+        scratch->trigger_input_age[player_index];
+
+    if (scratch->grounded[player_index] != UINT8_C(0) ||
+        !pf_m4_action_is_v_cancel_eligible(
+            scratch->action_state[player_index]) ||
+        input_age >= fighter->v_cancel_window_ticks ||
+        (uint16_t)input_age > fighter->tech_lockout_ticks)
+    {
+        return 0;
+    }
+    return scratch->tech_lockout_ticks[player_index] ==
+           (uint16_t)(fighter->tech_lockout_ticks - input_age);
+}
+
 static int pf_m4_action_is_guarding(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
@@ -614,6 +650,7 @@ pf_status pf_m4_resolve_combat(
         pf_m4_attack_runtime attack;
         int32_t knockback_x;
         int32_t knockback_y;
+        int v_cancelled;
 
         if (owner == UINT8_MAX)
         {
@@ -725,6 +762,10 @@ pf_status pf_m4_resolve_combat(
         scratch->damage_q16[target_index] = pf_m4_saturating_damage(
             scratch->damage_q16[target_index],
             attack.damage_q16);
+        v_cancelled = pf_m4_player_v_cancelled(
+            &content->fighter,
+            scratch,
+            target_index);
         knockback_x = pf_m4_scaled_knockback(
             attack.base_knockback_x_q16,
             attack.knockback_growth_q16,
@@ -746,6 +787,17 @@ pf_status pf_m4_resolve_combat(
                 &content->fighter,
                 scratch->pending_velocity_x_q16[target_index],
                 scratch->pending_velocity_y_q16[target_index]);
+        if (v_cancelled != 0)
+        {
+            scratch->pending_velocity_x_q16[target_index] =
+                pf_m4_scale_velocity_q16(
+                    scratch->pending_velocity_x_q16[target_index],
+                    content->fighter.v_cancel_velocity_scale_q16);
+            scratch->pending_velocity_y_q16[target_index] =
+                pf_m4_scale_velocity_q16(
+                    scratch->pending_velocity_y_q16[target_index],
+                    content->fighter.v_cancel_velocity_scale_q16);
+        }
         scratch->tumble[target_index] =
             scratch->hitstun_ticks[target_index] >=
                     content->fighter.tumble_hitstun_threshold_ticks

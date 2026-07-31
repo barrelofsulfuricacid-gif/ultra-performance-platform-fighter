@@ -11,7 +11,7 @@ plus configurable stocks, delayed respawn, invulnerability, sudden death,
 results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel, and
-  two-pad browser polling implemented
+  three-frame V-cancelling, and two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -310,7 +310,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   for its hashed, validated three-tick input window without changing state.
   The drop-cancel slice advances content/fighter schema to 17 for its hashed,
   validated snap distance and nine-tick platform pass window, again without
-  changing canonical state.
+  changing canonical state. The V-cancel slice advances content/fighter schema
+  to 18 for its hashed launch scale and input window while reusing the existing
+  trigger-age and tech-lockout state.
   Config/observation/identity schema 2, inspection schema 14, browser view
   schema 14, and RL schema 4 remain current. The canonical save is 611 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -546,6 +548,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   execution plus complete native/WebAssembly replay and rollback evidence
   remain before `verified`.
 
+## Delivered in the V-cancel route
+
+- A full trigger on the collision tick or either of the prior two ticks now
+  scales both pending launch components to exactly 95% when the defender is in
+  `AIRBORNE`, `FALL_SPECIAL`, or vulnerable `AIR_DODGE` startup. Hitstun and
+  tumble remain the ordinary hit's values.
+- The qualifying edge must be the edge that opened the existing 40-tick tech
+  lockout. Grounded defenders, active aerial attacks, locked hitstun, the exact
+  age-3 boundary, and a repeated trigger inside lockout receive ordinary
+  launch. No technique-only action or mutable state was added.
+- The focused combat oracle covers every age boundary, exclusions, both launch
+  components, invalid data, and mid-route save/load with byte-identical events
+  and future hashes. Browser readiness compares ordinary, successful,
+  attacking, and locked-out routes through default ordinary input.
+- Registry row 59, V-cancelling, advances from `planned` to `playable`; owner
+  execution plus complete encoded replay/rollback and cross-target evidence
+  remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -561,6 +581,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   special-landing ticks, enabling wavedash and waveland with keyboard input.
 - During an aerial, that same fresh trigger arms the independent seven-frame
   L-cancel timer instead of replacing the attack with an air dodge.
+- When the defender is in an eligible airborne action, a clean full-trigger
+  edge at age 0–2 reduces both launch components to 95% without shortening
+  hitstun. Age 3, an active aerial, grounded state, or a repeated edge inside
+  the 40-tick lockout must not reduce launch.
 - The strong-attack input remains usable airborne as the conspicuous L-cancel
   drill: 30 normal landing ticks versus 15 after an eligible trigger, with a
   red/green browser result cue.
@@ -598,7 +622,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  short hop air dodge, small step forward smash, tech-chasing, and wavedash are
+  short hop air dodge, small step forward smash, tech-chasing, V-cancelling,
+  and wavedash are
   now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
@@ -608,7 +633,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 21 playable, 6 primitive-ready, and 33 planned.
+  blocked: 1 verified, 22 playable, 6 primitive-ready, and 32 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -641,7 +666,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 152 movement invariants, 181
+- Mechanical oracles: 152 movement invariants, 205
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -665,7 +690,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

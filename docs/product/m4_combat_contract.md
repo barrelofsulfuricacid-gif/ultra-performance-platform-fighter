@@ -12,7 +12,7 @@ shield stop, dashing shield, shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
 physical powershielding, frame-2 powershield canceling into either current
 production ground attack, and the hitlag-assisted same-platform drop-cancel
-route.
+route, plus three-frame V-cancelling of eligible airborne launch.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
@@ -105,6 +105,27 @@ Starting the aerial one tick late deliberately falls below the snap geometry
 even when the attack connects. A frame-perfect whiff has no attacker hitlag to
 expire the pass timer and also falls through. The drop-input tick cannot
 simultaneously enable fast fall, keeping the authored frame boundary explicit.
+
+## V-cancelling
+
+The production route follows the documented Melee defensive input: fully press
+a trigger on the collision tick or either of the preceding two ticks while in
+an eligible airborne state. `AIRBORNE`, `FALL_SPECIAL`, and vulnerable
+`AIR_DODGE` startup are eligible. Grounded states, active aerial attacks, and
+locked hitstun are excluded; post-hitstun tumble is represented by the eligible
+`AIRBORNE` action in this simulation.
+
+The qualifying trigger edge must also be the edge that opened the existing
+40-tick tech lockout. Releasing and pressing again during that lockout updates
+the visible input age but cannot V-cancel. This composes the canonical trigger
+age and tech-lockout fields without adding a V-cancel action or mutable flag.
+
+A successful V-cancel multiplies both pending launch components by the
+data-defined Q16.16 scale, 95% by default. Hitstun and tumble are computed from
+the ordinary launch first and remain unchanged. The typed hit event reports the
+scaled vector, so save/load, replay, browser, and verifier paths observe the
+same deterministic result. See the
+[V-cancelling description](https://www.ssbwiki.com/V-cancelling).
 
 ## Damage, hitlag, launch, and hitstun
 
@@ -456,9 +477,10 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 17 / fighter schema 17 adds and hashes the validated drop-cancel
-snap distance and advances the default platform pass timer from six to nine
-ticks. It follows schema 16's validated three-tick forward-smash input window
+Content schema 18 / fighter schema 18 adds and hashes the validated V-cancel
+velocity scale and input window. It follows schema 17's validated drop-cancel
+snap distance and nine-tick default platform pass timer and schema 16's
+validated three-tick forward-smash input window
 and schema 15's validated
 37-tick default ledge invulnerability duration and schema 14's independently validated
 shield-break launch speed, base/minimum stun, down/stand durations, and mash
@@ -527,7 +549,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 181 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 205 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -541,6 +563,10 @@ mechanics invariants plus 30 journal invariants, including:
   same-platform snap and 12-tick aerial landing lag, a one-tick-late connecting
   attack and a frame-perfect whiff both falling through, invalid data, and
   mid-route save/load future-hash equality;
+- exact V-cancel trigger ages 0–2 and age-3 rejection, 95% scaling of both
+  launch components with unchanged hitstun/tumble, grounded and aerial-attack
+  exclusions, repeated-trigger lockout, invalid data, and byte-identical
+  mid-route save/load event/hash continuation;
 - strong-aerial entry, active-frame damage/hitlag/event ownership, and exact
   post-hitlag resume into the airborne strong action;
 - first-component SDI, held-direction rejection, diagonal second-component
@@ -605,11 +631,15 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
+drop-cancel, V-cancel, ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
 strong-launches the target, follows its airborne path, reacts separately to
 tech in place and a right tech roll, jabs after invulnerability, and requires a
 same-timed non-following jab to miss the roll. The
+V-cancel probe moves the default fighters together, compares ordinary launch
+with a collision-frame trigger, requires exact 95% two-axis scaling and
+unchanged hitstun, then proves an active aerial and a repeated trigger inside
+the 40-tick lockout both receive ordinary launch. The
 surface probe moves the ordinary default fighters near the raised block,
 strong-launches a tumbling target, opens the real trigger window during
 flight, holds up, and requires `WALL_TECH_JUMP` with cleared reaction state.

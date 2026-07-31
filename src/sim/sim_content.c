@@ -97,6 +97,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->aerial_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->aerial_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
+    pf_m4_hash_i32(hash, fighter->v_cancel_velocity_scale_q16);
     pf_m4_hash_i32(hash, fighter->di_max_tangent_q16);
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
@@ -203,6 +204,7 @@ static void pf_m4_hash_fighter(
         fighter->strong_aerial_landing_lag_ticks);
     pf_m4_hash_u16(hash, fighter->l_cancel_window_ticks);
     pf_m4_hash_u16(hash, fighter->l_cancel_divisor);
+    pf_m4_hash_u16(hash, fighter->v_cancel_window_ticks);
     pf_m4_hash_u16(hash, fighter->sdi_axis_threshold);
     pf_m4_hash_u16(hash, fighter->digital_trigger_threshold);
     pf_m4_hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
@@ -405,6 +407,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->aerial_base_knockback_y_q16 = PF_Q16_RATIO(7, 20);
     fighter->aerial_knockback_growth_q16 = PF_Q16_RATIO(1, 1024);
     fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
+    fighter->v_cancel_velocity_scale_q16 = PF_Q16_RATIO(95, 100);
     fighter->di_max_tangent_q16 = INT32_C(21294);
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
     fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
@@ -492,6 +495,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->strong_aerial_landing_lag_ticks = UINT16_C(30);
     fighter->l_cancel_window_ticks = UINT16_C(7);
     fighter->l_cancel_divisor = UINT16_C(2);
+    fighter->v_cancel_window_ticks = UINT16_C(3);
     fighter->sdi_axis_threshold = UINT16_C(16384);
     fighter->digital_trigger_threshold = UINT16_C(32768);
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
@@ -773,6 +777,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->getup_attack_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->getup_attack_knockback_growth_q16 <= INT32_C(0) ||
         fighter->hitstun_velocity_per_tick_q16 <= INT32_C(0) ||
+        fighter->v_cancel_velocity_scale_q16 <= INT32_C(0) ||
+        fighter->v_cancel_velocity_scale_q16 >= PF_Q16_ONE ||
         fighter->di_max_tangent_q16 <= INT32_C(0) ||
         fighter->di_max_tangent_q16 > PF_Q16_ONE ||
         fighter->sdi_distance_q16 <= INT32_C(0) ||
@@ -979,6 +985,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->strong_aerial_landing_lag_ticks > UINT16_C(240) ||
         fighter->l_cancel_window_ticks != UINT16_C(7) ||
         fighter->l_cancel_divisor != UINT16_C(2) ||
+        fighter->v_cancel_window_ticks == UINT16_C(0) ||
+        fighter->v_cancel_window_ticks >
+            fighter->tech_lockout_ticks ||
         fighter->sdi_axis_threshold <= fighter->axis_dead_zone ||
         fighter->sdi_axis_threshold > UINT16_C(32767) ||
         fighter->digital_trigger_threshold == UINT16_C(0) ||

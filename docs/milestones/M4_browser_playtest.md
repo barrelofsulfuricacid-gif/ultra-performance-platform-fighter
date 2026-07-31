@@ -134,6 +134,15 @@ move the target out of range, and the attacker falls through. The initial down
 tick never also starts fast fall. This follows the documented
 [Drop cancel](https://www.ssbwiki.com/Drop_cancel) interaction.
 
+For a V-cancel, move both fighters close and airborne, start an attack, and
+fully press the defender's trigger on the collision tick or either of the two
+preceding ticks. A clean eligible input scales both launch components to 95%
+while leaving hitstun unchanged. Compare against the same hit with no trigger,
+then repeat while the defender is performing an aerial and after another full
+trigger inside the 40-tick lockout; both negative routes keep ordinary launch.
+The exact age-3 boundary is also ineligible. This follows the documented
+[V-cancelling](https://www.ssbwiki.com/V-cancelling) interaction.
+
 For an L-cancel, make a fresh trigger press during the seven ticks before
 landing while the aerial's landing-lag window is active. Trigger ages 0–6 are
 eligible; age 7 is not. Success shows `L-CANCEL LANDING` for six ticks. The
@@ -466,6 +475,12 @@ registry row can advance from `playable` to `verified`.
     air dodge, and L-cancel. Hot-plug a second pad and confirm it controls
     Player 2 while the first remains Player 1; disconnect either pad and confirm
     keyboard control remains live.
+37. Move both fighters close, jump, and have Player 1's aerial reach Player 2.
+    First omit Player 2's trigger and record the hit-event launch vector. Reset
+    and fully press Player 2's trigger as the hit connects; confirm both launch
+    components are 95% of the first route while hitstun is unchanged. Repeat
+    while Player 2 is attacking, then after a prior full trigger inside the
+    40-tick lockout, and confirm both exclusions retain ordinary launch.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -502,6 +517,9 @@ through:
 - a first-airborne-frame drop aerial hitting, expiring the nine-tick pass timer
   during attacker hitlag, and returning to aerial landing on the same platform,
   plus a one-tick-late connecting route that falls through;
+- ordinary and collision-frame-trigger aerial hits proving exact 95% two-axis
+  V-cancel launch with unchanged hitstun, plus active-aerial and repeated-edge
+  lockout exclusions;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -556,7 +574,7 @@ The page reports
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass small_step_forward_smash_probe=pass
-drop_cancel_probe=pass combat_probe=pass
+drop_cancel_probe=pass v_cancel_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

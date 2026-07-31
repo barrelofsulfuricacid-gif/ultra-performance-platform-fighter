@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(17)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(17)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(18)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(18)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(14)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
@@ -137,6 +137,7 @@ typedef struct pf_m4_fighter_data
     int32_t aerial_base_knockback_y_q16;
     int32_t aerial_knockback_growth_q16;
     int32_t hitstun_velocity_per_tick_q16;
+    int32_t v_cancel_velocity_scale_q16;
     int32_t di_max_tangent_q16;
     int32_t sdi_distance_q16;
     int32_t asdi_distance_q16;
@@ -205,6 +206,7 @@ typedef struct pf_m4_fighter_data
     uint16_t strong_aerial_landing_lag_ticks;
     uint16_t l_cancel_window_ticks;
     uint16_t l_cancel_divisor;
+    uint16_t v_cancel_window_ticks;
     uint16_t sdi_axis_threshold;
     uint16_t digital_trigger_threshold;
     uint16_t tumble_hitstun_threshold_ticks;

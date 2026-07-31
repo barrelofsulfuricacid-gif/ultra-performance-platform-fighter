@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -456,6 +456,7 @@ mergeInto(LibraryManager.library, {
     dashingShieldProbePassed,
     smallStepForwardSmashProbePassed,
     dropCancelProbePassed,
+    vCancelProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -1228,6 +1229,8 @@ mergeInto(LibraryManager.library, {
         (smallStepForwardSmashProbePassed ? "pass" : "fail") +
         " drop_cancel_probe=" +
         (dropCancelProbePassed ? "pass" : "fail") +
+        " v_cancel_probe=" +
+        (vCancelProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
