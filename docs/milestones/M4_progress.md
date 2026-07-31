@@ -432,6 +432,21 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   route. Registry row 15, Edge dashing, advances from `planned` to `playable`;
   complete rollback/replay and owner evidence remain before `verified`.
 
+## Delivered in the fox-trot route
+
+- Repeated full-direction tap/release input now has an explicit ordinary-match
+  route: every fresh same-direction edge restarts tick 1 of `INITIAL DASH`,
+  while the release clears the dash edge and preserves a short traction slide.
+- The focused movement oracle executes four consecutive bursts, checks exact
+  action timer, direction, facing, velocity, and forward travel, then proves a
+  held direction reaches `RUN` and a reduced-magnitude re-entry only `WALK`s.
+- A save taken between bursts restores into a second simulation and every
+  future dash/release tick produces the same canonical hash. Browser readiness
+  repeats the positive rhythm and both negative routes.
+- Registry row 17, Fox-trotting, advances from `planned` to `playable`; owner
+  execution and full native/WebAssembly replay evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -456,14 +471,18 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Opposite input during initial dash remains a dash-dance reversal. Opposite
   input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
   sub-threshold run input enters `RUN BRAKE`.
+- Repeated same-direction full-input edges separated by neutral releases remain
+  initial-dash fox-trot bursts. Holding the direction reaches `RUN`, and using
+  the reduced walk magnitude after release cannot restart the dash.
 
 ## New binding M4.4 scope
 
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, edge dashing, edge hopping, instant double jump,
-  L-cancelling, SHFFL, short hop air dodge, and wavedash are now playable; other rows
+  verified; auto-canceling, edge dashing, edge hopping, fox-trotting, instant
+  double jump, L-cancelling, SHFFL, short hop air dodge, and wavedash are now
+  playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -472,7 +491,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 14 playable, 7 primitive-ready, and 39 planned.
+  blocked: 1 verified, 15 playable, 7 primitive-ready, and 38 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -504,7 +523,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 124 movement invariants, 126
+- Mechanical oracles: 131 movement invariants, 126
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -528,7 +547,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/edge-hop-and-dash/ground-dodge-and-roll/air-facing/
+  movement/fox-trot/edge-hop-and-dash/ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/

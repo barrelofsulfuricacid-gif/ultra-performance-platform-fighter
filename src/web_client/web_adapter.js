@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -450,6 +450,7 @@ mergeInto(LibraryManager.library, {
     instantDoubleJumpProbePassed,
     edgeHopProbePassed,
     edgeDashProbePassed,
+    foxTrotProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -549,6 +550,9 @@ mergeInto(LibraryManager.library, {
       inputProbePassed &&
       airFacingProbePassed &&
       instantDoubleJumpProbePassed &&
+      edgeHopProbePassed &&
+      edgeDashProbePassed &&
+      foxTrotProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -629,7 +633,10 @@ mergeInto(LibraryManager.library, {
       "first airborne frame; the live air-jumps counter changes from 1 to 0. " +
       "Holding one jump key never repeats the input. Tap opposite full directions during " +
       "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
-      "enters RUN TURNAROUND instead. Fall beside a ledge while facing inward " +
+      "enters RUN TURNAROUND instead. To fox-trot, rhythmically tap and release " +
+      "one full direction; each fresh tap restarts INITIAL DASH, while holding " +
+      "the direction reaches RUN and a reduced-magnitude re-entry only walks. " +
+      "Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
       "release, or jump to ledge-jump. For an edge hop, tap down from hang, " +
       "release it, then press jump plus inward on the next tick and follow " +
@@ -954,6 +961,8 @@ mergeInto(LibraryManager.library, {
         (edgeHopProbePassed ? "pass" : "fail") +
         " edge_dash_probe=" +
         (edgeDashProbePassed ? "pass" : "fail") +
+        " fox_trot_probe=" +
+        (foxTrotProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -989,6 +998,7 @@ mergeInto(LibraryManager.library, {
         instantDoubleJumpProbePassed ? "pass" : "fail";
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
+      status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

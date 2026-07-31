@@ -1766,6 +1766,300 @@ static int run_ground_control_test(
     return 1;
 }
 
+static int run_fox_trot_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    int32_t starting_position_x;
+    int32_t previous_position_x;
+    uint32_t burst;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0xf07f707)),
+            PF_STATUS_OK,
+            "fox-trot-reset") ||
+        !expect_status(
+            pf_m4_inspect(source, &source_inspection),
+            PF_STATUS_OK,
+            "fox-trot-initial-inspect"))
+    {
+        return 0;
+    }
+    starting_position_x =
+        source_inspection.players[0].position_x_q16;
+
+    if (!step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].dash_direction != INT8_C(1) ||
+        source_inspection.players[0].facing != INT8_C(1) ||
+        source_inspection.players[0].velocity_x_q16 !=
+            content->fighter.initial_dash_speed_q16 ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].dash_direction != INT8_C(0) ||
+        source_inspection.players[0].velocity_x_q16 < INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >=
+            content->fighter.initial_dash_speed_q16 ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "fox-trot-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=fox-trot-entry"
+            " action=%u ticks=%u facing=%d dash=%d"
+            " velocity_x=%" PRId32 "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (int)source_inspection.players[0].facing,
+            (int)source_inspection.players[0].dash_direction,
+            source_inspection.players[0].velocity_x_q16);
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "fox-trot-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "fox-trot-load"))
+    {
+        return 0;
+    }
+
+    previous_position_x =
+        source_inspection.players[0].position_x_q16;
+    for (burst = UINT32_C(0); burst < UINT32_C(4); ++burst)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            source_inspection.players[0].action_ticks != UINT16_C(1) ||
+            source_inspection.players[0].dash_direction != INT8_C(1) ||
+            source_inspection.players[0].facing != INT8_C(1) ||
+            source_inspection.players[0].velocity_x_q16 !=
+                content->fighter.initial_dash_speed_q16 ||
+            source_inspection.players[0].position_x_q16 <=
+                previous_position_x ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "fox-trot-source-dash-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "fox-trot-loaded-dash-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=fox-trot-restart"
+                " burst=%" PRIu32 " action=%u ticks=%u"
+                " position_x=%" PRId32 " previous_x=%" PRId32
+                "\n",
+                burst,
+                (unsigned int)
+                    source_inspection.players[0].action_state,
+                (unsigned int)
+                    source_inspection.players[0].action_ticks,
+                source_inspection.players[0].position_x_q16,
+                previous_position_x);
+            return 0;
+        }
+        previous_position_x =
+            source_inspection.players[0].position_x_q16;
+
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+            source_inspection.players[0].action_ticks != UINT16_C(0) ||
+            source_inspection.players[0].dash_direction != INT8_C(0) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "fox-trot-source-release-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "fox-trot-loaded-release-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=fox-trot-release"
+                " burst=%" PRIu32 " action=%u ticks=%u\n",
+                burst,
+                (unsigned int)
+                    source_inspection.players[0].action_state,
+                (unsigned int)
+                    source_inspection.players[0].action_ticks);
+            return 0;
+        }
+        previous_position_x =
+            source_inspection.players[0].position_x_q16;
+    }
+    if (source_inspection.players[0].position_x_q16 <=
+        starting_position_x)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=fox-trot-travel\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xf07f708)),
+            PF_STATUS_OK,
+            "fox-trot-held-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        source_inspection.players[0].dash_direction != INT8_C(0) ||
+        source_inspection.players[0].velocity_x_q16 !=
+            content->fighter.initial_dash_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=fox-trot-held-negative"
+            " action=%u ticks=%u velocity_x=%" PRId32 "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            source_inspection.players[0].velocity_x_q16);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xf07f709)),
+            PF_STATUS_OK,
+            "fox-trot-weak-reset") ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(12000),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        source_inspection.players[0].dash_direction != INT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=fox-trot-weak-negative"
+            " action=%u dash=%d\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (int)source_inspection.players[0].dash_direction);
+        return 0;
+    }
+    return 1;
+}
+
 static int measure_hop(
     const pf_content_view *content,
     uint32_t held_ticks,
@@ -5122,6 +5416,7 @@ int main(void)
             "content-view") ||
         !run_content_contract_test(&content, &view) ||
         !run_ground_control_test(&content, &view) ||
+        !run_fox_trot_test(&content, &view) ||
         !run_air_control_test(&content, &view) ||
         !run_instant_double_jump_test(&content, &view) ||
         !run_air_facing_lock_test(&view) ||
@@ -5141,7 +5436,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=124\n",
+        "movement_invariants=131\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

@@ -19,6 +19,12 @@ pass-through platforms are horizontal surface heights.
 - Reversing the full horizontal value during initial dash starts a new initial
   dash in the opposite direction without requiring a neutral tick. This is the
   invariant used by keyboard and controller dash-dance tests.
+- Releasing horizontal input during initial dash returns to grounded idle and
+  clears the strong-direction edge while traction preserves a short forward
+  slide. A fresh full input in the same direction can therefore restart tick 1
+  of the data-defined initial dash. Repeating that tap/release rhythm fox-trots;
+  holding through the full initial-dash window reaches `RUN`, while a fresh
+  reduced-magnitude input enters `WALK` instead.
 - Once initial dash has become `RUN`, an opposite input at or above the
   data-defined 0.375 threshold enters `RUN TURNAROUND`, never another initial
   dash. Holding at least the data-defined 0.625 threshold toward the new
@@ -252,8 +258,10 @@ bounds, and blast zones.
 `tests/sim/test_m4_movement.c` and `tools/verify_m4_movement.sh` cover:
 
 - content validation, content-hash rejection, and a data-tuning effect;
-- proportional walk, initial dash, run, dash-dance reversal, run turnaround,
-  turnaround lockout, run brake, facing, traction, and crouch;
+- proportional walk, initial dash, run, four-burst same-direction fox-trotting,
+  held-run and weak-walk negative cases, mid-rhythm save/load continuation,
+  dash-dance reversal, run turnaround, turnaround lockout, run brake, facing,
+  traction, and crouch;
 - neutral trigger-to-shield behavior; fresh and shield-held forward/backward
   roll entry; spot-dodge down priority; held-direction negative cases; fixed
   facing; exact motion, duration, and invulnerability windows; solid-wall
@@ -284,4 +292,4 @@ bounds, and blast zones.
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 124 invariants.
+The focused movement oracle currently reports 131 invariants.

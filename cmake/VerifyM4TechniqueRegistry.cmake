@@ -55,9 +55,9 @@ foreach(status planned primitive-ready playable verified)
     list(LENGTH "${status}_rows" "${status}_count")
 endforeach()
 
-if(NOT planned_count EQUAL 39 OR
+if(NOT planned_count EQUAL 38 OR
    NOT primitive-ready_count EQUAL 7 OR
-   NOT playable_count EQUAL 14 OR
+   NOT playable_count EQUAL 15 OR
    NOT verified_count EQUAL 1)
     message(
         FATAL_ERROR
@@ -68,5 +68,5 @@ endif()
 
 message(
     STATUS
-    "m4-technique-registry=pass rows=61 verified=1 playable=14 "
-    "primitive_ready=7 planned=39 acceptance=blocked")
+    "m4-technique-registry=pass rows=61 verified=1 playable=15 "
+    "primitive_ready=7 planned=38 acceptance=blocked")
