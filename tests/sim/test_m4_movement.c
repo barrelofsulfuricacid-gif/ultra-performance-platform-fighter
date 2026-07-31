@@ -2362,6 +2362,334 @@ static int run_pivot_test(
     return 1;
 }
 
+static int run_dash_cancel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    int32_t run_velocity;
+    int32_t crouch_velocity;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0xda5ca11)),
+            PF_STATUS_OK,
+            "dash-cancel-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    run_velocity = source_inspection.players[0].velocity_x_q16;
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        run_velocity <= INT32_C(0) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].dash_direction != INT8_C(0) ||
+        source_inspection.players[0].facing != INT8_C(1) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >= run_velocity ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "dash-cancel-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-cancel-crouch"
+            " action=%u ticks=%u facing=%d velocity_x=%" PRId32
+            " run_velocity=%" PRId32 "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (int)source_inspection.players[0].facing,
+            source_inspection.players[0].velocity_x_q16,
+            run_velocity);
+        return 0;
+    }
+    crouch_velocity = source_inspection.players[0].velocity_x_q16;
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "dash-cancel-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "dash-cancel-load") ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            PF_INPUT_BUTTON_ATTACK,
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_C(0),
+            INT16_MAX,
+            PF_INPUT_BUTTON_ATTACK,
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        source_inspection.players[0].facing != INT8_C(1) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >=
+            crouch_velocity ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "dash-cancel-source-action-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "dash-cancel-loaded-action-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-cancel-action"
+            " action=%u facing=%d velocity_x=%" PRId32 "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (int)source_inspection.players[0].facing,
+            source_inspection.players[0].velocity_x_q16);
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "dash-cancel-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "dash-cancel-loaded-future-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=dash-cancel-future-hash"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xda5ca12)),
+            PF_STATUS_OK,
+            "dash-cancel-jump-reset") ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
+        source_inspection.players[0].dash_direction != INT8_C(0) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >=
+            content->fighter.initial_dash_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-cancel-jump\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xda5ca13)),
+            PF_STATUS_OK,
+            "dash-cancel-shield-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    run_velocity = source_inspection.players[0].velocity_x_q16;
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        !step_duel_trigger(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >= run_velocity)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-cancel-shield\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xda5ca14)),
+            PF_STATUS_OK,
+            "dash-cancel-early-shield-reset") ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel_trigger(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        source_inspection.players[0].action_ticks != UINT16_C(2))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-cancel-early-shield-negative\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xda5ca15)),
+            PF_STATUS_OK,
+            "dash-cancel-turnaround-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            source,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        source_inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-cancel-turnaround-negative\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int measure_hop(
     const pf_content_view *content,
     uint32_t held_ticks,
@@ -5720,6 +6048,7 @@ int main(void)
         !run_ground_control_test(&content, &view) ||
         !run_fox_trot_test(&content, &view) ||
         !run_pivot_test(&content, &view) ||
+        !run_dash_cancel_test(&content, &view) ||
         !run_air_control_test(&content, &view) ||
         !run_instant_double_jump_test(&content, &view) ||
         !run_air_facing_lock_test(&view) ||
@@ -5739,7 +6068,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=140\n",
+        "movement_invariants=150\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

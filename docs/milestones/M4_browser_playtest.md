@@ -48,6 +48,12 @@ traction. Omitting the attack produces an empty pivot; holding the reversal
 continues the opposite dash, and attempting the route after `RUN` instead
 enters `RUN TURNAROUND`.
 
+For a dash cancel, press jump during `INITIAL DASH` to enter `JUMP SQUAT`, or
+reach `RUN` and either press down for a sliding `CROUCH` or hold shield for a
+sliding `SHIELD`. A ground attack can immediately interrupt the crouch while
+the remaining momentum carries forward. Shield during `INITIAL DASH` and down
+during `RUN TURNAROUND` are deliberate negative cases.
+
 Once `INITIAL DASH` has transitioned to `RUN`, a full opposite input enters
 `RUN TURNAROUND`, not another initial dash. The placeholder fighter uses a
 data-driven 12-tick turnaround. Holding at least 0.625 stick magnitude toward
@@ -258,7 +264,10 @@ registry row can advance from `playable` to `verified`.
 3. Hold a direction until the inspector says `RUN`, then press the opposite
    full direction. Confirm `RUN TURNAROUND`, never `INITIAL DASH`, appears
    before the fighter begins running the other way. Release from a run and
-   confirm `RUN BRAKE`.
+   confirm `RUN BRAKE`. Repeat from `RUN` with down and confirm a forward slide
+   in `CROUCH`, then immediately attack; repeat with shield for `SHIELD`. Jump
+   during `INITIAL DASH` for `JUMP SQUAT`, then confirm shield in that same
+   early state and down during `RUN TURNAROUND` do not take the cancel routes.
 4. Rhythmically tap and release `D` at least four times. Confirm every fresh
    press returns to tick 1 of `INITIAL DASH`, facing remains right, and the
    fighter keeps advancing without reaching `RUN`. Then hold `D` to confirm
@@ -414,6 +423,9 @@ through:
 - a one-tick initial-dash reversal followed by an immediate ground attack or
   empty pivot while retaining facing and momentum, plus held-reversal and
   post-run negative routes;
+- initial-dash jump cancel plus run-to-crouch and run-to-shield cancels, an
+  immediate crouch attack with retained slide, and early-shield/turnaround
+  negative routes;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -463,7 +475,7 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
-fox_trot_probe=pass pivot_probe=pass combat_probe=pass
+fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

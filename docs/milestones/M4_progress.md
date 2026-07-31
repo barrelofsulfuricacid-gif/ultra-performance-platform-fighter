@@ -462,6 +462,20 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `planned` to `playable`; owner execution and complete replay/rollback evidence
   remain before `verified`.
 
+## Delivered in the dash-cancel route
+
+- Down from an unlocked `RUN` now enters `CROUCH` directly instead of
+  `RUN BRAKE`, preserving a traction-reduced forward slide and allowing an
+  immediate grounded attack. Initial-dash jump cancel and run-to-shield remain
+  production routes through the same ordinary input path.
+- The focused movement oracle checks jump, crouch, shield, follow-up attack,
+  facing and momentum, rejects shield during `INITIAL DASH` and crouch during
+  `RUN TURNAROUND`, and proves mid-crouch save/load future-hash equality.
+- Browser readiness repeats the positive and negative routes. Registry row 9,
+  Dash cancel, advances from `planned` to `playable`; the future grab, special,
+  and broader attack set must join this router as those actions land before the
+  row can become `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -492,15 +506,18 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A one-tick opposite full input followed by neutral or a ground action remains
   the pivot route. Holding the reversal continues initial dash, while waiting
   until `RUN` produces `RUN TURNAROUND` rather than an empty pivot.
+- Down from an unlocked run remains the sliding crouch-cancel route; jump and
+  shield remain the other live dash cancels. Initial-dash shield and
+  run-turnaround crouch input remain rejected.
 
 ## New binding M4.4 scope
 
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, edge dashing, edge hopping, fox-trotting, instant
-  double jump, L-cancelling, pivoting, SHFFL, short hop air dodge, and wavedash
-  are now playable; other rows
+  verified; auto-canceling, dash canceling, edge dashing, edge hopping,
+  fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL, short hop
+  air dodge, and wavedash are now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -509,7 +526,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 16 playable, 7 primitive-ready, and 37 planned.
+  blocked: 1 verified, 17 playable, 7 primitive-ready, and 36 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -565,7 +582,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot/edge-hop-and-dash/ground-dodge-and-roll/air-facing/
+  movement/fox-trot/pivot-and-dash-cancel/edge-hop-and-dash/
+  ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/

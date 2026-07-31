@@ -2611,8 +2611,8 @@ pf_status pf_m4_step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
         {
-            action_state = (uint8_t)PF_M4_ACTION_RUN_BRAKE;
-            action_ticks = UINT16_C(1);
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH;
+            action_ticks = UINT16_C(0);
             velocity_x = pf_m4_approach(
                 velocity_x,
                 INT32_C(0),

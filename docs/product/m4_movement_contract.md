@@ -38,6 +38,11 @@ pass-through platforms are horizontal surface heights.
 - Neutral, sub-threshold, or weak backward input from an unlocked run enters
   `RUN BRAKE`. A turnaround-completed run has a data-defined ten-tick window
   during which another run turnaround or run brake cannot begin.
+- Down from an unlocked `RUN` cancels directly into `CROUCH`, retaining a
+  traction-reduced forward slide and exposing immediate grounded actions.
+  Jump and shield provide the other current production dash-cancel routes.
+  Shield remains excluded during `INITIAL DASH`, and down cannot cancel the
+  locked `RUN TURNAROUND` state.
 - Client keyboard adapters must expose both full-magnitude and reduced-magnitude
   horizontal input. The browser loop will retain explicit walk controls rather
   than collapsing every key press into a full dash value.
@@ -268,6 +273,8 @@ bounds, and blast zones.
   held-run and weak-walk negative cases, mid-rhythm save/load continuation,
   one-tick empty/action pivoting with facing and momentum preservation,
   held-reversal and post-run negative cases, mid-pivot save/load continuation,
+  jump/shield dash cancels, sliding run-to-crouch cancel and immediate attack,
+  early-shield and run-turnaround negative cases, mid-crouch save/load equality,
   dash-dance reversal, run turnaround, turnaround lockout, run brake, facing,
   traction, and crouch;
 - neutral trigger-to-shield behavior; fresh and shield-held forward/backward

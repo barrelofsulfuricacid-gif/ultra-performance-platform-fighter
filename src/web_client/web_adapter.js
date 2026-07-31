@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -452,6 +452,7 @@ mergeInto(LibraryManager.library, {
     edgeDashProbePassed,
     foxTrotProbePassed,
     pivotProbePassed,
+    dashCancelProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -641,6 +642,9 @@ mergeInto(LibraryManager.library, {
       "neutral on the next tick, and immediately attack; the fighter keeps the " +
       "new facing and reversal momentum. Holding the reversal continues the " +
       "dash, while attempting it after RUN enters RUN TURNAROUND. " +
+      "To dash-cancel a run, press down for a traction slide into CROUCH, then " +
+      "attack; jump and shield are the other live cancel routes. Shield remains " +
+      "locked out during INITIAL DASH and down cannot cancel RUN TURNAROUND. " +
       "Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
       "release, or jump to ledge-jump. For an edge hop, tap down from hang, " +
@@ -970,6 +974,8 @@ mergeInto(LibraryManager.library, {
         (foxTrotProbePassed ? "pass" : "fail") +
         " pivot_probe=" +
         (pivotProbePassed ? "pass" : "fail") +
+        " dash_cancel_probe=" +
+        (dashCancelProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1007,6 +1013,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
       status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
+      status.dataset.dashCancelProbe =
+        dashCancelProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

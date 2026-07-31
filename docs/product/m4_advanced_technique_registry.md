@@ -35,7 +35,7 @@ current build can perform the technique.
 | 6 | Chain grab | planned | M4.4 | Grab/throw, escape, regrab windows, percent-dependent victim states | — | Future: perform two or more legal regrabs and show the negative timing/percent case escapes |
 | 7 | Charge storage canceling | planned | M4.4 | Chargeable action, stored charge state, cancel path, and resumed use | — | Future: charge, cancel without losing the stored value, then execute the charged action |
 | 8 | Cross-up | planned | M4.4 | Aerial/dash attacks, pass-through positioning, facing, block, and punish states | — | Future: land the same attack in front of and behind shield and inspect final side/facing |
-| 9 | Dash cancel | planned | M4.4 | Melee-compatible dash-cancel state/input routes and follow-up actions | — | Future: cancel initial dash through each legal route and prove the same input outside its window fails |
+| 9 | Dash cancel | playable | M4.4 | Production jump cancel from initial dash plus run-cancel routes into a momentum-preserving crouch or dense shield; crouch exposes immediate ground actions, while initial-dash shield and run-turnaround crouch remain excluded | `tests/sim/test_m4_movement.c` covers jump, crouch, shield, immediate attack, exact facing/momentum, initial-dash shield and run-turnaround negative cases, and mid-crouch save/load hash continuation; `src/web_client/m4_playtest.c` repeats the ordinary-input routes before browser readiness | During initial dash, jump and confirm `JUMP SQUAT`. Reach `RUN`, press down to slide into `CROUCH`, then immediately attack; repeat from `RUN` with shield. Try shield during `INITIAL DASH` and down during `RUN TURNAROUND` for the rejected cases |
 | 10 | Dash-dancing | verified | M4.4 | Production initial-dash reversal, normalized full-axis keyboard input, replay/state schema | `tests/sim/test_m4_movement.c`; `src/web_client/m4_playtest.c`; `tools/verify_m4_movement.sh`; `tools/verify_m4_browser.sh` | Tap full left/right during the ten-tick initial dash and confirm every reversal remains `INITIAL DASH`; repeat after `RUN` and confirm it becomes `RUN TURNAROUND` instead |
 | 11 | Dashing shield | planned | M4.4 | Distinct tap/release shield momentum behavior and timing oracle | — | Future: tap then release shield from the legal dash state and compare travel with held shield stop |
 | 12 | Double jump cancel | planned | M4.4 | Cancelable double-jump fixture, aerial actions, vertical-velocity cancellation | — | Future: double jump, attack in the cancel window, and compare the resulting short aerial arc with a late attack |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 16 `playable`, 7
-`primitive-ready`, and 37 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 17 `playable`, 7
+`primitive-ready`, and 36 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.
