@@ -158,6 +158,29 @@ static int make_spacing_content(
         "spacing-content-view");
 }
 
+static int make_cross_up_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "cross-up-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "cross-up-content-view");
+}
+
 static int make_reaction_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -3283,6 +3306,422 @@ static int run_sharking_test(
             test_last_result.events[0].type ==
                 (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK) ||
            fail("sharking-shield-pressure");
+}
+
+static int cross_up_steering_axis(
+    const pf_m4_inspection *inspection)
+{
+    return inspection->players[0].position_x_q16 <=
+                   inspection->players[1].position_x_q16 -
+                       PF_Q16_ONE / INT32_C(2)
+               ? INT16_C(32767)
+               : INT16_C(-32767);
+}
+
+static int prepare_cross_up_aerial(
+    pf_sim *sim,
+    int back_aerial,
+    int early_attack,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (back_aerial != 0)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(-13500),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+        {
+            if (!step_reaction_duel(
+                    sim,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    out_inspection))
+            {
+                return 0;
+            }
+            if (out_inspection->players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+            {
+                break;
+            }
+        }
+        if (tick == UINT32_C(20) ||
+            out_inspection->players[0].facing != INT8_C(-1))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_JUMP
+                    : UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[0].grounded != UINT8_C(0) ||
+        out_inspection->players[0].facing !=
+            (back_aerial != 0 ? INT8_C(-1) : INT8_C(1)) ||
+        out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        return 0;
+    }
+    if (early_attack == 0)
+    {
+        for (tick = UINT32_C(0); tick < UINT32_C(64); ++tick)
+        {
+            const int32_t vertical_gap =
+                out_inspection->players[1].position_y_q16 -
+                out_inspection->players[0].position_y_q16;
+            const int reached_attack_position =
+                out_inspection->players[0].velocity_y_q16 > INT32_C(0) &&
+                vertical_gap > INT32_C(0) &&
+                vertical_gap <= INT32_C(2) * PF_Q16_ONE &&
+                (back_aerial == 0 ||
+                 out_inspection->players[0].position_x_q16 >
+                     out_inspection->players[1].position_x_q16);
+
+            if (reached_attack_position != 0)
+            {
+                break;
+            }
+            if (!step_reaction_duel(
+                    sim,
+                    back_aerial != 0
+                        ? (int16_t)cross_up_steering_axis(out_inspection)
+                        : INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_MAX,
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+        if (tick == UINT32_C(64))
+        {
+            return 0;
+        }
+    }
+    return step_reaction_duel(
+               sim,
+               back_aerial != 0
+                   ? (int16_t)cross_up_steering_axis(out_inspection)
+                   : INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
+           (back_aerial == 0 || early_attack != 0 ||
+            out_inspection->players[0].position_x_q16 >
+                out_inspection->players[1].position_x_q16);
+}
+
+static int run_cross_up_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage early_storage;
+    test_sim_storage front_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *early = NULL;
+    pf_sim *front = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection early_inspection;
+    pf_m4_inspection front_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int saw_cross_block = 0;
+    int saw_cross_hitbox = 0;
+    int saw_early_hitbox = 0;
+    int saw_early_block = 0;
+    int saw_front_block = 0;
+    int saw_front_hitbox = 0;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !prepare_cross_up_aerial(
+            source,
+            1,
+            0,
+            &source_inspection) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "cross-up-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return fail("cross-up-setup");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "cross-up-save-mid-aerial") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "cross-up-load-mid-aerial") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "cross-up-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "cross-up-loaded-hash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("cross-up-mid-aerial-round-trip");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    {
+        const int16_t axis =
+            source_inspection.players[0].grounded == UINT8_C(0)
+                ? (int16_t)cross_up_steering_axis(&source_inspection)
+                : INT16_C(0);
+
+        if (!step_reaction_duel(
+                source,
+                axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "cross-up-source-continuation-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "cross-up-loaded-continuation-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("cross-up-deterministic-continuation");
+        }
+        if (source_inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_cross_hitbox = 1;
+        }
+        if (test_last_result.event_count == UINT8_C(1) &&
+            test_last_result.events[0].type ==
+                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK)
+        {
+            saw_cross_block = 1;
+        }
+    }
+    if (saw_cross_hitbox == 0 || saw_cross_block == 0 ||
+        source_inspection.players[0].position_x_q16 <=
+            source_inspection.players[1].position_x_q16 ||
+        source_inspection.players[0].facing != INT8_C(-1) ||
+        source_inspection.players[1].facing != INT8_C(-1) ||
+        source_inspection.players[1].damage_q16 != UINT32_C(0) ||
+        source_inspection.players[1].shield_health_q16 >=
+            content->fighter.shield_health_q16)
+    {
+        return fail("cross-up-behind-shield");
+    }
+
+    if (!initialize_sim(
+            &early_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &early) ||
+        !prepare_cross_up_aerial(
+            early,
+            1,
+            1,
+            &early_inspection))
+    {
+        return fail("cross-up-early-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    {
+        if (!step_reaction_duel(
+                early,
+                early_inspection.players[0].grounded == UINT8_C(0)
+                    ? INT16_C(32767)
+                    : INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &early_inspection))
+        {
+            return fail("cross-up-early-step");
+        }
+        if (early_inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_early_hitbox = 1;
+        }
+        if (test_last_result.event_count != UINT8_C(0))
+        {
+            saw_early_block = 1;
+        }
+    }
+    if (saw_early_hitbox == 0 || saw_early_block != 0 ||
+        early_inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("cross-up-early-whiff");
+    }
+
+    if (!initialize_sim(
+            &front_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &front) ||
+        !prepare_cross_up_aerial(
+            front,
+            0,
+            0,
+            &front_inspection))
+    {
+        return fail("cross-up-front-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    {
+        if (!step_reaction_duel(
+                front,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &front_inspection))
+        {
+            return fail("cross-up-front-step");
+        }
+        if (front_inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_front_hitbox = 1;
+        }
+        if (test_last_result.event_count == UINT8_C(1) &&
+            test_last_result.events[0].type ==
+                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK)
+        {
+            saw_front_block = 1;
+        }
+    }
+    if (saw_front_hitbox == 0 || saw_front_block == 0 ||
+        front_inspection.players[0].position_x_q16 >=
+            front_inspection.players[1].position_x_q16 ||
+        front_inspection.players[0].facing != INT8_C(1) ||
+        front_inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("cross-up-front-control");
+    }
+    return 1;
 }
 
 static int make_surface_tech_content(
@@ -8720,6 +9159,7 @@ int main(void)
     pf_m4_content spacing_safe_content;
     pf_m4_content spacing_close_content;
     pf_m4_content spacing_far_content;
+    pf_m4_content cross_up_content;
     pf_m4_content wall_tech_content;
     pf_m4_content ceiling_tech_content;
     pf_content_view view;
@@ -8735,6 +9175,7 @@ int main(void)
     pf_content_view spacing_safe_view;
     pf_content_view spacing_close_view;
     pf_content_view spacing_far_view;
+    pf_content_view cross_up_view;
     pf_content_view wall_tech_view;
     pf_content_view ceiling_tech_view;
 
@@ -8781,6 +9222,9 @@ int main(void)
             (INT32_C(9) * PF_Q16_ONE) / INT32_C(8),
             &spacing_far_content,
             &spacing_far_view) ||
+        !make_cross_up_content(
+            &cross_up_content,
+            &cross_up_view) ||
         !make_surface_tech_content(
             0,
             &wall_tech_content,
@@ -8888,6 +9332,9 @@ int main(void)
         !run_sharking_test(
             &drop_cancel_content,
             &drop_cancel_view) ||
+        !run_cross_up_test(
+            &cross_up_content,
+            &cross_up_view) ||
         !run_surface_tech_test(
             &wall_tech_content,
             &wall_tech_view,
@@ -8954,7 +9401,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=270 journal_invariants=30 approach=1 spacing=1 sharking=1\n",
+        " combat_invariants=294 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

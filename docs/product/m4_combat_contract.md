@@ -124,6 +124,31 @@ without scripting positions or outcomes. Dash, aerial, wavedash, shield, and
 other independently playable approach primitives remain available for broader
 owner testing, but are not conflated with this focused evidence route.
 
+## Cross-up
+
+A [cross-up](https://www.ssbwiki.com/Cross-up) times a moving attack so the
+attacker passes the opponent and finishes behind them after the hitbox ends.
+The focused route uses the documented short-hop back-aerial form. Player 0
+first faces away while standing in front of the defender, short hops through
+them with ordinary air drift, and preserves that facing through the airborne
+route. The production light aerial begins only after player 0 reaches the rear
+side, so its backward-facing hitbox contacts the held shield.
+
+The physical block deals zero percent and emits the typed `SHIELD_BLOCK`
+event. Because the aerial faces away, normal shield pushback separates the
+fighters with the attacker still behind the defender and still facing away
+after the hitbox and landing recovery finish. Starting the same back aerial
+immediately after takeoff activates it on the wrong side and whiffs. A
+forward-facing aerial at the same descent timing blocks but leaves the attacker
+in front, providing the side/facing control without scripted repositioning.
+
+The native oracle saves after rear-side aerial startup and compares 48 future
+hashes through block and landing. Browser readiness first walks both players to
+legal clear-stage space outside the moving platform, then repeats the rear
+block, early whiff, and front block through ordinary input. No cross-up-only
+state or content field was added; a shield-grab comparison remains tied to the
+future production grab fixture.
+
 ## Spacing
 
 [Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,
@@ -612,7 +637,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 270 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 294 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -637,6 +662,9 @@ mechanics invariants plus 30 journal invariants, including:
 - reduced-stick walking from the default 16-unit neutral separation into that
   safe band, the resulting whiff conversion, and the overextended approach
   being intercepted by the same jab-first responder;
+- a short-hop back-aerial cross-up finishing behind held shield, an immediate
+  wrong-side whiff, a forward-facing front-side block control, and mid-aerial
+  save/load with 48 equal future hashes;
 - below-platform light-aerial initiation into an 8% platform-opponent hit, a
   too-early active-hitbox whiff, ordinary held-shield damage with a typed block
   event, and mid-aerial save/load with 32 equal future hashes;

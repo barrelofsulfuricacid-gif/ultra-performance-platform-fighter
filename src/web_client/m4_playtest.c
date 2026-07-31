@@ -124,6 +124,7 @@ extern void pf_web_m4_playtest_install(
     int approach_probe_passed,
     int spacing_probe_passed,
     int sharking_probe_passed,
+    int cross_up_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -1857,6 +1858,338 @@ static int pf_web_m4_run_sharking_probe(void)
     return pf_web_m4_run_sharking_route(0) &&
            pf_web_m4_run_sharking_route(1) &&
            pf_web_m4_run_sharking_route(2);
+}
+
+static int16_t pf_web_m4_cross_up_steering_axis(
+    const pf_m4_inspection *inspection)
+{
+    return inspection->players[0].position_x_q16 <=
+                   inspection->players[1].position_x_q16 -
+                       PF_Q16_ONE / INT32_C(2)
+               ? PF_WEB_M4_DASH_AXIS
+               : -PF_WEB_M4_DASH_AXIS;
+}
+
+static int pf_web_m4_prepare_cross_up_spacing(
+    int back_aerial,
+    pf_m4_inspection *out_inspection)
+{
+    const int32_t target_distance =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(2);
+    const int32_t brake_distance =
+        target_distance +
+        pf_web_m4_content.fighter.walk_speed_q16 / INT32_C(2);
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal() ||
+        pf_m4_inspect(pf_web_m4_sim, out_inspection) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(100); ++tick)
+    {
+        const int16_t target_axis =
+            out_inspection->players[1].position_x_q16 <
+                    INT32_C(11) * PF_Q16_ONE
+                ? PF_WEB_M4_WALK_AXIS
+                : INT16_C(0);
+
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                target_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (target_axis == INT16_C(0) &&
+            out_inspection->players[1].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(100))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(400); ++tick)
+    {
+        const int16_t attacker_axis =
+            out_inspection->players[1].position_x_q16 -
+                    out_inspection->players[0].position_x_q16 >
+                brake_distance
+                ? PF_WEB_M4_WALK_AXIS
+                : INT16_C(0);
+
+        if (!pf_web_m4_tick(
+                attacker_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (attacker_axis == INT16_C(0) &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(400))
+    {
+        return 0;
+    }
+    if (out_inspection->players[1].position_x_q16 -
+            out_inspection->players[0].position_x_q16 >
+        target_distance)
+    {
+        return 0;
+    }
+    if (out_inspection->players[0].action_state !=
+        (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return 0;
+    }
+    if (out_inspection->players[1].action_state !=
+        (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return 0;
+    }
+    if (!pf_web_m4_tick(
+            back_aerial != 0 ? -PF_WEB_M4_WALK_AXIS : INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            -PF_WEB_M4_WALK_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].velocity_x_q16 == INT32_C(0) &&
+            out_inspection->players[1].velocity_x_q16 == INT32_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    return tick < UINT32_C(20) &&
+           out_inspection->players[0].facing ==
+               (back_aerial != 0 ? INT8_C(-1) : INT8_C(1)) &&
+           out_inspection->players[1].facing == INT8_C(-1) &&
+           out_inspection->players[1].position_x_q16 <
+               INT32_C(13) * PF_Q16_ONE;
+}
+
+static int pf_web_m4_start_cross_up_aerial(
+    int back_aerial,
+    int early_attack,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!pf_web_m4_prepare_cross_up_spacing(
+            back_aerial,
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_JUMP
+                    : UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[0].grounded != UINT8_C(0) ||
+        out_inspection->players[0].facing !=
+            (back_aerial != 0 ? INT8_C(-1) : INT8_C(1)))
+    {
+        return 0;
+    }
+    if (early_attack == 0)
+    {
+        for (tick = UINT32_C(0); tick < UINT32_C(64); ++tick)
+        {
+            const int32_t vertical_gap =
+                out_inspection->players[1].position_y_q16 -
+                out_inspection->players[0].position_y_q16;
+            const int reached_attack_position =
+                out_inspection->players[0].velocity_y_q16 > INT32_C(0) &&
+                vertical_gap > INT32_C(0) &&
+                vertical_gap <= INT32_C(2) * PF_Q16_ONE &&
+                (back_aerial == 0 ||
+                 out_inspection->players[0].position_x_q16 >
+                     out_inspection->players[1].position_x_q16);
+
+            if (reached_attack_position != 0)
+            {
+                break;
+            }
+            if (!pf_web_m4_tick_with_triggers(
+                    back_aerial != 0
+                        ? pf_web_m4_cross_up_steering_axis(out_inspection)
+                        : INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_MAX,
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+        if (tick == UINT32_C(64))
+        {
+            return 0;
+        }
+    }
+    return pf_web_m4_tick_with_triggers(
+               back_aerial != 0
+                   ? pf_web_m4_cross_up_steering_axis(out_inspection)
+                   : INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               UINT16_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+}
+
+static int pf_web_m4_run_cross_up_route(int route)
+{
+    pf_m4_inspection inspection;
+    const int back_aerial = route != 2;
+    uint32_t tick;
+    int saw_hitbox = 0;
+    int saw_block = 0;
+
+    if (!pf_web_m4_start_cross_up_aerial(
+            back_aerial,
+            route == 1,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    {
+        int16_t axis = INT16_C(0);
+
+        if (inspection.players[0].grounded == UINT8_C(0))
+        {
+            axis = route == 1
+                ? PF_WEB_M4_DASH_AXIS
+                : (back_aerial != 0
+                       ? pf_web_m4_cross_up_steering_axis(&inspection)
+                       : INT16_C(0));
+        }
+        if (!pf_web_m4_tick_with_triggers(
+                axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_hitbox = 1;
+        }
+        if (pf_web_m4_last_result.event_count == UINT8_C(1) &&
+            pf_web_m4_last_result.events[0].type ==
+                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK)
+        {
+            saw_block = 1;
+        }
+    }
+    if (route == 0)
+    {
+        return saw_hitbox != 0 && saw_block != 0 &&
+               inspection.players[0].position_x_q16 >
+                   inspection.players[1].position_x_q16 &&
+               inspection.players[0].facing == INT8_C(-1) &&
+               inspection.players[1].facing == INT8_C(-1) &&
+               inspection.players[1].damage_q16 == UINT32_C(0);
+    }
+    if (route == 1)
+    {
+        return saw_hitbox != 0 && saw_block == 0 &&
+               inspection.players[1].damage_q16 == UINT32_C(0);
+    }
+    return saw_hitbox != 0 && saw_block != 0 &&
+           inspection.players[0].position_x_q16 <
+               inspection.players[1].position_x_q16 &&
+           inspection.players[0].facing == INT8_C(1) &&
+           inspection.players[1].facing == INT8_C(-1) &&
+           inspection.players[1].damage_q16 == UINT32_C(0);
+}
+
+static int pf_web_m4_run_cross_up_probe(void)
+{
+    return pf_web_m4_run_cross_up_route(0) &&
+           pf_web_m4_run_cross_up_route(1) &&
+           pf_web_m4_run_cross_up_route(2);
 }
 
 static int pf_web_m4_capture_v_cancel_launch(
@@ -5180,6 +5513,7 @@ int pf_web_m4_playtest_start(void)
     int approach_probe_passed;
     int spacing_probe_passed;
     int sharking_probe_passed;
+    int cross_up_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -5248,6 +5582,7 @@ int pf_web_m4_playtest_start(void)
     spacing_probe_passed =
         pf_web_m4_run_spacing_probe(approach_probe_passed);
     sharking_probe_passed = pf_web_m4_run_sharking_probe();
+    cross_up_probe_passed = pf_web_m4_run_cross_up_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -5283,6 +5618,7 @@ int pf_web_m4_playtest_start(void)
         approach_probe_passed == 0 ||
         spacing_probe_passed == 0 ||
         sharking_probe_passed == 0 ||
+        cross_up_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -5318,6 +5654,7 @@ int pf_web_m4_playtest_start(void)
         approach_probe_passed,
         spacing_probe_passed,
         sharking_probe_passed,
+        cross_up_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

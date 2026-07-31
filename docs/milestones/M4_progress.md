@@ -12,8 +12,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
-  ordinary-input approach, spacing, and platform-sharking routes, plus two-pad
-  browser polling implemented
+  ordinary-input approach, spacing, cross-up, and platform-sharking routes,
+  plus two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -639,6 +639,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack variety, broader opponent movement responses, owner execution, and
   complete encoded replay/rollback evidence remain before `verified`.
 
+## Delivered in the cross-up route
+
+- Player 0 can face away in front of a shielding defender, short hop through
+  with ordinary drift, and begin the existing light aerial from the rear side.
+  Its backward-facing hitbox blocks and the attacker finishes behind while
+  preserving the away-facing direction.
+- Starting that back aerial immediately after takeoff produces active frames
+  on the wrong side and whiffs. Repeating the descent timing while facing
+  toward the defender blocks but leaves the attacker in front, providing the
+  deterministic side/facing control.
+- The native oracle saves after rear-side aerial startup and proves 48 equal
+  future hashes through the physical shield block and landing. Browser
+  readiness walks both players to clear legal space on the default stage, then
+  repeats the rear block, early whiff, and front block with ordinary input.
+- Registry row 8, Cross-up, advances from `planned` to `playable`; the future
+  production grab fixture must add the shield-grab comparison before complete
+  verification, and owner execution remains required.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -697,13 +715,16 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Platform sharking must begin with the attacker in legal floor space below a
   target supported by the pass-through platform. A too-early aerial must whiff,
   while the correctly timed route must damage either the target or held shield.
+- The back-aerial cross-up must begin in front while facing away, pass the held
+  shield through air drift, and finish behind with facing preserved. The early
+  attempt must whiff and the forward-facing control must remain in front.
 
 ## New binding M4.4 scope
 
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; approach, auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
+  verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
   shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
@@ -716,7 +737,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 26 playable, 6 primitive-ready, and 28 planned.
+  blocked: 1 verified, 27 playable, 6 primitive-ready, and 27 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -749,7 +770,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 270
+- Mechanical oracles: 170 movement invariants, 294
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -773,7 +794,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

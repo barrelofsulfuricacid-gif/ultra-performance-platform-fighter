@@ -517,6 +517,12 @@ registry row can advance from `playable` to `verified`.
     attack immediately after takeoff and confirm its active frames whiff too
     low, then hold Player 2's shield and confirm the timed route damages the
     shield without adding percent.
+42. Move both players to clear floor space and hold Player 2's shield. Put
+    Player 1 in front while facing away, short hop through Player 2, then use
+    the light aerial on descent. Confirm the block finishes with Player 1
+    behind and still facing away. Attack immediately after takeoff to confirm
+    the wrong-side whiff, then repeat facing toward Player 2 and confirm the
+    blocked aerial leaves Player 1 in front.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -567,6 +573,8 @@ through:
   the same responder;
 - floor-to-platform full-hop aerial sharking on the default moving platform,
   plus a too-early active-hitbox whiff and a correctly timed held-shield block;
+- ordinary movement into a short-hop back-aerial cross-up behind held shield,
+  plus an immediate wrong-side whiff and a forward-facing front-block control;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -623,7 +631,7 @@ fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
-spacing_probe=pass sharking_probe=pass combat_probe=pass
+spacing_probe=pass sharking_probe=pass cross_up_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass
