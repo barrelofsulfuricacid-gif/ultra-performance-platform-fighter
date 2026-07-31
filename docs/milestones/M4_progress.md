@@ -12,7 +12,7 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
-  ordinary-input approach, spacing, mindgame, cross-up, and
+  ordinary-input approach, spacing, mindgame, cross-up, juggling, and
   platform-sharking routes, plus two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
@@ -674,6 +674,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   conditioning history, the future grab mixup, and owner execution remain
   before `verified`.
 
+## Delivered in the juggling route
+
+- The existing grounded strong attack now serves as an ordinary 12% launcher;
+  Player 0 follows the live airborne trajectory, full hops, and connects the
+  production 8% light aerial before Player 1 touches a surface.
+- Holding launch DI and using a fresh directional air dodge after hitstun makes
+  the same active aerial follow-up whiff, leaving the target at the original
+  12% and providing an active escape policy rather than a stationary dummy.
+- The native oracle saves immediately after the launcher and compares every
+  future hash through the successful aerial. Browser readiness walks both
+  players into legal default-stage space and repeats the hit and escape routes
+  around the moving platform through ordinary input.
+- Registry row 24, Juggling, advances from `planned` to `playable`; longer
+  percent-dependent chains, stock conversions, broader fighter coverage,
+  owner execution, and complete encoded replay/rollback evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -738,6 +755,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The mindgame route must reuse the same readable approach cue and branch only
   through legal player/responder input. The jab and held-shield responses must
   reward different continuations, while both wrong reads remain visible.
+- The juggling route must record at least two legal hits with no grounded
+  target state between them. Directional influence plus a fresh air dodge must
+  make the attempted airborne follow-up visibly active but non-connecting.
 
 ## New binding M4.4 scope
 
@@ -746,7 +766,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  mindgame, shield platform dropping, short hop air dodge, small step forward smash,
+  juggling, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable; other rows
   remain lower evidence states until their full
@@ -757,7 +777,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 28 playable, 6 primitive-ready, and 26 planned.
+  blocked: 1 verified, 29 playable, 6 primitive-ready, and 25 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -790,7 +810,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 294
+- Mechanical oracles: 170 movement invariants, 312
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -814,7 +834,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

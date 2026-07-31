@@ -528,6 +528,12 @@ registry row can advance from `playable` to `verified`.
     If Player 2 holds shield, face away and use the short-hop rear cross-up.
     Deliberately strong-attack the shield and immediately aerial before
     crossing to confirm the blocked and whiffed wrong reads.
+44. Move Player 2 near center and Player 1 just inside strong-attack range.
+    Strong-launch Player 2, follow the airborne path, then full hop and use the
+    light aerial on descent; confirm the second hit connects before Player 2
+    touches a surface. Repeat while Player 2 holds DI away and presses a fresh
+    trigger after hitstun for a directional air dodge; confirm Player 1's
+    active aerial whiffs and Player 2 retains only the launcher damage.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -582,6 +588,9 @@ through:
   plus an immediate wrong-side whiff and a forward-facing front-block control;
 - a combined mindgame gate requiring the jab-read ground conversion,
   shield-read rear cross-up, and both wrong-read outcomes together;
+- a grounded launcher into an airborne light-aerial juggle before landing,
+  plus a DI-and-directional-air-dodge route that makes the active follow-up
+  whiff;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -639,7 +648,7 @@ dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
-mindgame_probe=pass combat_probe=pass
+mindgame_probe=pass juggling_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

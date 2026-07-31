@@ -169,6 +169,31 @@ Their native save/load continuations cover both the ground counter and aerial
 branch. Broader conditioning history and the grab branch remain later fixture
 work before this row can become fully verified.
 
+## Juggling
+
+[Juggling](https://www.ssbwiki.com/Juggling) is represented by repeatedly
+hitting a target upward without allowing it to recover onto a surface. The
+playable route uses only existing match actions: a grounded strong attack
+launches for 12%, the attacker follows the airborne trajectory, full hops, and
+connects the production light aerial for another 8% while the target is still
+airborne. The target's hit sequence changes twice and it never becomes
+grounded between the launcher and follow-up.
+
+The negative route holds directional influence through launch, then uses a
+fresh directional air dodge as soon as hitstun permits. The attacker performs
+the same pursuit and produces an active aerial hitbox, but it whiffs and the
+target remains at 12%. This makes the escape policy part of the oracle rather
+than a passive target assumption.
+
+The native oracle saves immediately after the launcher connects, reloads, and
+compares every future hash through the airborne follow-up. Browser readiness
+walks both fighters into legal space on the default stage, waits through
+ordinary neutral input for the moving platform to clear each route, and
+repeats both the two-hit juggle and DI-plus-air-dodge escape. No juggling-only
+action, mutable state, or content field exists. Longer chains, percent and
+fighter coverage, stock conversions, owner execution, and complete encoded
+replay/rollback evidence remain before the row can become fully verified.
+
 ## Spacing
 
 [Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,
@@ -657,7 +682,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 294 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 312 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -688,6 +713,9 @@ mechanics invariants plus 30 journal invariants, including:
 - the combined mindgame gate requiring the jab-read spacing conversion,
   shield-read cross-up, strong-into-shield wrong read, and immediate aerial
   whiff to pass as one ordinary-input tactic;
+- a 12% grounded launcher into an 8% airborne aerial before landing,
+  mid-launch save/load with equal future hashes, and an active follow-up whiff
+  against directional influence plus a fresh directional air dodge;
 - below-platform light-aerial initiation into an 8% platform-opponent hit, a
   too-early active-hitbox whiff, ordinary held-shield damage with a typed block
   event, and mid-aerial save/load with 32 equal future hashes;

@@ -181,6 +181,29 @@ static int make_cross_up_content(
         "cross-up-content-view");
 }
 
+static int make_juggling_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "juggling-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(9) * PF_Q16_ONE) / INT32_C(10);
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "juggling-content-view");
+}
+
 static int make_reaction_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -3722,6 +3745,300 @@ static int run_cross_up_test(
         return fail("cross-up-front-control");
     }
     return 1;
+}
+
+static int16_t juggling_chase_axis(
+    const pf_m4_inspection *inspection)
+{
+    const int32_t delta =
+        inspection->players[1].position_x_q16 -
+        inspection->players[0].position_x_q16;
+
+    if (delta >
+        (INT32_C(5) * PF_Q16_ONE) / INT32_C(4))
+    {
+        return INT16_C(13500);
+    }
+    if (delta <
+        -(INT32_C(5) * PF_Q16_ONE) / INT32_C(4))
+    {
+        return INT16_C(-13500);
+    }
+    return INT16_C(0);
+}
+
+static int run_juggling_route(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    int escape_route)
+{
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t launcher_sequence = UINT32_C(0);
+    uint32_t tick;
+    uint32_t jump_hold_ticks = UINT32_C(0);
+    int launched_airborne = 0;
+    int jump_started = 0;
+    int aerial_started = 0;
+    int saw_followup_hitbox = 0;
+    int air_dodge_started = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        (escape_route == 0 &&
+         !initialize_sim(
+             &loaded_storage,
+             view,
+             UINT8_C(2),
+             PF_SIM_MODE_DUEL,
+             0,
+             &loaded)) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("juggling-launcher-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("juggling-launcher-step");
+        }
+        if (inspection.players[1].damage_q16 ==
+            content->fighter.strong_damage_q16)
+        {
+            launcher_sequence =
+                inspection.players[1].last_hit_sequence;
+            break;
+        }
+    }
+    if (tick == UINT32_C(24) || launcher_sequence == UINT32_C(0))
+    {
+        return fail("juggling-launcher-hit");
+    }
+    if (escape_route == 0)
+    {
+        destination.bytes = save_bytes;
+        destination.capacity = sizeof(save_bytes);
+        destination.size = (size_t)0;
+        if (!expect_status(
+                pf_sim_query_save_size(sim, &save_size),
+                PF_STATUS_OK,
+                "juggling-query-save-size") ||
+            save_size != (size_t)611 ||
+            !expect_status(
+                pf_sim_save(sim, &destination),
+                PF_STATUS_OK,
+                "juggling-save-mid-launch") ||
+            destination.size != save_size)
+        {
+            return fail("juggling-save-setup");
+        }
+        save.bytes = save_bytes;
+        save.size = save_size;
+        if (!expect_status(
+                pf_sim_load(loaded, save),
+                PF_STATUS_OK,
+                "juggling-load-mid-launch") ||
+            !expect_status(
+                pf_sim_hash(sim, &source_hash),
+                PF_STATUS_OK,
+                "juggling-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "juggling-loaded-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("juggling-mid-launch-round-trip");
+        }
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
+    {
+        int16_t attacker_x = juggling_chase_axis(&inspection);
+        int16_t target_x = INT16_C(0);
+        int16_t target_y = INT16_C(0);
+        uint64_t attacker_buttons = UINT64_C(0);
+        uint16_t target_trigger = UINT16_C(0);
+        int32_t horizontal_gap =
+            inspection.players[1].position_x_q16 -
+            inspection.players[0].position_x_q16;
+
+        if (horizontal_gap < INT32_C(0))
+        {
+            horizontal_gap = -horizontal_gap;
+        }
+        if (inspection.players[1].grounded == UINT8_C(0))
+        {
+            launched_airborne = 1;
+        }
+        else if (launched_airborne != 0 &&
+                 inspection.players[1].last_hit_sequence ==
+                     launcher_sequence)
+        {
+            break;
+        }
+
+        if (escape_route != 0)
+        {
+            target_x = INT16_C(32767);
+            target_y = INT16_C(-32767);
+            if (launched_airborne != 0 &&
+                inspection.players[1].hitstun_ticks == UINT16_C(0) &&
+                air_dodge_started == 0)
+            {
+                target_trigger = UINT16_MAX;
+                air_dodge_started = 1;
+            }
+        }
+
+        if (jump_started == 0 && launched_airborne != 0 &&
+            inspection.players[1].velocity_y_q16 > INT32_C(0) &&
+            inspection.players[1].position_y_q16 >=
+                INT32_C(20) * PF_Q16_ONE &&
+            horizontal_gap <= INT32_C(4) * PF_Q16_ONE &&
+            inspection.players[0].grounded != UINT8_C(0) &&
+            ((inspection.players[1].position_x_q16 -
+                      inspection.players[0].position_x_q16 >=
+                  PF_Q16_ONE / INT32_C(2) &&
+              inspection.players[0].facing == INT8_C(1)) ||
+             (inspection.players[1].position_x_q16 -
+                      inspection.players[0].position_x_q16 <=
+                  -PF_Q16_ONE / INT32_C(2) &&
+              inspection.players[0].facing == INT8_C(-1))))
+        {
+            jump_started = 1;
+            jump_hold_ticks = UINT32_C(3);
+        }
+        if (jump_hold_ticks > UINT32_C(0))
+        {
+            attacker_buttons |= PF_INPUT_BUTTON_JUMP;
+            --jump_hold_ticks;
+        }
+        if (jump_started != 0 && aerial_started == 0 &&
+            inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
+            inspection.players[0].position_y_q16 -
+                    inspection.players[1].position_y_q16 >
+                INT32_C(0) &&
+            inspection.players[0].position_y_q16 -
+                    inspection.players[1].position_y_q16 <=
+                INT32_C(6) * PF_Q16_ONE)
+        {
+            attacker_buttons |= PF_INPUT_BUTTON_ATTACK;
+            aerial_started = 1;
+        }
+
+        if (!step_reaction_duel(
+                sim,
+                attacker_x,
+                INT16_C(0),
+                attacker_buttons,
+                UINT16_C(0),
+                target_x,
+                target_y,
+                UINT64_C(0),
+                target_trigger,
+                &inspection))
+        {
+            return fail("juggling-followup-step");
+        }
+        if (escape_route == 0 &&
+            (!step_reaction_duel(
+                 loaded,
+                 attacker_x,
+                 INT16_C(0),
+                 attacker_buttons,
+                 UINT16_C(0),
+                 target_x,
+                 target_y,
+                 UINT64_C(0),
+                 target_trigger,
+                 &loaded_inspection) ||
+             !expect_status(
+                 pf_sim_hash(sim, &source_hash),
+                 PF_STATUS_OK,
+                 "juggling-source-continuation-hash") ||
+             !expect_status(
+                 pf_sim_hash(loaded, &loaded_hash),
+                 PF_STATUS_OK,
+                 "juggling-loaded-continuation-hash") ||
+             !hash_equal(&source_hash, &loaded_hash)))
+        {
+            return fail("juggling-deterministic-continuation");
+        }
+        if (aerial_started != 0 &&
+            inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_followup_hitbox = 1;
+        }
+        if (inspection.players[1].last_hit_sequence !=
+                launcher_sequence &&
+            inspection.players[1].damage_q16 ==
+                content->fighter.strong_damage_q16 +
+                    content->fighter.aerial_damage_q16)
+        {
+            return (escape_route == 0 && launched_airborne != 0 &&
+                    inspection.players[1].grounded == UINT8_C(0)) ||
+                   fail("juggling-escape-was-hit");
+        }
+    }
+    if (escape_route != 0 && launched_airborne != 0 &&
+        air_dodge_started != 0 && saw_followup_hitbox != 0 &&
+        inspection.players[1].damage_q16 ==
+            content->fighter.strong_damage_q16 &&
+        inspection.players[1].last_hit_sequence == launcher_sequence)
+    {
+        return 1;
+    }
+    return fail(
+        escape_route != 0
+            ? "juggling-air-dodge-escape"
+            : "juggling-airborne-followup");
+}
+
+static int run_juggling_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    return run_juggling_route(content, view, 0) &&
+           run_juggling_route(content, view, 1);
 }
 
 static int make_surface_tech_content(
@@ -9160,6 +9477,7 @@ int main(void)
     pf_m4_content spacing_close_content;
     pf_m4_content spacing_far_content;
     pf_m4_content cross_up_content;
+    pf_m4_content juggling_content;
     pf_m4_content wall_tech_content;
     pf_m4_content ceiling_tech_content;
     pf_content_view view;
@@ -9176,6 +9494,7 @@ int main(void)
     pf_content_view spacing_close_view;
     pf_content_view spacing_far_view;
     pf_content_view cross_up_view;
+    pf_content_view juggling_view;
     pf_content_view wall_tech_view;
     pf_content_view ceiling_tech_view;
 
@@ -9225,6 +9544,9 @@ int main(void)
         !make_cross_up_content(
             &cross_up_content,
             &cross_up_view) ||
+        !make_juggling_content(
+            &juggling_content,
+            &juggling_view) ||
         !make_surface_tech_content(
             0,
             &wall_tech_content,
@@ -9335,6 +9657,9 @@ int main(void)
         !run_cross_up_test(
             &cross_up_content,
             &cross_up_view) ||
+        !run_juggling_test(
+            &juggling_content,
+            &juggling_view) ||
         !run_surface_tech_test(
             &wall_tech_content,
             &wall_tech_view,
@@ -9401,7 +9726,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=294 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1\n",
+        " combat_invariants=312 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

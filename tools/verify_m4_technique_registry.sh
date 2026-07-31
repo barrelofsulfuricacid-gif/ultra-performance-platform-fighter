@@ -91,8 +91,8 @@ END {
             rows > "/dev/stderr"
         exit 1
     }
-    if (planned != 26 || primitive_ready != 6 ||
-        playable != 28 || verified != 1)
+    if (planned != 25 || primitive_ready != 6 ||
+        playable != 29 || verified != 1)
     {
         printf "M4 technique registry status counts changed: planned=%d primitive_ready=%d playable=%d verified=%d\n",
             planned, primitive_ready, playable, verified > "/dev/stderr"
@@ -101,4 +101,4 @@ END {
 }
 ' "$registry"
 
-echo "m4-technique-registry=pass rows=61 verified=1 playable=28 primitive_ready=6 planned=26 acceptance=blocked"
+echo "m4-technique-registry=pass rows=61 verified=1 playable=29 primitive_ready=6 planned=25 acceptance=blocked"

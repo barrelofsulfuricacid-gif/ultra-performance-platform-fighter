@@ -58,6 +58,7 @@ static int test_spacing_probe;
 static int test_sharking_probe;
 static int test_cross_up_probe;
 static int test_mindgame_probe;
+static int test_juggling_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
@@ -95,6 +96,7 @@ void pf_web_m4_playtest_install(
     int sharking_probe_passed,
     int cross_up_probe_passed,
     int mindgame_probe_passed,
+    int juggling_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -135,6 +137,7 @@ void pf_web_m4_playtest_install(
     int sharking_probe_passed,
     int cross_up_probe_passed,
     int mindgame_probe_passed,
+    int juggling_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -174,6 +177,7 @@ void pf_web_m4_playtest_install(
     test_sharking_probe = sharking_probe_passed;
     test_cross_up_probe = cross_up_probe_passed;
     test_mindgame_probe = mindgame_probe_passed;
+    test_juggling_probe = juggling_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
@@ -308,6 +312,7 @@ int main(void)
         test_sharking_probe != 1 ||
         test_cross_up_probe != 1 ||
         test_mindgame_probe != 1 ||
+        test_juggling_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
@@ -350,6 +355,7 @@ int main(void)
             "sharking_probe=%d "
             "cross_up_probe=%d "
             "mindgame_probe=%d "
+            "juggling_probe=%d "
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
             "tumble_probe=%d "
@@ -381,6 +387,7 @@ int main(void)
             test_sharking_probe,
             test_cross_up_probe,
             test_mindgame_probe,
+            test_juggling_probe,
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
@@ -724,6 +731,7 @@ int main(void)
         "sharking_probe=%d "
         "cross_up_probe=%d "
         "mindgame_probe=%d "
+        "juggling_probe=%d "
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
         "powershield_cancel_probe=%d tumble_probe=%d "
@@ -752,6 +760,7 @@ int main(void)
         test_sharking_probe,
         test_cross_up_probe,
         test_mindgame_probe,
+        test_juggling_probe,
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,

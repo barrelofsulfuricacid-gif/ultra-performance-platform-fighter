@@ -50,7 +50,7 @@ current build can perform the technique.
 | 21 | Instant double jump | playable | M4.4 | Production jump squat, binary first jump, fresh-edge air jump, and remaining-air-jump state compose through ordinary input on the first legal airborne frame | `tests/sim/test_m4_movement.c` covers the exact first-airborne-frame velocity/position, launch-tick exclusion, held-input non-repeat, exhausted-jump rejection, and mid-IDJ save/load continuation; `src/web_client/m4_playtest.c` and `tools/verify_m4_browser.sh` run the positive and held-input routes before browser readiness | Tap and release one jump key during the three-tick jump squat, then press the other jump key on the first airborne frame. Confirm the fighter immediately takes the double-jump arc while the live `air jumps` counter changes from 1 to 0; hold one jump key through takeoff for the negative case and confirm the counter remains 1 |
 | 22 | Jab cancel | planned | M4.4 | Jab sequence, cancel windows, follow-up actions, hit/whiff variants | — | Future: cancel jab on hit and whiff inside the legal window and repeat one tick late |
 | 23 | Jab reset | primitive-ready | M4.4 | Knockdown, down-wait, and getup choices exist; grounded low-knockback reset reaction remains | `tests/sim/test_m4_combat.c` covers the complete missed-tech/getup choice foundation, not a jab reset | Future: jab a vulnerable down-wait target into the forced reset state and compare invulnerable/late cases |
-| 24 | Juggling | planned | M4.4 | Aerial attacks, repeated launch, recovery/DI policy, stock result | — | Future: keep a target airborne through multiple legal hits while a DI/escape policy remains active |
+| 24 | Juggling | playable | M4.4 | Production strong launch, tumble and wall bounce, ordinary pursuit/full hop, light aerial, DI, and directional air dodge compose into a launcher-to-airborne-follow-up route; longer percent-dependent chains and stock conversions remain | `tests/sim/test_m4_combat.c` proves the 12% launcher into an 8% aerial before any landing, mid-launch save/load with equal future hashes, and a DI-plus-air-dodge escape that makes the active follow-up whiff; `src/web_client/m4_playtest.c` repeats both routes through ordinary input on the default moving-platform stage before browser readiness | Place the target near center with the attacker just inside strong range. Strong-launch, follow the airborne path, then full hop and light-aerial the descending target before it touches a surface. Repeat while the target DIs away and uses a fresh directional air dodge; confirm the same aerial whiffs and the target keeps only the launch damage |
 | 25 | Jump cancel throw | planned | M4.4 | Item carry/throw and jump-cancel input priority | — | Future: enter jump then throw the held item inside the cancel window; compare one tick late |
 | 26 | Jump-canceled grab | planned | M4.4 | Grab action and jump-cancel routes from shield/run states | — | Future: input jump then grab inside the legal cancel window and inspect standing-grab behavior |
 | 27 | Jump-cancelling | planned | M4.4 | General jump-cancel router for supported attacks/specials/grab | — | Future: cancel jump startup into every supported legal option and prove disallowed options remain jump |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 25 `playable`, 6
-`primitive-ready`, and 29 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 29 `playable`, 6
+`primitive-ready`, and 25 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.
