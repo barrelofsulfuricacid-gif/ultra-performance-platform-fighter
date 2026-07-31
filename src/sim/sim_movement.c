@@ -541,7 +541,11 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
            action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD ||
-           action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE;
+           action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+           action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+           action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+           action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
+           action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -859,6 +863,38 @@ void pf_m4_reset_player(
                          UINT16_C(1))
                    : UINT16_MAX)
             : UINT16_C(0);
+    uint32_t other_index;
+
+    for (other_index = UINT32_C(0);
+         other_index < (uint32_t)sim->world.player_count;
+         ++other_index)
+    {
+        if (sim->world.grab_target_slot[other_index] ==
+            (uint8_t)(player_index + UINT32_C(1)))
+        {
+            sim->world.grab_target_slot[other_index] = UINT8_C(0);
+            if (sim->world.action_state[other_index] ==
+                (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+            {
+                sim->world.action_state[other_index] =
+                    (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
+                sim->world.action_ticks[other_index] = UINT16_C(0);
+            }
+        }
+        if (sim->world.grab_owner_slot[other_index] ==
+            (uint8_t)(player_index + UINT32_C(1)))
+        {
+            sim->world.grab_owner_slot[other_index] = UINT8_C(0);
+            sim->world.grab_escape_ticks[other_index] = UINT16_C(0);
+            if (sim->world.action_state[other_index] ==
+                (uint8_t)PF_M4_ACTION_GRABBED)
+            {
+                sim->world.action_state[other_index] =
+                    (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
+                sim->world.action_ticks[other_index] = UINT16_C(0);
+            }
+        }
+    }
 
     sim->world.previous_buttons[player_index] = UINT64_C(0);
     sim->world.position_x_q16[player_index] =
@@ -876,6 +912,9 @@ void pf_m4_reset_player(
         UINT16_C(0);
     sim->world.ledge_regrab_lockout_ticks[player_index] =
         UINT16_C(0);
+    sim->world.grab_escape_ticks[player_index] = UINT16_C(0);
+    sim->world.grab_target_slot[player_index] = UINT8_C(0);
+    sim->world.grab_owner_slot[player_index] = UINT8_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
     sim->world.active[player_index] = UINT8_C(1);
     sim->world.stocks_remaining[player_index] =
@@ -1158,6 +1197,15 @@ static void pf_m4_land_from_air(
     }
 }
 
+static int pf_m4_action_can_start_grab(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+           action_state == (uint8_t)PF_M4_ACTION_WALK ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
+           action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
+}
+
 static int pf_m4_drop_cancel_hitlag_is_eligible(
     const pf_m4_fighter_data *fighter,
     uint16_t action_ticks,
@@ -1326,6 +1374,12 @@ static void pf_m4_copy_combat_scratch(
         world->ledge_invulnerability_ticks[player_index];
     scratch->ledge_regrab_lockout_ticks[player_index] =
         world->ledge_regrab_lockout_ticks[player_index];
+    scratch->grab_escape_ticks[player_index] =
+        world->grab_escape_ticks[player_index];
+    scratch->grab_target_slot[player_index] =
+        world->grab_target_slot[player_index];
+    scratch->grab_owner_slot[player_index] =
+        world->grab_owner_slot[player_index];
     scratch->damage_q16[player_index] =
         world->damage_q16[player_index];
     scratch->pending_velocity_x_q16[player_index] =
@@ -1446,6 +1500,9 @@ static void pf_m4_prepare_spawn(
         UINT16_C(0);
     scratch->ledge_regrab_lockout_ticks[player_index] =
         UINT16_C(0);
+    scratch->grab_escape_ticks[player_index] = UINT16_C(0);
+    scratch->grab_target_slot[player_index] = UINT8_C(0);
+    scratch->grab_owner_slot[player_index] = UINT8_C(0);
 }
 
 pf_status pf_m4_step_player(
@@ -1476,6 +1533,8 @@ pf_status pf_m4_step_player(
     const int shield_pressed =
         shield_held != 0 &&
         world->shield_held[player_index] == UINT8_C(0);
+    const int grab_pressed =
+        shield_held != 0 && light_attack_pressed != 0;
     const int was_shielding =
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_SHIELD ||
@@ -1492,7 +1551,7 @@ pf_status pf_m4_step_player(
             input->main_stick_x,
             fighter->dash_axis_threshold);
     const int forward_smash_pressed =
-        light_attack_pressed != 0 &&
+        grab_pressed == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
         strong_direction != INT8_C(0) &&
         ((world->action_state[player_index] ==
@@ -1509,9 +1568,11 @@ pf_status pf_m4_step_player(
                 -world->dash_direction[player_index] &&
             world->action_ticks[player_index] == UINT16_C(1)))));
     const int ground_strong_attack_pressed =
-        strong_attack_pressed != 0 || forward_smash_pressed != 0;
+        grab_pressed == 0 &&
+        (strong_attack_pressed != 0 || forward_smash_pressed != 0);
     const int attack_pressed =
-        light_attack_pressed != 0 || strong_attack_pressed != 0;
+        grab_pressed == 0 &&
+        (light_attack_pressed != 0 || strong_attack_pressed != 0);
     const int dodge_down_held =
         input->main_stick_y >=
         (int16_t)fighter->crouch_axis_threshold;
@@ -2090,6 +2151,22 @@ pf_status pf_m4_step_player(
     if (!ledge_motion_handled &&
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
+        grab_pressed != 0 &&
+        pf_m4_action_can_start_grab(action_state) &&
+        scratch->grab_target_slot[player_index] == UINT8_C(0) &&
+        scratch->grab_owner_slot[player_index] == UINT8_C(0))
+    {
+        action_state = (uint8_t)PF_M4_ACTION_GRAB;
+        action_ticks = UINT16_C(0);
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        short_hop_latched = UINT8_C(0);
+        dash_direction = INT8_C(0);
+        scratch->powershield[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
         (spot_dodge_pressed != 0 || roll_pressed != 0) &&
         (action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
          (!pf_m4_action_is_shield(action_state) &&
@@ -2438,6 +2515,103 @@ pf_status pf_m4_step_player(
             action_ticks =
                 (uint16_t)(
                     (uint32_t)action_ticks - elapsed_ticks);
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+         action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
+         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE))
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        velocity_y = INT32_C(0);
+        if (action_state == (uint8_t)PF_M4_ACTION_GRAB)
+        {
+            const uint32_t grab_ticks =
+                (uint32_t)fighter->grab_startup_ticks +
+                (uint32_t)fighter->grab_active_ticks +
+                (uint32_t)fighter->grab_recovery_ticks;
+
+            ++action_ticks;
+            if ((uint32_t)action_ticks >= grab_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+        {
+            if (action_ticks < UINT16_C(600))
+            {
+                ++action_ticks;
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_GRABBED)
+        {
+            uint32_t elapsed_ticks = UINT32_C(1);
+            uint32_t mash_pulses = UINT32_C(0);
+
+            if (jump_pressed)
+            {
+                ++mash_pulses;
+            }
+            if (light_attack_pressed)
+            {
+                ++mash_pulses;
+            }
+            if (strong_attack_pressed)
+            {
+                ++mash_pulses;
+            }
+            if (shield_pressed)
+            {
+                ++mash_pulses;
+            }
+            if (strong_direction != INT8_C(0) &&
+                world->previous_strong_direction[player_index] ==
+                    INT8_C(0))
+            {
+                ++mash_pulses;
+            }
+            if (dodge_down_held != 0 &&
+                world->previous_dodge_down[player_index] ==
+                    UINT8_C(0))
+            {
+                ++mash_pulses;
+            }
+            elapsed_ticks +=
+                mash_pulses *
+                (uint32_t)fighter->grab_mash_reduction_ticks;
+            if ((uint32_t)scratch->grab_escape_ticks[player_index] <=
+                elapsed_ticks)
+            {
+                scratch->grab_escape_ticks[player_index] = UINT16_C(0);
+            }
+            else
+            {
+                scratch->grab_escape_ticks[player_index] =
+                    (uint16_t)(
+                        (uint32_t)scratch
+                            ->grab_escape_ticks[player_index] -
+                        elapsed_ticks);
+            }
+            if (action_ticks < UINT16_C(600))
+            {
+                ++action_ticks;
+            }
+        }
+        else
+        {
+            ++action_ticks;
+            if (action_ticks >= fighter->grab_release_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+            }
         }
     }
     else if (!ledge_motion_handled &&
@@ -3874,6 +4048,20 @@ pf_status pf_m4_inspect(
             sim->world.ledge_invulnerability_ticks[player_index];
         player->ledge_regrab_lockout_ticks =
             sim->world.ledge_regrab_lockout_ticks[player_index];
+        player->grab_escape_ticks =
+            sim->world.grab_escape_ticks[player_index];
+        player->grab_target =
+            sim->world.grab_target_slot[player_index] != UINT8_C(0)
+                ? (uint8_t)(
+                      sim->world.grab_target_slot[player_index] -
+                      UINT8_C(1))
+                : PF_SIM_EVENT_NO_PLAYER;
+        player->grab_owner =
+            sim->world.grab_owner_slot[player_index] != UINT8_C(0)
+                ? (uint8_t)(
+                      sim->world.grab_owner_slot[player_index] -
+                      UINT8_C(1))
+                : PF_SIM_EVENT_NO_PLAYER;
         player->stocks_remaining =
             sim->world.stocks_remaining[player_index];
         player->hitbox_active = (uint8_t)pf_m4_attack_hitbox(
@@ -3887,6 +4075,17 @@ pf_status pf_m4_inspect(
             &player->hitbox_right_q16,
             &player->hitbox_top_q16,
             &player->hitbox_bottom_q16);
+        player->grabbox_active = (uint8_t)pf_m4_grabbox(
+            &sim->content,
+            player->position_x_q16,
+            player->position_y_q16,
+            player->facing,
+            player->action_state,
+            player->action_ticks,
+            &player->grabbox_left_q16,
+            &player->grabbox_right_q16,
+            &player->grabbox_top_q16,
+            &player->grabbox_bottom_q16);
     }
     return PF_STATUS_OK;
 }

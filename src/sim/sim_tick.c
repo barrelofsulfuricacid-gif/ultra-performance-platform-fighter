@@ -347,6 +347,12 @@ pf_status pf_sim_tick_impl(
             scratch->ledge_invulnerability_ticks[player_index];
         world->ledge_regrab_lockout_ticks[player_index] =
             scratch->ledge_regrab_lockout_ticks[player_index];
+        world->grab_escape_ticks[player_index] =
+            scratch->grab_escape_ticks[player_index];
+        world->grab_target_slot[player_index] =
+            scratch->grab_target_slot[player_index];
+        world->grab_owner_slot[player_index] =
+            scratch->grab_owner_slot[player_index];
         world->previous_buttons[player_index] =
             scratch->previous_buttons[player_index];
         world->grounded[player_index] =

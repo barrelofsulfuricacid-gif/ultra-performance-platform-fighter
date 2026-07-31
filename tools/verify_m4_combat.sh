@@ -43,9 +43,9 @@ common_flags="
 
 "$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
 grep -Fqx \
-    'm4-combat=pass content_schema=20 deterministic_ticks=20000 combat_invariants=366 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1' \
+    'm4-combat=pass content_schema=21 deterministic_ticks=20000 combat_invariants=398 journal_invariants=42 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jump_cancelled_grab=1' \
     "$output_dir/m4_combat.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"
 
-echo "m4-combat-verification=pass invariants=366 journal_invariants=30 deterministic_ticks=20000 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1"
+echo "m4-combat-verification=pass invariants=398 journal_invariants=42 deterministic_ticks=20000 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jump_cancelled_grab=1"

@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -469,6 +469,7 @@ mergeInto(LibraryManager.library, {
     zeroToDeathProbePassed,
     ledgeCancelProbePassed,
     plankingProbePassed,
+    jumpCancelledGrabProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -1282,6 +1283,8 @@ mergeInto(LibraryManager.library, {
         (ledgeCancelProbePassed ? "pass" : "fail") +
         " planking_probe=" +
         (plankingProbePassed ? "pass" : "fail") +
+        " jump_cancelled_grab_probe=" +
+        (jumpCancelledGrabProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1359,6 +1362,8 @@ mergeInto(LibraryManager.library, {
         ledgeCancelProbePassed ? "pass" : "fail";
       status.dataset.plankingProbe =
         plankingProbePassed ? "pass" : "fail";
+      status.dataset.jumpCancelledGrabProbe =
+        jumpCancelledGrabProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";
@@ -1396,7 +1401,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 256) {
+    if (!state || viewCount !== 272) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -1405,7 +1410,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 14) {
+    if (view[0] !== 15) {
       return;
     }
     var canvas = state.canvas;
@@ -1469,6 +1474,10 @@ mergeInto(LibraryManager.library, {
       "SHIELD BREAK DOWN",
       "SHIELD BREAK STAND",
       "SHIELD BREAK STUN",
+      "GRAB",
+      "GRAB HOLD",
+      "GRABBED",
+      "GRAB RELEASE",
     ];
 
     if (view[1] < previousTick) {
@@ -1552,6 +1561,12 @@ mergeInto(LibraryManager.library, {
           return target + " forfeited";
         case 10:
           return "TIME LIMIT";
+        case 11:
+          return source + " GRABBED " + target + " at " + value + "%";
+        case 12:
+          return (
+            source + " escaped " + target + "'s grab at " + value + "%"
+          );
         default:
           return "unknown event type " + event.type;
       }
@@ -1578,10 +1593,10 @@ mergeInto(LibraryManager.library, {
       });
     }
 
-    var eventCount = Math.max(0, Math.min(16, view[95]));
+    var eventCount = Math.max(0, Math.min(16, view[111]));
     var eventIndex;
     for (eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
-      var eventBase = 96 + eventIndex * 10;
+      var eventBase = 112 + eventIndex * 10;
       var sequence = view[eventBase];
       if (sequence <= state.lastEventSequence) {
         continue;
@@ -1688,14 +1703,14 @@ mergeInto(LibraryManager.library, {
       "P1 STOCKS " +
         view[25 + 32] +
         "  ·  P2 STOCKS " +
-        view[25 + 35 + 32],
+        view[25 + 43 + 32],
       canvas.width / 2,
       25
     );
     context.restore();
 
     [0, 1].forEach(function (playerIndex) {
-      var base = 25 + playerIndex * 35;
+      var base = 25 + playerIndex * 43;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -1752,6 +1767,29 @@ mergeInto(LibraryManager.library, {
           hitboxTop,
           hitboxRight - hitboxLeft,
           hitboxBottom - hitboxTop
+        );
+      }
+
+      if (view[base + 35]) {
+        var grabboxLeft = sx(view[base + 36]);
+        var grabboxRight = sx(view[base + 37]);
+        var grabboxTop = sy(view[base + 38]);
+        var grabboxBottom = sy(view[base + 39]);
+
+        context.fillStyle = "#62e7ff3d";
+        context.strokeStyle = "#8cf3ff";
+        context.lineWidth = 2;
+        context.fillRect(
+          grabboxLeft,
+          grabboxTop,
+          grabboxRight - grabboxLeft,
+          grabboxBottom - grabboxTop
+        );
+        context.strokeRect(
+          grabboxLeft,
+          grabboxTop,
+          grabboxRight - grabboxLeft,
+          grabboxBottom - grabboxTop
         );
       }
 
@@ -1846,6 +1884,35 @@ mergeInto(LibraryManager.library, {
         context.strokeRect(x - mashWidth / 2, mashY - 12, mashWidth, 24);
         context.fillStyle = "#fffbd2";
         context.fillText(mashLabel, x, mashY);
+        context.restore();
+      }
+      if (actionState === 51) {
+        var escapeLabel = "MASH OUT · " + view[base + 40] + "f";
+        var escapeLabelY = Math.max(24, y - height / 2 - 36);
+        var escapeLabelWidth;
+
+        context.save();
+        context.fillStyle = "#15364ddd";
+        context.strokeStyle = "#8cf3ff";
+        context.lineWidth = 2;
+        context.font = "bold 14px ui-monospace, monospace";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        escapeLabelWidth = context.measureText(escapeLabel).width + 16;
+        context.fillRect(
+          x - escapeLabelWidth / 2,
+          escapeLabelY - 12,
+          escapeLabelWidth,
+          24
+        );
+        context.strokeRect(
+          x - escapeLabelWidth / 2,
+          escapeLabelY - 12,
+          escapeLabelWidth,
+          24
+        );
+        context.fillStyle = "#dffaff";
+        context.fillText(escapeLabel, x, escapeLabelY);
         context.restore();
       }
       context.globalAlpha = 1;
@@ -1993,7 +2060,14 @@ mergeInto(LibraryManager.library, {
         "<br>L-cancel trigger age " +
         (view[base + 30] === 255 ? "not armed" : view[base + 30]) +
         " · eligible " +
-        view[base + 31];
+        view[base + 31] +
+        "<br>grab target " +
+        (view[base + 41] === 255 ? "none" : "P" + (view[base + 41] + 1)) +
+        " · grab owner " +
+        (view[base + 42] === 255 ? "none" : "P" + (view[base + 42] + 1)) +
+        " · escape " +
+        view[base + 40] +
+        "f";
     });
 
     if (view[21] !== 0 || view[22] !== 0 || view[23] !== 0) {

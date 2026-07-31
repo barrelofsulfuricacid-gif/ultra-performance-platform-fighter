@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(20)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(20)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(21)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(21)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(15)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(16)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -67,7 +67,11 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_ELIMINATED = 45,
     PF_M4_ACTION_SHIELD_BREAK_DOWN = 46,
     PF_M4_ACTION_SHIELD_BREAK_STAND = 47,
-    PF_M4_ACTION_SHIELD_BREAK_STUN = 48
+    PF_M4_ACTION_SHIELD_BREAK_STUN = 48,
+    PF_M4_ACTION_GRAB = 49,
+    PF_M4_ACTION_GRAB_HOLD = 50,
+    PF_M4_ACTION_GRABBED = 51,
+    PF_M4_ACTION_GRAB_RELEASE = 52
 } pf_m4_action_state;
 
 typedef enum pf_m4_surface
@@ -170,6 +174,13 @@ typedef struct pf_m4_fighter_data
     int32_t shield_defender_pushback_scale_q16;
     int32_t shield_attacker_pushback_damage_q16;
     int32_t shield_attacker_pushback_base_q16;
+    int32_t grabbox_offset_x_q16;
+    int32_t grabbox_offset_y_q16;
+    int32_t grabbox_half_width_q16;
+    int32_t grabbox_half_height_q16;
+    int32_t grabbed_offset_x_q16;
+    int32_t grabbed_offset_y_q16;
+    int32_t grab_escape_damage_ticks_q16;
     uint16_t jump_squat_ticks;
     uint16_t initial_dash_ticks;
     uint16_t forward_smash_input_window_ticks;
@@ -251,6 +262,13 @@ typedef struct pf_m4_fighter_data
     uint16_t shield_break_down_ticks;
     uint16_t shield_break_stand_ticks;
     uint16_t shield_break_mash_reduction_ticks;
+    uint16_t grab_startup_ticks;
+    uint16_t grab_active_ticks;
+    uint16_t grab_recovery_ticks;
+    uint16_t grab_escape_base_ticks;
+    uint16_t grab_escape_max_ticks;
+    uint16_t grab_mash_reduction_ticks;
+    uint16_t grab_release_ticks;
     uint8_t air_jump_count;
     uint8_t powershield_cancel_enabled;
 } pf_m4_fighter_data;
@@ -318,6 +336,10 @@ typedef struct pf_m4_player_inspection
     int32_t hitbox_right_q16;
     int32_t hitbox_top_q16;
     int32_t hitbox_bottom_q16;
+    int32_t grabbox_left_q16;
+    int32_t grabbox_right_q16;
+    int32_t grabbox_top_q16;
+    int32_t grabbox_bottom_q16;
     uint16_t hitlag_ticks;
     uint16_t hitstun_ticks;
     uint16_t tech_window_ticks;
@@ -325,6 +347,7 @@ typedef struct pf_m4_player_inspection
     uint16_t shield_stun_ticks;
     uint8_t attack_hit_mask;
     uint8_t hitbox_active;
+    uint8_t grabbox_active;
     uint8_t last_hit_valid;
     uint8_t last_hit_attacker;
     uint8_t shield_held;
@@ -342,6 +365,9 @@ typedef struct pf_m4_player_inspection
     uint16_t respawn_invulnerability_ticks;
     uint16_t ledge_invulnerability_ticks;
     uint16_t ledge_regrab_lockout_ticks;
+    uint16_t grab_escape_ticks;
+    uint8_t grab_target;
+    uint8_t grab_owner;
     uint8_t stocks_remaining;
     uint8_t reserved;
 } pf_m4_player_inspection;

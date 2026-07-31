@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)479)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)495)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x37)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x38)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -587,6 +587,24 @@ static void pf_write_payload(
     {
         pf_writer_i8(writer, world->tech_direction[player_index]);
     }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(writer, world->grab_escape_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->grab_target_slot[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->grab_owner_slot[player_index]);
+    }
 }
 
 static void pf_read_payload(
@@ -930,6 +948,25 @@ static void pf_read_payload(
         world->tech_direction[player_index] =
             pf_reader_i8(reader);
     }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->grab_escape_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->grab_target_slot[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->grab_owner_slot[player_index] = pf_reader_u8(reader);
+    }
 }
 
 static void pf_hash_payload(
@@ -1120,6 +1157,9 @@ static int pf_m4_player_state_consistent(
                    UINT16_C(0) &&
                world->ledge_regrab_lockout_ticks[player_index] ==
                    UINT16_C(0) &&
+               world->grab_escape_ticks[player_index] == UINT16_C(0) &&
+               world->grab_target_slot[player_index] == UINT8_C(0) &&
+               world->grab_owner_slot[player_index] == UINT8_C(0) &&
                ((waiting &&
                  world->respawn_ticks[player_index] > UINT16_C(0) &&
                  (world->stock_count == UINT8_C(0) ||
@@ -1282,8 +1322,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action >
-                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+                action > (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1356,6 +1395,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->sdi_direction_y[player_index] > INT8_C(1) ||
                 tech_direction < INT8_C(-1) ||
                 tech_direction > INT8_C(1) ||
+                world->grab_escape_ticks[player_index] > UINT16_C(600) ||
+                world->grab_target_slot[player_index] >
+                    world->player_count ||
+                world->grab_owner_slot[player_index] >
+                    world->player_count ||
+                (world->grab_target_slot[player_index] != UINT8_C(0) &&
+                 world->grab_owner_slot[player_index] != UINT8_C(0)) ||
                 (world->attack_hit_mask[player_index] &
                  (uint8_t)~active_mask) != UINT8_C(0) ||
                 (world->attack_hit_mask[player_index] &
@@ -1539,8 +1585,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
                   action ==
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
-                  action ==
-                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+                   action == (uint8_t)PF_M4_ACTION_GRAB ||
+                   action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                   action == (uint8_t)PF_M4_ACTION_GRABBED ||
+                   action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
@@ -1647,8 +1697,72 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->ledge_invulnerability_ticks[player_index] !=
                      UINT16_C(0) ||
                  world->ledge_regrab_lockout_ticks[player_index] !=
-                     UINT16_C(0) ||
-                 world->stocks_remaining[player_index] != UINT8_C(0))
+                      UINT16_C(0) ||
+                  world->grab_escape_ticks[player_index] != UINT16_C(0) ||
+                  world->grab_target_slot[player_index] != UINT8_C(0) ||
+                  world->grab_owner_slot[player_index] != UINT8_C(0) ||
+                  world->stocks_remaining[player_index] != UINT8_C(0))
+        {
+            return PF_STATUS_INVALID_STATE;
+        }
+    }
+
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
+        const uint8_t target_slot =
+            world->grab_target_slot[player_index];
+        const uint8_t owner_slot =
+            world->grab_owner_slot[player_index];
+
+        if (target_slot != UINT8_C(0))
+        {
+            const uint32_t target_index =
+                (uint32_t)target_slot - UINT32_C(1);
+
+            if (target_index == player_index ||
+                world->active[target_index] == UINT8_C(0) ||
+                (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
+                 world->team[player_index] == world->team[target_index]) ||
+                world->action_state[player_index] !=
+                    (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                world->grab_owner_slot[target_index] !=
+                    (uint8_t)(player_index + UINT32_C(1)) ||
+                world->action_state[target_index] !=
+                    (uint8_t)PF_M4_ACTION_GRABBED ||
+                world->grab_escape_ticks[target_index] == UINT16_C(0))
+            {
+                return PF_STATUS_INVALID_STATE;
+            }
+        }
+        else if (world->action_state[player_index] ==
+                 (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+        {
+            return PF_STATUS_INVALID_STATE;
+        }
+
+        if (owner_slot != UINT8_C(0))
+        {
+            const uint32_t owner_index =
+                (uint32_t)owner_slot - UINT32_C(1);
+
+            if (owner_index == player_index ||
+                world->active[owner_index] == UINT8_C(0) ||
+                (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
+                 world->team[player_index] == world->team[owner_index]) ||
+                world->action_state[player_index] !=
+                    (uint8_t)PF_M4_ACTION_GRABBED ||
+                world->grab_target_slot[owner_index] !=
+                    (uint8_t)(player_index + UINT32_C(1)) ||
+                world->grab_escape_ticks[player_index] == UINT16_C(0))
+            {
+                return PF_STATUS_INVALID_STATE;
+            }
+        }
+        else if (world->action_state[player_index] ==
+                     (uint8_t)PF_M4_ACTION_GRABBED ||
+                 world->grab_escape_ticks[player_index] != UINT16_C(0))
         {
             return PF_STATUS_INVALID_STATE;
         }

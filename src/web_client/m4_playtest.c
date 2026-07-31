@@ -16,11 +16,11 @@
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 35
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 43
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
-#define PF_WEB_M4_VIEW_EVENT0 96
-#define PF_WEB_M4_VIEW_COUNT 256
+#define PF_WEB_M4_VIEW_EVENT0 112
+#define PF_WEB_M4_VIEW_COUNT 272
 
 enum pf_web_m4_view_field
 {
@@ -49,7 +49,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_TERMINATED = 22,
     PF_WEB_M4_VIEW_TRUNCATED = 23,
     PF_WEB_M4_VIEW_WINNER_MASK = 24,
-    PF_WEB_M4_VIEW_EVENT_COUNT = 95,
+    PF_WEB_M4_VIEW_EVENT_COUNT = 111,
     PF_WEB_M4_VIEW_PLAYER_X = 0,
     PF_WEB_M4_VIEW_PLAYER_Y = 1,
     PF_WEB_M4_VIEW_PLAYER_VX = 2,
@@ -85,6 +85,14 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_STOCKS = 32,
     PF_WEB_M4_VIEW_PLAYER_RESPAWN_TICKS = 33,
     PF_WEB_M4_VIEW_PLAYER_RESPAWN_INVULNERABILITY = 34,
+    PF_WEB_M4_VIEW_PLAYER_GRABBOX_ACTIVE = 35,
+    PF_WEB_M4_VIEW_PLAYER_GRABBOX_LEFT = 36,
+    PF_WEB_M4_VIEW_PLAYER_GRABBOX_RIGHT = 37,
+    PF_WEB_M4_VIEW_PLAYER_GRABBOX_TOP = 38,
+    PF_WEB_M4_VIEW_PLAYER_GRABBOX_BOTTOM = 39,
+    PF_WEB_M4_VIEW_PLAYER_GRAB_ESCAPE_TICKS = 40,
+    PF_WEB_M4_VIEW_PLAYER_GRAB_TARGET = 41,
+    PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER = 42,
     PF_WEB_M4_VIEW_EVENT_SEQUENCE = 0,
     PF_WEB_M4_VIEW_EVENT_TICK = 1,
     PF_WEB_M4_VIEW_EVENT_TYPE = 2,
@@ -132,6 +140,7 @@ extern void pf_web_m4_playtest_install(
     int zero_to_death_probe_passed,
     int ledge_cancel_probe_passed,
     int planking_probe_passed,
+    int jump_cancelled_grab_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -4561,6 +4570,187 @@ static int pf_web_m4_run_planking_probe(void)
            restored != 0;
 }
 
+static int pf_web_m4_run_jump_cancelled_grab_route(void)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    int capture_seen = 0;
+
+    pf_web_m4_content.stage.spawn_spacing_q16 =
+        (INT32_C(5) * PF_Q16_ONE) / INT32_C(4);
+    pf_web_m4_content.stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    pf_web_m4_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!pf_web_m4_initialize_current_content() ||
+        !pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].action_ticks != UINT16_C(2) ||
+        pf_web_m4_last_result.event_count != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (pf_web_m4_last_result.event_count == UINT8_C(1) &&
+            pf_web_m4_last_result.events[0].type ==
+                (uint16_t)PF_SIM_EVENT_GRAB &&
+            pf_web_m4_last_result.events[0].source_player == UINT8_C(0) &&
+            pf_web_m4_last_result.events[0].target_player == UINT8_C(1))
+        {
+            capture_seen = 1;
+            break;
+        }
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (capture_seen == 0 ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED ||
+        inspection.players[0].grab_target != UINT8_C(1) ||
+        inspection.players[1].grab_owner != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return 0;
+    }
+    return 1;
+}
+
+static int pf_web_m4_run_jump_cancelled_grab_probe(void)
+{
+    const int route_passed =
+        pf_web_m4_run_jump_cancelled_grab_route();
+    const int restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+
+    return route_passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_run_edge_hop_probe(void)
 {
     pf_m4_inspection inspection;
@@ -6843,7 +7033,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(14);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(15);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -6978,6 +7168,23 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_RESPAWN_INVULNERABILITY] =
             (int32_t)player->respawn_invulnerability_ticks;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_ACTIVE] =
+            (int32_t)player->grabbox_active;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_LEFT] =
+            player->grabbox_left_q16;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_RIGHT] =
+            player->grabbox_right_q16;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_TOP] =
+            player->grabbox_top_q16;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRABBOX_BOTTOM] =
+            player->grabbox_bottom_q16;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_GRAB_ESCAPE_TICKS] =
+            (int32_t)player->grab_escape_ticks;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRAB_TARGET] =
+            (int32_t)player->grab_target;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER] =
+            (int32_t)player->grab_owner;
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
         (int32_t)pf_web_m4_last_result.event_count;
@@ -7052,6 +7259,7 @@ int pf_web_m4_playtest_start(void)
     int zero_to_death_probe_passed;
     int ledge_cancel_probe_passed;
     int planking_probe_passed;
+    int jump_cancelled_grab_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -7106,6 +7314,8 @@ int pf_web_m4_playtest_start(void)
     ledge_cancel_probe_passed =
         pf_web_m4_run_ledge_cancel_probe();
     planking_probe_passed = pf_web_m4_run_planking_probe();
+    jump_cancelled_grab_probe_passed =
+        pf_web_m4_run_jump_cancelled_grab_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -7149,6 +7359,7 @@ int pf_web_m4_playtest_start(void)
         zero_to_death_probe_passed == 0 ||
         ledge_cancel_probe_passed == 0 ||
         planking_probe_passed == 0 ||
+        jump_cancelled_grab_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -7192,6 +7403,7 @@ int pf_web_m4_playtest_start(void)
         zero_to_death_probe_passed,
         ledge_cancel_probe_passed,
         planking_probe_passed,
+        jump_cancelled_grab_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

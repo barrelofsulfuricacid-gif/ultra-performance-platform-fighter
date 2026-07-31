@@ -501,6 +501,66 @@ int pf_m4_attack_hitbox(
     return 1;
 }
 
+int pf_m4_grabbox(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    int32_t *out_left_q16,
+    int32_t *out_right_q16,
+    int32_t *out_top_q16,
+    int32_t *out_bottom_q16)
+{
+    const pf_m4_fighter_data *fighter;
+    const uint16_t active_begin =
+        content != NULL
+            ? (uint16_t)(content->fighter.grab_startup_ticks +
+                         UINT16_C(1))
+            : UINT16_C(0);
+    const uint16_t active_end =
+        content != NULL
+            ? (uint16_t)(content->fighter.grab_startup_ticks +
+                         content->fighter.grab_active_ticks)
+            : UINT16_C(0);
+    int64_t center_x;
+    int64_t center_y;
+
+    if (content == NULL ||
+        out_left_q16 == NULL ||
+        out_right_q16 == NULL ||
+        out_top_q16 == NULL ||
+        out_bottom_q16 == NULL ||
+        action_state != (uint8_t)PF_M4_ACTION_GRAB ||
+        action_ticks < active_begin ||
+        action_ticks > active_end)
+    {
+        return 0;
+    }
+
+    fighter = &content->fighter;
+    center_x =
+        (int64_t)position_x_q16 +
+        (int64_t)facing * (int64_t)fighter->grabbox_offset_x_q16;
+    center_y =
+        (int64_t)position_y_q16 +
+        (int64_t)fighter->grabbox_offset_y_q16;
+    *out_left_q16 =
+        (int32_t)(center_x -
+                  (int64_t)fighter->grabbox_half_width_q16);
+    *out_right_q16 =
+        (int32_t)(center_x +
+                  (int64_t)fighter->grabbox_half_width_q16);
+    *out_top_q16 =
+        (int32_t)(center_y -
+                  (int64_t)fighter->grabbox_half_height_q16);
+    *out_bottom_q16 =
+        (int32_t)(center_y +
+                  (int64_t)fighter->grabbox_half_height_q16);
+    return 1;
+}
+
 static int pf_m4_hitbox_overlaps_player(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
@@ -529,6 +589,280 @@ static int pf_m4_hitbox_overlaps_player(
            hitbox_bottom_q16 >= hurtbox_top;
 }
 
+static void pf_m4_release_grab(
+    pf_sim_scratch *scratch,
+    uint32_t holder_index,
+    uint32_t target_index)
+{
+    scratch->grab_target_slot[holder_index] = UINT8_C(0);
+    scratch->grab_owner_slot[target_index] = UINT8_C(0);
+    scratch->grab_escape_ticks[target_index] = UINT16_C(0);
+    if (scratch->action_state[holder_index] ==
+        (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+    {
+        scratch->action_state[holder_index] =
+            (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
+        scratch->action_ticks[holder_index] = UINT16_C(0);
+    }
+    if (scratch->action_state[target_index] ==
+        (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        scratch->action_state[target_index] =
+            (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
+        scratch->action_ticks[target_index] = UINT16_C(0);
+    }
+}
+
+static pf_status pf_m4_break_player_grab_links(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t player_index)
+{
+    const uint8_t owner_slot = scratch->grab_owner_slot[player_index];
+    const uint8_t target_slot = scratch->grab_target_slot[player_index];
+
+    if (owner_slot != UINT8_C(0))
+    {
+        const uint32_t owner_index =
+            (uint32_t)owner_slot - UINT32_C(1);
+
+        if (owner_index >= (uint32_t)world->player_count ||
+            scratch->grab_target_slot[owner_index] !=
+                (uint8_t)(player_index + UINT32_C(1)))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        pf_m4_release_grab(scratch, owner_index, player_index);
+    }
+    if (target_slot != UINT8_C(0))
+    {
+        const uint32_t target_index =
+            (uint32_t)target_slot - UINT32_C(1);
+
+        if (target_index >= (uint32_t)world->player_count ||
+            scratch->grab_owner_slot[target_index] !=
+                (uint8_t)(player_index + UINT32_C(1)))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        pf_m4_release_grab(scratch, player_index, target_index);
+    }
+    return PF_STATUS_OK;
+}
+
+static uint16_t pf_m4_grab_escape_ticks(
+    const pf_m4_fighter_data *fighter,
+    uint32_t damage_q16)
+{
+    const uint64_t scaled =
+        (uint64_t)damage_q16 *
+        (uint64_t)(uint32_t)fighter->grab_escape_damage_ticks_q16;
+    uint32_t ticks =
+        (uint32_t)fighter->grab_escape_base_ticks +
+        (uint32_t)(scaled >> 32U);
+
+    if (ticks > (uint32_t)fighter->grab_escape_max_ticks)
+    {
+        ticks = (uint32_t)fighter->grab_escape_max_ticks;
+    }
+    return (uint16_t)ticks;
+}
+
+static pf_status pf_m4_resolve_grabs(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch)
+{
+    uint32_t holder_index;
+    uint32_t attacker_index;
+
+    for (holder_index = UINT32_C(0);
+         holder_index < (uint32_t)world->player_count;
+         ++holder_index)
+    {
+        const uint8_t target_slot =
+            scratch->grab_target_slot[holder_index];
+        uint32_t target_index;
+
+        if (target_slot == UINT8_C(0))
+        {
+            continue;
+        }
+        target_index = (uint32_t)target_slot - UINT32_C(1);
+        if (target_index >= (uint32_t)world->player_count ||
+            target_index == holder_index)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (scratch->active[holder_index] == UINT8_C(0) ||
+            scratch->active[target_index] == UINT8_C(0) ||
+            scratch->action_state[holder_index] !=
+                (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+            scratch->action_state[target_index] !=
+                (uint8_t)PF_M4_ACTION_GRABBED ||
+            scratch->grab_owner_slot[target_index] !=
+                (uint8_t)(holder_index + UINT32_C(1)))
+        {
+            pf_m4_release_grab(scratch, holder_index, target_index);
+            continue;
+        }
+        if (scratch->grab_escape_ticks[target_index] == UINT16_C(0))
+        {
+            pf_m4_release_grab(scratch, holder_index, target_index);
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    PF_SIM_EVENT_GRAB_ESCAPE,
+                    (uint8_t)target_index,
+                    (uint8_t)holder_index,
+                    scratch->damage_q16[target_index],
+                    INT32_C(0),
+                    INT32_C(0),
+                    UINT16_C(0),
+                    UINT16_C(0),
+                    NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            continue;
+        }
+
+        scratch->position_x_q16[target_index] =
+            scratch->position_x_q16[holder_index] +
+            (int32_t)scratch->facing[holder_index] *
+                content->fighter.grabbed_offset_x_q16;
+        scratch->position_y_q16[target_index] =
+            scratch->position_y_q16[holder_index] +
+            content->fighter.grabbed_offset_y_q16;
+        scratch->velocity_x_q16[target_index] = INT32_C(0);
+        scratch->velocity_y_q16[target_index] = INT32_C(0);
+        scratch->grounded[target_index] =
+            scratch->grounded[holder_index];
+        scratch->support[target_index] =
+            scratch->support[holder_index];
+    }
+
+    for (attacker_index = UINT32_C(0);
+         attacker_index < (uint32_t)world->player_count;
+         ++attacker_index)
+    {
+        int32_t grabbox_left;
+        int32_t grabbox_right;
+        int32_t grabbox_top;
+        int32_t grabbox_bottom;
+        uint32_t target_index;
+
+        if (scratch->active[attacker_index] == UINT8_C(0) ||
+            scratch->grab_target_slot[attacker_index] != UINT8_C(0) ||
+            scratch->grab_owner_slot[attacker_index] != UINT8_C(0) ||
+            !pf_m4_grabbox(
+                content,
+                scratch->position_x_q16[attacker_index],
+                scratch->position_y_q16[attacker_index],
+                scratch->facing[attacker_index],
+                scratch->action_state[attacker_index],
+                scratch->action_ticks[attacker_index],
+                &grabbox_left,
+                &grabbox_right,
+                &grabbox_top,
+                &grabbox_bottom))
+        {
+            continue;
+        }
+
+        for (target_index = UINT32_C(0);
+             target_index < (uint32_t)world->player_count;
+             ++target_index)
+        {
+            if (target_index == attacker_index ||
+                scratch->active[target_index] == UINT8_C(0) ||
+                scratch->grab_owner_slot[target_index] != UINT8_C(0) ||
+                scratch->grab_target_slot[target_index] != UINT8_C(0) ||
+                scratch->hitlag_ticks[target_index] != UINT16_C(0) ||
+                scratch->respawn_invulnerability_ticks[target_index] !=
+                    UINT16_C(0) ||
+                scratch->ledge_invulnerability_ticks[target_index] !=
+                    UINT16_C(0) ||
+                pf_m4_action_is_recovery_invulnerable(
+                    &content->fighter,
+                    scratch->action_state[target_index],
+                    scratch->action_ticks[target_index]) ||
+                (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
+                 world->team[attacker_index] ==
+                     world->team[target_index]) ||
+                !pf_m4_hitbox_overlaps_player(
+                    &content->fighter,
+                    scratch,
+                    target_index,
+                    grabbox_left,
+                    grabbox_right,
+                    grabbox_top,
+                    grabbox_bottom))
+            {
+                continue;
+            }
+
+            scratch->grab_target_slot[attacker_index] =
+                (uint8_t)(target_index + UINT32_C(1));
+            scratch->grab_owner_slot[target_index] =
+                (uint8_t)(attacker_index + UINT32_C(1));
+            scratch->grab_escape_ticks[target_index] =
+                pf_m4_grab_escape_ticks(
+                    &content->fighter,
+                    scratch->damage_q16[target_index]);
+            scratch->action_state[attacker_index] =
+                (uint8_t)PF_M4_ACTION_GRAB_HOLD;
+            scratch->action_ticks[attacker_index] = UINT16_C(0);
+            scratch->velocity_x_q16[attacker_index] = INT32_C(0);
+            scratch->action_state[target_index] =
+                (uint8_t)PF_M4_ACTION_GRABBED;
+            scratch->action_ticks[target_index] = UINT16_C(0);
+            scratch->position_x_q16[target_index] =
+                scratch->position_x_q16[attacker_index] +
+                (int32_t)scratch->facing[attacker_index] *
+                    content->fighter.grabbed_offset_x_q16;
+            scratch->position_y_q16[target_index] =
+                scratch->position_y_q16[attacker_index] +
+                content->fighter.grabbed_offset_y_q16;
+            scratch->velocity_x_q16[target_index] = INT32_C(0);
+            scratch->velocity_y_q16[target_index] = INT32_C(0);
+            scratch->pending_velocity_x_q16[target_index] = INT32_C(0);
+            scratch->pending_velocity_y_q16[target_index] = INT32_C(0);
+            scratch->hitlag_ticks[target_index] = UINT16_C(0);
+            scratch->hitstun_ticks[target_index] = UINT16_C(0);
+            scratch->shield_stun_ticks[target_index] = UINT16_C(0);
+            scratch->grounded[target_index] =
+                scratch->grounded[attacker_index];
+            scratch->support[target_index] =
+                scratch->support[attacker_index];
+            scratch->dash_direction[target_index] = INT8_C(0);
+            scratch->short_hop_latched[target_index] = UINT8_C(0);
+            scratch->fast_fall[target_index] = UINT8_C(0);
+            scratch->attack_hit_mask[target_index] = UINT8_C(0);
+            scratch->powershield[target_index] = UINT8_C(0);
+            scratch->tumble[target_index] = UINT8_C(0);
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    PF_SIM_EVENT_GRAB,
+                    (uint8_t)attacker_index,
+                    (uint8_t)target_index,
+                    scratch->damage_q16[target_index],
+                    INT32_C(0),
+                    INT32_C(0),
+                    UINT16_C(0),
+                    (uint16_t)PF_M4_ACTION_GRAB,
+                    NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            break;
+        }
+    }
+
+    return PF_STATUS_OK;
+}
+
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -546,6 +880,11 @@ pf_status pf_m4_resolve_combat(
     if (content == NULL || world == NULL || scratch == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
+    }
+
+    if (pf_m4_resolve_grabs(content, world, scratch) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
     (void)memset(target_owner, UINT8_MAX, sizeof(target_owner));
@@ -661,6 +1000,14 @@ pf_status pf_m4_resolve_combat(
                 attacker_action[owner],
                 scratch->action_ticks[owner],
                 &attack))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+
+        if (pf_m4_break_player_grab_links(
+                world,
+                scratch,
+                target_index) != PF_STATUS_OK)
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }

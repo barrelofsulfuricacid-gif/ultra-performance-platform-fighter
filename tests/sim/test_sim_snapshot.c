@@ -206,11 +206,11 @@ static int verify_wire_prefix(
 {
     static const uint8_t expected_magic[8] = {
         UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x37)};
+        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x38)};
 
-    if (save_size != (size_t)619 ||
+    if (save_size != (size_t)635 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
-        save_bytes[8] != UINT8_C(17) ||
+        save_bytes[8] != UINT8_C(18) ||
         save_bytes[9] != UINT8_C(0) ||
         save_bytes[10] != UINT8_C(140) ||
         save_bytes[11] != UINT8_C(0) ||
@@ -218,7 +218,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(18) ||
+        save_bytes[16] != UINT8_C(19) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(3) ||
         save_bytes[23] != UINT8_C(0) ||
@@ -325,7 +325,7 @@ int main(void)
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "query-save-size") ||
-        required_bytes != (size_t)619)
+        required_bytes != (size_t)635)
     {
         (void)fprintf(
             stderr,

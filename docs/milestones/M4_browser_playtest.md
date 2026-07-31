@@ -3,7 +3,8 @@
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
-wavedash/waveland, ledge-cancelling, and bounded ledge regrabs/planking,
+wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking, and
+jump-canceled standing grab with capture/mash escape,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction, and dense-shield
@@ -25,6 +26,7 @@ headless execution.
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
+| Standing grab / jump-canceled grab | Hold `G`, tap `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Shield platform drop | Hold trigger, then `Shift+S` | Hold trigger, then `Shift+Down` |
@@ -74,6 +76,16 @@ The inherited run momentum continues sliding under traction through the
 eight-tick minimum hold and 15-tick `SHIELD RELEASE`. Repeat while holding
 shield: the travel path is the same, but the fighter remains `SHIELD`. A shield
 tap from idle is the no-travel negative case.
+
+For a jump-canceled grab, begin `INITIAL DASH`, press jump, then hold shield
+and tap light attack during `JUMP SQUAT`. The fighter enters the standing
+`GRAB` while retaining forward slide, the exact two active frames draw a cyan
+grabbox, and contact enters reciprocal `GRAB HOLD` / `GRABBED` states. The
+victim card displays `MASH OUT · Nf`; alternate fresh full-left/right/down or
+button edges to reduce it faster than waiting. The feed records both `GRABBED` and
+escape events. Light-plus-shield directly during initial dash is rejected, as
+is the same combination after takeoff. From idle, light-plus-shield remains
+the ordinary standing-grab route.
 
 For a shield platform drop, land on the pass-through platform and raise shield.
 On a later tick, keep holding the trigger and press reduced down with
@@ -234,8 +246,8 @@ direction, and the last combat-event sequence.
 
 The event panel is driven by the ABI-4 per-tick journal rather than inferred
 from the rendered state. It shows canonical sequence/tick labels for hits,
-shield interactions, KOs, respawns, sudden death, results, forfeits, and time
-limits. The simulation returns at most 16 records for the current tick; the
+shield interactions, grabs, escapes, KOs, respawns, sudden death, results,
+forfeits, and time limits. The simulation returns at most 16 records for the current tick; the
 browser keeps only the newest ten as non-authoritative presentation history
 and clears them on Reset or any observed rewind.
 
@@ -622,6 +634,9 @@ through:
   edge on the first `SPECIAL LANDING` recovery tick, plus the same ordinary
   inputs at platform center remaining locked for all ten ticks before default
   content is restored;
+- initial dash into jump squat and standing grab with retained momentum,
+  reciprocal capture state, and a typed grab event, plus direct-dash and
+  post-takeoff grab-input rejection before default content is restored;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -681,7 +696,8 @@ small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
 mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
-zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass combat_probe=pass
+zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass
+jump_cancelled_grab_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

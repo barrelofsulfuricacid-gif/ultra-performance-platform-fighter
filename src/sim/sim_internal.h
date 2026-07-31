@@ -48,10 +48,13 @@ typedef struct pf_world_state
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t team[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
     uint8_t stocks_remaining[PF_SIM_MAX_PLAYERS];
+    uint8_t grab_target_slot[PF_SIM_MAX_PLAYERS];
+    uint8_t grab_owner_slot[PF_SIM_MAX_PLAYERS];
     uint8_t action_state[PF_SIM_MAX_PLAYERS];
     uint8_t support[PF_SIM_MAX_PLAYERS];
     uint8_t air_jumps_remaining[PF_SIM_MAX_PLAYERS];
@@ -101,9 +104,12 @@ typedef struct pf_sim_scratch
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
     uint8_t stocks_remaining[PF_SIM_MAX_PLAYERS];
+    uint8_t grab_target_slot[PF_SIM_MAX_PLAYERS];
+    uint8_t grab_owner_slot[PF_SIM_MAX_PLAYERS];
     uint8_t action_state[PF_SIM_MAX_PLAYERS];
     uint8_t support[PF_SIM_MAX_PLAYERS];
     uint8_t air_jumps_remaining[PF_SIM_MAX_PLAYERS];
@@ -188,6 +194,17 @@ pf_status pf_m4_resolve_combat(
     const pf_world_state *world,
     pf_sim_scratch *scratch);
 int pf_m4_attack_hitbox(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    int32_t *out_left_q16,
+    int32_t *out_right_q16,
+    int32_t *out_top_q16,
+    int32_t *out_bottom_q16);
+int pf_m4_grabbox(
     const pf_m4_content *content,
     int32_t position_x_q16,
     int32_t position_y_q16,

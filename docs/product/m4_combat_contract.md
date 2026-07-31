@@ -29,7 +29,7 @@ reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
 does not claim the remaining
 attacks, analog light shields, general shield tilt/size/pokes, shield SDI,
-grabs, projectile powershields, complete
+directional throws/regrabs/pummels, projectile powershields, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
@@ -146,8 +146,8 @@ The native oracle saves after rear-side aerial startup and compares 48 future
 hashes through block and landing. Browser readiness first walks both players to
 legal clear-stage space outside the moving platform, then repeats the rear
 block, early whiff, and front block through ordinary input. No cross-up-only
-state or content field was added; a shield-grab comparison remains tied to the
-future production grab fixture.
+state or content field was added; the production grab now makes a shield-grab
+comparison possible, but that remains future cross-up fixture coverage.
 
 ## Mindgame
 
@@ -682,13 +682,49 @@ immediately after release and compares every future canonical hash through all
 three regrabs; browser startup repeats both outcomes and restores default
 content.
 
+## Grab, capture, escape, and jump-canceled grab
+
+A fresh light-attack edge while a shield trigger is held selects the standing
+grab from idle, walk, crouch, shield, or `JUMP_SQUAT`. It does not select grab
+from `INITIAL_DASH`, `RUN`, or an airborne action. The ordinary advanced route
+therefore dashes, enters jump squat with jump, and selects grab on the next
+tick. The standing grab preserves inherited horizontal velocity and applies
+normal traction, matching the documented
+[jump-canceled-grab](https://www.ssbwiki.com/Jump-canceled_grab) behavior of
+interrupting dash with jump and entering standing grab during jump startup.
+No technique-only input bit or action exists; direct dash light-plus-shield
+and post-takeoff light-plus-shield are explicit negative routes.
+
+The authored grab has four startup ticks, two active grabbox ticks, and ten
+recovery ticks. Capture is deterministic by controller port, bypasses shield,
+rejects invulnerable or same-team targets, clears incompatible attack/reaction
+state, and links one attacker to one victim. `GRAB_HOLD` tethers the victim at
+the authored offset while `GRABBED` suppresses normal movement and attacks.
+The initial escape timer is 30 ticks plus one tenth of a tick per damage
+percent, capped at 90. It decrements naturally once per tick; each fresh
+button, full-horizontal, or full-down edge removes three additional ticks,
+while held input never repeats the reduction. Natural or mash escape emits a typed event,
+clears both reciprocal links, and gives both fighters eight ticks of
+`GRAB_RELEASE`. Directional throws and regrabs remain the next M4 grab slice.
+
+The native oracle covers shielded and ordinary capture, exact active frames,
+natural and mash escape boundaries, invulnerable spot-dodge rejection,
+direct-dash and airborne negatives, retained dash momentum, typed events, and
+mid-hold save/load with equal future hashes. Browser startup repeats the
+jump-cancel route and both negatives; browser view schema 15 renders the cyan
+grabbox, `GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
+links, and the victim's `MASH OUT · Nf` countdown.
+
 ## Canonical state and inspection
 
-State schema 18 / save format 17 expands the stream to 619 bytes (140-byte
-header plus 479-byte payload) and changes the active magic to `PFSAVE17`. It
-adds one remaining ledge-regrab-lockout timer per player. It follows state
-schema 17 / save format 16, which added one remaining ledge-invulnerability
-timer per player. The invulnerability timer is
+State schema 19 / save format 18 expands the stream to 635 bytes (140-byte
+header plus 495-byte payload) and changes the active magic to `PFSAVE18`. It
+adds one escape timer, one target slot, and one owner slot per player; load
+requires every live link to be in range, reciprocal, and action-compatible.
+It follows state schema 18 / save format 17, which added one remaining
+ledge-regrab-lockout timer per player, and state schema 17 / save format 16,
+which added one remaining ledge-invulnerability timer per player. The
+invulnerability timer is
 refreshed by a legal catch, survives ledge options, and participates in the
 same production hit-ownership rejection as other invulnerability. It follows
 state schema 16 / save format 15, which retained the 603-byte stream and added the
@@ -714,8 +750,11 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 20 / fighter schema 20 adds and hashes the 29-tick ledge-regrab
-lockout. It follows schema 19's reduced-down shield platform-drop threshold,
+Content schema 21 / fighter schema 21 adds and hashes grabbox geometry, held
+offset, damage-scaled escape duration, startup/active/recovery timing,
+base/maximum escape timing, fresh-input mash reduction, and release timing. It
+follows schema 20's 29-tick ledge-regrab lockout and schema 19's reduced-down
+shield platform-drop threshold,
 schema 18's validated V-cancel velocity
 scale and input window and schema 17's validated drop-cancel
 snap distance and nine-tick default platform pass timer and schema 16's
@@ -734,15 +773,17 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 15 additionally exposes the exact remaining
-ledge-invulnerability and regrab-lockout timers. It retains schema 14's
+Inspection schema 16 additionally exposes grabbox bounds/active state, escape
+ticks, and reciprocal target/owner slots. It retains schema 15's exact
+remaining ledge-invulnerability and regrab-lockout timers and schema 14's
 percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 14 retains its derived
-invulnerability marker rather than exporting either exact ledge timer, and
+sudden death, and result. Browser view schema 15 carries the grab fields and
+retains its derived invulnerability marker rather than exporting either exact
+ledge timer, and
 carries the prior combat fields plus the canonical action timer, floor action semantics,
 the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
@@ -757,7 +798,7 @@ renders the down phase prone, and gives vulnerable stun an orbiting-star
 Every successful ABI-4 tick returns a zero-initialized fixed-capacity journal
 of up to 16 typed events. Current combat and match producers emit:
 
-- hit, shield block, powershield, and shield break;
+- hit, shield block, powershield, shield break, grab, and grab escape;
 - KO and respawn, including remaining-stock, elimination, and sudden-death
   flags;
 - sudden-death setup, match result, forfeit, and time limit.
@@ -772,6 +813,8 @@ and event order follow stable slot order, with match resolution last.
 | Hit | Attack damage / pending launch | Attacker action |
 | Shield block, powershield, hit-caused shield break | Applied shield damage / physical pushback | Attacker action |
 | Hold-depletion shield break | Actual depleted shield health / upward launch | Zero |
+| Grab | Victim percent / zero | Grab action |
+| Grab escape | Victim percent / zero | Zero |
 | KO | Pre-reset percent / blast-crossing velocity | Stocks remaining |
 | Respawn | Respawn percent / spawn velocity | Invulnerability ticks |
 | Sudden death | `300%` / zero | Player count |
@@ -791,8 +834,8 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 330 focused
-mechanics invariants plus 30 journal invariants, including:
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 398 focused
+mechanics invariants plus 42 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
@@ -809,6 +852,12 @@ mechanics invariants plus 30 journal invariants, including:
   launch components with unchanged hitstun/tumble, grounded and aerial-attack
   exclusions, repeated-trigger lockout, invalid data, and byte-identical
   mid-route save/load event/hash continuation;
+- exact grab startup/active/recovery phases, shield bypass, spot-dodge and
+  same-team rejection, lower-port collision priority, reciprocal capture
+  links, percent scaling/cap, natural and fresh-input mash escape, jump-squat
+  cancel with retained dash momentum, direct-dash and airborne negatives,
+  typed grab/escape events, invalid data, and mid-hold save/load event/hash
+  continuation;
 - the responder's short jab whiffing at the safe 1.95-unit band before a
   longer strong counter connects during recovery, the 1.7-unit close punish,
   2.25-unit double whiff, safe-tip shield block, and mid-counter save/load with
@@ -890,12 +939,13 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,311-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,327-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, planking, ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
+drop-cancel, V-cancel, planking, jump-canceled-grab, ground-dodge, air-dodge,
+attack, reaction, shield, shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
 strong-launches the target, follows its airborne path, reacts separately to
 tech in place and a right tech roll, jabs after invulnerability, and requires a

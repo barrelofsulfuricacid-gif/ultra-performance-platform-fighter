@@ -156,6 +156,13 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(
         hash,
         fighter->shield_attacker_pushback_base_q16);
+    pf_m4_hash_i32(hash, fighter->grabbox_offset_x_q16);
+    pf_m4_hash_i32(hash, fighter->grabbox_offset_y_q16);
+    pf_m4_hash_i32(hash, fighter->grabbox_half_width_q16);
+    pf_m4_hash_i32(hash, fighter->grabbox_half_height_q16);
+    pf_m4_hash_i32(hash, fighter->grabbed_offset_x_q16);
+    pf_m4_hash_i32(hash, fighter->grabbed_offset_y_q16);
+    pf_m4_hash_i32(hash, fighter->grab_escape_damage_ticks_q16);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(
@@ -277,6 +284,13 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(
         hash,
         fighter->shield_break_mash_reduction_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_startup_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_active_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_recovery_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_escape_base_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_escape_max_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_mash_reduction_ticks);
+    pf_m4_hash_u16(hash, fighter->grab_release_ticks);
     pf_m4_hash_u8(hash, fighter->air_jump_count);
     pf_m4_hash_u8(
         hash,
@@ -461,6 +475,13 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         PF_Q16_RATIO(7, 100);
     fighter->shield_attacker_pushback_base_q16 =
         PF_Q16_RATIO(1, 50);
+    fighter->grabbox_offset_x_q16 = PF_Q16_RATIO(3, 4);
+    fighter->grabbox_offset_y_q16 = INT32_C(0);
+    fighter->grabbox_half_width_q16 = PF_Q16_RATIO(1, 2);
+    fighter->grabbox_half_height_q16 = PF_Q16_RATIO(7, 10);
+    fighter->grabbed_offset_x_q16 = PF_Q16_RATIO(3, 5);
+    fighter->grabbed_offset_y_q16 = INT32_C(0);
+    fighter->grab_escape_damage_ticks_q16 = PF_Q16_RATIO(1, 10);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
@@ -542,6 +563,13 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->shield_break_down_ticks = UINT16_C(30);
     fighter->shield_break_stand_ticks = UINT16_C(30);
     fighter->shield_break_mash_reduction_ticks = UINT16_C(3);
+    fighter->grab_startup_ticks = UINT16_C(4);
+    fighter->grab_active_ticks = UINT16_C(2);
+    fighter->grab_recovery_ticks = UINT16_C(10);
+    fighter->grab_escape_base_ticks = UINT16_C(30);
+    fighter->grab_escape_max_ticks = UINT16_C(90);
+    fighter->grab_mash_reduction_ticks = UINT16_C(3);
+    fighter->grab_release_ticks = UINT16_C(8);
     fighter->air_jump_count = UINT8_C(1);
     fighter->powershield_cancel_enabled = UINT8_C(1);
 
@@ -1110,6 +1138,48 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             UINT16_C(0) ||
         fighter->shield_break_mash_reduction_ticks >
             UINT16_C(60) ||
+        fighter->grabbox_offset_x_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->grabbox_offset_x_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->grabbox_offset_y_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->grabbox_offset_y_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->grabbox_half_width_q16 <= INT32_C(0) ||
+        fighter->grabbox_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->grabbox_half_height_q16 <= INT32_C(0) ||
+        fighter->grabbox_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->grabbed_offset_x_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->grabbed_offset_x_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->grabbed_offset_y_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->grabbed_offset_y_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->grab_escape_damage_ticks_q16 < INT32_C(0) ||
+        fighter->grab_escape_damage_ticks_q16 > PF_Q16_ONE ||
+        fighter->grab_startup_ticks == UINT16_C(0) ||
+        fighter->grab_startup_ticks > UINT16_C(120) ||
+        fighter->grab_active_ticks == UINT16_C(0) ||
+        fighter->grab_active_ticks > UINT16_C(120) ||
+        fighter->grab_recovery_ticks == UINT16_C(0) ||
+        fighter->grab_recovery_ticks > UINT16_C(240) ||
+        (uint32_t)fighter->grab_startup_ticks +
+                (uint32_t)fighter->grab_active_ticks +
+                (uint32_t)fighter->grab_recovery_ticks >
+            UINT32_C(600) ||
+        fighter->grab_escape_base_ticks == UINT16_C(0) ||
+        fighter->grab_escape_max_ticks <
+            fighter->grab_escape_base_ticks ||
+        fighter->grab_escape_max_ticks > UINT16_C(600) ||
+        fighter->grab_mash_reduction_ticks == UINT16_C(0) ||
+        fighter->grab_mash_reduction_ticks > UINT16_C(60) ||
+        fighter->grab_release_ticks == UINT16_C(0) ||
+        fighter->grab_release_ticks > UINT16_C(120) ||
         fighter->air_jump_count > UINT8_C(8) ||
         fighter->powershield_cancel_enabled > UINT8_C(1))
     {

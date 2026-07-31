@@ -14,7 +14,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
   ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
-  kill-confirm, zero-to-death, and platform-sharking routes, plus two-pad
+  kill-confirm, zero-to-death, platform-sharking, and jump-canceled-grab
+  routes, plus two-pad
   browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
@@ -324,8 +325,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   The planking slice advances state schema to 18/save format 17,
   content/fighter schema to 20, and inspection schema to 15 for a canonical
   29-tick disabled-regrab timer and exact timer inspection.
-  Config/observation/identity schema 2, browser view schema 14, and RL schema
-  4 remain current. The canonical save is 619 bytes.
+  The grab slice advances state schema to 19/save format 18,
+  content/fighter schema to 21, inspection schema to 16, and browser view
+  schema to 15 for reciprocal capture links, escape timing, grab geometry,
+  and browser observability. Config/observation/identity schema 2 and RL
+  schema 4 remain current. The canonical save is 635 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -425,6 +429,31 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Content/fighter schema 20 hashes and validates the 29-tick default;
   inspection schema 15 exposes both exact ledge timers. Registry row 36,
   Planking, advances to `playable`.
+
+## Delivered in the jump-canceled-grab slice
+
+- Fresh light attack while shield is held selects a four-startup/two-active/
+  ten-recovery standing grab from ordinary grounded states and jump squat.
+  Shield cannot block capture; invulnerability and same-team ownership reject
+  it, and stable controller-port order resolves competing attackers.
+- Capture enters reciprocal `GRAB_HOLD`/`GRABBED` state and tethers the victim.
+  The 30-to-90-tick percent-scaled escape timer counts down naturally, while
+  fresh button, full-horizontal, or full-down edges remove three extra ticks and held inputs do not
+  repeat. Escape clears both links and emits an eight-tick `GRAB_RELEASE`.
+- Initial dash cannot grab directly. Dash into jump squat and light-plus-shield
+  on the next tick enters standing grab while retaining positive dash momentum;
+  the same input after takeoff remains an ordinary airborne action.
+- The native oracle covers exact phases, shielded capture, spot-dodge and
+  same-team rejection, lower-port priority, percent scaling/cap, natural/mash
+  escape, direct-dash and airborne negatives, typed grab/escape events,
+  invalid content, and mid-hold save/load equality. Browser startup
+  repeats the route and negatives before readiness, then exposes the cyan
+  grabbox, reciprocal links, action labels, and escape countdown.
+- State schema 19/save format 18 and `PFSAVE18` add one 16-bit escape timer and
+  two one-byte link slots per player, expanding the checkpoint from 619 to 635
+  bytes. Content/fighter schema 21 and inspection schema 16 carry the authored
+  grab data; browser view schema 15 carries the observable grab state. Registry
+  row 26, Jump-canceled grab, advances to `playable`.
 
 ## Delivered in the instant-double-jump slice
 
@@ -680,9 +709,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   future hashes through the physical shield block and landing. Browser
   readiness walks both players to clear legal space on the default stage, then
   repeats the rear block, early whiff, and front block with ordinary input.
-- Registry row 8, Cross-up, advances from `planned` to `playable`; the future
-  production grab fixture must add the shield-grab comparison before complete
-  verification, and owner execution remains required.
+- Registry row 8, Cross-up, advances from `planned` to `playable`; the
+  production grab now exists, but a focused shield-grab comparison and owner
+  execution remain before complete verification.
 
 ## Delivered in the mindgame route
 
@@ -698,7 +727,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   front-block control pass together. The constituent native ground and aerial
   save/load oracles supply deterministic continuation evidence.
 - Registry row 32, Mindgame, advances from `planned` to `playable`; broader
-  conditioning history, the future grab mixup, and owner execution remain
+  conditioning history, a focused grab-mixup branch, and owner execution remain
   before `verified`.
 
 ## Delivered in the juggling route
@@ -881,7 +910,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  juggling, kill confirm, ladder, ledge-cancelling, mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
+  juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
+  mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -892,7 +922,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 34 playable, 4 primitive-ready, and 22 planned.
+  blocked: 1 verified, 35 playable, 4 primitive-ready, and 21 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -908,7 +938,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.2 and M4.3 work
 
-- Remaining ground attacks, aerials, specials, recovery, grabs/throws, analog
+- Remaining ground attacks, aerials, specials, recovery, directional throws,
+  regrabs/pummels, analog
   light shield, shield size/tilt/pokes and shield SDI,
   projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
@@ -925,20 +956,20 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 204 movement invariants, 366
+- Mechanical oracles: 204 movement invariants, 398
   attack/reaction/shield/floor/surface
-  invariants plus 30 combat-journal invariants, 24 stock/respawn/result
+  invariants plus 42 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,311
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,327
   bytes,
   replay SHA-256
-  `6078e1428783c2c3dcd3e423515023f65d214c34c03eb9b8fc41a9f7f3a7270c`,
+  `03243c053949a602fecbb56f83a63b6f71d6f7df2d552079b412989c8a8fc426`,
   final SHA-256
-  `d8e9cae6ef79561d07ccf6de41f64251e7546d25974ef624cc770c5da4fcccf1`,
+  `812770580726410ecf71653e93844eb25fdfeeabaa553a95d809588cf3afdd52`,
   and event-journal SHA-256
   `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -949,7 +980,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

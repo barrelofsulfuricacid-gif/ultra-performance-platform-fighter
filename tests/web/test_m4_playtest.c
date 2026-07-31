@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 256
+#define TEST_VIEW_COUNT 272
 #define TEST_PLAYER0_BASE 25
+#define TEST_PLAYER_STRIDE 43
+#define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
 #define TEST_SOLID_TOP 16
@@ -27,8 +29,12 @@
 #define TEST_STOCK_COUNT 18
 #define TEST_RESPAWN_DELAY 19
 #define TEST_RESPAWN_INVULNERABILITY 20
-#define TEST_EVENT_COUNT 95
-#define TEST_EVENT0 96
+#define TEST_PLAYER_GRABBOX_ACTIVE 35
+#define TEST_PLAYER_GRAB_ESCAPE_TICKS 40
+#define TEST_PLAYER_GRAB_TARGET 41
+#define TEST_PLAYER_GRAB_OWNER 42
+#define TEST_EVENT_COUNT 111
+#define TEST_EVENT0 112
 #define TEST_EVENT_SEQUENCE 0
 #define TEST_EVENT_TICK 1
 #define TEST_EVENT_TYPE 2
@@ -64,6 +70,7 @@ static int test_kill_confirm_probe;
 static int test_zero_to_death_probe;
 static int test_ledge_cancel_probe;
 static int test_planking_probe;
+static int test_jump_cancelled_grab_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
@@ -107,6 +114,7 @@ void pf_web_m4_playtest_install(
     int zero_to_death_probe_passed,
     int ledge_cancel_probe_passed,
     int planking_probe_passed,
+    int jump_cancelled_grab_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -153,6 +161,7 @@ void pf_web_m4_playtest_install(
     int zero_to_death_probe_passed,
     int ledge_cancel_probe_passed,
     int planking_probe_passed,
+    int jump_cancelled_grab_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -198,6 +207,8 @@ void pf_web_m4_playtest_install(
     test_zero_to_death_probe = zero_to_death_probe_passed;
     test_ledge_cancel_probe = ledge_cancel_probe_passed;
     test_planking_probe = planking_probe_passed;
+    test_jump_cancelled_grab_probe =
+        jump_cancelled_grab_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
@@ -338,6 +349,7 @@ int main(void)
         test_zero_to_death_probe != 1 ||
         test_ledge_cancel_probe != 1 ||
         test_planking_probe != 1 ||
+        test_jump_cancelled_grab_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
@@ -352,12 +364,16 @@ int main(void)
         test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 14 ||
+        test_view[0] != 15 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
         test_view[TEST_RESPAWN_INVULNERABILITY] != 120 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRABBOX_ACTIVE] != 0 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_ESCAPE_TICKS] != 0 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET] != 255 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_OWNER] != 255 ||
         test_view[TEST_EVENT_COUNT] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
@@ -386,6 +402,7 @@ int main(void)
             "zero_to_death_probe=%d "
             "ledge_cancel_probe=%d "
             "planking_probe=%d "
+            "jump_cancelled_grab_probe=%d "
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
             "tumble_probe=%d "
@@ -423,6 +440,7 @@ int main(void)
             test_zero_to_death_probe,
             test_ledge_cancel_probe,
             test_planking_probe,
+            test_jump_cancelled_grab_probe,
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
@@ -440,6 +458,87 @@ int main(void)
             (int)test_view[0],
             (int)test_view[1]);
         return fail("start-and-input-probe");
+    }
+
+    {
+        uint32_t tick;
+        int grab_seen = 0;
+
+        if (!pf_web_m4_playtest_reset())
+        {
+            return fail("browser-grab-reset");
+        }
+        for (tick = UINT32_C(0); tick < UINT32_C(23); ++tick)
+        {
+            if (!pf_web_m4_playtest_step(
+                    test_dash_axis,
+                    0,
+                    0,
+                    0,
+                    0,
+                    -test_dash_axis,
+                    0,
+                    0,
+                    0,
+                    0))
+            {
+                return fail("browser-grab-approach");
+            }
+        }
+        if (!pf_web_m4_playtest_step(
+                0, 0, 1, 0, 0, 0, 0, 0, 0, 1) ||
+            !pf_web_m4_playtest_step(
+                0, 0, 0, 1, 1, 0, 0, 0, 0, 1))
+        {
+            return fail("browser-grab-entry");
+        }
+        for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+        {
+            if (test_view[TEST_EVENT_COUNT] == 1 &&
+                test_view[TEST_EVENT0 + TEST_EVENT_TYPE] == 11)
+            {
+                grab_seen = 1;
+                break;
+            }
+            if (!pf_web_m4_playtest_step(
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 1))
+            {
+                return fail("browser-grab-active-step");
+            }
+        }
+        if (grab_seen == 0 ||
+            test_view[TEST_EVENT0 + TEST_EVENT_SOURCE] != 0 ||
+            test_view[TEST_EVENT0 + TEST_EVENT_TARGET] != 1 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 50 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET] != 1 ||
+            test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION] != 51 ||
+            test_view[TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_OWNER] != 0 ||
+            test_view[
+                TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_ESCAPE_TICKS] <= 0 ||
+            !pf_web_m4_playtest_reset())
+        {
+            (void)fprintf(
+                stderr,
+                "m4-browser-adapter=debug operation=browser-grab-view "
+                "seen=%d events=%d type=%d source=%d target=%d "
+                "p0_x=%d p1_x=%d p0_facing=%d p0_action=%d p0_target=%d p1_action=%d p1_owner=%d "
+                "escape=%d\n",
+                grab_seen,
+                (int)test_view[TEST_EVENT_COUNT],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_TYPE],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_SOURCE],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_TARGET],
+                (int)test_view[TEST_PLAYER0_BASE],
+                (int)test_view[TEST_PLAYER1_BASE],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_OWNER],
+                (int)test_view[
+                    TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_ESCAPE_TICKS]);
+            return fail("browser-grab-view-and-event");
+        }
     }
 
     if (!pf_web_m4_playtest_step(
@@ -772,6 +871,7 @@ int main(void)
         "zero_to_death_probe=%d "
         "ledge_cancel_probe=%d "
         "planking_probe=%d "
+        "jump_cancelled_grab_probe=%d "
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
         "powershield_cancel_probe=%d tumble_probe=%d "
@@ -806,6 +906,7 @@ int main(void)
         test_zero_to_death_probe,
         test_ledge_cancel_probe,
         test_planking_probe,
+        test_jump_cancelled_grab_probe,
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,
