@@ -59,7 +59,10 @@ grep -Fq \
     'held("ShiftLeft") || held("ShiftRight")' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'playtest=ready input_probe=' \
+    '" playtest="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" input_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '" air_facing_probe="' \
