@@ -81,9 +81,9 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–18 remain historical checkpoints. The current M4
-movement/combat state uses save format 19: a fixed 635-byte checkpoint with
-state schema 20 and canonical solid-surface tech/bounce,
+Save formats 1–19 remain historical checkpoints. The current M4
+movement/combat state uses save format 20: a fixed 635-byte checkpoint with
+state schema 21 and canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
@@ -93,9 +93,11 @@ respawn-wait/eliminated actions, sudden-death state, and the authoritative
 monotonic event sequence. It also defines the shield-break
 flight/down/stand/stun action semantics, independent remaining
 ledge-invulnerability and 29-tick disabled-regrab timers, and reciprocal
-grab owner/target links plus escape timers per player. State schema 20 adds the
-four directional throw action IDs and makes startup-link, atomic release,
-hitlag-resume, recovery, and typed-event semantics fail closed without changing
+grab owner/target links plus escape timers per player. State schema 20 added the
+four directional throw action IDs and made startup-link, atomic release,
+hitlag-resume, recovery, and typed-event semantics fail closed. State schema 21
+adds the dash-attack action ID and makes its authored run entry, hitlag resume,
+and three-frame boost-grab cancel semantics fail closed, again without changing
 the byte layout. Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

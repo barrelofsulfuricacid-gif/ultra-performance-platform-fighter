@@ -11,9 +11,12 @@ missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, dashing shield, shield platform dropping,
 shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
-physical powershielding, frame-2 powershield canceling into either current
-production ground attack, and the hitlag-assisted same-platform drop-cancel
+physical powershielding, frame-2 powershield canceling into either supported
+standing ground attack, and the hitlag-assisted same-platform drop-cancel
 route, plus three-frame V-cancelling of eligible airborne launch.
+The production dash attack and its three-frame grab-cancel window now compose
+with the standing grab to provide ordinary dash grab and boost grab through
+the same input, movement, collision, hit, and capture paths.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
 
@@ -685,15 +688,17 @@ content.
 ## Grab, capture, escape, and jump-canceled grab
 
 A fresh light-attack edge while a shield trigger is held selects the standing
-grab from idle, walk, crouch, shield, or `JUMP_SQUAT`. It does not select grab
-from `INITIAL_DASH`, `RUN`, or an airborne action. The ordinary advanced route
-therefore dashes, enters jump squat with jump, and selects grab on the next
-tick. The standing grab preserves inherited horizontal velocity and applies
-normal traction, matching the documented
+grab from idle, walk, crouch, shield, `RUN`, or `JUMP_SQUAT`. It does not select
+grab from `INITIAL_DASH` or an airborne action. A direct selection from `RUN`
+is the ordinary dash grab. The jump-canceled advanced route instead begins in
+initial dash, enters jump squat with jump, and selects grab on the next tick.
+The standing grab preserves inherited horizontal velocity and applies normal
+traction, matching the documented
 [jump-canceled-grab](https://www.ssbwiki.com/Jump-canceled_grab) behavior of
 interrupting dash with jump and entering standing grab during jump startup.
-No technique-only input bit or action exists; direct dash light-plus-shield
-and post-takeoff light-plus-shield are explicit negative routes.
+No technique-only input bit or action exists; direct initial-dash
+light-plus-shield and post-takeoff light-plus-shield are explicit negative
+routes.
 
 The authored grab has four startup ticks, two active grabbox ticks, and ten
 recovery ticks. Capture is deterministic by controller port, bypasses shield,
@@ -709,11 +714,41 @@ clears both reciprocal links, and gives both fighters eight ticks of
 
 The native oracle covers shielded and ordinary capture, exact active frames,
 natural and mash escape boundaries, invulnerable spot-dodge rejection,
-direct-dash and airborne negatives, retained dash momentum, typed events, and
+direct-initial-dash and airborne negatives, retained dash momentum, typed
+events, and
 mid-hold save/load with equal future hashes. Browser startup repeats the
-jump-cancel route and both negatives; browser view schema 16 renders the cyan
+jump-cancel route and both negatives; browser view schema 17 renders the cyan
 grabbox, `GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
 links, and the victim's `MASH OUT · Nf` countdown.
+
+## Dash attack and boost grab
+
+A fresh light-attack edge from `RUN` enters the production `DASH_ATTACK` and
+sets horizontal velocity to the authored `7/20` unit-per-tick speed before
+ordinary fighter traction. Its independent forward hitbox deals 8%, has four
+startup ticks, three active ticks, 12 recovery ticks, and five hitlag ticks,
+and emits the ordinary typed `HIT` event with `DASH_ATTACK` in `detail`.
+Damage, signed launch, hitbox geometry, speed, phase durations, and hitlag are
+all hashed and validated fighter content rather than technique-only fixtures.
+
+The documented [boost grab](https://www.ssbwiki.com/Boost_grab) route adds a
+fresh shield while the attack button remains held, or a fresh light attack
+while shield remains held, during stored action ticks 1–3. Those inputs are
+the second through fourth dash-attack frames: the initiation frame cannot
+cancel. The legal cancel enters the existing standing `GRAB` without replacing
+the dash-attack velocity, so the faster forward slide reaches a target that
+the ordinary run-to-grab route misses. Light plus shield together on the
+initial `RUN` tick selects the ordinary dash grab, not boost grab. Input after
+the stored tick-3 boundary leaves `DASH_ATTACK` intact.
+
+The native oracle compares exact ordinary and boosted velocities and active
+positions, requires the ordinary range whiff and boosted capture, rejects the
+late cancel, independently proves the dash attack's first active-frame damage
+and typed identity, rejects invalid speed/cancel data, and saves on stored
+dash-attack tick 1 before comparing every future hash and event through
+capture. Browser startup repeats the ordinary, boost, late, and dash-hit routes
+before exposing readiness; the live adapter labels the production action
+`DASH ATTACK`.
 
 ## Directional throws and chain grab
 
@@ -756,11 +791,14 @@ four action labels and the typed throw event.
 
 ## Canonical state and inspection
 
-State schema 20 / save format 19 retains the 635-byte stream (140-byte header
-plus 495-byte payload) and changes the active magic to `PFSAVE19`. It makes the
-four throw action IDs, thrower hitlag resume, startup-link, atomic release, and
-post-release recovery semantics fail closed without adding mutable fields. It
-follows state schema 19 / save format 18, which added one escape timer, one
+State schema 21 / save format 20 retains the 635-byte stream (140-byte header
+plus 495-byte payload) and changes the active magic to `PFSAVE20`. It makes the
+`DASH_ATTACK` action ID, hitlag resume, authored action schedule, run entry,
+and boost-grab cancel semantics fail closed without adding mutable fields. It
+follows state schema 20 / save format 19, which made the four throw action IDs,
+thrower hitlag resume, startup-link, atomic release, and post-release recovery
+semantics fail closed without adding mutable fields. That format follows state
+schema 19 / save format 18, which added one escape timer, one
 target slot, and one owner slot per player; load requires every live link to be
 in range, reciprocal, and action-compatible. That format follows state schema
 18 / save format 17, which added one remaining
@@ -792,9 +830,12 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 22 / fighter schema 22 adds and hashes all four throws' damage,
-signed base launch and per-percent growth, release tick, recovery, and hitlag.
-It follows schema 21's grabbox geometry, held offset, damage-scaled escape
+Content schema 23 / fighter schema 23 adds and hashes dash-attack speed,
+hitbox geometry, damage, signed base launch and per-percent growth, startup,
+active, recovery, hitlag, and the boost-grab cancel window. It follows schema
+22's four throws' damage, signed base launch and per-percent growth, release
+tick, recovery, and hitlag, and schema 21's grabbox geometry, held offset,
+damage-scaled escape
 duration, startup/active/recovery timing, base/maximum escape timing,
 fresh-input mash reduction, and release timing, schema 20's 29-tick
 ledge-regrab lockout, and schema 19's reduced-down
@@ -817,8 +858,9 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 17 identifies the new content/state contract while retaining
-schema 16's grabbox bounds/active state, escape ticks, and reciprocal
+Inspection schema 18 identifies the dash-attack content/state contract while
+retaining schema 17's throw contract and schema 16's grabbox bounds/active
+state, escape ticks, and reciprocal
 target/owner slots. It retains schema 15's exact
 remaining ledge-invulnerability and regrab-lockout timers and schema 14's
 percent, hitlag, hitstun, tumble, tech window and
@@ -826,8 +868,9 @@ lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 16 carries the throw action/event
-identities plus the grab fields and
+sudden death, and result. Browser view schema 17 carries `DASH ATTACK`, the
+boost-grab readiness probe, the throw action/event identities, and the grab
+fields. It
 retains its derived invulnerability marker rather than exporting either exact
 ledge timer, and
 carries the prior combat fields plus the canonical action timer, floor action semantics,
@@ -881,7 +924,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 444 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 471 focused
 mechanics invariants plus 50 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -911,6 +954,11 @@ mechanics invariants plus 50 journal invariants, including:
   reciprocal link clearing, typed throw events, a three-throw/two-regrab chain,
   a 96% outward-DI regrab whiff, invalid throw data, and mid-chain save/load
   event/hash continuation;
+- ordinary dash grab at run momentum; production dash-attack entry, inactive
+  startup, exact authored active hit and typed identity; boost-grab cancellation
+  on the three legal frames with faster retained momentum and expanded-range
+  capture; same-frame ordinary selection and late-cancel rejection; invalid
+  speed/window data; and mid-dash-attack save/load event/hash continuation;
 - the responder's short jab whiffing at the safe 1.95-unit band before a
   longer strong counter connects during recovery, the 1.7-unit close punish,
   2.25-unit double whiff, safe-tip shield block, and mid-counter save/load with
@@ -997,7 +1045,8 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, planking, jump-canceled-grab, ground-dodge, air-dodge,
+drop-cancel, V-cancel, planking, jump-canceled-grab, boost-grab, chain-grab,
+ground-dodge, air-dodge,
 attack, reaction, shield, shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
 strong-launches the target, follows its airborne path, reacts separately to

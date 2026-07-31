@@ -72,6 +72,7 @@ static int test_zero_to_death_probe;
 static int test_ledge_cancel_probe;
 static int test_planking_probe;
 static int test_jump_cancelled_grab_probe;
+static int test_boost_grab_probe;
 static int test_chain_grab_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
@@ -117,6 +118,7 @@ void pf_web_m4_playtest_install(
     int ledge_cancel_probe_passed,
     int planking_probe_passed,
     int jump_cancelled_grab_probe_passed,
+    int boost_grab_probe_passed,
     int chain_grab_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
@@ -165,6 +167,7 @@ void pf_web_m4_playtest_install(
     int ledge_cancel_probe_passed,
     int planking_probe_passed,
     int jump_cancelled_grab_probe_passed,
+    int boost_grab_probe_passed,
     int chain_grab_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
@@ -213,6 +216,7 @@ void pf_web_m4_playtest_install(
     test_planking_probe = planking_probe_passed;
     test_jump_cancelled_grab_probe =
         jump_cancelled_grab_probe_passed;
+    test_boost_grab_probe = boost_grab_probe_passed;
     test_chain_grab_probe = chain_grab_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
@@ -355,6 +359,7 @@ int main(void)
         test_ledge_cancel_probe != 1 ||
         test_planking_probe != 1 ||
         test_jump_cancelled_grab_probe != 1 ||
+        test_boost_grab_probe != 1 ||
         test_chain_grab_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
@@ -370,7 +375,7 @@ int main(void)
         test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 16 ||
+        test_view[0] != 17 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -409,6 +414,7 @@ int main(void)
             "ledge_cancel_probe=%d "
             "planking_probe=%d "
             "jump_cancelled_grab_probe=%d "
+            "boost_grab_probe=%d "
             "chain_grab_probe=%d "
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
@@ -448,6 +454,7 @@ int main(void)
             test_ledge_cancel_probe,
             test_planking_probe,
             test_jump_cancelled_grab_probe,
+            test_boost_grab_probe,
             test_chain_grab_probe,
             test_combat_probe,
             test_reaction_probe,
@@ -817,6 +824,8 @@ int main(void)
         }
     }
     if (!pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
@@ -914,6 +923,7 @@ int main(void)
         "ledge_cancel_probe=%d "
         "planking_probe=%d "
         "jump_cancelled_grab_probe=%d "
+        "boost_grab_probe=%d "
         "chain_grab_probe=%d "
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
@@ -950,6 +960,7 @@ int main(void)
         test_ledge_cancel_probe,
         test_planking_probe,
         test_jump_cancelled_grab_probe,
+        test_boost_grab_probe,
         test_chain_grab_probe,
         test_combat_probe,
         test_reaction_probe,

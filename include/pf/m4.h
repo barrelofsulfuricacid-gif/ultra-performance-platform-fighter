@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(22)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(22)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(23)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(23)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(17)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(18)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -75,7 +75,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_THROW_FORWARD = 53,
     PF_M4_ACTION_THROW_BACK = 54,
     PF_M4_ACTION_THROW_UP = 55,
-    PF_M4_ACTION_THROW_DOWN = 56
+    PF_M4_ACTION_THROW_DOWN = 56,
+    PF_M4_ACTION_DASH_ATTACK = 57
 } pf_m4_action_state;
 
 typedef struct pf_m4_throw_data
@@ -133,6 +134,15 @@ typedef struct pf_m4_fighter_data
     int32_t air_dodge_decay_q16;
     int32_t fall_special_mobility_q16;
     int32_t shield_break_launch_speed_q16;
+    int32_t dash_attack_speed_q16;
+    int32_t dash_attack_hitbox_offset_x_q16;
+    int32_t dash_attack_hitbox_offset_y_q16;
+    int32_t dash_attack_hitbox_half_width_q16;
+    int32_t dash_attack_hitbox_half_height_q16;
+    uint32_t dash_attack_damage_q16;
+    int32_t dash_attack_base_knockback_x_q16;
+    int32_t dash_attack_base_knockback_y_q16;
+    int32_t dash_attack_knockback_growth_q16;
     int32_t jab_hitbox_offset_x_q16;
     int32_t jab_hitbox_offset_y_q16;
     int32_t jab_hitbox_half_width_q16;
@@ -222,6 +232,12 @@ typedef struct pf_m4_fighter_data
     uint16_t run_turnaround_lockout_ticks;
     uint16_t crouch_axis_threshold;
     uint16_t shield_drop_axis_threshold;
+    uint16_t dash_attack_startup_ticks;
+    uint16_t dash_attack_active_ticks;
+    uint16_t dash_attack_recovery_ticks;
+    uint16_t dash_attack_hitlag_ticks;
+    uint16_t boost_grab_cancel_begin_tick;
+    uint16_t boost_grab_cancel_end_tick;
     uint16_t jab_startup_ticks;
     uint16_t jab_active_ticks;
     uint16_t jab_recovery_ticks;

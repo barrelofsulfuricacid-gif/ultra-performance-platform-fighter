@@ -4,7 +4,8 @@ This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
 wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking,
-jump-canceled standing grab with capture/mash escape, and four directional
+jump-canceled standing grab with capture/mash escape, production dash attack
+with ordinary/boost-grab routes, and four directional
 throws with a low-percent chain-grab route,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -27,7 +28,7 @@ headless execution.
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
-| Standing grab / jump-canceled grab | Hold `G`, tap `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0` |
+| Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
@@ -88,7 +89,19 @@ victim card displays `MASH OUT · Nf`; alternate fresh full-left/right/down or
 button edges to reduce it faster than waiting. The feed records both `GRABBED` and
 escape events. Light-plus-shield directly during initial dash is rejected, as
 is the same combination after takeoff. From idle, light-plus-shield remains
-the ordinary standing-grab route.
+the ordinary standing-grab route, while the same combination from `RUN` is the
+ordinary dash-grab route.
+
+For a boost grab, first hold a full direction until `RUN`, press and keep
+holding light attack to enter `DASH ATTACK`, then freshly press shield on the
+next, second, or third stored action tick. Those inputs correspond to
+dash-attack frames 2–4 and cancel into the same standing `GRAB` while retaining
+the faster dash-attack slide. Compare light plus shield together directly from
+`RUN`: that ordinary dash grab carries only run momentum and whiffs at the
+focused route's extended spacing. Waiting one more tick before adding shield
+leaves `DASH ATTACK` intact. If uncanceled, the default attack has four startup
+ticks, three active ticks, deals 8%, and appears as `DASH ATTACK` in both the
+state card and typed hit feed.
 
 While in `GRAB HOLD`, keep a full direction held and freshly press either
 attack. Left/right selects forward or back relative to the thrower's facing;

@@ -141,6 +141,7 @@ extern void pf_web_m4_playtest_install(
     int ledge_cancel_probe_passed,
     int planking_probe_passed,
     int jump_cancelled_grab_probe_passed,
+    int boost_grab_probe_passed,
     int chain_grab_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
@@ -4770,6 +4771,292 @@ static const pf_sim_event *pf_web_m4_find_event(
     return NULL;
 }
 
+static int pf_web_m4_advance_to_settled_run(
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)pf_web_m4_content.fighter.initial_dash_ticks +
+                 UINT32_C(16);
+         ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_RUN &&
+            out_inspection->players[0].velocity_x_q16 ==
+                pf_web_m4_content.fighter.run_speed_q16)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int pf_web_m4_run_boost_grab_route(void)
+{
+    pf_m4_inspection inspection;
+    const pf_m4_fighter_data *fighter = &pf_web_m4_content.fighter;
+    int32_t ordinary_velocity;
+    int32_t ordinary_active_position = INT32_MIN;
+    int32_t boost_active_position = INT32_MIN;
+    uint32_t tick;
+    int capture_seen = 0;
+    int dash_hit_seen = 0;
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_advance_to_settled_run(&inspection) ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].velocity_x_q16 !=
+            fighter->run_speed_q16 - fighter->traction_q16)
+    {
+        return 0;
+    }
+    ordinary_velocity = inspection.players[0].velocity_x_q16;
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)fighter->grab_startup_ticks +
+                 (uint32_t)fighter->grab_active_ticks +
+                 (uint32_t)fighter->grab_recovery_ticks;
+         ++tick)
+    {
+        if (inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GRAB &&
+            inspection.players[0].action_ticks ==
+                fighter->grab_startup_ticks + UINT16_C(1))
+        {
+            ordinary_active_position =
+                inspection.players[0].position_x_q16;
+        }
+        if (pf_web_m4_find_event(PF_SIM_EVENT_GRAB) != NULL ||
+            !pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (ordinary_active_position == INT32_MIN ||
+        inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_advance_to_settled_run(&inspection) ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 !=
+            fighter->dash_attack_speed_q16 -
+                fighter->traction_q16 ||
+        inspection.players[0].hitbox_active != UINT8_C(0) ||
+        !pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].velocity_x_q16 !=
+            fighter->dash_attack_speed_q16 -
+                INT32_C(2) * fighter->traction_q16 ||
+        inspection.players[0].velocity_x_q16 <= ordinary_velocity)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        const pf_sim_event *event =
+            pf_web_m4_find_event(PF_SIM_EVENT_GRAB);
+
+        if (event != NULL)
+        {
+            if (event->source_player != UINT8_C(0) ||
+                event->target_player != UINT8_C(1))
+            {
+                return 0;
+            }
+            boost_active_position =
+                inspection.players[0].position_x_q16;
+            capture_seen = 1;
+            break;
+        }
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (capture_seen == 0 ||
+        boost_active_position <= ordinary_active_position ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_advance_to_settled_run(&inspection) ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    while (inspection.players[0].action_ticks <=
+           fighter->boost_grab_cancel_end_tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!pf_web_m4_tick_with_triggers(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return 0;
+    }
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_advance_to_settled_run(&inspection) ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        const pf_sim_event *event =
+            pf_web_m4_find_event(PF_SIM_EVENT_HIT);
+
+        if (event != NULL)
+        {
+            if (event->source_player != UINT8_C(0) ||
+                event->target_player != UINT8_C(1) ||
+                event->value_q16 != fighter->dash_attack_damage_q16 ||
+                event->detail != (uint16_t)PF_M4_ACTION_DASH_ATTACK)
+            {
+                return 0;
+            }
+            dash_hit_seen = 1;
+            break;
+        }
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    return dash_hit_seen != 0 &&
+           inspection.players[1].damage_q16 ==
+               fighter->dash_attack_damage_q16;
+}
+
+static int pf_web_m4_run_boost_grab_probe(void)
+{
+    int passed;
+    int restored;
+
+    pf_web_m4_content.stage.spawn_spacing_q16 =
+        (INT32_C(17) * PF_Q16_ONE) / INT32_C(5);
+    pf_web_m4_content.stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    pf_web_m4_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    passed =
+        pf_web_m4_initialize_current_content() &&
+        pf_web_m4_run_boost_grab_route();
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_begin_close_grab(
     pf_m4_inspection *out_inspection)
 {
@@ -6006,6 +6293,14 @@ static int pf_web_m4_run_combat_probe(void)
     if (!pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
             INT16_C(0),
             INT16_C(0),
@@ -6765,6 +7060,14 @@ static int pf_web_m4_run_reaction_probe(void)
     if (!pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
             INT16_C(0),
             INT16_C(0),
@@ -6883,6 +7186,16 @@ static int pf_web_m4_run_shield_probe(void)
     if (!pf_web_m4_tick_with_triggers(
             INT16_C(0),
             INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
             UINT16_C(0),
             INT16_C(0),
@@ -6940,6 +7253,14 @@ static int pf_web_m4_run_shield_probe(void)
         }
     }
     if (
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
         !pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
@@ -7287,7 +7608,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(16);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(17);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -7514,6 +7835,7 @@ int pf_web_m4_playtest_start(void)
     int ledge_cancel_probe_passed;
     int planking_probe_passed;
     int jump_cancelled_grab_probe_passed;
+    int boost_grab_probe_passed;
     int chain_grab_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
@@ -7571,6 +7893,7 @@ int pf_web_m4_playtest_start(void)
     planking_probe_passed = pf_web_m4_run_planking_probe();
     jump_cancelled_grab_probe_passed =
         pf_web_m4_run_jump_cancelled_grab_probe();
+    boost_grab_probe_passed = pf_web_m4_run_boost_grab_probe();
     chain_grab_probe_passed = pf_web_m4_run_chain_grab_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
@@ -7616,6 +7939,7 @@ int pf_web_m4_playtest_start(void)
         ledge_cancel_probe_passed == 0 ||
         planking_probe_passed == 0 ||
         jump_cancelled_grab_probe_passed == 0 ||
+        boost_grab_probe_passed == 0 ||
         chain_grab_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
@@ -7661,6 +7985,7 @@ int pf_web_m4_playtest_start(void)
         ledge_cancel_probe_passed,
         planking_probe_passed,
         jump_cancelled_grab_probe_passed,
+        boost_grab_probe_passed,
         chain_grab_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,

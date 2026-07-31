@@ -134,6 +134,29 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(
         hash,
         fighter->shield_break_launch_speed_q16);
+    pf_m4_hash_i32(hash, fighter->dash_attack_speed_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_hitbox_offset_x_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_hitbox_offset_y_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_hitbox_half_width_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, fighter->dash_attack_damage_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_base_knockback_x_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_base_knockback_y_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dash_attack_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_hitbox_half_width_q16);
@@ -255,6 +278,16 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->run_turnaround_lockout_ticks);
     pf_m4_hash_u16(hash, fighter->crouch_axis_threshold);
     pf_m4_hash_u16(hash, fighter->shield_drop_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->dash_attack_startup_ticks);
+    pf_m4_hash_u16(hash, fighter->dash_attack_active_ticks);
+    pf_m4_hash_u16(hash, fighter->dash_attack_recovery_ticks);
+    pf_m4_hash_u16(hash, fighter->dash_attack_hitlag_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->boost_grab_cancel_begin_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->boost_grab_cancel_end_tick);
     pf_m4_hash_u16(hash, fighter->jab_startup_ticks);
     pf_m4_hash_u16(hash, fighter->jab_active_ticks);
     pf_m4_hash_u16(hash, fighter->jab_recovery_ticks);
@@ -464,6 +497,23 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->fall_special_mobility_q16 = PF_Q16_RATIO(2, 25);
     fighter->shield_break_launch_speed_q16 =
         PF_Q16_RATIO(7, 10);
+    fighter->dash_attack_speed_q16 = PF_Q16_RATIO(7, 20);
+    fighter->dash_attack_hitbox_offset_x_q16 =
+        PF_Q16_RATIO(4, 5);
+    fighter->dash_attack_hitbox_offset_y_q16 =
+        PF_Q16_RATIO(1, 20);
+    fighter->dash_attack_hitbox_half_width_q16 =
+        PF_Q16_RATIO(13, 20);
+    fighter->dash_attack_hitbox_half_height_q16 =
+        PF_Q16_RATIO(9, 20);
+    fighter->dash_attack_damage_q16 =
+        UINT32_C(8) * UINT32_C(65536);
+    fighter->dash_attack_base_knockback_x_q16 =
+        PF_Q16_RATIO(6, 25);
+    fighter->dash_attack_base_knockback_y_q16 =
+        PF_Q16_RATIO(3, 10);
+    fighter->dash_attack_knockback_growth_q16 =
+        PF_Q16_RATIO(1, 768);
     fighter->jab_hitbox_offset_x_q16 = PF_Q16_RATIO(3, 4);
     fighter->jab_hitbox_offset_y_q16 = INT32_C(0);
     fighter->jab_hitbox_half_width_q16 = PF_Q16_RATIO(3, 5);
@@ -620,6 +670,12 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->run_turnaround_lockout_ticks = UINT16_C(10);
     fighter->crouch_axis_threshold = UINT16_C(16384);
     fighter->shield_drop_axis_threshold = UINT16_C(12288);
+    fighter->dash_attack_startup_ticks = UINT16_C(4);
+    fighter->dash_attack_active_ticks = UINT16_C(3);
+    fighter->dash_attack_recovery_ticks = UINT16_C(12);
+    fighter->dash_attack_hitlag_ticks = UINT16_C(5);
+    fighter->boost_grab_cancel_begin_tick = UINT16_C(1);
+    fighter->boost_grab_cancel_end_tick = UINT16_C(3);
     fighter->jab_startup_ticks = UINT16_C(2);
     fighter->jab_active_ticks = UINT16_C(2);
     fighter->jab_recovery_ticks = UINT16_C(8);
@@ -728,6 +784,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t platform_right_extent;
     int64_t spawn_left_extent;
     int64_t spawn_right_extent;
+    int64_t maximum_dash_attack_knockback_x;
+    int64_t maximum_dash_attack_knockback_y;
     int64_t maximum_jab_knockback_x;
     int64_t maximum_jab_knockback_y;
     int64_t maximum_strong_knockback_x;
@@ -771,6 +829,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
+    maximum_dash_attack_knockback_x =
+        (int64_t)fighter->dash_attack_base_knockback_x_q16 +
+        (((int64_t)fighter->dash_attack_knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_dash_attack_knockback_y =
+        (int64_t)fighter->dash_attack_base_knockback_y_q16 +
+        ((((int64_t)fighter->dash_attack_knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
     maximum_jab_knockback_x =
         (int64_t)fighter->jab_base_knockback_x_q16 +
         (((int64_t)fighter->jab_knockback_growth_q16 *
@@ -846,6 +915,30 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->fall_special_mobility_q16 <= INT32_C(0) ||
         fighter->fall_special_mobility_q16 >
             fighter->air_speed_q16 ||
+        fighter->dash_attack_speed_q16 <=
+            fighter->initial_dash_speed_q16 ||
+        fighter->dash_attack_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->dash_attack_hitbox_offset_x_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->dash_attack_hitbox_offset_x_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->dash_attack_hitbox_offset_y_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->dash_attack_hitbox_offset_y_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->dash_attack_hitbox_half_width_q16 <= INT32_C(0) ||
+        fighter->dash_attack_hitbox_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->dash_attack_hitbox_half_height_q16 <= INT32_C(0) ||
+        fighter->dash_attack_hitbox_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->dash_attack_damage_q16 == UINT32_C(0) ||
+        fighter->dash_attack_damage_q16 >
+            UINT32_C(50) * UINT32_C(65536) ||
+        fighter->dash_attack_base_knockback_x_q16 <= INT32_C(0) ||
+        fighter->dash_attack_base_knockback_y_q16 <= INT32_C(0) ||
+        fighter->dash_attack_knockback_growth_q16 <= INT32_C(0) ||
         fighter->jab_hitbox_offset_x_q16 < -maximum_fighter_extent_q16 ||
         fighter->jab_hitbox_offset_x_q16 > maximum_fighter_extent_q16 ||
         fighter->jab_hitbox_offset_y_q16 < -maximum_fighter_extent_q16 ||
@@ -1002,6 +1095,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             INT32_C(0) ||
         fighter->shield_attacker_pushback_base_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_dash_attack_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_dash_attack_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_x >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_y >
@@ -1105,6 +1202,23 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->axis_dead_zone ||
         fighter->shield_drop_axis_threshold >=
             fighter->crouch_axis_threshold ||
+        fighter->dash_attack_startup_ticks == UINT16_C(0) ||
+        fighter->dash_attack_startup_ticks > UINT16_C(120) ||
+        fighter->dash_attack_active_ticks == UINT16_C(0) ||
+        fighter->dash_attack_active_ticks > UINT16_C(120) ||
+        fighter->dash_attack_recovery_ticks == UINT16_C(0) ||
+        fighter->dash_attack_recovery_ticks > UINT16_C(240) ||
+        fighter->dash_attack_hitlag_ticks == UINT16_C(0) ||
+        fighter->dash_attack_hitlag_ticks > UINT16_C(120) ||
+        (uint32_t)fighter->dash_attack_startup_ticks +
+                (uint32_t)fighter->dash_attack_active_ticks +
+                (uint32_t)fighter->dash_attack_recovery_ticks >
+            UINT32_C(600) ||
+        fighter->boost_grab_cancel_begin_tick == UINT16_C(0) ||
+        fighter->boost_grab_cancel_begin_tick >
+            fighter->boost_grab_cancel_end_tick ||
+        fighter->boost_grab_cancel_end_tick >=
+            fighter->dash_attack_startup_ticks ||
         fighter->jab_startup_ticks == UINT16_C(0) ||
         fighter->jab_startup_ticks > UINT16_C(120) ||
         fighter->jab_active_ticks == UINT16_C(0) ||

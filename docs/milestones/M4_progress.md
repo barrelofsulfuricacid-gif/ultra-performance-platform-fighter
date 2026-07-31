@@ -331,7 +331,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   and browser observability. The directional-throw slice advances state schema
   to 20/save format 19, content/fighter schema to 22, inspection schema to 17,
   and browser view schema to 16 for four authored throws, fail-closed throw
-  semantics, typed events, and browser observability. Config/observation/identity schema 2 and RL
+  semantics, typed events, and browser observability. The boost-grab slice
+  advances state schema to 21/save format 20, content/fighter schema to 23,
+  inspection schema to 18, and browser view schema to 17 for the production
+  dash attack, its fail-closed cancel semantics, and readiness evidence.
+  Config/observation/identity schema 2 and RL
   schema 4 remain current. The canonical save is 635 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -481,6 +485,31 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   semantics fail closed. Content/fighter schema 22 carries the throw data,
   inspection schema 17 identifies the contract, and browser view schema 16
   exposes it. Registry row 6, Chain grab, advances to `playable`.
+
+## Delivered in the boost-grab slice
+
+- A fresh light-attack edge from `RUN` now enters a production dash attack
+  with independently authored speed, hitbox, damage, launch, startup, active,
+  recovery, and hitlag data. The default has four startup, three active, 12
+  recovery, and five hitlag ticks and emits the ordinary typed hit event with
+  `DASH_ATTACK` identity.
+- Stored dash-attack ticks 1–3 accept a fresh shield while light remains held,
+  or a fresh light edge while shield remains held, and enter the existing
+  standing grab without discarding faster dash-attack momentum. These are
+  action frames 2–4; the initiation frame and every later frame are excluded.
+  Light plus shield together from `RUN` remains the ordinary dash grab.
+- The native oracle compares ordinary and boosted velocity/range, requires an
+  ordinary whiff and boosted capture, rejects the late cancel, proves the dash
+  attack's first active hit and typed identity, rejects invalid authored data,
+  and compares every future hash and event after a mid-route save/load.
+- Browser startup repeats the ordinary whiff, boosted capture, late negative,
+  and production dash-attack hit before readiness. The live adapter labels the
+  new action and reports `boost_grab_probe=1`.
+- State schema 21/save format 20 and `PFSAVE20` retain the 635-byte checkpoint
+  while making dash-attack entry, hitlag resume, and boost-grab cancellation
+  fail closed. Content/fighter schema 23, inspection schema 18, and browser
+  view schema 17 identify the new contract. Registry row 4, Boost grab,
+  advances from `planned` to `playable`.
 
 ## Delivered in the instant-double-jump slice
 
@@ -937,7 +966,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  chain grab, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
+  boost grab, chain grab, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
@@ -949,7 +978,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 36 playable, 4 primitive-ready, and 20 planned.
+  blocked: 1 verified, 37 playable, 4 primitive-ready, and 19 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -983,7 +1012,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 204 movement invariants, 444
+- Mechanical oracles: 204 movement invariants, 471
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -994,11 +1023,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,327
   bytes,
   replay SHA-256
-  `41451f8c98092eaf119e2d112628fd9a19a12b94450ca5d05d2483316ff2b802`,
+  `d273cbd7b852712bcbb5eadff4f144dc906bca5bd16657a6630ac79c8aedce62`,
   final SHA-256
-  `c4e6bdc3506c85f6e97569da28f921f9e5aa87f085fcad8d1289fff5d56330c6`,
+  `b8dd78966252c546b4a4807d8f0c2b110ca9cdac3f1e95cf68ed2c491fe82479`,
   and event-journal SHA-256
-  `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`;
+  `67d69f92e62c1d5f59c8f26ad3734b0b3e7200f03667f3f908a368bf62fbe84d`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -1007,7 +1036,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/directional-throw-and-chain-grab/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

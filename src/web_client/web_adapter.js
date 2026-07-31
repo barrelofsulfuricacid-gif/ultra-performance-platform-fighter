@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -470,6 +470,7 @@ mergeInto(LibraryManager.library, {
     ledgeCancelProbePassed,
     plankingProbePassed,
     jumpCancelledGrabProbePassed,
+    boostGrabProbePassed,
     chainGrabProbePassed,
     combatProbePassed,
     reactionProbePassed,
@@ -773,6 +774,7 @@ mergeInto(LibraryManager.library, {
       ledgeCancelProbePassed &&
       plankingProbePassed &&
       jumpCancelledGrabProbePassed &&
+      boostGrabProbePassed &&
       chainGrabProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
@@ -932,7 +934,11 @@ mergeInto(LibraryManager.library, {
       "underside with a fresh tech input performs a wall or ceiling tech; " +
       "hold up for a wall-tech jump. Missing the window produces a visible " +
       "wall or ceiling bounce while hitstun continues. " +
-      "Press light plus shield while grounded to grab. During GRAB HOLD, hold a " +
+      "Press light plus shield while grounded to grab. From RUN this is an " +
+      "ordinary dash grab. For boost grab, press and hold light from RUN to " +
+      "start DASH ATTACK, then freshly press shield on its next, second, or " +
+      "third stored action tick; the cancel preserves the faster slide. A " +
+      "later shield press leaves DASH ATTACK intact. During GRAB HOLD, hold a " +
       "full direction and freshly press either attack: forward/back are relative " +
       "to facing, while up/down select the vertical throws. Low-percent down " +
       "throws can lead to another grab; accumulated percent and outward DI move " +
@@ -1296,6 +1302,8 @@ mergeInto(LibraryManager.library, {
         (plankingProbePassed ? "pass" : "fail") +
         " jump_cancelled_grab_probe=" +
         (jumpCancelledGrabProbePassed ? "pass" : "fail") +
+        " boost_grab_probe=" +
+        (boostGrabProbePassed ? "pass" : "fail") +
         " chain_grab_probe=" +
         (chainGrabProbePassed ? "pass" : "fail") +
         " combat_probe=" +
@@ -1377,6 +1385,8 @@ mergeInto(LibraryManager.library, {
         plankingProbePassed ? "pass" : "fail";
       status.dataset.jumpCancelledGrabProbe =
         jumpCancelledGrabProbePassed ? "pass" : "fail";
+      status.dataset.boostGrabProbe =
+        boostGrabProbePassed ? "pass" : "fail";
       status.dataset.chainGrabProbe =
         chainGrabProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
@@ -1425,7 +1435,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 16) {
+    if (view[0] !== 17) {
       return;
     }
     var canvas = state.canvas;
@@ -1497,6 +1507,7 @@ mergeInto(LibraryManager.library, {
       "BACK THROW",
       "UP THROW",
       "DOWN THROW",
+      "DASH ATTACK",
     ];
 
     if (view[1] < previousTick) {

@@ -100,6 +100,29 @@ static int make_grab_content(
         "grab-content-view");
 }
 
+static int make_boost_grab_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "boost-grab-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(17) * PF_Q16_ONE) / INT32_C(5);
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "boost-grab-content-view");
+}
+
 static int make_grab_damage_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -10674,6 +10697,654 @@ static int begin_close_grab(
     return 0;
 }
 
+static int advance_to_settled_run(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)content->fighter.initial_dash_ticks +
+                 UINT32_C(16);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_RUN &&
+            out_inspection->players[0].velocity_x_q16 ==
+                content->fighter.run_speed_q16)
+        {
+            return 1;
+        }
+    }
+    return fail("boost-grab-reach-settled-run");
+}
+
+static int run_boost_grab_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage ordinary_storage;
+    test_sim_storage window_storage;
+    test_sim_storage reverse_chord_storage;
+    test_sim_storage boost_storage;
+    test_sim_storage late_storage;
+    test_sim_storage hit_storage;
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *ordinary = NULL;
+    pf_sim *window = NULL;
+    pf_sim *reverse_chord = NULL;
+    pf_sim *boost = NULL;
+    pf_sim *late = NULL;
+    pf_sim *hit = NULL;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_sim_event grab_event = {0};
+    pf_sim_event hit_event = {0};
+    pf_tick_result source_result;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    int32_t ordinary_velocity;
+    int32_t ordinary_active_position = INT32_MIN;
+    int32_t boost_active_position = INT32_MIN;
+    uint16_t hit_entry_tick = UINT16_C(0);
+    uint32_t tick;
+    int ordinary_capture_seen = 0;
+    int boost_capture_seen = 0;
+    int dash_hit_seen = 0;
+    int snapshot_capture_seen = 0;
+
+    if (content->fighter.dash_attack_speed_q16 !=
+            (INT32_C(7) * PF_Q16_ONE) / INT32_C(20) ||
+        content->fighter.dash_attack_startup_ticks != UINT16_C(4) ||
+        content->fighter.dash_attack_active_ticks != UINT16_C(3) ||
+        content->fighter.dash_attack_recovery_ticks != UINT16_C(12) ||
+        content->fighter.dash_attack_hitlag_ticks != UINT16_C(5) ||
+        content->fighter.boost_grab_cancel_begin_tick != UINT16_C(1) ||
+        content->fighter.boost_grab_cancel_end_tick != UINT16_C(3))
+    {
+        return fail("boost-grab-authored-defaults");
+    }
+
+    for (tick =
+             (uint32_t)content->fighter
+                 .boost_grab_cancel_begin_tick;
+         tick <=
+             (uint32_t)content->fighter
+                 .boost_grab_cancel_end_tick;
+         ++tick)
+    {
+        if (!initialize_sim(
+                &window_storage,
+                view,
+                UINT8_C(2),
+                PF_SIM_MODE_DUEL,
+                1,
+                &window) ||
+            !advance_to_settled_run(window, content, &inspection) ||
+            !step_reaction_duel(
+                window,
+                INT16_MAX,
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        while (inspection.players[0].action_ticks <
+               (uint16_t)tick)
+        {
+            if (!step_reaction_duel(
+                    window,
+                    INT16_MAX,
+                    INT16_C(0),
+                    PF_INPUT_BUTTON_ATTACK,
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    &inspection))
+            {
+                return 0;
+            }
+        }
+        if (inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+            inspection.players[0].action_ticks != (uint16_t)tick ||
+            !step_reaction_duel(
+                window,
+                INT16_MAX,
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_GRAB ||
+            inspection.players[0].action_ticks != UINT16_C(1) ||
+            inspection.players[0].velocity_x_q16 !=
+                content->fighter.dash_attack_speed_q16 -
+                    (int32_t)(tick + UINT32_C(1)) *
+                        content->fighter.traction_q16)
+        {
+            return fail("boost-grab-every-legal-cancel-frame");
+        }
+    }
+
+    if (!initialize_sim(
+            &reverse_chord_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &reverse_chord) ||
+        !advance_to_settled_run(
+            reverse_chord,
+            content,
+            &inspection) ||
+        !step_reaction_duel(
+            reverse_chord,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            reverse_chord,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(2) ||
+        !step_reaction_duel(
+            reverse_chord,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].velocity_x_q16 !=
+            content->fighter.dash_attack_speed_q16 -
+                INT32_C(3) * content->fighter.traction_q16)
+    {
+        return fail("boost-grab-fresh-light-while-shield-held");
+    }
+
+    if (!initialize_sim(
+            &ordinary_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &ordinary) ||
+        !advance_to_settled_run(ordinary, content, &inspection) ||
+        !step_reaction_duel(
+            ordinary,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 !=
+            content->fighter.run_speed_q16 -
+                content->fighter.traction_q16)
+    {
+        return fail("boost-grab-same-frame-is-ordinary-dash-grab");
+    }
+    ordinary_velocity = inspection.players[0].velocity_x_q16;
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)content->fighter.grab_startup_ticks +
+                 (uint32_t)content->fighter.grab_active_ticks +
+                 (uint32_t)content->fighter.grab_recovery_ticks;
+         ++tick)
+    {
+        if (inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GRAB &&
+            inspection.players[0].action_ticks ==
+                content->fighter.grab_startup_ticks + UINT16_C(1))
+        {
+            ordinary_active_position =
+                inspection.players[0].position_x_q16;
+        }
+        if (find_last_tick_event(PF_SIM_EVENT_GRAB) != NULL)
+        {
+            ordinary_capture_seen = 1;
+            break;
+        }
+        if (!step_reaction_duel(
+                ordinary,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (ordinary_capture_seen != 0 ||
+        ordinary_active_position == INT32_MIN ||
+        inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return fail("boost-grab-ordinary-range-whiff");
+    }
+
+    if (!initialize_sim(
+            &boost_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &boost) ||
+        !advance_to_settled_run(boost, content, &inspection) ||
+        !step_reaction_duel(
+            boost,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 !=
+            content->fighter.dash_attack_speed_q16 -
+                content->fighter.traction_q16 ||
+        inspection.players[0].hitbox_active != UINT8_C(0) ||
+        !step_reaction_duel(
+            boost,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 !=
+            content->fighter.dash_attack_speed_q16 -
+                INT32_C(2) * content->fighter.traction_q16 ||
+        inspection.players[0].velocity_x_q16 <= ordinary_velocity)
+    {
+        return fail("boost-grab-legal-window-momentum-transfer");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        const pf_sim_event *event =
+            find_last_tick_event(PF_SIM_EVENT_GRAB);
+
+        if (event != NULL)
+        {
+            grab_event = *event;
+            boost_active_position =
+                inspection.players[0].position_x_q16;
+            boost_capture_seen = 1;
+            break;
+        }
+        if (!step_reaction_duel(
+                boost,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (boost_capture_seen == 0 ||
+        boost_active_position <= ordinary_active_position ||
+        grab_event.source_player != UINT8_C(0) ||
+        grab_event.target_player != UINT8_C(1) ||
+        grab_event.detail != (uint16_t)PF_M4_ACTION_GRAB ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        return fail("boost-grab-expanded-range-capture");
+    }
+
+    if (!initialize_sim(
+            &late_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &late) ||
+        !advance_to_settled_run(late, content, &inspection) ||
+        !step_reaction_duel(
+            late,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    while (inspection.players[0].action_ticks <=
+           content->fighter.boost_grab_cancel_end_tick)
+    {
+        if (!step_reaction_duel(
+                late,
+                INT16_MAX,
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_ticks !=
+            content->fighter.boost_grab_cancel_end_tick +
+                UINT16_C(1) ||
+        !step_reaction_duel(
+            late,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return fail("boost-grab-late-cancel-rejected");
+    }
+
+    if (!initialize_sim(
+            &hit_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &hit) ||
+        !advance_to_settled_run(hit, content, &inspection) ||
+        !step_reaction_duel(
+            hit,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        const pf_sim_event *event =
+            find_last_tick_event(PF_SIM_EVENT_HIT);
+
+        if (event != NULL)
+        {
+            hit_event = *event;
+            dash_hit_seen = 1;
+            break;
+        }
+        hit_entry_tick = inspection.players[0].action_ticks;
+        if (hit_entry_tick <
+                content->fighter.dash_attack_startup_ticks &&
+            inspection.players[1].damage_q16 != UINT32_C(0))
+        {
+            return fail("dash-attack-startup-is-inactive");
+        }
+        if (!step_reaction_duel(
+                hit,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (dash_hit_seen == 0 ||
+        hit_entry_tick != content->fighter.dash_attack_startup_ticks ||
+        hit_event.source_player != UINT8_C(0) ||
+        hit_event.target_player != UINT8_C(1) ||
+        hit_event.value_q16 != content->fighter.dash_attack_damage_q16 ||
+        hit_event.detail != (uint16_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.dash_attack_damage_q16)
+    {
+        return fail("dash-attack-first-active-frame-hit");
+    }
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &loaded) ||
+        !advance_to_settled_run(source, content, &inspection) ||
+        !step_reaction_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "boost-grab-query-save-size") ||
+        save_size != (size_t)635)
+    {
+        return fail("boost-grab-snapshot-boundary");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "boost-grab-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "boost-grab-load"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        const uint64_t buttons =
+            tick == UINT32_C(0)
+                ? PF_INPUT_BUTTON_ATTACK
+                : UINT64_C(0);
+        const uint16_t trigger =
+            tick == UINT32_C(0) ? UINT16_MAX : UINT16_C(0);
+
+        if (!step_reaction_duel(
+                source,
+                tick == UINT32_C(0) ? INT16_MAX : INT16_C(0),
+                INT16_C(0),
+                buttons,
+                trigger,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        source_result = test_last_result;
+        if (!step_reaction_duel(
+                loaded,
+                tick == UINT32_C(0) ? INT16_MAX : INT16_C(0),
+                INT16_C(0),
+                buttons,
+                trigger,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            source_result.event_count != test_last_result.event_count ||
+            memcmp(
+                source_result.events,
+                test_last_result.events,
+                sizeof(source_result.events)) != 0 ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "boost-grab-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "boost-grab-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash) ||
+            inspection.players[0].action_state !=
+                loaded_inspection.players[0].action_state ||
+            inspection.players[0].position_x_q16 !=
+                loaded_inspection.players[0].position_x_q16 ||
+            inspection.players[0].velocity_x_q16 !=
+                loaded_inspection.players[0].velocity_x_q16 ||
+            inspection.players[0].grab_target !=
+                loaded_inspection.players[0].grab_target)
+        {
+            return fail("boost-grab-save-load-continuation");
+        }
+        if (tick == UINT32_C(0) &&
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_GRAB)
+        {
+            return fail("boost-grab-loaded-cancel-entry");
+        }
+        if (find_last_tick_event(PF_SIM_EVENT_GRAB) != NULL)
+        {
+            snapshot_capture_seen = 1;
+        }
+    }
+    if (snapshot_capture_seen == 0 ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        return fail("boost-grab-snapshot-capture");
+    }
+
+    return 1;
+}
+
 static int run_jump_cancelled_grab_test(
     const pf_m4_content *close_content,
     const pf_content_view *close_view,
@@ -12237,6 +12908,8 @@ int main(void)
     pf_m4_content invalid_grabbox_content;
     pf_m4_content invalid_grab_escape_content;
     pf_m4_content invalid_throw_content;
+    pf_m4_content invalid_dash_attack_content;
+    pf_m4_content invalid_boost_grab_window_content;
     pf_m4_content reaction_content;
     pf_m4_content tech_invulnerability_content;
     pf_m4_content floor_attack_content;
@@ -12259,6 +12932,7 @@ int main(void)
     pf_m4_content grab_far_content;
     pf_m4_content grab_damage_content;
     pf_m4_content chain_grab_escape_content;
+    pf_m4_content boost_grab_content;
     pf_content_view view;
     pf_content_view reaction_view;
     pf_content_view tech_invulnerability_view;
@@ -12282,6 +12956,7 @@ int main(void)
     pf_content_view grab_far_view;
     pf_content_view grab_damage_view;
     pf_content_view chain_grab_escape_view;
+    pf_content_view boost_grab_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_reaction_content(
@@ -12359,7 +13034,10 @@ int main(void)
             &grab_damage_view) ||
         !make_chain_grab_escape_content(
             &chain_grab_escape_content,
-            &chain_grab_escape_view))
+            &chain_grab_escape_view) ||
+        !make_boost_grab_content(
+            &boost_grab_content,
+            &boost_grab_view))
     {
         return 1;
     }
@@ -12410,6 +13088,14 @@ int main(void)
             UINT16_C(1));
     invalid_throw_content = content;
     invalid_throw_content.fighter.down_throw.release_tick = UINT16_C(0);
+    invalid_dash_attack_content = content;
+    invalid_dash_attack_content.fighter.dash_attack_speed_q16 =
+        invalid_dash_attack_content.fighter.initial_dash_speed_q16;
+    invalid_boost_grab_window_content = content;
+    invalid_boost_grab_window_content.fighter
+        .boost_grab_cancel_end_tick =
+        invalid_boost_grab_window_content.fighter
+            .dash_attack_startup_ticks;
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -12462,6 +13148,15 @@ int main(void)
             pf_m4_validate_content(&invalid_throw_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-throw-data") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_dash_attack_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-dash-attack-speed") ||
+        !expect_status(
+            pf_m4_validate_content(
+                &invalid_boost_grab_window_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-boost-grab-window") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
@@ -12552,6 +13247,9 @@ int main(void)
         !run_ground_dodge_invulnerability_hit_test(
             &content,
             &view) ||
+        !run_boost_grab_test(
+            &boost_grab_content,
+            &boost_grab_view) ||
         !run_jump_cancelled_grab_test(
             &grab_close_content,
             &grab_close_view,
@@ -12579,7 +13277,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=444 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1\n",
+        " combat_invariants=471 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

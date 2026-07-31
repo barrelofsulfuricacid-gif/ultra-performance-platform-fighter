@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–19 / state schemas 1–20
+- **Status:** Accepted for save formats 1–20 / state schemas 1–21
 - **Date:** 2026-07-28
 
 ## Decision
@@ -29,12 +29,13 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 17 | 18 | 140 | 479 | 619 | One canonical remaining ledge-regrab-lockout timer per player |
 | 18 | 19 | 140 | 495 | 635 | One grab-escape timer, one grab-target slot, and one grab-owner slot per player |
 | 19 | 20 | 140 | 495 | 635 | Canonical forward/back/up/down throw action IDs, hitlag-resume and reciprocal-link release semantics, and typed throw events; no payload-layout change |
+| 20 | 21 | 140 | 495 | 635 | Canonical dash-attack action ID, run-entry and hitlag-resume semantics, and the boost-grab cancel window; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
-`PFSAVE17`, `PFSAVE18`, or `PFSAVE19`.
-The active M4 runtime emits and accepts format 19 with state schema 20. Earlier
+`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, or `PFSAVE20`.
+The active M4 runtime emits and accepts format 20 with state schema 21. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -85,6 +86,13 @@ into authored recovery, and emits one typed throw event. Loading accepts live
 links during throw startup only when they remain reciprocal and action
 compatible, and accepts post-release throw recovery only after both links have
 cleared.
+Format 20 also retains the 495-byte payload while making the production dash
+attack fail closed. A light-attack edge from run enters the authored action and
+speed; hitlag resumes the same action; stored action ticks 1–3 accept the
+light-plus-shield grab cancel while the initiation and later frames do not;
+the cancel preserves momentum and enters the existing standing grab. Loading
+rejects the new action under any earlier schema and validates its existing
+reaction, hitlag-resume, and reciprocal-link relationships under schema 21.
 
 ## Why SHA-256
 
@@ -159,6 +167,9 @@ service-envelope responsibility.
 - Mid-chain save/load during down-throw startup plus reciprocal throw-link
   validation, byte-identical future throw events, equal future hashes, and two
   subsequent legal regrabs in `tests/sim/test_m4_combat.c`.
+- Mid-dash-attack save/load on the first boost-grab cancel tick plus
+  byte-identical future events, equal future hashes, retained momentum, and
+  deterministic capture in `tests/sim/test_m4_combat.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in
