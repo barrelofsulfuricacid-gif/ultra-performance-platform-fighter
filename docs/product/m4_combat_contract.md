@@ -781,6 +781,43 @@ startup repeats the hit, whiff, both negative boundaries, and final-hit routes,
 restores default content, exposes `jab_cancel_probe=pass`, and labels the live
 production action `JAB FINAL`.
 
+## Jab reset
+
+The production [jab-reset/lock](https://www.ssbwiki.com/Spooky_stun) route
+begins only when a physical hit reaches a vulnerable target already in
+`DOWN_WAIT` or `RESET_BOUND`. The hit qualifies when its independently authored
+damage is no more than `reset_max_damage_q16` (7% by default) and its computed
+hitstun is no more than `reset_max_hitstun_ticks` (12 by default). Both limits
+are inclusive. A hit above either limit follows the ordinary hit-reaction path;
+the 13-hitstun boundary tumbles under the focused fixture rather than silently
+becoming a reset.
+
+A qualifying hit still emits the ordinary typed `HIT`, applies damage and
+hitlag, and accepts the shared SDI, ASDI, and final-hitlag DI inputs. Its
+reaction clears horizontal launch, applies the small authored upward bound
+speed of `1/10` unit per tick, clears tumble, and resumes from hitlag into
+`RESET_BOUND`. The existing action timer governs exactly 12 bound ticks. If the
+target has support when those ticks expire, it enters `FORCED_GETUP` for 30
+vulnerable ticks; if still airborne, it returns to ordinary `AIRBORNE` and may
+act immediately. Attack and jump input are locked during the bound and forced
+getup, and neither action grants invulnerability.
+
+Movement and getup choices resolve before hit ownership. A same-tick neutral
+getup or getup roll therefore uses its existing invulnerability to reject the
+jab. During reset hitlag, two legal SDI pulses plus ASDI can move the target far
+enough to remain airborne at bound expiry and use an aerial instead of entering
+forced getup. This preserves the documented escape routes without adding a
+reset flag, forced-getup counter, or other technique-only mutable field.
+
+The native oracle proves the default authored values, typed 6%/12-hitstun
+route, exact 7%/12-hitstun inclusive boundary, over-damage and tumble
+rejection, exact bound/getup duration and input lock, same-tick invulnerable
+getup, airborne SDI escape, invalid content, and a save on bound tick 3 followed
+by 64 equal future hashes and events through a real forced-getup punish.
+Browser startup repeats the positive, getup, over-damage, and SDI routes,
+restores default content, exposes `jab_reset_probe=pass`, and labels
+`RESET BOUND` and `FORCED GETUP`.
+
 ## Directional throws and chain grab
 
 During `GRAB_HOLD`, a fresh light or strong attack plus a full stick direction
@@ -822,11 +859,15 @@ four action labels and the typed throw event.
 
 ## Canonical state and inspection
 
-State schema 22 / save format 21 retains the 635-byte stream (140-byte header
-plus 495-byte payload) and changes the active magic to `PFSAVE21`. It makes the
-`JAB_FINAL` action ID, hitlag resume, authored action schedule, and jab choice
-window semantics fail closed without adding mutable fields. It follows state
-schema 21 / save format 20, which made the `DASH_ATTACK` action ID, hitlag
+State schema 23 / save format 22 retains the 635-byte stream (140-byte header
+plus 495-byte payload) and changes the active magic to `PFSAVE22`. It makes the
+`RESET_BOUND` and `FORCED_GETUP` action IDs, hitlag resume, authored action
+schedule, reaction eligibility, and grounded-versus-airborne expiry semantics
+fail closed without adding mutable fields. It follows state schema 22 / save
+format 21, which made the `JAB_FINAL` action ID, hitlag resume, authored action
+schedule, and jab choice window semantics fail closed without adding mutable
+fields. That format follows state schema 21 / save format 20, which made the
+`DASH_ATTACK` action ID, hitlag
 resume, authored action schedule, run entry, and boost-grab cancel semantics
 fail closed without adding mutable fields. That format follows state schema 20
 / save format 19, which made the four throw action IDs,
@@ -864,10 +905,12 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 24 / fighter schema 24 adds and hashes the inclusive first-jab
-combo-input window plus the final jab's hitbox geometry, damage, signed base
-launch and per-percent growth, startup, active, recovery, and hitlag. It
-follows schema 23's dash-attack speed, hitbox geometry, damage, signed base
+Content schema 25 / fighter schema 25 adds and hashes the reset maximum damage,
+maximum hitstun, bound duration and speed, and forced-getup duration. It follows
+schema 24's inclusive first-jab combo-input window plus the final jab's hitbox
+geometry, damage, signed base launch and per-percent growth, startup, active,
+recovery, and hitlag. That schema follows schema 23's dash-attack speed, hitbox
+geometry, damage, signed base
 launch and per-percent growth, startup, active, recovery, hitlag, and the
 boost-grab cancel window, and schema 22's four throws' damage, signed base
 launch and per-percent growth, release
@@ -895,8 +938,9 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 19 identifies the jab-sequence content/state contract while
-retaining schema 18's dash-attack contract, schema 17's throw contract, and
+Inspection schema 20 identifies the jab-reset content/state contract while
+retaining schema 19's jab-sequence contract, schema 18's dash-attack contract,
+schema 17's throw contract, and
 schema 16's grabbox bounds/active
 state, escape ticks, and reciprocal
 target/owner slots. It retains schema 15's exact
@@ -906,9 +950,10 @@ lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 18 carries `JAB FINAL`, the
-jab-cancel readiness probe, `DASH ATTACK`, the boost-grab readiness probe, the
-throw action/event identities, and the grab fields. It
+sudden death, and result. Browser view schema 19 carries `RESET BOUND`,
+`FORCED GETUP`, and the jab-reset readiness probe while retaining schema 18's
+`JAB FINAL` and jab-cancel probe, `DASH ATTACK`, the boost-grab readiness probe,
+the throw action/event identities, and the grab fields. It
 retains its derived invulnerability marker rather than exporting either exact
 ledge timer, and
 carries the prior combat fields plus the canonical action timer, floor action semantics,

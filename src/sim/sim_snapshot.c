@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x31)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x32)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1207,6 +1207,7 @@ static int pf_m4_player_state_consistent(
     }
     if (action == (uint8_t)PF_M4_ACTION_HITLAG ||
         action == (uint8_t)PF_M4_ACTION_HITSTUN ||
+        action == (uint8_t)PF_M4_ACTION_RESET_BOUND ||
         pf_m4_snapshot_action_is_surface_tech(action) ||
         pf_m4_snapshot_action_is_surface_bounce(action))
     {
@@ -1330,7 +1331,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_JAB_FINAL ||
+                action > (uint8_t)PF_M4_ACTION_FORCED_GETUP ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1445,6 +1446,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_JAB_FINAL &&
                  resume_action !=
+                     (uint8_t)PF_M4_ACTION_RESET_BOUND &&
+                 resume_action !=
                      (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
@@ -1489,7 +1492,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       INT32_C(0) ||
                   world->pending_velocity_y_q16[player_index] !=
                       INT32_C(0))) ||
-                (resume_action == (uint8_t)PF_M4_ACTION_HITSTUN &&
+                ((resume_action == (uint8_t)PF_M4_ACTION_HITSTUN ||
+                  resume_action ==
+                      (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
                  (hitstun == UINT16_C(0) ||
                   (world->pending_velocity_x_q16[player_index] ==
                        INT32_C(0) &&
@@ -1521,6 +1526,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (hitlag == UINT16_C(0) &&
                  hitstun > UINT16_C(0) &&
                  action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 action != (uint8_t)PF_M4_ACTION_RESET_BOUND &&
                  !pf_m4_snapshot_action_is_surface_bounce(action)) ||
                 (action == (uint8_t)PF_M4_ACTION_HITSTUN &&
                  world->grounded[player_index] != UINT8_C(0)) ||
@@ -1575,8 +1581,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 ((world->sdi_direction_x[player_index] != INT8_C(0) ||
                   world->sdi_direction_y[player_index] != INT8_C(0)) &&
                  (action != (uint8_t)PF_M4_ACTION_HITLAG ||
-                  resume_action !=
-                      (uint8_t)PF_M4_ACTION_HITSTUN)) ||
+                  (resume_action !=
+                       (uint8_t)PF_M4_ACTION_HITSTUN &&
+                   resume_action !=
+                       (uint8_t)PF_M4_ACTION_RESET_BOUND))) ||
                 (((action == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
                    action == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
                    action == (uint8_t)PF_M4_ACTION_WALL_TECH ||
@@ -1588,6 +1596,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
                   action == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
                   action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_FORCED_GETUP ||
                   action ==
                       (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
                   action == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||

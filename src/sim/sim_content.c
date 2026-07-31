@@ -173,6 +173,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
+    pf_m4_hash_u32(hash, fighter->reset_max_damage_q16);
+    pf_m4_hash_i32(hash, fighter->reset_bound_speed_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_half_width_q16);
@@ -306,6 +308,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->jab_final_active_ticks);
     pf_m4_hash_u16(hash, fighter->jab_final_recovery_ticks);
     pf_m4_hash_u16(hash, fighter->jab_final_hitlag_ticks);
+    pf_m4_hash_u16(hash, fighter->reset_max_hitstun_ticks);
+    pf_m4_hash_u16(hash, fighter->reset_bound_ticks);
+    pf_m4_hash_u16(hash, fighter->reset_forced_getup_ticks);
     pf_m4_hash_u16(hash, fighter->strong_startup_ticks);
     pf_m4_hash_u16(hash, fighter->strong_active_ticks);
     pf_m4_hash_u16(hash, fighter->strong_recovery_ticks);
@@ -544,6 +549,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_final_base_knockback_x_q16 = PF_Q16_RATIO(1, 4);
     fighter->jab_final_base_knockback_y_q16 = PF_Q16_RATIO(3, 10);
     fighter->jab_final_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
+    fighter->reset_max_damage_q16 =
+        UINT32_C(7) * UINT32_C(65536);
+    fighter->reset_bound_speed_q16 = PF_Q16_RATIO(1, 10);
     fighter->strong_hitbox_offset_x_q16 = PF_Q16_RATIO(9, 10);
     fighter->strong_hitbox_offset_y_q16 = -PF_Q16_RATIO(1, 10);
     fighter->strong_hitbox_half_width_q16 = PF_Q16_RATIO(3, 4);
@@ -708,6 +716,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_final_active_ticks = UINT16_C(2);
     fighter->jab_final_recovery_ticks = UINT16_C(10);
     fighter->jab_final_hitlag_ticks = UINT16_C(4);
+    fighter->reset_max_hitstun_ticks = UINT16_C(12);
+    fighter->reset_bound_ticks = UINT16_C(12);
+    fighter->reset_forced_getup_ticks = UINT16_C(30);
     fighter->strong_startup_ticks = UINT16_C(5);
     fighter->strong_active_ticks = UINT16_C(3);
     fighter->strong_recovery_ticks = UINT16_C(18);
@@ -1016,6 +1027,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_final_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->jab_final_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->jab_final_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->reset_max_damage_q16 == UINT32_C(0) ||
+        fighter->reset_max_damage_q16 >
+            UINT32_C(7) * UINT32_C(65536) ||
+        fighter->reset_bound_speed_q16 <= INT32_C(0) ||
+        fighter->reset_bound_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->strong_hitbox_offset_x_q16 <
             -maximum_fighter_extent_q16 ||
         fighter->strong_hitbox_offset_x_q16 >
@@ -1311,6 +1328,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
                 (uint32_t)fighter->jab_final_active_ticks +
                 (uint32_t)fighter->jab_final_recovery_ticks >
             UINT32_C(600) ||
+        fighter->reset_max_hitstun_ticks == UINT16_C(0) ||
+        fighter->reset_max_hitstun_ticks > UINT16_C(12) ||
+        fighter->reset_max_hitstun_ticks >=
+            fighter->tumble_hitstun_threshold_ticks ||
+        fighter->reset_bound_ticks == UINT16_C(0) ||
+        fighter->reset_bound_ticks > UINT16_C(120) ||
+        fighter->reset_forced_getup_ticks == UINT16_C(0) ||
+        fighter->reset_forced_getup_ticks > UINT16_C(240) ||
         fighter->strong_startup_ticks == UINT16_C(0) ||
         fighter->strong_startup_ticks > UINT16_C(120) ||
         fighter->strong_active_ticks == UINT16_C(0) ||

@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(24)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(24)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(25)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(25)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(19)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(20)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -77,7 +77,9 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_THROW_UP = 55,
     PF_M4_ACTION_THROW_DOWN = 56,
     PF_M4_ACTION_DASH_ATTACK = 57,
-    PF_M4_ACTION_JAB_FINAL = 58
+    PF_M4_ACTION_JAB_FINAL = 58,
+    PF_M4_ACTION_RESET_BOUND = 59,
+    PF_M4_ACTION_FORCED_GETUP = 60
 } pf_m4_action_state;
 
 typedef struct pf_m4_throw_data
@@ -160,6 +162,8 @@ typedef struct pf_m4_fighter_data
     int32_t jab_final_base_knockback_x_q16;
     int32_t jab_final_base_knockback_y_q16;
     int32_t jab_final_knockback_growth_q16;
+    uint32_t reset_max_damage_q16;
+    int32_t reset_bound_speed_q16;
     int32_t strong_hitbox_offset_x_q16;
     int32_t strong_hitbox_offset_y_q16;
     int32_t strong_hitbox_half_width_q16;
@@ -257,6 +261,9 @@ typedef struct pf_m4_fighter_data
     uint16_t jab_final_active_ticks;
     uint16_t jab_final_recovery_ticks;
     uint16_t jab_final_hitlag_ticks;
+    uint16_t reset_max_hitstun_ticks;
+    uint16_t reset_bound_ticks;
+    uint16_t reset_forced_getup_ticks;
     uint16_t strong_startup_ticks;
     uint16_t strong_active_ticks;
     uint16_t strong_recovery_ticks;

@@ -594,6 +594,8 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
            action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
            action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
+           action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND ||
+           action_state == (uint8_t)PF_M4_ACTION_FORCED_GETUP ||
            action_state == (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
            action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
            action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
@@ -1121,6 +1123,22 @@ static void pf_m4_land_from_air(
         *dash_direction = INT8_C(0);
         scratch->tech_window_ticks[player_index] = UINT16_C(0);
         scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
+        scratch->tumble[player_index] = UINT8_C(0);
+        scratch->tech_direction[player_index] = INT8_C(0);
+        return;
+    }
+
+    if (*action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
+    {
+        *position_y = surface_y_q16 - fighter->half_height_q16;
+        *velocity_x = INT32_C(0);
+        *velocity_y = INT32_C(0);
+        *grounded = UINT8_C(1);
+        *support = surface;
+        *air_jumps_remaining = fighter->air_jump_count;
+        *short_hop_latched = UINT8_C(0);
+        *fast_fall = UINT8_C(0);
+        *dash_direction = INT8_C(0);
         scratch->tumble[player_index] = UINT8_C(0);
         scratch->tech_direction[player_index] = INT8_C(0);
         return;
@@ -1940,7 +1958,9 @@ pf_status pf_m4_step_player(
             }
         }
         if (scratch->hitlag_resume_action[player_index] ==
-            (uint8_t)PF_M4_ACTION_HITSTUN)
+                (uint8_t)PF_M4_ACTION_HITSTUN ||
+            scratch->hitlag_resume_action[player_index] ==
+                (uint8_t)PF_M4_ACTION_RESET_BOUND)
         {
             const int8_t sdi_x =
                 pf_m4_sdi_direction(
@@ -1989,7 +2009,8 @@ pf_status pf_m4_step_player(
             action_state =
                 scratch->hitlag_resume_action[player_index];
             scratch->hitlag_resume_action[player_index] = UINT8_C(0);
-            if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+            if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
+                action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
             {
                 status = pf_m4_apply_hitlag_shift(
                     content,
@@ -2083,9 +2104,10 @@ pf_status pf_m4_step_player(
     }
 
     hitstun_locked =
-        (action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
-         pf_m4_action_is_surface_bounce(action_state)) &&
-        scratch->hitstun_ticks[player_index] > UINT16_C(0);
+        action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND ||
+        ((action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
+          pf_m4_action_is_surface_bounce(action_state)) &&
+         scratch->hitstun_ticks[player_index] > UINT16_C(0));
 
     if (platform_drop_ticks > UINT8_C(0))
     {
@@ -2774,7 +2796,28 @@ pf_status pf_m4_step_player(
         pf_m4_action_locks_ground_control(action_state))
     {
         velocity_x = INT32_C(0);
-        if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
+        if (action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
+        {
+            ++action_ticks;
+            if (action_ticks >= fighter->reset_bound_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_FORCED_GETUP;
+                action_ticks = UINT16_C(0);
+                scratch->hitstun_ticks[player_index] = UINT16_C(0);
+            }
+        }
+        else if (action_state ==
+                 (uint8_t)PF_M4_ACTION_FORCED_GETUP)
+        {
+            ++action_ticks;
+            if (action_ticks >= fighter->reset_forced_getup_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
         {
             ++action_ticks;
             if (action_ticks >= fighter->knockdown_ticks)
@@ -3404,7 +3447,14 @@ pf_status pf_m4_step_player(
         dash_direction = INT8_C(0);
         if (hitstun_locked)
         {
-            action_state = (uint8_t)PF_M4_ACTION_HITSTUN;
+            if (action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
+            {
+                ++action_ticks;
+            }
+            else
+            {
+                action_state = (uint8_t)PF_M4_ACTION_HITSTUN;
+            }
         }
         else if (
             action_state ==
@@ -3870,7 +3920,24 @@ pf_status pf_m4_step_player(
         }
     }
 
-    if (hitstun_locked)
+    if (action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
+    {
+        if (scratch->hitstun_ticks[player_index] > UINT16_C(0))
+        {
+            --scratch->hitstun_ticks[player_index];
+        }
+        if (action_ticks >= fighter->reset_bound_ticks)
+        {
+            scratch->hitstun_ticks[player_index] = UINT16_C(0);
+            scratch->tumble[player_index] = UINT8_C(0);
+            action_state =
+                grounded != UINT8_C(0)
+                    ? (uint8_t)PF_M4_ACTION_FORCED_GETUP
+                    : (uint8_t)PF_M4_ACTION_AIRBORNE;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (hitstun_locked)
     {
         if (scratch->hitstun_ticks[player_index] > UINT16_C(0))
         {

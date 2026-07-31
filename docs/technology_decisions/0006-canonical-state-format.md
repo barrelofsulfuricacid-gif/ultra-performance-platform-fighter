@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–21 / state schemas 1–22
+- **Status:** Accepted for save formats 1–22 / state schemas 1–23
 - **Date:** 2026-07-28
 
 ## Decision
@@ -31,12 +31,13 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 19 | 20 | 140 | 495 | 635 | Canonical forward/back/up/down throw action IDs, hitlag-resume and reciprocal-link release semantics, and typed throw events; no payload-layout change |
 | 20 | 21 | 140 | 495 | 635 | Canonical dash-attack action ID, run-entry and hitlag-resume semantics, and the boost-grab cancel window; no payload-layout change |
 | 21 | 22 | 140 | 495 | Canonical final-jab action ID, hitlag-resume semantics, and the inclusive first-jab choice window; no payload-layout change |
+| 22 | 23 | 140 | 495 | 635 | Canonical reset-bound and forced-getup action IDs, weak-hit qualification, hitlag-resume, exact timing, and grounded-versus-airborne expiry semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
-`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, or `PFSAVE21`.
-The active M4 runtime emits and accepts format 21 with state schema 22. Earlier
+`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, or `PFSAVE22`.
+The active M4 runtime emits and accepts format 22 with state schema 23. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -100,6 +101,14 @@ cancel or fresh light selection of the independently authored final jab; an
 early-held or first-late input cannot select either transition. Loading rejects
 the final-jab action under earlier schemas and validates its hitlag-resume and
 action schedule under schema 22.
+Format 22 retains the same payload while making the production jab-reset
+reaction fail closed. A physical hit against vulnerable down wait or an
+existing reset bound qualifies only at or below the authored damage and
+computed-hitstun limits, resumes after hitlag into the exact low bound, and
+enters forced getup only if grounded when that bound expires. Loading rejects
+both new actions under earlier schemas and validates their existing reaction,
+hitlag-resume, grounded/airborne, and action-timer relationships under schema
+23.
 
 ## Why SHA-256
 
@@ -177,6 +186,10 @@ service-envelope responsibility.
 - Mid-dash-attack save/load on the first boost-grab cancel tick plus
   byte-identical future events, equal future hashes, retained momentum, and
   deterministic capture in `tests/sim/test_m4_combat.c`.
+- Mid-reset-bound save/load plus exact weak-hit qualification boundaries,
+  grounded forced-getup and airborne SDI escape outcomes, byte-identical future
+  events, and 64 equal future hashes through a real punish in
+  `tests/sim/test_m4_combat.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

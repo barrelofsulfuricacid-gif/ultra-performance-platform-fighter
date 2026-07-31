@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -472,6 +472,7 @@ mergeInto(LibraryManager.library, {
     jumpCancelledGrabProbePassed,
     boostGrabProbePassed,
     jabCancelProbePassed,
+    jabResetProbePassed,
     chainGrabProbePassed,
     combatProbePassed,
     reactionProbePassed,
@@ -1308,6 +1309,8 @@ mergeInto(LibraryManager.library, {
         (boostGrabProbePassed ? "pass" : "fail") +
         " jab_cancel_probe=" +
         (jabCancelProbePassed ? "pass" : "fail") +
+        " jab_reset_probe=" +
+        (jabResetProbePassed ? "pass" : "fail") +
         " chain_grab_probe=" +
         (chainGrabProbePassed ? "pass" : "fail") +
         " combat_probe=" +
@@ -1441,7 +1444,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 18) {
+    if (view[0] !== 19) {
       return;
     }
     var canvas = state.canvas;
@@ -1515,6 +1518,8 @@ mergeInto(LibraryManager.library, {
       "DOWN THROW",
       "DASH ATTACK",
       "JAB FINAL",
+      "RESET BOUND",
+      "FORCED GETUP",
     ];
 
     if (view[1] < previousTick) {
@@ -1778,7 +1783,8 @@ mergeInto(LibraryManager.library, {
         actionState === 15 ||
         actionState === 23 ||
         actionState === 26 ||
-        actionState === 46;
+        actionState === 46 ||
+        (actionState === 59 && view[base + 6] !== 0);
       var invulnerable = view[base + 28] !== 0;
       var shielding =
         view[base + 4] === 18 ||

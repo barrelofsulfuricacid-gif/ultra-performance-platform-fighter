@@ -15,7 +15,7 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   reduced-down shield platform dropping, three-frame V-cancelling, and
   ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
   kill-confirm, zero-to-death, platform-sharking, jump-canceled-grab, and
-  directional-throw/chain-grab routes, plus two-pad
+  directional-throw/chain-grab and jab-reset routes, plus two-pad
   browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
@@ -534,6 +534,33 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   browser view schema 18 identify the contract. Registry row 22, Jab cancel,
   advances from `planned` to `playable`.
 
+## Delivered in the jab-reset slice
+
+- A physical hit against vulnerable `DOWN_WAIT` or an already-resetting target
+  now qualifies for jab reset only when its authored per-hit damage is at most
+  7% and its computed hitstun is at most 12 ticks. The default 6% jab reaches
+  the exact 12-hitstun route without a technique-only flag or buffer.
+- A qualifying hit clears horizontal launch, applies the fixed low `1/10`
+  unit-per-tick bounce, resumes into `RESET_BOUND` after ordinary hitlag, and
+  uses the existing action timer for exactly 12 bound ticks. Ground contact at
+  expiry enters 30 vulnerable `FORCED_GETUP` ticks; an airborne target instead
+  recovers into `AIRBORNE` and may act.
+- Ordinary same-tick getup input resolves before combat, so its existing
+  invulnerability avoids the reset. Existing hitlag SDI/ASDI and final-hitlag
+  DI remain live; two SDI pulses plus ASDI can keep the target airborne at
+  bound expiry. Over-7% hits and 13-hitstun tumble remain ordinary reactions.
+- The native oracle proves both inclusive limits, exact action timing and input
+  lock, same-tick getup avoidance, airborne SDI escape into aerial attack,
+  invalid data, and a mid-bound save/load with 64 equal future hashes and
+  events through a real forced-getup punish. Browser startup repeats the
+  positive, getup, over-damage, and SDI routes, reports
+  `jab_reset_probe=1`, and labels both new actions.
+- State schema 23/save format 22 and `PFSAVE22` retain the 635-byte checkpoint
+  while making `RESET_BOUND`, `FORCED_GETUP`, hitlag resume, action timing, and
+  grounded/airborne expiry semantics fail closed. Content/fighter schema 25,
+  inspection schema 20, and browser view schema 19 identify the contract.
+  Registry row 23, Jab reset, advances from `primitive-ready` to `playable`.
+
 ## Delivered in the instant-double-jump slice
 
 - A released first jump followed by a fresh jump edge on the first legal
@@ -1001,7 +1028,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 38 playable, 4 primitive-ready, and 18 planned.
+  blocked: 1 verified, 39 playable, 3 primitive-ready, and 18 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1035,7 +1062,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 204 movement invariants, 492
+- Mechanical oracles: 204 movement invariants, 529
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1046,9 +1073,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,327
   bytes,
   replay SHA-256
-  `547c848aa7a4d3848fa7ec52e1984be2de787bd923de91bfb6d388421c2400f3`,
+  `b502a4dcbbaa83c5561c35c77d3305be44ad3dddbda59f3dfed85edaea50d95b`,
   final SHA-256
-  `277f5d084b5be3514c6b51689c29d9763795db2e4336dac5be796181144ae342`,
+  `d0466359837de1292c9195d3ecfd9790aac2d7c3ab976228d62a1baa2be2c99a`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1059,7 +1086,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/directional-throw-and-chain-grab/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

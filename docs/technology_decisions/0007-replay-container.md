@@ -67,9 +67,9 @@ used by the native/WebAssembly corpus test and browser inspector:
   grounded-roll, spot-dodge, SDI, tech-window, shield, air-dodge, and
   special-landing state in the production combat path.
 - Replay SHA-256
-  `547c848aa7a4d3848fa7ec52e1984be2de787bd923de91bfb6d388421c2400f3`.
+  `b502a4dcbbaa83c5561c35c77d3305be44ad3dddbda59f3dfed85edaea50d95b`.
 - Final state SHA-256
-  `277f5d084b5be3514c6b51689c29d9763795db2e4336dac5be796181144ae342`.
+  `d0466359837de1292c9195d3ecfd9790aac2d7c3ab976228d62a1baa2be2c99a`.
 - Per-tick event-journal SHA-256 under domain `PFEVT001`
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`.
 

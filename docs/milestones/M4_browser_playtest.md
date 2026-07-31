@@ -5,7 +5,8 @@ geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
 wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking,
 jump-canceled standing grab with capture/mash escape, production dash attack
-with ordinary/boost-grab routes, a production two-hit jab with shield cancel,
+with ordinary/boost-grab routes, a production two-hit jab with shield cancel
+and a weak-hit jab-reset route,
 and four directional
 throws with a low-percent chain-grab route,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
@@ -113,6 +114,18 @@ freshly press light during ticks 4–7 to select the independent `JAB FINAL`;
 the state card and typed hit feed identify its 7% second hit separately. This
 follows the documented
 [jab-cancelling](https://www.ssbwiki.com/Jab_cancelling) shield route.
+
+For a jab reset, strong-launch the opponent, omit the tech input, follow their
+landing, and wait for the state card to show `DOWN WAIT`. Jab before they choose
+a getup. The default 6% hit freezes normally, then produces the small 12-tick
+`RESET BOUND` before 30 vulnerable ticks of `FORCED GETUP`; attack and jump stay
+locked until it ends. Pause and step to choose a getup on the jab's collision
+tick and confirm its existing gold invulnerability ring rejects the hit.
+Alternatively, cross two stick-component thresholds during reset hitlag and
+hold away for ASDI; enough displacement keeps the target airborne when the
+bound expires, so the card returns to `AIRBORNE` and permits an aerial instead
+of forcing a getup. This follows the documented weak-hit reset and SDI escape
+behavior for a [jab reset/lock](https://www.ssbwiki.com/Spooky_stun).
 
 While in `GRAB HOLD`, keep a full direction held and freshly press either
 attack. Left/right selects forward or back relative to the thrower's facing;
@@ -612,6 +625,12 @@ registry row can advance from `playable` to `verified`.
     press it on tick 8, and confirm neither route cancels. Finally press light
     freshly during ticks 4–7 and confirm `JAB FINAL` deals the separately typed
     7% second hit.
+47. Strong-launch Player 2, omit tech, follow the missed landing into `DOWN
+    WAIT`, and jab. Confirm the typed 6% hit enters 12 ticks of `RESET BOUND`,
+    then 30 vulnerable `FORCED GETUP` ticks before idle. Repeat while choosing
+    a getup on the collision tick and confirm invulnerability rejects the jab.
+    Finally use two hitlag SDI component edges plus away ASDI, confirm the bound
+    expires airborne, and use Player 2's aerial instead of forced getup.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -693,6 +712,10 @@ through:
 - first-jab shield cancels on hit and whiff at the exact inclusive boundaries,
   early-held and first-late rejection, and the independently typed final jab
   before default content is restored;
+- weak-jab contact against vulnerable down wait producing exact 12-tick reset
+  bound and 30-tick forced getup, plus same-tick invulnerable getup,
+  over-7%-damage rejection, and hitlag-SDI airborne escape before default
+  content is restored;
 - all four full-direction throws with exact typed release events, a neutral
   attack remaining in `GRAB HOLD`, and a three-down-throw/two-regrab chain
   before default content is restored;
@@ -757,6 +780,7 @@ spacing_probe=pass sharking_probe=pass cross_up_probe=pass
 mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
 zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass
 jump_cancelled_grab_probe=pass boost_grab_probe=pass jab_cancel_probe=pass
+jab_reset_probe=pass
 chain_grab_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
