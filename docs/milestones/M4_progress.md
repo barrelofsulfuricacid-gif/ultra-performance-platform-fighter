@@ -9,7 +9,8 @@ L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump verification
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
 results, rematch, the bounded rollback-safe typed event feed, and complete
-shield-break launch/down/stand/stun/recovery implemented
+shield-break launch/down/stand/stun/recovery plus the three-tick small-step
+forward-smash route and two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -70,8 +71,9 @@ shield-break launch/down/stand/stun/recovery implemented
 - Twenty-eight focused attack/reaction invariants, mid-hitlag save/load
   continuation, and a 20,000-tick four-player deterministic combat trace under
   active `M4-COMBAT` verification.
-- Browser light-attack controls (`F` and `/` or Numpad `0`), strong-attack
-  controls (`H` and `'` or Numpad `2`), action-colored active-hitbox overlays,
+- Browser light/forward-smash controls (`F` and `/` or Numpad `0`), direct
+  strong-attack controls (`H` and `'` or Numpad `2`), action-colored
+  active-hitbox overlays,
   percent/hitlag/hitstun inspection, and independent combat/tumble probes.
 - The default strong attack enters tumble on its first clean hit. Browser
   fighters visibly rotate during post-hitlag tumble so the state is apparent
@@ -303,6 +305,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   fighter schema 14, inspection schema 14, and browser view schema 14.
   The ledge-invulnerability slice supersedes the canonical state and content
   versions with state schema 17/save format 16 and content/fighter schema 15.
+  The small-step-forward-smash slice advances content/fighter schema to 16
+  for its hashed, validated three-tick input window without changing state.
   Config/observation/identity schema 2, inspection schema 14, browser view
   schema 14, and RL schema 4 remain current. The canonical save is 611 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -505,6 +509,21 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `primitive-ready` to `playable`; owner execution and a broader opponent
   decision policy remain before `verified`.
 
+## Delivered in the small-step-forward-smash route
+
+- Full direction plus the ordinary light-attack edge now enters the production
+  strong attack from idle. Delaying light attack through the authored
+  three-tick same-direction initial-dash window preserves traveled distance and
+  velocity, extending the same strong hitbox without a technique-only state.
+- The focused combat oracle proves a standing forward smash misses at a spacing
+  where the frame-3 delayed route lands for the authored 12%, validates the
+  content window, rejects frame 4 and a missing direction, and checks save/load
+  continuation with equal future hashes.
+- Browser readiness repeats standing, frame-3, frame-4, and released-direction
+  routes. Registry row 47 advances from `planned` to `playable`; owner execution
+  and full native/WebAssembly replay and rollback evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -541,6 +560,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A one-tick shield tap from run retains the held shield stop's traction path,
   but enters release as soon as the eight-tick minimum completes. Holding the
   trigger remains `SHIELD`, while the same tap from idle has no travel.
+- Full direction plus light attack remains the standing forward smash; delaying
+  light by one to three same-direction initial-dash ticks remains the
+  range-extending small-step route. Frame 4 or releasing the direction must
+  remain the ordinary non-smash ground attack.
 - Following the opponent's airborne path and observed ground-tech direction
   remains the tech-chase route. The punish begins only when the 20-tick gold
   invulnerability ring clears; attacking from the original spacing at that
@@ -553,7 +576,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; auto-canceling, dash canceling, dashing shield, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  short hop air dodge, tech-chasing, and wavedash are now playable; other rows
+  short hop air dodge, small step forward smash, tech-chasing, and wavedash are
+  now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -562,7 +586,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 19 playable, 6 primitive-ready, and 35 planned.
+  blocked: 1 verified, 20 playable, 6 primitive-ready, and 34 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -595,7 +619,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 150 movement invariants, 149
+- Mechanical oracles: 150 movement invariants, 163
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -606,7 +630,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,303
   bytes,
   replay SHA-256
-  `0a48c51b303ccd8a7f2f6bc8d65763e9f96205cc374dd7b1b721e894c44bb43f`,
+  `36452288611860eea89e051f26ce32dfe1a431537a0dae9bb7379047eadf1c2f`,
   final SHA-256
   `d015347ede291c4f8f3dd08cc794ac12d04a74bc1b789d5ecb86facef7e36745`,
   and event-journal SHA-256
@@ -619,7 +643,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel-and-dashing-shield/edge-hop-and-dash/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/
+  edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/

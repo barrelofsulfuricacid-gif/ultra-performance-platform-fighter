@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -454,6 +454,7 @@ mergeInto(LibraryManager.library, {
     pivotProbePassed,
     dashCancelProbePassed,
     dashingShieldProbePassed,
+    smallStepForwardSmashProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -740,6 +741,7 @@ mergeInto(LibraryManager.library, {
       pivotProbePassed &&
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
+      smallStepForwardSmashProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -808,13 +810,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · W or Space jump · F light · H strong · G shield/trigger. Standard Gamepad 1: left stick or D-pad · bottom face light · right face strong · left/top face jump · any shoulder/trigger shield"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + arrows walk · ↑ jump · / or Numpad 0 light · ' or Numpad 2 strong · . or Numpad 1 shield/trigger. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + arrows walk · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -840,6 +842,11 @@ mergeInto(LibraryManager.library, {
       "neutral on the next tick, and immediately attack; the fighter keeps the " +
       "new facing and reversal momentum. Holding the reversal continues the " +
       "dash, while attempting it after RUN enters RUN TURNAROUND. " +
+      "For a small-step forward smash, tap and hold a full direction, delay " +
+      "one to three simulation ticks, then press the light-attack button; " +
+      "the initial-dash travel extends the strong hitbox's reach. Pressing " +
+      "direction plus light simultaneously gives the standing comparison, " +
+      "while waiting four ticks produces the ordinary non-smash attack. " +
       "To dash-cancel a run, press down for a traction slide into CROUCH, then " +
       "attack; jump and shield are the other live cancel routes. Shield remains " +
       "locked out during INITIAL DASH and down cannot cancel RUN TURNAROUND. " +
@@ -1211,6 +1218,8 @@ mergeInto(LibraryManager.library, {
         (dashCancelProbePassed ? "pass" : "fail") +
         " dashing_shield_probe=" +
         (dashingShieldProbePassed ? "pass" : "fail") +
+        " small_step_forward_smash_probe=" +
+        (smallStepForwardSmashProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1259,6 +1268,8 @@ mergeInto(LibraryManager.library, {
         dashCancelProbePassed ? "pass" : "fail";
       status.dataset.dashingShieldProbe =
         dashingShieldProbePassed ? "pass" : "fail";
+      status.dataset.smallStepForwardSmashProbe =
+        smallStepForwardSmashProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

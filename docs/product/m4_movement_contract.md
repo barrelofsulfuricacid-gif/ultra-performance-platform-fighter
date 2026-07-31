@@ -40,6 +40,13 @@ to the simulation.
   pressing a ground action on that tick acts with the same facing and
   momentum. Holding the reversal continues the opposite initial dash, and a
   reversal after `RUN` has begun uses `RUN TURNAROUND` instead.
+- Full direction plus the ordinary light-attack edge enters the production
+  forward strong attack directly from idle. Holding that same direction for
+  one through the data-defined three initial-dash ticks before pressing light
+  retains the traveled distance and traction-controlled dash velocity, making
+  the same authored hitbox reach farther. A frame-4 press or a press after the
+  direction is released remains the ordinary non-smash ground attack. The
+  opposite-direction form has only the one-tick pivot window.
 - Once initial dash has become `RUN`, an opposite input at or above the
   data-defined 0.375 threshold enters `RUN TURNAROUND`, never another initial
   dash. Holding at least the data-defined 0.625 threshold toward the new
@@ -61,7 +68,8 @@ to the simulation.
   horizontal input. The browser loop will retain explicit walk controls rather
   than collapsing every key press into a full dash value.
 - Ground acceleration, turn acceleration, traction, walk speed, run speed,
-  initial-dash speed/window, run-turnaround duration/threshold/lockout,
+  initial-dash speed/window, forward-smash input window,
+  run-turnaround duration/threshold/lockout,
   run-brake duration, aerial acceleration, aerial speed, and facing are
   deterministic data fields.
 - Airborne horizontal stick input changes the aerial target velocity and
@@ -283,6 +291,9 @@ bounds, and blast zones.
 `tests/sim/test_m4_movement.c` and `tools/verify_m4_movement.sh` cover:
 
 - content validation, content-hash rejection, and a data-tuning effect;
+- the combat oracle's standing-versus-small-step forward-smash range fixture,
+  exact frame-3/frame-4 and missing-direction boundaries, validated authored
+  timing, and mid-route save/load future-hash equality;
 - proportional walk, initial dash, run, four-burst same-direction fox-trotting,
   held-run and weak-walk negative cases, mid-rhythm save/load continuation,
   one-tick empty/action pivoting with facing and momentum preservation,

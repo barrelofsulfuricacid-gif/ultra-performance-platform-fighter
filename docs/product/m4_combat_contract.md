@@ -38,7 +38,14 @@ simultaneous-final-stock sudden death are now part of the checkpoint.
 
 The light or strong ground attack is entered by a rising edge on its separate
 input-schema-3 button while the fighter is grounded and outside a locked
-action. If both edges occur on one tick, strong attack takes priority. An
+action. If both edges occur on one tick, strong attack takes priority. Full
+direction plus the light-attack edge also enters the strong ground attack from
+idle, providing the standing forward-smash input. Delaying that light-attack
+edge for one through three same-direction `INITIAL_DASH` ticks produces the
+small-step forward smash: initial-dash travel and retained velocity extend the
+same authored hitbox. Frame 4 or a missing full direction produces the ordinary
+light ground attack, and an opposite-direction smash has only the one-tick
+pivot window. The separate strong button remains a direct strong-attack route. An
 airborne light-attack edge instead enters the original light aerial, while an
 airborne strong-attack edge enters `STRONG_AERIAL_ATTACK`. There is no
 universal input buffer. The default light jab defines two startup ticks, two
@@ -431,8 +438,9 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 15 / fighter schema 15 adds the validated 37-tick default ledge
-invulnerability duration. It follows schema 14's independently validated
+Content schema 16 / fighter schema 16 adds and hashes the validated
+three-tick forward-smash input window. It follows schema 15's validated
+37-tick default ledge invulnerability duration and schema 14's independently validated
 shield-break launch speed, base/minimum stun, down/stand durations, and mash
 reduction, and schema 13's strong-aerial landing-lag duration and
 schema 12's roll

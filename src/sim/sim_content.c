@@ -156,6 +156,9 @@ static void pf_m4_hash_fighter(
         fighter->shield_attacker_pushback_base_q16);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->forward_smash_input_window_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
     pf_m4_hash_u16(hash, fighter->platform_drop_ticks);
     pf_m4_hash_u16(hash, fighter->air_dodge_ticks);
@@ -453,6 +456,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         PF_Q16_RATIO(1, 50);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->initial_dash_ticks = UINT16_C(10);
+    fighter->forward_smash_input_window_ticks = UINT16_C(3);
     fighter->landing_ticks = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(6);
     fighter->air_dodge_ticks = UINT16_C(49);
@@ -893,6 +897,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jump_squat_ticks > UINT16_C(60) ||
         fighter->initial_dash_ticks == UINT16_C(0) ||
         fighter->initial_dash_ticks > UINT16_C(120) ||
+        fighter->forward_smash_input_window_ticks == UINT16_C(0) ||
+        fighter->forward_smash_input_window_ticks >
+            fighter->initial_dash_ticks ||
         fighter->landing_ticks == UINT16_C(0) ||
         fighter->landing_ticks > UINT16_C(120) ||
         fighter->platform_drop_ticks == UINT16_C(0) ||

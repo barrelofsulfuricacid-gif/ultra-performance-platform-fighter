@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(15)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(15)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(16)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(16)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(14)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
@@ -170,6 +170,7 @@ typedef struct pf_m4_fighter_data
     int32_t shield_attacker_pushback_base_q16;
     uint16_t jump_squat_ticks;
     uint16_t initial_dash_ticks;
+    uint16_t forward_smash_input_window_ticks;
     uint16_t landing_ticks;
     uint16_t platform_drop_ticks;
     uint16_t air_dodge_ticks;

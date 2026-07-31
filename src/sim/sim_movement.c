@@ -1440,8 +1440,6 @@ pf_status pf_m4_step_player(
             UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_STRONG_ATTACK) ==
             UINT64_C(0);
-    const int attack_pressed =
-        light_attack_pressed || strong_attack_pressed;
     const int shield_held =
         input->left_trigger >= fighter->digital_trigger_threshold ||
         input->right_trigger >= fighter->digital_trigger_threshold;
@@ -1463,6 +1461,27 @@ pf_status pf_m4_step_player(
         pf_m4_strong_direction(
             input->main_stick_x,
             fighter->dash_axis_threshold);
+    const int forward_smash_pressed =
+        light_attack_pressed != 0 &&
+        world->grounded[player_index] != UINT8_C(0) &&
+        strong_direction != INT8_C(0) &&
+        ((world->action_state[player_index] ==
+                  (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+          world->previous_strong_direction[player_index] ==
+              INT8_C(0)) ||
+         (world->action_state[player_index] ==
+              (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+          ((strong_direction ==
+                world->dash_direction[player_index] &&
+            world->action_ticks[player_index] <=
+                fighter->forward_smash_input_window_ticks) ||
+           (strong_direction ==
+                -world->dash_direction[player_index] &&
+            world->action_ticks[player_index] == UINT16_C(1)))));
+    const int ground_strong_attack_pressed =
+        strong_attack_pressed != 0 || forward_smash_pressed != 0;
+    const int attack_pressed =
+        light_attack_pressed != 0 || strong_attack_pressed != 0;
     const int dodge_down_held =
         input->main_stick_y >=
         (int16_t)fighter->crouch_axis_threshold;
@@ -2020,13 +2039,17 @@ pf_status pf_m4_step_player(
         attack_pressed)
     {
         action_state =
-            strong_attack_pressed
+            ground_strong_attack_pressed
                 ? (uint8_t)PF_M4_ACTION_STRONG_ATTACK
                 : (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
         action_ticks = UINT16_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         short_hop_latched = UINT8_C(0);
         dash_direction = INT8_C(0);
+        if (forward_smash_pressed != 0)
+        {
+            facing = strong_direction;
+        }
     }
 
     if (!ledge_motion_handled &&

@@ -21,8 +21,8 @@ headless execution.
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
-| Light ground/aerial attack | `F` | `/` or Numpad `0` |
-| Strong ground/aerial attack | `H` | `'` or Numpad `2` |
+| Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
+| Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
@@ -35,8 +35,9 @@ Up to two gamepads using the
 [W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) are
 assigned in browser index order. On each pad, the left stick supplies analog
 movement/DI, the D-pad supplies full
-magnitude, the bottom face button is light attack, the right face button is
-strong attack, either left/top face button jumps, and any shoulder or trigger
+magnitude, the bottom face button is light attack or a directional forward
+smash, the right face button is a direct strong attack, either left/top face
+button jumps, and any shoulder or trigger
 holds shield or supplies the tech/air-dodge/L-cancel trigger. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
 are ignored rather than guessed.
@@ -70,6 +71,14 @@ The inherited run momentum continues sliding under traction through the
 eight-tick minimum hold and 15-tick `SHIELD RELEASE`. Repeat while holding
 shield: the travel path is the same, but the fighter remains `SHIELD`. A shield
 tap from idle is the no-travel negative case.
+
+For a small-step forward smash, press full direction and light attack together
+for the standing comparison. Reset, tap and hold the same full direction, wait
+one to three simulation ticks, then press light attack. The fighter enters
+`STRONG ATTACK` after traveling forward, extending the same pink hitbox's range.
+Waiting four ticks or releasing the direction before light attack instead
+produces the ordinary non-smash ground attack. The dedicated strong key/button
+remains the direct strong-attack route.
 
 Once `INITIAL DASH` has transitioned to `RUN`, a full opposite input enters
 `RUN TURNAROUND`, not another initial dash. The placeholder fighter uses a
@@ -472,6 +481,10 @@ through:
 - one-tick run-to-shield tap/release travel through the minimum hold and full
   release, compared with a held shield stop on the same traction path and an
   idle no-travel negative route;
+- simultaneous full-direction/light input producing the standing forward
+  smash, a frame-3 delayed light input producing the farther-traveled strong
+  attack, and frame-4 plus missing-direction negative routes producing the
+  ordinary non-smash attack;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -525,7 +538,7 @@ The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
-dashing_shield_probe=pass combat_probe=pass
+dashing_shield_probe=pass small_step_forward_smash_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass
