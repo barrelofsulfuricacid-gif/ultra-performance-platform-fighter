@@ -13584,9 +13584,12 @@ int main(void)
     invalid_jab_cancel_window_content = content;
     invalid_jab_cancel_window_content.fighter
         .jab_combo_input_begin_tick =
-        invalid_jab_cancel_window_content.fighter.jab_startup_ticks +
-        invalid_jab_cancel_window_content.fighter.jab_active_ticks -
-        UINT16_C(1);
+        (uint16_t)(
+            (uint32_t)invalid_jab_cancel_window_content.fighter
+                .jab_startup_ticks +
+            (uint32_t)invalid_jab_cancel_window_content.fighter
+                .jab_active_ticks -
+            UINT32_C(1));
     invalid_jab_final_content = content;
     invalid_jab_final_content.fighter.jab_final_damage_q16 = UINT32_C(0);
     if (!expect_status(
