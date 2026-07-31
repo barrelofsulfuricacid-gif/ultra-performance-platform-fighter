@@ -3,8 +3,9 @@
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
-wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking, and
-jump-canceled standing grab with capture/mash escape,
+wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking,
+jump-canceled standing grab with capture/mash escape, and four directional
+throws with a low-percent chain-grab route,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction, and dense-shield
@@ -27,6 +28,7 @@ headless execution.
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing grab / jump-canceled grab | Hold `G`, tap `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0` |
+| Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Shield platform drop | Hold trigger, then `Shift+S` | Hold trigger, then `Shift+Down` |
@@ -42,7 +44,8 @@ movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack or a directional forward
 smash, the right face button is a direct strong attack, either left/top face
 button jumps, and any shoulder or trigger
-holds shield or supplies the tech/air-dodge/L-cancel trigger. Keyboard and
+    holds shield or supplies the tech/air-dodge/L-cancel trigger. Light plus a
+    shoulder/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
 are ignored rather than guessed.
 
@@ -86,6 +89,16 @@ button edges to reduce it faster than waiting. The feed records both `GRABBED` a
 escape events. Light-plus-shield directly during initial dash is rejected, as
 is the same combination after takeoff. From idle, light-plus-shield remains
 the ordinary standing-grab route.
+
+While in `GRAB HOLD`, keep a full direction held and freshly press either
+attack. Left/right selects forward or back relative to the thrower's facing;
+up/down selects the vertical throw only when that axis is strictly dominant,
+so horizontal wins a diagonal tie. Reduced or neutral direction does not throw.
+The victim remains tethered until the authored release tick, then both links
+clear, both players enter hitlag, and the feed records the selected throw,
+damage, and launch vector. Down throw at low percent leaves enough proximity to
+pursue and regrab twice; at 96% with outward DI, the same earliest standing
+regrab whiffs and emits no new grab event.
 
 For a shield platform drop, land on the pass-through platform and raise shield.
 On a later tick, keep holding the trigger and press reduced down with
@@ -246,7 +259,7 @@ direction, and the last combat-event sequence.
 
 The event panel is driven by the ABI-4 per-tick journal rather than inferred
 from the rendered state. It shows canonical sequence/tick labels for hits,
-shield interactions, grabs, escapes, KOs, respawns, sudden death, results,
+    shield interactions, grabs, escapes, throws, KOs, respawns, sudden death, results,
 forfeits, and time limits. The simulation returns at most 16 records for the current tick; the
 browser keeps only the newest ten as non-authoritative presentation history
 and clears them on Reset or any observed rewind.
@@ -562,6 +575,13 @@ registry row can advance from `playable` to `verified`.
     touches a surface. Repeat while Player 2 holds DI away and presses a fresh
     trigger after hitstun for a directional air dodge; confirm Player 1's
     active aerial whiffs and Player 2 retains only the launcher damage.
+45. From idle, press light plus shield to capture Player 2. While the card shows
+    `GRAB HOLD`, hold full down and freshly press either attack. Confirm `DOWN
+    THROW`, link clearing at release, shared hitlag, 6% damage, and a typed
+    throw feed entry. Pursue and repeat until two regrabs complete. Then build
+    Player 2 to high percent, hold outward DI through the same down throw, and
+    confirm the earliest standing regrab whiffs rather than starting a new
+    capture.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -637,6 +657,9 @@ through:
 - initial dash into jump squat and standing grab with retained momentum,
   reciprocal capture state, and a typed grab event, plus direct-dash and
   post-takeoff grab-input rejection before default content is restored;
+- all four full-direction throws with exact typed release events, a neutral
+  attack remaining in `GRAB HOLD`, and a three-down-throw/two-regrab chain
+  before default content is restored;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -697,7 +720,7 @@ drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
 mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
 zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass
-jump_cancelled_grab_probe=pass combat_probe=pass
+jump_cancelled_grab_probe=pass chain_grab_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

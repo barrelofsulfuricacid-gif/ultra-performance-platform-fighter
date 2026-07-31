@@ -29,7 +29,7 @@ reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
 does not claim the remaining
 attacks, analog light shields, general shield tilt/size/pokes, shield SDI,
-directional throws/regrabs/pummels, projectile powershields, complete
+pummels and broader throw routes, projectile powershields, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
@@ -705,23 +705,65 @@ percent, capped at 90. It decrements naturally once per tick; each fresh
 button, full-horizontal, or full-down edge removes three additional ticks,
 while held input never repeats the reduction. Natural or mash escape emits a typed event,
 clears both reciprocal links, and gives both fighters eight ticks of
-`GRAB_RELEASE`. Directional throws and regrabs remain the next M4 grab slice.
+`GRAB_RELEASE`.
 
 The native oracle covers shielded and ordinary capture, exact active frames,
 natural and mash escape boundaries, invulnerable spot-dodge rejection,
 direct-dash and airborne negatives, retained dash momentum, typed events, and
 mid-hold save/load with equal future hashes. Browser startup repeats the
-jump-cancel route and both negatives; browser view schema 15 renders the cyan
+jump-cancel route and both negatives; browser view schema 16 renders the cyan
 grabbox, `GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
 links, and the victim's `MASH OUT · Nf` countdown.
 
+## Directional throws and chain grab
+
+During `GRAB_HOLD`, a fresh light or strong attack plus a full stick direction
+selects one of `THROW_FORWARD`, `THROW_BACK`, `THROW_UP`, or `THROW_DOWN`.
+Horizontal direction is resolved relative to facing. A strictly larger vertical
+magnitude selects up/down; horizontal wins an exact diagonal tie. Neutral or
+reduced direction plus attack remains `GRAB_HOLD`, so no hidden neutral throw
+or presentation-only shortcut exists.
+
+Each throw is authored independently:
+
+| Throw | Damage | Base launch (facing x, y) | Per-percent growth (facing x, y) | Release | Hitlag | Recovery |
+|---|---:|---:|---:|---:|---:|---:|
+| Forward | 8% | `(+1/4, -9/50)` | `(+1/512, -1/1024)` | tick 3 | 4 | 12 |
+| Back | 9% | `(-3/10, -4/25)` | `(-1/512, -1/1024)` | tick 4 | 4 | 14 |
+| Up | 7% | `(+3/100, -9/25)` | `(+1/4096, -1/512)` | tick 3 | 4 | 11 |
+| Down | 6% | `(+1/25, -2/25)` | `(+1/512, -1/2048)` | tick 2 | 3 | 5 |
+
+The victim remains tethered by reciprocal grab links through the authored
+startup. On the exact release tick, the simulation computes launch from the
+post-damage percent, clears both links atomically, and applies the shared
+physical-hit reaction path, including hitlag, hitstun/tumble, SDI, final-hitlag
+DI, attribution, and deterministic event sequencing. Both fighters freeze for
+the authored hitlag; the thrower resumes the same throw action for its authored
+recovery. The event is `THROW`, with throw action in `detail`, applied damage in
+`value`, and the pre-DI authored launch vector in the velocity fields.
+
+Chain grab is an emergent consequence of those production rules. The default
+down throw leaves a low-percent victim close enough for pursuit and two legal
+regrabs, producing three throws and 18% total damage. After two ordinary
+45%-damage setup hits, the same down throw reaches 96%; outward DI/SDI moves the
+victim beyond the earliest standing regrab, whose active grabbox whiffs without
+a new link or event. The native oracle also saves during the second down-throw
+startup with live reciprocal links, loads it, and compares every future hash
+and event through the remaining throws and regrabs. Browser startup executes
+all four directional throws, the complete low-percent chain, and the neutral
+input negative before restoring default content; the live adapter exposes all
+four action labels and the typed throw event.
+
 ## Canonical state and inspection
 
-State schema 19 / save format 18 expands the stream to 635 bytes (140-byte
-header plus 495-byte payload) and changes the active magic to `PFSAVE18`. It
-adds one escape timer, one target slot, and one owner slot per player; load
-requires every live link to be in range, reciprocal, and action-compatible.
-It follows state schema 18 / save format 17, which added one remaining
+State schema 20 / save format 19 retains the 635-byte stream (140-byte header
+plus 495-byte payload) and changes the active magic to `PFSAVE19`. It makes the
+four throw action IDs, thrower hitlag resume, startup-link, atomic release, and
+post-release recovery semantics fail closed without adding mutable fields. It
+follows state schema 19 / save format 18, which added one escape timer, one
+target slot, and one owner slot per player; load requires every live link to be
+in range, reciprocal, and action-compatible. That format follows state schema
+18 / save format 17, which added one remaining
 ledge-regrab-lockout timer per player, and state schema 17 / save format 16,
 which added one remaining ledge-invulnerability timer per player. The
 invulnerability timer is
@@ -750,10 +792,12 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 21 / fighter schema 21 adds and hashes grabbox geometry, held
-offset, damage-scaled escape duration, startup/active/recovery timing,
-base/maximum escape timing, fresh-input mash reduction, and release timing. It
-follows schema 20's 29-tick ledge-regrab lockout and schema 19's reduced-down
+Content schema 22 / fighter schema 22 adds and hashes all four throws' damage,
+signed base launch and per-percent growth, release tick, recovery, and hitlag.
+It follows schema 21's grabbox geometry, held offset, damage-scaled escape
+duration, startup/active/recovery timing, base/maximum escape timing,
+fresh-input mash reduction, and release timing, schema 20's 29-tick
+ledge-regrab lockout, and schema 19's reduced-down
 shield platform-drop threshold,
 schema 18's validated V-cancel velocity
 scale and input window and schema 17's validated drop-cancel
@@ -773,15 +817,17 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 16 additionally exposes grabbox bounds/active state, escape
-ticks, and reciprocal target/owner slots. It retains schema 15's exact
+Inspection schema 17 identifies the new content/state contract while retaining
+schema 16's grabbox bounds/active state, escape ticks, and reciprocal
+target/owner slots. It retains schema 15's exact
 remaining ledge-invulnerability and regrab-lockout timers and schema 14's
 percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 15 carries the grab fields and
+sudden death, and result. Browser view schema 16 carries the throw action/event
+identities plus the grab fields and
 retains its derived invulnerability marker rather than exporting either exact
 ledge timer, and
 carries the prior combat fields plus the canonical action timer, floor action semantics,
@@ -798,7 +844,7 @@ renders the down phase prone, and gives vulnerable stun an orbiting-star
 Every successful ABI-4 tick returns a zero-initialized fixed-capacity journal
 of up to 16 typed events. Current combat and match producers emit:
 
-- hit, shield block, powershield, shield break, grab, and grab escape;
+- hit, shield block, powershield, shield break, grab, grab escape, and throw;
 - KO and respawn, including remaining-stock, elimination, and sudden-death
   flags;
 - sudden-death setup, match result, forfeit, and time limit.
@@ -815,6 +861,7 @@ and event order follow stable slot order, with match resolution last.
 | Hold-depletion shield break | Actual depleted shield health / upward launch | Zero |
 | Grab | Victim percent / zero | Grab action |
 | Grab escape | Victim percent / zero | Zero |
+| Throw | Applied damage / authored launch before DI | Throw action |
 | KO | Pre-reset percent / blast-crossing velocity | Stocks remaining |
 | Respawn | Respawn percent / spawn velocity | Invulnerability ticks |
 | Sudden death | `300%` / zero | Player count |
@@ -834,8 +881,8 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 398 focused
-mechanics invariants plus 42 journal invariants, including:
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 444 focused
+mechanics invariants plus 50 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
@@ -858,6 +905,12 @@ mechanics invariants plus 42 journal invariants, including:
   cancel with retained dash momentum, direct-dash and airborne negatives,
   typed grab/escape events, invalid data, and mid-hold save/load event/hash
   continuation;
+- all four directional throw selections and exact startup/release/hitlag/
+  recovery schedules, horizontal diagonal-tie and vertical-dominance boundaries,
+  neutral/reduced-input rejection, signed percent-scaled launch,
+  reciprocal link clearing, typed throw events, a three-throw/two-regrab chain,
+  a 96% outward-DI regrab whiff, invalid throw data, and mid-chain save/load
+  event/hash continuation;
 - the responder's short jab whiffing at the safe 1.95-unit band before a
   longer strong counter connects during recovery, the 1.7-unit close punish,
   2.25-unit double whiff, safe-tip shield block, and mid-counter save/load with

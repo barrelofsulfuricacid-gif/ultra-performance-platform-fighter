@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(21)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(21)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(22)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(22)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(16)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(17)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -71,8 +71,25 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_GRAB = 49,
     PF_M4_ACTION_GRAB_HOLD = 50,
     PF_M4_ACTION_GRABBED = 51,
-    PF_M4_ACTION_GRAB_RELEASE = 52
+    PF_M4_ACTION_GRAB_RELEASE = 52,
+    PF_M4_ACTION_THROW_FORWARD = 53,
+    PF_M4_ACTION_THROW_BACK = 54,
+    PF_M4_ACTION_THROW_UP = 55,
+    PF_M4_ACTION_THROW_DOWN = 56
 } pf_m4_action_state;
+
+typedef struct pf_m4_throw_data
+{
+    uint32_t damage_q16;
+    int32_t base_velocity_x_q16;
+    int32_t base_velocity_y_q16;
+    int32_t velocity_growth_x_q16;
+    int32_t velocity_growth_y_q16;
+    uint16_t release_tick;
+    uint16_t recovery_ticks;
+    uint16_t hitlag_ticks;
+    uint16_t reserved;
+} pf_m4_throw_data;
 
 typedef enum pf_m4_surface
 {
@@ -181,6 +198,10 @@ typedef struct pf_m4_fighter_data
     int32_t grabbed_offset_x_q16;
     int32_t grabbed_offset_y_q16;
     int32_t grab_escape_damage_ticks_q16;
+    pf_m4_throw_data forward_throw;
+    pf_m4_throw_data back_throw;
+    pf_m4_throw_data up_throw;
+    pf_m4_throw_data down_throw;
     uint16_t jump_squat_ticks;
     uint16_t initial_dash_ticks;
     uint16_t forward_smash_input_window_ticks;

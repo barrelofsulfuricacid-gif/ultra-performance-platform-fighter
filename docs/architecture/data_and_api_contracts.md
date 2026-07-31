@@ -81,9 +81,9 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–17 remain historical checkpoints. The current M4
-movement/combat state uses save format 18: a fixed 635-byte checkpoint with
-state schema 19 and canonical solid-surface tech/bounce,
+Save formats 1–18 remain historical checkpoints. The current M4
+movement/combat state uses save format 19: a fixed 635-byte checkpoint with
+state schema 20 and canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
@@ -93,7 +93,10 @@ respawn-wait/eliminated actions, sudden-death state, and the authoritative
 monotonic event sequence. It also defines the shield-break
 flight/down/stand/stun action semantics, independent remaining
 ledge-invulnerability and 29-tick disabled-regrab timers, and reciprocal
-grab owner/target links plus escape timers per player. Format 14 changed the
+grab owner/target links plus escape timers per player. State schema 20 adds the
+four directional throw action IDs and makes startup-link, atomic release,
+hitlag-resume, recovery, and typed-event semantics fail closed without changing
+the byte layout. Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.
 Format 5 first
@@ -147,8 +150,8 @@ Each event records the processed input tick, a match-monotonic sequence,
 type, flags, source and target slots, one Q16.16 value, one Q16.16 velocity
 pair, and a type-specific 16-bit detail. `255` denotes a system/no-player
 endpoint. The currently produced types are hit, shield block, powershield,
-shield break, KO, respawn, sudden death, match result, forfeit, and time
-limit.
+shield break, grab, grab escape, throw, KO, respawn, sudden death, match result,
+forfeit, and time limit.
 
 The event array itself is same-tick output scratch, not rolling canonical
 history. Canonical state stores the next sequence authority. Loading a

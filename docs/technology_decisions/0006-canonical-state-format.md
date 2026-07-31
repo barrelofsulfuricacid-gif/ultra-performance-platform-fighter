@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–18 / state schemas 1–19
+- **Status:** Accepted for save formats 1–19 / state schemas 1–20
 - **Date:** 2026-07-28
 
 ## Decision
@@ -28,12 +28,13 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 16 | 17 | 140 | 471 | 611 | One canonical remaining ledge-invulnerability timer per player |
 | 17 | 18 | 140 | 479 | 619 | One canonical remaining ledge-regrab-lockout timer per player |
 | 18 | 19 | 140 | 495 | 635 | One grab-escape timer, one grab-target slot, and one grab-owner slot per player |
+| 19 | 20 | 140 | 495 | 635 | Canonical forward/back/up/down throw action IDs, hitlag-resume and reciprocal-link release semantics, and typed throw events; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
-`PFSAVE17`, or `PFSAVE18`.
-The active M4 runtime emits and accepts format 18 with state schema 19. Earlier
+`PFSAVE17`, `PFSAVE18`, or `PFSAVE19`.
+The active M4 runtime emits and accepts format 19 with state schema 20. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -75,6 +76,15 @@ self, same-team, non-reciprocal, inactive, or action-incompatible links.
 Capture, natural escape, mash escape, interruption, reset, respawn, and stock
 loss update both sides atomically, so mid-hold rollback cannot create a
 one-sided capture or duplicate its typed event.
+Format 19 retains the 495-byte payload while making four directional throw
+actions and their timing semantics fail closed. A throw startup keeps the
+existing reciprocal grab link until its authored release tick; release clears
+both sides atomically, applies damage and signed launch through the ordinary
+hit-reaction/DI/SDI path, freezes both players in hitlag, resumes the thrower
+into authored recovery, and emits one typed throw event. Loading accepts live
+links during throw startup only when they remain reciprocal and action
+compatible, and accepts post-release throw recovery only after both links have
+cleared.
 
 ## Why SHA-256
 
@@ -146,6 +156,9 @@ service-envelope responsibility.
 - Mid-grab save/load plus reciprocal owner/target validation, exact natural
   and fresh-input mash escape timing, byte-identical future events, and equal
   future hashes in `tests/sim/test_m4_combat.c`.
+- Mid-chain save/load during down-throw startup plus reciprocal throw-link
+  validation, byte-identical future throw events, equal future hashes, and two
+  subsequent legal regrabs in `tests/sim/test_m4_combat.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

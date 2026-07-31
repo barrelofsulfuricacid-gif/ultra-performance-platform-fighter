@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -470,6 +470,7 @@ mergeInto(LibraryManager.library, {
     ledgeCancelProbePassed,
     plankingProbePassed,
     jumpCancelledGrabProbePassed,
+    chainGrabProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -769,6 +770,10 @@ mergeInto(LibraryManager.library, {
       ladderProbePassed &&
       killConfirmProbePassed &&
       zeroToDeathProbePassed &&
+      ledgeCancelProbePassed &&
+      plankingProbePassed &&
+      jumpCancelledGrabProbePassed &&
+      chainGrabProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -837,13 +842,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger · F + G grab. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield · light + shield grab"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger · light + shield grab. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -927,8 +932,14 @@ mergeInto(LibraryManager.library, {
       "underside with a fresh tech input performs a wall or ceiling tech; " +
       "hold up for a wall-tech jump. Missing the window produces a visible " +
       "wall or ceiling bounce while hitstun continues. " +
+      "Press light plus shield while grounded to grab. During GRAB HOLD, hold a " +
+      "full direction and freshly press either attack: forward/back are relative " +
+      "to facing, while up/down select the vertical throws. Low-percent down " +
+      "throws can lead to another grab; accumulated percent and outward DI move " +
+      "the defender beyond the regrab window. " +
       "The deterministic event feed below records hits, shield interactions, " +
-      "KOs, respawns, sudden death, and results in canonical sequence order. " +
+      "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
+      "sequence order. " +
       "R resets, P " +
       "pauses, and N single-steps.";
     section.appendChild(note);
@@ -1285,6 +1296,8 @@ mergeInto(LibraryManager.library, {
         (plankingProbePassed ? "pass" : "fail") +
         " jump_cancelled_grab_probe=" +
         (jumpCancelledGrabProbePassed ? "pass" : "fail") +
+        " chain_grab_probe=" +
+        (chainGrabProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1364,6 +1377,8 @@ mergeInto(LibraryManager.library, {
         plankingProbePassed ? "pass" : "fail";
       status.dataset.jumpCancelledGrabProbe =
         jumpCancelledGrabProbePassed ? "pass" : "fail";
+      status.dataset.chainGrabProbe =
+        chainGrabProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";
@@ -1410,7 +1425,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 15) {
+    if (view[0] !== 16) {
       return;
     }
     var canvas = state.canvas;
@@ -1478,6 +1493,10 @@ mergeInto(LibraryManager.library, {
       "GRAB HOLD",
       "GRABBED",
       "GRAB RELEASE",
+      "FORWARD THROW",
+      "BACK THROW",
+      "UP THROW",
+      "DOWN THROW",
     ];
 
     if (view[1] < previousTick) {
@@ -1566,6 +1585,18 @@ mergeInto(LibraryManager.library, {
         case 12:
           return (
             source + " escaped " + target + "'s grab at " + value + "%"
+          );
+        case 13:
+          return (
+            source +
+            " " +
+            (actionNames[event.detail] || "THREW") +
+            " " +
+            target +
+            " for " +
+            value +
+            "% · launch " +
+            velocity
           );
         default:
           return "unknown event type " + event.type;

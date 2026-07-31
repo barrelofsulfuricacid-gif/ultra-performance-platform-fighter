@@ -530,6 +530,64 @@ static int pf_m4_action_uses_ledge(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB;
 }
 
+static int pf_m4_action_is_throw(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_THROW_FORWARD ||
+           action_state == (uint8_t)PF_M4_ACTION_THROW_BACK ||
+           action_state == (uint8_t)PF_M4_ACTION_THROW_UP ||
+           action_state == (uint8_t)PF_M4_ACTION_THROW_DOWN;
+}
+
+static const pf_m4_throw_data *pf_m4_throw_for_action(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    if (action_state == (uint8_t)PF_M4_ACTION_THROW_FORWARD)
+    {
+        return &fighter->forward_throw;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_THROW_BACK)
+    {
+        return &fighter->back_throw;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_THROW_UP)
+    {
+        return &fighter->up_throw;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_THROW_DOWN)
+    {
+        return &fighter->down_throw;
+    }
+    return NULL;
+}
+
+static uint8_t pf_m4_throw_action_for_input(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    int8_t facing)
+{
+    const uint16_t horizontal =
+        pf_m4_axis_magnitude(input->main_stick_x);
+    const uint16_t vertical =
+        pf_m4_axis_magnitude(input->main_stick_y);
+
+    if (horizontal < fighter->dash_axis_threshold &&
+        vertical < fighter->dash_axis_threshold)
+    {
+        return (uint8_t)PF_M4_ACTION_GRAB_HOLD;
+    }
+    if (vertical > horizontal)
+    {
+        return input->main_stick_y < INT16_C(0)
+                   ? (uint8_t)PF_M4_ACTION_THROW_UP
+                   : (uint8_t)PF_M4_ACTION_THROW_DOWN;
+    }
+    return (input->main_stick_x < INT16_C(0) ? INT8_C(-1) : INT8_C(1)) ==
+                   facing
+               ? (uint8_t)PF_M4_ACTION_THROW_FORWARD
+               : (uint8_t)PF_M4_ACTION_THROW_BACK;
+}
+
 static int pf_m4_action_locks_ground_control(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
@@ -545,7 +603,8 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_GRAB ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
            action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
-           action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
+           action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+           pf_m4_action_is_throw(action_state);
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -874,7 +933,9 @@ void pf_m4_reset_player(
         {
             sim->world.grab_target_slot[other_index] = UINT8_C(0);
             if (sim->world.action_state[other_index] ==
-                (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+                    (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                pf_m4_action_is_throw(
+                    sim->world.action_state[other_index]))
             {
                 sim->world.action_state[other_index] =
                     (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
@@ -1573,6 +1634,8 @@ pf_status pf_m4_step_player(
     const int attack_pressed =
         grab_pressed == 0 &&
         (light_attack_pressed != 0 || strong_attack_pressed != 0);
+    const int throw_pressed =
+        light_attack_pressed != 0 || strong_attack_pressed != 0;
     const int dodge_down_held =
         input->main_stick_y >=
         (int16_t)fighter->crouch_axis_threshold;
@@ -2522,7 +2585,8 @@ pf_status pf_m4_step_player(
         (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
          action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
          action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
-         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE))
+         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+         pf_m4_action_is_throw(action_state)))
     {
         velocity_x = pf_m4_approach(
             velocity_x,
@@ -2545,7 +2609,20 @@ pf_status pf_m4_step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD)
         {
-            if (action_ticks < UINT16_C(600))
+            const uint8_t throw_action =
+                throw_pressed != 0
+                    ? pf_m4_throw_action_for_input(
+                          fighter,
+                          input,
+                          facing)
+                    : (uint8_t)PF_M4_ACTION_GRAB_HOLD;
+
+            if (throw_action != (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+            {
+                action_state = throw_action;
+                action_ticks = UINT16_C(0);
+            }
+            else if (action_ticks < UINT16_C(600))
             {
                 ++action_ticks;
             }
@@ -2604,10 +2681,31 @@ pf_status pf_m4_step_player(
                 ++action_ticks;
             }
         }
-        else
+        else if (action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE)
         {
             ++action_ticks;
             if (action_ticks >= fighter->grab_release_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+            }
+        }
+        else
+        {
+            const pf_m4_throw_data *throw_data =
+                pf_m4_throw_for_action(fighter, action_state);
+            const uint32_t throw_ticks =
+                throw_data != NULL
+                    ? (uint32_t)throw_data->release_tick +
+                          (uint32_t)throw_data->recovery_ticks
+                    : UINT32_C(0);
+
+            if (throw_data == NULL)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            ++action_ticks;
+            if ((uint32_t)action_ticks >= throw_ticks)
             {
                 action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);

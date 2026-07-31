@@ -123,6 +123,33 @@ static int make_grab_damage_content(
         "grab-damage-content-view");
 }
 
+static int make_chain_grab_escape_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!make_grab_content(
+            (INT32_C(4) * PF_Q16_ONE) / INT32_C(5),
+            out_content,
+            out_view))
+    {
+        return 0;
+    }
+
+    out_content->fighter.jab_damage_q16 =
+        UINT32_C(45) * UINT32_C(65536);
+    out_content->fighter.jab_base_knockback_x_q16 = INT32_C(1);
+    out_content->fighter.jab_base_knockback_y_q16 = INT32_C(1);
+    out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.jab_startup_ticks = UINT16_C(1);
+    out_content->fighter.jab_active_ticks = UINT16_C(1);
+    out_content->fighter.jab_recovery_ticks = UINT16_C(1);
+    out_content->fighter.jab_hitlag_ticks = UINT16_C(1);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "chain-grab-escape-content-view");
+}
+
 static int make_small_step_forward_smash_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -11420,6 +11447,780 @@ static int run_grab_team_resolution_test(
     return 1;
 }
 
+static int32_t expected_throw_velocity(
+    int32_t base_q16,
+    int32_t growth_q16,
+    uint32_t damage_q16)
+{
+    return (int32_t)(
+        (int64_t)base_q16 +
+        (((int64_t)growth_q16 * (int64_t)damage_q16) >> 16U));
+}
+
+static int run_directional_throw_case(
+    const pf_content_view *view,
+    const pf_m4_throw_data *throw_data,
+    int16_t stick_x,
+    int16_t stick_y,
+    pf_m4_action_state expected_action)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    pf_sim_event grab_event;
+    const int32_t expected_velocity_x =
+        expected_throw_velocity(
+            throw_data->base_velocity_x_q16,
+            throw_data->velocity_growth_x_q16,
+            throw_data->damage_q16);
+    const int32_t expected_velocity_y =
+        expected_throw_velocity(
+            throw_data->base_velocity_y_q16,
+            throw_data->velocity_growth_y_q16,
+            throw_data->damage_q16);
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !begin_close_grab(sim, 0, &inspection, &grab_event) ||
+        !step_reaction_duel(
+            sim,
+            stick_x,
+            stick_y,
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state != (uint8_t)expected_action ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].grab_target != UINT8_C(1) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED ||
+        inspection.players[1].grab_owner != UINT8_C(0) ||
+        find_last_tick_event(PF_SIM_EVENT_THROW) != NULL)
+    {
+        return fail("directional-throw-input");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)throw_data->release_tick;
+         ++tick)
+    {
+        const pf_sim_event *throw_event;
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        throw_event = find_last_tick_event(PF_SIM_EVENT_THROW);
+        if (tick + UINT32_C(1) <
+            (uint32_t)throw_data->release_tick)
+        {
+            if (throw_event != NULL ||
+                inspection.players[0].action_state !=
+                    (uint8_t)expected_action ||
+                inspection.players[0].action_ticks !=
+                    (uint16_t)(tick + UINT32_C(1)) ||
+                inspection.players[0].grab_target != UINT8_C(1) ||
+                inspection.players[1].grab_owner != UINT8_C(0))
+            {
+                return fail("directional-throw-startup");
+            }
+        }
+        else if (throw_event == NULL ||
+                 throw_event->source_player != UINT8_C(0) ||
+                 throw_event->target_player != UINT8_C(1) ||
+                 throw_event->value_q16 != throw_data->damage_q16 ||
+                 throw_event->velocity_x_q16 != expected_velocity_x ||
+                 throw_event->velocity_y_q16 != expected_velocity_y ||
+                 throw_event->flags != UINT16_C(0) ||
+                 throw_event->detail != (uint16_t)expected_action ||
+                 inspection.players[0].action_state !=
+                     (uint8_t)PF_M4_ACTION_HITLAG ||
+                 inspection.players[1].action_state !=
+                     (uint8_t)PF_M4_ACTION_HITLAG ||
+                 inspection.players[0].hitlag_ticks !=
+                     throw_data->hitlag_ticks ||
+                 inspection.players[1].hitlag_ticks !=
+                     throw_data->hitlag_ticks ||
+                 inspection.players[0].grab_target !=
+                     PF_SIM_EVENT_NO_PLAYER ||
+                 inspection.players[1].grab_owner !=
+                     PF_SIM_EVENT_NO_PLAYER ||
+                 inspection.players[1].damage_q16 !=
+                     throw_data->damage_q16 ||
+                 inspection.players[1].last_hit_valid != UINT8_C(1) ||
+                 inspection.players[1].last_hit_attacker != UINT8_C(0))
+        {
+            return fail("directional-throw-release");
+        }
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)throw_data->hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (tick + UINT32_C(1) <
+            (uint32_t)throw_data->hitlag_ticks)
+        {
+            if (inspection.players[0].action_state !=
+                    (uint8_t)PF_M4_ACTION_HITLAG ||
+                inspection.players[1].action_state !=
+                    (uint8_t)PF_M4_ACTION_HITLAG)
+            {
+                return fail("directional-throw-hitlag");
+            }
+        }
+    }
+    if (inspection.players[0].action_state != (uint8_t)expected_action ||
+        inspection.players[0].action_ticks != throw_data->release_tick ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITSTUN ||
+        inspection.players[1].velocity_x_q16 != expected_velocity_x ||
+        inspection.players[1].velocity_y_q16 != expected_velocity_y)
+    {
+        return fail("directional-throw-hitstun-entry");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)throw_data->recovery_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (tick + UINT32_C(1) <
+            (uint32_t)throw_data->recovery_ticks)
+        {
+            if (inspection.players[0].action_state !=
+                (uint8_t)expected_action)
+            {
+                return fail("directional-throw-early-recovery");
+            }
+        }
+        else if (inspection.players[0].action_state !=
+                 (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            return fail("directional-throw-exact-recovery");
+        }
+    }
+    return 1;
+}
+
+static int run_throw_input_negative_case(
+    const pf_content_view *view,
+    int16_t stick_x,
+    int16_t stick_y,
+    const char *operation)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    pf_sim_event grab_event;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !begin_close_grab(sim, 0, &inspection, &grab_event) ||
+        !step_reaction_duel(
+            sim,
+            stick_x,
+            stick_y,
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        inspection.players[0].grab_target != UINT8_C(1) ||
+        find_last_tick_event(PF_SIM_EVENT_THROW) != NULL)
+    {
+        return fail(operation);
+    }
+    return 1;
+}
+
+static int run_directional_throw_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    if (!run_directional_throw_case(
+            view,
+            &content->fighter.forward_throw,
+            INT16_C(32767),
+            INT16_C(0),
+            PF_M4_ACTION_THROW_FORWARD) ||
+        !run_directional_throw_case(
+            view,
+            &content->fighter.back_throw,
+            INT16_C(-32767),
+            INT16_C(0),
+            PF_M4_ACTION_THROW_BACK) ||
+        !run_directional_throw_case(
+            view,
+            &content->fighter.up_throw,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_M4_ACTION_THROW_UP) ||
+        !run_directional_throw_case(
+            view,
+            &content->fighter.down_throw,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_M4_ACTION_THROW_DOWN) ||
+        !run_directional_throw_case(
+            view,
+            &content->fighter.forward_throw,
+            INT16_C(32767),
+            INT16_C(-32767),
+            PF_M4_ACTION_THROW_FORWARD) ||
+        !run_directional_throw_case(
+            view,
+            &content->fighter.up_throw,
+            INT16_C(30000),
+            INT16_C(-32767),
+            PF_M4_ACTION_THROW_UP) ||
+        !run_throw_input_negative_case(
+            view,
+            INT16_C(0),
+            INT16_C(0),
+            "directional-throw-neutral-negative") ||
+        !run_throw_input_negative_case(
+            view,
+            (int16_t)(content->fighter.dash_axis_threshold - UINT16_C(1)),
+            INT16_C(0),
+            "directional-throw-reduced-negative"))
+    {
+        return 0;
+    }
+    return 1;
+}
+
+static int perform_down_throw(
+    pf_sim *sim,
+    const pf_m4_throw_data *down_throw,
+    int16_t target_di_x,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            target_di_x,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_THROW_DOWN)
+    {
+        return fail("chain-grab-down-throw-input");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)down_throw->release_tick;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                target_di_x,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return find_last_tick_event(PF_SIM_EVENT_THROW) != NULL ||
+           fail("chain-grab-throw-event");
+}
+
+static int wait_for_thrower_idle(
+    pf_sim *sim,
+    int16_t target_di_x,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(60); ++tick)
+    {
+        if (out_inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            return 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                target_di_x,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return fail("chain-grab-thrower-recovery");
+}
+
+static int run_chain_grab_route(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    pf_sim_event grab_event;
+    uint32_t regrab;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !begin_close_grab(sim, 0, &inspection, &grab_event))
+    {
+        return fail("chain-grab-initial-capture");
+    }
+
+    for (regrab = UINT32_C(0); regrab < UINT32_C(2); ++regrab)
+    {
+        if (!perform_down_throw(
+                sim,
+                &content->fighter.down_throw,
+                INT16_C(0),
+                &inspection) ||
+            !wait_for_thrower_idle(sim, INT16_C(0), &inspection) ||
+            !begin_close_grab(sim, 0, &inspection, &grab_event) ||
+            grab_event.type != (uint16_t)PF_SIM_EVENT_GRAB ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_GRABBED)
+        {
+            return fail("chain-grab-legal-regrab");
+        }
+    }
+    if (!perform_down_throw(
+            sim,
+            &content->fighter.down_throw,
+            INT16_C(0),
+            &inspection) ||
+        inspection.players[1].damage_q16 !=
+            UINT32_C(3) * content->fighter.down_throw.damage_q16)
+    {
+        return fail("chain-grab-three-throw-conversion");
+    }
+    return 1;
+}
+
+static int run_chain_grab_snapshot_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_sim_event grab_event;
+    pf_tick_result source_result;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t future_tick;
+    uint32_t throws_started = UINT32_C(1);
+    uint32_t throw_events = UINT32_C(0);
+    uint32_t regrab_events = UINT32_C(0);
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !begin_close_grab(source, 0, &source_inspection, &grab_event) ||
+        !perform_down_throw(
+            source,
+            &content->fighter.down_throw,
+            INT16_C(0),
+            &source_inspection) ||
+        !wait_for_thrower_idle(
+            source,
+            INT16_C(0),
+            &source_inspection) ||
+        !begin_close_grab(source, 0, &source_inspection, &grab_event) ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_THROW_DOWN ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].grab_target != UINT8_C(1) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "chain-grab-query-save-size") ||
+        save_size != (size_t)635)
+    {
+        return fail("chain-grab-snapshot-setup");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "chain-grab-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "chain-grab-load"))
+    {
+        return 0;
+    }
+
+    for (future_tick = UINT32_C(0);
+         future_tick < UINT32_C(160);
+         ++future_tick)
+    {
+        int16_t player0_y = INT16_C(0);
+        uint64_t player0_buttons = UINT64_C(0);
+        uint16_t player0_trigger = UINT16_C(0);
+        uint32_t event_index;
+
+        if (source_inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+            throws_started < UINT32_C(2))
+        {
+            player0_y = INT16_C(32767);
+            player0_buttons = PF_INPUT_BUTTON_ATTACK;
+            ++throws_started;
+        }
+        else if (source_inspection.players[0].action_state ==
+                     (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                 throws_started < UINT32_C(2))
+        {
+            player0_buttons = PF_INPUT_BUTTON_ATTACK;
+            player0_trigger = UINT16_MAX;
+        }
+
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                player0_y,
+                player0_buttons,
+                player0_trigger,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+        source_result = test_last_result;
+        if (!step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                player0_y,
+                player0_buttons,
+                player0_trigger,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            source_result.event_count != test_last_result.event_count ||
+            memcmp(
+                source_result.events,
+                test_last_result.events,
+                sizeof(source_result.events)) != 0 ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "chain-grab-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "chain-grab-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("chain-grab-snapshot-continuation");
+        }
+
+        for (event_index = UINT32_C(0);
+             event_index < (uint32_t)source_result.event_count;
+             ++event_index)
+        {
+            if (source_result.events[event_index].type ==
+                (uint16_t)PF_SIM_EVENT_THROW)
+            {
+                ++throw_events;
+            }
+            else if (source_result.events[event_index].type ==
+                     (uint16_t)PF_SIM_EVENT_GRAB)
+            {
+                ++regrab_events;
+            }
+        }
+        if (throw_events == UINT32_C(2) &&
+            regrab_events >= UINT32_C(1) &&
+            source_inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    if (future_tick == UINT32_C(160) ||
+        throw_events != UINT32_C(2) ||
+        regrab_events < UINT32_C(1) ||
+        source_inspection.players[1].damage_q16 !=
+            UINT32_C(3) * content->fighter.down_throw.damage_q16)
+    {
+        return fail("chain-grab-snapshot-future-route");
+    }
+    return 1;
+}
+
+static int run_chain_grab_di_escape_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    pf_sim_event grab_event;
+    uint32_t hit_count = UINT32_C(0);
+    uint32_t tick;
+    int grab_started = 0;
+    int grab_event_seen = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "chain-grab-di-initial-inspection"))
+    {
+        return fail("chain-grab-di-setup");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(80) && hit_count < UINT32_C(2);
+         ++tick)
+    {
+        uint64_t attacker_buttons = UINT64_C(0);
+
+        if (inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            attacker_buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                attacker_buttons,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (find_last_tick_event(PF_SIM_EVENT_HIT) != NULL)
+        {
+            ++hit_count;
+        }
+    }
+    if (hit_count != UINT32_C(2) ||
+        inspection.players[1].damage_q16 !=
+            UINT32_C(90) * UINT32_C(65536))
+    {
+        return fail("chain-grab-di-percent-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(40); ++tick)
+    {
+        if (inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!begin_close_grab(sim, 0, &inspection, &grab_event) ||
+        !perform_down_throw(
+            sim,
+            &content->fighter.down_throw,
+            INT16_C(32767),
+            &inspection) ||
+        !wait_for_thrower_idle(
+            sim,
+            INT16_C(32767),
+            &inspection) ||
+        inspection.players[1].damage_q16 !=
+            UINT32_C(96) * UINT32_C(65536))
+    {
+        return fail("chain-grab-di-throw");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        uint64_t attacker_buttons = UINT64_C(0);
+        uint16_t attacker_trigger = UINT16_C(0);
+
+        if (grab_started == 0 &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            attacker_buttons = PF_INPUT_BUTTON_ATTACK;
+            attacker_trigger = UINT16_MAX;
+            grab_started = 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                attacker_buttons,
+                attacker_trigger,
+                INT16_C(32767),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (find_last_tick_event(PF_SIM_EVENT_GRAB) != NULL)
+        {
+            grab_event_seen = 1;
+        }
+    }
+    if (grab_started == 0 ||
+        grab_event_seen != 0 ||
+        inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER ||
+        inspection.players[1].grab_owner != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return fail("chain-grab-di-escape-negative");
+    }
+    return 1;
+}
+
 int main(void)
 {
     pf_m4_content content;
@@ -11435,6 +12236,7 @@ int main(void)
     pf_m4_content invalid_v_cancel_window_content;
     pf_m4_content invalid_grabbox_content;
     pf_m4_content invalid_grab_escape_content;
+    pf_m4_content invalid_throw_content;
     pf_m4_content reaction_content;
     pf_m4_content tech_invulnerability_content;
     pf_m4_content floor_attack_content;
@@ -11456,6 +12258,7 @@ int main(void)
     pf_m4_content grab_close_content;
     pf_m4_content grab_far_content;
     pf_m4_content grab_damage_content;
+    pf_m4_content chain_grab_escape_content;
     pf_content_view view;
     pf_content_view reaction_view;
     pf_content_view tech_invulnerability_view;
@@ -11478,6 +12281,7 @@ int main(void)
     pf_content_view grab_close_view;
     pf_content_view grab_far_view;
     pf_content_view grab_damage_view;
+    pf_content_view chain_grab_escape_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_reaction_content(
@@ -11552,7 +12356,10 @@ int main(void)
             &grab_far_view) ||
         !make_grab_damage_content(
             &grab_damage_content,
-            &grab_damage_view))
+            &grab_damage_view) ||
+        !make_chain_grab_escape_content(
+            &chain_grab_escape_content,
+            &chain_grab_escape_view))
     {
         return 1;
     }
@@ -11601,6 +12408,8 @@ int main(void)
         (uint16_t)(
             invalid_grab_escape_content.fighter.grab_escape_base_ticks -
             UINT16_C(1));
+    invalid_throw_content = content;
+    invalid_throw_content.fighter.down_throw.release_tick = UINT16_C(0);
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -11649,6 +12458,10 @@ int main(void)
             pf_m4_validate_content(&invalid_grab_escape_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-grab-escape-window") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_throw_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-throw-data") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
@@ -11743,6 +12556,18 @@ int main(void)
             &grab_close_content,
             &grab_close_view,
             &grab_far_view) ||
+        !run_directional_throw_test(
+            &grab_close_content,
+            &grab_close_view) ||
+        !run_chain_grab_route(
+            &grab_close_content,
+            &grab_close_view) ||
+        !run_chain_grab_snapshot_test(
+            &grab_close_content,
+            &grab_close_view) ||
+        !run_chain_grab_di_escape_test(
+            &chain_grab_escape_content,
+            &chain_grab_escape_view) ||
         !run_grab_damage_escape_test(&grab_damage_view) ||
         !run_grab_team_resolution_test(&grab_close_view) ||
         !run_hitlag_snapshot_test(&view) ||
@@ -11754,7 +12579,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=398 journal_invariants=42 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jump_cancelled_grab=1\n",
+        " combat_invariants=444 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

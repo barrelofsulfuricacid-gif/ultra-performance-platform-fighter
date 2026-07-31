@@ -43,6 +43,68 @@ static void pf_m4_hash_i32(pf_sha256 *hash, int32_t value)
     pf_m4_hash_u32(hash, (uint32_t)value);
 }
 
+static void pf_m4_hash_throw(
+    pf_sha256 *hash,
+    const pf_m4_throw_data *throw_data)
+{
+    pf_m4_hash_u32(hash, throw_data->damage_q16);
+    pf_m4_hash_i32(hash, throw_data->base_velocity_x_q16);
+    pf_m4_hash_i32(hash, throw_data->base_velocity_y_q16);
+    pf_m4_hash_i32(hash, throw_data->velocity_growth_x_q16);
+    pf_m4_hash_i32(hash, throw_data->velocity_growth_y_q16);
+    pf_m4_hash_u16(hash, throw_data->release_tick);
+    pf_m4_hash_u16(hash, throw_data->recovery_ticks);
+    pf_m4_hash_u16(hash, throw_data->hitlag_ticks);
+    pf_m4_hash_u16(hash, throw_data->reserved);
+}
+
+static int pf_m4_throw_data_is_valid(
+    const pf_m4_throw_data *throw_data)
+{
+    const int64_t maximum_velocity_x =
+        (int64_t)throw_data->base_velocity_x_q16 +
+        (((int64_t)throw_data->velocity_growth_x_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    const int64_t maximum_velocity_y =
+        (int64_t)throw_data->base_velocity_y_q16 +
+        (((int64_t)throw_data->velocity_growth_y_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+
+    return throw_data->damage_q16 != UINT32_C(0) &&
+           throw_data->damage_q16 <=
+               UINT32_C(50) * UINT32_C(65536) &&
+           (throw_data->base_velocity_x_q16 != INT32_C(0) ||
+            throw_data->base_velocity_y_q16 != INT32_C(0)) &&
+           !((throw_data->base_velocity_x_q16 < INT32_C(0) &&
+              throw_data->velocity_growth_x_q16 > INT32_C(0)) ||
+             (throw_data->base_velocity_x_q16 > INT32_C(0) &&
+              throw_data->velocity_growth_x_q16 < INT32_C(0)) ||
+             (throw_data->base_velocity_y_q16 < INT32_C(0) &&
+              throw_data->velocity_growth_y_q16 > INT32_C(0)) ||
+             (throw_data->base_velocity_y_q16 > INT32_C(0) &&
+              throw_data->velocity_growth_y_q16 < INT32_C(0))) &&
+           maximum_velocity_x >=
+               -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 &&
+           maximum_velocity_x <=
+               (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 &&
+           maximum_velocity_y >=
+               -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 &&
+           maximum_velocity_y <=
+               (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 &&
+           throw_data->release_tick != UINT16_C(0) &&
+           throw_data->release_tick <= UINT16_C(120) &&
+           throw_data->recovery_ticks != UINT16_C(0) &&
+           throw_data->recovery_ticks <= UINT16_C(240) &&
+           (uint32_t)throw_data->release_tick +
+                   (uint32_t)throw_data->recovery_ticks <=
+               UINT32_C(600) &&
+           throw_data->hitlag_ticks != UINT16_C(0) &&
+           throw_data->hitlag_ticks <= UINT16_C(120) &&
+           throw_data->reserved == UINT16_C(0);
+}
+
 static void pf_m4_hash_fighter(
     pf_sha256 *hash,
     const pf_m4_fighter_data *fighter)
@@ -163,6 +225,10 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->grabbed_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->grabbed_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->grab_escape_damage_ticks_q16);
+    pf_m4_hash_throw(hash, &fighter->forward_throw);
+    pf_m4_hash_throw(hash, &fighter->back_throw);
+    pf_m4_hash_throw(hash, &fighter->up_throw);
+    pf_m4_hash_throw(hash, &fighter->down_throw);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(
@@ -482,6 +548,58 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->grabbed_offset_x_q16 = PF_Q16_RATIO(3, 5);
     fighter->grabbed_offset_y_q16 = INT32_C(0);
     fighter->grab_escape_damage_ticks_q16 = PF_Q16_RATIO(1, 10);
+    fighter->forward_throw.damage_q16 =
+        UINT32_C(8) * UINT32_C(65536);
+    fighter->forward_throw.base_velocity_x_q16 =
+        PF_Q16_RATIO(1, 4);
+    fighter->forward_throw.base_velocity_y_q16 =
+        -PF_Q16_RATIO(9, 50);
+    fighter->forward_throw.velocity_growth_x_q16 =
+        PF_Q16_RATIO(1, 512);
+    fighter->forward_throw.velocity_growth_y_q16 =
+        -PF_Q16_RATIO(1, 1024);
+    fighter->forward_throw.release_tick = UINT16_C(3);
+    fighter->forward_throw.recovery_ticks = UINT16_C(12);
+    fighter->forward_throw.hitlag_ticks = UINT16_C(4);
+    fighter->back_throw.damage_q16 =
+        UINT32_C(9) * UINT32_C(65536);
+    fighter->back_throw.base_velocity_x_q16 =
+        -PF_Q16_RATIO(3, 10);
+    fighter->back_throw.base_velocity_y_q16 =
+        -PF_Q16_RATIO(4, 25);
+    fighter->back_throw.velocity_growth_x_q16 =
+        -PF_Q16_RATIO(1, 512);
+    fighter->back_throw.velocity_growth_y_q16 =
+        -PF_Q16_RATIO(1, 1024);
+    fighter->back_throw.release_tick = UINT16_C(4);
+    fighter->back_throw.recovery_ticks = UINT16_C(14);
+    fighter->back_throw.hitlag_ticks = UINT16_C(4);
+    fighter->up_throw.damage_q16 =
+        UINT32_C(7) * UINT32_C(65536);
+    fighter->up_throw.base_velocity_x_q16 =
+        PF_Q16_RATIO(3, 100);
+    fighter->up_throw.base_velocity_y_q16 =
+        -PF_Q16_RATIO(9, 25);
+    fighter->up_throw.velocity_growth_x_q16 =
+        PF_Q16_RATIO(1, 4096);
+    fighter->up_throw.velocity_growth_y_q16 =
+        -PF_Q16_RATIO(1, 512);
+    fighter->up_throw.release_tick = UINT16_C(3);
+    fighter->up_throw.recovery_ticks = UINT16_C(11);
+    fighter->up_throw.hitlag_ticks = UINT16_C(4);
+    fighter->down_throw.damage_q16 =
+        UINT32_C(6) * UINT32_C(65536);
+    fighter->down_throw.base_velocity_x_q16 =
+        PF_Q16_RATIO(1, 25);
+    fighter->down_throw.base_velocity_y_q16 =
+        -PF_Q16_RATIO(2, 25);
+    fighter->down_throw.velocity_growth_x_q16 =
+        PF_Q16_RATIO(1, 512);
+    fighter->down_throw.velocity_growth_y_q16 =
+        -PF_Q16_RATIO(1, 2048);
+    fighter->down_throw.release_tick = UINT16_C(2);
+    fighter->down_throw.recovery_ticks = UINT16_C(5);
+    fighter->down_throw.hitlag_ticks = UINT16_C(3);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
@@ -646,6 +764,13 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     }
 
     fighter = &content->fighter;
+    if (!pf_m4_throw_data_is_valid(&fighter->forward_throw) ||
+        !pf_m4_throw_data_is_valid(&fighter->back_throw) ||
+        !pf_m4_throw_data_is_valid(&fighter->up_throw) ||
+        !pf_m4_throw_data_is_valid(&fighter->down_throw))
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
     maximum_jab_knockback_x =
         (int64_t)fighter->jab_base_knockback_x_q16 +
         (((int64_t)fighter->jab_knockback_growth_q16 *

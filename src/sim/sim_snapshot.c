@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x38)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x31), UINT8_C(0x39)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1121,6 +1121,14 @@ static int pf_m4_snapshot_action_is_shield_break(uint8_t action)
                (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN;
 }
 
+static int pf_m4_snapshot_action_is_throw(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_THROW_FORWARD ||
+           action == (uint8_t)PF_M4_ACTION_THROW_BACK ||
+           action == (uint8_t)PF_M4_ACTION_THROW_UP ||
+           action == (uint8_t)PF_M4_ACTION_THROW_DOWN;
+}
+
 static int pf_m4_player_state_consistent(
     const pf_world_state *world,
     uint32_t player_index)
@@ -1322,7 +1330,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+                action > (uint8_t)PF_M4_ACTION_THROW_DOWN ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1438,6 +1446,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
+                 !pf_m4_snapshot_action_is_throw(resume_action) &&
                  resume_action != (uint8_t)PF_M4_ACTION_HITSTUN &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
@@ -1454,7 +1463,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
                   resume_action ==
-                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK) &&
+                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
+                  pf_m4_snapshot_action_is_throw(resume_action)) &&
                  (hitstun != UINT16_C(0) ||
                   (resume_action !=
                        (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
@@ -1585,12 +1595,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
                   action ==
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
-                   action ==
-                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
-                   action == (uint8_t)PF_M4_ACTION_GRAB ||
-                   action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
-                   action == (uint8_t)PF_M4_ACTION_GRABBED ||
-                   action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+                  action ==
+                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+                  action == (uint8_t)PF_M4_ACTION_GRAB ||
+                  action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                  action == (uint8_t)PF_M4_ACTION_GRABBED ||
+                  action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+                  pf_m4_snapshot_action_is_throw(action) ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
@@ -1725,8 +1736,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->active[target_index] == UINT8_C(0) ||
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[player_index] == world->team[target_index]) ||
-                world->action_state[player_index] !=
-                    (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                (world->action_state[player_index] !=
+                     (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+                 !pf_m4_snapshot_action_is_throw(
+                     world->action_state[player_index])) ||
                 world->grab_owner_slot[target_index] !=
                     (uint8_t)(player_index + UINT32_C(1)) ||
                 world->action_state[target_index] !=
@@ -1753,6 +1766,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->team[player_index] == world->team[owner_index]) ||
                 world->action_state[player_index] !=
                     (uint8_t)PF_M4_ACTION_GRABBED ||
+                (world->action_state[owner_index] !=
+                     (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+                 !pf_m4_snapshot_action_is_throw(
+                     world->action_state[owner_index])) ||
                 world->grab_target_slot[owner_index] !=
                     (uint8_t)(player_index + UINT32_C(1)) ||
                 world->grab_escape_ticks[player_index] == UINT16_C(0))
