@@ -229,6 +229,33 @@ static int pf_m4_attack_for_action(
             (uint8_t)PF_M4_ACTION_DASH_ATTACK;
         return 1;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL)
+    {
+        out_attack->hitbox_offset_x_q16 =
+            fighter->jab_final_hitbox_offset_x_q16;
+        out_attack->hitbox_offset_y_q16 =
+            fighter->jab_final_hitbox_offset_y_q16;
+        out_attack->hitbox_half_width_q16 =
+            fighter->jab_final_hitbox_half_width_q16;
+        out_attack->hitbox_half_height_q16 =
+            fighter->jab_final_hitbox_half_height_q16;
+        out_attack->damage_q16 = fighter->jab_final_damage_q16;
+        out_attack->base_knockback_x_q16 =
+            fighter->jab_final_base_knockback_x_q16;
+        out_attack->base_knockback_y_q16 =
+            fighter->jab_final_base_knockback_y_q16;
+        out_attack->knockback_growth_q16 =
+            fighter->jab_final_knockback_growth_q16;
+        out_attack->active_begin_tick =
+            fighter->jab_final_startup_ticks + UINT16_C(1);
+        out_attack->active_end_tick =
+            fighter->jab_final_startup_ticks +
+            fighter->jab_final_active_ticks;
+        out_attack->hitlag_ticks = fighter->jab_final_hitlag_ticks;
+        out_attack->direction = INT8_C(1);
+        out_attack->action_state = (uint8_t)PF_M4_ACTION_JAB_FINAL;
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
     {
         out_attack->hitbox_offset_x_q16 =

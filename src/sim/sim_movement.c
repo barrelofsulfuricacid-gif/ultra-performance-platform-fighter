@@ -648,7 +648,8 @@ static int pf_m4_action_is_ground_attack(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
-           action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK;
+           action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL;
 }
 
 static int pf_m4_action_is_aerial_landing(uint8_t action_state)
@@ -1611,6 +1612,19 @@ pf_status pf_m4_step_player(
         shield_held != 0 &&
         (light_attack_pressed != 0 ||
          (light_attack_held != 0 && shield_pressed != 0));
+    const int jab_combo_window =
+        world->grounded[player_index] != UINT8_C(0) &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        world->action_ticks[player_index] >=
+            fighter->jab_combo_input_begin_tick &&
+        world->action_ticks[player_index] <=
+            fighter->jab_combo_input_end_tick;
+    const int jab_cancel_pressed =
+        jab_combo_window != 0 && shield_pressed != 0;
+    const int jab_final_pressed =
+        jab_combo_window != 0 && shield_held == 0 &&
+        light_attack_pressed != 0;
     const int was_shielding =
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_SHIELD ||
@@ -2240,6 +2254,22 @@ pf_status pf_m4_step_player(
         scratch->grab_owner_slot[player_index] == UINT8_C(0))
     {
         action_state = (uint8_t)PF_M4_ACTION_GRAB;
+        action_ticks = UINT16_C(0);
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        short_hop_latched = UINT8_C(0);
+        dash_direction = INT8_C(0);
+        scratch->powershield[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
+        (jab_cancel_pressed != 0 || jab_final_pressed != 0))
+    {
+        action_state =
+            jab_cancel_pressed != 0
+                ? (uint8_t)PF_M4_ACTION_SHIELD
+                : (uint8_t)PF_M4_ACTION_JAB_FINAL;
         action_ticks = UINT16_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         short_hop_latched = UINT8_C(0);
@@ -2922,6 +2952,14 @@ pf_status pf_m4_step_player(
                 (uint32_t)fighter->dash_attack_startup_ticks +
                 (uint32_t)fighter->dash_attack_active_ticks +
                 (uint32_t)fighter->dash_attack_recovery_ticks;
+        }
+        else if (action_state ==
+                 (uint8_t)PF_M4_ACTION_JAB_FINAL)
+        {
+            attack_ticks =
+                (uint32_t)fighter->jab_final_startup_ticks +
+                (uint32_t)fighter->jab_final_active_ticks +
+                (uint32_t)fighter->jab_final_recovery_ticks;
         }
         else if (action_state ==
                  (uint8_t)PF_M4_ACTION_STRONG_ATTACK)

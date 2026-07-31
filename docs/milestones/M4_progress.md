@@ -335,6 +335,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   advances state schema to 21/save format 20, content/fighter schema to 23,
   inspection schema to 18, and browser view schema to 17 for the production
   dash attack, its fail-closed cancel semantics, and readiness evidence.
+  The jab-cancel slice advances state schema to 22/save format 21,
+  content/fighter schema to 24, inspection schema to 19, and browser view
+  schema to 18 for the production two-hit jab decision, fail-closed timing,
+  typed final hit, and readiness evidence.
   Config/observation/identity schema 2 and RL
   schema 4 remain current. The canonical save is 635 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -509,6 +513,25 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   while making dash-attack entry, hitlag resume, and boost-grab cancellation
   fail closed. Content/fighter schema 23, inspection schema 18, and browser
   view schema 17 identify the new contract. Registry row 4, Boost grab,
+  advances from `planned` to `playable`.
+
+## Delivered in the jab-cancel slice
+
+- The production first jab now exposes a hashed, validated stored-action-tick
+  4–7 decision window. A fresh trigger selects the existing `SHIELD` state on
+  hit or whiff, fresh light selects the independently authored `JAB_FINAL`,
+  and neutral input completes the first jab without hidden buffer state.
+- `JAB_FINAL` has independent hitbox, 7% damage, signed launch growth,
+  two-startup/two-active/ten-recovery timing, four hitlag ticks, and typed hit
+  identity. Early-held shield and the first post-window frame are rejected.
+- The native oracle proves exact begin/end boundaries, hit/whiff parity, both
+  timing negatives, final-hit damage/identity, invalid data, and mid-window
+  save/load with equal future hashes and events. Browser startup repeats every
+  route, reports `jab_cancel_probe=1`, and labels `JAB FINAL`.
+- State schema 22/save format 21 and `PFSAVE21` retain the 635-byte
+  checkpoint while making final-jab action, timing, hitlag-resume, and choice
+  semantics fail closed. Content/fighter schema 24, inspection schema 19, and
+  browser view schema 18 identify the contract. Registry row 22, Jab cancel,
   advances from `planned` to `playable`.
 
 ## Delivered in the instant-double-jump slice
@@ -966,7 +989,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  boost grab, chain grab, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
+  boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
@@ -978,7 +1001,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 37 playable, 4 primitive-ready, and 19 planned.
+  blocked: 1 verified, 38 playable, 4 primitive-ready, and 18 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1012,7 +1035,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 204 movement invariants, 471
+- Mechanical oracles: 204 movement invariants, 492
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1023,11 +1046,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,327
   bytes,
   replay SHA-256
-  `d273cbd7b852712bcbb5eadff4f144dc906bca5bd16657a6630ac79c8aedce62`,
+  `547c848aa7a4d3848fa7ec52e1984be2de787bd923de91bfb6d388421c2400f3`,
   final SHA-256
-  `b8dd78966252c546b4a4807d8f0c2b110ca9cdac3f1e95cf68ed2c491fe82479`,
+  `277f5d084b5be3514c6b51689c29d9763795db2e4336dac5be796181144ae342`,
   and event-journal SHA-256
-  `67d69f92e62c1d5f59c8f26ad3734b0b3e7200f03667f3f908a368bf62fbe84d`;
+  `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.
@@ -1036,7 +1059,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/directional-throw-and-chain-grab/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

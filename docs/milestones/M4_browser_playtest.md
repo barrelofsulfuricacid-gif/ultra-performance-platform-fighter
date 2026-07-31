@@ -5,7 +5,8 @@ geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
 wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking,
 jump-canceled standing grab with capture/mash escape, production dash attack
-with ordinary/boost-grab routes, and four directional
+with ordinary/boost-grab routes, a production two-hit jab with shield cancel,
+and four directional
 throws with a low-percent chain-grab route,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -102,6 +103,16 @@ focused route's extended spacing. Waiting one more tick before adding shield
 leaves `DASH ATTACK` intact. If uncanceled, the default attack has four startup
 ticks, three active ticks, deals 8%, and appears as `DASH ATTACK` in both the
 state card and typed hit feed.
+
+For a jab cancel, press light from standing to enter `GROUND ATTACK`. Freshly
+press shield while the state card shows action tick 4 through 7; the first jab
+enters `SHIELD` immediately on both hit and whiff. Hold shield starting on tick
+3 and keep holding it into tick 4 to confirm an early edge is not buffered,
+then freshly press it on tick 8 to confirm the first-late rejection. Instead
+freshly press light during ticks 4–7 to select the independent `JAB FINAL`;
+the state card and typed hit feed identify its 7% second hit separately. This
+follows the documented
+[jab-cancelling](https://www.ssbwiki.com/Jab_cancelling) shield route.
 
 While in `GRAB HOLD`, keep a full direction held and freshly press either
 attack. Left/right selects forward or back relative to the thrower's facing;
@@ -595,6 +606,12 @@ registry row can advance from `playable` to `verified`.
     Player 2 to high percent, hold outward DI through the same down throw, and
     confirm the earliest standing regrab whiffs rather than starting a new
     capture.
+46. Put the fighters close, press Player 1 light, and freshly press shield on
+    first-jab action tick 4; confirm the hit cancels into `SHIELD`. Repeat at
+    whiff range on tick 7. Hold shield from tick 3 into tick 4, then freshly
+    press it on tick 8, and confirm neither route cancels. Finally press light
+    freshly during ticks 4–7 and confirm `JAB FINAL` deals the separately typed
+    7% second hit.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -670,6 +687,12 @@ through:
 - initial dash into jump squat and standing grab with retained momentum,
   reciprocal capture state, and a typed grab event, plus direct-dash and
   post-takeoff grab-input rejection before default content is restored;
+- ordinary run-to-grab range versus a momentum-preserving boost grab, exact
+  dash-attack cancel boundaries, late rejection, and an independently typed
+  uncanceled dash-attack hit before default content is restored;
+- first-jab shield cancels on hit and whiff at the exact inclusive boundaries,
+  early-held and first-late rejection, and the independently typed final jab
+  before default content is restored;
 - all four full-direction throws with exact typed release events, a neutral
   attack remaining in `GRAB HOLD`, and a three-down-throw/two-regrab chain
   before default content is restored;
@@ -733,7 +756,8 @@ drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
 mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
 zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass
-jump_cancelled_grab_probe=pass chain_grab_probe=pass combat_probe=pass
+jump_cancelled_grab_probe=pass boost_grab_probe=pass jab_cancel_probe=pass
+chain_grab_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

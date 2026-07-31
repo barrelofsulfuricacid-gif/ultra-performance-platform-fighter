@@ -165,6 +165,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_base_knockback_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_knockback_growth_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_offset_x_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_offset_y_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_half_width_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, fighter->jab_final_damage_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_x_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_y_q16);
+    pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_half_width_q16);
@@ -292,6 +300,12 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->jab_active_ticks);
     pf_m4_hash_u16(hash, fighter->jab_recovery_ticks);
     pf_m4_hash_u16(hash, fighter->jab_hitlag_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_combo_input_begin_tick);
+    pf_m4_hash_u16(hash, fighter->jab_combo_input_end_tick);
+    pf_m4_hash_u16(hash, fighter->jab_final_startup_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_final_active_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_final_recovery_ticks);
+    pf_m4_hash_u16(hash, fighter->jab_final_hitlag_ticks);
     pf_m4_hash_u16(hash, fighter->strong_startup_ticks);
     pf_m4_hash_u16(hash, fighter->strong_active_ticks);
     pf_m4_hash_u16(hash, fighter->strong_recovery_ticks);
@@ -522,6 +536,14 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_base_knockback_x_q16 = PF_Q16_RATIO(9, 50);
     fighter->jab_base_knockback_y_q16 = PF_Q16_RATIO(11, 50);
     fighter->jab_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
+    fighter->jab_final_hitbox_offset_x_q16 = PF_Q16_RATIO(4, 5);
+    fighter->jab_final_hitbox_offset_y_q16 = INT32_C(0);
+    fighter->jab_final_hitbox_half_width_q16 = PF_Q16_RATIO(13, 20);
+    fighter->jab_final_hitbox_half_height_q16 = PF_Q16_RATIO(9, 20);
+    fighter->jab_final_damage_q16 = UINT32_C(7) * UINT32_C(65536);
+    fighter->jab_final_base_knockback_x_q16 = PF_Q16_RATIO(1, 4);
+    fighter->jab_final_base_knockback_y_q16 = PF_Q16_RATIO(3, 10);
+    fighter->jab_final_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
     fighter->strong_hitbox_offset_x_q16 = PF_Q16_RATIO(9, 10);
     fighter->strong_hitbox_offset_y_q16 = -PF_Q16_RATIO(1, 10);
     fighter->strong_hitbox_half_width_q16 = PF_Q16_RATIO(3, 4);
@@ -680,6 +702,12 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_active_ticks = UINT16_C(2);
     fighter->jab_recovery_ticks = UINT16_C(8);
     fighter->jab_hitlag_ticks = UINT16_C(4);
+    fighter->jab_combo_input_begin_tick = UINT16_C(4);
+    fighter->jab_combo_input_end_tick = UINT16_C(7);
+    fighter->jab_final_startup_ticks = UINT16_C(2);
+    fighter->jab_final_active_ticks = UINT16_C(2);
+    fighter->jab_final_recovery_ticks = UINT16_C(10);
+    fighter->jab_final_hitlag_ticks = UINT16_C(4);
     fighter->strong_startup_ticks = UINT16_C(5);
     fighter->strong_active_ticks = UINT16_C(3);
     fighter->strong_recovery_ticks = UINT16_C(18);
@@ -788,6 +816,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_dash_attack_knockback_y;
     int64_t maximum_jab_knockback_x;
     int64_t maximum_jab_knockback_y;
+    int64_t maximum_jab_final_knockback_x;
+    int64_t maximum_jab_final_knockback_y;
     int64_t maximum_strong_knockback_x;
     int64_t maximum_strong_knockback_y;
     int64_t maximum_aerial_knockback_x;
@@ -848,6 +878,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     maximum_jab_knockback_y =
         (int64_t)fighter->jab_base_knockback_y_q16 +
         ((((int64_t)fighter->jab_knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U) /
+         INT64_C(2));
+    maximum_jab_final_knockback_x =
+        (int64_t)fighter->jab_final_base_knockback_x_q16 +
+        (((int64_t)fighter->jab_final_knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_jab_final_knockback_y =
+        (int64_t)fighter->jab_final_base_knockback_y_q16 +
+        ((((int64_t)fighter->jab_final_knockback_growth_q16 *
            (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
           16U) /
          INT64_C(2));
@@ -955,6 +996,26 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->jab_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->jab_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->jab_final_hitbox_offset_x_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->jab_final_hitbox_offset_x_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->jab_final_hitbox_offset_y_q16 <
+            -maximum_fighter_extent_q16 ||
+        fighter->jab_final_hitbox_offset_y_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->jab_final_hitbox_half_width_q16 <= INT32_C(0) ||
+        fighter->jab_final_hitbox_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->jab_final_hitbox_half_height_q16 <= INT32_C(0) ||
+        fighter->jab_final_hitbox_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->jab_final_damage_q16 == UINT32_C(0) ||
+        fighter->jab_final_damage_q16 >
+            UINT32_C(50) * UINT32_C(65536) ||
+        fighter->jab_final_base_knockback_x_q16 <= INT32_C(0) ||
+        fighter->jab_final_base_knockback_y_q16 <= INT32_C(0) ||
+        fighter->jab_final_knockback_growth_q16 <= INT32_C(0) ||
         fighter->strong_hitbox_offset_x_q16 <
             -maximum_fighter_extent_q16 ||
         fighter->strong_hitbox_offset_x_q16 >
@@ -1103,6 +1164,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_jab_knockback_y >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_jab_final_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_jab_final_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_strong_knockback_x >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_strong_knockback_y >
@@ -1227,6 +1292,25 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_recovery_ticks > UINT16_C(240) ||
         fighter->jab_hitlag_ticks == UINT16_C(0) ||
         fighter->jab_hitlag_ticks > UINT16_C(120) ||
+        fighter->jab_combo_input_begin_tick <
+            fighter->jab_startup_ticks + fighter->jab_active_ticks ||
+        fighter->jab_combo_input_begin_tick >
+            fighter->jab_combo_input_end_tick ||
+        fighter->jab_combo_input_end_tick >=
+            fighter->jab_startup_ticks + fighter->jab_active_ticks +
+                fighter->jab_recovery_ticks ||
+        fighter->jab_final_startup_ticks == UINT16_C(0) ||
+        fighter->jab_final_startup_ticks > UINT16_C(120) ||
+        fighter->jab_final_active_ticks == UINT16_C(0) ||
+        fighter->jab_final_active_ticks > UINT16_C(120) ||
+        fighter->jab_final_recovery_ticks == UINT16_C(0) ||
+        fighter->jab_final_recovery_ticks > UINT16_C(240) ||
+        fighter->jab_final_hitlag_ticks == UINT16_C(0) ||
+        fighter->jab_final_hitlag_ticks > UINT16_C(120) ||
+        (uint32_t)fighter->jab_final_startup_ticks +
+                (uint32_t)fighter->jab_final_active_ticks +
+                (uint32_t)fighter->jab_final_recovery_ticks >
+            UINT32_C(600) ||
         fighter->strong_startup_ticks == UINT16_C(0) ||
         fighter->strong_startup_ticks > UINT16_C(120) ||
         fighter->strong_active_ticks == UINT16_C(0) ||

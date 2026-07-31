@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–20 / state schemas 1–21
+- **Status:** Accepted for save formats 1–21 / state schemas 1–22
 - **Date:** 2026-07-28
 
 ## Decision
@@ -30,12 +30,13 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 18 | 19 | 140 | 495 | 635 | One grab-escape timer, one grab-target slot, and one grab-owner slot per player |
 | 19 | 20 | 140 | 495 | 635 | Canonical forward/back/up/down throw action IDs, hitlag-resume and reciprocal-link release semantics, and typed throw events; no payload-layout change |
 | 20 | 21 | 140 | 495 | 635 | Canonical dash-attack action ID, run-entry and hitlag-resume semantics, and the boost-grab cancel window; no payload-layout change |
+| 21 | 22 | 140 | 495 | Canonical final-jab action ID, hitlag-resume semantics, and the inclusive first-jab choice window; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
-`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, or `PFSAVE20`.
-The active M4 runtime emits and accepts format 20 with state schema 21. Earlier
+`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, or `PFSAVE21`.
+The active M4 runtime emits and accepts format 21 with state schema 22. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -93,6 +94,12 @@ light-plus-shield grab cancel while the initiation and later frames do not;
 the cancel preserves momentum and enters the existing standing grab. Loading
 rejects the new action under any earlier schema and validates its existing
 reaction, hitlag-resume, and reciprocal-link relationships under schema 21.
+Format 21 retains the same payload while making the production two-hit jab
+sequence fail closed. Stored first-jab action ticks 4–7 accept a fresh shield
+cancel or fresh light selection of the independently authored final jab; an
+early-held or first-late input cannot select either transition. Loading rejects
+the final-jab action under earlier schemas and validates its hitlag-resume and
+action schedule under schema 22.
 
 ## Why SHA-256
 

@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -471,6 +471,7 @@ mergeInto(LibraryManager.library, {
     plankingProbePassed,
     jumpCancelledGrabProbePassed,
     boostGrabProbePassed,
+    jabCancelProbePassed,
     chainGrabProbePassed,
     combatProbePassed,
     reactionProbePassed,
@@ -775,6 +776,7 @@ mergeInto(LibraryManager.library, {
       plankingProbePassed &&
       jumpCancelledGrabProbePassed &&
       boostGrabProbePassed &&
+      jabCancelProbePassed &&
       chainGrabProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
@@ -1304,6 +1306,8 @@ mergeInto(LibraryManager.library, {
         (jumpCancelledGrabProbePassed ? "pass" : "fail") +
         " boost_grab_probe=" +
         (boostGrabProbePassed ? "pass" : "fail") +
+        " jab_cancel_probe=" +
+        (jabCancelProbePassed ? "pass" : "fail") +
         " chain_grab_probe=" +
         (chainGrabProbePassed ? "pass" : "fail") +
         " combat_probe=" +
@@ -1387,6 +1391,8 @@ mergeInto(LibraryManager.library, {
         jumpCancelledGrabProbePassed ? "pass" : "fail";
       status.dataset.boostGrabProbe =
         boostGrabProbePassed ? "pass" : "fail";
+      status.dataset.jabCancelProbe =
+        jabCancelProbePassed ? "pass" : "fail";
       status.dataset.chainGrabProbe =
         chainGrabProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
@@ -1435,7 +1441,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 17) {
+    if (view[0] !== 18) {
       return;
     }
     var canvas = state.canvas;
@@ -1508,6 +1514,7 @@ mergeInto(LibraryManager.library, {
       "UP THROW",
       "DOWN THROW",
       "DASH ATTACK",
+      "JAB FINAL",
     ];
 
     if (view[1] < previousTick) {

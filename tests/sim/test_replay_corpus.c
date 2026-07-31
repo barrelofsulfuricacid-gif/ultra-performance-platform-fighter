@@ -296,6 +296,7 @@ int main(void)
     int special_landing_observed = 0;
     int grounded_roll_observed = 0;
     int spot_dodge_observed = 0;
+    int hit_observed = 0;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -403,6 +404,11 @@ int main(void)
                     sdi_observed = 1;
                 }
                 if (combat_inspection.players[player_index].
+                        last_hit_valid != UINT8_C(0))
+                {
+                    hit_observed = 1;
+                }
+                if (combat_inspection.players[player_index].
                         tech_window_ticks > UINT16_C(0))
                 {
                     tech_window_observed = 1;
@@ -454,15 +460,12 @@ int main(void)
         special_landing_observed == 0 ||
         grounded_roll_observed == 0 ||
         spot_dodge_observed == 0 ||
-        (combat_inspection.players[0].last_hit_valid == UINT8_C(0) &&
-         combat_inspection.players[1].last_hit_valid == UINT8_C(0) &&
-         combat_inspection.players[2].last_hit_valid == UINT8_C(0) &&
-         combat_inspection.players[3].last_hit_valid == UINT8_C(0)))
+        hit_observed == 0)
     {
         (void)fprintf(
             stderr,
             "sim-replay=fail operation=source-result completed=%" PRIu64
-            " terminated=%u truncated=%u winner=%u hit=%u%u%u%u"
+            " terminated=%u truncated=%u winner=%u hit=%u%u%u%u seen=%d"
             " sdi=%d tech=%d air_dodge=%d special_landing=%d"
             " grounded_roll=%d spot_dodge=%d\n",
             result.completed_tick,
@@ -473,6 +476,7 @@ int main(void)
             (unsigned int)combat_inspection.players[1].last_hit_valid,
             (unsigned int)combat_inspection.players[2].last_hit_valid,
             (unsigned int)combat_inspection.players[3].last_hit_valid,
+            hit_observed,
             sdi_observed,
             tech_window_observed,
             air_dodge_observed,

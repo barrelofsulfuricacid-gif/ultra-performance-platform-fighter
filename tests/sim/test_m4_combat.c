@@ -123,6 +123,32 @@ static int make_boost_grab_content(
         "boost-grab-content-view");
 }
 
+static int make_jab_cancel_content(
+    int32_t spawn_spacing_q16,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "jab-cancel-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 = spawn_spacing_q16;
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->fighter.jab_base_knockback_x_q16 = INT32_C(1);
+    out_content->fighter.jab_base_knockback_y_q16 = INT32_C(1);
+    out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "jab-cancel-content-view");
+}
+
 static int make_grab_damage_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -167,6 +193,8 @@ static int make_chain_grab_escape_content(
     out_content->fighter.jab_active_ticks = UINT16_C(1);
     out_content->fighter.jab_recovery_ticks = UINT16_C(1);
     out_content->fighter.jab_hitlag_ticks = UINT16_C(1);
+    out_content->fighter.jab_combo_input_begin_tick = UINT16_C(2);
+    out_content->fighter.jab_combo_input_end_tick = UINT16_C(2);
     return expect_status(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -386,6 +414,7 @@ static int make_kill_confirm_content(
     out_content->fighter.hitstun_velocity_per_tick_q16 =
         PF_Q16_ONE / INT32_C(200);
     out_content->fighter.jab_recovery_ticks = UINT16_C(3);
+    out_content->fighter.jab_combo_input_end_tick = UINT16_C(6);
     out_content->fighter.tumble_hitstun_threshold_ticks = UINT16_C(600);
     out_content->stage.floor_left_q16 =
         -INT32_C(60) * PF_Q16_ONE;
@@ -10735,6 +10764,448 @@ static int advance_to_settled_run(
     return fail("boost-grab-reach-settled-run");
 }
 
+static int advance_jab_to_action_tick(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    uint16_t target_action_tick,
+    pf_m4_inspection *out_inspection,
+    int *out_hit_seen)
+{
+    uint32_t tick;
+    int hit_seen = 0;
+
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(64); ++tick)
+    {
+        const pf_sim_event *event =
+            find_last_tick_event(PF_SIM_EVENT_HIT);
+
+        if (event != NULL &&
+            event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1) &&
+            event->detail ==
+                (uint16_t)PF_M4_ACTION_GROUND_ATTACK)
+        {
+            hit_seen = 1;
+        }
+        if (out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+            out_inspection->players[0].action_ticks ==
+                target_action_tick)
+        {
+            *out_hit_seen = hit_seen;
+            return 1;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    (void)content;
+    return fail("jab-cancel-reach-action-tick");
+}
+
+static int run_jab_cancel_test(
+    const pf_m4_content *close_content,
+    const pf_content_view *close_view,
+    const pf_content_view *far_view)
+{
+    test_sim_storage hit_storage;
+    test_sim_storage whiff_storage;
+    test_sim_storage early_storage;
+    test_sim_storage late_storage;
+    test_sim_storage final_storage;
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *hit = NULL;
+    pf_sim *whiff = NULL;
+    pf_sim *early = NULL;
+    pf_sim *late = NULL;
+    pf_sim *final = NULL;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_tick_result source_result;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int first_hit_seen = 0;
+    int final_hit_seen = 0;
+
+    if (close_content->fighter.jab_combo_input_begin_tick !=
+            UINT16_C(4) ||
+        close_content->fighter.jab_combo_input_end_tick !=
+            UINT16_C(7) ||
+        close_content->fighter.jab_final_startup_ticks !=
+            UINT16_C(2) ||
+        close_content->fighter.jab_final_active_ticks !=
+            UINT16_C(2) ||
+        close_content->fighter.jab_final_recovery_ticks !=
+            UINT16_C(10) ||
+        close_content->fighter.jab_final_hitlag_ticks !=
+            UINT16_C(4) ||
+        close_content->fighter.jab_final_damage_q16 !=
+            UINT32_C(7) * UINT32_C(65536))
+    {
+        return fail("jab-cancel-authored-defaults");
+    }
+
+    if (!initialize_sim(
+            &hit_storage,
+            close_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &hit) ||
+        !advance_jab_to_action_tick(
+            hit,
+            close_content,
+            close_content->fighter.jab_combo_input_begin_tick,
+            &inspection,
+            &first_hit_seen) ||
+        first_hit_seen == 0 ||
+        inspection.players[1].damage_q16 !=
+            close_content->fighter.jab_damage_q16 ||
+        !step_reaction_duel(
+            hit,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[1].damage_q16 !=
+            close_content->fighter.jab_damage_q16)
+    {
+        return fail("jab-cancel-on-hit");
+    }
+
+    if (!initialize_sim(
+            &whiff_storage,
+            far_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &whiff) ||
+        !advance_jab_to_action_tick(
+            whiff,
+            close_content,
+            close_content->fighter.jab_combo_input_end_tick,
+            &inspection,
+            &first_hit_seen) ||
+        first_hit_seen != 0 ||
+        !step_reaction_duel(
+            whiff,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("jab-cancel-on-whiff-and-end-boundary");
+    }
+
+    if (!initialize_sim(
+            &early_storage,
+            far_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &early) ||
+        !advance_jab_to_action_tick(
+            early,
+            close_content,
+            close_content->fighter.jab_combo_input_begin_tick -
+                UINT16_C(1),
+            &inspection,
+            &first_hit_seen) ||
+        !step_reaction_duel(
+            early,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks !=
+            close_content->fighter.jab_combo_input_begin_tick ||
+        !step_reaction_duel(
+            early,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+    {
+        return fail("jab-cancel-early-held-shield-rejected");
+    }
+
+    if (!initialize_sim(
+            &late_storage,
+            far_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &late) ||
+        !advance_jab_to_action_tick(
+            late,
+            close_content,
+            close_content->fighter.jab_combo_input_end_tick +
+                UINT16_C(1),
+            &inspection,
+            &first_hit_seen) ||
+        !step_reaction_duel(
+            late,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks !=
+            close_content->fighter.jab_combo_input_end_tick +
+                UINT16_C(2))
+    {
+        return fail("jab-cancel-first-late-frame-rejected");
+    }
+
+    if (!initialize_sim(
+            &final_storage,
+            close_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &final) ||
+        !advance_jab_to_action_tick(
+            final,
+            close_content,
+            close_content->fighter.jab_combo_input_begin_tick,
+            &inspection,
+            &first_hit_seen) ||
+        first_hit_seen == 0 ||
+        !step_reaction_duel(
+            final,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JAB_FINAL ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        return fail("jab-combo-final-entry");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        const pf_sim_event *event =
+            find_last_tick_event(PF_SIM_EVENT_HIT);
+
+        if (event != NULL &&
+            event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1) &&
+            event->detail == (uint16_t)PF_M4_ACTION_JAB_FINAL &&
+            event->value_q16 ==
+                close_content->fighter.jab_final_damage_q16)
+        {
+            final_hit_seen = 1;
+            break;
+        }
+        if (!step_reaction_duel(
+                final,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (final_hit_seen == 0 ||
+        inspection.players[1].damage_q16 !=
+            close_content->fighter.jab_damage_q16 +
+                close_content->fighter.jab_final_damage_q16)
+    {
+        return fail("jab-combo-final-hit-and-identity");
+    }
+
+    if (!initialize_sim(
+            &source_storage,
+            far_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            far_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &loaded) ||
+        !advance_jab_to_action_tick(
+            source,
+            close_content,
+            close_content->fighter.jab_combo_input_begin_tick,
+            &inspection,
+            &first_hit_seen) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "jab-cancel-query-save-size") ||
+        save_size != (size_t)635)
+    {
+        return fail("jab-cancel-snapshot-boundary");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "jab-cancel-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "jab-cancel-load"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        const uint16_t trigger =
+            tick == UINT32_C(0) ? UINT16_MAX : UINT16_C(0);
+
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                trigger,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        source_result = test_last_result;
+        if (!step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                trigger,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            source_result.event_count != test_last_result.event_count ||
+            memcmp(
+                source_result.events,
+                test_last_result.events,
+                sizeof(source_result.events)) != 0 ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "jab-cancel-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "jab-cancel-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash) ||
+            inspection.players[0].action_state !=
+                loaded_inspection.players[0].action_state ||
+            inspection.players[0].action_ticks !=
+                loaded_inspection.players[0].action_ticks)
+        {
+            return fail("jab-cancel-save-load-continuation");
+        }
+        if (tick == UINT32_C(0) &&
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_SHIELD)
+        {
+            return fail("jab-cancel-loaded-shield-entry");
+        }
+    }
+
+    return 1;
+}
+
 static int run_boost_grab_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -12910,6 +13381,8 @@ int main(void)
     pf_m4_content invalid_throw_content;
     pf_m4_content invalid_dash_attack_content;
     pf_m4_content invalid_boost_grab_window_content;
+    pf_m4_content invalid_jab_cancel_window_content;
+    pf_m4_content invalid_jab_final_content;
     pf_m4_content reaction_content;
     pf_m4_content tech_invulnerability_content;
     pf_m4_content floor_attack_content;
@@ -12933,6 +13406,8 @@ int main(void)
     pf_m4_content grab_damage_content;
     pf_m4_content chain_grab_escape_content;
     pf_m4_content boost_grab_content;
+    pf_m4_content jab_cancel_close_content;
+    pf_m4_content jab_cancel_far_content;
     pf_content_view view;
     pf_content_view reaction_view;
     pf_content_view tech_invulnerability_view;
@@ -12957,6 +13432,8 @@ int main(void)
     pf_content_view grab_damage_view;
     pf_content_view chain_grab_escape_view;
     pf_content_view boost_grab_view;
+    pf_content_view jab_cancel_close_view;
+    pf_content_view jab_cancel_far_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_reaction_content(
@@ -13037,7 +13514,15 @@ int main(void)
             &chain_grab_escape_view) ||
         !make_boost_grab_content(
             &boost_grab_content,
-            &boost_grab_view))
+            &boost_grab_view) ||
+        !make_jab_cancel_content(
+            (INT32_C(4) * PF_Q16_ONE) / INT32_C(5),
+            &jab_cancel_close_content,
+            &jab_cancel_close_view) ||
+        !make_jab_cancel_content(
+            INT32_C(4) * PF_Q16_ONE,
+            &jab_cancel_far_content,
+            &jab_cancel_far_view))
     {
         return 1;
     }
@@ -13096,6 +13581,14 @@ int main(void)
         .boost_grab_cancel_end_tick =
         invalid_boost_grab_window_content.fighter
             .dash_attack_startup_ticks;
+    invalid_jab_cancel_window_content = content;
+    invalid_jab_cancel_window_content.fighter
+        .jab_combo_input_begin_tick =
+        invalid_jab_cancel_window_content.fighter.jab_startup_ticks +
+        invalid_jab_cancel_window_content.fighter.jab_active_ticks -
+        UINT16_C(1);
+    invalid_jab_final_content = content;
+    invalid_jab_final_content.fighter.jab_final_damage_q16 = UINT32_C(0);
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -13157,6 +13650,15 @@ int main(void)
                 &invalid_boost_grab_window_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-boost-grab-window") ||
+        !expect_status(
+            pf_m4_validate_content(
+                &invalid_jab_cancel_window_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-jab-cancel-window") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_jab_final_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-jab-final-data") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
@@ -13250,6 +13752,10 @@ int main(void)
         !run_boost_grab_test(
             &boost_grab_content,
             &boost_grab_view) ||
+        !run_jab_cancel_test(
+            &jab_cancel_close_content,
+            &jab_cancel_close_view,
+            &jab_cancel_far_view) ||
         !run_jump_cancelled_grab_test(
             &grab_close_content,
             &grab_close_view,
@@ -13277,7 +13783,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=471 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1\n",
+        " combat_invariants=492 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x30)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x31)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1330,7 +1330,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+                action > (uint8_t)PF_M4_ACTION_JAB_FINAL ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1443,6 +1443,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_DASH_ATTACK &&
                  resume_action !=
+                     (uint8_t)PF_M4_ACTION_JAB_FINAL &&
+                 resume_action !=
                      (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
@@ -1462,6 +1464,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+                  resume_action ==
+                      (uint8_t)PF_M4_ACTION_JAB_FINAL ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
                   resume_action ==

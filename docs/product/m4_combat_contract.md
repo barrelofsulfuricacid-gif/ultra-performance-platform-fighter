@@ -717,7 +717,7 @@ natural and mash escape boundaries, invulnerable spot-dodge rejection,
 direct-initial-dash and airborne negatives, retained dash momentum, typed
 events, and
 mid-hold save/load with equal future hashes. Browser startup repeats the
-jump-cancel route and both negatives; browser view schema 17 renders the cyan
+jump-cancel route and both negatives; browser view schema 18 retains the cyan
 grabbox, `GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
 links, and the victim's `MASH OUT · Nf` countdown.
 
@@ -749,6 +749,37 @@ dash-attack tick 1 before comparing every future hash and event through
 capture. Browser startup repeats the ordinary, boost, late, and dash-hit routes
 before exposing readiness; the live adapter labels the production action
 `DASH ATTACK`.
+
+## Jab sequence and jab cancel
+
+The production neutral attack is now a two-hit decision sequence. The existing
+`GROUND_ATTACK` is the first jab: two startup ticks, two active ticks, eight
+recovery ticks, 6% damage, and four hitlag ticks. Stored action ticks 4 through
+7 form the hashed and validated combo-input window. A fresh shield trigger in
+that inclusive window cancels directly into the existing production `SHIELD`
+state on either hit or whiff. A fresh light-attack edge instead selects the
+independently authored `JAB_FINAL`; neutral input lets the first jab finish.
+This follows the documented Melee behavior in which
+[jab cancelling](https://www.ssbwiki.com/Jab_cancelling) uses shield to stop a
+neutral-attack sequence before its final hit. An early trigger held into the
+window never becomes fresh, and the first frame after the stored tick-7
+boundary cannot cancel.
+
+`JAB_FINAL` has its own forward hitbox, 7% damage, signed base launch and
+per-percent growth, two startup ticks, two active ticks, ten recovery ticks,
+and four hitlag ticks. It emits the ordinary typed `HIT` event with
+`JAB_FINAL` in `detail`. The transition resets the shared per-attack hit mask,
+so the same target can legally receive the independently identified final hit;
+no jab-cancel flag, buffered choice, or other technique-only mutable state is
+added.
+
+The native oracle proves shield cancel on hit at the exact opening boundary,
+shield cancel on whiff at the exact closing boundary, early-held and first-late
+rejection, final-hit damage and typed identity, invalid window/final-hit data,
+and a mid-window save/load comparison of every future hash and event. Browser
+startup repeats the hit, whiff, both negative boundaries, and final-hit routes,
+restores default content, exposes `jab_cancel_probe=pass`, and labels the live
+production action `JAB FINAL`.
 
 ## Directional throws and chain grab
 
@@ -791,11 +822,14 @@ four action labels and the typed throw event.
 
 ## Canonical state and inspection
 
-State schema 21 / save format 20 retains the 635-byte stream (140-byte header
-plus 495-byte payload) and changes the active magic to `PFSAVE20`. It makes the
-`DASH_ATTACK` action ID, hitlag resume, authored action schedule, run entry,
-and boost-grab cancel semantics fail closed without adding mutable fields. It
-follows state schema 20 / save format 19, which made the four throw action IDs,
+State schema 22 / save format 21 retains the 635-byte stream (140-byte header
+plus 495-byte payload) and changes the active magic to `PFSAVE21`. It makes the
+`JAB_FINAL` action ID, hitlag resume, authored action schedule, and jab choice
+window semantics fail closed without adding mutable fields. It follows state
+schema 21 / save format 20, which made the `DASH_ATTACK` action ID, hitlag
+resume, authored action schedule, run entry, and boost-grab cancel semantics
+fail closed without adding mutable fields. That format follows state schema 20
+/ save format 19, which made the four throw action IDs,
 thrower hitlag resume, startup-link, atomic release, and post-release recovery
 semantics fail closed without adding mutable fields. That format follows state
 schema 19 / save format 18, which added one escape timer, one
@@ -830,10 +864,13 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 23 / fighter schema 23 adds and hashes dash-attack speed,
-hitbox geometry, damage, signed base launch and per-percent growth, startup,
-active, recovery, hitlag, and the boost-grab cancel window. It follows schema
-22's four throws' damage, signed base launch and per-percent growth, release
+Content schema 24 / fighter schema 24 adds and hashes the inclusive first-jab
+combo-input window plus the final jab's hitbox geometry, damage, signed base
+launch and per-percent growth, startup, active, recovery, and hitlag. It
+follows schema 23's dash-attack speed, hitbox geometry, damage, signed base
+launch and per-percent growth, startup, active, recovery, hitlag, and the
+boost-grab cancel window, and schema 22's four throws' damage, signed base
+launch and per-percent growth, release
 tick, recovery, and hitlag, and schema 21's grabbox geometry, held offset,
 damage-scaled escape
 duration, startup/active/recovery timing, base/maximum escape timing,
@@ -858,8 +895,9 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 18 identifies the dash-attack content/state contract while
-retaining schema 17's throw contract and schema 16's grabbox bounds/active
+Inspection schema 19 identifies the jab-sequence content/state contract while
+retaining schema 18's dash-attack contract, schema 17's throw contract, and
+schema 16's grabbox bounds/active
 state, escape ticks, and reciprocal
 target/owner slots. It retains schema 15's exact
 remaining ledge-invulnerability and regrab-lockout timers and schema 14's
@@ -868,9 +906,9 @@ lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 17 carries `DASH ATTACK`, the
-boost-grab readiness probe, the throw action/event identities, and the grab
-fields. It
+sudden death, and result. Browser view schema 18 carries `JAB FINAL`, the
+jab-cancel readiness probe, `DASH ATTACK`, the boost-grab readiness probe, the
+throw action/event identities, and the grab fields. It
 retains its derived invulnerability marker rather than exporting either exact
 ledge timer, and
 carries the prior combat fields plus the canonical action timer, floor action semantics,
@@ -924,7 +962,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 471 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 492 focused
 mechanics invariants plus 50 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -959,6 +997,10 @@ mechanics invariants plus 50 journal invariants, including:
   on the three legal frames with faster retained momentum and expanded-range
   capture; same-frame ordinary selection and late-cancel rejection; invalid
   speed/window data; and mid-dash-attack save/load event/hash continuation;
+- first-jab shield cancellation on hit and whiff at the exact inclusive
+  boundaries, early-held and first-late rejection, independent final-jab
+  damage/typed identity, invalid timing/hit data, and mid-window save/load
+  event/hash continuation;
 - the responder's short jab whiffing at the safe 1.95-unit band before a
   longer strong counter connects during recovery, the 1.7-unit close punish,
   2.25-unit double whiff, safe-tip shield block, and mid-counter save/load with
@@ -1045,7 +1087,8 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, planking, jump-canceled-grab, boost-grab, chain-grab,
+drop-cancel, V-cancel, planking, jump-canceled-grab, boost-grab, jab-cancel,
+chain-grab,
 ground-dodge, air-dodge,
 attack, reaction, shield, shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
