@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(25)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(25)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(26)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(26)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(20)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(21)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -79,7 +79,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_DASH_ATTACK = 57,
     PF_M4_ACTION_JAB_FINAL = 58,
     PF_M4_ACTION_RESET_BOUND = 59,
-    PF_M4_ACTION_FORCED_GETUP = 60
+    PF_M4_ACTION_FORCED_GETUP = 60,
+    PF_M4_ACTION_DELAYED_AIR_JUMP = 61
 } pf_m4_action_state;
 
 typedef struct pf_m4_throw_data
@@ -226,6 +227,7 @@ typedef struct pf_m4_fighter_data
     pf_m4_throw_data up_throw;
     pf_m4_throw_data down_throw;
     uint16_t jump_squat_ticks;
+    uint16_t double_jump_cancel_ticks;
     uint16_t initial_dash_ticks;
     uint16_t forward_smash_input_window_ticks;
     uint16_t landing_ticks;

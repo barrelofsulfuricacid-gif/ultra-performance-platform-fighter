@@ -859,8 +859,12 @@ four action labels and the typed throw event.
 
 ## Canonical state and inspection
 
-State schema 23 / save format 22 retains the 635-byte stream (140-byte header
-plus 495-byte payload) and changes the active magic to `PFSAVE22`. It makes the
+State schema 24 / save format 23 retains the 635-byte stream (140-byte header
+plus 495-byte payload) and changes the active magic to `PFSAVE23`. It makes the
+`DELAYED_AIR_JUMP` action ID, authored half-open aerial-cancel window,
+remaining-upward-velocity cancellation, late full-arc behavior, and
+simultaneous jump-plus-attack non-consumption fail closed without adding
+mutable fields. It follows state schema 23 / save format 22, which made the
 `RESET_BOUND` and `FORCED_GETUP` action IDs, hitlag resume, authored action
 schedule, reaction eligibility, and grounded-versus-airborne expiry semantics
 fail closed without adding mutable fields. It follows state schema 22 / save
@@ -905,8 +909,10 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 25 / fighter schema 25 adds and hashes the reset maximum damage,
-maximum hitstun, bound duration and speed, and forced-getup duration. It follows
+Content schema 26 / fighter schema 26 adds and hashes the double-jump-cancel
+window; zero disables the delayed action and values above 120 are rejected. It
+follows schema 25's reset maximum damage, maximum hitstun, bound duration and
+speed, and forced-getup duration. It follows
 schema 24's inclusive first-jab combo-input window plus the final jab's hitbox
 geometry, damage, signed base launch and per-percent growth, startup, active,
 recovery, and hitlag. That schema follows schema 23's dash-attack speed, hitbox
@@ -938,8 +944,9 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 20 identifies the jab-reset content/state contract while
-retaining schema 19's jab-sequence contract, schema 18's dash-attack contract,
+Inspection schema 21 identifies the delayed-air-jump state/content contract
+while retaining schema 20's jab-reset contract, schema 19's jab-sequence
+contract, schema 18's dash-attack contract,
 schema 17's throw contract, and
 schema 16's grabbox bounds/active
 state, escape ticks, and reciprocal
@@ -950,8 +957,9 @@ lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 19 carries `RESET BOUND`,
-`FORCED GETUP`, and the jab-reset readiness probe while retaining schema 18's
+sudden death, and result. Browser view schema 20 carries `DELAYED AIR JUMP` and
+the double-jump-cancel readiness probe while retaining schema 19's `RESET
+BOUND`, `FORCED GETUP`, and jab-reset readiness probe and schema 18's
 `JAB FINAL` and jab-cancel probe, `DASH ATTACK`, the boost-grab readiness probe,
 the throw action/event identities, and the grab fields. It
 retains its derived invulnerability marker rather than exporting either exact

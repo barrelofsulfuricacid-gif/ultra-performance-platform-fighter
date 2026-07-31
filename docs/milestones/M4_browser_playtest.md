@@ -171,6 +171,13 @@ press the other jump key on the first airborne frame. The live `air jumps`
 counter changes from 1 to 0; holding one key through takeoff does not consume
 the air jump because only a fresh edge is accepted.
 
+After a legal air jump, the action card shows `DELAYED AIR JUMP` for the
+default six-tick window. Fresh light or strong attack on action ticks 0–5
+cancels the remaining upward rise and enters the matching aerial immediately;
+waiting until the action has returned to `AIRBORNE` preserves the full jump
+arc. Pressing jump and attack together while ordinarily airborne selects the
+attack without consuming the displayed air jump.
+
 Once airborne, horizontal input changes drift but does not change the direction
 the fighter faces. An air jump also preserves facing, even when performed while
 holding the opposite horizontal direction. Turn on the ground before takeoff
@@ -631,6 +638,13 @@ registry row can advance from `playable` to `verified`.
     a getup on the collision tick and confirm invulnerability rejects the jab.
     Finally use two hitlag SDI component edges plus away ASDI, confirm the bound
     expires airborne, and use Player 2's aerial instead of forced getup.
+48. Use the two jump keys to start a legal air jump, then freshly press light
+    or strong attack while `DELAYED AIR JUMP` shows action tick 0–5. Confirm
+    the fighter cancels its upward rise, enters the matching aerial, and lands
+    earlier than a no-cancel route. Repeat only after the card returns to
+    `AIRBORNE` and confirm the aerial retains the full arc. Finally press a
+    fresh jump and attack together while ordinarily airborne and confirm the
+    attack wins while `air jumps` remains 1.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -727,6 +741,9 @@ through:
 - an exact first-airborne-frame instant double jump consuming one air jump and
   applying its authored velocity, plus a held jump through takeoff proving
   edge-triggered non-repeat;
+- an early light/strong double-jump cancel during exact action ticks `[0, 6)`,
+  a first-late full-arc route, earlier landing after cancellation, and a
+  simultaneous jump-plus-attack route that does not consume the air jump;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -771,7 +788,8 @@ through:
 
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
-instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
+instant_double_jump_probe=pass double_jump_cancel_probe=pass
+edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass

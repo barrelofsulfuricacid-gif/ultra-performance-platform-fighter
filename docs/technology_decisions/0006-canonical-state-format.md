@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–22 / state schemas 1–23
+- **Status:** Accepted for save formats 1–23 / state schemas 1–24
 - **Date:** 2026-07-28
 
 ## Decision
@@ -32,12 +32,14 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 20 | 21 | 140 | 495 | 635 | Canonical dash-attack action ID, run-entry and hitlag-resume semantics, and the boost-grab cancel window; no payload-layout change |
 | 21 | 22 | 140 | 495 | Canonical final-jab action ID, hitlag-resume semantics, and the inclusive first-jab choice window; no payload-layout change |
 | 22 | 23 | 140 | 495 | 635 | Canonical reset-bound and forced-getup action IDs, weak-hit qualification, hitlag-resume, exact timing, and grounded-versus-airborne expiry semantics; no payload-layout change |
+| 23 | 24 | 140 | 495 | 635 | Canonical delayed-air-jump action ID, exact authored aerial-cancel window, vertical-momentum cancellation, and late full-arc semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
-`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, or `PFSAVE22`.
-The active M4 runtime emits and accepts format 22 with state schema 23. Earlier
+`PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
+`PFSAVE23`. The active M4 runtime emits and accepts format 23 with state schema
+24. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -109,6 +111,15 @@ enters forced getup only if grounded when that bound expires. Loading rejects
 both new actions under earlier schemas and validates their existing reaction,
 hitlag-resume, grounded/airborne, and action-timer relationships under schema
 23.
+Format 23 retains the same payload while making the production delayed air
+jump fail closed. A legal air jump enters the new action for the authored
+half-open window; a fresh light or strong aerial inside that window cancels
+remaining upward velocity before ordinary gravity and motion, while the first
+late aerial preserves the full rise. Simultaneous fresh jump and attack from
+ordinary airborne state selects the attack without consuming an air jump, and
+a zero authored window disables the delayed state. Loading rejects the new
+action under earlier schemas and validates its existing airborne, action-timer,
+ledge-catch, and V-cancel relationships under schema 24.
 
 ## Why SHA-256
 

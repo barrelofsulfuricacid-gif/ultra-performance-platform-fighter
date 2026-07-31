@@ -3508,6 +3508,10 @@ pf_status pf_m4_step_player(
                 (uint32_t)fighter->strong_startup_ticks +
                 (uint32_t)fighter->strong_active_ticks +
                 (uint32_t)fighter->strong_recovery_ticks;
+            const int double_jump_cancel_window =
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
+                action_ticks < fighter->double_jump_cancel_ticks;
 
             if (action_state ==
                 (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
@@ -3548,6 +3552,10 @@ pf_status pf_m4_step_player(
             else if (strong_attack_pressed &&
                      scratch->tumble[player_index] == UINT8_C(0))
             {
+                if (double_jump_cancel_window != 0)
+                {
+                    velocity_y = INT32_C(0);
+                }
                 action_state =
                     (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK;
                 action_ticks = UINT16_C(0);
@@ -3561,6 +3569,10 @@ pf_status pf_m4_step_player(
             else if (light_attack_pressed &&
                      scratch->tumble[player_index] == UINT8_C(0))
             {
+                if (double_jump_cancel_window != 0)
+                {
+                    velocity_y = INT32_C(0);
+                }
                 action_state =
                     (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
                 action_ticks = UINT16_C(0);
@@ -3591,12 +3603,28 @@ pf_status pf_m4_step_player(
             }
             else
             {
-                action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
-                action_ticks = UINT16_C(0);
                 velocity_x = pf_m4_approach(
                     velocity_x,
                     air_target,
                     fighter->air_acceleration_q16);
+                if (action_state ==
+                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP)
+                {
+                    ++action_ticks;
+                    if (action_ticks >=
+                        fighter->double_jump_cancel_ticks)
+                    {
+                        action_state =
+                            (uint8_t)PF_M4_ACTION_AIRBORNE;
+                        action_ticks = UINT16_C(0);
+                    }
+                }
+                else
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                }
             }
 
             if (action_state ==
@@ -3609,6 +3637,12 @@ pf_status pf_m4_step_player(
                 --air_jumps_remaining;
                 fast_fall = UINT8_C(0);
                 scratch->tumble[player_index] = UINT8_C(0);
+                if (fighter->double_jump_cancel_ticks > UINT16_C(0))
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP;
+                    action_ticks = UINT16_C(0);
+                }
             }
         }
     }
@@ -3962,6 +3996,8 @@ pf_status pf_m4_step_player(
         !released_ledge_this_tick &&
         grounded == UINT8_C(0) &&
         (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
          action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL) &&
         platform_drop_ticks == UINT8_C(0))
     {

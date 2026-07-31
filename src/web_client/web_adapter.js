@@ -441,13 +441,14 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
     inputProbePassed,
     airFacingProbePassed,
     instantDoubleJumpProbePassed,
+    doubleJumpCancelProbePassed,
     edgeHopProbePassed,
     edgeDashProbePassed,
     foxTrotProbePassed,
@@ -1261,6 +1262,8 @@ mergeInto(LibraryManager.library, {
         (airFacingProbePassed ? "pass" : "fail") +
         " instant_double_jump_probe=" +
         (instantDoubleJumpProbePassed ? "pass" : "fail") +
+        " double_jump_cancel_probe=" +
+        (doubleJumpCancelProbePassed ? "pass" : "fail") +
         " edge_hop_probe=" +
         (edgeHopProbePassed ? "pass" : "fail") +
         " edge_dash_probe=" +
@@ -1353,6 +1356,8 @@ mergeInto(LibraryManager.library, {
         airFacingProbePassed ? "pass" : "fail";
       status.dataset.instantDoubleJumpProbe =
         instantDoubleJumpProbePassed ? "pass" : "fail";
+      status.dataset.doubleJumpCancelProbe =
+        doubleJumpCancelProbePassed ? "pass" : "fail";
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
@@ -1444,7 +1449,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 19) {
+    if (view[0] !== 20) {
       return;
     }
     var canvas = state.canvas;
@@ -1520,6 +1525,7 @@ mergeInto(LibraryManager.library, {
       "JAB FINAL",
       "RESET BOUND",
       "FORCED GETUP",
+      "DELAYED AIR JUMP",
     ];
 
     if (view[1] < previousTick) {

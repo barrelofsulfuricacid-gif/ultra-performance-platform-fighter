@@ -80,6 +80,8 @@ static int32_t pf_m4_scale_velocity_q16(
 static int pf_m4_action_is_v_cancel_eligible(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
            action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
            action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE;
 }

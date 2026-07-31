@@ -113,9 +113,27 @@ squat, then send a fresh jump edge on the first airborne tick. The takeoff tick
 is explicitly excluded, holding one jump input cannot retrigger it, and an
 exhausted air jump is rejected. The accepted edge applies the configured
 double-jump velocity before that tick's ordinary gravity and motion, so the
-result is deterministic across save/load and rollback. A deliberate down input
-after the apex enters the fixed fast-fall speed. Landing enters a finite
-landing state.
+result is deterministic across save/load and rollback.
+
+The default fighter authors a six-tick double-jump-cancel window. A legal air
+jump enters `DELAYED_AIR_JUMP`; a fresh light or strong aerial during action
+ticks `[0, 6)` cancels the remaining upward velocity to zero before that
+tick's ordinary gravity and motion, then enters the corresponding existing
+aerial action. If no aerial is selected, action tick 6 returns to `AIRBORNE`
+without cancelling the jump's remaining rise. An aerial selected on that
+first late tick therefore keeps the full jump arc. Simultaneous fresh jump and
+attack while ordinarily airborne gives the attack priority and does not
+consume an air jump. A configured window of zero disables the delayed action.
+The delayed state remains eligible for ordinary ledge catch and V-cancel rules
+because both are airborne interactions. All state needed for rollback is the
+existing action ID and action timer.
+
+The cancel topology follows the delayed-double-jump behavior documented in
+[SmashWiki's double jump cancel description](https://www.ssbwiki.com/Double_jump_cancel);
+the six-tick window, velocities, and fighter data remain original placeholders.
+
+A deliberate down input after the apex enters the fixed fast-fall speed.
+Landing enters a finite landing state.
 
 ## Grounded rolls and spot dodge
 
@@ -333,7 +351,10 @@ bounds, and blast zones.
   facing; exact motion, duration, and invulnerability windows; solid-wall
   clipping; roll-off-edge airborne transition; and mid-dodge save/load future
   equality;
-- binary short/full hops, double jump, aerial drift, airborne-facing lock
+- binary short/full hops, double jump, the six-tick double-jump-cancel window,
+  early light/strong momentum cancellation, the first-late full-arc boundary,
+  simultaneous jump-plus-attack non-consumption, disabled-content behavior,
+  mid-window save/load future equality, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
 - exact nine-tick platform-drop entry, timer exposure, and the same-tick
   fast-fall exclusion used by the drop-cancel combat route;
@@ -372,8 +393,8 @@ per-tick polling, analog quantization/dead zone, D-pad override, face and
 shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
 and browser-specific device exposure remain part of the owner playtest.
 
-The focused movement oracle currently reports 170 invariants. The focused
-combat oracle reports 205 invariants, including the dashing-shield
+The focused movement oracle currently reports 243 invariants. The focused
+combat oracle reports 529 invariants, including the dashing-shield
 tap-versus-held boundary, reaction-driven tech-chase routes, and the
 frame-perfect drop-cancel hit/snap versus one-tick-late and whiff fall-through
 cases, plus V-cancel timing, exclusions, lockout, and scaled-launch behavior.

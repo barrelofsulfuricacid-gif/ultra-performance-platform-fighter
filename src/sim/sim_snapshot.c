@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x32)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x33)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1181,6 +1181,8 @@ static int pf_m4_player_state_consistent(
     {
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+               action !=
+                   (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
                action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                action != (uint8_t)PF_M4_ACTION_AIR_DODGE &&
                action != (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
@@ -1197,6 +1199,7 @@ static int pf_m4_player_state_consistent(
         return 0;
     }
     if (action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        action == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
@@ -1331,7 +1334,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_FORCED_GETUP ||
+                action >
+                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks

@@ -43,7 +43,7 @@ common_flags="
 
 "$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
 grep -Fqx \
-    'm4-combat=pass content_schema=25 deterministic_ticks=20000 combat_invariants=529 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1' \
+    'm4-combat=pass content_schema=26 deterministic_ticks=20000 combat_invariants=529 journal_invariants=50 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 directional_throws=1 chain_grab=1' \
     "$output_dir/m4_combat.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"

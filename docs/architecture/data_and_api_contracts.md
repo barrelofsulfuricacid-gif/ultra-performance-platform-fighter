@@ -81,9 +81,9 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–21 remain historical checkpoints. The current M4
-movement/combat state uses save format 22: a fixed 635-byte checkpoint with
-state schema 23 and canonical solid-surface tech/bounce,
+Save formats 1–22 remain historical checkpoints. The current M4
+movement/combat state uses save format 23: a fixed 635-byte checkpoint with
+state schema 24 and canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
@@ -102,7 +102,11 @@ the final-jab action ID and makes its authored hitlag resume, timing, and
 inclusive first-jab choice window fail closed. State schema 23 adds the
 reset-bound and forced-getup action IDs and makes weak-hit qualification,
 hitlag resume, exact action timing, and grounded-versus-airborne expiry fail
-closed, again without changing the byte layout. Format 14 changed the
+closed, again without changing the byte layout. State schema 24 adds the
+`DELAYED_AIR_JUMP` action ID and makes the authored half-open aerial-cancel
+window, remaining-upward-velocity cancellation, late full-arc behavior, and
+simultaneous jump-plus-attack non-consumption fail closed, again without
+changing the byte layout. Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.
 Format 5 first
