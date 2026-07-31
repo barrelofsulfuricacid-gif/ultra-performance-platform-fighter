@@ -4231,6 +4231,496 @@ static int run_edge_hop_test(
     return 1;
 }
 
+static int run_edge_dash_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t expiry_ticks;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0xed6eda)),
+            PF_STATUS_OK,
+            "edge-dash-reset") ||
+        !grab_player0_right_ledge(source, &source_inspection) ||
+        !make_player0_ledge_actionable(
+            source,
+            content,
+            &source_inspection))
+    {
+        return 0;
+    }
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        source_inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        source_inspection.players[0].air_jumps_remaining !=
+            content->fighter.air_jump_count ||
+        source_inspection.players[0].invulnerable != UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-ledge-jump"
+            " action=%u ticks=%u grounded=%u support=%u"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " velocity=(%" PRId32 ",%" PRId32 ") invulnerable=%u\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (unsigned int)source_inspection.players[0].grounded,
+            (unsigned int)source_inspection.players[0].support,
+            source_inspection.players[0].position_x_q16,
+            source_inspection.players[0].position_y_q16,
+            source_inspection.players[0].velocity_x_q16,
+            source_inspection.players[0].velocity_y_q16,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(16) &&
+         source_inspection.players[0].position_y_q16 +
+                 content->fighter.half_height_q16 >
+             content->stage.floor_y_q16;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MIN,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(16) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        source_inspection.players[0].invulnerable != UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-rise"
+            " tick=%" PRIu32 " action=%u position_y=%" PRId32
+            " velocity_y=%" PRId32 " invulnerable=%u\n",
+            tick,
+            (unsigned int)source_inspection.players[0].action_state,
+            source_inspection.players[0].position_y_q16,
+            source_inspection.players[0].velocity_y_q16,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+
+    if (!step_duel_trigger(
+            source,
+            INT16_MIN,
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        (source_inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_AIR_DODGE &&
+         source_inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_SPECIAL_LANDING) ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        source_inspection.players[0].position_x_q16 >
+            source_inspection.stage.right_ledge_x_q16 ||
+        source_inspection.players[0].invulnerable != UINT8_C(1) ||
+        (source_inspection.players[0].action_state ==
+                 (uint8_t)PF_M4_ACTION_AIR_DODGE &&
+         (source_inspection.players[0].grounded != UINT8_C(0) ||
+          source_inspection.players[0].support !=
+              (uint8_t)PF_M4_SURFACE_NONE ||
+          source_inspection.players[0].velocity_y_q16 <= INT32_C(0))) ||
+        (source_inspection.players[0].action_state ==
+                 (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+         (source_inspection.players[0].grounded != UINT8_C(1) ||
+          source_inspection.players[0].support !=
+              (uint8_t)PF_M4_SURFACE_FLOOR)) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "edge-dash-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-air-dodge-entry"
+            " action=%u ticks=%u grounded=%u support=%u"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " velocity=(%" PRId32 ",%" PRId32 ") invulnerable=%u\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (unsigned int)source_inspection.players[0].grounded,
+            (unsigned int)source_inspection.players[0].support,
+            source_inspection.players[0].position_x_q16,
+            source_inspection.players[0].position_y_q16,
+            source_inspection.players[0].velocity_x_q16,
+            source_inspection.players[0].velocity_y_q16,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "edge-dash-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "edge-dash-load") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "edge-dash-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "edge-dash-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-snapshot-round-trip\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(16) &&
+         source_inspection.players[0].action_state ==
+             (uint8_t)PF_M4_ACTION_AIR_DODGE;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_duel_trigger(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "edge-dash-source-air-dodge-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "edge-dash-loaded-air-dodge-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=edge-dash-air-dodge-future"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(16) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].grounded != UINT8_C(1) ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        source_inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        source_inspection.players[0].position_x_q16 >
+            source_inspection.stage.right_ledge_x_q16 ||
+        source_inspection.players[0].invulnerable != UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-landing"
+            " tick=%" PRIu32 " action=%u grounded=%u support=%u"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " velocity=(%" PRId32 ",%" PRId32 ") invulnerable=%u\n",
+            tick,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].grounded,
+            (unsigned int)source_inspection.players[0].support,
+            source_inspection.players[0].position_x_q16,
+            source_inspection.players[0].position_y_q16,
+            source_inspection.players[0].velocity_x_q16,
+            source_inspection.players[0].velocity_y_q16,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.special_landing_ticks;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_duel_trigger(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+            source_inspection.players[0].action_ticks != (uint16_t)tick ||
+            source_inspection.players[0].invulnerable != UINT8_C(1) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "edge-dash-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "edge-dash-loaded-future-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=edge-dash-landing-lock"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+    if (!step_duel_trigger(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        !step_duel_trigger(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        source_inspection.players[0].invulnerable != UINT8_C(1) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        source_inspection.players[0].invulnerable != UINT8_C(1) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "edge-dash-source-actionable-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "edge-dash-loaded-actionable-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-actionable-overlap\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0xed6edb)),
+            PF_STATUS_OK,
+            "edge-dash-expired-reset") ||
+        !grab_player0_right_ledge(source, &source_inspection) ||
+        !make_player0_ledge_actionable(
+            source,
+            content,
+            &source_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(120) &&
+         source_inspection.players[0].invulnerable != UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    expiry_ticks = tick;
+    if (tick == UINT32_C(120) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-expired-jump"
+            " tick=%" PRIu32 " action=%u invulnerable=%u\n",
+            expiry_ticks,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(16) &&
+         source_inspection.players[0].position_y_q16 +
+                 content->fighter.half_height_q16 >
+             content->stage.floor_y_q16;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MIN,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(16) ||
+        !step_duel_trigger(
+            source,
+            INT16_MIN,
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        (source_inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_AIR_DODGE &&
+         source_inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_SPECIAL_LANDING) ||
+        source_inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-expired-entry"
+            " expiry_ticks=%" PRIu32 " rise_ticks=%" PRIu32
+            " action=%u invulnerable=%u\n",
+            expiry_ticks,
+            tick,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(16) &&
+         source_inspection.players[0].action_state ==
+             (uint8_t)PF_M4_ACTION_AIR_DODGE;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(16) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+        source_inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=edge-dash-expired-negative"
+            " expiry_ticks=%" PRIu32 " landing_ticks=%" PRIu32
+            " action=%u invulnerable=%u\n",
+            expiry_ticks,
+            tick,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].invulnerable);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_ledge_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -4642,6 +5132,7 @@ int main(void)
         !run_platform_test(&content) ||
         !run_solid_geometry_test(&content) ||
         !run_ledge_test(&content, &view) ||
+        !run_edge_dash_test(&content, &view) ||
         !run_blast_zone_test(&view) ||
         !run_team_hash_trace(&view))
     {
@@ -4650,7 +5141,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=117\n",
+        "movement_invariants=124\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

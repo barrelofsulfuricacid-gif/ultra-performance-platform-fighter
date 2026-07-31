@@ -415,6 +415,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 16, Edge hopping, advances from `planned` to `playable`; complete
   rollback/replay and owner evidence are still required before `verified`.
 
+## Delivered in the edge-dash route
+
+- The complete ordinary-input route now composes the existing ledge jump,
+  37-tick catch invulnerability, inward directional air dodge, and ten-tick
+  momentum-preserving special landing. No edge-dash-only state or debug setup
+  was added.
+- The first actionable ground frame still carries ledge invulnerability and can
+  immediately enter the production light attack. Waiting on ledge until the
+  timer expires produces the same landing route without that overlap.
+- The focused movement oracle checks ledge-jump positioning, air-dodge entry,
+  inward landing momentum, exact locked landing ticks, actionable overlap,
+  attack follow-up, expired-window rejection, and mid-route save/load future
+  hashes.
+- Browser readiness runs both the positive route and expired-window negative
+  route. Registry row 15, Edge dashing, advances from `planned` to `playable`;
+  complete rollback/replay and owner evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -445,8 +462,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, edge hopping, instant double jump, L-cancelling,
-  SHFFL, short hop air dodge, and wavedash are now playable; other rows
+  verified; auto-canceling, edge dashing, edge hopping, instant double jump,
+  L-cancelling, SHFFL, short hop air dodge, and wavedash are now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -455,7 +472,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 13 playable, 7 primitive-ready, and 40 planned.
+  blocked: 1 verified, 14 playable, 7 primitive-ready, and 39 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -487,7 +504,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 117 movement invariants, 126
+- Mechanical oracles: 124 movement invariants, 126
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -511,7 +528,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/ground-dodge-and-roll/air-facing/air-dodge-and-wavedash/
+  movement/edge-hop-and-dash/ground-dodge-and-roll/air-facing/
+  air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/surface-tech

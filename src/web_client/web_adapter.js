@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -449,6 +449,7 @@ mergeInto(LibraryManager.library, {
     airFacingProbePassed,
     instantDoubleJumpProbePassed,
     edgeHopProbePassed,
+    edgeDashProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -951,6 +952,8 @@ mergeInto(LibraryManager.library, {
         (instantDoubleJumpProbePassed ? "pass" : "fail") +
         " edge_hop_probe=" +
         (edgeHopProbePassed ? "pass" : "fail") +
+        " edge_dash_probe=" +
+        (edgeDashProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -985,6 +988,7 @@ mergeInto(LibraryManager.library, {
       status.dataset.instantDoubleJumpProbe =
         instantDoubleJumpProbePassed ? "pass" : "fail";
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
+      status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

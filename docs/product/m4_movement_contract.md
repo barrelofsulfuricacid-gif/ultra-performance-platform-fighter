@@ -223,6 +223,16 @@ seven-tick catch followed by 30 additional ticks. The remaining timer survives
 release, jump, and climb, rejects production hits while nonzero, and remains
 canonical across save/load and replay.
 
+Edge dashing composes those production rules without a dedicated debug state.
+After the catch lockout, a ledge jump retains the timer and moves inward. Once
+the fighter has risen above the floor plane, a fresh down-inward trigger enters
+the ordinary directional air dodge and lands on stage in `SPECIAL LANDING`.
+The exact ten-tick landing lock and traction slide are unchanged from wavedash;
+with default data, the first actionable ground frame still overlaps the
+remaining ledge invulnerability and can immediately start an attack. Waiting on
+the ledge until the timer expires produces the same movement route without the
+invulnerable overlap.
+
 ## Data and inspection
 
 `pf_m4_content` contains the validated fighter and stage tables. Its canonical
@@ -265,12 +275,13 @@ bounds, and blast zones.
   horizontal momentum, traction slide, and exact ten-tick special landing;
 - moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
   exact 37-tick catch invulnerability and post-release carry, one-occupant
-  priority, mid-climb save/load equivalence, platform drop, and blast-zone
-  respawn;
+  priority, mid-climb save/load equivalence, the ordinary-input edge-dash route,
+  exact special-landing lock, actionable/invulnerable overlap, expired-timer
+  negative case, platform drop, and blast-zone respawn;
 - inspectable solid geometry, floor-level traversal beneath it, ordinary side
   and underside collision, landing/support on its top, and mirrored upper-left
   and upper-right inward-drift regressions that never overlap the block; and
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 117 invariants.
+The focused movement oracle currently reports 124 invariants.

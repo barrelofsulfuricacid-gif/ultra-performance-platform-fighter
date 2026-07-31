@@ -123,6 +123,14 @@ attack key for the aerial follow-up. The dashed invulnerability ring remains
 until the original 37-tick ledge timer expires. Neutral hang and a second jump
 after the counter reaches zero are the negative cases.
 
+For an edge dash, wait until `LEDGE HANG`, press jump, and hold toward the
+stage while rising until the fighter's feet clear the floor plane. Press
+down-toward plus a fresh trigger to air dodge onto stage. Confirm `SPECIAL
+LANDING`, an inward slide, action ticks 0–9, then an actionable frame while the
+dashed invulnerability ring remains. Wait on ledge until the ring disappears
+before repeating for the negative case; the movement route remains, but the
+actionable frame is vulnerable.
+
 The light jab has two startup ticks, two active ticks, eight recovery ticks,
 6% damage, and four hitlag ticks. Its translucent amber rectangle is the exact
 inspected active hitbox. The strong attack has five startup ticks, three active
@@ -270,96 +278,101 @@ registry row can advance from `playable` to `verified`.
    facing remains inward, and the ledge-invulnerability ring persists. Repeat
    without leaving hang and after exhausting the air jump for the two negative
    cases.
-13. Move into range, press `F`, and confirm the amber hitbox appears only on the
+14. From `LEDGE HANG`, jump and hold inward until the fighter's feet clear the
+   stage, then press down-inward plus a fresh trigger. Confirm inward `SPECIAL
+   LANDING`, action ticks 0–9, and an actionable frame while the dashed ring
+   remains. Wait on ledge until the ring expires and repeat to confirm the same
+   route is vulnerable.
+15. Move into range, press `F`, and confirm the amber hitbox appears only on the
    active frames. On contact, confirm the target gains 6%, both players visibly
    freeze, the target then launches in `HITSTUN`, and the event feed adds one
    sequenced 6% `hit` entry naming both players.
-14. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
+16. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
-15. Pause just before contact and use `N` to step through hitlag. On the first
+17. Pause just before contact and use `N` to step through hitlag. On the first
     target hitlag tick, press a horizontal direction and confirm `SDI pulses`
     becomes 1 and the target shifts. Keep holding it for another tick and
     confirm the count stays 1. Add the vertical component and confirm the count
     becomes 2.
-16. Compare otherwise similar launches while holding perpendicular opposite
+18. Compare otherwise similar launches while holding perpendicular opposite
     vertical directions on the final hitlag tick. Confirm the visible launch
     vector changes while the state remains deterministic after Reset.
-17. Tap the target's tech key and confirm the state card shows
+19. Tap the target's tech key and confirm the state card shows
     `tech window 20` and `lockout 40`. Hold the key through the next tick and
     confirm they count down to 19/39 rather than reopening.
-18. Move into range and press `H` (or Player 2's strong-attack key). Confirm the
+20. Move into range and press `H` (or Player 2's strong-attack key). Confirm the
     pink hitbox, 12% damage, six frozen hitlag ticks, then visible rotation with
     `TUMBLE · HITSTUN`. Press the target's tech key within 20 ticks of landing.
     Use neutral horizontal input for `TECH IN PLACE`, then repeat while holding
     a direction for `TECH ROLL`. Repeat without the tech input and confirm
     `KNOCKDOWN`. Confirm the gold invulnerability ring clears after 20 ticks
     while each tech action continues.
-19. Let the missed tech finish into `DOWN WAIT`. Try up and a fresh shield
+21. Let the missed tech finish into `DOWN WAIT`. Try up and a fresh shield
     press for `NEUTRAL GETUP`, left and right for both `GETUP ROLL`
     directions, and either attack key for `FLOOR ATTACK`. Pause and step
     through the floor attack: confirm purple hitboxes in front on frames
     17–19 and behind on frames 24–26, with no hitbox in between. Confirm the
     gold ring clears at each option's documented invulnerability boundary.
-20. Move both fighters near the raised block and strong-launch the target into
+22. Move both fighters near the raised block and strong-launch the target into
     its side. Tap the target's tech key during tumble for `WALL TECH`; repeat
     while holding up for `WALL TECH JUMP`, then omit the tech input for `WALL
     BOUNCE`. Repeat with an upward launch into the underside for `CEILING TECH`
     and `CEILING BOUNCE`. Confirm successful techs clear tumble/hitstun while
     missed impacts retain them.
-21. Get above the raised block with a full/double jump or launch, descend
+23. Get above the raised block with a full/double jump or launch, descend
     beside its upper-left corner, and hold toward the block. Confirm the
     fighter lands or stays flush with the contacted face and no part of the
     body enters the block. Repeat from the upper-right corner.
-22. From idle, press trigger plus the direction the fighter faces. Confirm
+24. From idle, press trigger plus the direction the fighter faces. Confirm
     `FORWARD ROLL`, unchanged facing, movement only during its middle window,
     the gold ring only on action ticks 4–16, and idle after 31 ticks. Repeat
     away from facing for `BACKWARD ROLL` and its 35-tick duration. Then press
     trigger plus fresh down for `SPOT DODGE`, confirm no horizontal movement,
     the ring only on ticks 3–15, and idle after 25 ticks. Hold down before
     pressing trigger and confirm ordinary `SHIELD` instead.
-23. From idle, hold the shield key. Confirm the bubble appears on frame 1,
+25. From idle, hold the shield key. Confirm the bubble appears on frame 1,
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-24. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
+26. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
     fighter slides forward and slows under traction. Reset, press shield during
     `INITIAL DASH`, and confirm the fighter does not shield until run.
-25. Hold shield for more than four ticks and block an attack. Confirm no
+27. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
     before contact; confirm the powershield indicator appears, shield health
     loses only its normal hold depletion, and pushback is larger.
-26. After that powershield, release shield before `SHIELD STUN` ends. Leave the
+28. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
     block and confirm the attack cannot skip the 15-tick release.
-27. Hold shield until it reaches zero. Confirm upward `SHIELD BREAK`, forced
+29. Hold shield until it reaches zero. Confirm upward `SHIELD BREAK`, forced
     landing, prone `SHIELD BREAK DOWN`, `SHIELD BREAK STAND`, then the
     vulnerable orbiting-star stun and `MASH · Nf` counter. Hold one mash key
     and confirm only the first tick gets the extra reduction; alternate fresh
     inputs to recover faster and confirm shield health resets to 30. Repeat
     and have the opponent hit during stun to confirm ordinary hitlag/hitstun.
-28. Full hop and use the aerial late enough to land during its startup
+30. Full hop and use the aerial late enough to land during its startup
     auto-cancel frames; confirm generic `LANDING`. Then short-hop aerial,
     fast-fall, and land without the trigger for 12 ticks of `AERIAL LANDING`.
     Repeat with a fresh trigger in the last seven ticks and confirm six ticks
     of `L-CANCEL LANDING`. Pause and step while watching trigger age: 0–6 must
     say eligible and 7 must not.
-29. Short hop, press the strong-attack key while airborne, hold down to
+31. Short hop, press the strong-attack key while airborne, hold down to
     fast-fall, and intentionally omit the trigger. Confirm the pink hitbox,
     `STRONG AERIAL LANDING`, a red missed-L-cancel banner/ring, and a countdown
     from 30 frames. Repeat with a fresh trigger shortly before contact and
     confirm `STRONG L-CANCEL LANDING`, a green success banner/ring, and a
     15-frame countdown.
-30. Run Player 1 beyond a blast boundary. Confirm one stock disappears,
+32. Run Player 1 beyond a blast boundary. Confirm one stock disappears,
     `RESPAWN WAIT` counts down from 60, then the fighter returns at zero
     percent with the dashed ring and 120-frame invulnerability timer. Move and
     attack during that timer, then confirm the ring expires. Repeat until the
     final stock and confirm the result banner, paused match, and Rematch
     button. Confirm the feed records KO, respawn, and final match result in
     increasing sequence order.
-31. Repeat with Player 2's arrow-key controls and try both players
+33. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 
 Record any mismatch with the control used, the visible tick/action state, and
