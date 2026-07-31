@@ -3,7 +3,7 @@
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
-wavedash/waveland,
+wavedash/waveland and ledge-cancelling,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction, and dense-shield
@@ -129,6 +129,14 @@ component, and slides under traction for action ticks 0–9 before returning to
 idle. The same diagonal contact on a pass-through platform performs a
 waveland; the downward dodge lands instead of invoking ordinary platform
 drop-through. The state card exposes the exact action tick for these checks.
+
+For a ledge-cancel, use the stationary fixture and full hop through its narrow
+platform. During descent, hold down-right and press a fresh trigger so
+`SPECIAL LANDING` begins beside the right edge. The retained slide crosses the
+support bound on the first recovery tick and immediately produces ordinary
+`AIRBORNE`. The startup probe repeats the same inputs at platform center and
+requires the entire action-tick 0–9 landing lock before idle, then restores the
+default live-playtest content.
 
 Press the light-attack key while airborne for the original 8% aerial. It has
 four startup ticks, five active ticks, 23 recovery ticks, five hitlag ticks,
@@ -602,6 +610,10 @@ through:
   jabs into a 138% strong-finisher stock loss without an actionable defender
   frame, plus outward DI after first contact breaking the sequence before the
   finisher while a later active jab whiffs;
+- a full-hop platform waveland whose retained momentum crosses the support
+  edge on the first `SPECIAL LANDING` recovery tick, plus the same ordinary
+  inputs at platform center remaining locked for all ten ticks before default
+  content is restored;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -660,7 +672,7 @@ small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
 mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
-zero_to_death_probe=pass combat_probe=pass
+zero_to_death_probe=pass ledge_cancel_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

@@ -744,6 +744,332 @@ static int run_air_dodge_test(
     return 1;
 }
 
+static int reach_platform_special_landing(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (out_inspection == NULL ||
+        !launch_player0(sim, 0, out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        const int32_t bottom =
+            out_inspection->players[0].position_y_q16 +
+            content->fighter.half_height_q16;
+        const int32_t maximum_diagonal_drop =
+            (content->fighter.air_dodge_speed_q16 *
+             INT32_C(3)) /
+            INT32_C(4);
+
+        if (out_inspection->players[0].velocity_y_q16 >= INT32_C(0) &&
+            bottom >=
+                content->stage.platform_y_q16 -
+                    maximum_diagonal_drop &&
+            bottom <= content->stage.platform_y_q16)
+        {
+            break;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) ||
+            !step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return tick != UINT32_C(120) &&
+           out_inspection->players[0].grounded == UINT8_C(0) &&
+           step_duel_trigger(
+               sim,
+               INT16_MAX,
+               INT16_MAX,
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+           out_inspection->players[0].action_ticks == UINT16_C(0) &&
+           out_inspection->players[0].grounded == UINT8_C(1) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[0].velocity_x_q16 > INT32_C(0);
+}
+
+static int run_ledge_cancel_snapshot_test(
+    pf_sim *source,
+    const pf_content_view *content,
+    const pf_m4_content *ledge_cancel_content)
+{
+    test_sim_storage loaded_storage;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t required_bytes = (size_t)0;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &loaded_storage,
+            content,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &required_bytes),
+            PF_STATUS_OK,
+            "ledge-cancel-query-save-size") ||
+        required_bytes != (size_t)611)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "ledge-cancel-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "ledge-cancel-load"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)ledge_cancel_content->fighter
+                     .special_landing_ticks +
+                 UINT32_C(4);
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_duel_trigger(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "ledge-cancel-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "ledge-cancel-loaded-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0 ||
+            source_inspection.players[0].action_state !=
+                loaded_inspection.players[0].action_state ||
+            source_inspection.players[0].action_ticks !=
+                loaded_inspection.players[0].action_ticks ||
+            source_inspection.players[0].position_x_q16 !=
+                loaded_inspection.players[0].position_x_q16 ||
+            source_inspection.players[0].position_y_q16 !=
+                loaded_inspection.players[0].position_y_q16)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ledge-cancel-snapshot"
+                " continuation_tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+        if (tick == UINT32_C(0) &&
+            (source_inspection.players[0].action_state !=
+                 (uint8_t)PF_M4_ACTION_AIRBORNE ||
+             source_inspection.players[0].action_ticks != UINT16_C(0) ||
+             source_inspection.players[0].grounded != UINT8_C(0) ||
+             source_inspection.players[0].support !=
+                 (uint8_t)PF_M4_SURFACE_NONE ||
+             source_inspection.players[0].position_x_q16 <=
+                 ledge_cancel_content->stage.platform_center_x_q16 +
+                     ledge_cancel_content->stage
+                         .platform_half_width_q16))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ledge-cancel-transition"
+                " action=%u ticks=%u grounded=%u support=%u x=%" PRId32
+                "\n",
+                (unsigned int)source_inspection.players[0].action_state,
+                (unsigned int)source_inspection.players[0].action_ticks,
+                (unsigned int)source_inspection.players[0].grounded,
+                (unsigned int)source_inspection.players[0].support,
+                source_inspection.players[0].position_x_q16);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int run_ledge_cancel_test(const pf_m4_content *default_content)
+{
+    test_sim_storage ledge_storage;
+    test_sim_storage center_storage;
+    pf_sim *ledge_sim = NULL;
+    pf_sim *center_sim = NULL;
+    pf_m4_content ledge_content = *default_content;
+    pf_m4_content center_content;
+    pf_content_view ledge_view;
+    pf_content_view center_view;
+    pf_m4_inspection inspection;
+    int32_t landing_x;
+    uint32_t tick;
+
+    ledge_content.stage.platform_center_x_q16 =
+        -(INT32_C(5) * PF_Q16_ONE) / INT32_C(2);
+    ledge_content.stage.platform_half_width_q16 = PF_Q16_ONE;
+    ledge_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    ledge_content.stage.spawn_spacing_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    center_content = ledge_content;
+    center_content.stage.platform_center_x_q16 =
+        -INT32_C(2) * PF_Q16_ONE;
+    center_content.stage.platform_half_width_q16 =
+        INT32_C(3) * PF_Q16_ONE;
+
+    if (!expect_status(
+            pf_m4_make_content_view(&ledge_content, &ledge_view),
+            PF_STATUS_OK,
+            "ledge-cancel-content") ||
+        !expect_status(
+            pf_m4_make_content_view(&center_content, &center_view),
+            PF_STATUS_OK,
+            "ledge-cancel-center-content") ||
+        !initialize_sim(
+            &ledge_storage,
+            &ledge_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &ledge_sim) ||
+        !initialize_sim(
+            &center_storage,
+            &center_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &center_sim) ||
+        !expect_status(
+            pf_sim_reset(ledge_sim, UINT64_C(0x1ed6eca0)),
+            PF_STATUS_OK,
+            "ledge-cancel-reset") ||
+        !expect_status(
+            pf_sim_reset(center_sim, UINT64_C(0x1ed6eca1)),
+            PF_STATUS_OK,
+            "ledge-cancel-center-reset") ||
+        !reach_platform_special_landing(
+            ledge_sim,
+            &ledge_content,
+            &inspection))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-cancel-setup\n");
+        return 0;
+    }
+    landing_x = inspection.players[0].position_x_q16;
+    if (landing_x >=
+            ledge_content.stage.platform_center_x_q16 +
+                ledge_content.stage.platform_half_width_q16 ||
+        !run_ledge_cancel_snapshot_test(
+            ledge_sim,
+            &ledge_view,
+            &ledge_content))
+    {
+        return 0;
+    }
+
+    if (!reach_platform_special_landing(
+            center_sim,
+            &center_content,
+            &inspection))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-cancel-center-setup\n");
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick <
+             (uint32_t)center_content.fighter.special_landing_ticks;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                center_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+            inspection.players[0].action_ticks != (uint16_t)tick ||
+            inspection.players[0].grounded != UINT8_C(1) ||
+            inspection.players[0].support !=
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=ledge-cancel-center-lock"
+                " tick=%" PRIu32 " action=%u action_ticks=%u\n",
+                tick,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks);
+            return 0;
+        }
+    }
+    if (!step_duel_trigger(
+            center_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-cancel-center-exact-end\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int run_ground_dodge_snapshot_test(
     pf_sim *source,
     const pf_content_view *content)
@@ -6479,6 +6805,7 @@ int main(void)
         !run_instant_double_jump_test(&content, &view) ||
         !run_air_facing_lock_test(&view) ||
         !run_air_dodge_test(&content, &view) ||
+        !run_ledge_cancel_test(&content) ||
         !run_ground_dodge_test(&content, &view) ||
         !run_aerial_landing_test(&content, &view) ||
         !run_strong_aerial_landing_test(&content, &view) ||
@@ -6495,7 +6822,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=170\n",
+        "movement_invariants=184 ledge_cancel=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

@@ -3,7 +3,8 @@
 **Status:** In progress; M4.1 movement/ledge core, light and strong M4.2 ground
 attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
-plus directional air dodge, helpless fall, wavedash/waveland, the first
+plus directional air dodge, helpless fall, wavedash/waveland,
+ledge-cancelling, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump verification
@@ -12,8 +13,9 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
-  ordinary-input approach, spacing, mindgame, cross-up, juggling, kill confirm, and
-  platform-sharking routes, plus two-pad browser polling implemented
+  ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
+  kill-confirm, zero-to-death, and platform-sharking routes, plus two-pad
+  browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -45,7 +47,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   hitstun, tumble, tech timers, SDI state, active hitbox bounds, and last-hit
   metadata, plus shield health/stun/powershield state, trigger age, and
   L-cancel eligibility, stocks, respawn timers, sudden death, and result.
-- One hundred four movement/content invariants plus a 20,000-tick four-player
+- One hundred eighty-four movement/content invariants plus a 20,000-tick
+  four-player
   canonical-state trace under the active `M4-MECHANICS` verifier entry.
 - A live two-player browser adapter that advances the production simulation at
   fixed 60 Hz, draws its inspected stage/player state, and supports pause,
@@ -745,6 +748,25 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `playable`; broader fighter coverage, owner execution, and complete encoded
   replay/rollback evidence remain before `verified`.
 
+## Delivered in the ledge-cancelling route
+
+- A stationary narrow-platform fixture now composes full hop, a descending
+  down-right directional air dodge, waveland contact, retained horizontal
+  momentum, traction, and the production support-loss transition. The fighter
+  lands beside the right edge in `SPECIAL LANDING`, slides past the bound on
+  the first recovery tick, and immediately becomes ordinary `AIRBORNE` at
+  action tick zero.
+- The geometry control repeats the same inputs at platform center and remains
+  locked in `SPECIAL LANDING` for action ticks 0–9 before returning to idle.
+  No ledge-cancel-only action, state, or content switch was added.
+- The native oracle saves on the landing tick and compares every future hash
+  through the airborne continuation. Browser readiness repeats the edge and
+  center routes in the WebAssembly-facing simulation, then restores default
+  content before exposing the live playtest.
+- Registry row 31, Ledge-cancelling, advances from `planned` to `playable`;
+  broader surfaces/actions, owner execution, and complete encoded
+  replay/rollback evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -759,6 +781,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A fresh airborne trigger produces a neutral or directional air dodge.
   Diagonal surface contact preserves horizontal momentum through exactly ten
   special-landing ticks, enabling wavedash and waveland with keyboard input.
+- In the ledge-cancel fixture, that retained landing slide must cross the
+  platform support bound before recovery ends and enter `AIRBORNE`; the same
+  route at platform center must remain locked for all ten landing ticks.
 - During an aerial, that same fresh trigger arms the independent seven-frame
   L-cancel timer instead of replacing the attack with an air dodge.
 - When the defender is in an eligible airborne action, a clean full-trigger
@@ -832,7 +857,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  juggling, kill confirm, ladder, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
+  juggling, kill confirm, ladder, ledge-cancelling, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -843,7 +868,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 32 playable, 4 primitive-ready, and 24 planned.
+  blocked: 1 verified, 33 playable, 4 primitive-ready, and 23 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -876,7 +901,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 366
+- Mechanical oracles: 184 movement invariants, 366
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -900,7 +925,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

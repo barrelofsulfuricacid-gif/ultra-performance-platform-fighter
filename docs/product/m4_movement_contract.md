@@ -238,6 +238,18 @@ A neutral air dodge provides the negative case because it creates no
 horizontal slide. Holding the trigger cannot retrigger the dodge; release and
 press are still insufficient once `FALL SPECIAL` has begun.
 
+The same generic support transition makes
+[ledge-cancelling](https://www.ssbwiki.com/Ledge-canceling) playable. If
+retained landing momentum carries the fighter's center beyond the current
+surface bound, support is cleared on that tick and the locked landing action
+becomes ordinary `AIRBORNE` with action tick zero. The fixture full-hops
+through a stationary pass-through platform, air dodges down-right during the
+descent, enters `SPECIAL LANDING` beside the right edge, and slides beyond
+support on the first recovery tick. Moving the same landing to platform center
+is the geometry control: action ticks 0–9 remain locked before idle. This uses
+the shared support-loss path; there is no ledge-cancel action or hidden
+technique flag.
+
 The state structure follows the pinned Melee decomp's
 [air-dodge entry/decay/collision path](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_EscapeAir.c)
 and
@@ -340,6 +352,9 @@ bounds, and blast zones.
   first-airborne-frame short-hop air dodge;
 - diagonal floor wavedash and pass-through-platform waveland, preserved
   horizontal momentum, traction slide, and exact ten-tick special landing;
+- near-edge waveland momentum cancelling `SPECIAL LANDING` into `AIRBORNE` on
+  the first recovery tick, the full ten-tick center-platform control, and
+  matching future hashes after a save taken on landing;
 - moving-platform landing/carry, ledge geometry/catch/hang/release/jump/climb,
   exact 37-tick catch invulnerability and post-release carry, one-occupant
   priority, mid-climb save/load equivalence, the ordinary-input edge-dash route,

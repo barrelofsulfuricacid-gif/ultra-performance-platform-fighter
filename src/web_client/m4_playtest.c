@@ -130,6 +130,7 @@ extern void pf_web_m4_playtest_install(
     int ladder_probe_passed,
     int kill_confirm_probe_passed,
     int zero_to_death_probe_passed,
+    int ledge_cancel_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -3322,6 +3323,216 @@ static int pf_web_m4_run_zero_to_death_probe(void)
                 PF_WEB_M4_DASH_AXIS,
                 0);
     }
+    if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
+        !pf_web_m4_initialize_current_content())
+    {
+        return 0;
+    }
+    return passed;
+}
+
+static int pf_web_m4_initialize_ledge_cancel_fixture(
+    int center_control)
+{
+    if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+
+    pf_web_m4_content.stage.platform_center_x_q16 =
+        center_control != 0
+            ? -INT32_C(2) * PF_Q16_ONE
+            : -(INT32_C(5) * PF_Q16_ONE) / INT32_C(2);
+    pf_web_m4_content.stage.platform_half_width_q16 =
+        center_control != 0
+            ? INT32_C(3) * PF_Q16_ONE
+            : PF_Q16_ONE;
+    pf_web_m4_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    pf_web_m4_content.stage.spawn_spacing_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    return pf_web_m4_initialize_current_content();
+}
+
+static int pf_web_m4_reach_platform_special_landing(
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (out_inspection == NULL || !pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded == UINT8_C(0))
+        {
+            break;
+        }
+    }
+    if (out_inspection->players[0].action_state !=
+        (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        const int32_t bottom =
+            out_inspection->players[0].position_y_q16 +
+            pf_web_m4_content.fighter.half_height_q16;
+        const int32_t maximum_diagonal_drop =
+            (pf_web_m4_content.fighter.air_dodge_speed_q16 *
+             INT32_C(3)) /
+            INT32_C(4);
+
+        if (out_inspection->players[0].velocity_y_q16 >= INT32_C(0) &&
+            bottom >=
+                pf_web_m4_content.stage.platform_y_q16 -
+                    maximum_diagonal_drop &&
+            bottom <= pf_web_m4_content.stage.platform_y_q16)
+        {
+            break;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) ||
+            !pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return tick != UINT32_C(120) &&
+           out_inspection->players[0].grounded == UINT8_C(0) &&
+           pf_web_m4_tick_with_triggers(
+               PF_WEB_M4_DASH_AXIS,
+               PF_WEB_M4_DASH_AXIS,
+               UINT64_C(0),
+               UINT16_MAX,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+           out_inspection->players[0].action_ticks == UINT16_C(0) &&
+           out_inspection->players[0].grounded == UINT8_C(1) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[0].velocity_x_q16 > INT32_C(0);
+}
+
+static int pf_web_m4_run_ledge_cancel_probe(void)
+{
+    pf_m4_inspection inspection;
+    int32_t landing_x;
+    uint32_t tick;
+    int passed = 0;
+
+    if (pf_web_m4_initialize_ledge_cancel_fixture(0) &&
+        pf_web_m4_reach_platform_special_landing(&inspection))
+    {
+        const int32_t platform_right =
+            pf_web_m4_content.stage.platform_center_x_q16 +
+            pf_web_m4_content.stage.platform_half_width_q16;
+
+        landing_x = inspection.players[0].position_x_q16;
+        passed = landing_x < platform_right &&
+            pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_AIRBORNE &&
+            inspection.players[0].action_ticks == UINT16_C(0) &&
+            inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[0].support ==
+                (uint8_t)PF_M4_SURFACE_NONE &&
+            inspection.players[0].position_x_q16 > platform_right &&
+            inspection.players[0].position_x_q16 > landing_x;
+    }
+
+    if (passed != 0 &&
+        pf_web_m4_initialize_ledge_cancel_fixture(1) &&
+        pf_web_m4_reach_platform_special_landing(&inspection))
+    {
+        for (tick = UINT32_C(1);
+             tick <
+                 (uint32_t)pf_web_m4_content.fighter
+                     .special_landing_ticks;
+             ++tick)
+        {
+            if (!pf_web_m4_tick_with_triggers(
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    &inspection) ||
+                inspection.players[0].action_state !=
+                    (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+                inspection.players[0].action_ticks != (uint16_t)tick ||
+                inspection.players[0].grounded != UINT8_C(1) ||
+                inspection.players[0].support !=
+                    (uint8_t)PF_M4_SURFACE_PLATFORM)
+            {
+                passed = 0;
+                break;
+            }
+        }
+        if (passed != 0)
+        {
+            passed = pf_web_m4_tick_with_triggers(
+                         INT16_C(0),
+                         INT16_C(0),
+                         UINT64_C(0),
+                         UINT16_C(0),
+                         INT16_C(0),
+                         INT16_C(0),
+                         UINT64_C(0),
+                         UINT16_C(0),
+                         &inspection) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                inspection.players[0].action_ticks == UINT16_C(0) &&
+                inspection.players[0].grounded == UINT8_C(1) &&
+                inspection.players[0].support ==
+                    (uint8_t)PF_M4_SURFACE_PLATFORM;
+        }
+    }
+    else
+    {
+        passed = 0;
+    }
+
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
         !pf_web_m4_initialize_current_content())
     {
@@ -6654,6 +6865,7 @@ int pf_web_m4_playtest_start(void)
     int ladder_probe_passed;
     int kill_confirm_probe_passed;
     int zero_to_death_probe_passed;
+    int ledge_cancel_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -6705,6 +6917,8 @@ int pf_web_m4_playtest_start(void)
         pf_web_m4_run_kill_confirm_probe();
     zero_to_death_probe_passed =
         pf_web_m4_run_zero_to_death_probe();
+    ledge_cancel_probe_passed =
+        pf_web_m4_run_ledge_cancel_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -6746,6 +6960,7 @@ int pf_web_m4_playtest_start(void)
         ladder_probe_passed == 0 ||
         kill_confirm_probe_passed == 0 ||
         zero_to_death_probe_passed == 0 ||
+        ledge_cancel_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -6787,6 +7002,7 @@ int pf_web_m4_playtest_start(void)
         ladder_probe_passed,
         kill_confirm_probe_passed,
         zero_to_death_probe_passed,
+        ledge_cancel_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

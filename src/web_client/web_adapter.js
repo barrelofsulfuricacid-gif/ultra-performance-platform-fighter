@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -467,6 +467,7 @@ mergeInto(LibraryManager.library, {
     ladderProbePassed,
     killConfirmProbePassed,
     zeroToDeathProbePassed,
+    ledgeCancelProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -1276,6 +1277,8 @@ mergeInto(LibraryManager.library, {
         (killConfirmProbePassed ? "pass" : "fail") +
         " zero_to_death_probe=" +
         (zeroToDeathProbePassed ? "pass" : "fail") +
+        " ledge_cancel_probe=" +
+        (ledgeCancelProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
