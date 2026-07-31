@@ -571,8 +571,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.1 work
 
-- Gamepad polling for the temporary browser presentation; two keyboard slots
-  and their explicit walk/dash controls are implemented.
+- Representative real-hardware confirmation for the temporary browser
+  presentation's standard-gamepad mapping; two hot-plug-polled gamepad slots,
+  two keyboard slots, and explicit analog walk/dash controls are implemented.
 - Additional stage geometry beyond the current raised-block test fixture.
 
 ## Remaining M4.2 and M4.3 work
@@ -625,6 +626,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).
+- Browser-standard gamepad mapping/polling contract: pass for synthetic mapping,
+  axis quantization/dead zone, D-pad override, button routes, non-standard
+  rejection, two-slot assignment, and live `navigator.getGamepads()` polling;
+  representative hardware remains an owner check.
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.

@@ -14,6 +14,15 @@ pass-through platforms are horizontal surface heights.
 
 ## Input and movement rules
 
+The browser polls up to two gamepads using the
+[W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) every
+simulation tick in addition to its two keyboard slots. The left stick is
+deterministically quantized from `[-1, 1]` into signed input magnitude after a
+0.2 browser dead zone, while the D-pad emits full magnitude. The first two
+connected standard mappings are assigned in browser index order; non-standard
+mappings are ignored rather than guessed, and hot-plugging does not add state
+to the simulation.
+
 - Main-stick magnitude below the dash threshold produces proportional walking.
   A full horizontal value can enter initial dash and run.
 - Reversing the full horizontal value during initial dash starts a new initial
@@ -311,6 +320,12 @@ bounds, and blast zones.
   and upper-right inward-drift regressions that never overlap the block; and
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
+
+`tools/verify_m4_browser.sh` and the generated-page Chrome smoke additionally
+cover the standard-gamepad mapping probe, Gamepad API availability, live
+per-tick polling, analog quantization/dead zone, D-pad override, face and
+shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
+and browser-specific device exposure remain part of the owner playtest.
 
 The focused movement oracle currently reports 150 invariants. The focused
 combat oracle adds the dashing-shield tap-versus-held travel/action boundary,

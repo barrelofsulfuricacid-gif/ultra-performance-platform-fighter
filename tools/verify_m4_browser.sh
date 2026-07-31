@@ -86,6 +86,15 @@ grep -Fq \
     '" dashing_shield_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'navigator.getGamepads()' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'gamepad.mapping !== "standard"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'Math.abs(value) < 0.2' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'jumpQueued: [false, false]' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
@@ -149,7 +158,13 @@ grep -Fq \
     'strongAerialLandingLagTicks: strongAerialLandingLagTicks' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'controls=keyboard-two-player' \
+    '" gamepad_probe="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '" gamepad_api="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'controls=keyboard-gamepad-two-player' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 gamepad_polling=1 standard_mapping=1"

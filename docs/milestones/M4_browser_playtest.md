@@ -31,6 +31,16 @@ headless execution.
 | Pause/resume | `P` or Pause button | Same |
 | One tick while paused | `N` or Step button | Same |
 
+Up to two gamepads using the
+[W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) are
+assigned in browser index order. On each pad, the left stick supplies analog
+movement/DI, the D-pad supplies full
+magnitude, the bottom face button is light attack, the right face button is
+strong attack, either left/top face button jumps, and any shoulder or trigger
+holds shield or supplies the tech/air-dodge/L-cancel trigger. Keyboard and
+gamepad inputs can be mixed for the same player. Non-standard browser mappings
+are ignored rather than guessed.
+
 Unmodified horizontal keys emit full stick magnitude and can enter initial
 dash. Reversing them during the ten-tick initial-dash window performs a
 dash-dance reversal. Holding `Shift` emits a reduced magnitude below the dash
@@ -427,6 +437,12 @@ registry row can advance from `playable` to `verified`.
     `TECH IN PLACE` ends. Repeat with a right tech roll and chase the observed
     movement before jabbing. Finally reset, leave Player 1 at the original
     spacing, and jab at the same target action tick; confirm the roll escapes.
+36. Connect one standard-mapped gamepad, press or move it once so the browser
+    exposes it, and confirm the toolbar says `standard gamepads 1/2`. Verify
+    analog walk versus dash, D-pad full input, both attacks, jump, shield, tech,
+    air dodge, and L-cancel. Hot-plug a second pad and confirm it controls
+    Player 2 while the first remains Player 1; disconnect either pad and confirm
+    keyboard control remains live.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -437,6 +453,10 @@ Before the interactive loop appears, the Wasm module runs the real simulation
 through:
 
 - reduced keyboard magnitude producing `WALK`;
+- a deterministic standard-gamepad mapping probe covering analog dead zone and
+  quantization, D-pad override, face/shoulder buttons, non-standard rejection,
+  and stable assignment of the first two connected pads; live input polls
+  `navigator.getGamepads()` every simulation tick for hot-plug behavior;
 - full magnitude producing `INITIAL DASH`;
 - an opposite full magnitude producing an immediate dash-dance reversal;
 - an opposite full magnitude after `RUN` producing `RUN TURNAROUND`, never a
@@ -512,7 +532,7 @@ tumble_probe=pass
 floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass
 air_dodge_probe=pass
 ground_dodge_probe=pass
-aerial_l_cancel_probe=pass match_probe=pass
-controls=keyboard-two-player` only after all checks
+aerial_l_cancel_probe=pass match_probe=pass gamepad_probe=pass
+gamepad_api=available controls=keyboard-gamepad-two-player` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

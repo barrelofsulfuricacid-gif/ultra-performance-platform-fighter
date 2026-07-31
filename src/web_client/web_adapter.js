@@ -469,6 +469,180 @@ mergeInto(LibraryManager.library, {
     aerialLandingLagTicks,
     strongAerialLandingLagTicks
   ) {
+    function emptyGamepadInput() {
+      return {
+        horizontal: 0,
+        vertical: 0,
+        jump: false,
+        attack: false,
+        strongAttack: false,
+        shield: false,
+      };
+    }
+
+    function gamepadButtonPressed(gamepad, index) {
+      var button =
+        gamepad && gamepad.buttons && index < gamepad.buttons.length
+          ? gamepad.buttons[index]
+          : null;
+      return (
+        button !== null &&
+        button !== undefined &&
+        (button.pressed === true || Number(button.value) >= 0.5)
+      );
+    }
+
+    function gamepadAxis(gamepad, index) {
+      var value =
+        gamepad && gamepad.axes && index < gamepad.axes.length
+          ? Number(gamepad.axes[index])
+          : 0;
+      if (!Number.isFinite(value) || Math.abs(value) < 0.2) {
+        return 0;
+      }
+      value = Math.max(-1, Math.min(1, value));
+      var magnitude = Math.round(Math.abs(value) * dashAxis);
+      return value < 0 ? -magnitude : magnitude;
+    }
+
+    function mapStandardGamepad(gamepad) {
+      var input = emptyGamepadInput();
+      if (
+        !gamepad ||
+        gamepad.connected === false ||
+        gamepad.mapping !== "standard"
+      ) {
+        return input;
+      }
+
+      input.horizontal = gamepadAxis(gamepad, 0);
+      input.vertical = gamepadAxis(gamepad, 1);
+      var dpadUp = gamepadButtonPressed(gamepad, 12);
+      var dpadDown = gamepadButtonPressed(gamepad, 13);
+      var dpadLeft = gamepadButtonPressed(gamepad, 14);
+      var dpadRight = gamepadButtonPressed(gamepad, 15);
+      if (dpadLeft || dpadRight) {
+        input.horizontal =
+          dpadLeft === dpadRight ? 0 : dpadLeft ? -dashAxis : dashAxis;
+      }
+      if (dpadUp || dpadDown) {
+        input.vertical =
+          dpadUp === dpadDown ? 0 : dpadUp ? -dashAxis : dashAxis;
+      }
+      input.attack = gamepadButtonPressed(gamepad, 0);
+      input.strongAttack = gamepadButtonPressed(gamepad, 1);
+      input.jump =
+        gamepadButtonPressed(gamepad, 2) ||
+        gamepadButtonPressed(gamepad, 3);
+      input.shield =
+        gamepadButtonPressed(gamepad, 4) ||
+        gamepadButtonPressed(gamepad, 5) ||
+        gamepadButtonPressed(gamepad, 6) ||
+        gamepadButtonPressed(gamepad, 7);
+      return input;
+    }
+
+    function collectStandardGamepads(gamepads) {
+      var result = {
+        connected: 0,
+        inputs: [emptyGamepadInput(), emptyGamepadInput()],
+      };
+      var index;
+      for (
+        index = 0;
+        gamepads && index < gamepads.length && result.connected < 2;
+        ++index
+      ) {
+        var gamepad = gamepads[index];
+        if (
+          gamepad &&
+          gamepad.connected !== false &&
+          gamepad.mapping === "standard"
+        ) {
+          result.inputs[result.connected] = mapStandardGamepad(gamepad);
+          ++result.connected;
+        }
+      }
+      return result;
+    }
+
+    function pollStandardGamepads() {
+      if (
+        typeof navigator === "undefined" ||
+        typeof navigator.getGamepads !== "function"
+      ) {
+        return collectStandardGamepads([]);
+      }
+      try {
+        return collectStandardGamepads(navigator.getGamepads());
+      } catch (error) {
+        return collectStandardGamepads([]);
+      }
+    }
+
+    function runGamepadMappingProbe() {
+      function buttons() {
+        return Array.from({ length: 17 }, function () {
+          return { pressed: false, value: 0 };
+        });
+      }
+
+      var analogButtons = buttons();
+      analogButtons[0] = { pressed: true, value: 1 };
+      analogButtons[2] = { pressed: true, value: 1 };
+      analogButtons[6] = { pressed: false, value: 0.75 };
+      var analog = {
+        connected: true,
+        mapping: "standard",
+        axes: [0.5, -0.25],
+        buttons: analogButtons,
+      };
+      var dpadButtons = buttons();
+      dpadButtons[1] = { pressed: true, value: 1 };
+      dpadButtons[12] = { pressed: true, value: 1 };
+      dpadButtons[15] = { pressed: true, value: 1 };
+      var dpad = {
+        connected: true,
+        mapping: "standard",
+        axes: [0.1, 0.1],
+        buttons: dpadButtons,
+      };
+      var ignored = {
+        connected: true,
+        mapping: "",
+        axes: [1, 1],
+        buttons: dpadButtons,
+      };
+      var centered = mapStandardGamepad({
+        connected: true,
+        mapping: "standard",
+        axes: [0.1, -0.1],
+        buttons: buttons(),
+      });
+      var result = collectStandardGamepads([ignored, analog, null, dpad]);
+      return (
+        centered.horizontal === 0 &&
+        centered.vertical === 0 &&
+        result.connected === 2 &&
+        result.inputs[0].horizontal === Math.round(dashAxis * 0.5) &&
+        result.inputs[0].vertical === -Math.round(dashAxis * 0.25) &&
+        result.inputs[0].attack &&
+        !result.inputs[0].strongAttack &&
+        result.inputs[0].jump &&
+        result.inputs[0].shield &&
+        result.inputs[1].horizontal === dashAxis &&
+        result.inputs[1].vertical === -dashAxis &&
+        !result.inputs[1].attack &&
+        result.inputs[1].strongAttack &&
+        !result.inputs[1].jump &&
+        !result.inputs[1].shield
+      );
+    }
+
+    var gamepadApiAvailable =
+      typeof navigator !== "undefined" &&
+      typeof navigator.getGamepads === "function";
+    var gamepadProbePassed = runGamepadMappingProbe();
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
     var previous = document.getElementById("pf-m4-playtest");
@@ -503,6 +677,7 @@ mergeInto(LibraryManager.library, {
         ".pf-m4-toolbar button:hover{background:#203654}" +
         ".pf-m4-tick{color:#8edcff;font:12px/1 ui-monospace,monospace;" +
         "margin-left:auto}" +
+        ".pf-m4-gamepads{color:#a9b7ca;font:12px/1 ui-monospace,monospace}" +
         ".pf-m4-controls{display:grid;grid-template-columns:1fr 1fr;" +
         "gap:12px;margin:12px 0}" +
         ".pf-m4-control-card{background:#0b1320;border:1px solid #263b58;" +
@@ -533,7 +708,11 @@ mergeInto(LibraryManager.library, {
 
     var section = document.createElement("section");
     section.id = "pf-m4-playtest";
-    section.dataset.ready = "true";
+    section.dataset.ready =
+      gamepadApiAvailable && gamepadProbePassed ? "true" : "false";
+    section.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
+    section.dataset.gamepadApi =
+      gamepadApiAvailable ? "available" : "unavailable";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -543,9 +722,10 @@ mergeInto(LibraryManager.library, {
     title.textContent = "M4 real-simulation browser playtest";
     var subtitle = document.createElement("p");
     subtitle.textContent =
-      "Two keyboard players drive the same deterministic Q16.16 simulation " +
-      "used by native, replay, rollback, and headless execution. Active attack " +
-      "hitboxes are drawn over the production collision state.";
+      "Keyboard and up to two Standard Gamepads drive the same deterministic " +
+      "Q16.16 simulation used by native, replay, rollback, and headless " +
+      "execution. Active attack hitboxes are drawn over the production " +
+      "collision state.";
     headingCopy.appendChild(title);
     headingCopy.appendChild(subtitle);
     var live = document.createElement("span");
@@ -557,18 +737,24 @@ mergeInto(LibraryManager.library, {
       edgeHopProbePassed &&
       edgeDashProbePassed &&
       foxTrotProbePassed &&
+      pivotProbePassed &&
+      dashCancelProbePassed &&
+      dashingShieldProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
       shieldBreakProbePassed &&
       tumbleProbePassed &&
       floorRecoveryProbePassed &&
+      techChaseProbePassed &&
       surfaceTechProbePassed &&
       airDodgeProbePassed &&
       groundDodgeProbePassed &&
       aerialLCancelProbePassed &&
-      matchProbePassed
-        ? "INPUT + IDJ + GROUND DODGE / ROLL + AIR FACING + AIR DODGE / WAVEDASH + AERIAL / L-CANCEL + COMBAT EVENT JOURNAL + REACTION + SHIELD / PSC / BREAK + TUMBLE + FLOOR RECOVERY + SURFACE TECH + STOCK / RESPAWN PROBES PASSED"
+      matchProbePassed &&
+      gamepadApiAvailable &&
+      gamepadProbePassed
+        ? "ALL M4 INPUT + GAMEPAD + COMBAT PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
@@ -596,9 +782,15 @@ mergeInto(LibraryManager.library, {
     var tickLabel = document.createElement("span");
     tickLabel.className = "pf-m4-tick";
     tickLabel.textContent = "tick 0 · fixed 60 Hz";
+    var gamepadLabel = document.createElement("span");
+    gamepadLabel.className = "pf-m4-gamepads";
+    gamepadLabel.textContent = gamepadApiAvailable
+      ? "standard gamepads 0/2"
+      : "gamepad API unavailable";
     toolbar.appendChild(pauseButton);
     toolbar.appendChild(stepButton);
     toolbar.appendChild(resetButton);
+    toolbar.appendChild(gamepadLabel);
     toolbar.appendChild(tickLabel);
     section.appendChild(toolbar);
 
@@ -616,13 +808,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "A / D dash or DI · Shift + A / D walk · W or Space jump · F light attack · H strong ground or aerial attack · Hold G shield; G + fresh A / D rolls; G + fresh S spot dodges; tap G to tech, air dodge, or L-cancel · W / S vertical input"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · W or Space jump · F light · H strong · G shield/trigger. Standard Gamepad 1: left stick or D-pad · bottom face light · right face strong · left/top face jump · any shoulder/trigger shield"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "← / → dash or DI · Shift + ← / → walk · ↑ jump · / or Numpad 0 light attack · ' or Numpad 2 strong ground or aerial attack · Hold . or Numpad 1 to shield; trigger + fresh ← / → rolls; trigger + fresh ↓ spot dodges; tap to tech, air dodge, or L-cancel · ↑ / ↓ vertical input"
+        "Keyboard: ← / → dash or DI · Shift + arrows walk · ↑ jump · / or Numpad 0 light · ' or Numpad 2 strong · . or Numpad 1 shield/trigger. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -630,6 +822,10 @@ mergeInto(LibraryManager.library, {
     var note = document.createElement("p");
     note.className = "pf-m4-note";
     note.textContent =
+      "Standard Gamepads are assigned in browser index order and polled every " +
+      "simulation tick, so hot-plugging does not alter canonical state. Left " +
+      "stick magnitude preserves analog walk/dash thresholds; the D-pad emits " +
+      "full magnitude. Keyboard and gamepad buttons may be mixed per player. " +
       "Tap jump and release during the three-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +
       "takeoff never changes either apex. For an instant double jump, release " +
@@ -743,6 +939,7 @@ mergeInto(LibraryManager.library, {
       dashAxis: dashAxis,
       eventFeed: eventFeed,
       eventLog: [],
+      gamepadLabel: gamepadLabel,
       keys: Object.create(null),
       lastEventSequence: 0,
       lastTime: 0,
@@ -783,33 +980,65 @@ mergeInto(LibraryManager.library, {
       return held(up) ? -state.dashAxis : state.dashAxis;
     }
 
+    function mergeAxis(keyboardAxis, gamepadAxisValue) {
+      return keyboardAxis !== 0 ? keyboardAxis : gamepadAxisValue;
+    }
+
     function step() {
+      var gamepads = pollStandardGamepads();
+      var player0Gamepad = gamepads.inputs[0];
+      var player1Gamepad = gamepads.inputs[1];
+      state.gamepadLabel.textContent = gamepadApiAvailable
+        ? "standard gamepads " + gamepads.connected + "/2"
+        : "gamepad API unavailable";
       var player0Jump =
-        held("KeyW") || held("Space") || state.jumpQueued[0];
+        held("KeyW") ||
+        held("Space") ||
+        state.jumpQueued[0] ||
+        player0Gamepad.jump;
       var player1Jump =
-        held("ArrowUp") || state.jumpQueued[1];
+        held("ArrowUp") || state.jumpQueued[1] || player1Gamepad.jump;
       var player0Attack =
-        held("KeyF") || state.attackQueued[0];
+        held("KeyF") || state.attackQueued[0] || player0Gamepad.attack;
       var player1Attack =
-        held("Slash") || held("Numpad0") || state.attackQueued[1];
+        held("Slash") ||
+        held("Numpad0") ||
+        state.attackQueued[1] ||
+        player1Gamepad.attack;
       var player0StrongAttack =
-        held("KeyH") || state.strongAttackQueued[0];
+        held("KeyH") ||
+        state.strongAttackQueued[0] ||
+        player0Gamepad.strongAttack;
       var player1StrongAttack =
         held("Quote") ||
         held("Numpad2") ||
-        state.strongAttackQueued[1];
-      var player0Shield = held("KeyG") || state.shieldQueued[0];
+        state.strongAttackQueued[1] ||
+        player1Gamepad.strongAttack;
+      var player0Shield =
+        held("KeyG") || state.shieldQueued[0] || player0Gamepad.shield;
       var player1Shield =
-        held("Period") || held("Numpad1") || state.shieldQueued[1];
+        held("Period") ||
+        held("Numpad1") ||
+        state.shieldQueued[1] ||
+        player1Gamepad.shield;
       var passed = Module._pf_web_m4_playtest_step(
-        horizontal("KeyA", "KeyD"),
-        vertical("KeyW", "KeyS"),
+        mergeAxis(
+          horizontal("KeyA", "KeyD"),
+          player0Gamepad.horizontal
+        ),
+        mergeAxis(vertical("KeyW", "KeyS"), player0Gamepad.vertical),
         player0Jump ? 1 : 0,
         player0Attack ? 1 : 0,
         player0StrongAttack ? 1 : 0,
         player0Shield ? 1 : 0,
-        horizontal("ArrowLeft", "ArrowRight"),
-        vertical("ArrowUp", "ArrowDown"),
+        mergeAxis(
+          horizontal("ArrowLeft", "ArrowRight"),
+          player1Gamepad.horizontal
+        ),
+        mergeAxis(
+          vertical("ArrowUp", "ArrowDown"),
+          player1Gamepad.vertical
+        ),
         player1Jump ? 1 : 0,
         player1Attack ? 1 : 0,
         player1StrongAttack ? 1 : 0,
@@ -962,7 +1191,9 @@ mergeInto(LibraryManager.library, {
 
     if (status) {
       status.textContent +=
-        " playtest=ready input_probe=" +
+        " playtest=" +
+        (gamepadApiAvailable && gamepadProbePassed ? "ready" : "fail") +
+        " input_probe=" +
         (inputProbePassed ? "pass" : "fail") +
         " air_facing_probe=" +
         (airFacingProbePassed ? "pass" : "fail") +
@@ -1008,8 +1239,13 @@ mergeInto(LibraryManager.library, {
         (aerialLCancelProbePassed ? "pass" : "fail") +
         " match_probe=" +
         (matchProbePassed ? "pass" : "fail") +
-        " controls=keyboard-two-player";
-      status.dataset.playtest = "ready";
+        " gamepad_probe=" +
+        (gamepadProbePassed ? "pass" : "fail") +
+        " gamepad_api=" +
+        (gamepadApiAvailable ? "available" : "unavailable") +
+        " controls=keyboard-gamepad-two-player";
+      status.dataset.playtest =
+        gamepadApiAvailable && gamepadProbePassed ? "ready" : "fail";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
       status.dataset.airFacingProbe =
         airFacingProbePassed ? "pass" : "fail";
@@ -1049,6 +1285,10 @@ mergeInto(LibraryManager.library, {
       status.dataset.aerialLCancelProbe =
         aerialLCancelProbePassed ? "pass" : "fail";
       status.dataset.matchProbe = matchProbePassed ? "pass" : "fail";
+      status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
+      status.dataset.gamepadApi =
+        gamepadApiAvailable ? "available" : "unavailable";
+      status.dataset.controls = "keyboard-gamepad-two-player";
     }
     requestAnimationFrame(frame);
   },
