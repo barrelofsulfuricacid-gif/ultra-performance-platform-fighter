@@ -4502,6 +4502,254 @@ static int run_kill_confirm_test(
                0);
 }
 
+static int run_zero_to_death_route(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    int16_t target_di_x,
+    int expect_ko,
+    int verify_save_load)
+{
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    pf_tick_result source_result;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t last_sequence = UINT32_C(0);
+    uint32_t hit_count = UINT32_C(0);
+    uint32_t tick;
+    int chain_started = 0;
+    int chain_broken = 0;
+    int saved = 0;
+    int strong_started = 0;
+    int saw_post_escape_hitbox = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        (verify_save_load != 0 &&
+         !initialize_sim(
+             &loaded_storage,
+             view,
+             UINT8_C(2),
+             PF_SIM_MODE_DUEL,
+             0,
+             &loaded)) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "zero-to-death-initial-inspect") ||
+        inspection.players[1].damage_q16 != UINT32_C(0) ||
+        inspection.players[1].respawn_count != UINT16_C(0))
+    {
+        return fail("zero-to-death-initialize-at-zero");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(1200); ++tick)
+    {
+        uint64_t attacker_buttons = UINT64_C(0);
+        int16_t defender_axis;
+
+        if (chain_started != 0 &&
+            inspection.players[1].respawn_count == UINT16_C(0) &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITSTUN)
+        {
+            if (expect_ko != 0)
+            {
+                return fail("zero-to-death-interrupted");
+            }
+            chain_broken = 1;
+        }
+        defender_axis =
+            chain_started != 0 && chain_broken == 0
+                ? target_di_x
+                : INT16_C(0);
+        if (inspection.players[0].grounded != UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            if (hit_count < UINT32_C(21))
+            {
+                attacker_buttons = PF_INPUT_BUTTON_ATTACK;
+            }
+            else if (strong_started == 0)
+            {
+                attacker_buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+                strong_started = 1;
+            }
+        }
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                attacker_buttons,
+                UINT16_C(0),
+                defender_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("zero-to-death-step");
+        }
+        source_result = test_last_result;
+
+        if (inspection.players[1].last_hit_sequence != last_sequence &&
+            inspection.players[1].last_hit_sequence != UINT32_C(0))
+        {
+            last_sequence =
+                inspection.players[1].last_hit_sequence;
+            ++hit_count;
+            chain_started = 1;
+        }
+
+        if (verify_save_load != 0 && saved == 0 &&
+            hit_count == UINT32_C(11))
+        {
+            destination.bytes = save_bytes;
+            destination.capacity = sizeof(save_bytes);
+            destination.size = (size_t)0;
+            if (!expect_status(
+                    pf_sim_query_save_size(sim, &save_size),
+                    PF_STATUS_OK,
+                    "zero-to-death-query-save-size") ||
+                save_size != (size_t)611 ||
+                !expect_status(
+                    pf_sim_save(sim, &destination),
+                    PF_STATUS_OK,
+                    "zero-to-death-save-mid-chain") ||
+                destination.size != save_size)
+            {
+                return fail("zero-to-death-save");
+            }
+            save.bytes = save_bytes;
+            save.size = save_size;
+            if (!expect_status(
+                    pf_sim_load(loaded, save),
+                    PF_STATUS_OK,
+                    "zero-to-death-load-mid-chain") ||
+                !expect_status(
+                    pf_m4_inspect(loaded, &loaded_inspection),
+                    PF_STATUS_OK,
+                    "zero-to-death-loaded-inspect") ||
+                !expect_status(
+                    pf_sim_hash(sim, &source_hash),
+                    PF_STATUS_OK,
+                    "zero-to-death-source-hash") ||
+                !expect_status(
+                    pf_sim_hash(loaded, &loaded_hash),
+                    PF_STATUS_OK,
+                    "zero-to-death-loaded-hash") ||
+                !hash_equal(&source_hash, &loaded_hash))
+            {
+                return fail("zero-to-death-mid-chain-round-trip");
+            }
+            saved = 1;
+        }
+        else if (verify_save_load != 0 && saved != 0)
+        {
+            if (!step_reaction_duel(
+                    loaded,
+                    INT16_C(0),
+                    INT16_C(0),
+                    attacker_buttons,
+                    UINT16_C(0),
+                    defender_axis,
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    &loaded_inspection) ||
+                !expect_status(
+                    pf_sim_hash(sim, &source_hash),
+                    PF_STATUS_OK,
+                    "zero-to-death-source-continuation-hash") ||
+                !expect_status(
+                    pf_sim_hash(loaded, &loaded_hash),
+                    PF_STATUS_OK,
+                    "zero-to-death-loaded-continuation-hash") ||
+                !hash_equal(&source_hash, &loaded_hash))
+            {
+                return fail("zero-to-death-deterministic-continuation");
+            }
+        }
+
+        if (expect_ko == 0 && chain_broken != 0 &&
+            inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_post_escape_hitbox = 1;
+        }
+        if (expect_ko == 0 && chain_broken != 0 &&
+            saw_post_escape_hitbox != 0 &&
+            inspection.players[0].hitbox_active == UINT8_C(0) &&
+            inspection.players[1].respawn_count == UINT16_C(0))
+        {
+            return (hit_count > UINT32_C(0) &&
+                    hit_count < UINT32_C(21) &&
+                    strong_started == 0 &&
+                    inspection.players[1].damage_q16 ==
+                        hit_count *
+                            content->fighter.jab_damage_q16) ||
+                   fail("zero-to-death-di-route-still-connected");
+        }
+        if (inspection.players[1].respawn_count != UINT16_C(0))
+        {
+            if (expect_ko == 0 || strong_started == 0 ||
+                hit_count != UINT32_C(22) || saved == 0 ||
+                inspection.players[1].damage_q16 != UINT32_C(0) ||
+                source_result.event_count != UINT8_C(1) ||
+                source_result.events[0].type !=
+                    (uint16_t)PF_SIM_EVENT_KO ||
+                source_result.events[0].source_player != UINT8_C(0) ||
+                source_result.events[0].target_player != UINT8_C(1) ||
+                source_result.events[0].value_q16 !=
+                    UINT32_C(21) *
+                            content->fighter.jab_damage_q16 +
+                        content->fighter.strong_damage_q16)
+            {
+                return fail("zero-to-death-ko-result");
+            }
+            return 1;
+        }
+    }
+    return fail(
+        expect_ko != 0
+            ? "zero-to-death-ko-timeout"
+            : "zero-to-death-di-escape-timeout");
+}
+
+static int run_zero_to_death_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    return run_zero_to_death_route(
+               content,
+               view,
+               INT16_C(0),
+               1,
+               1) &&
+           run_zero_to_death_route(
+               content,
+               view,
+               INT16_C(32767),
+               0,
+               0);
+}
+
 static int make_surface_tech_content(
     int ceiling_fixture,
     pf_m4_content *out_content,
@@ -10129,6 +10377,9 @@ int main(void)
         !run_kill_confirm_test(
             &kill_confirm_content,
             &kill_confirm_view) ||
+        !run_zero_to_death_test(
+            &kill_confirm_content,
+            &kill_confirm_view) ||
         !run_surface_tech_test(
             &wall_tech_content,
             &wall_tech_view,
@@ -10195,7 +10446,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=330 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 kill_confirm=1\n",
+        " combat_invariants=348 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 kill_confirm=1 zero_to_death=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

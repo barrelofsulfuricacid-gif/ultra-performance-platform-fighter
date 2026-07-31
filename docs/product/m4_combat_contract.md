@@ -222,6 +222,33 @@ No kill-confirm action, mutable state, or special-case combat branch exists.
 Broader fighter/percent windows, owner execution, and encoded replay/rollback
 coverage remain before the row can become fully verified.
 
+## Zero-to-death combo
+
+A [zero-to-death combo](https://www.ssbwiki.com/Zero-to-death_combo) begins
+with the defender at exactly 0% and ends in a KO without an interruption. The
+playable route reuses the validated fast-jab fixture but does not use the
+kill-confirm route's neutral buildup. Player 0 starts each next jab on the
+earliest grounded-idle tick; 21 six-percent jabs carry Player 1 continuously
+from 0% to 126%, then the earliest ordinary strong finisher takes the stock at
+138%. After the first hit, every pre-KO inspection keeps the defender in
+canonical `HITLAG` or `HITSTUN`.
+
+The declared defense policy begins outward DI only after the first hit makes
+contact. Its hitlag displacement and launch influence break the chain before
+the strong finisher: a subsequent ordinary jab produces an active hitbox that
+whiffs, the defender becomes actionable, and no stock is lost. This bounded
+route ends in a stock conversion and makes no claim that the sequence is an
+infinite.
+
+The native oracle starts from exact zero damage, saves immediately after hit
+11, loads a second simulation, and compares every future hash through the
+typed attacker-attributed KO. Browser readiness repeats both the uninterrupted
+conversion and outward-DI escape in the same WebAssembly-facing simulation,
+then restores default content before exposing the live page. No
+zero-to-death-only action, mutable state, or special-case combat branch exists.
+Broader fighter coverage, owner execution, and complete encoded
+replay/rollback evidence remain before the row can become fully verified.
+
 ## Spacing
 
 [Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,

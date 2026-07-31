@@ -128,6 +128,7 @@ extern void pf_web_m4_playtest_install(
     int mindgame_probe_passed,
     int juggling_probe_passed,
     int kill_confirm_probe_passed,
+    int zero_to_death_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -2915,6 +2916,148 @@ static int pf_web_m4_run_kill_confirm_probe(void)
                 UINT32_C(20),
                 PF_WEB_M4_DASH_AXIS,
                 INT16_C(0),
+                0);
+    }
+    if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
+        !pf_web_m4_initialize_current_content())
+    {
+        return 0;
+    }
+    return passed;
+}
+
+static int pf_web_m4_run_zero_to_death_route(
+    int16_t target_di_x,
+    int expect_ko)
+{
+    pf_m4_inspection inspection;
+    uint32_t last_sequence = UINT32_C(0);
+    uint32_t hit_count = UINT32_C(0);
+    uint32_t tick;
+    int chain_started = 0;
+    int chain_broken = 0;
+    int strong_started = 0;
+    int saw_post_escape_hitbox = 0;
+
+    if (!pf_web_m4_reset_internal() ||
+        pf_m4_inspect(pf_web_m4_sim, &inspection) != PF_STATUS_OK ||
+        inspection.players[1].damage_q16 != UINT32_C(0) ||
+        inspection.players[1].respawn_count != UINT16_C(0))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(1200); ++tick)
+    {
+        uint64_t attacker_buttons = UINT64_C(0);
+        int16_t defender_axis;
+
+        if (chain_started != 0 &&
+            inspection.players[1].respawn_count == UINT16_C(0) &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITSTUN)
+        {
+            if (expect_ko != 0)
+            {
+                return 0;
+            }
+            chain_broken = 1;
+        }
+        defender_axis =
+            chain_started != 0 && chain_broken == 0
+                ? target_di_x
+                : INT16_C(0);
+        if (inspection.players[0].grounded != UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            if (hit_count < UINT32_C(21))
+            {
+                attacker_buttons = PF_INPUT_BUTTON_ATTACK;
+            }
+            else if (strong_started == 0)
+            {
+                attacker_buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+                strong_started = 1;
+            }
+        }
+
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                attacker_buttons,
+                defender_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+
+        if (inspection.players[1].last_hit_sequence != last_sequence &&
+            inspection.players[1].last_hit_sequence != UINT32_C(0))
+        {
+            last_sequence =
+                inspection.players[1].last_hit_sequence;
+            ++hit_count;
+            chain_started = 1;
+        }
+
+        if (expect_ko == 0 && chain_broken != 0 &&
+            inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_post_escape_hitbox = 1;
+        }
+        if (expect_ko == 0 && chain_broken != 0 &&
+            saw_post_escape_hitbox != 0 &&
+            inspection.players[0].hitbox_active == UINT8_C(0) &&
+            inspection.players[1].respawn_count == UINT16_C(0))
+        {
+            return hit_count > UINT32_C(0) &&
+                   hit_count < UINT32_C(21) &&
+                   strong_started == 0 &&
+                   inspection.players[1].damage_q16 ==
+                       hit_count *
+                           pf_web_m4_content.fighter
+                               .jab_damage_q16;
+        }
+        if (inspection.players[1].respawn_count != UINT16_C(0))
+        {
+            return expect_ko != 0 && strong_started != 0 &&
+                   hit_count == UINT32_C(22) &&
+                   inspection.players[1].damage_q16 == UINT32_C(0) &&
+                   pf_web_m4_last_result.event_count == UINT8_C(1) &&
+                   pf_web_m4_last_result.events[0].type ==
+                       (uint16_t)PF_SIM_EVENT_KO &&
+                   pf_web_m4_last_result.events[0].source_player ==
+                       UINT8_C(0) &&
+                   pf_web_m4_last_result.events[0].target_player ==
+                       UINT8_C(1) &&
+                   pf_web_m4_last_result.events[0].value_q16 ==
+                       UINT32_C(21) *
+                               pf_web_m4_content.fighter
+                                   .jab_damage_q16 +
+                           pf_web_m4_content.fighter
+                               .strong_damage_q16;
+        }
+    }
+    return 0;
+}
+
+static int pf_web_m4_run_zero_to_death_probe(void)
+{
+    int passed = 0;
+
+    if (pf_web_m4_initialize_kill_confirm_fixture())
+    {
+        passed =
+            pf_web_m4_run_zero_to_death_route(
+                INT16_C(0),
+                1) &&
+            pf_web_m4_run_zero_to_death_route(
+                PF_WEB_M4_DASH_AXIS,
                 0);
     }
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
@@ -6247,6 +6390,7 @@ int pf_web_m4_playtest_start(void)
     int mindgame_probe_passed;
     int juggling_probe_passed;
     int kill_confirm_probe_passed;
+    int zero_to_death_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -6295,6 +6439,8 @@ int pf_web_m4_playtest_start(void)
     juggling_probe_passed = pf_web_m4_run_juggling_probe();
     kill_confirm_probe_passed =
         pf_web_m4_run_kill_confirm_probe();
+    zero_to_death_probe_passed =
+        pf_web_m4_run_zero_to_death_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -6334,6 +6480,7 @@ int pf_web_m4_playtest_start(void)
         mindgame_probe_passed == 0 ||
         juggling_probe_passed == 0 ||
         kill_confirm_probe_passed == 0 ||
+        zero_to_death_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -6373,6 +6520,7 @@ int pf_web_m4_playtest_start(void)
         mindgame_probe_passed,
         juggling_probe_passed,
         kill_confirm_probe_passed,
+        zero_to_death_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

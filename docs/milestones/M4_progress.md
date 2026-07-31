@@ -708,6 +708,25 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   broader fighter/percent windows, owner execution, and complete encoded
   replay/rollback evidence remain before `verified`.
 
+## Delivered in the zero-to-death route
+
+- The validated fast-jab fixture now starts from exact 0% and chains 21 legal
+  six-percent jabs into the ordinary strong finisher for a typed 138% stock
+  loss. Each follow-up begins at the attacker's earliest grounded-idle tick,
+  while the defender remains in canonical hitlag or hitstun from first contact
+  through the KO.
+- The declared defense starts outward DI only after the first hit. Its
+  hitlag/launch displacement breaks the sequence before the finisher, makes a
+  later active jab whiff, returns the defender to an actionable state, and
+  preserves the stock.
+- The native oracle saves after hit 11 and compares every future hash through
+  the KO. Browser readiness runs the uninterrupted conversion and DI escape
+  in the WebAssembly-facing simulation, then restores default content before
+  the live playtest.
+- Registry row 61, Zero-to-death combo, advances from `primitive-ready` to
+  `playable`; broader fighter coverage, owner execution, and complete encoded
+  replay/rollback evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -779,6 +798,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   setup through the neutral-DI finisher, attribute the resulting high-percent
   KO to the attacker, preserve the low-percent non-KO control, and show an
   active whiff for the outward-DI escape.
+- The zero-to-death route must begin at exactly 0%, keep the defender in
+  hitlag or hitstun from first contact through the typed KO, and show that the
+  declared outward-DI policy breaks the sequence into an actionable escape
+  before the finisher while a later active attack whiffs.
 
 ## New binding M4.4 scope
 
@@ -789,7 +812,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
   juggling, kill confirm, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
-  now playable; other rows
+  now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -798,7 +821,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 30 playable, 5 primitive-ready, and 25 planned.
+  blocked: 1 verified, 31 playable, 4 primitive-ready, and 25 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -831,7 +854,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 330
+- Mechanical oracles: 170 movement invariants, 348
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -855,7 +878,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/kill-confirm/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/kill-confirm/zero-to-death/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
