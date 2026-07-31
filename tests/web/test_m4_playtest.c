@@ -53,6 +53,7 @@ static int test_shield_platform_drop_probe;
 static int test_small_step_forward_smash_probe;
 static int test_drop_cancel_probe;
 static int test_v_cancel_probe;
+static int test_spacing_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
@@ -85,6 +86,7 @@ void pf_web_m4_playtest_install(
     int small_step_forward_smash_probe_passed,
     int drop_cancel_probe_passed,
     int v_cancel_probe_passed,
+    int spacing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -120,6 +122,7 @@ void pf_web_m4_playtest_install(
     int small_step_forward_smash_probe_passed,
     int drop_cancel_probe_passed,
     int v_cancel_probe_passed,
+    int spacing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -154,6 +157,7 @@ void pf_web_m4_playtest_install(
         small_step_forward_smash_probe_passed;
     test_drop_cancel_probe = drop_cancel_probe_passed;
     test_v_cancel_probe = v_cancel_probe_passed;
+    test_spacing_probe = spacing_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
@@ -283,6 +287,7 @@ int main(void)
         test_small_step_forward_smash_probe != 1 ||
         test_drop_cancel_probe != 1 ||
         test_v_cancel_probe != 1 ||
+        test_spacing_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
@@ -320,6 +325,7 @@ int main(void)
             "small_step_forward_smash_probe=%d "
             "drop_cancel_probe=%d "
             "v_cancel_probe=%d "
+            "spacing_probe=%d "
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
             "tumble_probe=%d "
@@ -346,6 +352,7 @@ int main(void)
             test_small_step_forward_smash_probe,
             test_drop_cancel_probe,
             test_v_cancel_probe,
+            test_spacing_probe,
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
@@ -684,6 +691,7 @@ int main(void)
         "small_step_forward_smash_probe=%d "
         "drop_cancel_probe=%d "
         "v_cancel_probe=%d "
+        "spacing_probe=%d "
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
         "powershield_cancel_probe=%d tumble_probe=%d "
@@ -707,6 +715,7 @@ int main(void)
         test_small_step_forward_smash_probe,
         test_drop_cancel_probe,
         test_v_cancel_probe,
+        test_spacing_probe,
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,

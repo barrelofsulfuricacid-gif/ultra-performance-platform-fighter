@@ -107,6 +107,28 @@ even when the attack connects. A frame-perfect whiff has no attacker hitlag to
 expire the pass timer and also falls through. The drop-input tick cannot
 simultaneously enable fast fall, keeping the authored frame boundary explicit.
 
+## Spacing
+
+[Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,
+not a technique-only action: the player must judge an opponent's timing and
+range, avoid the option, and counter it through ordinary match input. The
+default fighter's forward jab reaches 1.8 center-to-center units, while its
+forward strong attack reaches 2.1 units.
+
+The repeatable responder policy jabs first. At 1.95 units the jab becomes
+active without touching the opponent, who begins a strong counter while the
+jab is still active; the longer hitbox connects during jab recovery. At 1.7
+units the same jab hits before the counter can start. At 2.25 units both the jab
+and strong counter whiff. A separate 1.95-unit shield route proves that the
+strong attack still makes legal contact at the tip rather than passing through
+the target.
+
+The native oracle uses ordinary button input from valid duel spawns, saves
+after the whiff-counter has begun, reloads, and compares 32 future hashes. The
+browser startup probe reaches the same close, safe, and far bands through
+reduced-stick walking on the default stage, then repeats the jab-first policy
+and the shield control. No mutable state, action, or content schema was added.
+
 ## V-cancelling
 
 The production route follows the documented Melee defensive input: fully press
@@ -551,7 +573,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 205 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 231 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -569,6 +591,10 @@ mechanics invariants plus 30 journal invariants, including:
   launch components with unchanged hitstun/tumble, grounded and aerial-attack
   exclusions, repeated-trigger lockout, invalid data, and byte-identical
   mid-route save/load event/hash continuation;
+- the responder's short jab whiffing at the safe 1.95-unit band before a
+  longer strong counter connects during recovery, the 1.7-unit close punish,
+  2.25-unit double whiff, safe-tip shield block, and mid-counter save/load with
+  32 future hashes;
 - strong-aerial entry, active-frame damage/hitlag/event ownership, and exact
   post-hitlag resume into the airborne strong action;
 - first-component SDI, held-direction rejection, diagonal second-component

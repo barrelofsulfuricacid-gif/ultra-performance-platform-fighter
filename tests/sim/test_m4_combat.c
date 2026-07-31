@@ -138,6 +138,26 @@ static int make_v_cancel_content(
         "v-cancel-content-view");
 }
 
+static int make_spacing_content(
+    int32_t spawn_spacing_q16,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "spacing-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 = spawn_spacing_q16;
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "spacing-content-view");
+}
+
 static int make_reaction_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -4523,6 +4543,389 @@ static int run_dashing_shield_test(
     return 1;
 }
 
+static int spacing_distance_matches(
+    const pf_m4_content *content,
+    const pf_m4_inspection *inspection,
+    int expect_jab_range,
+    int expect_strong_range)
+{
+    const int32_t distance =
+        inspection->players[1].position_x_q16 -
+        inspection->players[0].position_x_q16;
+    const int32_t jab_reach =
+        content->fighter.jab_hitbox_offset_x_q16 +
+        content->fighter.jab_hitbox_half_width_q16 +
+        content->fighter.half_width_q16;
+    const int32_t strong_reach =
+        content->fighter.strong_hitbox_offset_x_q16 +
+        content->fighter.strong_hitbox_half_width_q16 +
+        content->fighter.half_width_q16;
+
+    return (distance <= jab_reach) == expect_jab_range &&
+           (distance <= strong_reach) == expect_strong_range;
+}
+
+static int start_spacing_whiff_counter(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[1].hitbox_active != UINT8_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(8) ||
+        out_inspection->players[0].damage_q16 != UINT32_C(0) ||
+        out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+    {
+        return 0;
+    }
+    return step_duel(
+               sim,
+               INT16_C(0),
+               PF_INPUT_BUTTON_STRONG_ATTACK,
+               INT16_C(0),
+               UINT64_C(0),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_STRONG_ATTACK &&
+           out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+           out_inspection->players[1].hitbox_active != UINT8_C(0);
+}
+
+static int run_spacing_counter_snapshot_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int saw_counter_hit = 0;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !expect_status(
+            pf_m4_inspect(source, &source_inspection),
+            PF_STATUS_OK,
+            "spacing-initial-inspect") ||
+        !spacing_distance_matches(
+            content,
+            &source_inspection,
+            0,
+            1) ||
+        !start_spacing_whiff_counter(source, &source_inspection) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "spacing-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return fail("spacing-safe-tip-setup");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "spacing-save-mid-counter") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "spacing-load-mid-counter") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "spacing-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "spacing-loaded-hash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("spacing-mid-counter-round-trip");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "spacing-source-continuation-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "spacing-loaded-continuation-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("spacing-deterministic-continuation");
+        }
+        if (source_inspection.players[1].damage_q16 ==
+            content->fighter.strong_damage_q16)
+        {
+            if (source_inspection.players[0].damage_q16 != UINT32_C(0) ||
+                source_inspection.players[1].last_hit_attacker !=
+                    UINT8_C(0) ||
+                source_inspection.players[1].last_hit_valid == UINT8_C(0))
+            {
+                return fail("spacing-safe-tip-counter-result");
+            }
+            saw_counter_hit = 1;
+        }
+    }
+    return saw_counter_hit != 0 || fail("spacing-counter-did-not-hit");
+}
+
+static int run_spacing_close_negative_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "spacing-close-inspect") ||
+        !spacing_distance_matches(content, &inspection, 1, 1) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection))
+    {
+        return fail("spacing-close-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                tick == UINT32_C(3)
+                    ? PF_INPUT_BUTTON_STRONG_ATTACK
+                    : UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("spacing-close-step");
+        }
+        if (inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            break;
+        }
+    }
+    return (inspection.players[0].damage_q16 ==
+                content->fighter.jab_damage_q16 &&
+            inspection.players[0].last_hit_attacker == UINT8_C(1) &&
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_STRONG_ATTACK &&
+            inspection.players[1].damage_q16 == UINT32_C(0)) ||
+           fail("spacing-close-jab-punishes");
+}
+
+static int run_spacing_far_negative_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    int saw_strong_hitbox = 0;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "spacing-far-inspect") ||
+        !spacing_distance_matches(content, &inspection, 0, 0) ||
+        !start_spacing_whiff_counter(sim, &inspection))
+    {
+        return fail("spacing-far-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("spacing-far-step");
+        }
+        if (inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_strong_hitbox = 1;
+        }
+    }
+    return (saw_strong_hitbox != 0 &&
+            inspection.players[0].damage_q16 == UINT32_C(0) &&
+            inspection.players[1].damage_q16 == UINT32_C(0)) ||
+           fail("spacing-far-counter-whiffs");
+}
+
+static int run_spacing_shield_control_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "spacing-shield-inspect") ||
+        !spacing_distance_matches(content, &inspection, 0, 1))
+    {
+        return fail("spacing-shield-setup");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(6); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(5)
+                    ? PF_INPUT_BUTTON_STRONG_ATTACK
+                    : UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return fail("spacing-shield-start");
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return fail("spacing-shield-step");
+        }
+        if (inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            break;
+        }
+    }
+    return (tick < UINT32_C(12) &&
+            inspection.players[1].damage_q16 == UINT32_C(0) &&
+            inspection.players[1].shield_health_q16 <
+                content->fighter.shield_health_q16 &&
+            inspection.players[1].powershield == UINT8_C(0) &&
+            test_last_result.event_count == UINT8_C(1) &&
+            test_last_result.events[0].type ==
+                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK) ||
+           fail("spacing-tip-shield-block");
+}
+
 static int run_shield_block_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -7743,6 +8146,9 @@ int main(void)
     pf_m4_content drop_cancel_content;
     pf_m4_content drop_cancel_whiff_content;
     pf_m4_content v_cancel_content;
+    pf_m4_content spacing_safe_content;
+    pf_m4_content spacing_close_content;
+    pf_m4_content spacing_far_content;
     pf_m4_content wall_tech_content;
     pf_m4_content ceiling_tech_content;
     pf_content_view view;
@@ -7754,6 +8160,9 @@ int main(void)
     pf_content_view drop_cancel_view;
     pf_content_view drop_cancel_whiff_view;
     pf_content_view v_cancel_view;
+    pf_content_view spacing_safe_view;
+    pf_content_view spacing_close_view;
+    pf_content_view spacing_far_view;
     pf_content_view wall_tech_view;
     pf_content_view ceiling_tech_view;
 
@@ -7784,6 +8193,18 @@ int main(void)
         !make_v_cancel_content(
             &v_cancel_content,
             &v_cancel_view) ||
+        !make_spacing_content(
+            (INT32_C(39) * PF_Q16_ONE) / INT32_C(40),
+            &spacing_safe_content,
+            &spacing_safe_view) ||
+        !make_spacing_content(
+            (INT32_C(17) * PF_Q16_ONE) / INT32_C(20),
+            &spacing_close_content,
+            &spacing_close_view) ||
+        !make_spacing_content(
+            (INT32_C(9) * PF_Q16_ONE) / INT32_C(8),
+            &spacing_far_content,
+            &spacing_far_view) ||
         !make_surface_tech_content(
             0,
             &wall_tech_content,
@@ -7894,6 +8315,18 @@ int main(void)
             &ceiling_tech_content,
             &ceiling_tech_view) ||
         !run_whiff_and_trade_test(&content, &view) ||
+        !run_spacing_counter_snapshot_test(
+            &spacing_safe_content,
+            &spacing_safe_view) ||
+        !run_spacing_close_negative_test(
+            &spacing_close_content,
+            &spacing_close_view) ||
+        !run_spacing_far_negative_test(
+            &spacing_far_content,
+            &spacing_far_view) ||
+        !run_spacing_shield_control_test(
+            &spacing_safe_content,
+            &spacing_safe_view) ||
         !run_shield_state_test(&content, &view) ||
         !run_dashing_shield_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
@@ -7939,7 +8372,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=205 journal_invariants=30\n",
+        " combat_invariants=231 journal_invariants=30 spacing=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

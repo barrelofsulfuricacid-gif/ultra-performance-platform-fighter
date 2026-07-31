@@ -121,6 +121,7 @@ extern void pf_web_m4_playtest_install(
     int small_step_forward_smash_probe_passed,
     int drop_cancel_probe_passed,
     int v_cancel_probe_passed,
+    int spacing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -1841,6 +1842,259 @@ static int pf_web_m4_run_v_cancel_probe(void)
            locked_y == ordinary_y &&
            locked_age == UINT8_C(0) &&
            locked_lockout < UINT16_C(40);
+}
+
+static int pf_web_m4_prepare_spacing_distance(
+    int distance_mode,
+    pf_m4_inspection *out_inspection)
+{
+    const int32_t jab_reach =
+        pf_web_m4_content.fighter.jab_hitbox_offset_x_q16 +
+        pf_web_m4_content.fighter.jab_hitbox_half_width_q16 +
+        pf_web_m4_content.fighter.half_width_q16;
+    const int32_t strong_reach =
+        pf_web_m4_content.fighter.strong_hitbox_offset_x_q16 +
+        pf_web_m4_content.fighter.strong_hitbox_half_width_q16 +
+        pf_web_m4_content.fighter.half_width_q16;
+    int32_t target_distance;
+    int32_t brake_distance;
+    int32_t distance;
+    uint32_t tick;
+
+    if (out_inspection == NULL || !pf_web_m4_reset_internal() ||
+        pf_m4_inspect(pf_web_m4_sim, out_inspection) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    if (distance_mode == 0)
+    {
+        target_distance = jab_reach +
+            (strong_reach - jab_reach) / INT32_C(2);
+    }
+    else if (distance_mode == 1)
+    {
+        target_distance = jab_reach - PF_Q16_ONE / INT32_C(5);
+    }
+    else
+    {
+        target_distance =
+            strong_reach +
+            (INT32_C(3) * PF_Q16_ONE) / INT32_C(10);
+    }
+    brake_distance =
+        target_distance + pf_web_m4_content.fighter.walk_speed_q16;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(400); ++tick)
+    {
+        const int16_t walk_input =
+            out_inspection->players[1].position_x_q16 -
+                    out_inspection->players[0].position_x_q16 >
+                brake_distance
+                ? PF_WEB_M4_WALK_AXIS
+                : INT16_C(0);
+
+        if (!pf_web_m4_tick(
+                walk_input,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (walk_input == INT16_C(0) &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(400) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return 0;
+    }
+    distance =
+        out_inspection->players[1].position_x_q16 -
+        out_inspection->players[0].position_x_q16;
+    if (distance_mode == 0)
+    {
+        return distance > jab_reach && distance <= strong_reach;
+    }
+    if (distance_mode == 1)
+    {
+        return distance <= jab_reach;
+    }
+    return distance > strong_reach;
+}
+
+static int pf_web_m4_run_spacing_exchange(int distance_mode)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    int saw_strong_hitbox = 0;
+
+    if (!pf_web_m4_prepare_spacing_distance(
+            distance_mode,
+            &inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[1].hitbox_active != UINT8_C(0) ||
+            inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(8))
+    {
+        return 0;
+    }
+    if (distance_mode == 1)
+    {
+        return inspection.players[0].damage_q16 ==
+                   pf_web_m4_content.fighter.jab_damage_q16 &&
+               inspection.players[0].last_hit_attacker == UINT8_C(1) &&
+               inspection.players[1].damage_q16 == UINT32_C(0);
+    }
+    if (inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[1].hitbox_active == UINT8_C(0) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(14); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].hitbox_active != UINT8_C(0))
+        {
+            saw_strong_hitbox = 1;
+        }
+        if (inspection.players[1].damage_q16 != UINT32_C(0))
+        {
+            break;
+        }
+    }
+    if (distance_mode == 0)
+    {
+        return inspection.players[0].damage_q16 == UINT32_C(0) &&
+               inspection.players[1].damage_q16 ==
+                   pf_web_m4_content.fighter.strong_damage_q16 &&
+               inspection.players[1].last_hit_attacker == UINT8_C(0);
+    }
+    return saw_strong_hitbox != 0 &&
+           inspection.players[0].damage_q16 == UINT32_C(0) &&
+           inspection.players[1].damage_q16 == UINT32_C(0);
+}
+
+static int pf_web_m4_run_spacing_shield_control(void)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!pf_web_m4_prepare_spacing_distance(0, &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(6); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(5)
+                    ? PF_INPUT_BUTTON_STRONG_ATTACK
+                    : UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(14); ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            break;
+        }
+    }
+    return tick < UINT32_C(14) &&
+           inspection.players[1].damage_q16 == UINT32_C(0) &&
+           inspection.players[1].shield_health_q16 <
+               pf_web_m4_content.fighter.shield_health_q16 &&
+           inspection.players[1].powershield == UINT8_C(0) &&
+           pf_web_m4_last_result.event_count == UINT8_C(1) &&
+           pf_web_m4_last_result.events[0].type ==
+               (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK;
+}
+
+static int pf_web_m4_run_spacing_probe(void)
+{
+    return pf_web_m4_run_spacing_exchange(0) &&
+           pf_web_m4_run_spacing_exchange(1) &&
+           pf_web_m4_run_spacing_exchange(2) &&
+           pf_web_m4_run_spacing_shield_control();
 }
 
 static int pf_web_m4_run_ground_dodge_probe(void)
@@ -4642,6 +4896,7 @@ int pf_web_m4_playtest_start(void)
     int small_step_forward_smash_probe_passed;
     int drop_cancel_probe_passed;
     int v_cancel_probe_passed;
+    int spacing_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -4706,6 +4961,7 @@ int pf_web_m4_playtest_start(void)
     drop_cancel_probe_passed =
         pf_web_m4_run_drop_cancel_probe();
     v_cancel_probe_passed = pf_web_m4_run_v_cancel_probe();
+    spacing_probe_passed = pf_web_m4_run_spacing_probe();
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -4738,6 +4994,7 @@ int pf_web_m4_playtest_start(void)
         small_step_forward_smash_probe_passed == 0 ||
         drop_cancel_probe_passed == 0 ||
         v_cancel_probe_passed == 0 ||
+        spacing_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -4770,6 +5027,7 @@ int pf_web_m4_playtest_start(void)
         small_step_forward_smash_probe_passed,
         drop_cancel_probe_passed,
         v_cancel_probe_passed,
+        spacing_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

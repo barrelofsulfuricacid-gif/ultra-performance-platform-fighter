@@ -499,6 +499,13 @@ registry row can advance from `playable` to `verified`.
     full down for grounded `SPOT DODGE`, with too little analog down to remain
     `SHIELD`, and by releasing the trigger for ordinary grounded
     `SHIELD RELEASE`.
+39. Use reduced horizontal input to place Player 1 just outside Player 2's
+    light-attack hitbox but inside Player 1's strong-attack reach. Have Player 2
+    jab, then press Player 1's strong attack while the jab is active; confirm
+    Player 1 remains untouched and the counter hits during recovery. Move
+    closer and confirm the jab hits first, move farther and confirm the counter
+    also whiffs, then shield at the safe distance and confirm the strong tip is
+    blocked.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -541,6 +548,9 @@ through:
 - ordinary and collision-frame-trigger aerial hits proving exact 95% two-axis
   V-cancel launch with unchanged hitstun, plus active-aerial and repeated-edge
   lockout exclusions;
+- reduced-stick walking to close, safe, and far attack bands, followed by a
+  jab-first responder proving close jab contact, a safe jab-whiff-to-strong
+  counter, a far double whiff, and a safe-tip shield block;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -596,7 +606,7 @@ instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
-drop_cancel_probe=pass v_cancel_probe=pass combat_probe=pass
+drop_cancel_probe=pass v_cancel_probe=pass spacing_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

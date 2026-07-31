@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -458,6 +458,7 @@ mergeInto(LibraryManager.library, {
     smallStepForwardSmashProbePassed,
     dropCancelProbePassed,
     vCancelProbePassed,
+    spacingProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -748,6 +749,7 @@ mergeInto(LibraryManager.library, {
       smallStepForwardSmashProbePassed &&
       dropCancelProbePassed &&
       vCancelProbePassed &&
+      spacingProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -1240,6 +1242,8 @@ mergeInto(LibraryManager.library, {
         (dropCancelProbePassed ? "pass" : "fail") +
         " v_cancel_probe=" +
         (vCancelProbePassed ? "pass" : "fail") +
+        " spacing_probe=" +
+        (spacingProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1288,10 +1292,16 @@ mergeInto(LibraryManager.library, {
         dashCancelProbePassed ? "pass" : "fail";
       status.dataset.dashingShieldProbe =
         dashingShieldProbePassed ? "pass" : "fail";
+      status.dataset.shieldPlatformDropProbe =
+        shieldPlatformDropProbePassed ? "pass" : "fail";
       status.dataset.smallStepForwardSmashProbe =
         smallStepForwardSmashProbePassed ? "pass" : "fail";
       status.dataset.dropCancelProbe =
         dropCancelProbePassed ? "pass" : "fail";
+      status.dataset.vCancelProbe =
+        vCancelProbePassed ? "pass" : "fail";
+      status.dataset.spacingProbe =
+        spacingProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

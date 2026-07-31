@@ -588,6 +588,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `playable`; owner execution plus complete encoded replay/rollback and
   cross-target evidence remain before `verified`.
 
+## Delivered in the spacing route
+
+- The default forward jab reaches 1.8 center-to-center units, while the strong
+  attack reaches 2.1. A deterministic responder now jabs first so the tactic is
+  demonstrated as a legal exchange rather than a scripted outcome.
+- At 1.95 units the jab whiffs and the opponent's ordinary strong counter
+  connects during jab recovery. At 1.7 the jab hits before that counter can
+  start; at 2.25 both attacks whiff. A safe-tip shield control proves the
+  longer hitbox still makes legal contact.
+- The focused combat oracle saves after the whiff-counter begins and proves 32
+  future hashes after load. Browser readiness reaches close, safe, and far
+  bands with reduced-stick walking on the default stage and repeats all three
+  exchanges plus the shield control.
+- Registry row 49, Spacing, advances from `planned` to `playable`; owner
+  execution plus complete encoded replay/rollback evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -637,6 +654,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   remains the tech-chase route. The punish begins only when the 20-tick gold
   invulnerability ring clears; attacking from the original spacing at that
   same action tick must miss a directional roll.
+- Standing just outside the responder's jab range but inside strong-attack
+  range must permit the ordinary whiff counter. Moving closer must let the jab
+  hit first, while moving farther must make the strong counter miss too.
 
 ## New binding M4.4 scope
 
@@ -646,7 +666,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
   shield platform dropping, short hop air dodge, small step forward smash,
-  tech-chasing, V-cancelling, and wavedash are
+  spacing, tech-chasing, V-cancelling, and wavedash are
   now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
@@ -656,7 +676,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 23 playable, 6 primitive-ready, and 31 planned.
+  blocked: 1 verified, 24 playable, 6 primitive-ready, and 30 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -689,7 +709,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 205
+- Mechanical oracles: 170 movement invariants, 231
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -713,7 +733,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/spacing/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
