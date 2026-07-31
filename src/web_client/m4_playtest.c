@@ -125,6 +125,7 @@ extern void pf_web_m4_playtest_install(
     int spacing_probe_passed,
     int sharking_probe_passed,
     int cross_up_probe_passed,
+    int mindgame_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -5514,6 +5515,7 @@ int pf_web_m4_playtest_start(void)
     int spacing_probe_passed;
     int sharking_probe_passed;
     int cross_up_probe_passed;
+    int mindgame_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
     int shield_probe_passed;
@@ -5583,6 +5585,9 @@ int pf_web_m4_playtest_start(void)
         pf_web_m4_run_spacing_probe(approach_probe_passed);
     sharking_probe_passed = pf_web_m4_run_sharking_probe();
     cross_up_probe_passed = pf_web_m4_run_cross_up_probe();
+    mindgame_probe_passed =
+        approach_probe_passed && spacing_probe_passed &&
+        cross_up_probe_passed;
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -5619,6 +5624,7 @@ int pf_web_m4_playtest_start(void)
         spacing_probe_passed == 0 ||
         sharking_probe_passed == 0 ||
         cross_up_probe_passed == 0 ||
+        mindgame_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
         shield_probe_passed == 0 ||
@@ -5655,6 +5661,7 @@ int pf_web_m4_playtest_start(void)
         spacing_probe_passed,
         sharking_probe_passed,
         cross_up_probe_passed,
+        mindgame_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,
         shield_probe_passed,

@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -462,6 +462,7 @@ mergeInto(LibraryManager.library, {
     spacingProbePassed,
     sharkingProbePassed,
     crossUpProbePassed,
+    mindgameProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -756,6 +757,7 @@ mergeInto(LibraryManager.library, {
       spacingProbePassed &&
       sharkingProbePassed &&
       crossUpProbePassed &&
+      mindgameProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -1256,6 +1258,8 @@ mergeInto(LibraryManager.library, {
         (sharkingProbePassed ? "pass" : "fail") +
         " cross_up_probe=" +
         (crossUpProbePassed ? "pass" : "fail") +
+        " mindgame_probe=" +
+        (mindgameProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -1320,6 +1324,8 @@ mergeInto(LibraryManager.library, {
         sharkingProbePassed ? "pass" : "fail";
       status.dataset.crossUpProbe =
         crossUpProbePassed ? "pass" : "fail";
+      status.dataset.mindgameProbe =
+        mindgameProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";

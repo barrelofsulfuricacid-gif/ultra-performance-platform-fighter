@@ -523,6 +523,11 @@ registry row can advance from `playable` to `verified`.
     behind and still facing away. Attack immediately after takeoff to confirm
     the wrong-side whiff, then repeat facing toward Player 2 and confirm the
     blocked aerial leaves Player 1 in front.
+43. Repeat the same reduced-stick approach cue against two Player 2 responses.
+    If Player 2 jabs, brake just outside reach and strong-counter the recovery.
+    If Player 2 holds shield, face away and use the short-hop rear cross-up.
+    Deliberately strong-attack the shield and immediately aerial before
+    crossing to confirm the blocked and whiffed wrong reads.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -575,6 +580,8 @@ through:
   plus a too-early active-hitbox whiff and a correctly timed held-shield block;
 - ordinary movement into a short-hop back-aerial cross-up behind held shield,
   plus an immediate wrong-side whiff and a forward-facing front-block control;
+- a combined mindgame gate requiring the jab-read ground conversion,
+  shield-read rear cross-up, and both wrong-read outcomes together;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -631,7 +638,8 @@ fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
-spacing_probe=pass sharking_probe=pass cross_up_probe=pass combat_probe=pass
+spacing_probe=pass sharking_probe=pass cross_up_probe=pass
+mindgame_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

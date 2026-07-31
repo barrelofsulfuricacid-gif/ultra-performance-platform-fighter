@@ -9401,7 +9401,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=294 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1\n",
+        " combat_invariants=294 journal_invariants=30 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

@@ -12,8 +12,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
-  ordinary-input approach, spacing, cross-up, and platform-sharking routes,
-  plus two-pad browser polling implemented
+  ordinary-input approach, spacing, mindgame, cross-up, and
+  platform-sharking routes, plus two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -657,6 +657,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   production grab fixture must add the shield-grab comparison before complete
   verification, and owner execution remains required.
 
+## Delivered in the mindgame route
+
+- The same visible reduced-stick approach cue now supports two tested reads.
+  Against the jab-first response, the attacker brakes outside reach and strong
+  counters recovery. Against held shield, the attacker faces away, short hops
+  through, and finishes the rear-side aerial cross-up behind the defender.
+- The wrong branches remain ordinary outcomes: strong attack into shield is
+  blocked, an immediate back aerial whiffs on the wrong side, and the
+  forward-facing aerial control blocks while staying in front.
+- Browser readiness exposes `mindgame_probe=1` only when the approach, all
+  close/safe/far spacing outcomes, shield control, cross-up, early whiff, and
+  front-block control pass together. The constituent native ground and aerial
+  save/load oracles supply deterministic continuation evidence.
+- Registry row 32, Mindgame, advances from `planned` to `playable`; broader
+  conditioning history, the future grab mixup, and owner execution remain
+  before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -718,6 +735,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The back-aerial cross-up must begin in front while facing away, pass the held
   shield through air drift, and finish behind with facing preserved. The early
   attempt must whiff and the forward-facing control must remain in front.
+- The mindgame route must reuse the same readable approach cue and branch only
+  through legal player/responder input. The jab and held-shield responses must
+  reward different continuations, while both wrong reads remain visible.
 
 ## New binding M4.4 scope
 
@@ -726,7 +746,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  shield platform dropping, short hop air dodge, small step forward smash,
+  mindgame, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable; other rows
   remain lower evidence states until their full
@@ -737,7 +757,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 27 playable, 6 primitive-ready, and 27 planned.
+  blocked: 1 verified, 28 playable, 6 primitive-ready, and 26 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -794,7 +814,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

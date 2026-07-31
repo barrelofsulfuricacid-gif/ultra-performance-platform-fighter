@@ -149,6 +149,26 @@ block, early whiff, and front block through ordinary input. No cross-up-only
 state or content field was added; a shield-grab comparison remains tied to the
 future production grab fixture.
 
+## Mindgame
+
+The playable [mindgame](https://www.ssbwiki.com/Mindgame) route is a
+deterministic bait/read composition, not a new action or a scripted opponent
+outcome. Player 0 presents the same visible reduced-stick approach cue while
+the responder selects one of two ordinary policies. A jab response is read by
+braking outside its reach and converting the recovery with the longer strong
+attack. A held-shield response is read by facing away, short hopping through,
+and using the rear-side aerial cross-up instead.
+
+The wrong reads remain observable. Committing the ground strong attack into
+held shield produces an ordinary physical block rather than damage, while an
+immediate back aerial activates on the wrong side and whiffs. The front-facing
+aerial control also blocks but stays in front. The startup gate reports
+`mindgame_probe=1` only when the approach, close/safe/far spacing, shield
+control, rear cross-up, early whiff, and front-block probes all pass together.
+Their native save/load continuations cover both the ground counter and aerial
+branch. Broader conditioning history and the grab branch remain later fixture
+work before this row can become fully verified.
+
 ## Spacing
 
 [Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,
@@ -665,6 +685,9 @@ mechanics invariants plus 30 journal invariants, including:
 - a short-hop back-aerial cross-up finishing behind held shield, an immediate
   wrong-side whiff, a forward-facing front-side block control, and mid-aerial
   save/load with 48 equal future hashes;
+- the combined mindgame gate requiring the jab-read spacing conversion,
+  shield-read cross-up, strong-into-shield wrong read, and immediate aerial
+  whiff to pass as one ordinary-input tactic;
 - below-platform light-aerial initiation into an 8% platform-opponent hit, a
   too-early active-hitbox whiff, ordinary held-shield damage with a typed block
   event, and mid-aerial save/load with 32 equal future hashes;
