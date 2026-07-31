@@ -659,11 +659,36 @@ the structured simulation, M4 inspection, RL compact, save/load, replay,
 native, and browser paths. They also enter the configuration hash, so snapshots
 and replays cannot load under different match rules.
 
+## Ledge regrab and planking
+
+An ordinary jump, down release, or outward release from `LEDGE_HANG` starts a
+data-defined 29-tick disabled-regrab period. The release frame is already
+excluded from catch resolution; the timer then decrements before each later
+catch attempt, so remaining ticks 28 through 1 reject an otherwise legal
+catch and remaining tick 0 permits it. Facing, vertical direction, catch
+volume, and single-occupancy rules still apply. This timer is separate from
+the pass-through-platform timer and therefore never suppresses floor or
+platform landing. The timing and repeated drop/regrab route follow the
+documented [ledgestall](https://www.ssbwiki.com/Ledgestall) and
+[planking](https://www.ssbwiki.com/Planking) behaviors.
+
+A legal catch refreshes the independent 37-tick ledge-invulnerability timer.
+The planking fixture tunes only the ordinary double-jump arc and the
+responding opponent's jab reach: three drop/double-jump cycles return to the
+catch volume on the first legal tick and reject the active punish after each
+refresh. Fast-falling on the final two ticks leaves the catch volume, lets
+invulnerability expire, and accepts that same punish. The native oracle saves
+immediately after release and compares every future canonical hash through all
+three regrabs; browser startup repeats both outcomes and restores default
+content.
+
 ## Canonical state and inspection
 
-State schema 17 / save format 16 expands the stream to 611 bytes (140-byte
-header plus 471-byte payload) and changes the active magic to `PFSAVE16`. It
-adds one remaining ledge-invulnerability timer per player. The timer is
+State schema 18 / save format 17 expands the stream to 619 bytes (140-byte
+header plus 479-byte payload) and changes the active magic to `PFSAVE17`. It
+adds one remaining ledge-regrab-lockout timer per player. It follows state
+schema 17 / save format 16, which added one remaining ledge-invulnerability
+timer per player. The invulnerability timer is
 refreshed by a legal catch, survives ledge options, and participates in the
 same production hit-ownership rejection as other invulnerability. It follows
 state schema 16 / save format 15, which retained the 603-byte stream and added the
@@ -689,8 +714,9 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 19 / fighter schema 19 adds and hashes the reduced-down shield
-platform-drop threshold. It follows schema 18's validated V-cancel velocity
+Content schema 20 / fighter schema 20 adds and hashes the 29-tick ledge-regrab
+lockout. It follows schema 19's reduced-down shield platform-drop threshold,
+schema 18's validated V-cancel velocity
 scale and input window and schema 17's validated drop-cancel
 snap distance and nine-tick default platform pass timer and schema 16's
 validated three-tick forward-smash input window
@@ -708,13 +734,16 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 14 exposes percent, hitlag, hitstun, tumble, tech window and
+Inspection schema 15 additionally exposes the exact remaining
+ledge-invulnerability and regrab-lockout timers. It retains schema 14's
+percent, hitlag, hitstun, tumble, tech window and
 lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 14
-carries those fields plus the canonical action timer, floor action semantics,
+sudden death, and result. Browser view schema 14 retains its derived
+invulnerability marker rather than exporting either exact ledge timer, and
+carries the prior combat fields plus the canonical action timer, floor action semantics,
 the live shield bubble, a visibly rotating tumble
 presentation, a prone missed-tech pose, recovery invulnerability, and the
 floor-attack hitbox, the strong-aerial states, the landing-result banner/ring
@@ -861,12 +890,12 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,303-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,311-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
+drop-cancel, V-cancel, planking, ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
 strong-launches the target, follows its airborne path, reacts separately to
 tech in place and a right tech roll, jabs after invulnerability, and requires a

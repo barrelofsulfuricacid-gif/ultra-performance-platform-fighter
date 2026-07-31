@@ -55,9 +55,9 @@ foreach(status planned primitive-ready playable verified)
     list(LENGTH "${status}_rows" "${status}_count")
 endforeach()
 
-if(NOT planned_count EQUAL 23 OR
+if(NOT planned_count EQUAL 22 OR
    NOT primitive-ready_count EQUAL 4 OR
-   NOT playable_count EQUAL 33 OR
+   NOT playable_count EQUAL 34 OR
    NOT verified_count EQUAL 1)
     message(
         FATAL_ERROR

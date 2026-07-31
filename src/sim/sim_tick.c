@@ -345,6 +345,8 @@ pf_status pf_sim_tick_impl(
                 ->respawn_invulnerability_ticks[player_index];
         world->ledge_invulnerability_ticks[player_index] =
             scratch->ledge_invulnerability_ticks[player_index];
+        world->ledge_regrab_lockout_ticks[player_index] =
+            scratch->ledge_regrab_lockout_ticks[player_index];
         world->previous_buttons[player_index] =
             scratch->previous_buttons[player_index];
         world->grounded[player_index] =

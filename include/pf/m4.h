@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(19)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(19)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(20)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(20)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(14)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(15)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -179,6 +179,7 @@ typedef struct pf_m4_fighter_data
     uint16_t air_dodge_invulnerability_begin_tick;
     uint16_t air_dodge_invulnerability_end_tick;
     uint16_t ledge_invulnerability_ticks;
+    uint16_t ledge_regrab_lockout_ticks;
     uint16_t special_landing_ticks;
     uint16_t run_turnaround_ticks;
     uint16_t run_brake_ticks;
@@ -339,6 +340,8 @@ typedef struct pf_m4_player_inspection
     uint32_t shield_health_q16;
     uint16_t respawn_ticks;
     uint16_t respawn_invulnerability_ticks;
+    uint16_t ledge_invulnerability_ticks;
+    uint16_t ledge_regrab_lockout_ticks;
     uint8_t stocks_remaining;
     uint8_t reserved;
 } pf_m4_player_inspection;

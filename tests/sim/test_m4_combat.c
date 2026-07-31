@@ -1633,7 +1633,7 @@ static int run_v_cancel_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-v-cancel-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("v-cancel-snapshot-setup");
     }
@@ -2341,7 +2341,7 @@ static int run_small_step_forward_smash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "small-step-forward-smash-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("small-step-forward-smash-window-boundary");
     }
@@ -2710,7 +2710,7 @@ static int run_drop_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "drop-cancel-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("drop-cancel-first-airborne-frame");
     }
@@ -3256,7 +3256,7 @@ static int run_sharking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "sharking-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("sharking-hit-setup");
     }
@@ -3663,7 +3663,7 @@ static int run_cross_up_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "cross-up-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("cross-up-setup");
     }
@@ -3970,7 +3970,7 @@ static int run_juggling_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "juggling-query-save-size") ||
-            save_size != (size_t)611 ||
+            save_size != (size_t)619 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -4392,7 +4392,7 @@ static int run_kill_confirm_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "kill-confirm-query-save-size") ||
-            save_size != (size_t)611 ||
+            save_size != (size_t)619 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -4693,7 +4693,7 @@ static int run_zero_to_death_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "zero-to-death-query-save-size") ||
-                save_size != (size_t)611 ||
+                save_size != (size_t)619 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -4999,7 +4999,7 @@ static int run_ladder_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "ladder-query-save-size") ||
-                save_size != (size_t)611 ||
+                save_size != (size_t)619 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -6591,7 +6591,7 @@ static int run_dashing_shield_test(
             pf_sim_query_save_size(tap, &save_size),
             PF_STATUS_OK,
             "dashing-shield-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("dashing-shield-entry");
     }
@@ -6898,7 +6898,7 @@ static int run_spacing_counter_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "spacing-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("spacing-safe-tip-setup");
     }
@@ -7802,7 +7802,7 @@ static int run_shield_break_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-break-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("shield-break-snapshot-setup");
     }
@@ -8769,7 +8769,7 @@ static int run_tech_chase_test(
             pf_sim_query_save_size(roll, &save_size),
             PF_STATUS_OK,
             "tech-chase-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("tech-chase-roll-snapshot-boundary");
     }
@@ -9464,7 +9464,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -10202,7 +10202,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -10311,7 +10311,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return fail("mid-shield-hitlag-save-setup");
     }

@@ -3,7 +3,7 @@
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
-wavedash/waveland and ledge-cancelling,
+wavedash/waveland, ledge-cancelling, and bounded ledge regrabs/planking,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction, and dense-shield
@@ -213,6 +213,14 @@ LANDING`, an inward slide, action ticks 0–9, then an actionable frame while th
 dashed invulnerability ring remains. Wait on ledge until the ring disappears
 before repeating for the negative case; the movement route remains, but the
 actionable frame is vulnerable.
+
+Every jump, down, or outward release from `LEDGE HANG` starts a separate
+29-tick disabled-regrab period. An otherwise legal catch with one remaining
+tick is rejected; the next tick may catch and refresh the 37-tick dashed ring.
+The startup `planking_probe` uses a narrow data fixture to perform three exact
+drop/double-jump/regrab refreshes while Player 2's jab is active, then
+fast-falls for the final two ticks in the negative route so the same jab hits.
+The fixture is restored before the live default match is rendered.
 
 The light jab has two startup ticks, two active ticks, eight recovery ticks,
 6% damage, and four hitlag ticks. Its translucent amber rectangle is the exact
@@ -661,7 +669,8 @@ through:
   upward launch, down/stand/stun phase order, fresh-versus-held mash behavior,
   and 30-HP recovery; and
 - the native movement oracle covering ledge catch, hang, release, jump, climb,
-  simultaneous occupancy, and mid-climb save/load equivalence.
+  simultaneous occupancy, exact disabled-regrab timing, three hash-equivalent
+  planking refreshes, a mistimed punish, and mid-climb save/load equivalence.
 
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
@@ -672,7 +681,7 @@ small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
 spacing_probe=pass sharking_probe=pass cross_up_probe=pass
 mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass
-zero_to_death_probe=pass ledge_cancel_probe=pass combat_probe=pass
+zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

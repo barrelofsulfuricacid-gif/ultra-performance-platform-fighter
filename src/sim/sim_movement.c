@@ -770,6 +770,7 @@ static int pf_m4_try_grab_ledge(
     uint8_t *short_hop_latched,
     uint8_t *fast_fall,
     uint16_t *ledge_invulnerability_ticks,
+    uint16_t ledge_regrab_lockout_ticks,
     int8_t facing,
     int8_t *dash_direction)
 {
@@ -784,7 +785,8 @@ static int pf_m4_try_grab_ledge(
         stage->floor_y_q16 + fighter->half_height_q16;
     uint8_t ledge = (uint8_t)PF_M4_LEDGE_NONE;
 
-    if (*velocity_y < INT32_C(0) ||
+    if (ledge_regrab_lockout_ticks != UINT16_C(0) ||
+        *velocity_y < INT32_C(0) ||
         *position_y < catch_top ||
         *position_y > catch_bottom)
     {
@@ -871,6 +873,8 @@ void pf_m4_reset_player(
     sim->world.respawn_invulnerability_ticks[player_index] =
         UINT16_C(0);
     sim->world.ledge_invulnerability_ticks[player_index] =
+        UINT16_C(0);
+    sim->world.ledge_regrab_lockout_ticks[player_index] =
         UINT16_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
     sim->world.active[player_index] = UINT8_C(1);
@@ -1320,6 +1324,8 @@ static void pf_m4_copy_combat_scratch(
         world->respawn_invulnerability_ticks[player_index];
     scratch->ledge_invulnerability_ticks[player_index] =
         world->ledge_invulnerability_ticks[player_index];
+    scratch->ledge_regrab_lockout_ticks[player_index] =
+        world->ledge_regrab_lockout_ticks[player_index];
     scratch->damage_q16[player_index] =
         world->damage_q16[player_index];
     scratch->pending_velocity_x_q16[player_index] =
@@ -1436,6 +1442,10 @@ static void pf_m4_prepare_spawn(
     scratch->sdi_direction_x[player_index] = INT8_C(0);
     scratch->sdi_direction_y[player_index] = INT8_C(0);
     scratch->tech_direction[player_index] = INT8_C(0);
+    scratch->ledge_invulnerability_ticks[player_index] =
+        UINT16_C(0);
+    scratch->ledge_regrab_lockout_ticks[player_index] =
+        UINT16_C(0);
 }
 
 pf_status pf_m4_step_player(
@@ -1562,6 +1572,11 @@ pf_status pf_m4_step_player(
         UINT16_C(0))
     {
         --scratch->ledge_invulnerability_ticks[player_index];
+    }
+    if (scratch->ledge_regrab_lockout_ticks[player_index] >
+        UINT16_C(0))
+    {
+        --scratch->ledge_regrab_lockout_ticks[player_index];
     }
     if (world->active[player_index] == UINT8_C(0))
     {
@@ -1995,6 +2010,11 @@ pf_status pf_m4_step_player(
             else
             {
                 ledge_motion_handled = 1;
+            }
+            if (released_ledge_this_tick != 0)
+            {
+                scratch->ledge_regrab_lockout_ticks[player_index] =
+                    fighter->ledge_regrab_lockout_ticks;
             }
         }
         else
@@ -3542,6 +3562,7 @@ pf_status pf_m4_step_player(
                 &short_hop_latched,
                 &fast_fall,
                 &scratch->ledge_invulnerability_ticks[player_index],
+                scratch->ledge_regrab_lockout_ticks[player_index],
                 facing,
                 &dash_direction))
         {
@@ -3849,6 +3870,10 @@ pf_status pf_m4_inspect(
         player->respawn_invulnerability_ticks =
             sim->world
                 .respawn_invulnerability_ticks[player_index];
+        player->ledge_invulnerability_ticks =
+            sim->world.ledge_invulnerability_ticks[player_index];
+        player->ledge_regrab_lockout_ticks =
+            sim->world.ledge_regrab_lockout_ticks[player_index];
         player->stocks_remaining =
             sim->world.stocks_remaining[player_index];
         player->hitbox_active = (uint8_t)pf_m4_attack_hitbox(

@@ -63,6 +63,7 @@ static int test_ladder_probe;
 static int test_kill_confirm_probe;
 static int test_zero_to_death_probe;
 static int test_ledge_cancel_probe;
+static int test_planking_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
@@ -105,6 +106,7 @@ void pf_web_m4_playtest_install(
     int kill_confirm_probe_passed,
     int zero_to_death_probe_passed,
     int ledge_cancel_probe_passed,
+    int planking_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -150,6 +152,7 @@ void pf_web_m4_playtest_install(
     int kill_confirm_probe_passed,
     int zero_to_death_probe_passed,
     int ledge_cancel_probe_passed,
+    int planking_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -194,6 +197,7 @@ void pf_web_m4_playtest_install(
     test_kill_confirm_probe = kill_confirm_probe_passed;
     test_zero_to_death_probe = zero_to_death_probe_passed;
     test_ledge_cancel_probe = ledge_cancel_probe_passed;
+    test_planking_probe = planking_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
@@ -333,6 +337,7 @@ int main(void)
         test_kill_confirm_probe != 1 ||
         test_zero_to_death_probe != 1 ||
         test_ledge_cancel_probe != 1 ||
+        test_planking_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
@@ -380,6 +385,7 @@ int main(void)
             "kill_confirm_probe=%d "
             "zero_to_death_probe=%d "
             "ledge_cancel_probe=%d "
+            "planking_probe=%d "
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
             "tumble_probe=%d "
@@ -416,6 +422,7 @@ int main(void)
             test_kill_confirm_probe,
             test_zero_to_death_probe,
             test_ledge_cancel_probe,
+            test_planking_probe,
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
@@ -764,6 +771,7 @@ int main(void)
         "kill_confirm_probe=%d "
         "zero_to_death_probe=%d "
         "ledge_cancel_probe=%d "
+        "planking_probe=%d "
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
         "powershield_cancel_probe=%d tumble_probe=%d "
@@ -797,6 +805,7 @@ int main(void)
         test_kill_confirm_probe,
         test_zero_to_death_probe,
         test_ledge_cancel_probe,
+        test_planking_probe,
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,

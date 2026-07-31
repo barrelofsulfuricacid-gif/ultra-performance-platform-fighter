@@ -4,7 +4,7 @@
 attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
-ledge-cancelling, the first
+ledge-cancelling, 29-tick ledge-regrab lockout and planking, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump verification
@@ -321,8 +321,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   trigger-age and tech-lockout state. The shield-platform-drop slice advances
   content/fighter schema to 19 for its hashed reduced-down threshold while
   reusing the existing shield, support, airborne, and platform-pass state.
-  Config/observation/identity schema 2, inspection schema 14, browser view
-  schema 14, and RL schema 4 remain current. The canonical save is 611 bytes.
+  The planking slice advances state schema to 18/save format 17,
+  content/fighter schema to 20, and inspection schema to 15 for a canonical
+  29-tick disabled-regrab timer and exact timer inspection.
+  Config/observation/identity schema 2, browser view schema 14, and RL schema
+  4 remain current. The canonical save is 619 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -401,6 +404,27 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   and save/load continuation. This is a foundation for edge hopping, edge
   dashing, planking, and ledge-option completion; it does not promote those
   registry rows by itself.
+
+## Delivered in the ledge-regrab and planking slice
+
+- Every ordinary release from `LEDGE_HANG` now starts a separate, data-defined
+  29-tick disabled-regrab period. Remaining ticks 28 through 1 reject an
+  otherwise legal catch; tick 0 permits the normal facing, geometry, velocity,
+  and single-occupancy catch checks.
+- The lockout is not the pass-through-platform timer, so it cannot suppress
+  floor or platform landings. Reset, KO, and respawn clear it.
+- A narrow fixture tunes the ordinary double-jump arc to return on the first
+  legal catch tick. Three consecutive drop/jump/regrab cycles refresh the
+  37-tick ledge invulnerability against an active responding jab; fast-falling
+  on the last two ticks misses the refresh and accepts that punish.
+- The native oracle saves immediately after release and compares every future
+  hash through all three cycles. Browser startup repeats both routes, reports
+  `planking_probe=1`, and restores default content.
+- State schema 18/save format 17 and `PFSAVE17` add one remaining regrab
+  lockout per player, expanding the checkpoint from 611 to 619 bytes.
+  Content/fighter schema 20 hashes and validates the 29-tick default;
+  inspection schema 15 exposes both exact ledge timers. Registry row 36,
+  Planking, advances to `playable`.
 
 ## Delivered in the instant-double-jump slice
 
@@ -857,7 +881,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  juggling, kill confirm, ladder, ledge-cancelling, mindgame, shield platform dropping, short hop air dodge, small step forward smash,
+  juggling, kill confirm, ladder, ledge-cancelling, mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -868,7 +892,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 33 playable, 4 primitive-ready, and 23 planned.
+  blocked: 1 verified, 34 playable, 4 primitive-ready, and 22 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -901,7 +925,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 184 movement invariants, 366
+- Mechanical oracles: 204 movement invariants, 366
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -909,12 +933,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,303
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,311
   bytes,
   replay SHA-256
-  `36452288611860eea89e051f26ce32dfe1a431537a0dae9bb7379047eadf1c2f`,
+  `6078e1428783c2c3dcd3e423515023f65d214c34c03eb9b8fc41a9f7f3a7270c`,
   final SHA-256
-  `d015347ede291c4f8f3dd08cc794ac12d04a74bc1b789d5ecb86facef7e36745`,
+  `d8e9cae6ef79561d07ccf6de41f64251e7546d25974ef624cc770c5da4fcccf1`,
   and event-journal SHA-256
   `d2f5992ecc10cd4fb54a6c7bb5165e2983b019207b76c3792cc4bde4379be14f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -925,7 +949,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

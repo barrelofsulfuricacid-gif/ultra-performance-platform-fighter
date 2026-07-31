@@ -279,7 +279,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)611)
+        required_bytes != (size_t)619)
     {
         return 0;
     }
@@ -831,7 +831,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)611)
+        required_bytes != (size_t)619)
     {
         return 0;
     }
@@ -1096,7 +1096,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)611)
+        required_bytes != (size_t)619)
     {
         return 0;
     }
@@ -2169,7 +2169,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         (void)fprintf(
             stderr,
@@ -2449,7 +2449,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         (void)fprintf(
             stderr,
@@ -2762,7 +2762,7 @@ static int run_dash_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "dash-cancel-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         (void)fprintf(
             stderr,
@@ -3400,7 +3400,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return 0;
     }
@@ -3909,7 +3909,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)611)
+        required_bytes != (size_t)619)
     {
         return 0;
     }
@@ -4590,7 +4590,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return 0;
     }
@@ -5768,7 +5768,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         return 0;
     }
@@ -6049,7 +6049,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)611)
+        save_size != (size_t)619)
     {
         (void)fprintf(
             stderr,
@@ -6397,6 +6397,436 @@ static int run_edge_dash_test(
     return 1;
 }
 
+static int step_planking_pair(
+    pf_sim *source,
+    pf_sim *loaded,
+    int16_t player0_y,
+    uint64_t player0_buttons,
+    uint64_t player1_buttons,
+    pf_m4_inspection *source_inspection,
+    pf_m4_inspection *loaded_inspection,
+    const char *operation)
+{
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+
+    if (!step_duel_players(
+            source,
+            INT16_C(0),
+            player0_y,
+            player0_buttons,
+            INT16_C(0),
+            INT16_C(0),
+            player1_buttons,
+            source_inspection) ||
+        !step_duel_players(
+            loaded,
+            INT16_C(0),
+            player0_y,
+            player0_buttons,
+            INT16_C(0),
+            INT16_C(0),
+            player1_buttons,
+            loaded_inspection) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "planking-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "planking-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=%s\n",
+            operation);
+        return 0;
+    }
+    return 1;
+}
+
+static int run_planking_test(
+    const pf_m4_content *default_content)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage missed_storage;
+    pf_m4_content content = *default_content;
+    pf_content_view view;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *missed = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection missed_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint16_t expected_carried_invulnerability;
+    uint32_t cycle;
+    uint32_t tick;
+
+    /*
+     * This narrow fixture makes the ordinary drop/double-jump arc return to
+     * the catch volume on the exact first legal regrab tick. The oversized
+     * jab only supplies a deterministic responding-opponent threat.
+     */
+    content.fighter.double_jump_speed_q16 =
+        INT32_C(31) * PF_Q16_ONE / INT32_C(100);
+    content.fighter.jab_hitbox_half_width_q16 =
+        INT32_C(64) * PF_Q16_ONE;
+    content.fighter.jab_hitbox_half_height_q16 =
+        INT32_C(64) * PF_Q16_ONE;
+    expected_carried_invulnerability =
+        (uint16_t)(
+            (uint32_t)content.fighter.ledge_invulnerability_ticks -
+            (uint32_t)content.fighter.landing_ticks -
+            (uint32_t)content.fighter.jump_squat_ticks -
+            UINT32_C(1));
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "planking-content") ||
+        !initialize_sim(
+            &source_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !initialize_sim(
+            &missed_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &missed) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x1ed6e91a)),
+            PF_STATUS_OK,
+            "planking-reset") ||
+        !grab_player0_right_ledge(source, &source_inspection) ||
+        !make_player0_ledge_actionable(
+            source,
+            &content,
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].ledge_regrab_lockout_ticks !=
+            content.fighter.ledge_regrab_lockout_ticks ||
+        source_inspection.players[0].platform_drop_ticks != UINT8_C(0) ||
+        source_inspection.players[0].ledge_invulnerability_ticks !=
+            expected_carried_invulnerability ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "planking-query-save-size") ||
+        save_size != (size_t)619)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=planking-release-setup\n");
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "planking-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "planking-load") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "planking-source-initial-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "planking-loaded-initial-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0 ||
+        !expect_status(
+            pf_m4_inspect(loaded, &loaded_inspection),
+            PF_STATUS_OK,
+            "planking-loaded-inspect"))
+    {
+        return 0;
+    }
+
+    for (cycle = UINT32_C(0); cycle < UINT32_C(3); ++cycle)
+    {
+        if (cycle != UINT32_C(0))
+        {
+            const uint32_t catch_ticks =
+                (uint32_t)content.fighter.landing_ticks +
+                (uint32_t)content.fighter.jump_squat_ticks;
+
+            for (tick = UINT32_C(0); tick < catch_ticks; ++tick)
+            {
+                if (!step_planking_pair(
+                        source,
+                        loaded,
+                        INT16_C(0),
+                        UINT64_C(0),
+                        UINT64_C(0),
+                        &source_inspection,
+                        &loaded_inspection,
+                        "planking-catch-future-hash"))
+                {
+                    return 0;
+                }
+            }
+            if (source_inspection.players[0].action_state !=
+                    (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+                source_inspection.players[0].action_ticks !=
+                    (uint16_t)catch_ticks ||
+                !step_planking_pair(
+                    source,
+                    loaded,
+                    INT16_MAX,
+                    UINT64_C(0),
+                    UINT64_C(0),
+                    &source_inspection,
+                    &loaded_inspection,
+                    "planking-release-future-hash") ||
+                source_inspection.players[0]
+                        .ledge_regrab_lockout_ticks !=
+                    content.fighter.ledge_regrab_lockout_ticks)
+            {
+                return 0;
+            }
+        }
+
+        for (tick = UINT32_C(1);
+             tick <= (uint32_t)
+                 content.fighter.ledge_regrab_lockout_ticks;
+             ++tick)
+        {
+            const uint64_t player0_buttons =
+                tick == UINT32_C(1)
+                    ? PF_INPUT_BUTTON_JUMP
+                    : UINT64_C(0);
+            const uint64_t player1_buttons =
+                tick == UINT32_C(26)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0);
+
+            if (!step_planking_pair(
+                    source,
+                    loaded,
+                    INT16_C(0),
+                    player0_buttons,
+                    player1_buttons,
+                    &source_inspection,
+                    &loaded_inspection,
+                    "planking-cycle-future-hash"))
+            {
+                return 0;
+            }
+            if (tick < (uint32_t)
+                    content.fighter.ledge_regrab_lockout_ticks)
+            {
+                if (source_inspection.players[0].action_state ==
+                        (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+                    source_inspection.players[0]
+                            .ledge_regrab_lockout_ticks !=
+                        (uint16_t)(
+                            (uint32_t)content.fighter
+                                .ledge_regrab_lockout_ticks -
+                            tick))
+                {
+                    (void)fprintf(
+                        stderr,
+                        "m4-movement=fail operation=planking-lockout"
+                        " cycle=%" PRIu32 " tick=%" PRIu32
+                        " action=%u remaining=%u\n",
+                        cycle,
+                        tick,
+                        (unsigned int)source_inspection.players[0]
+                            .action_state,
+                        (unsigned int)source_inspection.players[0]
+                            .ledge_regrab_lockout_ticks);
+                    return 0;
+                }
+            }
+            if (tick + UINT32_C(1) ==
+                    (uint32_t)content.fighter
+                        .ledge_regrab_lockout_ticks &&
+                (source_inspection.players[0].velocity_y_q16 <
+                     INT32_C(0) ||
+                 source_inspection.players[0].position_y_q16 <
+                     content.stage.floor_y_q16 -
+                         content.fighter.half_height_q16 ||
+                 source_inspection.players[0].position_y_q16 >
+                     content.stage.floor_y_q16 +
+                         content.fighter.half_height_q16 ||
+                 source_inspection.players[0].position_x_q16 <=
+                     content.stage.floor_right_q16 ||
+                 (int64_t)source_inspection.players[0]
+                         .position_x_q16 -
+                         (int64_t)content.stage.floor_right_q16 >
+                     (int64_t)content.fighter.half_width_q16 +
+                         (int64_t)content.fighter.air_speed_q16 ||
+                 source_inspection.players[0].facing != INT8_C(-1)))
+            {
+                (void)fprintf(
+                    stderr,
+                    "m4-movement=fail operation=planking-legal-catch"
+                    " cycle=%" PRIu32 " tick=%" PRIu32
+                    " position=(%" PRId32 ",%" PRId32 ")"
+                    " velocity_y=%" PRId32 " facing=%d\n",
+                    cycle,
+                    tick,
+                    source_inspection.players[0].position_x_q16,
+                    source_inspection.players[0].position_y_q16,
+                    source_inspection.players[0].velocity_y_q16,
+                    (int)source_inspection.players[0].facing);
+                return 0;
+            }
+        }
+        if (source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+            source_inspection.players[0].ledge !=
+                (uint8_t)PF_M4_LEDGE_RIGHT ||
+            source_inspection.players[0].ledge_regrab_lockout_ticks !=
+                UINT16_C(0) ||
+            source_inspection.players[0].ledge_invulnerability_ticks !=
+                content.fighter.ledge_invulnerability_ticks ||
+            source_inspection.players[0].air_jumps_remaining !=
+                content.fighter.air_jump_count ||
+            source_inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=planking-regrab"
+                " cycle=%" PRIu32 " action=%u ledge=%u"
+                " lockout=%u invulnerability=%u damage=%" PRIu32
+                " position=(%" PRId32 ",%" PRId32 ")"
+                " velocity=(%" PRId32 ",%" PRId32 ")\n",
+                cycle,
+                (unsigned int)source_inspection.players[0].action_state,
+                (unsigned int)source_inspection.players[0].ledge,
+                (unsigned int)source_inspection.players[0]
+                    .ledge_regrab_lockout_ticks,
+                (unsigned int)source_inspection.players[0]
+                    .ledge_invulnerability_ticks,
+                source_inspection.players[0].damage_q16,
+                source_inspection.players[0].position_x_q16,
+                source_inspection.players[0].position_y_q16,
+                source_inspection.players[0].velocity_x_q16,
+                source_inspection.players[0].velocity_y_q16);
+            return 0;
+        }
+    }
+
+    if (!expect_status(
+            pf_sim_reset(missed, UINT64_C(0x1ed6e91b)),
+            PF_STATUS_OK,
+            "planking-missed-reset") ||
+        !grab_player0_right_ledge(missed, &missed_inspection) ||
+        !make_player0_ledge_actionable(
+            missed,
+            &content,
+            &missed_inspection) ||
+        !step_duel(
+            missed,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &missed_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick <= (uint32_t)content.fighter.ledge_regrab_lockout_ticks;
+         ++tick)
+    {
+        if (!step_duel_players(
+                missed,
+                INT16_C(0),
+                tick >= UINT32_C(28) ? INT16_MAX : INT16_C(0),
+                tick == UINT32_C(1)
+                    ? PF_INPUT_BUTTON_JUMP
+                    : UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(26)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                &missed_inspection))
+        {
+            return 0;
+        }
+        if (tick == UINT32_C(28) &&
+            (missed_inspection.players[0].action_state ==
+                 (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+             missed_inspection.players[0]
+                     .ledge_regrab_lockout_ticks != UINT16_C(1)))
+        {
+            return 0;
+        }
+    }
+    if (missed_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        missed_inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE ||
+        missed_inspection.players[0].ledge_regrab_lockout_ticks !=
+            UINT16_C(0) ||
+        missed_inspection.players[0].ledge_invulnerability_ticks !=
+            UINT16_C(0) ||
+        missed_inspection.players[0].damage_q16 !=
+            content.fighter.jab_damage_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=planking-missed-punish"
+            " action=%u ledge=%u lockout=%u invulnerability=%u"
+            " damage=%" PRIu32 " position=(%" PRId32 ",%" PRId32
+            ")\n",
+            (unsigned int)missed_inspection.players[0].action_state,
+            (unsigned int)missed_inspection.players[0].ledge,
+            (unsigned int)missed_inspection.players[0]
+                .ledge_regrab_lockout_ticks,
+            (unsigned int)missed_inspection.players[0]
+                .ledge_invulnerability_ticks,
+            missed_inspection.players[0].damage_q16,
+            missed_inspection.players[0].position_x_q16,
+            missed_inspection.players[0].position_y_q16);
+        return 0;
+    }
+    return 1;
+}
+
 static int run_ledge_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -6414,7 +6844,16 @@ static int run_ledge_test(
     if (!expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
-            "ledge-invulnerability-invalid-content") ||
+            "ledge-invulnerability-invalid-content"))
+    {
+        return 0;
+    }
+    invalid_content = *content;
+    invalid_content.fighter.ledge_regrab_lockout_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "ledge-regrab-lockout-invalid-content") ||
         !initialize_sim(
             &storage,
             view,
@@ -6615,7 +7054,8 @@ static int run_ledge_test(
             (uint8_t)PF_M4_LEDGE_NONE ||
         !run_ledge_occupancy_test(content) ||
         !run_ledge_hit_rejection_test(content) ||
-        !run_edge_hop_test(content, view))
+        !run_edge_hop_test(content, view) ||
+        !run_planking_test(content))
     {
         (void)fprintf(
             stderr,
@@ -6822,7 +7262,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=184 ledge_cancel=1\n",
+        "movement_invariants=204 ledge_cancel=1 planking=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

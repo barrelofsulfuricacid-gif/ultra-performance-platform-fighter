@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–16 / state schemas 1–17
+- **Status:** Accepted for save formats 1–17 / state schemas 1–18
 - **Date:** 2026-07-28
 
 ## Decision
@@ -26,11 +26,13 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 14 | 15 | 140 | 463 | 603 | ABI-4 typed per-tick event journal and authoritative event-sequence semantics; no payload-layout change |
 | 15 | 16 | 140 | 463 | 603 | Canonical shield-break flight/down/stand/stun action semantics; no payload-layout change |
 | 16 | 17 | 140 | 471 | 611 | One canonical remaining ledge-invulnerability timer per player |
+| 17 | 18 | 140 | 479 | 619 | One canonical remaining ledge-regrab-lockout timer per player |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
-`PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, or `PFSAVE16`.
-The active M4 runtime emits and accepts format 16 with state schema 17. Earlier
+`PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
+`PFSAVE17`.
+The active M4 runtime emits and accepts format 17 with state schema 18. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -58,6 +60,13 @@ Format 16 adds four little-endian 16-bit ledge-invulnerability timers. A timer
 is refreshed by a legal ledge catch, survives ledge release and jump, counts
 down once per simulation tick, rejects production hit ownership while
 nonzero, and remains canonical across save/load and rollback.
+Format 17 adds four little-endian 16-bit ledge-regrab-lockout timers. Ordinary
+ledge release sets the data-defined 29-tick disabled-regrab period; the release
+frame and the following 28 movement resolutions cannot catch either ledge,
+while the next resolution may catch if the ordinary position, velocity,
+facing, and occupancy rules also pass. The lockout is independent of the
+pass-through-platform timer, counts down in canonical time, clears on
+reset/respawn, and remains deterministic across save/load and rollback.
 
 ## Why SHA-256
 
@@ -122,6 +131,10 @@ service-envelope responsibility.
 - Exact per-tick journal equality after a mid-respawn save/load continuation,
   plus typed KO, respawn, sudden-death, result, forfeit, and time-limit event
   validation.
+- Exact disabled-regrab rejection through remaining tick 1, first-legal-tick
+  catch and ledge-invulnerability refresh, reset/respawn clearing, and equal
+  future hashes through three planking cycles in
+  `tests/sim/test_m4_movement.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in
