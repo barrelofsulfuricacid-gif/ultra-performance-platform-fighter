@@ -2300,6 +2300,326 @@ static int run_shield_state_test(
     return 1;
 }
 
+static int run_dashing_shield_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage tap_storage;
+    test_sim_storage held_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage idle_storage;
+    pf_sim *tap = NULL;
+    pf_sim *held = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *idle = NULL;
+    pf_m4_inspection tap_inspection;
+    pf_m4_inspection held_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection idle_inspection;
+    pf_state_hash tap_hash;
+    pf_state_hash held_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    int32_t run_start_x;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &tap_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &tap) ||
+        !initialize_sim(
+            &held_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &held) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !initialize_sim(
+            &idle_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &idle))
+    {
+        return fail("dashing-shield-init");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                tap,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &tap_inspection) ||
+            !step_reaction_duel(
+                held,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &held_inspection))
+        {
+            return fail("dashing-shield-run-setup");
+        }
+    }
+    run_start_x = tap_inspection.players[0].position_x_q16;
+    if (tap_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        held_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        tap_inspection.players[0].velocity_x_q16 !=
+            held_inspection.players[0].velocity_x_q16 ||
+        tap_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        !step_reaction_duel(
+            tap,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &tap_inspection) ||
+        !step_reaction_duel(
+            held,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &held_inspection) ||
+        tap_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        tap_inspection.players[0].action_ticks != UINT16_C(1) ||
+        tap_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        tap_inspection.players[0].position_x_q16 <= run_start_x ||
+        !expect_status(
+            pf_sim_hash(tap, &tap_hash),
+            PF_STATUS_OK,
+            "dashing-shield-tap-hash") ||
+        !expect_status(
+            pf_sim_hash(held, &held_hash),
+            PF_STATUS_OK,
+            "dashing-shield-held-hash") ||
+        !hash_equal(&tap_hash, &held_hash) ||
+        !expect_status(
+            pf_sim_query_save_size(tap, &save_size),
+            PF_STATUS_OK,
+            "dashing-shield-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return fail("dashing-shield-entry");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(tap, &destination),
+            PF_STATUS_OK,
+            "dashing-shield-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "dashing-shield-load"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.shield_minimum_hold_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                tap,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &tap_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !step_reaction_duel(
+                held,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &held_inspection) ||
+            !expect_status(
+                pf_sim_hash(tap, &tap_hash),
+                PF_STATUS_OK,
+                "dashing-shield-release-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "dashing-shield-loaded-release-hash") ||
+            !hash_equal(&tap_hash, &loaded_hash))
+        {
+            return fail("dashing-shield-minimum-hold");
+        }
+    }
+    if (tap_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        tap_inspection.players[0].action_ticks != UINT16_C(0) ||
+        held_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        held_inspection.players[0].action_ticks !=
+            content->fighter.shield_minimum_hold_ticks ||
+        tap_inspection.players[0].position_x_q16 !=
+            held_inspection.players[0].position_x_q16 ||
+        tap_inspection.players[0].position_x_q16 <= run_start_x ||
+        tap_inspection.players[0].velocity_x_q16 !=
+            held_inspection.players[0].velocity_x_q16)
+    {
+        return fail("dashing-shield-tap-versus-held");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.shield_release_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                tap,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &tap_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !step_reaction_duel(
+                held,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &held_inspection) ||
+            !expect_status(
+                pf_sim_hash(tap, &tap_hash),
+                PF_STATUS_OK,
+                "dashing-shield-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "dashing-shield-loaded-future-hash") ||
+            !hash_equal(&tap_hash, &loaded_hash))
+        {
+            return fail("dashing-shield-release-duration");
+        }
+    }
+    if (tap_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        held_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        tap_inspection.players[0].position_x_q16 !=
+            held_inspection.players[0].position_x_q16 ||
+        tap_inspection.players[0].position_x_q16 <= run_start_x ||
+        tap_inspection.players[0].shield_health_q16 <=
+            held_inspection.players[0].shield_health_q16)
+    {
+        return fail("dashing-shield-recovery-versus-held");
+    }
+
+    if (!expect_status(
+            pf_m4_inspect(idle, &idle_inspection),
+            PF_STATUS_OK,
+            "dashing-shield-idle-inspect"))
+    {
+        return 0;
+    }
+    run_start_x = idle_inspection.players[0].position_x_q16;
+    if (!step_reaction_duel(
+            idle,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &idle_inspection) ||
+        idle_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        idle_inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        idle_inspection.players[0].position_x_q16 != run_start_x)
+    {
+        return fail("dashing-shield-idle-negative");
+    }
+    return 1;
+}
+
 static int run_shield_block_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -5196,6 +5516,7 @@ int main(void)
             &ceiling_tech_view) ||
         !run_whiff_and_trade_test(&content, &view) ||
         !run_shield_state_test(&content, &view) ||
+        !run_dashing_shield_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
@@ -5236,7 +5557,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=126 journal_invariants=30\n",
+        " combat_invariants=135 journal_invariants=30\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

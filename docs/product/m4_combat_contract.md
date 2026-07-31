@@ -7,7 +7,7 @@ deterministic hit reaction and the first dense-shield primitive: trajectory
 DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
 directional ground tech, wall tech, wall-tech jump, ceiling tech,
 missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
-shield stop, shield damage/stun/pushback, shield release and
+shield stop, dashing shield, shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
 physical powershielding, and
 frame-2 powershield canceling into either current production ground attack.
@@ -223,6 +223,13 @@ The current full-density values are data, not hidden constants:
 Shield release regenerates health because the blocking volume is no longer
 active. Holding shield cannot reopen a tech window without a new trigger edge,
 so the existing tech-window/lockout contract remains intact.
+
+A dashing shield is the one-tick tap/release form of the same production
+run-to-shield transition. It inherits run momentum and follows the exact shield
+stop traction path through the eight-tick minimum hold, then enters the
+15-tick release instead of remaining shielded. A held comparison therefore has
+the same position and velocity but a different action state at the minimum-hold
+boundary; an idle tap has no horizontal travel.
 
 ## Blocking, shield stun, and powershield
 
@@ -469,7 +476,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 126 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 135 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -505,6 +512,9 @@ mechanics invariants plus 30 journal invariants, including:
 - run shield stop, the initial-dash shield restriction, hold depletion,
   minimum hold, bounded action timer, release lag, regeneration, and jump
   cancel;
+- one-tick dashing-shield tap/release versus held shield stop with exact
+  position, velocity, action, health, and release-duration boundaries; idle
+  no-travel; and mid-route save/load with equal future hashes;
 - ordinary block damage/stun/hitlag/pushback, four-tick physical powershield,
   zero powershield damage, larger powershield pushback, and result-flag
   clearing;

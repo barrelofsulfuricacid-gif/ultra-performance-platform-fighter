@@ -101,4 +101,4 @@ END {
 }
 ' "$registry"
 
-echo "m4-technique-registry=pass rows=61 verified=1 playable=17 primitive_ready=7 planned=36 acceptance=blocked"
+echo "m4-technique-registry=pass rows=61 verified=1 playable=18 primitive_ready=7 planned=35 acceptance=blocked"

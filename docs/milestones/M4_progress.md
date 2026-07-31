@@ -476,6 +476,21 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   and broader attack set must join this router as those actions land before the
   row can become `verified`.
 
+## Delivered in the dashing-shield route
+
+- A one-tick shield tap from `RUN` now has an explicit production-path
+  contract: inherited run momentum slides under ordinary traction through the
+  eight-tick minimum hold, then the existing 15-tick `SHIELD RELEASE` returns
+  the fighter to an actionable grounded state.
+- The focused combat oracle compares the tap against a held shield stop at
+  every boundary, including exact position and velocity, final action and
+  shield health, an idle no-travel negative case, and mid-route save/load
+  future-hash equality.
+- Browser readiness repeats the tap, held, and idle routes. Registry row 11,
+  Dashing shield, advances from `planned` to `playable`; owner execution plus
+  full native/WebAssembly replay and rollback evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -509,15 +524,18 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Down from an unlocked run remains the sliding crouch-cancel route; jump and
   shield remain the other live dash cancels. Initial-dash shield and
   run-turnaround crouch input remain rejected.
+- A one-tick shield tap from run retains the held shield stop's traction path,
+  but enters release as soon as the eight-tick minimum completes. Holding the
+  trigger remains `SHIELD`, while the same tap from idle has no travel.
 
 ## New binding M4.4 scope
 
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, dash canceling, edge dashing, edge hopping,
-  fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL, short hop
-  air dodge, and wavedash are now playable; other rows
+  verified; auto-canceling, dash canceling, dashing shield, edge dashing, edge
+  hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
+  short hop air dodge, and wavedash are now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -526,7 +544,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 17 playable, 7 primitive-ready, and 36 planned.
+  blocked: 1 verified, 18 playable, 7 primitive-ready, and 35 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -558,7 +576,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 131 movement invariants, 126
+- Mechanical oracles: 150 movement invariants, 135
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -582,7 +600,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-and-dash-cancel/edge-hop-and-dash/
+  movement/fox-trot/pivot-dash-cancel-and-dashing-shield/edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/

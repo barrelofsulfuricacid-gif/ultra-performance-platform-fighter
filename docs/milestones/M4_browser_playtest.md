@@ -54,6 +54,12 @@ sliding `SHIELD`. A ground attack can immediately interrupt the crouch while
 the remaining momentum carries forward. Shield during `INITIAL DASH` and down
 during `RUN TURNAROUND` are deliberate negative cases.
 
+For a dashing shield, reach `RUN`, tap shield for one tick, and release it.
+The inherited run momentum continues sliding under traction through the
+eight-tick minimum hold and 15-tick `SHIELD RELEASE`. Repeat while holding
+shield: the travel path is the same, but the fighter remains `SHIELD`. A shield
+tap from idle is the no-travel negative case.
+
 Once `INITIAL DASH` has transitioned to `RUN`, a full opposite input enters
 `RUN TURNAROUND`, not another initial dash. The placeholder fighter uses a
 data-driven 12-tick turnaround. Holding at least 0.625 stick magnitude toward
@@ -365,9 +371,13 @@ registry row can advance from `playable` to `verified`.
     health drains, an early key release waits for the eight-tick minimum, and
     `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
     confirm `JUMP SQUAT`.
-27. Reach `RUN`, then hold shield. Confirm `SHIELD` replaces `RUN` while the
-    fighter slides forward and slows under traction. Reset, press shield during
-    `INITIAL DASH`, and confirm the fighter does not shield until run.
+27. Reach `RUN`, tap shield for one tick, and release. Confirm `SHIELD`
+    replaces `RUN`, the fighter slides forward under traction, enters
+    `SHIELD RELEASE` when the eight-tick minimum completes, and returns to idle
+    after 15 release ticks. Repeat while holding shield and confirm the same
+    travel path remains `SHIELD`. Reset, tap shield from idle and confirm no
+    horizontal travel; then press shield during `INITIAL DASH` and confirm the
+    fighter does not shield until run.
 28. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
     defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
@@ -426,6 +436,9 @@ through:
 - initial-dash jump cancel plus run-to-crouch and run-to-shield cancels, an
   immediate crouch attack with retained slide, and early-shield/turnaround
   negative routes;
+- one-tick run-to-shield tap/release travel through the minimum hold and full
+  release, compared with a held shield stop on the same traction path and an
+  idle no-travel negative route;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -475,7 +488,8 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
-fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass combat_probe=pass
+fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
+dashing_shield_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

@@ -43,6 +43,11 @@ pass-through platforms are horizontal surface heights.
   Jump and shield provide the other current production dash-cancel routes.
   Shield remains excluded during `INITIAL DASH`, and down cannot cancel the
   locked `RUN TURNAROUND` state.
+- Tapping shield for one tick from `RUN` preserves that run momentum through
+  the data-defined eight-tick minimum hold, then enters the 15-tick
+  `SHIELD RELEASE` while ordinary traction finishes the slide. Holding shield
+  follows the same traction path but remains `SHIELD`; raising shield from
+  idle has no inherited horizontal travel. This is the dashing-shield route.
 - Client keyboard adapters must expose both full-magnitude and reduced-magnitude
   horizontal input. The browser loop will retain explicit walk controls rather
   than collapsing every key press into a full dash value.
@@ -307,4 +312,7 @@ bounds, and blast zones.
 - a 20,000-tick four-player trace whose canonical state must remain valid and
   hashable after every tick.
 
-The focused movement oracle currently reports 131 invariants.
+The focused movement oracle currently reports 150 invariants. The focused
+combat oracle adds the dashing-shield tap-versus-held travel/action boundary,
+idle no-travel negative case, and mid-route save/load continuation within its
+135 combat invariants.
