@@ -25,6 +25,12 @@ pass-through platforms are horizontal surface heights.
   of the data-defined initial dash. Repeating that tap/release rhythm fox-trots;
   holding through the full initial-dash window reaches `RUN`, while a fresh
   reduced-magnitude input enters `WALK` instead.
+- A one-tick full reversal during initial dash is the pivot window. Returning
+  to neutral on the next tick produces an empty pivot in grounded idle while
+  preserving the reversed facing and a traction-reduced backward slide;
+  pressing a ground action on that tick acts with the same facing and
+  momentum. Holding the reversal continues the opposite initial dash, and a
+  reversal after `RUN` has begun uses `RUN TURNAROUND` instead.
 - Once initial dash has become `RUN`, an opposite input at or above the
   data-defined 0.375 threshold enters `RUN TURNAROUND`, never another initial
   dash. Holding at least the data-defined 0.625 threshold toward the new
@@ -260,6 +266,8 @@ bounds, and blast zones.
 - content validation, content-hash rejection, and a data-tuning effect;
 - proportional walk, initial dash, run, four-burst same-direction fox-trotting,
   held-run and weak-walk negative cases, mid-rhythm save/load continuation,
+  one-tick empty/action pivoting with facing and momentum preservation,
+  held-reversal and post-run negative cases, mid-pivot save/load continuation,
   dash-dance reversal, run turnaround, turnaround lockout, run brake, facing,
   traction, and crouch;
 - neutral trigger-to-shield behavior; fresh and shield-held forward/backward

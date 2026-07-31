@@ -46,6 +46,7 @@ static int test_instant_double_jump_probe;
 static int test_edge_hop_probe;
 static int test_edge_dash_probe;
 static int test_fox_trot_probe;
+static int test_pivot_probe;
 static int test_combat_probe;
 static int test_reaction_probe;
 static int test_shield_probe;
@@ -70,6 +71,7 @@ void pf_web_m4_playtest_install(
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
+    int pivot_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -97,6 +99,7 @@ void pf_web_m4_playtest_install(
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
+    int pivot_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
     int shield_probe_passed,
@@ -121,6 +124,7 @@ void pf_web_m4_playtest_install(
     test_edge_hop_probe = edge_hop_probe_passed;
     test_edge_dash_probe = edge_dash_probe_passed;
     test_fox_trot_probe = fox_trot_probe_passed;
+    test_pivot_probe = pivot_probe_passed;
     test_combat_probe = combat_probe_passed;
     test_reaction_probe = reaction_probe_passed;
     test_shield_probe = shield_probe_passed;
@@ -218,6 +222,7 @@ int main(void)
         test_edge_hop_probe != 1 ||
         test_edge_dash_probe != 1 ||
         test_fox_trot_probe != 1 ||
+        test_pivot_probe != 1 ||
         test_combat_probe != 1 ||
         test_reaction_probe != 1 ||
         test_shield_probe != 1 ||
@@ -248,7 +253,7 @@ int main(void)
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
             "dash=%d input_probe=%d air_facing_probe=%d "
             "instant_double_jump_probe=%d edge_hop_probe=%d "
-            "edge_dash_probe=%d fox_trot_probe=%d "
+            "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
             "tumble_probe=%d "
@@ -267,6 +272,7 @@ int main(void)
             test_edge_hop_probe,
             test_edge_dash_probe,
             test_fox_trot_probe,
+            test_pivot_probe,
             test_combat_probe,
             test_reaction_probe,
             test_shield_probe,
@@ -362,6 +368,40 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != 1)
     {
         return fail("keyboard-fox-trot");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(
+            test_dash_axis,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        !pf_web_m4_playtest_step(
+            -test_dash_axis,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1 ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 12 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] >= 0)
+    {
+        return fail("keyboard-pivot-attack");
     }
 
     if (!pf_web_m4_playtest_reset() ||
@@ -541,7 +581,7 @@ int main(void)
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d "
         "instant_double_jump_probe=%d edge_hop_probe=%d "
-        "edge_dash_probe=%d fox_trot_probe=%d "
+        "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
         "powershield_cancel_probe=%d tumble_probe=%d "
@@ -557,6 +597,7 @@ int main(void)
         test_edge_hop_probe,
         test_edge_dash_probe,
         test_fox_trot_probe,
+        test_pivot_probe,
         test_combat_probe,
         test_reaction_probe,
         test_shield_probe,

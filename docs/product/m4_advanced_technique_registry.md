@@ -61,7 +61,7 @@ current build can perform the technique.
 | 32 | Mindgame | planned | M4.4 | At least two credible movement/defense/attack branches and responding opponent policy | — | Future: use the same approach startup to produce two legal outcomes that punish opposite responses |
 | 33 | Moonwalk | planned | M4.4 | Melee stick-history sampling, turnaround momentum, traction, and facing oracle | — | Future: perform the stick sweep and confirm backward slide while facing forward; compare a mistimed sweep |
 | 34 | Powershield | playable | M4.4 | Four-tick physical window, dense shield, attack block; projectile two-tick reflection remains | `tests/sim/test_m4_combat.c`; `src/web_client/m4_playtest.c`; `tools/verify_m4_combat.sh`; `tools/verify_m4_browser.sh` | Raise shield immediately before the physical attack connects; confirm powershield indicator, zero attack shield damage, ordinary stun, and larger pushback; raise it five or more ticks early for the negative case |
-| 35 | Pivoting | planned | M4.4 | Turnaround frame, action interrupts, facing and velocity preservation | — | Future: reverse from run and act on the legal pivot frame; repeat early/late |
+| 35 | Pivoting | playable | M4.4 | The production initial-dash reversal supplies the one-tick pivot window; neutral or a ground action on the next tick preserves reversed facing and residual momentum, while held reversal continues dash and post-window reversal enters run turnaround | `tests/sim/test_m4_movement.c` covers exact pivot timing, empty pivot, immediate attack, facing/momentum preservation, held and post-run negative routes, and mid-pivot save/load hash continuation; `src/web_client/m4_playtest.c` repeats those routes before browser readiness | Dash, tap the opposite full direction for exactly one tick, then return to neutral and immediately attack; confirm the new facing and backward slide persist. Repeat without attacking for an empty pivot, hold the reversal to continue dashing, and try after `RUN` to confirm `RUN TURNAROUND` instead |
 | 36 | Planking | planned | M4.4 | Ledge invulnerability/regrab limits, aerial options, stocks, anti-stall policy | — | Future: repeat a legal ledge refresh sequence while an opponent threatens the ledge and inspect vulnerability gaps |
 | 37 | Power shield canceling | playable | M4.4 | Physical powershield result, data-driven one-frame release delay, and both current production light/strong ground attacks; future ground actions must join the same cancel router before verification | `tests/sim/test_m4_combat.c` covers positive/negative timing and focused replay; browser shield/PSC startup probe | Powershield the physical attack, release shield before shield stun ends, leave frame 1 of `SHIELD RELEASE` neutral, then press light or strong attack on frame 2; repeat after an ordinary block and confirm the full 15-tick release cannot be canceled |
 | 38 | Scar Jump | planned | M4.4 | Ledge jump/release, wall/stage geometry, recovery and aerial routes | — | Future: execute the named ledge route on original equivalent geometry and compare a missed wall/ledge timing |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 15 `playable`, 7
-`primitive-ready`, and 38 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 16 `playable`, 7
+`primitive-ready`, and 37 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.

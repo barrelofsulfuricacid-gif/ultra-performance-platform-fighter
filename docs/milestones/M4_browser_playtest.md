@@ -41,6 +41,13 @@ and the neutral tick preserves a short traction slide. Holding the direction
 instead reaches `RUN` after the data-defined ten-tick window; using the
 `Shift`/reduced-magnitude input after release produces `WALK`, not another dash.
 
+For a pivot, begin an initial dash, tap the opposite full direction for one
+tick, then return to neutral and immediately press the attack key. The attack
+uses the reversed facing while residual reversal momentum slides under
+traction. Omitting the attack produces an empty pivot; holding the reversal
+continues the opposite dash, and attempting the route after `RUN` instead
+enters `RUN TURNAROUND`.
+
 Once `INITIAL DASH` has transitioned to `RUN`, a full opposite input enters
 `RUN TURNAROUND`, not another initial dash. The placeholder fighter uses a
 data-driven 12-tick turnaround. Holding at least 0.625 stick magnitude toward
@@ -241,7 +248,11 @@ registry row can advance from `playable` to `verified`.
 ## Focused owner checks
 
 1. Tap left and right rapidly without `Shift`. Confirm each reversal occurs
-   during `INITIAL DASH` without a neutral key press.
+   during `INITIAL DASH` without a neutral key press. Then dash right, tap left
+   for exactly one tick, release to neutral, and immediately press `F`. Confirm
+   the attack faces left while the fighter still slides left. Repeat without
+   `F` for grounded idle, with left held for continued dash, and after reaching
+   `RUN` for the `RUN TURNAROUND` negative case.
 2. Hold `Shift+A` and `Shift+D`. Confirm the state inspector says `WALK` and
    movement is visibly slower than unmodified `A`/`D`.
 3. Hold a direction until the inspector says `RUN`, then press the opposite
@@ -400,6 +411,9 @@ through:
   new initial dash;
 - four same-direction full-input tap/release bursts each restarting tick 1 of
   `INITIAL DASH`, plus held-run and reduced-magnitude-walk negative routes;
+- a one-tick initial-dash reversal followed by an immediate ground attack or
+  empty pivot while retaining facing and momentum, plus held-reversal and
+  post-run negative routes;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -449,7 +463,7 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
-fox_trot_probe=pass combat_probe=pass
+fox_trot_probe=pass pivot_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

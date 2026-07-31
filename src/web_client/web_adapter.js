@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -451,6 +451,7 @@ mergeInto(LibraryManager.library, {
     edgeHopProbePassed,
     edgeDashProbePassed,
     foxTrotProbePassed,
+    pivotProbePassed,
     combatProbePassed,
     reactionProbePassed,
     shieldProbePassed,
@@ -636,6 +637,10 @@ mergeInto(LibraryManager.library, {
       "enters RUN TURNAROUND instead. To fox-trot, rhythmically tap and release " +
       "one full direction; each fresh tap restarts INITIAL DASH, while holding " +
       "the direction reaches RUN and a reduced-magnitude re-entry only walks. " +
+      "To pivot, dash, tap the opposite full direction for one tick, return to " +
+      "neutral on the next tick, and immediately attack; the fighter keeps the " +
+      "new facing and reversal momentum. Holding the reversal continues the " +
+      "dash, while attempting it after RUN enters RUN TURNAROUND. " +
       "Fall beside a ledge while facing inward " +
       "to grab it; after the catch, press inward to climb, down or away to " +
       "release, or jump to ledge-jump. For an edge hop, tap down from hang, " +
@@ -963,6 +968,8 @@ mergeInto(LibraryManager.library, {
         (edgeDashProbePassed ? "pass" : "fail") +
         " fox_trot_probe=" +
         (foxTrotProbePassed ? "pass" : "fail") +
+        " pivot_probe=" +
+        (pivotProbePassed ? "pass" : "fail") +
         " combat_probe=" +
         (combatProbePassed ? "pass" : "fail") +
         " event_journal_probe=" +
@@ -999,6 +1006,7 @@ mergeInto(LibraryManager.library, {
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
+      status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
       status.dataset.eventJournalProbe =
         combatProbePassed ? "pass" : "fail";
