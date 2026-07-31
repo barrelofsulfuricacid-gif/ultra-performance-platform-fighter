@@ -342,6 +342,32 @@ scaled vector, so save/load, replay, browser, and verifier paths observe the
 same deterministic result. See the
 [V-cancelling description](https://www.ssbwiki.com/V-cancelling).
 
+## Double jump cancel counter
+
+The placeholder fighter authors a 20-tick maximum hitstun threshold for
+knockback-based armor during `DELAYED_AIR_JUMP`. Hit resolution first computes
+the ordinary physical-hit reaction. If the defender was in that delayed jump
+and the computed hitstun is nonzero and at or below the authored threshold,
+the hit still applies damage, attribution, and ordinary hitlag to both players,
+but applies no launch, hitstun, or tumble. The hit event remains the ordinary
+typed physical hit with zero velocity and no reaction flags.
+
+The defender's position, velocity, air-jump consumption, delayed-jump action
+tick, and cancel window freeze through hitlag. When hitlag ends, the defender
+resumes `DELAYED_AIR_JUMP` at that same action tick and may immediately use the
+ordinary light or strong aerial cancel. This preserves the original
+double-jump trajectory until the counter aerial cancels its upward momentum;
+it does not add a counter-only action, input, event, or mutable state.
+
+The threshold is inclusive. The focused fixture's 16-hitstun aerial qualifies
+at a threshold of 16 and launches normally at 15 or zero. A hit after the
+six-tick delayed-jump window and the fixture's 34-hitstun strong aerial both
+use the ordinary launch/tumble path. Non-physical reactions never qualify, and
+an armored hit neither consumes nor activates V-cancel. The behavior follows
+the knockback-armor and immediate-aerial counter topology documented for
+[double jump cancel counter](https://www.ssbwiki.com/Double_jump_cancel_counter),
+while all timing and fighter data remain original placeholders.
+
 ## Damage, hitlag, launch, and hitstun
 
 Damage is unsigned Q16.16 percent and saturates at 999%. The default light jab
@@ -859,9 +885,12 @@ four action labels and the typed throw event.
 
 ## Canonical state and inspection
 
-State schema 24 / save format 23 retains the 635-byte stream (140-byte header
-plus 495-byte payload) and changes the active magic to `PFSAVE23`. It makes the
-`DELAYED_AIR_JUMP` action ID, authored half-open aerial-cancel window,
+State schema 25 / save format 24 retains the 635-byte stream (140-byte header
+plus 495-byte payload) and changes the active magic to `PFSAVE24`. It makes
+knockback-based delayed-air-jump armor, zero-launch hit events, preserved
+trajectory/action timing, and `DELAYED_AIR_JUMP` hitlag resume fail closed
+without adding mutable fields. It follows state schema 24 / save format 23,
+which made the `DELAYED_AIR_JUMP` action ID, authored half-open aerial-cancel window,
 remaining-upward-velocity cancellation, late full-arc behavior, and
 simultaneous jump-plus-attack non-consumption fail closed without adding
 mutable fields. It follows state schema 23 / save format 22, which made the
@@ -909,8 +938,11 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 26 / fighter schema 26 adds and hashes the double-jump-cancel
-window; zero disables the delayed action and values above 120 are rejected. It
+Content schema 27 / fighter schema 27 adds and hashes the inclusive
+`double_jump_armor_max_hitstun_ticks` threshold. Zero disables armor; the
+value is range-checked, and an authored armor threshold requires a nonzero
+double-jump-cancel window. It follows schema 26's double-jump-cancel window;
+zero disables the delayed action and values above 120 are rejected. Schema 26
 follows schema 25's reset maximum damage, maximum hitstun, bound duration and
 speed, and forced-getup duration. It follows
 schema 24's inclusive first-jab combo-input window plus the final jab's hitbox
@@ -944,8 +976,9 @@ Loading validates every new timer, flag, direction, action relationship,
 inactive slot, and pending-launch bound before replacing live state. Saving
 during hitlag and continuing after load must produce the same per-tick hashes.
 
-Inspection schema 21 identifies the delayed-air-jump state/content contract
-while retaining schema 20's jab-reset contract, schema 19's jab-sequence
+Inspection schema 22 identifies the delayed-air-jump armor and hitlag-resume
+contract while retaining schema 21's delayed-air-jump state/content contract,
+schema 20's jab-reset contract, schema 19's jab-sequence
 contract, schema 18's dash-attack contract,
 schema 17's throw contract, and
 schema 16's grabbox bounds/active
@@ -957,8 +990,9 @@ lockout, trigger-held state, SDI count/direction, tech direction, shield
 health/stun/powershield, derived ledge/tech/air-dodge invulnerability, active hitbox
 bounds, last-hit metadata, solid-block geometry, trigger age, and derived
 L-cancel eligibility, plus stock rules, remaining stocks, respawn timers,
-sudden death, and result. Browser view schema 20 carries `DELAYED AIR JUMP` and
-the double-jump-cancel readiness probe while retaining schema 19's `RESET
+sudden death, and result. Browser view schema 21 carries the
+double-jump-cancel-counter readiness probe while retaining schema 20's
+`DELAYED AIR JUMP` label and double-jump-cancel readiness probe, schema 19's `RESET
 BOUND`, `FORCED GETUP`, and jab-reset readiness probe and schema 18's
 `JAB FINAL` and jab-cancel probe, `DASH ATTACK`, the boost-grab readiness probe,
 the throw action/event identities, and the grab fields. It

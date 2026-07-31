@@ -7,7 +7,8 @@ plus directional air dodge, helpless fall, wavedash/waveland,
 ledge-cancelling, 29-tick ledge-regrab lockout and planking, the first
 light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
-plus explicit first-airborne-frame instant double jump and double-jump-cancel verification
+plus explicit first-airborne-frame instant double jump, double-jump-cancel,
+and double-jump-cancel-counter verification
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
 results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
@@ -37,7 +38,7 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   and ledge climb.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
-- A rollback-safe state-schema-24/save-format-23 contract that serializes every
+- A rollback-safe state-schema-25/save-format-24 contract that serializes every
   future-affecting movement, attack, hit-reaction, ground-tech, and current
   shield and match field plus the authoritative event sequence.
 - Replay format 1 regenerated against the new canonical state schema and real
@@ -59,7 +60,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
 - A native and Wasm startup contract that refuses readiness unless walk,
   dash-dance reversal, short/full-hop apex, aerial landing/L-cancel timing,
   instant-double-jump timing, held-input rejection, and double-jump-cancel
-  timing, momentum cancellation, and late-input rejection,
+  timing, momentum cancellation, late-input rejection, and knockback-based
+  counter armor with late/strong-hit rejection,
   strong-aerial 30/15-tick landing timing, real damage/hitlag,
   shield-break phase/mash/recovery, and reaction-input and stock/respawn
   invariants pass.
@@ -346,7 +348,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   double-jump-cancel slice advances state schema to 24/save format 23,
   content/fighter schema to 26, inspection schema to 21, and browser view
   schema to 20 for the delayed-air-jump action, authored cancellation window,
-  vertical-momentum rule, and readiness evidence.
+  vertical-momentum rule, and readiness evidence. The double-jump-cancel-counter
+  slice advances state schema to 25/save format 24, content/fighter schema to
+  27, inspection schema to 22, and browser view schema to 21 for authored
+  knockback-based armor, preserved delayed-action hitlag resume, and readiness
+  evidence.
   Config/observation/identity schema 2 and RL
   schema 4 remain current. The canonical save is 635 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -610,6 +616,32 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   presentation contract. Registry row 12 advances from `planned` to
   `playable`; owner execution and remaining acceptance evidence are still
   required before `verified`.
+
+## Delivered in the double-jump-cancel-counter slice
+
+- A physical hit during `DELAYED_AIR_JUMP` now qualifies against the default
+  inclusive 20-hitstun armor threshold. It still applies damage, attribution,
+  and ordinary hitlag, but emits zero launch, preserves the exact double-jump
+  trajectory/action tick, and resumes the delayed action without hitstun or
+  tumble.
+- The resumed defender may immediately use the existing aerial cancel and land
+  a real counter-hit. No counter-only action, input, event flag, or canonical
+  mutable field was introduced.
+- The focused combat oracle proves the exact 16-hitstun boundary, disabled and
+  invalid content, weak armored contact, frozen trajectory, immediate counter,
+  a first-late ordinary launch, and a 34-hitstun strong-aerial armor break. It
+  also saves the mid-hitlag state in the unchanged 635-byte stream and compares
+  all future hashes and typed events after load.
+- Browser readiness repeats the armored hit/counter, late-window failure, and
+  strong-hit failure before restoring default content and reports
+  `double_jump_cancel_counter_probe=1`.
+- State schema 25/save format 24 and `PFSAVE24` make armor qualification,
+  zero-launch reaction state, preserved delayed-action timing, and hitlag
+  resume fail closed. Content/fighter schema 27 hashes the armor threshold,
+  inspection schema 22 identifies the contract, and browser view schema 21
+  identifies its readiness evidence. Registry row 13 advances from `planned`
+  to `playable`; owner execution and remaining cross-target acceptance evidence
+  are still required before `verified`.
 
 ## Delivered in the edge-hop route
 
@@ -1048,7 +1080,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
-  hopping, fox-trotting, instant double jump, double jump cancel, L-cancelling, pivoting, SHFFL,
+  hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, and wavedash are
@@ -1061,7 +1093,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 40 playable, 3 primitive-ready, and 17 planned.
+  blocked: 1 verified, 41 playable, 3 primitive-ready, and 16 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1095,7 +1127,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 243 movement invariants, 529
+- Mechanical oracles: 243 movement invariants, 560
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1106,9 +1138,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,327
   bytes,
   replay SHA-256
-  `6bc977a7022ee3384e50ba46298eb230152a4f01ed4d950ab5abd9ae9147df1e`,
+  `bc930671111a7bd821efc8d67f862e06425ea34d3ccc011f3ba52f69c5a96507`,
   final SHA-256
-  `e373062b162980be23ca2e1d0ce6c40f16f6f6f69c1812f99a443d272ce0729f`,
+  `2c8bacffc869812c9c4a576a796cbcde7a7f923166fba6e17b16d595bc43366d`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1119,7 +1151,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

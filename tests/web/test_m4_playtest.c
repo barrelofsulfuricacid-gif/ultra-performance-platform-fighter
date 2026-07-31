@@ -51,6 +51,7 @@ static int test_input_probe;
 static int test_air_facing_probe;
 static int test_instant_double_jump_probe;
 static int test_double_jump_cancel_probe;
+static int test_double_jump_cancel_counter_probe;
 static int test_edge_hop_probe;
 static int test_edge_dash_probe;
 static int test_fox_trot_probe;
@@ -100,6 +101,7 @@ void pf_web_m4_playtest_install(
     int air_facing_probe_passed,
     int instant_double_jump_probe_passed,
     int double_jump_cancel_probe_passed,
+    int double_jump_cancel_counter_probe_passed,
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
@@ -152,6 +154,7 @@ void pf_web_m4_playtest_install(
     int air_facing_probe_passed,
     int instant_double_jump_probe_passed,
     int double_jump_cancel_probe_passed,
+    int double_jump_cancel_counter_probe_passed,
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
@@ -202,6 +205,8 @@ void pf_web_m4_playtest_install(
         instant_double_jump_probe_passed;
     test_double_jump_cancel_probe =
         double_jump_cancel_probe_passed;
+    test_double_jump_cancel_counter_probe =
+        double_jump_cancel_counter_probe_passed;
     test_edge_hop_probe = edge_hop_probe_passed;
     test_edge_dash_probe = edge_dash_probe_passed;
     test_fox_trot_probe = fox_trot_probe_passed;
@@ -351,6 +356,7 @@ int main(void)
         test_air_facing_probe != 1 ||
         test_instant_double_jump_probe != 1 ||
         test_double_jump_cancel_probe != 1 ||
+        test_double_jump_cancel_counter_probe != 1 ||
         test_edge_hop_probe != 1 ||
         test_edge_dash_probe != 1 ||
         test_fox_trot_probe != 1 ||
@@ -391,7 +397,7 @@ int main(void)
         test_match_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 20 ||
+        test_view[0] != 21 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -412,7 +418,8 @@ int main(void)
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
             "dash=%d input_probe=%d air_facing_probe=%d "
             "instant_double_jump_probe=%d "
-            "double_jump_cancel_probe=%d edge_hop_probe=%d "
+            "double_jump_cancel_probe=%d "
+            "double_jump_cancel_counter_probe=%d edge_hop_probe=%d "
             "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
             "dash_cancel_probe=%d dashing_shield_probe=%d "
             "shield_platform_drop_probe=%d "
@@ -452,6 +459,7 @@ int main(void)
             test_air_facing_probe,
             test_instant_double_jump_probe,
             test_double_jump_cancel_probe,
+            test_double_jump_cancel_counter_probe,
             test_edge_hop_probe,
             test_edge_dash_probe,
             test_fox_trot_probe,
@@ -927,7 +935,8 @@ int main(void)
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d "
         "instant_double_jump_probe=%d "
-        "double_jump_cancel_probe=%d edge_hop_probe=%d "
+        "double_jump_cancel_probe=%d "
+        "double_jump_cancel_counter_probe=%d edge_hop_probe=%d "
         "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
         "dash_cancel_probe=%d dashing_shield_probe=%d "
         "shield_platform_drop_probe=%d "
@@ -964,6 +973,7 @@ int main(void)
         test_air_facing_probe,
         test_instant_double_jump_probe,
         test_double_jump_cancel_probe,
+        test_double_jump_cancel_counter_probe,
         test_edge_hop_probe,
         test_edge_dash_probe,
         test_fox_trot_probe,

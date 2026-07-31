@@ -801,6 +801,7 @@ static pf_status pf_m4_apply_hit_reaction(
 {
     const uint8_t previous_action =
         scratch->action_state[target_index];
+    int armored;
     int v_cancelled;
     int reset;
     uint32_t hit_sequence;
@@ -816,27 +817,44 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->damage_q16[target_index] = pf_m4_saturating_damage(
         scratch->damage_q16[target_index],
         damage_q16);
-    v_cancelled = pf_m4_player_v_cancelled(
-        &content->fighter,
-        scratch,
-        target_index);
     hitstun_ticks = pf_m4_hitstun_ticks(
         &content->fighter,
         launch_velocity_x_q16,
         launch_velocity_y_q16);
-    reset = event_type == PF_SIM_EVENT_HIT &&
+    armored = event_type == PF_SIM_EVENT_HIT &&
+              previous_action ==
+                  (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
+              content->fighter
+                      .double_jump_armor_max_hitstun_ticks !=
+                  UINT16_C(0) &&
+              hitstun_ticks <=
+                  content->fighter
+                      .double_jump_armor_max_hitstun_ticks;
+    v_cancelled = armored == 0
+                      ? pf_m4_player_v_cancelled(
+                            &content->fighter,
+                            scratch,
+                            target_index)
+                      : 0;
+    reset = armored == 0 &&
+            event_type == PF_SIM_EVENT_HIT &&
             (previous_action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
              previous_action == (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
             damage_q16 <= content->fighter.reset_max_damage_q16 &&
             hitstun_ticks <=
                 content->fighter.reset_max_hitstun_ticks;
     scratch->pending_velocity_x_q16[target_index] =
-        reset != 0 ? INT32_C(0) : launch_velocity_x_q16;
+        armored != 0 || reset != 0
+            ? INT32_C(0)
+            : launch_velocity_x_q16;
     scratch->pending_velocity_y_q16[target_index] =
-        reset != 0
+        armored != 0
+            ? INT32_C(0)
+            : reset != 0
             ? -content->fighter.reset_bound_speed_q16
             : launch_velocity_y_q16;
-    scratch->hitstun_ticks[target_index] = hitstun_ticks;
+    scratch->hitstun_ticks[target_index] =
+        armored != 0 ? UINT16_C(0) : hitstun_ticks;
     if (v_cancelled != 0)
     {
         scratch->pending_velocity_x_q16[target_index] =
@@ -849,7 +867,7 @@ static pf_status pf_m4_apply_hit_reaction(
                 content->fighter.v_cancel_velocity_scale_q16);
     }
     scratch->tumble[target_index] =
-        reset == 0 &&
+        armored == 0 && reset == 0 &&
                 scratch->hitstun_ticks[target_index] >=
                     content->fighter.tumble_hitstun_threshold_ticks
             ? UINT8_C(1)
@@ -858,12 +876,17 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->powershield[target_index] = UINT8_C(0);
     scratch->hitlag_ticks[target_index] = hitlag_ticks;
     scratch->hitlag_resume_action[target_index] =
-        reset != 0
+        armored != 0
+            ? previous_action
+            : reset != 0
             ? (uint8_t)PF_M4_ACTION_RESET_BOUND
             : (uint8_t)PF_M4_ACTION_HITSTUN;
     scratch->action_state[target_index] =
         (uint8_t)PF_M4_ACTION_HITLAG;
-    scratch->action_ticks[target_index] = UINT16_C(0);
+    if (armored == 0)
+    {
+        scratch->action_ticks[target_index] = UINT16_C(0);
+    }
     scratch->dash_direction[target_index] = INT8_C(0);
     scratch->short_hop_latched[target_index] = UINT8_C(0);
     scratch->fast_fall[target_index] = UINT8_C(0);

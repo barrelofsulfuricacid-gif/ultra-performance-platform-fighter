@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -449,6 +449,7 @@ mergeInto(LibraryManager.library, {
     airFacingProbePassed,
     instantDoubleJumpProbePassed,
     doubleJumpCancelProbePassed,
+    doubleJumpCancelCounterProbePassed,
     edgeHopProbePassed,
     edgeDashProbePassed,
     foxTrotProbePassed,
@@ -1264,6 +1265,8 @@ mergeInto(LibraryManager.library, {
         (instantDoubleJumpProbePassed ? "pass" : "fail") +
         " double_jump_cancel_probe=" +
         (doubleJumpCancelProbePassed ? "pass" : "fail") +
+        " double_jump_cancel_counter_probe=" +
+        (doubleJumpCancelCounterProbePassed ? "pass" : "fail") +
         " edge_hop_probe=" +
         (edgeHopProbePassed ? "pass" : "fail") +
         " edge_dash_probe=" +
@@ -1358,6 +1361,8 @@ mergeInto(LibraryManager.library, {
         instantDoubleJumpProbePassed ? "pass" : "fail";
       status.dataset.doubleJumpCancelProbe =
         doubleJumpCancelProbePassed ? "pass" : "fail";
+      status.dataset.doubleJumpCancelCounterProbe =
+        doubleJumpCancelCounterProbePassed ? "pass" : "fail";
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
@@ -1449,7 +1454,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 20) {
+    if (view[0] !== 21) {
       return;
     }
     var canvas = state.canvas;

@@ -3638,6 +3638,8 @@ static int run_double_jump_cancel_test(
     }
 
     disabled_content.fighter.double_jump_cancel_ticks = UINT16_C(0);
+    disabled_content.fighter.double_jump_armor_max_hitstun_ticks =
+        UINT16_C(0);
     if (!expect_status(
             pf_m4_validate_content(&disabled_content),
             PF_STATUS_OK,

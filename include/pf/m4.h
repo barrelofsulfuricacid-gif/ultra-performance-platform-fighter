@@ -10,10 +10,10 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(26)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(26)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(27)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(27)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(21)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(22)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 
@@ -228,6 +228,7 @@ typedef struct pf_m4_fighter_data
     pf_m4_throw_data down_throw;
     uint16_t jump_squat_ticks;
     uint16_t double_jump_cancel_ticks;
+    uint16_t double_jump_armor_max_hitstun_ticks;
     uint16_t initial_dash_ticks;
     uint16_t forward_smash_input_window_ticks;
     uint16_t landing_ticks;

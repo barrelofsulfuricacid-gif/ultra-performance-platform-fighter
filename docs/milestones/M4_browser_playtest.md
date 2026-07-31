@@ -645,6 +645,14 @@ registry row can advance from `playable` to `verified`.
     `AIRBORNE` and confirm the aerial retains the full arc. Finally press a
     fresh jump and attack together while ordinarily airborne and confirm the
     attack wins while `air jumps` remains 1.
+49. Move both fighters close, jump together, and start Player 1's light aerial.
+    Freshly double-jump with Player 2 as the active hit arrives. Confirm Player
+    2 takes 8% and freezes in `HITLAG` without a launch, then resumes the same
+    `DELAYED AIR JUMP` arc with `air jumps` at 0. Immediately press Player 2's
+    light attack and confirm the upward rise cancels into an aerial counter-hit
+    on Player 1. Repeat after waiting until Player 2 returns to `AIRBORNE`, then
+    repeat against Player 1's strong aerial; confirm the late light and strong
+    hits both launch Player 2 normally.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -744,6 +752,10 @@ through:
 - an early light/strong double-jump cancel during exact action ticks `[0, 6)`,
   a first-late full-arc route, earlier landing after cancellation, and a
   simultaneous jump-plus-attack route that does not consume the air jump;
+- a weak aerial striking a fresh delayed air jump, applying damage and hitlag
+  while preserving its trajectory/action tick, followed by an immediate
+  aerial counter-hit, plus first-late and strong-aerial ordinary-launch
+  negatives before default content is restored;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -789,6 +801,7 @@ through:
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass double_jump_cancel_probe=pass
+double_jump_cancel_counter_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass

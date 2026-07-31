@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–23 / state schemas 1–24
+- **Status:** Accepted for save formats 1–24 / state schemas 1–25
 - **Date:** 2026-07-28
 
 ## Decision
@@ -33,13 +33,14 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 21 | 22 | 140 | 495 | Canonical final-jab action ID, hitlag-resume semantics, and the inclusive first-jab choice window; no payload-layout change |
 | 22 | 23 | 140 | 495 | 635 | Canonical reset-bound and forced-getup action IDs, weak-hit qualification, hitlag-resume, exact timing, and grounded-versus-airborne expiry semantics; no payload-layout change |
 | 23 | 24 | 140 | 495 | 635 | Canonical delayed-air-jump action ID, exact authored aerial-cancel window, vertical-momentum cancellation, and late full-arc semantics; no payload-layout change |
+| 24 | 25 | 140 | 495 | 635 | Knockback-based delayed-air-jump armor, zero-launch hit events, preserved action timing/trajectory, and delayed-action hitlag resume semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
-`PFSAVE23`. The active M4 runtime emits and accepts format 23 with state schema
-24. Earlier
+`PFSAVE23`, or `PFSAVE24`. The active M4 runtime emits and accepts format 24
+with state schema 25. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -120,6 +121,14 @@ ordinary airborne state selects the attack without consuming an air jump, and
 a zero authored window disables the delayed state. Loading rejects the new
 action under earlier schemas and validates its existing airborne, action-timer,
 ledge-catch, and V-cancel relationships under schema 24.
+Format 24 retains the same payload while making delayed-air-jump armor fail
+closed. A qualifying physical hit still applies authored damage and hitlag,
+but emits zero launch, preserves the defender's existing velocity and action
+tick through the freeze, and resumes `DELAYED_AIR_JUMP` with no hitstun or
+tumble. Qualification is bounded by the authored computed-hitstun threshold;
+non-physical reactions, late hits, disabled armor, and stronger hits use the
+ordinary launch path. Loading validates the zero-launch pending state and the
+airborne delayed-action resume relationship under schema 25.
 
 ## Why SHA-256
 

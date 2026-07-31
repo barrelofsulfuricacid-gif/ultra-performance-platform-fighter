@@ -264,6 +264,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_throw(hash, &fighter->down_throw);
     pf_m4_hash_u16(hash, fighter->jump_squat_ticks);
     pf_m4_hash_u16(hash, fighter->double_jump_cancel_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->double_jump_armor_max_hitstun_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(
         hash,
@@ -683,6 +686,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->down_throw.hitlag_ticks = UINT16_C(3);
     fighter->jump_squat_ticks = UINT16_C(3);
     fighter->double_jump_cancel_ticks = UINT16_C(6);
+    fighter->double_jump_armor_max_hitstun_ticks = UINT16_C(20);
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
     fighter->landing_ticks = UINT16_C(4);
@@ -1246,6 +1250,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jump_squat_ticks == UINT16_C(0) ||
         fighter->jump_squat_ticks > UINT16_C(60) ||
         fighter->double_jump_cancel_ticks > UINT16_C(120) ||
+        fighter->double_jump_armor_max_hitstun_ticks >
+            PF_SIM_MAX_HITSTUN_TICKS ||
+        (fighter->double_jump_cancel_ticks == UINT16_C(0) &&
+         fighter->double_jump_armor_max_hitstun_ticks !=
+             UINT16_C(0)) ||
         fighter->initial_dash_ticks == UINT16_C(0) ||
         fighter->initial_dash_ticks > UINT16_C(120) ||
         fighter->forward_smash_input_window_ticks == UINT16_C(0) ||

@@ -132,6 +132,16 @@ The cancel topology follows the delayed-double-jump behavior documented in
 [SmashWiki's double jump cancel description](https://www.ssbwiki.com/Double_jump_cancel);
 the six-tick window, velocities, and fighter data remain original placeholders.
 
+That same delayed action is also the movement side of double jump cancel
+counter. A qualifying physical hit freezes the existing position, velocity,
+and action tick through ordinary hitlag, then resumes `DELAYED_AIR_JUMP`
+without launch. The air jump stays consumed and the remaining authored cancel
+window is preserved, so a fresh aerial immediately after the freeze uses the
+same vertical-momentum cancellation rule above. Late or sufficiently strong
+hits launch through the ordinary combat path. The armor threshold and reaction
+oracles are defined in the combat contract; movement adds no counter-only
+state.
+
 A deliberate down input after the apex enters the fixed fast-fall speed.
 Landing enters a finite landing state.
 
@@ -354,7 +364,9 @@ bounds, and blast zones.
 - binary short/full hops, double jump, the six-tick double-jump-cancel window,
   early light/strong momentum cancellation, the first-late full-arc boundary,
   simultaneous jump-plus-attack non-consumption, disabled-content behavior,
-  mid-window save/load future equality, aerial drift, airborne-facing lock
+  mid-window save/load future equality, plus the combat oracle's preserved
+  double-jump trajectory/action tick through armored hitlag and immediate
+  aerial cancel after resume, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
 - exact nine-tick platform-drop entry, timer exposure, and the same-tick
   fast-fall exclusion used by the drop-cancel combat route;
@@ -394,7 +406,8 @@ shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
 and browser-specific device exposure remain part of the owner playtest.
 
 The focused movement oracle currently reports 243 invariants. The focused
-combat oracle reports 529 invariants, including the dashing-shield
+combat oracle reports 560 invariants, including the double-jump-cancel-counter
+armor/resume boundaries and the dashing-shield
 tap-versus-held boundary, reaction-driven tech-chase routes, and the
 frame-perfect drop-cancel hit/snap versus one-tick-late and whiff fall-through
 cases, plus V-cancel timing, exclusions, lockout, and scaled-launch behavior.
