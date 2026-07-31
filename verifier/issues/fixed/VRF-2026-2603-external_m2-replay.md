@@ -1,12 +1,12 @@
 # [VRF-2026-2603] external:m2-replay
 
 ID: VRF-2026-2603
-Status: unfixed
+Status: fixed
 Severity: high
 Detected commit: 320906fd49b923b739769359a653c2012d0974ee
 Build hash: cf1313ad04c50ef9115990daf607aa7aecea7a92c57eff37ec1ad9304e7f364e
 Content hash: 1728394a5b6c7d8e9fb0c1d2e3f405162738495a6b7c8d9eafc0d1e2f3041526
-Fixed commit: not-fixed
+Fixed commit: 7aa766650cb6f48491ec889374d195d12c2b3dbc
 
 ## Reproduction
 
@@ -42,9 +42,21 @@ The differing native and Web outputs were preserved in
 
 ## Resolution
 
-Pending a corrective commit that makes the optional local lane ignore
-unversioned Web build artifacts while preserving CI's mandatory comparison.
+Corrective commit `7aa766650cb6f48491ec889374d195d12c2b3dbc` gates use of
+the generated Web corpus behind `PF_REQUIRE_WEB_REPLAY=1`. Optional local runs
+now report WebAssembly as deferred and cannot consume an unversioned stale
+artifact. The flag still requires the artifact, Node execution, the expected
+digest, and byte equality, preserving the mandatory Web CI contract.
 
 ## Fix verification
 
-Pending a corrective commit and following bookkeeping commit.
+- With the stale Web artifact present, the optional replay verifier passed and
+  reported `wasm=deferred`; mandatory mode rejected the old digest.
+- A fresh Emscripten build followed by mandatory mode passed the native/Wasm
+  byte comparison at replay SHA-256
+  `36452288611860eea89e051f26ce32dfe1a431537a0dae9bb7379047eadf1c2f`.
+- The corrective commit passed all 16 WSL verifier checks with zero failures.
+  Benchmark run 12 covered nine available scenarios with zero suspected or
+  confirmed regressions; Windows/MSVC remained green at 18/18 tests.
+- This following bookkeeping commit moves the report only after the corrective
+  commit passed, preserving the required two-commit issue lifecycle.
