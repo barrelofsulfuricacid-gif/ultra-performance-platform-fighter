@@ -588,6 +588,21 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `playable`; owner execution plus complete encoded replay/rollback and
   cross-target evidence remain before `verified`.
 
+## Delivered in the approach route
+
+- From the default 16-unit neutral separation, ordinary reduced-stick walking
+  now supplies a verifier-readable offensive approach rather than a prepared
+  close-range fixture.
+- Braking just outside the responder's jab reach lets that jab whiff and the
+  longer strong attack convert during recovery. Walking too close produces the
+  responding negative case: the same jab intercepts the approach first.
+- The native and browser probes use the default stage, ordinary input, and the
+  existing movement/attack paths. They add no technique-only state or content
+  data.
+- Registry row 1, Approach, advances from `planned` to `playable`; broader
+  approach options, owner execution, and complete encoded replay/rollback
+  evidence remain before `verified`.
+
 ## Delivered in the spacing route
 
 - The default forward jab reaches 1.8 center-to-center units, while the strong
@@ -657,13 +672,16 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Standing just outside the responder's jab range but inside strong-attack
   range must permit the ordinary whiff counter. Moving closer must let the jab
   hit first, while moving farther must make the strong counter miss too.
+- The supporting approach must begin at the default neutral spawn and reach
+  those bands through reduced-stick walking; a pre-positioned-only result does
+  not satisfy the tactical route.
 
 ## New binding M4.4 scope
 
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
+  verified; approach, auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
   shield platform dropping, short hop air dodge, small step forward smash,
   spacing, tech-chasing, V-cancelling, and wavedash are
@@ -676,7 +694,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 24 playable, 6 primitive-ready, and 30 planned.
+  blocked: 1 verified, 25 playable, 6 primitive-ready, and 29 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -709,7 +727,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 170 movement invariants, 231
+- Mechanical oracles: 170 movement invariants, 246
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -733,7 +751,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/spacing/
+  movement/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

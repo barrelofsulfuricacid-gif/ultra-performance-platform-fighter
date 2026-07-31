@@ -4926,6 +4926,183 @@ static int run_spacing_shield_control_test(
            fail("spacing-tip-shield-block");
 }
 
+static int walk_to_approach_distance(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    int close_distance,
+    pf_m4_inspection *out_inspection)
+{
+    const int32_t jab_reach =
+        content->fighter.jab_hitbox_offset_x_q16 +
+        content->fighter.jab_hitbox_half_width_q16 +
+        content->fighter.half_width_q16;
+    const int32_t strong_reach =
+        content->fighter.strong_hitbox_offset_x_q16 +
+        content->fighter.strong_hitbox_half_width_q16 +
+        content->fighter.half_width_q16;
+    const int32_t target_distance =
+        close_distance != 0
+            ? jab_reach - PF_Q16_ONE / INT32_C(5)
+            : jab_reach +
+                  (strong_reach - jab_reach) / INT32_C(2);
+    const int32_t brake_distance =
+        target_distance + content->fighter.walk_speed_q16;
+    uint32_t tick;
+    int saw_walk = 0;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, out_inspection),
+            PF_STATUS_OK,
+            "approach-initial-inspect"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(400); ++tick)
+    {
+        const int16_t walk_input =
+            out_inspection->players[1].position_x_q16 -
+                    out_inspection->players[0].position_x_q16 >
+                brake_distance
+                ? INT16_C(13500)
+                : INT16_C(0);
+
+        if (!step_duel(
+                sim,
+                walk_input,
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_WALK)
+        {
+            saw_walk = 1;
+        }
+        if (walk_input == INT16_C(0) &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+    }
+    return tick < UINT32_C(400) && saw_walk != 0 &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+           spacing_distance_matches(
+               content,
+               out_inspection,
+               close_distance != 0,
+               1);
+}
+
+static int run_approach_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t start_x;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "approach-start-inspect"))
+    {
+        return fail("approach-init");
+    }
+    start_x = inspection.players[0].position_x_q16;
+    if (!walk_to_approach_distance(
+            sim,
+            content,
+            0,
+            &inspection) ||
+        inspection.players[0].position_x_q16 <= start_x ||
+        inspection.players[0].facing != INT8_C(1) ||
+        !start_spacing_whiff_counter(sim, &inspection))
+    {
+        return fail("approach-safe-entry");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(14); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("approach-safe-step");
+        }
+        if (inspection.players[1].damage_q16 != UINT32_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(14) ||
+        inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[1].damage_q16 !=
+            content->fighter.strong_damage_q16 ||
+        inspection.players[1].last_hit_attacker != UINT8_C(0))
+    {
+        return fail("approach-safe-conversion");
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x4d34434f4d424154)),
+            PF_STATUS_OK,
+            "approach-close-reset") ||
+        !walk_to_approach_distance(
+            sim,
+            content,
+            1,
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &inspection))
+    {
+        return fail("approach-close-entry");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("approach-close-step");
+        }
+        if (inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            break;
+        }
+    }
+    return (tick < UINT32_C(8) &&
+            inspection.players[0].damage_q16 ==
+                content->fighter.jab_damage_q16 &&
+            inspection.players[0].last_hit_attacker == UINT8_C(1) &&
+            inspection.players[1].damage_q16 == UINT32_C(0)) ||
+           fail("approach-close-intercepted");
+}
+
 static int run_shield_block_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -8146,6 +8323,7 @@ int main(void)
     pf_m4_content drop_cancel_content;
     pf_m4_content drop_cancel_whiff_content;
     pf_m4_content v_cancel_content;
+    pf_m4_content approach_content;
     pf_m4_content spacing_safe_content;
     pf_m4_content spacing_close_content;
     pf_m4_content spacing_far_content;
@@ -8160,6 +8338,7 @@ int main(void)
     pf_content_view drop_cancel_view;
     pf_content_view drop_cancel_whiff_view;
     pf_content_view v_cancel_view;
+    pf_content_view approach_view;
     pf_content_view spacing_safe_view;
     pf_content_view spacing_close_view;
     pf_content_view spacing_far_view;
@@ -8193,6 +8372,10 @@ int main(void)
         !make_v_cancel_content(
             &v_cancel_content,
             &v_cancel_view) ||
+        !make_spacing_content(
+            INT32_C(8) * PF_Q16_ONE,
+            &approach_content,
+            &approach_view) ||
         !make_spacing_content(
             (INT32_C(39) * PF_Q16_ONE) / INT32_C(40),
             &spacing_safe_content,
@@ -8315,6 +8498,9 @@ int main(void)
             &ceiling_tech_content,
             &ceiling_tech_view) ||
         !run_whiff_and_trade_test(&content, &view) ||
+        !run_approach_test(
+            &approach_content,
+            &approach_view) ||
         !run_spacing_counter_snapshot_test(
             &spacing_safe_content,
             &spacing_safe_view) ||
@@ -8372,7 +8558,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=231 journal_invariants=30 spacing=1\n",
+        " combat_invariants=246 journal_invariants=30 approach=1 spacing=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

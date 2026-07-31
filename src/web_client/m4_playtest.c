@@ -121,6 +121,7 @@ extern void pf_web_m4_playtest_install(
     int small_step_forward_smash_probe_passed,
     int drop_cancel_probe_passed,
     int v_cancel_probe_passed,
+    int approach_probe_passed,
     int spacing_probe_passed,
     int combat_probe_passed,
     int reaction_probe_passed,
@@ -2089,9 +2090,14 @@ static int pf_web_m4_run_spacing_shield_control(void)
                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK;
 }
 
-static int pf_web_m4_run_spacing_probe(void)
+static int pf_web_m4_run_approach_probe(void)
 {
-    return pf_web_m4_run_spacing_exchange(0) &&
+    return pf_web_m4_run_spacing_exchange(0);
+}
+
+static int pf_web_m4_run_spacing_probe(int safe_exchange_passed)
+{
+    return safe_exchange_passed != 0 &&
            pf_web_m4_run_spacing_exchange(1) &&
            pf_web_m4_run_spacing_exchange(2) &&
            pf_web_m4_run_spacing_shield_control();
@@ -4896,6 +4902,7 @@ int pf_web_m4_playtest_start(void)
     int small_step_forward_smash_probe_passed;
     int drop_cancel_probe_passed;
     int v_cancel_probe_passed;
+    int approach_probe_passed;
     int spacing_probe_passed;
     int combat_probe_passed;
     int reaction_probe_passed;
@@ -4961,7 +4968,9 @@ int pf_web_m4_playtest_start(void)
     drop_cancel_probe_passed =
         pf_web_m4_run_drop_cancel_probe();
     v_cancel_probe_passed = pf_web_m4_run_v_cancel_probe();
-    spacing_probe_passed = pf_web_m4_run_spacing_probe();
+    approach_probe_passed = pf_web_m4_run_approach_probe();
+    spacing_probe_passed =
+        pf_web_m4_run_spacing_probe(approach_probe_passed);
     combat_probe_passed = pf_web_m4_run_combat_probe();
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
@@ -4994,6 +5003,7 @@ int pf_web_m4_playtest_start(void)
         small_step_forward_smash_probe_passed == 0 ||
         drop_cancel_probe_passed == 0 ||
         v_cancel_probe_passed == 0 ||
+        approach_probe_passed == 0 ||
         spacing_probe_passed == 0 ||
         combat_probe_passed == 0 ||
         reaction_probe_passed == 0 ||
@@ -5027,6 +5037,7 @@ int pf_web_m4_playtest_start(void)
         small_step_forward_smash_probe_passed,
         drop_cancel_probe_passed,
         v_cancel_probe_passed,
+        approach_probe_passed,
         spacing_probe_passed,
         combat_probe_passed,
         reaction_probe_passed,

@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -458,6 +458,7 @@ mergeInto(LibraryManager.library, {
     smallStepForwardSmashProbePassed,
     dropCancelProbePassed,
     vCancelProbePassed,
+    approachProbePassed,
     spacingProbePassed,
     combatProbePassed,
     reactionProbePassed,
@@ -749,6 +750,7 @@ mergeInto(LibraryManager.library, {
       smallStepForwardSmashProbePassed &&
       dropCancelProbePassed &&
       vCancelProbePassed &&
+      approachProbePassed &&
       spacingProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
@@ -1242,6 +1244,8 @@ mergeInto(LibraryManager.library, {
         (dropCancelProbePassed ? "pass" : "fail") +
         " v_cancel_probe=" +
         (vCancelProbePassed ? "pass" : "fail") +
+        " approach_probe=" +
+        (approachProbePassed ? "pass" : "fail") +
         " spacing_probe=" +
         (spacingProbePassed ? "pass" : "fail") +
         " combat_probe=" +
@@ -1300,6 +1304,8 @@ mergeInto(LibraryManager.library, {
         dropCancelProbePassed ? "pass" : "fail";
       status.dataset.vCancelProbe =
         vCancelProbePassed ? "pass" : "fail";
+      status.dataset.approachProbe =
+        approachProbePassed ? "pass" : "fail";
       status.dataset.spacingProbe =
         spacingProbePassed ? "pass" : "fail";
       status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";

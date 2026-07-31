@@ -506,6 +506,11 @@ registry row can advance from `playable` to `verified`.
     closer and confirm the jab hits first, move farther and confirm the counter
     also whiffs, then shield at the safe distance and confirm the strong tip is
     blocked.
+40. Reset to the default full-stage separation and approach only with reduced
+    horizontal input. Brake at the same safe band, have Player 2 jab, and
+    convert the whiff with Player 1's strong attack. Reset and continue walking
+    into close range instead; confirm Player 2's jab intercepts the reckless
+    approach before Player 1 can counter.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -551,6 +556,9 @@ through:
 - reduced-stick walking to close, safe, and far attack bands, followed by a
   jab-first responder proving close jab contact, a safe jab-whiff-to-strong
   counter, a far double whiff, and a safe-tip shield block;
+- default-stage reduced-stick walking from the full neutral separation into
+  the safe whiff conversion, plus an overextended walk being intercepted by
+  the same responder;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -606,7 +614,8 @@ instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
-drop_cancel_probe=pass v_cancel_probe=pass spacing_probe=pass combat_probe=pass
+drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
+spacing_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass

@@ -27,7 +27,7 @@ current build can perform the technique.
 
 | # | Technique | Status | Target | Dependencies and supporting configuration | Automated evidence | Browser playtest recipe |
 |---:|---|---|---|---|---|---|
-| 1 | Approach | planned | M4.4 | Complete neutral interactions, attacks, grab, projectile, and legal match loop | — | Future: close distance with walk, dash, platform, and aerial routes against a responding opponent and convert without scripted state |
+| 1 | Approach | playable | M4.4 | The ordinary reduced-stick walk, default-stage neutral start, standing attacks, whiff recovery, and a jab-first responder compose into a legal simple approach; broader dash, aerial, grab, projectile, and platform options remain future coverage | `tests/sim/test_m4_combat.c` walks from the default 16-unit separation into the safe attack band, converts the responder's jab whiff with strong attack, and proves an overextended close approach is intercepted; `src/web_client/m4_playtest.c` repeats both ordinary-input routes before browser readiness | From Reset, use reduced horizontal input to walk toward the opponent. Stop just outside their light-attack reach, have them jab, and use strong attack to convert the whiff; repeat while walking too close and confirm the responder's jab stops the approach first |
 | 2 | Auto-canceling | playable | M4.4 | The original aerial has an explicit landing-lag-active window; landing outside it takes generic four-tick landing instead of 12-tick aerial landing lag | `tests/sim/test_m4_movement.c` covers early auto-cancel and the normal-lag comparison; the browser aerial startup probe covers a default-content no-lag full-hop route and the lagged short-hop route | Full hop and use the aerial late enough to land during its startup auto-cancel frames; confirm generic `LANDING`, then short-hop aerial and fast-fall into the active landing-lag window to confirm `AERIAL LANDING` instead |
 | 3 | Bat dropping | planned | M4.4 | Original bat-like item, pickup, aerial drop, item hitbox, and reset | — | Future: carry the test item airborne, drop it onto a legal target, and observe its production hit |
 | 4 | Boost grab | planned | M4.4 | Dash attack, grab, and the legal cancel/momentum-transfer window | — | Future: compare ordinary dash grab range with the timed dash-attack-to-grab sequence |
@@ -91,7 +91,7 @@ current build can perform the technique.
 
 ## Current gate summary
 
-The registry currently has 1 `verified`, 24 `playable`, 6
-`primitive-ready`, and 30 `planned` rows. M4 acceptance is therefore blocked.
+The registry currently has 1 `verified`, 25 `playable`, 6
+`primitive-ready`, and 29 `planned` rows. M4 acceptance is therefore blocked.
 Advancing a row requires adding its exact evidence here in the same change;
 adding a primitive without updating this registry is a plan-compliance failure.

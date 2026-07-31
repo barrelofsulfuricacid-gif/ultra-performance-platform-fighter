@@ -107,6 +107,23 @@ even when the attack connects. A frame-perfect whiff has no attacker hitlag to
 expire the pass timer and also falls through. The drop-input tick cannot
 simultaneously enable fast fall, keeping the authored frame boundary explicit.
 
+## Approach
+
+An [approach](https://www.ssbwiki.com/Approach) is represented by a legal
+offensive sequence that closes neutral distance far enough to land an attack.
+The simplest supported route starts at the default duel separation and uses
+ordinary reduced-stick walking, preserving access to standing attacks at every
+step.
+
+The attacker brakes just outside the responder's jab reach. The deterministic
+responder jabs; the attacker remains untouched and converts the whiff with the
+longer strong attack during recovery. Repeating the same default-stage walk
+past that safe band lets the jab intercept the approach before a counter. This
+supplies both a successful conversion and a responding-opponent failure case
+without scripting positions or outcomes. Dash, aerial, wavedash, shield, and
+other independently playable approach primitives remain available for broader
+owner testing, but are not conflated with this focused evidence route.
+
 ## Spacing
 
 [Spacing](https://www.ssbwiki.com/Spacing) is treated as a tactical composition,
@@ -573,7 +590,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 231 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 246 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -595,6 +612,9 @@ mechanics invariants plus 30 journal invariants, including:
   longer strong counter connects during recovery, the 1.7-unit close punish,
   2.25-unit double whiff, safe-tip shield block, and mid-counter save/load with
   32 future hashes;
+- reduced-stick walking from the default 16-unit neutral separation into that
+  safe band, the resulting whiff conversion, and the overextended approach
+  being intercepted by the same jab-first responder;
 - strong-aerial entry, active-frame damage/hitlag/event ownership, and exact
   post-hitlag resume into the airborne strong action;
 - first-component SDI, held-direction rejection, diagonal second-component
