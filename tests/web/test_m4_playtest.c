@@ -49,6 +49,7 @@ static int test_fox_trot_probe;
 static int test_pivot_probe;
 static int test_dash_cancel_probe;
 static int test_dashing_shield_probe;
+static int test_shield_platform_drop_probe;
 static int test_small_step_forward_smash_probe;
 static int test_drop_cancel_probe;
 static int test_v_cancel_probe;
@@ -80,6 +81,7 @@ void pf_web_m4_playtest_install(
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
+    int shield_platform_drop_probe_passed,
     int small_step_forward_smash_probe_passed,
     int drop_cancel_probe_passed,
     int v_cancel_probe_passed,
@@ -114,6 +116,7 @@ void pf_web_m4_playtest_install(
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
+    int shield_platform_drop_probe_passed,
     int small_step_forward_smash_probe_passed,
     int drop_cancel_probe_passed,
     int v_cancel_probe_passed,
@@ -145,6 +148,8 @@ void pf_web_m4_playtest_install(
     test_pivot_probe = pivot_probe_passed;
     test_dash_cancel_probe = dash_cancel_probe_passed;
     test_dashing_shield_probe = dashing_shield_probe_passed;
+    test_shield_platform_drop_probe =
+        shield_platform_drop_probe_passed;
     test_small_step_forward_smash_probe =
         small_step_forward_smash_probe_passed;
     test_drop_cancel_probe = drop_cancel_probe_passed;
@@ -274,6 +279,7 @@ int main(void)
         test_pivot_probe != 1 ||
         test_dash_cancel_probe != 1 ||
         test_dashing_shield_probe != 1 ||
+        test_shield_platform_drop_probe != 1 ||
         test_small_step_forward_smash_probe != 1 ||
         test_drop_cancel_probe != 1 ||
         test_v_cancel_probe != 1 ||
@@ -310,6 +316,7 @@ int main(void)
             "instant_double_jump_probe=%d edge_hop_probe=%d "
             "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
             "dash_cancel_probe=%d dashing_shield_probe=%d "
+            "shield_platform_drop_probe=%d "
             "small_step_forward_smash_probe=%d "
             "drop_cancel_probe=%d "
             "v_cancel_probe=%d "
@@ -335,6 +342,7 @@ int main(void)
             test_pivot_probe,
             test_dash_cancel_probe,
             test_dashing_shield_probe,
+            test_shield_platform_drop_probe,
             test_small_step_forward_smash_probe,
             test_drop_cancel_probe,
             test_v_cancel_probe,
@@ -672,6 +680,7 @@ int main(void)
         "instant_double_jump_probe=%d edge_hop_probe=%d "
         "edge_dash_probe=%d fox_trot_probe=%d pivot_probe=%d "
         "dash_cancel_probe=%d dashing_shield_probe=%d "
+        "shield_platform_drop_probe=%d "
         "small_step_forward_smash_probe=%d "
         "drop_cancel_probe=%d "
         "v_cancel_probe=%d "
@@ -694,6 +703,7 @@ int main(void)
         test_pivot_probe,
         test_dash_cancel_probe,
         test_dashing_shield_probe,
+        test_shield_platform_drop_probe,
         test_small_step_forward_smash_probe,
         test_drop_cancel_probe,
         test_v_cancel_probe,

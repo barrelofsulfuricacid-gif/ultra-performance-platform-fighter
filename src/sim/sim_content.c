@@ -180,6 +180,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->run_continue_axis_threshold);
     pf_m4_hash_u16(hash, fighter->run_turnaround_lockout_ticks);
     pf_m4_hash_u16(hash, fighter->crouch_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->shield_drop_axis_threshold);
     pf_m4_hash_u16(hash, fighter->jab_startup_ticks);
     pf_m4_hash_u16(hash, fighter->jab_active_ticks);
     pf_m4_hash_u16(hash, fighter->jab_recovery_ticks);
@@ -477,6 +478,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->run_continue_axis_threshold = UINT16_C(20480);
     fighter->run_turnaround_lockout_ticks = UINT16_C(10);
     fighter->crouch_axis_threshold = UINT16_C(16384);
+    fighter->shield_drop_axis_threshold = UINT16_C(12288);
     fighter->jab_startup_ticks = UINT16_C(2);
     fighter->jab_active_ticks = UINT16_C(2);
     fighter->jab_recovery_ticks = UINT16_C(8);
@@ -942,6 +944,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->run_turnaround_lockout_ticks > UINT16_C(120) ||
         fighter->crouch_axis_threshold <= fighter->axis_dead_zone ||
         fighter->crouch_axis_threshold > UINT16_C(32767) ||
+        fighter->shield_drop_axis_threshold <=
+            fighter->axis_dead_zone ||
+        fighter->shield_drop_axis_threshold >=
+            fighter->crouch_axis_threshold ||
         fighter->jab_startup_ticks == UINT16_C(0) ||
         fighter->jab_startup_ticks > UINT16_C(120) ||
         fighter->jab_active_ticks == UINT16_C(0) ||

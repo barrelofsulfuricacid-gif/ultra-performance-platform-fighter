@@ -1513,6 +1513,17 @@ pf_status pf_m4_step_player(
         shield_held != 0 &&
         strong_direction != INT8_C(0) &&
         world->previous_strong_direction[player_index] == INT8_C(0);
+    const int shield_platform_drop_requested =
+        shield_held != 0 &&
+        world->grounded[player_index] != UINT8_C(0) &&
+        world->support[player_index] ==
+            (uint8_t)PF_M4_SURFACE_PLATFORM &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_SHIELD &&
+        input->main_stick_y >=
+            (int16_t)fighter->shield_drop_axis_threshold &&
+        input->main_stick_y <
+            (int16_t)fighter->crouch_axis_threshold;
     int32_t position_x = world->position_x_q16[player_index];
     int32_t position_y = world->position_y_q16[player_index];
     int32_t velocity_x = world->velocity_x_q16[player_index];
@@ -2205,6 +2216,24 @@ pf_status pf_m4_step_player(
             {
                 return status;
             }
+        }
+        else if (shield_platform_drop_requested != 0)
+        {
+            grounded = UINT8_C(0);
+            support = (uint8_t)PF_M4_SURFACE_NONE;
+            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+            action_ticks = UINT16_C(0);
+            platform_drop_ticks =
+                (uint8_t)fighter->platform_drop_ticks;
+            position_y += fighter->platform_drop_nudge_q16;
+            velocity_y = fighter->gravity_q16;
+            short_hop_latched = UINT8_C(0);
+            fast_fall = UINT8_C(0);
+            dash_direction = INT8_C(0);
+            dropped_platform_this_tick = 1;
+            scratch->powershield[player_index] = UINT8_C(0);
+            scratch->shield_stun_ticks[player_index] =
+                UINT16_C(0);
         }
         else if (was_shielding && jump_pressed)
         {

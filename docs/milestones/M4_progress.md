@@ -10,8 +10,9 @@ plus explicit first-airborne-frame instant double jump verification
 plus configurable stocks, delayed respawn, invulnerability, sudden death,
 results, rematch, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
-  forward-smash route, the hitlag-assisted same-platform drop cancel, and
-  three-frame V-cancelling, and two-pad browser polling implemented
+  forward-smash route, the hitlag-assisted same-platform drop cancel,
+  reduced-down shield platform dropping, three-frame V-cancelling, and
+  two-pad browser polling implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -25,7 +26,8 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   dash-dance reversal, run turnaround, run brake, post-turnaround run lockout,
   facing, traction, crouch, jump squat, binary short/full hop, configured air
   jump, independently steerable aerial drift with takeoff-facing lock, fast
-  fall, landing, moving-platform support, platform drop, support edges,
+  fall, landing, moving-platform support, normal and shield platform drop,
+  support edges,
   solid-block top/side/underside collision with sealed upper-corner seams,
   blast-zone stock loss/respawn, ledge catch, catch lockout, hang, release, ledge jump,
   and ledge climb.
@@ -312,7 +314,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   validated snap distance and nine-tick platform pass window, again without
   changing canonical state. The V-cancel slice advances content/fighter schema
   to 18 for its hashed launch scale and input window while reusing the existing
-  trigger-age and tech-lockout state.
+  trigger-age and tech-lockout state. The shield-platform-drop slice advances
+  content/fighter schema to 19 for its hashed reduced-down threshold while
+  reusing the existing shield, support, airborne, and platform-pass state.
   Config/observation/identity schema 2, inspection schema 14, browser view
   schema 14, and RL schema 4 remain current. The canonical save is 611 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -566,10 +570,29 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   execution plus complete encoded replay/rollback and cross-target evidence
   remain before `verified`.
 
+## Delivered in the shield-platform-drop route
+
+- An already-shielding fighter on pass-through support now drops through when
+  down lies in the validated `[12288, 16384)` input band. The transition reuses
+  ordinary `AIRBORNE`, the authored nudge, gravity, and the existing nine-tick
+  platform-pass timer; it adds no canonical mutable state.
+- The lower band edge and `crouch_axis_threshold - 1` are eligible. One value
+  below the band remains `SHIELD`, full down enters `SPOT DODGE`, solid floor
+  cannot drop, same-tick shield entry only raises shield, and releasing after
+  minimum hold remains grounded `SHIELD RELEASE`.
+- The focused movement oracle validates both data bounds and all route
+  boundaries, then saves while shielded and proves the drop plus 24 future
+  hashes are identical after load. Browser readiness repeats successful,
+  below-band, and full-down routes through default input.
+- Registry row 41, Shield platform dropping, advances from `planned` to
+  `playable`; owner execution plus complete encoded replay/rollback and
+  cross-target evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
-  full magnitude for dash/dash-dance.
+  full magnitude for dash/dash-dance. They must also emit reduced vertical
+  magnitude so shield platform drop remains distinct from full-down spot dodge.
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
@@ -622,8 +645,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; auto-canceling, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  short hop air dodge, small step forward smash, tech-chasing, V-cancelling,
-  and wavedash are
+  shield platform dropping, short hop air dodge, small step forward smash,
+  tech-chasing, V-cancelling, and wavedash are
   now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
@@ -633,7 +656,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 22 playable, 6 primitive-ready, and 32 planned.
+  blocked: 1 verified, 23 playable, 6 primitive-ready, and 31 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -650,7 +673,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Remaining M4.2 and M4.3 work
 
 - Remaining ground attacks, aerials, specials, recovery, grabs/throws, analog
-  light shield, shield size/tilt/pokes and shield SDI, platform shield drop,
+  light shield, shield size/tilt/pokes and shield SDI,
   projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
   complete knockback/angle data, stale-move behavior,
@@ -666,7 +689,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 152 movement invariants, 205
+- Mechanical oracles: 170 movement invariants, 205
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,

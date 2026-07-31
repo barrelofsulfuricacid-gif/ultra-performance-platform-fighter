@@ -4079,6 +4079,429 @@ static int run_platform_test(const pf_m4_content *default_content)
     return 1;
 }
 
+static int prepare_shield_drop_platform(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x5a1ed07)),
+            PF_STATUS_OK,
+            "shield-platform-drop-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) &&
+            out_inspection->players[0].support ==
+                (uint8_t)PF_M4_SURFACE_PLATFORM)
+        {
+            break;
+        }
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(20) &&
+         out_inspection->players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return out_inspection->players[0].grounded != UINT8_C(0) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+}
+
+static int enter_platform_shield(
+    pf_sim *sim,
+    int16_t entry_y,
+    pf_m4_inspection *out_inspection)
+{
+    return prepare_shield_drop_platform(sim, out_inspection) &&
+           step_duel_trigger(
+               sim,
+               INT16_C(0),
+               entry_y,
+               UINT64_C(0),
+               UINT16_MAX,
+               out_inspection) &&
+           out_inspection->players[0].grounded != UINT8_C(0) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_PLATFORM &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_SHIELD &&
+           out_inspection->players[0].platform_drop_ticks ==
+               UINT8_C(0);
+}
+
+static int run_shield_platform_drop_test(
+    const pf_m4_content *default_content,
+    const pf_content_view *default_view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage floor_storage;
+    pf_m4_content platform_content = *default_content;
+    pf_m4_content invalid_content = *default_content;
+    pf_content_view platform_view;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *floor = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection floor_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+
+    if (default_content->fighter.shield_drop_axis_threshold !=
+            UINT16_C(12288) ||
+        default_content->fighter.shield_drop_axis_threshold <=
+            default_content->fighter.axis_dead_zone ||
+        default_content->fighter.shield_drop_axis_threshold >=
+            default_content->fighter.crouch_axis_threshold)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=shield-platform-drop-defaults\n");
+        return 0;
+    }
+    invalid_content.fighter.shield_drop_axis_threshold =
+        invalid_content.fighter.axis_dead_zone;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-low-shield-drop-threshold"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.shield_drop_axis_threshold =
+        invalid_content.fighter.crouch_axis_threshold;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-high-shield-drop-threshold"))
+    {
+        return 0;
+    }
+
+    platform_content.stage.platform_center_x_q16 =
+        -INT32_C(8) * PF_Q16_ONE;
+    platform_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    platform_content.stage.platform_half_width_q16 =
+        INT32_C(6) * PF_Q16_ONE;
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &platform_content,
+                &platform_view),
+            PF_STATUS_OK,
+            "shield-platform-drop-content-view") ||
+        !initialize_sim(
+            &source_storage,
+            &platform_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            &platform_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !initialize_sim(
+            &floor_storage,
+            default_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &floor) ||
+        !enter_platform_shield(
+            source,
+            (int16_t)platform_content.fighter
+                .shield_drop_axis_threshold,
+            &source_inspection) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "shield-platform-drop-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "shield-platform-drop-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "shield-platform-drop-load") ||
+        !step_duel_trigger(
+            source,
+            INT16_C(0),
+            (int16_t)platform_content.fighter
+                .shield_drop_axis_threshold,
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        !step_duel_trigger(
+            loaded,
+            INT16_C(0),
+            (int16_t)platform_content.fighter
+                .shield_drop_axis_threshold,
+            UINT64_C(0),
+            UINT16_MAX,
+            &loaded_inspection) ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].platform_drop_ticks !=
+            (uint8_t)platform_content.fighter.platform_drop_ticks ||
+        source_inspection.players[0].fast_fall != UINT8_C(0) ||
+        source_inspection.players[0].position_y_q16 <=
+            platform_content.stage.platform_y_q16 -
+                platform_content.fighter.half_height_q16 ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "shield-platform-drop-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "shield-platform-drop-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=shield-platform-drop-entry\n");
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        if (!step_duel_trigger(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &source_inspection) ||
+            !step_duel_trigger(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "shield-platform-drop-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "shield-platform-drop-loaded-future-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=shield-platform-drop-future"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+
+    if (!enter_platform_shield(
+            source,
+            INT16_C(0),
+            &source_inspection) ||
+        !step_duel_trigger(
+            source,
+            INT16_C(0),
+            (int16_t)(
+                platform_content.fighter
+                    .shield_drop_axis_threshold -
+                UINT16_C(1)),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        !enter_platform_shield(
+            source,
+            INT16_C(0),
+            &source_inspection) ||
+        !step_duel_trigger(
+            source,
+            INT16_C(0),
+            (int16_t)(
+                platform_content.fighter.crouch_axis_threshold -
+                UINT16_C(1)),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        !enter_platform_shield(
+            source,
+            INT16_C(0),
+            &source_inspection) ||
+        !step_duel_trigger(
+            source,
+            INT16_C(0),
+            (int16_t)platform_content.fighter
+                .crouch_axis_threshold,
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM ||
+        source_inspection.players[0].platform_drop_ticks != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=shield-platform-drop-boundaries\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(floor, UINT64_C(0x5a1ed08)),
+            PF_STATUS_OK,
+            "shield-platform-drop-floor-reset") ||
+        !step_duel_trigger(
+            floor,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &floor_inspection) ||
+        !step_duel_trigger(
+            floor,
+            INT16_C(0),
+            (int16_t)default_content->fighter
+                .shield_drop_axis_threshold,
+            UINT64_C(0),
+            UINT16_MAX,
+            &floor_inspection) ||
+        floor_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        floor_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        floor_inspection.players[0].grounded == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=shield-platform-drop-floor\n");
+        return 0;
+    }
+
+    if (!enter_platform_shield(
+            source,
+            INT16_C(0),
+            &source_inspection))
+    {
+        return 0;
+    }
+    for (tick = (uint32_t)source_inspection.players[0].action_ticks;
+         tick < (uint32_t)platform_content.fighter
+             .shield_minimum_hold_ticks;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel_trigger(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_PLATFORM ||
+        source_inspection.players[0].platform_drop_ticks != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=shield-release-not-platform-drop\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int make_solid_geometry_content(
     const pf_m4_content *default_content,
     pf_m4_content *out_content,
@@ -6060,6 +6483,7 @@ int main(void)
         !run_aerial_landing_test(&content, &view) ||
         !run_strong_aerial_landing_test(&content, &view) ||
         !run_platform_test(&content) ||
+        !run_shield_platform_drop_test(&content, &view) ||
         !run_solid_geometry_test(&content) ||
         !run_ledge_test(&content, &view) ||
         !run_edge_dash_test(&content, &view) ||
@@ -6071,7 +6495,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=152\n",
+        "movement_invariants=170\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;
 }

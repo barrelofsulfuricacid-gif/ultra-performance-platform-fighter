@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -454,6 +454,7 @@ mergeInto(LibraryManager.library, {
     pivotProbePassed,
     dashCancelProbePassed,
     dashingShieldProbePassed,
+    shieldPlatformDropProbePassed,
     smallStepForwardSmashProbePassed,
     dropCancelProbePassed,
     vCancelProbePassed,
@@ -743,8 +744,10 @@ mergeInto(LibraryManager.library, {
       pivotProbePassed &&
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
+      shieldPlatformDropProbePassed &&
       smallStepForwardSmashProbePassed &&
       dropCancelProbePassed &&
+      vCancelProbePassed &&
       combatProbePassed &&
       reactionProbePassed &&
       shieldProbePassed &&
@@ -813,13 +816,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + arrows walk · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -991,7 +994,11 @@ mergeInto(LibraryManager.library, {
       if (held(up) === held(down)) {
         return 0;
       }
-      return held(up) ? -state.dashAxis : state.dashAxis;
+      var magnitude =
+        held("ShiftLeft") || held("ShiftRight")
+          ? state.walkAxis
+          : state.dashAxis;
+      return held(up) ? -magnitude : magnitude;
     }
 
     function mergeAxis(keyboardAxis, gamepadAxisValue) {
@@ -1225,6 +1232,8 @@ mergeInto(LibraryManager.library, {
         (dashCancelProbePassed ? "pass" : "fail") +
         " dashing_shield_probe=" +
         (dashingShieldProbePassed ? "pass" : "fail") +
+        " shield_platform_drop_probe=" +
+        (shieldPlatformDropProbePassed ? "pass" : "fail") +
         " small_step_forward_smash_probe=" +
         (smallStepForwardSmashProbePassed ? "pass" : "fail") +
         " drop_cancel_probe=" +

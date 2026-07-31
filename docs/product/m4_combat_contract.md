@@ -8,7 +8,8 @@ DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
 directional ground tech, reaction-driven tech chasing, wall tech,
 wall-tech jump, ceiling tech,
 missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
-shield stop, dashing shield, shield damage/stun/pushback, shield release and
+shield stop, dashing shield, shield platform dropping,
+shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
 physical powershielding, frame-2 powershield canceling into either current
 production ground attack, and the hitlag-assisted same-platform drop-cancel
@@ -27,8 +28,8 @@ and short-hop-fast-fall-L-cancel. The strong button also works airborne,
 reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
 does not claim the remaining
-attacks, analog light shields, shield tilt/size/pokes, shield SDI,
-platform shield drop, grabs, projectile powershields, complete
+attacks, analog light shields, general shield tilt/size/pokes, shield SDI,
+grabs, projectile powershields, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
@@ -477,8 +478,9 @@ and `SPECIAL_LANDING` semantics and the state-schema-9 `WALL_TECH`,
 semantics plus the solid-top support ID. Input schema 3 still supplies the
 separate light- and strong-attack buttons.
 
-Content schema 18 / fighter schema 18 adds and hashes the validated V-cancel
-velocity scale and input window. It follows schema 17's validated drop-cancel
+Content schema 19 / fighter schema 19 adds and hashes the reduced-down shield
+platform-drop threshold. It follows schema 18's validated V-cancel velocity
+scale and input window and schema 17's validated drop-cancel
 snap distance and nine-tick default platform pass timer and schema 16's
 validated three-tick forward-smash input window
 and schema 15's validated

@@ -5,7 +5,8 @@ geometry, two standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
 wavedash/waveland,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
-grounded forward/backward rolls, spot dodge, hit-reaction, and dense-shield
+grounded forward/backward rolls, spot dodge, shield platform drop,
+hit-reaction, and dense-shield
 primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
 result/rematch loop and a deterministic combat-event feed in
 WebAssembly. It is no longer the
@@ -26,6 +27,7 @@ headless execution.
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
+| Shield platform drop | Hold trigger, then `Shift+S` | Hold trigger, then `Shift+Down` |
 | Crouch, platform drop, fast fall | `S` | Down |
 | Reset/rematch both players | `R` or Reset/Rematch button | Same |
 | Pause/resume | `P` or Pause button | Same |
@@ -45,7 +47,8 @@ are ignored rather than guessed.
 Unmodified horizontal keys emit full stick magnitude and can enter initial
 dash. Reversing them during the ten-tick initial-dash window performs a
 dash-dance reversal. Holding `Shift` emits a reduced magnitude below the dash
-threshold and therefore walks.
+threshold and therefore walks. `Shift` also reduces vertical magnitude, making
+the shield-drop band distinct from full-down spot dodge.
 
 For a fox-trot, tap and release one full direction, then repeat that same
 direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
@@ -71,6 +74,15 @@ The inherited run momentum continues sliding under traction through the
 eight-tick minimum hold and 15-tick `SHIELD RELEASE`. Repeat while holding
 shield: the travel path is the same, but the fighter remains `SHIELD`. A shield
 tap from idle is the no-travel negative case.
+
+For a shield platform drop, land on the pass-through platform and raise shield.
+On a later tick, keep holding the trigger and press reduced down with
+`Shift+S` / `Shift+Down`, or tilt a gamepad stick into the same analog band.
+The fighter immediately enters `AIRBORNE` with the ordinary nine-tick platform
+pass timer. Too little down remains `SHIELD`, while full down enters
+`SPOT DODGE`; releasing the trigger after minimum hold instead enters grounded
+`SHIELD RELEASE`. This follows the documented Melee
+[shield drop](https://www.ssbwiki.com/Shield_drop) interaction.
 
 For a small-step forward smash, press full direction and light attack together
 for the standing comparison. Reset, tap and hold the same full direction, wait
@@ -296,8 +308,8 @@ Successful surface techs clear hitstun/tumble and show the gold
 invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
-This shield slice does not yet include analog light shield, shield tilt/poke,
-shield SDI, platform shield drop, grab, projectile
+This shield slice does not yet include analog light shield, general shield
+tilt/poke, shield SDI, grab, projectile
 reflection.
 Future ground actions must join the same powershield-cancel router before that
 registry row can advance from `playable` to `verified`.
@@ -481,6 +493,12 @@ registry row can advance from `playable` to `verified`.
     components are 95% of the first route while hitstun is unchanged. Repeat
     while Player 2 is attacking, then after a prior full trigger inside the
     40-tick lockout, and confirm both exclusions retain ordinary launch.
+38. Land on the pass-through platform, hold shield, then press `Shift+S` or
+    `Shift+Down` while continuing to hold the trigger. Confirm immediate
+    `AIRBORNE` fall-through without `SHIELD RELEASE`. Repeat with unmodified
+    full down for grounded `SPOT DODGE`, with too little analog down to remain
+    `SHIELD`, and by releasing the trigger for ordinary grounded
+    `SHIELD RELEASE`.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -510,6 +528,9 @@ through:
 - one-tick run-to-shield tap/release travel through the minimum hold and full
   release, compared with a held shield stop on the same traction path and an
   idle no-travel negative route;
+- reduced down on pass-through support producing an ordinary shield platform
+  drop only after shield entry, plus below-band shield and full-down spot-dodge
+  negative routes;
 - simultaneous full-direction/light input producing the standing forward
   smash, a frame-3 delayed light input producing the farther-traveled strong
   attack, and frame-4 plus missing-direction negative routes producing the
@@ -573,7 +594,8 @@ The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
-dashing_shield_probe=pass small_step_forward_smash_probe=pass
+dashing_shield_probe=pass shield_platform_drop_probe=pass
+small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass

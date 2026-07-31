@@ -64,13 +64,23 @@ to the simulation.
   `SHIELD RELEASE` while ordinary traction finishes the slide. Holding shield
   follows the same traction path but remains `SHIELD`; raising shield from
   idle has no inherited horizontal travel. This is the dashing-shield route.
-- Client keyboard adapters must expose both full-magnitude and reduced-magnitude
-  horizontal input. The browser loop will retain explicit walk controls rather
-  than collapsing every key press into a full dash value.
+- While already in `SHIELD` on pass-through support, down in the validated
+  reduced-input band `[0.375, 0.5)` immediately enters ordinary `AIRBORNE`,
+  applies the authored platform nudge, and opens the same nine-tick
+  pass-through timer as a normal drop. The lower boundary is inclusive and the
+  upper boundary is exclusive. Full down instead keeps priority as
+  `SPOT DODGE`; too little tilt remains `SHIELD`, and releasing the trigger
+  uses ordinary grounded `SHIELD RELEASE`. The route cannot start on solid
+  floor or on the same tick shield is raised.
+- Client keyboard adapters must expose full and reduced magnitude on both axes.
+  The browser uses reduced horizontal input for walk and reduced down for
+  shield platform dropping rather than collapsing every key press into a full
+  value.
 - Ground acceleration, turn acceleration, traction, walk speed, run speed,
   initial-dash speed/window, forward-smash input window,
   run-turnaround duration/threshold/lockout,
-  run-brake duration, aerial acceleration, aerial speed, and facing are
+  run-brake duration, shield-drop threshold, aerial acceleration, aerial speed,
+  and facing are
   deterministic data fields.
 - Airborne horizontal stick input changes the aerial target velocity and
   acceleration only. It does not change facing. Facing is inherited at
@@ -120,6 +130,8 @@ L-cancel:
   direction selects `ROLL_BACKWARD`. Neither action changes facing.
 - Fresh down plus trigger selects `SPOT_DODGE`. If down and a full horizontal
   edge arrive together, spot dodge has priority.
+- Reduced down while already shielding is below the spot-dodge threshold and
+  therefore remains available to the pass-through-platform shield-drop route.
 - A direction held before the trigger is not fresh and cannot start a roll.
   Down held before the trigger likewise produces ordinary shield instead of a
   spot dodge. Initial dash and other locked actions remain excluded.
@@ -313,6 +325,9 @@ bounds, and blast zones.
   across opposite drift and air-jump input, fast fall, and landing;
 - exact nine-tick platform-drop entry, timer exposure, and the same-tick
   fast-fall exclusion used by the drop-cancel combat route;
+- validated shield-drop input-band boundaries, same-tick shield-entry and
+  solid-floor exclusions, full-down spot-dodge priority, ordinary shield
+  release, and mid-route save/load with 24 future-hash comparisons;
 - the ordinary airborne light-attack route, early auto-cancel, normal 12-tick
   aerial landing, six-tick L-cancel landing, exact trigger ages 0–6 versus 7,
   invalid timing data, and mid-aerial timer save/load equivalence;
@@ -342,7 +357,7 @@ per-tick polling, analog quantization/dead zone, D-pad override, face and
 shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
 and browser-specific device exposure remain part of the owner playtest.
 
-The focused movement oracle currently reports 152 invariants. The focused
+The focused movement oracle currently reports 170 invariants. The focused
 combat oracle reports 205 invariants, including the dashing-shield
 tap-versus-held boundary, reaction-driven tech-chase routes, and the
 frame-perfect drop-cancel hit/snap versus one-tick-late and whiff fall-through
