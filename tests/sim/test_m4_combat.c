@@ -3774,6 +3774,430 @@ static int run_knockdown_and_tech_test(
     return 1;
 }
 
+static int16_t tech_chase_axis(
+    const pf_m4_inspection *inspection)
+{
+    const int32_t delta =
+        inspection->players[1].position_x_q16 -
+        inspection->players[0].position_x_q16;
+
+    if (delta >
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
+    {
+        return INT16_MAX;
+    }
+    if (delta > PF_Q16_ONE / INT32_C(2))
+    {
+        return INT16_C(13500);
+    }
+    if (delta <
+        -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
+    {
+        return -INT16_MAX;
+    }
+    if (delta < -PF_Q16_ONE / INT32_C(2))
+    {
+        return -INT16_C(13500);
+    }
+    return INT16_C(0);
+}
+
+static int tech_chase_jab_in_range(
+    const pf_m4_content *content,
+    const pf_m4_inspection *inspection)
+{
+    const pf_m4_player_inspection *attacker =
+        &inspection->players[0];
+    const pf_m4_player_inspection *target =
+        &inspection->players[1];
+    const int64_t delta =
+        (int64_t)target->position_x_q16 -
+        (int64_t)attacker->position_x_q16;
+    const int8_t direction =
+        delta > INT64_C(0) ? INT8_C(1) : INT8_C(-1);
+    const int64_t distance =
+        delta >= INT64_C(0) ? delta : -delta;
+    const int64_t reach =
+        (int64_t)content->fighter.jab_hitbox_offset_x_q16 +
+        (int64_t)content->fighter.jab_hitbox_half_width_q16 +
+        (int64_t)content->fighter.half_width_q16;
+
+    return delta != INT64_C(0) &&
+           attacker->facing == direction &&
+           distance <= reach;
+}
+
+static int run_until_tech_chase_landing(
+    pf_sim *sim,
+    int tech_mode,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+    int trigger_sent = 0;
+
+    if (!start_reaction_hit(sim, out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        const pf_m4_player_inspection *target =
+            &out_inspection->players[1];
+        const int should_trigger =
+            trigger_sent == 0 &&
+            target->action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            target->velocity_y_q16 > INT32_C(0) &&
+            target->position_y_q16 +
+                    INT32_C(4) * PF_Q16_ONE >=
+                INT32_C(32) * PF_Q16_ONE;
+        const int16_t target_x =
+            tech_mode > 1 &&
+                    (should_trigger || trigger_sent != 0)
+                ? INT16_MAX
+                : INT16_C(0);
+
+        if (!step_reaction_duel(
+                sim,
+                tech_chase_axis(out_inspection),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                target_x,
+                INT16_C(0),
+                UINT64_C(0),
+                should_trigger
+                    ? UINT16_MAX
+                    : UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (should_trigger)
+        {
+            trigger_sent = 1;
+        }
+        if (out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        {
+            return trigger_sent != 0;
+        }
+    }
+    return 0;
+}
+
+static int run_tech_chase_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage in_place_storage;
+    test_sim_storage roll_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage miss_storage;
+    pf_sim *in_place = NULL;
+    pf_sim *roll = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *miss = NULL;
+    pf_m4_inspection in_place_inspection;
+    pf_m4_inspection roll_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection miss_inspection;
+    pf_state_hash roll_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t initial_damage;
+    uint32_t tick;
+    uint16_t attack_action_tick = UINT16_MAX;
+    int attack_sent = 0;
+    int saw_hit = 0;
+
+    if (!initialize_sim(
+            &in_place_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &in_place) ||
+        !initialize_sim(
+            &roll_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &roll) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !initialize_sim(
+            &miss_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &miss) ||
+        !run_until_tech_chase_landing(
+            in_place,
+            1,
+            &in_place_inspection) ||
+        !run_until_tech_chase_landing(
+            roll,
+            2,
+            &roll_inspection) ||
+        !run_until_tech_chase_landing(
+            miss,
+            2,
+            &miss_inspection))
+    {
+        return fail("tech-chase-init");
+    }
+    if (in_place_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+        roll_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+        miss_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+        roll_inspection.players[1].tech_direction != INT8_C(1) ||
+        in_place_inspection.players[1].damage_q16 !=
+            roll_inspection.players[1].damage_q16 ||
+        roll_inspection.players[1].damage_q16 !=
+            miss_inspection.players[1].damage_q16)
+    {
+        return fail("tech-chase-outcome-setup");
+    }
+
+    initial_damage = in_place_inspection.players[1].damage_q16;
+    for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
+    {
+        int16_t chaser_x = tech_chase_axis(&in_place_inspection);
+        uint64_t chaser_buttons = UINT64_C(0);
+
+        if (attack_sent == 0 &&
+            in_place_inspection.players[1].action_ticks >=
+                content->fighter.tech_invulnerability_ticks &&
+            tech_chase_jab_in_range(
+                content,
+                &in_place_inspection))
+        {
+            attack_sent = 1;
+            attack_action_tick =
+                in_place_inspection.players[1].action_ticks;
+            chaser_x = INT16_C(0);
+            chaser_buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        if (!step_reaction_duel(
+                in_place,
+                chaser_x,
+                INT16_C(0),
+                chaser_buttons,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &in_place_inspection))
+        {
+            return fail("tech-chase-in-place-step");
+        }
+        if (in_place_inspection.players[1].damage_q16 >
+            initial_damage)
+        {
+            saw_hit = 1;
+            break;
+        }
+    }
+    if (attack_sent == 0 || saw_hit == 0 ||
+        attack_action_tick + content->fighter.jab_startup_ticks >=
+            content->fighter.tech_in_place_ticks ||
+        in_place_inspection.players[1].damage_q16 !=
+            initial_damage + content->fighter.jab_damage_q16 ||
+        in_place_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        in_place_inspection.players[1].last_hit_attacker !=
+            UINT8_C(0) ||
+        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_HIT)
+    {
+        return fail("tech-chase-in-place-punish");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+    {
+        if (!step_reaction_duel(
+                roll,
+                tech_chase_axis(&roll_inspection),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &roll_inspection))
+        {
+            return fail("tech-chase-roll-presnapshot");
+        }
+    }
+    if (roll_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+        roll_inspection.players[1].invulnerable != UINT8_C(1) ||
+        !expect_status(
+            pf_sim_query_save_size(roll, &save_size),
+            PF_STATUS_OK,
+            "tech-chase-query-save-size") ||
+        save_size != (size_t)611)
+    {
+        return fail("tech-chase-roll-snapshot-boundary");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(roll, &destination),
+            PF_STATUS_OK,
+            "tech-chase-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "tech-chase-load") ||
+        !expect_status(
+            pf_m4_inspect(loaded, &loaded_inspection),
+            PF_STATUS_OK,
+            "tech-chase-loaded-inspect"))
+    {
+        return 0;
+    }
+
+    initial_damage = roll_inspection.players[1].damage_q16;
+    attack_action_tick = UINT16_MAX;
+    attack_sent = 0;
+    saw_hit = 0;
+    for (tick = UINT32_C(0); tick < UINT32_C(100); ++tick)
+    {
+        int16_t chaser_x = tech_chase_axis(&roll_inspection);
+        uint64_t chaser_buttons = UINT64_C(0);
+
+        if (attack_sent == 0 &&
+            roll_inspection.players[1].action_ticks >=
+                content->fighter.tech_invulnerability_ticks &&
+            tech_chase_jab_in_range(content, &roll_inspection))
+        {
+            attack_sent = 1;
+            attack_action_tick =
+                roll_inspection.players[1].action_ticks;
+            chaser_x = INT16_C(0);
+            chaser_buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        if (!step_reaction_duel(
+                roll,
+                chaser_x,
+                INT16_C(0),
+                chaser_buttons,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &roll_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                chaser_x,
+                INT16_C(0),
+                chaser_buttons,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(roll, &roll_hash),
+                PF_STATUS_OK,
+                "tech-chase-roll-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "tech-chase-loaded-hash") ||
+            !hash_equal(&roll_hash, &loaded_hash))
+        {
+            return fail("tech-chase-roll-continuation");
+        }
+        if (roll_inspection.players[1].damage_q16 >
+            initial_damage)
+        {
+            saw_hit = 1;
+            break;
+        }
+    }
+    if (attack_sent == 0 || saw_hit == 0 ||
+        attack_action_tick + content->fighter.jab_startup_ticks >=
+            content->fighter.tech_roll_ticks ||
+        roll_inspection.players[1].damage_q16 !=
+            initial_damage + content->fighter.jab_damage_q16 ||
+        loaded_inspection.players[1].damage_q16 !=
+            roll_inspection.players[1].damage_q16 ||
+        roll_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        return fail("tech-chase-roll-punish");
+    }
+
+    initial_damage = miss_inspection.players[1].damage_q16;
+    attack_sent = 0;
+    for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
+    {
+        uint64_t chaser_buttons = UINT64_C(0);
+
+        if (attack_sent == 0 &&
+            miss_inspection.players[1].action_ticks >=
+                content->fighter.tech_invulnerability_ticks)
+        {
+            if (tech_chase_jab_in_range(content, &miss_inspection))
+            {
+                return fail("tech-chase-static-negative-spacing");
+            }
+            attack_sent = 1;
+            chaser_buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        if (!step_reaction_duel(
+                miss,
+                INT16_C(0),
+                INT16_C(0),
+                chaser_buttons,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &miss_inspection))
+        {
+            return fail("tech-chase-static-negative-step");
+        }
+    }
+    if (attack_sent == 0 ||
+        miss_inspection.players[1].damage_q16 != initial_damage ||
+        miss_inspection.players[1].last_hit_sequence != UINT32_C(1))
+    {
+        return fail("tech-chase-static-negative-result");
+    }
+    return 1;
+}
+
 static int run_floor_getup_option_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -5530,6 +5954,9 @@ int main(void)
         !run_knockdown_and_tech_test(
             &reaction_content,
             &reaction_view) ||
+        !run_tech_chase_test(
+            &tech_invulnerability_content,
+            &tech_invulnerability_view) ||
         !run_floor_getup_option_test(
             &reaction_content,
             &reaction_view) ||
@@ -5557,7 +5984,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=135 journal_invariants=30\n",
+        " combat_invariants=149 journal_invariants=30\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

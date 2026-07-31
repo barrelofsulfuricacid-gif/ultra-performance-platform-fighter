@@ -55,6 +55,7 @@ static int test_shield_probe;
 static int test_shield_break_probe;
 static int test_tumble_probe;
 static int test_floor_recovery_probe;
+static int test_tech_chase_probe;
 static int test_surface_tech_probe;
 static int test_air_dodge_probe;
 static int test_ground_dodge_probe;
@@ -82,6 +83,7 @@ void pf_web_m4_playtest_install(
     int shield_break_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
+    int tech_chase_probe_passed,
     int surface_tech_probe_passed,
     int air_dodge_probe_passed,
     int ground_dodge_probe_passed,
@@ -112,6 +114,7 @@ void pf_web_m4_playtest_install(
     int shield_break_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
+    int tech_chase_probe_passed,
     int surface_tech_probe_passed,
     int air_dodge_probe_passed,
     int ground_dodge_probe_passed,
@@ -139,6 +142,7 @@ void pf_web_m4_playtest_install(
     test_shield_break_probe = shield_break_probe_passed;
     test_tumble_probe = tumble_probe_passed;
     test_floor_recovery_probe = floor_recovery_probe_passed;
+    test_tech_chase_probe = tech_chase_probe_passed;
     test_surface_tech_probe = surface_tech_probe_passed;
     test_air_dodge_probe = air_dodge_probe_passed;
     test_ground_dodge_probe = ground_dodge_probe_passed;
@@ -263,6 +267,7 @@ int main(void)
         test_shield_break_probe != 1 ||
         test_tumble_probe != 1 ||
         test_floor_recovery_probe != 1 ||
+        test_tech_chase_probe != 1 ||
         test_surface_tech_probe != 1 ||
         test_air_dodge_probe != 1 ||
         test_ground_dodge_probe != 1 ||
@@ -292,7 +297,8 @@ int main(void)
             "combat_probe=%d "
             "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
             "tumble_probe=%d "
-            "floor_recovery_probe=%d surface_tech_probe=%d "
+            "floor_recovery_probe=%d tech_chase_probe=%d "
+            "surface_tech_probe=%d "
             "air_dodge_probe=%d ground_dodge_probe=%d "
             "aerial_l_cancel_probe=%d match_probe=%d "
             "aerial_lag=%d strong_aerial_lag=%d "
@@ -316,6 +322,7 @@ int main(void)
             test_shield_break_probe,
             test_tumble_probe,
             test_floor_recovery_probe,
+            test_tech_chase_probe,
             test_surface_tech_probe,
             test_air_dodge_probe,
             test_ground_dodge_probe,
@@ -646,7 +653,8 @@ int main(void)
         "combat_probe=%d reaction_probe=%d "
         "shield_probe=%d shield_break_probe=%d "
         "powershield_cancel_probe=%d tumble_probe=%d "
-        "floor_recovery_probe=%d surface_tech_probe=%d "
+        "floor_recovery_probe=%d tech_chase_probe=%d "
+        "surface_tech_probe=%d "
         "air_dodge_probe=%d ground_dodge_probe=%d "
         "aerial_l_cancel_probe=%d match_probe=%d "
         "event_journal_probe=%d renders=%d\n",
@@ -668,6 +676,7 @@ int main(void)
         test_shield_probe,
         test_tumble_probe,
         test_floor_recovery_probe,
+        test_tech_chase_probe,
         test_surface_tech_probe,
         test_air_dodge_probe,
         test_ground_dodge_probe,

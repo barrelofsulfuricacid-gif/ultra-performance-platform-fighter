@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -460,6 +460,7 @@ mergeInto(LibraryManager.library, {
     shieldBreakProbePassed,
     tumbleProbePassed,
     floorRecoveryProbePassed,
+    techChaseProbePassed,
     surfaceTechProbePassed,
     airDodgeProbePassed,
     groundDodgeProbePassed,
@@ -995,6 +996,8 @@ mergeInto(LibraryManager.library, {
         (tumbleProbePassed ? "pass" : "fail") +
         " floor_recovery_probe=" +
         (floorRecoveryProbePassed ? "pass" : "fail") +
+        " tech_chase_probe=" +
+        (techChaseProbePassed ? "pass" : "fail") +
         " surface_tech_probe=" +
         (surfaceTechProbePassed ? "pass" : "fail") +
         " air_dodge_probe=" +
@@ -1035,6 +1038,8 @@ mergeInto(LibraryManager.library, {
         tumbleProbePassed ? "pass" : "fail";
       status.dataset.floorRecoveryProbe =
         floorRecoveryProbePassed ? "pass" : "fail";
+      status.dataset.techChaseProbe =
+        techChaseProbePassed ? "pass" : "fail";
       status.dataset.surfaceTechProbe =
         surfaceTechProbePassed ? "pass" : "fail";
       status.dataset.airDodgeProbe =

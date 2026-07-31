@@ -491,6 +491,20 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   full native/WebAssembly replay and rollback evidence remain before
   `verified`.
 
+## Delivered in the tech-chase route
+
+- A production strong launch now feeds a complete ordinary-input chase: the
+  attacker follows the opponent's airborne path, observes either neutral tech
+  in place or a right tech roll, continues adjusting spacing, and jabs during
+  the vulnerable recovery tail after the exact 20-tick invulnerability ends.
+- The focused combat oracle proves both reacting punish outcomes, a
+  same-action-tick non-following jab that misses the roll, and canonical
+  save/load future-hash equality from the middle of that roll.
+- Browser readiness repeats the two reacting routes and the static miss before
+  exposing the interactive loop. Registry row 56, Tech-chasing, advances from
+  `primitive-ready` to `playable`; owner execution and a broader opponent
+  decision policy remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -527,6 +541,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A one-tick shield tap from run retains the held shield stop's traction path,
   but enters release as soon as the eight-tick minimum completes. Holding the
   trigger remains `SHIELD`, while the same tap from idle has no travel.
+- Following the opponent's airborne path and observed ground-tech direction
+  remains the tech-chase route. The punish begins only when the 20-tick gold
+  invulnerability ring clears; attacking from the original spacing at that
+  same action tick must miss a directional roll.
 
 ## New binding M4.4 scope
 
@@ -535,7 +553,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; auto-canceling, dash canceling, dashing shield, edge dashing, edge
   hopping, fox-trotting, instant double jump, L-cancelling, pivoting, SHFFL,
-  short hop air dodge, and wavedash are now playable; other rows
+  short hop air dodge, tech-chasing, and wavedash are now playable; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
 - A versioned row-by-row registry, deterministic evidence links, and browser
@@ -544,7 +562,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 18 playable, 7 primitive-ready, and 35 planned.
+  blocked: 1 verified, 19 playable, 6 primitive-ready, and 35 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -576,7 +594,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 18/18 tests.
 - Address/undefined-behavior sanitizer workflow: 18/18 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 150 movement invariants, 135
+- Mechanical oracles: 150 movement invariants, 149
   attack/reaction/shield/floor/surface
   invariants plus 30 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -605,7 +623,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
-  floor-recovery/surface-tech
+  floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.

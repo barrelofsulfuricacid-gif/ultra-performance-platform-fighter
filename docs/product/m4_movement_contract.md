@@ -314,5 +314,6 @@ bounds, and blast zones.
 
 The focused movement oracle currently reports 150 invariants. The focused
 combat oracle adds the dashing-shield tap-versus-held travel/action boundary,
-idle no-travel negative case, and mid-route save/load continuation within its
-135 combat invariants.
+idle no-travel negative case, mid-route save/load continuation, and the
+reaction-driven tech-in-place/right-roll chase routes within its 149 combat
+invariants.

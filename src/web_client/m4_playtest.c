@@ -123,6 +123,7 @@ extern void pf_web_m4_playtest_install(
     int shield_break_probe_passed,
     int tumble_probe_passed,
     int floor_recovery_probe_passed,
+    int tech_chase_probe_passed,
     int surface_tech_probe_passed,
     int air_dodge_probe_passed,
     int ground_dodge_probe_passed,
@@ -2772,6 +2773,305 @@ static int pf_web_m4_run_floor_recovery_probe(void)
            inspection.players[1].invulnerable == UINT8_C(1);
 }
 
+static int16_t pf_web_m4_tech_chase_axis(
+    const pf_m4_inspection *inspection)
+{
+    const int32_t delta =
+        inspection->players[1].position_x_q16 -
+        inspection->players[0].position_x_q16;
+
+    if (delta >
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
+    {
+        return PF_WEB_M4_DASH_AXIS;
+    }
+    if (delta > PF_Q16_ONE / INT32_C(2))
+    {
+        return PF_WEB_M4_WALK_AXIS;
+    }
+    if (delta <
+        -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
+    {
+        return -PF_WEB_M4_DASH_AXIS;
+    }
+    if (delta < -PF_Q16_ONE / INT32_C(2))
+    {
+        return -PF_WEB_M4_WALK_AXIS;
+    }
+    return INT16_C(0);
+}
+
+static int pf_web_m4_tech_chase_jab_in_range(
+    const pf_m4_inspection *inspection)
+{
+    const pf_m4_player_inspection *attacker =
+        &inspection->players[0];
+    const pf_m4_player_inspection *target =
+        &inspection->players[1];
+    const int64_t delta =
+        (int64_t)target->position_x_q16 -
+        (int64_t)attacker->position_x_q16;
+    const int8_t direction =
+        delta > INT64_C(0) ? INT8_C(1) : INT8_C(-1);
+    const int64_t distance =
+        delta >= INT64_C(0) ? delta : -delta;
+    const int64_t reach =
+        (int64_t)pf_web_m4_content.fighter
+            .jab_hitbox_offset_x_q16 +
+        (int64_t)pf_web_m4_content.fighter
+            .jab_hitbox_half_width_q16 +
+        (int64_t)pf_web_m4_content.fighter.half_width_q16;
+
+    return delta != INT64_C(0) &&
+           attacker->facing == direction &&
+           distance <= reach;
+}
+
+static int pf_web_m4_reach_tech_chase_landing(
+    int tech_mode,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+    int trigger_sent = 0;
+
+    if (out_inspection == NULL || !pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(27); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                -PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        if (out_inspection->players[1].damage_q16 != UINT32_C(0))
+        {
+            break;
+        }
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[1].damage_q16 !=
+            pf_web_m4_content.fighter.strong_damage_q16 ||
+        out_inspection->players[1].tumble != UINT8_C(1))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        const pf_m4_player_inspection *target =
+            &out_inspection->players[1];
+        int32_t landing_surface_y_q16 =
+            out_inspection->stage.floor_y_q16;
+
+        if ((int64_t)target->position_x_q16 +
+                    (int64_t)pf_web_m4_content.fighter
+                        .half_width_q16 >=
+                (int64_t)out_inspection->stage.solid_left_q16 &&
+            (int64_t)target->position_x_q16 -
+                    (int64_t)pf_web_m4_content.fighter
+                        .half_width_q16 <=
+                (int64_t)out_inspection->stage.solid_right_q16 &&
+            target->position_y_q16 <
+                out_inspection->stage.solid_top_q16)
+        {
+            landing_surface_y_q16 =
+                out_inspection->stage.solid_top_q16;
+        }
+        else if (
+            (int64_t)target->position_x_q16 +
+                    (int64_t)pf_web_m4_content.fighter
+                        .half_width_q16 >=
+                (int64_t)out_inspection->stage.platform_left_q16 &&
+            (int64_t)target->position_x_q16 -
+                    (int64_t)pf_web_m4_content.fighter
+                        .half_width_q16 <=
+                (int64_t)out_inspection->stage.platform_right_q16 &&
+            target->position_y_q16 <
+                out_inspection->stage.platform_y_q16)
+        {
+            landing_surface_y_q16 =
+                out_inspection->stage.platform_y_q16;
+        }
+        const int should_trigger =
+            trigger_sent == 0 &&
+            target->action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG &&
+            target->velocity_y_q16 > INT32_C(0) &&
+            target->position_y_q16 +
+                    INT32_C(4) * PF_Q16_ONE >=
+                landing_surface_y_q16;
+        const int16_t target_x =
+            target->action_state == (uint8_t)PF_M4_ACTION_HITLAG
+                ? -PF_WEB_M4_DASH_AXIS
+                : (tech_mode > 1 &&
+                           (should_trigger || trigger_sent != 0)
+                       ? PF_WEB_M4_DASH_AXIS
+                       : INT16_C(0));
+        const int16_t target_y =
+            target->action_state == (uint8_t)PF_M4_ACTION_HITLAG
+                ? -PF_WEB_M4_DASH_AXIS
+                : INT16_C(0);
+
+        if (!pf_web_m4_tick_with_triggers(
+                pf_web_m4_tech_chase_axis(out_inspection),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                target_x,
+                target_y,
+                UINT64_C(0),
+                should_trigger ? UINT16_MAX : UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (should_trigger)
+        {
+            trigger_sent = 1;
+        }
+        if (out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+            out_inspection->players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_TECH_ROLL)
+        {
+            return trigger_sent != 0;
+        }
+    }
+    return 0;
+}
+
+static int pf_web_m4_run_tech_chase_route(
+    int tech_mode,
+    int react)
+{
+    pf_m4_inspection inspection;
+    uint32_t initial_damage;
+    uint32_t tick;
+    uint16_t attack_action_tick = UINT16_MAX;
+    int attack_sent = 0;
+
+    if (!pf_web_m4_reach_tech_chase_landing(
+            tech_mode,
+            &inspection))
+    {
+        return 0;
+    }
+    if ((tech_mode == 1 &&
+         inspection.players[1].action_state !=
+             (uint8_t)PF_M4_ACTION_TECH_IN_PLACE) ||
+        (tech_mode == 2 &&
+         (inspection.players[1].action_state !=
+              (uint8_t)PF_M4_ACTION_TECH_ROLL ||
+          inspection.players[1].tech_direction != INT8_C(1))))
+    {
+        return 0;
+    }
+
+    initial_damage = inspection.players[1].damage_q16;
+    for (tick = UINT32_C(0); tick < UINT32_C(100); ++tick)
+    {
+        int16_t chaser_x =
+            react != 0
+                ? pf_web_m4_tech_chase_axis(&inspection)
+                : INT16_C(0);
+        uint64_t chaser_buttons = UINT64_C(0);
+
+        if (attack_sent == 0 &&
+            inspection.players[1].action_ticks >=
+                pf_web_m4_content.fighter
+                    .tech_invulnerability_ticks &&
+            (react == 0 ||
+             pf_web_m4_tech_chase_jab_in_range(&inspection)))
+        {
+            if (react == 0 &&
+                pf_web_m4_tech_chase_jab_in_range(&inspection))
+            {
+                return 0;
+            }
+            attack_sent = 1;
+            attack_action_tick =
+                inspection.players[1].action_ticks;
+            chaser_x = INT16_C(0);
+            chaser_buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        if (!pf_web_m4_tick(
+                chaser_x,
+                INT16_C(0),
+                chaser_buttons,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[1].damage_q16 > initial_damage)
+        {
+            const uint16_t total_ticks =
+                tech_mode == 1
+                    ? pf_web_m4_content.fighter
+                          .tech_in_place_ticks
+                    : pf_web_m4_content.fighter.tech_roll_ticks;
+
+            return react != 0 && attack_sent != 0 &&
+                   attack_action_tick +
+                           pf_web_m4_content.fighter
+                               .jab_startup_ticks <
+                       total_ticks &&
+                   inspection.players[1].damage_q16 ==
+                       initial_damage +
+                           pf_web_m4_content.fighter
+                               .jab_damage_q16 &&
+                   inspection.players[1].action_state ==
+                       (uint8_t)PF_M4_ACTION_HITLAG &&
+                   inspection.players[1].last_hit_attacker ==
+                       UINT8_C(0);
+        }
+    }
+    return react == 0 && attack_sent != 0 &&
+           inspection.players[1].damage_q16 == initial_damage &&
+           inspection.players[1].last_hit_sequence == UINT32_C(1);
+}
+
+static int pf_web_m4_run_tech_chase_probe(void)
+{
+    return pf_web_m4_run_tech_chase_route(1, 1) &&
+           pf_web_m4_run_tech_chase_route(2, 1) &&
+           pf_web_m4_run_tech_chase_route(2, 0);
+}
+
 static int pf_web_m4_run_reaction_probe(void)
 {
     pf_m4_inspection inspection;
@@ -3524,6 +3824,7 @@ int pf_web_m4_playtest_start(void)
     int shield_break_probe_passed;
     int tumble_probe_passed;
     int floor_recovery_probe_passed;
+    int tech_chase_probe_passed;
     int surface_tech_probe_passed;
     int air_dodge_probe_passed;
     int ground_dodge_probe_passed;
@@ -3582,6 +3883,8 @@ int pf_web_m4_playtest_start(void)
     tumble_probe_passed = pf_web_m4_run_tumble_probe();
     floor_recovery_probe_passed =
         pf_web_m4_run_floor_recovery_probe();
+    tech_chase_probe_passed =
+        pf_web_m4_run_tech_chase_probe();
     surface_tech_probe_passed =
         pf_web_m4_run_surface_tech_probe();
     air_dodge_probe_passed =
@@ -3606,6 +3909,7 @@ int pf_web_m4_playtest_start(void)
         shield_break_probe_passed == 0 ||
         tumble_probe_passed == 0 ||
         floor_recovery_probe_passed == 0 ||
+        tech_chase_probe_passed == 0 ||
         surface_tech_probe_passed == 0 ||
         air_dodge_probe_passed == 0 ||
         ground_dodge_probe_passed == 0 ||
@@ -3633,6 +3937,7 @@ int pf_web_m4_playtest_start(void)
         shield_break_probe_passed,
         tumble_probe_passed,
         floor_recovery_probe_passed,
+        tech_chase_probe_passed,
         surface_tech_probe_passed,
         air_dodge_probe_passed,
         ground_dodge_probe_passed,

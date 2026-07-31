@@ -2,7 +2,8 @@
 
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, two standing ground attacks, ground/wall/ceiling tech and
-missed-impact recovery, directional air dodge, wavedash/waveland,
+missed-impact recovery, reaction-driven tech chasing, directional air dodge,
+wavedash/waveland,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, hit-reaction, and dense-shield
 primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
@@ -233,6 +234,13 @@ hits for their first 20 ticks, shown by a dashed gold ring and the
 `invulnerable` state-card field. Missed-tech knockdown has no such protection
 and lasts 26 ticks before entering `DOWN WAIT`.
 
+For a tech chase, strong-launch the opponent and follow their airborne path.
+Have the opponent tech in place or hold a direction for tech roll, keep
+adjusting toward the observed outcome, and jab after the dashed gold ring
+clears at action tick 20 but before the recovery ends. Attacking from the
+original spacing at that same tick is the roll-escape comparison and should
+miss.
+
 From `DOWN WAIT`, press up or make a fresh shield press for `NEUTRAL GETUP`,
 press left/right for `GETUP ROLL`, or press either attack key for `FLOOR
 ATTACK`. Neutral getup lasts 30 ticks with 23 invulnerable; getup roll lasts 35
@@ -414,6 +422,11 @@ registry row can advance from `playable` to `verified`.
     increasing sequence order.
 34. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
+35. Strong-launch Player 2 and move Player 1 toward the projected landing.
+    Tech in place with Player 2, wait for the gold ring to clear, and jab before
+    `TECH IN PLACE` ends. Repeat with a right tech roll and chase the observed
+    movement before jabbing. Finally reset, leave Player 1 at the original
+    spacing, and jab at the same target action tick; confirm the roll escapes.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -467,6 +480,9 @@ through:
 - an exact 26-tick missed-tech animation entering `DOWN WAIT`, all three
   floor-recovery input routes, their initial invulnerability, and both active
   phases of the floor attack;
+- airborne following into observed tech-in-place and right-tech-roll outcomes,
+  a jab during each vulnerable recovery tail, and a same-action-tick
+  non-following jab that misses the roll;
 - a production-path target SDI pulse producing a positional shift;
 - a trigger edge producing the 20-tick tech window and 40-tick lockout, with a
   held trigger counting down rather than retriggering;
@@ -493,7 +509,8 @@ dashing_shield_probe=pass combat_probe=pass
 event_journal_probe=pass reaction_probe=pass
 shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass
 tumble_probe=pass
-floor_recovery_probe=pass surface_tech_probe=pass air_dodge_probe=pass
+floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass
+air_dodge_probe=pass
 ground_dodge_probe=pass
 aerial_l_cancel_probe=pass match_probe=pass
 controls=keyboard-two-player` only after all checks

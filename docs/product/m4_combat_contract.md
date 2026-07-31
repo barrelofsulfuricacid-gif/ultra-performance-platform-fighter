@@ -5,7 +5,8 @@
 This checkpoint extends the first production-path M4.2 ground attacks with
 deterministic hit reaction and the first dense-shield primitive: trajectory
 DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
-directional ground tech, wall tech, wall-tech jump, ceiling tech,
+directional ground tech, reaction-driven tech chasing, wall tech,
+wall-tech jump, ceiling tech,
 missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, dashing shield, shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
@@ -170,6 +171,28 @@ alongside the 20-frame input window and 40-frame lockout described by
 two-sided weak attack follow SmashWiki's
 [floor-getup](https://www.ssbwiki.com/Floor_getup) and
 [floor-attack](https://www.ssbwiki.com/Floor_attack) descriptions.
+
+## Reaction-driven tech chase
+
+The playable tech-chase route is a composition of production mechanics, not a
+new scripted action. The attacker follows the target while the target is still
+airborne, observes the ground recovery selected by ordinary target input, and
+continues moving toward that outcome. Neutral input yields `TECH_IN_PLACE`;
+right input yields `TECH_ROLL` with direction `+1`.
+
+The chaser may start a standing jab only after the target action timer reaches
+the exact 20-tick tech-invulnerability boundary and only while the mirrored jab
+can reach the observed position. Jab startup must still complete before the
+26-tick in-place or 40-tick roll action ends. A non-reacting comparison stays
+at its original spacing and presses jab at the same 20-tick boundary; the roll
+escapes and takes no additional damage. This follows
+[SmashWiki's tech-chasing description](https://www.ssbwiki.com/Tech-chasing)
+of reacting to a floor-recovery option and punishing its vulnerable ending.
+
+Canonical save/load remains part of the route: saving during the invulnerable
+part of the right roll, loading into a second simulation, and supplying the
+same subsequent chase inputs must produce equal future hashes through the jab
+hit.
 
 ## Wall, ceiling, and missed surface impacts
 
@@ -476,7 +499,7 @@ maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 135 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 149 focused
 mechanics invariants plus 30 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -498,6 +521,10 @@ mechanics invariants plus 30 journal invariants, including:
   up/shield neutral getup, bidirectional getup roll, all three recovery
   durations and invulnerability cutoffs, front/back floor-attack hits with
   negative timing checks, and mid-roll save/load continuation;
+- airborne following into observed tech-in-place and right-tech-roll outcomes,
+  jabs during both vulnerable recovery tails, a same-action-tick static jab
+  that misses the roll, and mid-roll save/load future-hash equality through
+  the reacting punish;
 - air-dodge invulnerability rejecting an overlapping production jab inside
   the window and accepting the same hit on the exact expired boundary;
 - spot-dodge hit acceptance immediately before its invulnerability, rejection
@@ -547,7 +574,10 @@ replay, its final digest, and the complete typed event stream digest under the
 
 The browser startup refuses readiness unless independent movement,
 ground-dodge, air-dodge, attack, reaction, shield, shield-break, tumble,
-floor-recovery, and surface-tech probes pass. The
+floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
+strong-launches the target, follows its airborne path, reacts separately to
+tech in place and a right tech roll, jabs after invulnerability, and requires a
+same-timed non-following jab to miss the roll. The
 surface probe moves the ordinary default fighters near the raised block,
 strong-launches a tumbling target, opens the real trigger window during
 flight, holds up, and requires `WALL_TECH_JUMP` with cleared reaction state.
