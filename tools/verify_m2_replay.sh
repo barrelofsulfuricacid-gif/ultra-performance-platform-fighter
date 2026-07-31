@@ -47,7 +47,11 @@ common_flags="
 grep -Fqx "$expected" "$output_dir/native.txt"
 
 web_corpus="$root/build/web/pf_replay_corpus.js"
-if [ -f "$web_corpus" ]; then
+if [ "${PF_REQUIRE_WEB_REPLAY:-0}" = "1" ]; then
+    if [ ! -f "$web_corpus" ]; then
+        echo "M2 replay verification failed: web corpus is missing" >&2
+        exit 1
+    fi
     if ! command -v node >/dev/null 2>&1; then
         echo "M2 replay verification failed: node is not on PATH" >&2
         exit 1
@@ -56,11 +60,8 @@ if [ -f "$web_corpus" ]; then
     grep -Fqx "$expected" "$output_dir/wasm.txt"
     cmp "$output_dir/native.txt" "$output_dir/wasm.txt"
     echo "m2-replay-cross-target=pass native=1 wasm=1 ticks=180"
-elif [ "${PF_REQUIRE_WEB_REPLAY:-0}" = "1" ]; then
-    echo "M2 replay verification failed: web corpus is missing" >&2
-    exit 1
 else
-    echo "m2-replay-cross-target=partial native=1 wasm=not-built ticks=180"
+    echo "m2-replay-cross-target=partial native=1 wasm=deferred ticks=180"
 fi
 
 echo "m2-replay-verification=pass bytes=31303 ticks=180 players=4"

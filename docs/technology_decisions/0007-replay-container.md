@@ -77,10 +77,14 @@ The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,
 unknown-required rejection, and unknown-optional skipping.
 
-`tools/verify_m2_replay.sh` compiles and runs the corpus natively, runs the
-Emscripten build through Node when present, and requires byte-identical output
-including the event digest.
-The Web CI job makes the WebAssembly comparison mandatory. The browser build
+`tools/verify_m2_replay.sh` compiles and runs the corpus natively in every
+lane. Callers that set `PF_REQUIRE_WEB_REPLAY=1` also require the generated
+Emscripten corpus, run it through Node, and require byte-identical output
+including the event digest. Optional local lanes do not consume an
+opportunistic `build/web` artifact because that unversioned output may belong
+to an older source revision.
+The Web CI job sets the flag and makes the WebAssembly comparison mandatory.
+The browser build
 also generates, encodes, verifies, and displays the same trace inside
 WebAssembly, with a draggable tick timeline and the canonical state hash at
 every checkpoint.
