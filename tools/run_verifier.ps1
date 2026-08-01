@@ -132,6 +132,7 @@ foreach ($check in @(
         "m4-projectile",
         "m4-reflector",
         "m4-browser-adapter",
+        "collision-hitbox-overlay",
         "m3-regression-qualification",
         "sanitizer",
         "browser-smoke"))

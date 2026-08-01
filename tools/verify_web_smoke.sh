@@ -116,6 +116,15 @@ pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'
 pf_require_dom \
+    "M4 collision inspector semantics" \
+    'data-collision-overlay-semantics="stage-hurtbox-attack-grab-item-projectile-blast"'
+pf_require_dom \
+    "M4 collision inspector toggle" \
+    'id="pf-m4-collision-overlay"'
+pf_require_dom \
+    "M4 collision inspector legend" \
+    'id="pf-m4-collision-legend"'
+pf_require_dom \
     "M4 browser title" \
     'Platform Fighter M4 Browser Playtest'
 

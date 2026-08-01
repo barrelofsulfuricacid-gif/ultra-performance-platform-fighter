@@ -720,9 +720,23 @@ mergeInto(LibraryManager.library, {
         "border:1px solid #385274;border-radius:9px;padding:8px 13px;" +
         "font:700 12px/1 system-ui;cursor:pointer}" +
         ".pf-m4-toolbar button:hover{background:#203654}" +
+        ".pf-m4-toolbar button[aria-pressed=true]{background:#214d46;" +
+        "border-color:#4ce0a8;color:#dcfff2}" +
         ".pf-m4-tick{color:#8edcff;font:12px/1 ui-monospace,monospace;" +
         "margin-left:auto}" +
         ".pf-m4-gamepads{color:#a9b7ca;font:12px/1 ui-monospace,monospace}" +
+        ".pf-m4-overlay-legend{display:flex;flex-wrap:wrap;gap:8px 14px;" +
+        "align-items:center;margin:-2px 0 14px;color:#9fb0c7;" +
+        "font:11px/1.25 ui-monospace,monospace}" +
+        ".pf-m4-overlay-legend strong{color:#edf5ff}" +
+        ".pf-m4-overlay-key{display:inline-flex;align-items:center;gap:5px}" +
+        ".pf-m4-overlay-swatch{width:13px;height:9px;border:2px solid;" +
+        "display:inline-block;border-radius:2px}" +
+        ".pf-m4-overlay-stage{border-color:#4ce0a8}" +
+        ".pf-m4-overlay-hurt{border-color:#73b7ff;background:#73b7ff22}" +
+        ".pf-m4-overlay-attack{border-color:#ffd089;background:#ffb34733}" +
+        ".pf-m4-overlay-grab{border-color:#8cf3ff;background:#62e7ff22}" +
+        ".pf-m4-overlay-blast{border-color:#ff6c8f}" +
         ".pf-m4-controls{display:grid;grid-template-columns:1fr 1fr;" +
         "gap:12px;margin:12px 0}" +
         ".pf-m4-control-card{background:#0b1320;border:1px solid #263b58;" +
@@ -760,6 +774,9 @@ mergeInto(LibraryManager.library, {
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
     section.dataset.teamLab = "inactive";
+    section.dataset.collisionOverlay = "visible";
+    section.dataset.collisionOverlaySemantics =
+      "stage-hurtbox-attack-grab-item-projectile-blast";
     section.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
     section.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
     section.dataset.jumpCancelThrowProbe =
@@ -793,8 +810,8 @@ mergeInto(LibraryManager.library, {
     subtitle.textContent =
       "Keyboard and up to two Standard Gamepads drive the same deterministic " +
       "Q16.16 simulation used by native, replay, rollback, and headless " +
-      "execution. Active attack hitboxes are drawn over the production " +
-      "collision state.";
+      "execution. The collision inspector draws production stage surfaces, " +
+      "hurtboxes, attack and grab boxes, item/projectile extents, and blast zones.";
     headingCopy.appendChild(title);
     headingCopy.appendChild(subtitle);
     var live = document.createElement("span");
@@ -887,6 +904,12 @@ mergeInto(LibraryManager.library, {
     teamLabButton.type = "button";
     teamLabButton.textContent = "Team Wobble Lab";
     teamLabButton.setAttribute("aria-pressed", "false");
+    var collisionOverlayButton = document.createElement("button");
+    collisionOverlayButton.id = "pf-m4-collision-overlay";
+    collisionOverlayButton.type = "button";
+    collisionOverlayButton.textContent = "Collision Inspector: On";
+    collisionOverlayButton.setAttribute("aria-pressed", "true");
+    collisionOverlayButton.setAttribute("aria-controls", "pf-m4-canvas");
     var tickLabel = document.createElement("span");
     tickLabel.className = "pf-m4-tick";
     tickLabel.textContent = "tick 0 · fixed 60 Hz";
@@ -899,9 +922,23 @@ mergeInto(LibraryManager.library, {
     toolbar.appendChild(stepButton);
     toolbar.appendChild(resetButton);
     toolbar.appendChild(teamLabButton);
+    toolbar.appendChild(collisionOverlayButton);
     toolbar.appendChild(gamepadLabel);
     toolbar.appendChild(tickLabel);
     section.appendChild(toolbar);
+
+    var overlayLegend = document.createElement("div");
+    overlayLegend.className = "pf-m4-overlay-legend";
+    overlayLegend.id = "pf-m4-collision-legend";
+    overlayLegend.setAttribute("aria-label", "Collision inspector legend");
+    overlayLegend.innerHTML =
+      "<strong>Inspector (I)</strong>" +
+      '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-stage"></i>stage/item/projectile</span>' +
+      '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-hurt"></i>hurtbox</span>' +
+      '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-attack"></i>attack</span>' +
+      '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-grab"></i>grab</span>' +
+      '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-blast"></i>blast zone</span>';
+    section.appendChild(overlayLegend);
 
     var controls = document.createElement("div");
     controls.className = "pf-m4-controls";
@@ -1108,6 +1145,8 @@ mergeInto(LibraryManager.library, {
       accumulator: 0,
       aerialLandingLagTicks: aerialLandingLagTicks,
       canvas: canvas,
+      collisionOverlayButton: collisionOverlayButton,
+      collisionOverlayVisible: true,
       dashAxis: dashAxis,
       eventFeed: eventFeed,
       eventLog: [],
@@ -1327,6 +1366,29 @@ mergeInto(LibraryManager.library, {
       setRunning(true);
     }
 
+    function setCollisionOverlayVisible(visible) {
+      state.collisionOverlayVisible = visible;
+      state.collisionOverlayButton.textContent = visible
+        ? "Collision Inspector: On"
+        : "Collision Inspector: Off";
+      state.collisionOverlayButton.setAttribute(
+        "aria-pressed",
+        visible ? "true" : "false"
+      );
+      section.dataset.collisionOverlay = visible ? "visible" : "hidden";
+      if (state.latest && !Module._pf_web_m4_playtest_refresh()) {
+        setRunning(false);
+        if (status) {
+          status.textContent += " collision_overlay_runtime=fail";
+          status.dataset.collisionOverlayRuntime = "fail";
+        }
+      }
+    }
+
+    function toggleCollisionOverlay() {
+      setCollisionOverlayVisible(!state.collisionOverlayVisible);
+    }
+
     function frame(time) {
       if (state.running) {
         if (!state.lastTime) {
@@ -1355,6 +1417,7 @@ mergeInto(LibraryManager.library, {
     });
     resetButton.addEventListener("click", reset);
     teamLabButton.addEventListener("click", toggleTeamLab);
+    collisionOverlayButton.addEventListener("click", toggleCollisionOverlay);
 
     window.addEventListener(
       "keydown",
@@ -1376,6 +1439,9 @@ mergeInto(LibraryManager.library, {
           event.preventDefault();
         }
         state.keys[event.code] = true;
+        if (!wasHeld && event.code === "KeyI") {
+          toggleCollisionOverlay();
+        }
         if (!wasHeld && (event.code === "KeyW" || event.code === "Space")) {
           state.jumpQueued[0] = true;
         }
@@ -2079,6 +2145,42 @@ mergeInto(LibraryManager.library, {
       solidBottom - solidTop
     );
 
+    if (state.collisionOverlayVisible) {
+      context.save();
+      context.lineWidth = 2;
+      context.strokeStyle = "#4ce0a8";
+      context.beginPath();
+      context.moveTo(sx(view[2]), sy(view[4]));
+      context.lineTo(sx(view[3]), sy(view[4]));
+      context.stroke();
+
+      context.strokeStyle = "#67d9ff";
+      context.setLineDash([8, 5]);
+      context.beginPath();
+      context.moveTo(sx(view[5]), sy(view[7]));
+      context.lineTo(sx(view[6]), sy(view[7]));
+      context.stroke();
+
+      context.setLineDash([]);
+      context.strokeStyle = "#d68cff";
+      context.strokeRect(
+        solidLeft,
+        solidTop,
+        solidRight - solidLeft,
+        solidBottom - solidTop
+      );
+
+      context.strokeStyle = "#ff6c8f";
+      context.setLineDash([7, 8]);
+      context.strokeRect(
+        sx(view[8]),
+        sy(view[10]),
+        sx(view[9]) - sx(view[8]),
+        sy(view[11]) - sy(view[10])
+      );
+      context.restore();
+    }
+
     context.save();
     context.fillStyle = "#eaf3ff";
     context.font = "bold 16px ui-monospace, monospace";
@@ -2107,7 +2209,21 @@ mergeInto(LibraryManager.library, {
         sy(itemWorldY + view[itemBase + 15]) -
         sy(itemWorldY - view[itemBase + 15]);
 
-      if (view[itemBase + 5] !== 0) {
+      if (state.collisionOverlayVisible) {
+        context.save();
+        context.strokeStyle = "#4ce0a8";
+        context.lineWidth = 2;
+        context.setLineDash([4, 3]);
+        context.strokeRect(
+          itemX - itemWidth / 2,
+          itemY - itemHeight / 2,
+          itemWidth,
+          itemHeight
+        );
+        context.restore();
+      }
+
+      if (state.collisionOverlayVisible && view[itemBase + 5] !== 0) {
         var itemHitboxLeft = sx(itemWorldX - view[itemBase + 16]);
         var itemHitboxRight = sx(itemWorldX + view[itemBase + 16]);
         var itemHitboxTop = sy(itemWorldY - view[itemBase + 17]);
@@ -2179,17 +2295,36 @@ mergeInto(LibraryManager.library, {
       var projectileWorldY = view[projectileBase + 5];
       var projectileX = sx(projectileWorldX);
       var projectileY = sy(projectileWorldY);
-      var projectileWidth = Math.max(
-        7,
+      var projectileHitboxWidth =
         sx(projectileWorldX + view[projectileBase + 9]) -
-          sx(projectileWorldX - view[projectileBase + 9])
-      );
-      var projectileHeight = Math.max(
-        7,
+        sx(projectileWorldX - view[projectileBase + 9]);
+      var projectileHitboxHeight =
         sy(projectileWorldY + view[projectileBase + 10]) -
-          sy(projectileWorldY - view[projectileBase + 10])
-      );
+        sy(projectileWorldY - view[projectileBase + 10]);
+      var projectileWidth = Math.max(7, projectileHitboxWidth);
+      var projectileHeight = Math.max(7, projectileHitboxHeight);
       var projectileOwner = view[projectileBase + 2];
+
+      if (
+        state.collisionOverlayVisible &&
+        view[projectileBase + 3] !== 0
+      ) {
+        context.fillStyle = "#ffb34733";
+        context.strokeStyle = "#ffd089";
+        context.lineWidth = 2;
+        context.fillRect(
+          projectileX - projectileHitboxWidth / 2,
+          projectileY - projectileHitboxHeight / 2,
+          projectileHitboxWidth,
+          projectileHitboxHeight
+        );
+        context.strokeRect(
+          projectileX - projectileHitboxWidth / 2,
+          projectileY - projectileHitboxHeight / 2,
+          projectileHitboxWidth,
+          projectileHitboxHeight
+        );
+      }
 
       context.save();
       context.shadowColor =
@@ -2260,7 +2395,35 @@ mergeInto(LibraryManager.library, {
         (view[base + 4] === 13 && view[base + 26] > 0);
 
       context.globalAlpha = eliminated ? 0.12 : respawning ? 0.32 : 1;
-      if (view[base + 14]) {
+      if (state.collisionOverlayVisible && !eliminated) {
+        var hurtboxLeft = sx(view[base] - view[12]);
+        var hurtboxRight = sx(view[base] + view[12]);
+        var hurtboxTop = sy(view[base + 1] - view[13]);
+        var hurtboxBottom = sy(view[base + 1] + view[13]);
+
+        context.save();
+        context.fillStyle = invulnerable ? "#fff6a814" : "#73b7ff1f";
+        context.strokeStyle = invulnerable ? "#fff6a8" : "#73b7ff";
+        context.lineWidth = 2;
+        if (invulnerable) {
+          context.setLineDash([5, 4]);
+        }
+        context.fillRect(
+          hurtboxLeft,
+          hurtboxTop,
+          hurtboxRight - hurtboxLeft,
+          hurtboxBottom - hurtboxTop
+        );
+        context.strokeRect(
+          hurtboxLeft,
+          hurtboxTop,
+          hurtboxRight - hurtboxLeft,
+          hurtboxBottom - hurtboxTop
+        );
+        context.restore();
+      }
+
+      if (state.collisionOverlayVisible && view[base + 14]) {
         var hitboxLeft = sx(view[base + 15]);
         var hitboxRight = sx(view[base + 16]);
         var hitboxTop = sy(view[base + 17]);
@@ -2293,7 +2456,7 @@ mergeInto(LibraryManager.library, {
         );
       }
 
-      if (view[base + 35]) {
+      if (state.collisionOverlayVisible && view[base + 35]) {
         var grabboxLeft = sx(view[base + 36]);
         var grabboxRight = sx(view[base + 37]);
         var grabboxTop = sy(view[base + 38]);

@@ -146,6 +146,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
     "$pf_artifact_dir/m4_browser"
 pf_record \
+    collision-hitbox-overlay \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_collision_overlay.sh" \
+    "$pf_artifact_dir/m4_collision_overlay"
+pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"

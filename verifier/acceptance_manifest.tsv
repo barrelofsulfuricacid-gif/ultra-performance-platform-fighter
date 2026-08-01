@@ -15,7 +15,7 @@ M4-PROJECTILE	mechanical	active	m4-projectile
 M4-REFLECTOR	mechanical	active	m4-reflector
 M4-CHARGE	mechanical	active	m4-charge
 M4-BROWSER	mechanical	active	m4-browser-adapter
-M4-COLLISION-OVERLAY	visual	planned:M4	collision-hitbox-overlay
+M4-COLLISION-OVERLAY	visual	active	collision-hitbox-overlay
 M7-MENU	menu	planned:M7	menu-navigation
 M7-CONTROLLER-PROMPTS	menu	planned:M7	controller-prompt-semantics
 M7-SCREENSHOTS	visual	planned:M7	tolerant-screenshot-reference

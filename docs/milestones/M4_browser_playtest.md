@@ -70,6 +70,18 @@ execution.
 | Reset/rematch both players | `R` or Reset/Rematch button | Same |
 | Pause/resume | `P` or Pause button | Same |
 | One tick while paused | `N` or Step button | Same |
+| Toggle collision inspector | `I` or Collision Inspector button | Same |
+
+The collision inspector starts enabled. Green/cyan/purple stage lines identify
+the exact floor, one-way platform, and solid-block collision surfaces; the pink
+dashed rectangle is the blast zone. Blue translucent rectangles are fighter
+hurtboxes, gold rectangles are active attack hitboxes, and cyan rectangles are
+active grabboxes. Relay Rod body/attack extents and the active Pulse Bolt
+hitbox use the same collision-space transform. An invulnerable fighter keeps a
+dashed gold hurtbox outline so geometry and hit rejection remain separately
+visible. The legend and `data-collision-overlay-semantics` attribute expose
+these meanings to the browser verifier. Toggling while paused redraws the
+captured frame without consuming a simulation tick.
 
 Up to two gamepads using the
 [W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) are
@@ -101,8 +113,9 @@ attack plus direction performs one of four item throws. For glide toss, start a
 grounded roll and press light during roll action frames 0–4; frame 5 retains the
 roll and item. For jump-cancel throw, dash, press jump, then press light during
 `JUMP SQUAT`; waiting until `AIRBORNE` keeps the jump and performs an ordinary
-aerial item throw. The gold collision overlay appears only while the item
-hitbox is active.
+aerial item throw. Its green body outline remains visible while the inspector
+is enabled; the gold attack overlay appears only while the item hitbox is
+active.
 
 The cyan Pulse Bolt has its own live state card. Press `E` or `;`/Numpad `3`
 to fire from the ground, or tap jump, release during jump squat, and fire after

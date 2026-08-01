@@ -11946,6 +11946,11 @@ int pf_web_m4_playtest_reset(void)
     return pf_web_m4_reset_internal() && pf_web_m4_render();
 }
 
+int pf_web_m4_playtest_refresh(void)
+{
+    return pf_web_m4_render();
+}
+
 int pf_web_m4_playtest_set_team_lab(int enabled)
 {
     if (enabled != 0 && enabled != 1)

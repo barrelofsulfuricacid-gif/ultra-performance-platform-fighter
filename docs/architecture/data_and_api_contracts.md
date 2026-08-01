@@ -205,6 +205,11 @@ RL schema 8 / compact schema 7 packs it into player flag bit 18 while retaining
 66 compact values. Browser view schema 33 appends the four visible values at
 indices 392–395 for a 396-value presentation view without moving any existing
 offset.
+The M4 collision inspector consumes existing schema-33 stage geometry, fighter
+dimensions and active box bounds, and item/projectile extents. Its default-on
+toggle, legend, and pause-safe redraw are presentation semantics only; they do
+not change the 396-value layout or any canonical, replay, save, observation, or
+RL schema.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

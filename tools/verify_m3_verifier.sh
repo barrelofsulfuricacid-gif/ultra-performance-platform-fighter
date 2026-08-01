@@ -64,6 +64,7 @@ git -C "$root" \
     printf 'mechanical-oracle\tpass\tqualification fixture\n'
     printf 'm4-combat\tpass\tqualification fixture\n'
     printf 'm4-browser-adapter\tpass\tqualification fixture\n'
+    printf 'collision-hitbox-overlay\tpass\tqualification fixture\n'
 } >"$pass_checks"
 
 "$verifier" \

@@ -683,6 +683,12 @@ int main(void)
         return fail("start-and-input-probe");
     }
 
+    if (!pf_web_m4_playtest_refresh() || test_render_count != 2 ||
+        test_view[1] != 0)
+    {
+        return fail("pause-safe-refresh");
+    }
+
     if (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step_special(
             0,

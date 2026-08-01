@@ -17,7 +17,7 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
   kill-confirm, zero-to-death, platform-sharking, jump-canceled-grab, and
   directional-throw/chain-grab and jab-reset routes, plus two-pad
-  browser polling implemented
+  browser polling and a verifier-readable collision inspector implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
 
@@ -65,6 +65,24 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
   strong-aerial 30/15-tick landing timing, real damage/hitlag,
   shield-break phase/mash/recovery, and reaction-input and stock/respawn
   invariants pass.
+
+## Delivered in the collision-inspector slice
+
+- The live browser now exposes a default-on, pause-safe collision inspector
+  through both the toolbar and the `I` key. Toggling it redraws the last
+  inspected frame without advancing the deterministic simulation.
+- The overlay distinguishes the exact inspected floor, moving one-way
+  platform, solid block, and blast-zone boundaries; player hurtboxes, active
+  attack hitboxes, and active grabboxes; and Relay Rod plus Pulse Bolt
+  collision extents. Invulnerable hurtboxes retain their geometry but use the
+  existing dashed-gold rejection semantic.
+- The visible legend and stable DOM attributes make the same semantics readable
+  by a browser verifier. `collision-hitbox-overlay` is now an active acceptance
+  check, while tolerant screenshot comparison remains the separate planned M7
+  visual-reference check.
+- This is a presentation/verifier slice over already inspected canonical data.
+  Browser view schema 33 remains 396 values and no simulation, replay, save,
+  observation, or RL format changes.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -1551,8 +1569,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
-- Local setup/menu flow, replay-file event visualization,
-  collision/hitbox overlay, and repeated verifier/human matches.
+- Local setup/menu flow, replay-file event visualization, and repeated
+  verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
   combat playtest.
 
