@@ -66,6 +66,7 @@ git -C "$root" \
     printf 'm4-browser-adapter\tpass\tqualification fixture\n'
     printf 'collision-hitbox-overlay\tpass\tqualification fixture\n'
     printf 'm4-local-match-flow\tpass\tqualification fixture\n'
+    printf 'm4-replay-visualization\tpass\tqualification fixture\n'
 } >"$pass_checks"
 
 "$verifier" \

@@ -100,6 +100,23 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   playing, results, rematch, and return-to-setup states. This temporary M4.3
   surface does not claim the broader M7 menu-navigation system.
 
+## Delivered in the replay-file event-visualization slice
+
+- Replay observer schema 1 exposes checkpoint zero and every subsequently
+  hash-verified tick from the existing format-1 container, including the exact
+  ABI-4 event journal re-emitted by simulation. The native replay corpus proves
+  the observed event-stream digest equals the source `PFEVT001` digest.
+- The WebAssembly inspector can download its verified canonical replay and open
+  a compatible `.pfreplay` file. It publishes a replacement trace only after
+  chunk checksums, identity, every state hash, and the terminal result pass.
+- The replay timeline now renders typed events at their checkpoints and offers
+  Previous event / Next event navigation alongside positions and SHA-256 state
+  hashes. The file-import surface is bounded to 1 MiB and the current canonical
+  four-player, 500-tick content/config fixture.
+- `m4-replay-visualization` is an active verifier acceptance row, and the clean
+  browser smoke requires the file control, stable visualization semantics, and
+  three re-simulated canonical events.
+
 ## Delivered in the first M4.2 combat slice
 
 - Input-schema-3 light- and strong-attack buttons for native, replay, RL, and
@@ -1585,7 +1602,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
-- Replay-file event visualization and repeated verifier/human matches.
+- Repeated verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
   combat playtest.
 

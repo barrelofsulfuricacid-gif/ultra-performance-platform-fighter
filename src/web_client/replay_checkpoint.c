@@ -4,6 +4,7 @@
 #include "pf/replay.h"
 #include "pf/sim.h"
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdalign.h>
@@ -13,8 +14,15 @@
 #define PF_WEB_REPLAY_MEMORY_ALIGNMENT 64U
 #define PF_WEB_REPLAY_INPUT_COUNT 720U
 #define PF_WEB_REPLAY_HASH_COUNT 181U
-#define PF_WEB_REPLAY_POSITION_COUNT 1448U
 #define PF_WEB_REPLAY_CAPACITY 32768U
+#define PF_WEB_REPLAY_MAX_TICKS 500U
+#define PF_WEB_REPLAY_MAX_CHECKPOINTS (PF_WEB_REPLAY_MAX_TICKS + 1U)
+#define PF_WEB_REPLAY_POSITION_COUNT                                \
+    (PF_WEB_REPLAY_MAX_CHECKPOINTS * PF_SIM_MAX_PLAYERS * 2U)
+#define PF_WEB_REPLAY_EVENT_STRIDE 10U
+#define PF_WEB_REPLAY_EVENT_VALUE_COUNT                             \
+    (PF_WEB_REPLAY_MAX_CHECKPOINTS *                                \
+     PF_SIM_MAX_EVENTS_PER_TICK * PF_WEB_REPLAY_EVENT_STRIDE)
 
 _Static_assert(
     PF_WEB_REPLAY_INPUT_COUNT ==
@@ -24,9 +32,8 @@ _Static_assert(
     PF_WEB_REPLAY_HASH_COUNT == PF_M2_REPLAY_TICKS + UINT64_C(1),
     "web replay hash capacity must cover tick zero");
 _Static_assert(
-    PF_WEB_REPLAY_POSITION_COUNT ==
-        PF_WEB_REPLAY_HASH_COUNT * PF_M2_REPLAY_PLAYERS * UINT64_C(2),
-    "web replay position capacity must cover every checkpoint");
+    PF_WEB_REPLAY_MAX_TICKS == UINT64_C(500),
+    "web replay visualization capacity must match the fixture config");
 _Static_assert(
     sizeof(PF_M2_REPLAY_FINAL_SHA256) ==
         PF_SIM_STATE_HASH_BYTES * (size_t)2 + (size_t)1,
@@ -43,10 +50,15 @@ typedef struct pf_web_replay_storage
 extern void pf_web_replay_inspector(
     const int32_t *positions_q16,
     const uint8_t *hashes,
+    const int32_t *event_counts,
+    const int32_t *event_values,
+    const uint8_t *replay_bytes,
+    int replay_size,
     int tick_count,
     int player_count,
     int winner_mask,
-    const char *final_hash);
+    const char *final_hash,
+    int imported);
 
 static pf_web_replay_storage pf_web_initial_storage;
 static pf_web_replay_storage pf_web_source_storage;
@@ -56,7 +68,10 @@ static pf_state_hash pf_web_replay_hashes[PF_WEB_REPLAY_HASH_COUNT];
 static int32_t pf_web_replay_positions[PF_WEB_REPLAY_POSITION_COUNT];
 static uint8_t pf_web_replay_bytes[PF_WEB_REPLAY_CAPACITY];
 static uint8_t pf_web_hash_bytes[
-    PF_WEB_REPLAY_HASH_COUNT * PF_SIM_STATE_HASH_BYTES];
+    PF_WEB_REPLAY_MAX_CHECKPOINTS * PF_SIM_STATE_HASH_BYTES];
+static int32_t pf_web_replay_event_counts[PF_WEB_REPLAY_MAX_CHECKPOINTS];
+static int32_t pf_web_replay_event_values[PF_WEB_REPLAY_EVENT_VALUE_COUNT];
+static char pf_web_replay_final_hash[65];
 
 static int pf_web_hex_nibble(char value)
 {
@@ -123,38 +138,247 @@ static int pf_web_replay_init(
                out_sim) == PF_STATUS_OK;
 }
 
-static int pf_web_capture_checkpoint(
+static int pf_web_capture_source_hash(
     const pf_sim *sim,
     size_t checkpoint_index)
 {
-    pf_sim_observation observation;
     pf_state_hash *state_hash = &pf_web_replay_hashes[checkpoint_index];
-    uint32_t player_index;
 
-    if (pf_sim_observe(sim, &observation) != PF_STATUS_OK ||
-        pf_sim_hash(sim, state_hash) != PF_STATUS_OK)
+    return pf_sim_hash(sim, state_hash) == PF_STATUS_OK;
+}
+
+typedef struct pf_web_replay_observer_context
+{
+    uint64_t checkpoint_count;
+    uint64_t replay_tick_count;
+    uint8_t player_count;
+} pf_web_replay_observer_context;
+
+static void pf_web_replay_hash_hex(
+    const uint8_t hash[PF_SIM_STATE_HASH_BYTES],
+    char output[65])
+{
+    static const char digits[] = "0123456789abcdef";
+    uint32_t byte_index;
+
+    for (byte_index = UINT32_C(0);
+         byte_index < (uint32_t)PF_SIM_STATE_HASH_BYTES;
+         ++byte_index)
     {
-        return 0;
+        output[(size_t)byte_index * (size_t)2] =
+            digits[hash[byte_index] >> 4U];
+        output[(size_t)byte_index * (size_t)2 + (size_t)1] =
+            digits[hash[byte_index] & UINT8_C(0x0f)];
     }
+    output[64] = '\0';
+}
+
+static pf_status pf_web_capture_verified_checkpoint(
+    void *user_data,
+    const pf_sim *sim,
+    uint64_t replay_tick_count,
+    const pf_tick_result *tick_result,
+    const pf_state_hash *state_hash)
+{
+    pf_web_replay_observer_context *context =
+        (pf_web_replay_observer_context *)user_data;
+    pf_sim_observation observation;
+    size_t checkpoint_index;
+    uint32_t player_index;
+    uint32_t event_index;
+
+    if (context == NULL || sim == NULL || tick_result == NULL ||
+        state_hash == NULL ||
+        replay_tick_count > (uint64_t)PF_WEB_REPLAY_MAX_TICKS ||
+        tick_result->completed_tick != context->checkpoint_count ||
+        context->checkpoint_count > replay_tick_count ||
+        pf_sim_observe(sim, &observation) != PF_STATUS_OK ||
+        observation.tick != tick_result->completed_tick ||
+        observation.player_count == UINT8_C(0) ||
+        observation.player_count > (uint8_t)PF_SIM_MAX_PLAYERS)
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
+    checkpoint_index = (size_t)context->checkpoint_count;
+    if (checkpoint_index >= (size_t)PF_WEB_REPLAY_MAX_CHECKPOINTS)
+    {
+        return PF_STATUS_BUFFER_TOO_SMALL;
+    }
+    if (checkpoint_index == (size_t)0)
+    {
+        context->replay_tick_count = replay_tick_count;
+        context->player_count = observation.player_count;
+    }
+    else if (context->replay_tick_count != replay_tick_count ||
+             context->player_count != observation.player_count)
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
     (void)memcpy(
         &pf_web_hash_bytes[
             checkpoint_index * (size_t)PF_SIM_STATE_HASH_BYTES],
         state_hash->bytes,
         (size_t)PF_SIM_STATE_HASH_BYTES);
     for (player_index = UINT32_C(0);
-         player_index < (uint32_t)PF_M2_REPLAY_PLAYERS;
+         player_index < (uint32_t)observation.player_count;
          ++player_index)
     {
         const size_t position_index =
-            (checkpoint_index * (size_t)PF_M2_REPLAY_PLAYERS +
+            (checkpoint_index * (size_t)observation.player_count +
              (size_t)player_index) *
             (size_t)2;
+
         pf_web_replay_positions[position_index] =
             observation.players[player_index].position_x_q16;
         pf_web_replay_positions[position_index + (size_t)1] =
             observation.players[player_index].position_y_q16;
     }
-    return 1;
+
+    pf_web_replay_event_counts[checkpoint_index] =
+        (int32_t)tick_result->event_count;
+    for (event_index = UINT32_C(0);
+         event_index < (uint32_t)tick_result->event_count;
+         ++event_index)
+    {
+        const pf_sim_event *event = &tick_result->events[event_index];
+        const size_t base =
+            (checkpoint_index * (size_t)PF_SIM_MAX_EVENTS_PER_TICK +
+             (size_t)event_index) *
+            (size_t)PF_WEB_REPLAY_EVENT_STRIDE;
+
+        if (event->tick > (uint64_t)INT32_MAX ||
+            event->sequence > (uint32_t)INT32_MAX ||
+            event->value_q16 > (uint32_t)INT32_MAX)
+        {
+            return PF_STATUS_BUFFER_TOO_SMALL;
+        }
+        pf_web_replay_event_values[base] = (int32_t)event->sequence;
+        pf_web_replay_event_values[base + (size_t)1] =
+            (int32_t)event->tick;
+        pf_web_replay_event_values[base + (size_t)2] =
+            (int32_t)event->type;
+        pf_web_replay_event_values[base + (size_t)3] =
+            (int32_t)event->source_player;
+        pf_web_replay_event_values[base + (size_t)4] =
+            (int32_t)event->target_player;
+        pf_web_replay_event_values[base + (size_t)5] =
+            (int32_t)event->value_q16;
+        pf_web_replay_event_values[base + (size_t)6] =
+            event->velocity_x_q16;
+        pf_web_replay_event_values[base + (size_t)7] =
+            event->velocity_y_q16;
+        pf_web_replay_event_values[base + (size_t)8] =
+            (int32_t)event->flags;
+        pf_web_replay_event_values[base + (size_t)9] =
+            (int32_t)event->detail;
+    }
+
+    context->checkpoint_count += UINT64_C(1);
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_web_verify_and_render_replay(
+    pf_bytes replay,
+    int imported)
+{
+    const pf_content_view content = pf_m2_replay_make_content();
+    pf_sim_config config;
+    pf_sim *playback = NULL;
+    pf_replay_verification verification;
+    pf_replay_observer observer;
+    pf_web_replay_observer_context context;
+    pf_status status;
+
+    if (replay.bytes == NULL || replay.size == (size_t)0 ||
+        replay.size > (size_t)INT_MAX)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    status = pf_sim_default_config(
+        &config,
+        PF_M2_REPLAY_PLAYERS,
+        PF_SIM_MODE_TEAMS);
+    if (status != PF_STATUS_OK)
+    {
+        return status;
+    }
+    config.max_ticks = (uint64_t)PF_WEB_REPLAY_MAX_TICKS;
+    if (!pf_web_replay_init(
+            &pf_web_playback_storage,
+            &content,
+            &config,
+            &playback))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
+    (void)memset(pf_web_replay_positions, 0, sizeof(pf_web_replay_positions));
+    (void)memset(pf_web_hash_bytes, 0, sizeof(pf_web_hash_bytes));
+    (void)memset(
+        pf_web_replay_event_counts,
+        0,
+        sizeof(pf_web_replay_event_counts));
+    (void)memset(
+        pf_web_replay_event_values,
+        0,
+        sizeof(pf_web_replay_event_values));
+    (void)memset(&context, 0, sizeof(context));
+    (void)memset(&observer, 0, sizeof(observer));
+    observer.struct_size = (uint32_t)sizeof(observer);
+    observer.schema_version = PF_REPLAY_OBSERVER_SCHEMA_VERSION;
+    observer.checkpoint = pf_web_capture_verified_checkpoint;
+    observer.user_data = &context;
+
+    status = pf_replay_verify_observed(
+        playback,
+        replay,
+        &observer,
+        &verification);
+    if (status == PF_STATUS_OK &&
+        (verification.status != (uint32_t)PF_STATUS_OK ||
+         verification.expected_ticks != context.replay_tick_count ||
+         verification.verified_ticks != context.replay_tick_count ||
+         verification.first_mismatch_tick != UINT64_MAX ||
+         context.checkpoint_count !=
+             context.replay_tick_count + UINT64_C(1) ||
+         context.replay_tick_count > (uint64_t)INT_MAX))
+    {
+        status = PF_STATUS_INVALID_STATE;
+    }
+    if (status == PF_STATUS_OK)
+    {
+        pf_web_replay_hash_hex(
+            verification.actual_hash.bytes,
+            pf_web_replay_final_hash);
+        pf_web_replay_inspector(
+            pf_web_replay_positions,
+            pf_web_hash_bytes,
+            pf_web_replay_event_counts,
+            pf_web_replay_event_values,
+            replay.bytes,
+            (int)replay.size,
+            (int)context.replay_tick_count,
+            (int)context.player_count,
+            (int)verification.actual_result.winner_mask,
+            pf_web_replay_final_hash,
+            imported != 0 ? 1 : 0);
+    }
+
+    (void)pf_sim_deinit(playback);
+    return status;
+}
+
+int pf_web_replay_import(
+    const uint8_t *replay_bytes,
+    size_t replay_size)
+{
+    pf_bytes replay;
+
+    replay.bytes = replay_bytes;
+    replay.size = replay_size;
+    return (int)pf_web_verify_and_render_replay(replay, 1);
 }
 
 int pf_web_run_replay_checkpoint(void)
@@ -163,10 +387,8 @@ int pf_web_run_replay_checkpoint(void)
     pf_sim_config config;
     pf_sim *initial = NULL;
     pf_sim *source = NULL;
-    pf_sim *playback = NULL;
     pf_tick_result result;
     pf_replay_source replay_source;
-    pf_replay_verification verification;
     pf_mut_bytes destination;
     pf_bytes replay;
     size_t replay_size;
@@ -191,14 +413,9 @@ int pf_web_run_replay_checkpoint(void)
             &content,
             &config,
             &source) ||
-        !pf_web_replay_init(
-            &pf_web_playback_storage,
-            &content,
-            &config,
-            &playback) ||
         pf_sim_reset(initial, PF_M2_REPLAY_SEED) != PF_STATUS_OK ||
         pf_sim_clone(source, initial) != PF_STATUS_OK ||
-        !pf_web_capture_checkpoint(source, (size_t)0))
+        !pf_web_capture_source_hash(source, (size_t)0))
     {
         goto cleanup;
     }
@@ -214,7 +431,9 @@ int pf_web_run_replay_checkpoint(void)
                 inputs,
                 (size_t)PF_M2_REPLAY_PLAYERS,
                 &result) != PF_STATUS_OK ||
-            !pf_web_capture_checkpoint(source, (size_t)tick + (size_t)1))
+            !pf_web_capture_source_hash(
+                source,
+                (size_t)tick + (size_t)1))
         {
             goto cleanup;
         }
@@ -256,28 +475,13 @@ int pf_web_run_replay_checkpoint(void)
     }
     replay.bytes = pf_web_replay_bytes;
     replay.size = destination.size;
-    if (pf_replay_verify(playback, replay, &verification) != PF_STATUS_OK ||
-        verification.status != (uint32_t)PF_STATUS_OK ||
-        verification.verified_ticks != PF_M2_REPLAY_TICKS ||
-        verification.first_mismatch_tick != UINT64_MAX)
+    if (pf_web_verify_and_render_replay(replay, 0) != PF_STATUS_OK)
     {
         goto cleanup;
     }
-
-    pf_web_replay_inspector(
-        pf_web_replay_positions,
-        pf_web_hash_bytes,
-        (int)PF_M2_REPLAY_TICKS,
-        (int)PF_M2_REPLAY_PLAYERS,
-        (int)result.winner_mask,
-        PF_M2_REPLAY_FINAL_SHA256);
     passed = 1;
 
 cleanup:
-    if (playback != NULL)
-    {
-        (void)pf_sim_deinit(playback);
-    }
     if (source != NULL)
     {
         (void)pf_sim_deinit(source);

@@ -1487,9 +1487,49 @@ static pf_status pf_replay_report_mismatch(
         PF_STATUS_REPLAY_MISMATCH);
 }
 
-pf_status pf_replay_verify(
+static pf_status pf_replay_observer_validate(
+    const pf_replay_observer *observer)
+{
+    if (observer == NULL)
+    {
+        return PF_STATUS_OK;
+    }
+    if (observer->struct_size != (uint32_t)sizeof(*observer) ||
+        observer->schema_version != PF_REPLAY_OBSERVER_SCHEMA_VERSION)
+    {
+        return PF_STATUS_UNSUPPORTED_VERSION;
+    }
+    if (observer->reserved != UINT16_C(0) ||
+        observer->checkpoint == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_replay_observe_checkpoint(
+    const pf_replay_observer *observer,
+    const pf_sim *sim,
+    uint64_t replay_tick_count,
+    const pf_tick_result *tick_result,
+    const pf_state_hash *state_hash)
+{
+    if (observer == NULL)
+    {
+        return PF_STATUS_OK;
+    }
+    return observer->checkpoint(
+        observer->user_data,
+        sim,
+        replay_tick_count,
+        tick_result,
+        state_hash);
+}
+
+static pf_status pf_replay_verify_internal(
     pf_sim *sim,
     pf_bytes replay,
+    const pf_replay_observer *observer,
     pf_replay_verification *out_verification)
 {
     pf_replay_chunks chunks;
@@ -1512,6 +1552,13 @@ pf_status pf_replay_verify(
         return PF_STATUS_INVALID_ARGUMENT;
     }
     pf_replay_verification_init(out_verification);
+    status = pf_replay_observer_validate(observer);
+    if (status != PF_STATUS_OK)
+    {
+        return pf_replay_verification_return(
+            out_verification,
+            status);
+    }
     if (!pf_sim_is_valid(sim))
     {
         return pf_replay_verification_return(
@@ -1633,6 +1680,19 @@ pf_status pf_replay_verify(
             &expected_hash,
             &actual_hash);
     }
+    pf_replay_world_result(&sim->world, &actual_result);
+    status = pf_replay_observe_checkpoint(
+        observer,
+        sim,
+        match.tick_count,
+        &actual_result,
+        &actual_hash);
+    if (status != PF_STATUS_OK)
+    {
+        return pf_replay_verification_return(
+            out_verification,
+            status);
+    }
 
     for (tick_index = UINT64_C(0);
          tick_index < match.tick_count;
@@ -1685,6 +1745,18 @@ pf_status pf_replay_verify(
         }
         out_verification->verified_ticks =
             tick_index + UINT64_C(1);
+        status = pf_replay_observe_checkpoint(
+            observer,
+            sim,
+            match.tick_count,
+            &actual_result,
+            &actual_hash);
+        if (status != PF_STATUS_OK)
+        {
+            return pf_replay_verification_return(
+                out_verification,
+                status);
+        }
     }
 
     if (input_reader.failed != 0 ||
@@ -1715,4 +1787,29 @@ pf_status pf_replay_verify(
     return pf_replay_verification_return(
         out_verification,
         PF_STATUS_OK);
+}
+
+pf_status pf_replay_verify(
+    pf_sim *sim,
+    pf_bytes replay,
+    pf_replay_verification *out_verification)
+{
+    return pf_replay_verify_internal(
+        sim,
+        replay,
+        NULL,
+        out_verification);
+}
+
+pf_status pf_replay_verify_observed(
+    pf_sim *sim,
+    pf_bytes replay,
+    const pf_replay_observer *observer,
+    pf_replay_verification *out_verification)
+{
+    return pf_replay_verify_internal(
+        sim,
+        replay,
+        observer,
+        out_verification);
 }

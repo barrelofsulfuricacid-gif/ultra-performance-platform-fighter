@@ -211,18 +211,24 @@ mergeInto(LibraryManager.library, {
   },
 
   pf_web_replay_inspector__deps: ["$UTF8ToString"],
-  pf_web_replay_inspector__sig: "vppiiip",
+  pf_web_replay_inspector__sig: "vpppppiiiipi",
   pf_web_replay_inspector: function (
     positionsPointer,
     hashesPointer,
+    eventCountsPointer,
+    eventValuesPointer,
+    replayBytesPointer,
+    replaySize,
     tickCount,
     playerCount,
     winnerMask,
-    finalHashPointer
+    finalHashPointer,
+    imported
   ) {
     var checkpointCount = tickCount + 1;
     var positionCount = checkpointCount * playerCount * 2;
     var hashCount = checkpointCount * 32;
+    var eventValueCount = checkpointCount * 16 * 10;
     var positions = new Int32Array(
       HEAP32.subarray(
         positionsPointer >> 2,
@@ -232,7 +238,31 @@ mergeInto(LibraryManager.library, {
     var hashes = new Uint8Array(
       HEAPU8.subarray(hashesPointer, hashesPointer + hashCount)
     );
+    var eventCounts = new Int32Array(
+      HEAP32.subarray(
+        eventCountsPointer >> 2,
+        (eventCountsPointer >> 2) + checkpointCount
+      )
+    );
+    var eventValues = new Int32Array(
+      HEAP32.subarray(
+        eventValuesPointer >> 2,
+        (eventValuesPointer >> 2) + eventValueCount
+      )
+    );
+    var replayBytes = new Uint8Array(
+      HEAPU8.subarray(replayBytesPointer, replayBytesPointer + replaySize)
+    );
     var finalHash = UTF8ToString(finalHashPointer);
+    var importedReplay = imported !== 0;
+    var importName = importedReplay
+      ? Module.pfReplayImportName || "imported replay"
+      : "generated canonical replay";
+    var totalEventCount = 0;
+    var eventTick;
+    for (eventTick = 0; eventTick < checkpointCount; ++eventTick) {
+      totalEventCount += Math.max(0, Math.min(16, eventCounts[eventTick]));
+    }
     var status = document.getElementById("pf-status");
     var oldInspector = document.getElementById("pf-replay-inspector");
 
@@ -263,10 +293,26 @@ mergeInto(LibraryManager.library, {
         "#pf-replay-canvas{display:block;width:100%;height:auto;" +
         "background:#090d16;border:1px solid #263249;border-radius:12px}" +
         "#pf-replay-slider{width:100%;margin:18px 0 8px;accent-color:#62d0ff}" +
-        ".pf-row{display:flex;justify-content:space-between;gap:16px;" +
-        "align-items:baseline}.pf-hash{overflow-wrap:anywhere;color:#88d9ff;" +
-        "font-size:12px}.pf-help{font-size:13px!important;margin-top:14px!important}" +
-        "@media(max-width:600px){body{padding:12px}" +
+         ".pf-row{display:flex;justify-content:space-between;gap:16px;" +
+         "align-items:baseline}.pf-hash{overflow-wrap:anywhere;color:#88d9ff;" +
+         "font-size:12px}.pf-replay-file-controls{display:flex;gap:10px;" +
+         "align-items:center;flex-wrap:wrap;margin:0 0 16px}.pf-replay-file-controls button," +
+         ".pf-replay-file-label{border:1px solid #3a5778;border-radius:8px;" +
+         "padding:7px 10px;background:#16243a;color:#dcecff;cursor:pointer;" +
+         "font:600 12px/1.2 system-ui}.pf-replay-file-label input{position:absolute;" +
+         "width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}" +
+         ".pf-replay-file-status{color:#91a5bf;font:12px/1.4 system-ui}" +
+         ".pf-replay-event-nav{display:flex;align-items:center;gap:8px;" +
+         "margin-top:14px}.pf-replay-event-nav button{border:1px solid #344966;" +
+         "border-radius:7px;background:#142033;color:#d8e8ff;padding:5px 8px}" +
+         ".pf-replay-event-nav button:disabled{opacity:.4}" +
+         "#pf-replay-events{display:grid;gap:7px;list-style:none;padding:0;" +
+         "margin:10px 0 0}#pf-replay-events li{display:grid;grid-template-columns:auto 1fr;" +
+         "gap:10px;padding:8px 10px;border:1px solid #263249;border-radius:8px;" +
+         "background:#0c1320}#pf-replay-events code{color:#78d7ff}" +
+         "#pf-replay-events span{font:13px/1.35 system-ui;color:#c3d0e3}" +
+         ".pf-help{font-size:13px!important;margin-top:14px!important}" +
+         "@media(max-width:600px){body{padding:12px}" +
         "#pf-replay-inspector{padding:16px}.pf-row{align-items:flex-start;" +
         "flex-direction:column;gap:4px}}";
       document.head.appendChild(style);
@@ -274,13 +320,15 @@ mergeInto(LibraryManager.library, {
 
     var inspector = document.createElement("section");
     inspector.id = "pf-replay-inspector";
+    inspector.dataset.replaySource = importedReplay ? "file" : "generated";
+    inspector.dataset.replayEventVisualization = "verified-per-tick-events";
     var title = document.createElement("h1");
-    title.textContent = "M2 deterministic replay inspector";
+    title.textContent = "Deterministic replay file inspector";
     inspector.appendChild(title);
     var summary = document.createElement("p");
     summary.textContent =
-      "The same authored-C simulation generated, encoded, and verified this " +
-      "four-player trace inside WebAssembly.";
+      "The authored C simulation verifies and re-simulates this compatible " +
+      "replay inside WebAssembly, including its typed per-tick event journal.";
     inspector.appendChild(summary);
 
     var badges = document.createElement("div");
@@ -290,6 +338,8 @@ mergeInto(LibraryManager.library, {
       tickCount + " ticks",
       playerCount + " players",
       "winner mask " + winnerMask,
+      totalEventCount + " typed events",
+      importedReplay ? "opened from file" : "generated in browser",
       "60 Hz",
     ].forEach(function (label) {
       var badge = document.createElement("span");
@@ -298,6 +348,32 @@ mergeInto(LibraryManager.library, {
       badges.appendChild(badge);
     });
     inspector.appendChild(badges);
+
+    var fileControls = document.createElement("div");
+    fileControls.className = "pf-replay-file-controls";
+    var downloadButton = document.createElement("button");
+    downloadButton.type = "button";
+    downloadButton.textContent = "Download verified replay";
+    var fileLabel = document.createElement("label");
+    fileLabel.className = "pf-replay-file-label";
+    fileLabel.textContent = "Open replay file";
+    var fileInput = document.createElement("input");
+    fileInput.id = "pf-replay-file";
+    fileInput.type = "file";
+    fileInput.accept = ".pfreplay,application/octet-stream";
+    fileInput.setAttribute("aria-label", "Open compatible replay file");
+    fileLabel.appendChild(fileInput);
+    var fileStatus = document.createElement("span");
+    fileStatus.id = "pf-replay-file-status";
+    fileStatus.className = "pf-replay-file-status";
+    fileStatus.setAttribute("role", "status");
+    fileStatus.textContent = importedReplay
+      ? importName + " verified and visualized"
+      : "Compatible canonical files up to 1 MiB are verified before display.";
+    fileControls.appendChild(downloadButton);
+    fileControls.appendChild(fileLabel);
+    fileControls.appendChild(fileStatus);
+    inspector.appendChild(fileControls);
 
     var canvas = document.createElement("canvas");
     canvas.id = "pf-replay-canvas";
@@ -326,11 +402,32 @@ mergeInto(LibraryManager.library, {
     var hashLabel = document.createElement("div");
     hashLabel.className = "pf-hash";
     inspector.appendChild(hashLabel);
+
+    var eventNav = document.createElement("div");
+    eventNav.className = "pf-replay-event-nav";
+    var previousEventButton = document.createElement("button");
+    previousEventButton.type = "button";
+    previousEventButton.textContent = "Previous event";
+    var nextEventButton = document.createElement("button");
+    nextEventButton.type = "button";
+    nextEventButton.textContent = "Next event";
+    var eventHeading = document.createElement("strong");
+    eventHeading.textContent = "Events at tick 0";
+    eventNav.appendChild(previousEventButton);
+    eventNav.appendChild(nextEventButton);
+    eventNav.appendChild(eventHeading);
+    inspector.appendChild(eventNav);
+    var eventList = document.createElement("ul");
+    eventList.id = "pf-replay-events";
+    eventList.setAttribute("aria-label", "Verified replay events at selected tick");
+    inspector.appendChild(eventList);
+
     var help = document.createElement("p");
     help.className = "pf-help";
     help.textContent =
-      "Drag the timeline. Trails and the per-tick SHA-256 state hash are " +
-      "derived from the verified replay; player 3 forfeits on the final tick.";
+      "Drag the timeline or jump between event ticks. Positions, per-tick " +
+      "SHA-256 hashes, and typed events are emitted by verified re-simulation; " +
+      "unverified or incompatible files never replace the current trace.";
     inspector.appendChild(help);
     document.body.appendChild(inspector);
 
@@ -342,6 +439,152 @@ mergeInto(LibraryManager.library, {
         output += hashes[offset + index].toString(16).padStart(2, "0");
       }
       return output;
+    }
+
+    var replayEventNames = [
+      "NONE",
+      "HIT",
+      "SHIELD BLOCK",
+      "POWERSHIELD",
+      "SHIELD BREAK",
+      "KO",
+      "RESPAWN",
+      "SUDDEN DEATH",
+      "MATCH RESULT",
+      "FORFEIT",
+      "TIME LIMIT",
+      "GRAB",
+      "GRAB ESCAPE",
+      "THROW",
+      "ITEM PICKUP",
+      "ITEM DROP",
+      "ITEM THROW",
+      "ITEM HIT",
+      "ITEM RESET",
+      "PROJECTILE FIRE",
+      "PROJECTILE HIT",
+      "PROJECTILE REFLECT",
+    ];
+    var replayEventTicks = [];
+    for (eventTick = 0; eventTick < checkpointCount; ++eventTick) {
+      if (eventCounts[eventTick] > 0) {
+        replayEventTicks.push(eventTick);
+      }
+    }
+
+    function replayEventPlayer(slot) {
+      return slot === 255 ? "system" : "P" + (slot + 1);
+    }
+
+    function replayEventsAtTick(tick) {
+      var count = Math.max(0, Math.min(16, eventCounts[tick]));
+      var events = [];
+      var eventIndex;
+
+      for (eventIndex = 0; eventIndex < count; ++eventIndex) {
+        var base = (tick * 16 + eventIndex) * 10;
+        events.push({
+          sequence: eventValues[base],
+          tick: eventValues[base + 1],
+          type: eventValues[base + 2],
+          source: eventValues[base + 3],
+          target: eventValues[base + 4],
+          value: eventValues[base + 5],
+          velocityX: eventValues[base + 6],
+          velocityY: eventValues[base + 7],
+          flags: eventValues[base + 8],
+          detail: eventValues[base + 9],
+        });
+      }
+      return events;
+    }
+
+    function replayEventDescription(event) {
+      var label = replayEventNames[event.type] || "EVENT " + event.type;
+      var source = replayEventPlayer(event.source);
+      var target = replayEventPlayer(event.target);
+      var value = (event.value / 65536).toFixed(2);
+      var velocity =
+        "(" +
+        (event.velocityX / 65536).toFixed(2) +
+        ", " +
+        (event.velocityY / 65536).toFixed(2) +
+        ")";
+
+      return (
+        label +
+        " · " +
+        source +
+        " → " +
+        target +
+        " · value " +
+        value +
+        " · velocity " +
+        velocity +
+        " · flags " +
+        event.flags +
+        " · detail " +
+        event.detail
+      );
+    }
+
+    function renderReplayEvents(tick) {
+      var events = replayEventsAtTick(tick);
+      var hasPrevious = false;
+      var hasNext = false;
+
+      eventHeading.textContent = "Events entering checkpoint " + tick;
+      eventList.textContent = "";
+      if (events.length === 0) {
+        var emptyEvent = document.createElement("li");
+        var emptyText = document.createElement("span");
+        emptyText.textContent = "No typed events at this checkpoint.";
+        emptyEvent.appendChild(emptyText);
+        eventList.appendChild(emptyEvent);
+      } else {
+        events.forEach(function (event) {
+          var item = document.createElement("li");
+          var key = document.createElement("code");
+          var description = document.createElement("span");
+          key.textContent = "#" + event.sequence + " · input tick " + event.tick;
+          description.textContent = replayEventDescription(event);
+          item.appendChild(key);
+          item.appendChild(description);
+          eventList.appendChild(item);
+        });
+      }
+      replayEventTicks.forEach(function (candidate) {
+        hasPrevious = hasPrevious || candidate < tick;
+        hasNext = hasNext || candidate > tick;
+      });
+      previousEventButton.disabled = !hasPrevious;
+      nextEventButton.disabled = !hasNext;
+    }
+
+    function jumpToReplayEvent(direction) {
+      var current = Number(slider.value);
+      var target = null;
+      var index;
+
+      if (direction < 0) {
+        for (index = replayEventTicks.length - 1; index >= 0; --index) {
+          if (replayEventTicks[index] < current) {
+            target = replayEventTicks[index];
+            break;
+          }
+        }
+      } else {
+        for (index = 0; index < replayEventTicks.length; ++index) {
+          if (replayEventTicks[index] > current) {
+            target = replayEventTicks[index];
+            break;
+          }
+        }
+      }
+      if (target !== null) {
+        slider.value = String(target);
+        draw(target);
+      }
     }
 
     function draw(tick) {
@@ -422,22 +665,105 @@ mergeInto(LibraryManager.library, {
         " y=" +
         selected.worldY.toFixed(3);
       hashLabel.textContent = "state sha256: " + hexHash(tick);
+      renderReplayEvents(tick);
     }
 
+    downloadButton.addEventListener("click", function () {
+      var blob = new Blob([replayBytes], { type: "application/octet-stream" });
+      var url = URL.createObjectURL(blob);
+      var anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = importedReplay
+        ? "verified-imported-replay.pfreplay"
+        : "platform-fighter-canonical.pfreplay";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    });
+    fileInput.addEventListener("change", async function () {
+      var file = fileInput.files && fileInput.files[0];
+      var pointer = 0;
+      var statusNames = [
+        "ok",
+        "invalid argument",
+        "unsupported version",
+        "buffer too small",
+        "misaligned memory",
+        "invalid config",
+        "tick mismatch",
+        "episode done",
+        "invalid state",
+        "deterministic fault",
+        "incompatible state",
+        "checksum mismatch",
+        "replay mismatch",
+      ];
+
+      if (!file) {
+        return;
+      }
+      if (file.size === 0 || file.size > 1024 * 1024) {
+        fileStatus.textContent = "Replay must be between 1 byte and 1 MiB.";
+        return;
+      }
+      fileStatus.textContent = "Verifying " + file.name + "…";
+      try {
+        var fileBytes = new Uint8Array(await file.arrayBuffer());
+        pointer = Module._malloc(fileBytes.byteLength);
+        if (!pointer) {
+          throw new Error("WebAssembly allocation failed");
+        }
+        HEAPU8.set(fileBytes, pointer);
+        Module.pfReplayImportName = file.name;
+        var importStatus = Module._pf_web_replay_import(
+          pointer,
+          fileBytes.byteLength
+        );
+        if (importStatus !== 0) {
+          var activeStatus = document.getElementById("pf-replay-file-status");
+          if (activeStatus) {
+            activeStatus.textContent =
+              file.name +
+              " rejected: " +
+              (statusNames[importStatus] || "status " + importStatus);
+          }
+        }
+      } catch (error) {
+        var failureStatus = document.getElementById("pf-replay-file-status");
+        if (failureStatus) {
+          failureStatus.textContent =
+            file.name + " could not be read: " + String(error.message || error);
+        }
+      } finally {
+        if (pointer) {
+          Module._free(pointer);
+        }
+      }
+    });
+    previousEventButton.addEventListener("click", function () {
+      jumpToReplayEvent(-1);
+    });
+    nextEventButton.addEventListener("click", function () {
+      jumpToReplayEvent(1);
+    });
     slider.addEventListener("input", function () {
       draw(Number(slider.value));
     });
     draw(0);
 
     if (status) {
-      status.textContent +=
-        " replay=pass ticks=" +
-        tickCount +
-        " winner_mask=" +
-        winnerMask +
-        " final_sha256=" +
-        finalHash;
+      if (!importedReplay) {
+        status.textContent +=
+          " replay=pass ticks=" +
+          tickCount +
+          " winner_mask=" +
+          winnerMask +
+          " final_sha256=" +
+          finalHash;
+      }
       status.dataset.replay = "pass";
+      status.dataset.replayEventVisualization = "pass";
     }
   },
 

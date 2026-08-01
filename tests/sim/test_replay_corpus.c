@@ -192,6 +192,49 @@ static void hash_tick_events(
     }
 }
 
+typedef struct test_replay_observer_context
+{
+    pf_sha256 events_hash;
+    uint64_t checkpoint_count;
+    uint64_t event_count;
+} test_replay_observer_context;
+
+static pf_status observe_replay_checkpoint(
+    void *user_data,
+    const pf_sim *sim,
+    uint64_t replay_tick_count,
+    const pf_tick_result *tick_result,
+    const pf_state_hash *state_hash)
+{
+    test_replay_observer_context *context =
+        (test_replay_observer_context *)user_data;
+    pf_sim_observation observation;
+    uint64_t checkpoint = context != NULL
+                              ? context->checkpoint_count
+                              : UINT64_MAX;
+
+    if (context == NULL || sim == NULL || tick_result == NULL ||
+        state_hash == NULL ||
+        replay_tick_count != PF_M2_REPLAY_TICKS ||
+        checkpoint > PF_M2_REPLAY_TICKS ||
+        tick_result->completed_tick != checkpoint ||
+        !state_hash_equal(
+            state_hash,
+            &corpus_hashes[(size_t)checkpoint]) ||
+        pf_sim_observe(sim, &observation) != PF_STATUS_OK ||
+        observation.tick != checkpoint)
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+    if (checkpoint != UINT64_C(0))
+    {
+        hash_tick_events(&context->events_hash, tick_result);
+        context->event_count += (uint64_t)tick_result->event_count;
+    }
+    context->checkpoint_count += UINT64_C(1);
+    return PF_STATUS_OK;
+}
+
 static int verify_unmodified_hash(
     pf_sim *sim,
     const pf_state_hash *before,
@@ -277,6 +320,8 @@ int main(void)
     pf_tick_result result;
     pf_replay_source replay_source;
     pf_replay_verification verification;
+    pf_replay_observer observer;
+    test_replay_observer_context observer_context;
     pf_mut_bytes destination;
     pf_bytes replay;
     pf_state_hash playback_hash;
@@ -284,9 +329,11 @@ int main(void)
     pf_m4_inspection combat_inspection;
     uint8_t replay_digest[32];
     uint8_t events_digest[32];
+    uint8_t observed_events_digest[32];
     char replay_digest_hex[65];
     char final_digest_hex[65];
     char events_digest_hex[65];
+    char observed_events_digest_hex[65];
     pf_sha256 events_hash;
     size_t replay_size = (size_t)0;
     uint64_t tick;
@@ -534,14 +581,32 @@ int main(void)
 
     replay.bytes = replay_bytes;
     replay.size = replay_size;
+    (void)memset(&observer, 0, sizeof(observer));
+    observer.struct_size = (uint32_t)sizeof(observer);
+    observer.schema_version = PF_REPLAY_OBSERVER_SCHEMA_VERSION;
+    observer.checkpoint = observe_replay_checkpoint;
+    observer.user_data = &observer_context;
+    (void)memset(&observer_context, 0, sizeof(observer_context));
+    pf_sha256_init(&observer_context.events_hash);
+    pf_sha256_update(
+        &observer_context.events_hash,
+        (const uint8_t *)"PFEVT001",
+        (size_t)8);
     if (!expect_status(
-            pf_replay_verify(playback, replay, &verification),
+            pf_replay_verify_observed(
+                playback,
+                replay,
+                &observer,
+                &verification),
             PF_STATUS_OK,
-            "verify-replay") ||
+            "verify-observed-replay") ||
         verification.status != (uint32_t)PF_STATUS_OK ||
         verification.expected_ticks != PF_M2_REPLAY_TICKS ||
         verification.verified_ticks != PF_M2_REPLAY_TICKS ||
         verification.first_mismatch_tick != UINT64_MAX ||
+        observer_context.checkpoint_count !=
+            PF_M2_REPLAY_TICKS + UINT64_C(1) ||
+        observer_context.event_count == UINT64_C(0) ||
         !expect_status(
             pf_sim_hash(playback, &playback_hash),
             PF_STATUS_OK,
@@ -663,18 +728,26 @@ int main(void)
         corpus_hashes[TEST_HASH_COUNT - 1U].bytes,
         final_digest_hex);
     pf_sha256_finish(&events_hash, events_digest);
+    pf_sha256_finish(
+        &observer_context.events_hash,
+        observed_events_digest);
     digest_hex(events_digest, events_digest_hex);
+    digest_hex(
+        observed_events_digest,
+        observed_events_digest_hex);
     if (strcmp(replay_digest_hex, expected_corpus_sha256) != 0 ||
         strcmp(final_digest_hex, expected_final_sha256) != 0 ||
-        strcmp(events_digest_hex, expected_events_sha256) != 0)
+        strcmp(events_digest_hex, expected_events_sha256) != 0 ||
+        strcmp(observed_events_digest_hex, expected_events_sha256) != 0)
     {
         (void)fprintf(
             stderr,
             "sim-replay=fail operation=golden-corpus"
-            " corpus=%s final=%s events=%s\n",
+            " corpus=%s final=%s events=%s observed_events=%s\n",
             replay_digest_hex,
             final_digest_hex,
-            events_digest_hex);
+            events_digest_hex,
+            observed_events_digest_hex);
         return 1;
     }
     (void)printf(

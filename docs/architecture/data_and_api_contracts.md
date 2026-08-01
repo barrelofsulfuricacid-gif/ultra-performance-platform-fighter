@@ -335,6 +335,16 @@ the `PFEVT001` domain. Its exact ownership, compatibility, failure, and
 golden-corpus rules are recorded in
 [TDR-0007](../technology_decisions/0007-replay-container.md).
 
+`pf_replay_verify_observed` adds replay-observer schema 1 without changing the
+container. After the initial save and each subsequent tick pass their stored
+SHA-256 comparison, the caller receives the read-only simulation, total replay
+tick count, verified checkpoint hash, and that transition's exact ABI-4 tick
+result. Checkpoint zero has an empty journal; checkpoint `N` carries the events
+emitted while processing input tick `N - 1`. Callback failure aborts inspection
+and is reported through the ordinary verification status, so presentation and
+tools can stage a trace and publish it only after the terminal result also
+matches.
+
 The owner-approved action, structured/compact observation, reward, legal-mask,
 and batch semantics are recorded in
 [TDR-0008](../technology_decisions/0008-rl-contract-candidate.md).

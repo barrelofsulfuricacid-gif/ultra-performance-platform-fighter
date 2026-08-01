@@ -1536,6 +1536,13 @@ prevents duplicated or renumbered rollback effects without making state size
 depend on match length. Capacity 16 exceeds the statically proven current
 maximum of 13; overflow or sequence exhaustion is a deterministic fault.
 
+Replay observer schema 1 publishes checkpoint zero and every later checkpoint
+only after its stored state hash matches re-simulation. The callback receives
+the same `pf_tick_result`, so replay tools visualize re-emitted typed events
+without adding a journal chunk or rolling history to canonical state. The M4
+WebAssembly inspector uses this path for generated and opened compatible replay
+files, and swaps the visible trace only after the final result also verifies.
+
 ## Verification
 
 `tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 492 focused

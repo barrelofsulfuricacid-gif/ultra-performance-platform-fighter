@@ -40,6 +40,22 @@ players, and all four fighters in the optional team lab, use the same validated
 M4 fighter and stage content used by native, replay, rollback, and headless
 execution.
 
+## Replay-file inspector
+
+The replay panel below the live playtest can download the generated canonical
+format-1 replay and open a `.pfreplay` file. An opened file is copied into
+WebAssembly, checked for container/chunk integrity and compatible identity,
+then re-simulated through `pf_replay_verify_observed`. The displayed positions,
+per-checkpoint SHA-256 hashes, and typed events therefore come from the verified
+playback rather than a JavaScript decoder or stored presentation log.
+
+The timeline shows the events entering the selected checkpoint and provides
+Previous event / Next event navigation. A rejected checksum, schema, content,
+config, tick hash, or result leaves the currently verified trace in place. This
+M4 slice accepts files up to 1 MiB that match the canonical four-player
+content/config fixture and its 500-tick bound; broader content discovery is not
+silently inferred from replay metadata.
+
 ## Controls
 
 | Action | Player 1 | Player 2 |

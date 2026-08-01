@@ -14,6 +14,7 @@ extern "C"
 #define PF_REPLAY_SCHEMA_VERSION UINT16_C(2)
 #define PF_REPLAY_FORMAT_VERSION UINT16_C(1)
 #define PF_REPLAY_VERIFICATION_SCHEMA_VERSION UINT16_C(2)
+#define PF_REPLAY_OBSERVER_SCHEMA_VERSION UINT16_C(1)
 #define PF_REPLAY_FLAG_PER_TICK_HASHES UINT16_C(1)
 
 typedef struct pf_replay_source
@@ -45,6 +46,22 @@ typedef struct pf_replay_verification
     pf_state_hash actual_hash;
 } pf_replay_verification;
 
+typedef pf_status (*pf_replay_checkpoint_callback)(
+    void *user_data,
+    const pf_sim *sim,
+    uint64_t replay_tick_count,
+    const pf_tick_result *tick_result,
+    const pf_state_hash *state_hash);
+
+typedef struct pf_replay_observer
+{
+    uint32_t struct_size;
+    uint16_t schema_version;
+    uint16_t reserved;
+    pf_replay_checkpoint_callback checkpoint;
+    void *user_data;
+} pf_replay_observer;
+
 pf_status pf_replay_query_size(
     const pf_replay_source *source,
     size_t *out_replay_bytes);
@@ -56,6 +73,12 @@ pf_status pf_replay_encode(
 pf_status pf_replay_verify(
     pf_sim *sim,
     pf_bytes replay,
+    pf_replay_verification *out_verification);
+
+pf_status pf_replay_verify_observed(
+    pf_sim *sim,
+    pf_bytes replay,
+    const pf_replay_observer *observer,
     pf_replay_verification *out_verification);
 
 #ifdef __cplusplus
