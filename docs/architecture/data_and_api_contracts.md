@@ -336,6 +336,21 @@ Content schema 48/fighter schema 43 append, validate, and hash the immutable
 horizontal shield SDI and shield ASDI without adding canonical state: state
 schema 45/save format 44, inspection/observation/RL/browser layouts, checkpoint
 size, and memory requirements remain unchanged.
+State schema 46 / save format 45 retains the 586-byte payload and 726-byte
+checkpoint under `PFSAVE45` while recognizing canonical action 94 and support
+4 for the moving revival platform. Loading derives the exact slot x and
+interpolated y from player count, slot, immutable stage data, and action ticks;
+it rejects wrong position, velocity, grounding, support, recovery resource,
+timer, or premature post-drop invulnerability. Content schema 49/stage schema
+3 append and hash revival start/end y, half-width, descent ticks, and hold
+ticks. Inspection schema 42 adds the authored stage values and derived active
+platform geometry. Browser schema 43 keeps every earlier index stable and
+appends four values per fixed player at 431–446, growing the view from 431 to
+447 values. Fighter schema 43, observation schema 9, RL schema 11/transition
+schema 9, compact schema 10 with 86 values, checkpoint size, and public memory
+scratch requirement remain unchanged. The larger copied immutable stage record
+raises the opaque state requirement from 2,360 to 2,376 bytes; the 4 KiB caller
+envelope remains valid.
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain
@@ -409,8 +424,8 @@ type, flags, source and target slots, one Q16.16 value, one Q16.16 velocity
 pair, and a type-specific 16-bit detail. `255` denotes a system/no-player
 endpoint. The currently produced types are hit, shield block, powershield,
 shield break, grab, grab escape, throw, item pickup/drop/throw/hit/reset,
-projectile fire/hit/reflect, KO, respawn, sudden death, match result, forfeit,
-and time limit.
+projectile fire/hit/reflect, KO, respawn, revival drop, sudden death, match
+result, forfeit, and time limit.
 
 The event array itself is same-tick output scratch, not rolling canonical
 history. Canonical state stores the next sequence authority. Loading a

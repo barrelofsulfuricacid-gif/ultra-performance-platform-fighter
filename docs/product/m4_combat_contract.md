@@ -40,10 +40,11 @@ reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint.
 It does not claim character-specific move breadth, broader throw routes, complete
 prone-orientation-specific
-getup-roll asymmetry, a moving revival platform, or completion of the 61-row
+getup-roll asymmetry, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
-respawn, respawn invulnerability, elimination, team results, rematch, and
-simultaneous-final-stock sudden death are now part of the checkpoint.
+respawn, a moving revival platform, post-drop respawn invulnerability,
+elimination, team results, rematch, and simultaneous-final-stock sudden death
+are now part of the checkpoint.
 
 ## Attack, collision, and ownership
 
@@ -892,21 +893,35 @@ invulnerability flag.
 ## Stocks, respawn, and match result
 
 `pf_sim_config` carries the deterministic match rules. The default is four
-stocks, a 60-tick respawn wait, and 120 ticks of post-spawn invulnerability.
+stocks, a 60-tick respawn wait, and 120 ticks of post-drop invulnerability.
 Stock count accepts 1–99; zero is the explicit unlimited-stock practice mode
 used by legacy movement/combat traces. Both timers accept 0–3600. A zero
 respawn delay still spends one canonical tick in `RESPAWN_WAIT`, while zero
-invulnerability makes the fighter hittable on its spawn tick.
+invulnerability makes the fighter hittable on its revival-platform drop tick.
 
 Crossing a blast boundary increments the bounded respawn count and consumes
 one stock. A fighter with stocks remaining becomes inactive in
-`RESPAWN_WAIT`, then reappears at its deterministic stage spawn with damage,
-reaction, shield, attack, and per-life last-hit state reset. The configured
-invulnerability timer rejects production hitboxes without locking movement or
-attacks. A fighter with no stock enters `ELIMINATED` and no longer participates
-in collision. This checkpoint returns the fighter directly to the authored
-ground spawn after the wait; a moving revival-platform presentation and its
-drop-off interaction remain later M4 stage work.
+`RESPAWN_WAIT`, then reappears on the player slot's authored moving revival
+platform with damage, reaction, shield, attack, and per-life last-hit state
+reset. The default platform is two units wide on each side, descends from y=4
+to y=12 over 30 ticks, and then holds for 90 ticks. The fighter remains pinned
+to the centered player slot, grounded on `REVIVAL_PLATFORM`, motionless, and
+collision-invulnerable throughout the ride. Gameplay input is ignored during
+the descent. Once the platform reaches its endpoint, any stick axis outside
+the ordinary dead zone, gameplay button, or analog shield input drops the
+fighter; neutral input reaches the same drop after the authored hold timeout.
+Forfeit remains the match-level forfeit action rather than a platform drop.
+
+Drop enters ordinary `AIRBORNE` state at the endpoint, clears the temporary
+support, and starts the configured respawn-invulnerability timer. That timer
+rejects production hitboxes without locking movement or attacks. The typed
+`REVIVAL_DROP` event uses a system source, the released player as target, and
+detail 0 for input or 1 for automatic timeout. A fighter with no stock enters
+`ELIMINATED` and never creates a platform. Stage validation keeps every
+four-player platform extent inside the floor span, requires the platform to be
+at least as wide as the fighter, keeps the start inside the top blast bound and
+the endpoint above the raised solid, requires nonzero descent/hold durations,
+and caps their sum at 600 ticks.
 
 The match terminates as soon as only one team retains any stock. `winner_mask`
 contains every slot on that team, including an eliminated teammate. If all
@@ -1533,7 +1548,7 @@ physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
 
-Browser view schema 42 expands each player block from 46 to 53 values by
+Browser view schema 42 expanded each player block from 46 to 53 values by
 appending shield-active, exact left/right/top/bottom bounds, and signed x/y
 tilt after raw shield strength, yielding 431 values total. Event count is at
 236, the 16 ten-value event entries begin at 237, the item block begins at 397,
@@ -1554,6 +1569,22 @@ Content schema 48/fighter schema 43 append and hash the authored
 the range `(0, 1]`. This is immutable design data, so state schema 45/save
 format 44, inspection/observation/RL/browser layouts, the 726-byte checkpoint,
 and the state/scratch requirements remain unchanged.
+
+State schema 46 / save format 45 retains the 586-byte payload and 726-byte
+checkpoint under `PFSAVE45` while making action 94
+`REVIVAL_PLATFORM`, support 4, and their exact action-tick/slot-position/
+zero-velocity relationships fail closed. No platform coordinate is serialized;
+it is derived exactly from immutable stage data and the canonical action tick.
+Content schema 49/stage schema 3 append and hash the start/end y, half-width,
+descent ticks, and hold ticks; fighter schema 43 is unchanged. Inspection
+schema 42 exposes the authored stage values plus each active platform's exact
+left/right/y geometry. Browser view schema 43 preserves all prior offsets and
+appends four values per fixed player at 431–446, producing 447 values total.
+Structured observation schema 9, RL schema 11/transition schema 9, compact
+schema 10 with 86 values, and the 1,040-byte scratch requirement are unchanged.
+Copying the larger immutable stage record into the opaque simulation raises
+the state requirement from 2,360 to 2,376 bytes, still inside the 4 KiB caller
+envelope.
 
 Browser view schema 40 previously expanded each player block from 44 to 45 values by
 appending smash-charge ticks, yielding 400 values total. Event count moves to
@@ -2020,13 +2051,14 @@ mechanics invariants plus 51 journal invariants, including:
   hashes; and
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
-`tests/sim/test_m4_match.c` and `tools/verify_m4_match.sh` add 24 match
-invariants plus 44 journal invariants: rule defaults and invalid bounds, stock
-loss, exact respawn and
-invulnerability boundaries, hit rejection/acceptance around invulnerability,
-mid-respawn save/load continuation, final-stock result, 300% simultaneous-KO
-sudden death, deterministic repeated-tie resolution, and 2v2 team winner
-masks.
+`tests/sim/test_m4_match.c` and `tools/verify_m4_match.sh` retain 24 match
+invariants plus 44 journal invariants and add 24 revival invariants: authored
+defaults, invalid geometry/timing, content-hash participation, stock loss,
+exact inactive wait, platform spawn/geometry/interpolation, pre-end input
+rejection, collision invulnerability, mid-platform save/load continuation,
+input and automatic drop events, post-drop invulnerability, final-stock result,
+300% simultaneous-KO sudden death, deterministic repeated-tie resolution, and
+2v2 team winner masks.
 
 The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
@@ -2085,4 +2117,6 @@ trigger ages 0–6 and the exact ineligible age-7 boundary. It then exercises th
 strong aerial and requires exactly 30 normal or 15 L-cancel landing ticks.
 The match probe uses ordinary horizontal input to cross a blast boundary,
 requires exactly one stock loss and the full 60-tick inactive wait, then
-requires an active respawn with the full 120-tick invulnerability timer.
+requires exact revival-platform spawn and descent, rejects a pre-end attack,
+drops through ordinary horizontal input at the endpoint, and observes the full
+120-tick post-drop invulnerability timer plus typed `REVIVAL_DROP` event.

@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x34)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x35)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1329,6 +1329,24 @@ static const pf_m4_attack_data *pf_m4_snapshot_ground_attack_data(
     }
 }
 
+static int32_t pf_m4_snapshot_revival_platform_y(
+    const pf_m4_stage_data *stage,
+    uint16_t action_ticks)
+{
+    const uint16_t elapsed =
+        action_ticks < stage->revival_platform_descent_ticks
+            ? action_ticks
+            : stage->revival_platform_descent_ticks;
+    const int64_t distance =
+        (int64_t)stage->revival_platform_end_y_q16 -
+        (int64_t)stage->revival_platform_start_y_q16;
+
+    return stage->revival_platform_start_y_q16 +
+           (int32_t)(
+               distance * (int64_t)elapsed /
+               (int64_t)stage->revival_platform_descent_ticks);
+}
+
 static int pf_m4_snapshot_content_state_consistent(
     const pf_m4_content *content,
     const pf_world_state *world)
@@ -1394,6 +1412,20 @@ static int pf_m4_snapshot_content_state_consistent(
             (action == (uint8_t)PF_M4_ACTION_HITLAG &&
              resume_action ==
                  (uint8_t)PF_M4_ACTION_SHIELD_STUN);
+        const int revival_action =
+            action == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM;
+        const uint32_t revival_ticks =
+            (uint32_t)content->stage.revival_platform_descent_ticks +
+            (uint32_t)content->stage.revival_platform_hold_ticks;
+        const int32_t revival_x =
+            ((int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
+             (int32_t)world->player_count) *
+            content->stage.spawn_spacing_q16;
+        const int32_t revival_y =
+            pf_m4_snapshot_revival_platform_y(
+                &content->stage,
+                action_ticks) -
+            content->fighter.half_height_q16;
 
         if (world->charge_ticks[player_index] >
                 charge->max_charge_ticks ||
@@ -1472,6 +1504,12 @@ static int pf_m4_snapshot_content_state_consistent(
                       ground_attack_resume->active_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_PUMMEL &&
              action_ticks >= content->fighter.pummel_total_ticks) ||
+            (revival_action &&
+             ((uint32_t)action_ticks > revival_ticks ||
+              world->position_x_q16[player_index] != revival_x ||
+              world->position_y_q16[player_index] != revival_y ||
+              world->respawn_invulnerability_ticks[player_index] !=
+                  UINT16_C(0))) ||
             (recovery->enabled == UINT8_C(0) &&
              (recovery_action ||
               (player_index < (uint32_t)world->player_count &&
@@ -1539,6 +1577,20 @@ static int pf_m4_player_state_consistent(
                  world->stock_count != UINT8_C(0) &&
                  world->stocks_remaining[player_index] == UINT8_C(0) &&
                  world->respawn_ticks[player_index] == UINT16_C(0)));
+    }
+    if (action == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM)
+    {
+        return grounded == UINT8_C(1) &&
+               support ==
+                   (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM &&
+               world->velocity_x_q16[player_index] == INT32_C(0) &&
+               world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->fast_fall[player_index] == UINT8_C(0) &&
+               world->recovery_available[player_index] == UINT8_C(1);
+    }
+    if (support == (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM)
+    {
+        return 0;
     }
     if (grounded != UINT8_C(0))
     {
@@ -1835,7 +1887,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE ||
+                    (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1860,7 +1912,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->stock_count != UINT8_C(0) &&
                  world->stocks_remaining[player_index] == UINT8_C(0)) ||
                 world->support[player_index] >
-                    (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
+                    (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
                 world->recovery_available[player_index] > UINT8_C(1) ||
                 world->short_hop_latched[player_index] > UINT8_C(1) ||

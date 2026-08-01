@@ -465,6 +465,7 @@ mergeInto(LibraryManager.library, {
       "PROJECTILE HIT",
       "PROJECTILE REFLECT",
       "PUMMEL",
+      "REVIVAL DROP",
     ];
     var replayEventTicks = [];
     for (eventTick = 0; eventTick < checkpointCount; ++eventTick) {
@@ -1515,8 +1516,11 @@ mergeInto(LibraryManager.library, {
       "The live state card exposes trigger age " +
       "(eligible at ages 0–6) so the boundary is directly observable. " +
       "This is now a four-stock match: crossing a blast boundary consumes one " +
-      "stock, waits 60 frames, and grants 120 frames of dashed-ring respawn " +
-      "invulnerability. The HUD shows stocks and both timers; final-stock KOs " +
+      "stock, waits 60 frames, then rides an invulnerable revival platform " +
+      "through its 30-frame descent. After it stops, move or press a gameplay " +
+      "button to drop; it also releases automatically after its 90-frame hold. " +
+      "The 120-frame dashed-ring respawn invulnerability begins on release. " +
+      "The HUD shows stocks and both timers; final-stock KOs " +
       "show a result banner and turn Reset into Rematch. Simultaneous final-stock " +
       "KOs enter the deterministic 300% sudden-death fixture. " +
       "Hold G or . on the ground for a full draining shield; Standard Gamepad " +
@@ -1587,7 +1591,7 @@ mergeInto(LibraryManager.library, {
       "opponent into its underside; a missed tech ceiling-bounces downward, " +
       "while a fresh trigger produces the ceiling-tech control. " +
        "The deterministic event feed below records hits, shield interactions, " +
-      "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
+      "grabs, throws, KOs, revival drops, sudden death, and results in canonical " +
       "sequence order. " +
       "R resets, P " +
       "pauses, and N single-steps.";
@@ -2361,7 +2365,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 431) {
+    if (!state || viewCount !== 447) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2370,7 +2374,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 42) {
+    if (view[0] !== 43) {
       return;
     }
     var canvas = state.canvas;
@@ -2479,6 +2483,7 @@ mergeInto(LibraryManager.library, {
       "FORWARD STRONG CHARGE",
       "UP STRONG CHARGE",
       "DOWN STRONG CHARGE",
+      "REVIVAL PLATFORM",
     ];
 
     if (view[1] < previousTick) {
@@ -2550,9 +2555,9 @@ mergeInto(LibraryManager.library, {
         case 6:
           return (
             target +
-            " respawned · " +
+            " entered the revival platform · " +
             event.detail +
-            "f invulnerability" +
+            "f post-drop invulnerability" +
             ((event.flags & 8) !== 0 ? " · 300%" : "")
           );
         case 7:
@@ -2634,6 +2639,12 @@ mergeInto(LibraryManager.library, {
           );
         case 22:
           return source + " pummeled " + target + " for " + value + "%";
+        case 23:
+          return (
+            target +
+            " left the revival platform · " +
+            (event.detail === 1 ? "automatic timeout" : "player input")
+          );
         default:
           return "unknown event type " + event.type;
       }
@@ -2733,6 +2744,55 @@ mergeInto(LibraryManager.library, {
     context.moveTo(sx(view[5]), sy(view[7]));
     context.lineTo(sx(view[6]), sy(view[7]));
     context.stroke();
+
+    [0, 1, 2, 3].forEach(function (playerIndex) {
+      var revivalBase = 431 + playerIndex * 4;
+      if (view[revivalBase] === 0) {
+        return;
+      }
+      var revivalLeft = sx(view[revivalBase + 1]);
+      var revivalRight = sx(view[revivalBase + 2]);
+      var revivalY = sy(view[revivalBase + 3]);
+
+      context.save();
+      context.shadowColor = colors[playerIndex];
+      context.shadowBlur = 14;
+      context.strokeStyle = colors[playerIndex];
+      context.lineCap = "round";
+      context.lineWidth = 7;
+      context.beginPath();
+      context.moveTo(revivalLeft, revivalY);
+      context.lineTo(revivalRight, revivalY);
+      context.stroke();
+      context.shadowBlur = 0;
+      context.strokeStyle = "#fff6a8";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(revivalLeft, revivalY - 2);
+      context.lineTo(revivalRight, revivalY - 2);
+      context.stroke();
+      if (state.collisionOverlayVisible) {
+        context.strokeStyle = "#fff6a8";
+        context.lineWidth = 1;
+        context.setLineDash([4, 3]);
+        context.strokeRect(
+          revivalLeft,
+          revivalY - 5,
+          revivalRight - revivalLeft,
+          10
+        );
+      }
+      context.setLineDash([]);
+      context.fillStyle = "#fff6a8";
+      context.font = "bold 10px ui-monospace, monospace";
+      context.textAlign = "center";
+      context.fillText(
+        "P" + (playerIndex + 1) + " REVIVAL",
+        (revivalLeft + revivalRight) / 2,
+        revivalY + 18
+      );
+      context.restore();
+    });
 
     var solidLeft = sx(view[14]);
     var solidRight = sx(view[15]);
@@ -2996,6 +3056,7 @@ mergeInto(LibraryManager.library, {
       var facing = view[base + 5];
       var actionState = view[base + 4];
       var respawning = actionState === 44;
+      var onRevival = actionState === 94;
       var eliminated = actionState === 45;
       var tumbling =
         view[base + 22] !== 0 && actionState !== 13;
@@ -3269,6 +3330,18 @@ mergeInto(LibraryManager.library, {
         );
         context.restore();
       }
+      if (onRevival) {
+        context.save();
+        context.fillStyle = "#fff6a8";
+        context.font = "bold 13px ui-monospace, monospace";
+        context.textAlign = "center";
+        context.fillText(
+          "MOVE / BUTTON TO DROP",
+          x,
+          Math.max(22, y - height / 2 - 18)
+        );
+        context.restore();
+      }
 
       var landingFeedback = null;
       var landingLagTotal = 0;
@@ -3421,7 +3494,11 @@ mergeInto(LibraryManager.library, {
         view[base + 44] +
         " / 60f" +
         " · Vector Ascent " +
-        (view[427 + playerIndex] !== 0 ? "READY" : "SPENT");
+        (view[427 + playerIndex] !== 0 ? "READY" : "SPENT") +
+        "<br>revival platform " +
+        (view[431 + playerIndex * 4] !== 0
+          ? "ACTIVE · move/button to drop"
+          : "inactive");
     });
 
     var itemStateNames = [

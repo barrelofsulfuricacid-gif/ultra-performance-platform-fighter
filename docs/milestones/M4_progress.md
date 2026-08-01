@@ -1823,6 +1823,35 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   The existing browser shield startup probe exercises the same production
   route; no emergent-technique-only harness was added.
 
+## Implemented in the moving revival-platform slice
+
+- Stocked fighters now leave the inactive respawn wait on a per-player moving
+  platform at the deterministic centered slot x. The default authored platform
+  descends from y=4 to y=12 over 30 ticks, holds for 90 ticks, and has a
+  two-unit half-width.
+- The fighter is pinned to the platform with zero velocity, recovery available,
+  and collision invulnerability. Gameplay input is ignored during descent.
+  After the endpoint, any ordinary stick/button/analog-shield input releases
+  into `AIRBORNE`; neutral input releases at timeout. Only release starts the
+  configured post-drop respawn-invulnerability timer.
+- `REVIVAL_DROP` is a typed system-source event with detail 0 for player input
+  or 1 for automatic timeout. Inspection and the append-only browser tail expose
+  exact active left/right/y geometry, and the live page renders the platform,
+  drop prompt, state-card status, and event-feed reason.
+- Content schema 49/stage schema 3 author and hash platform geometry/timing.
+  State schema 46/save format 45 retains the 586-byte payload and 726-byte
+  checkpoint under `PFSAVE45` while making action 94/support 4 and exact
+  derived-position lifecycle rules fail closed. Inspection schema 42 and
+  browser view schema 43 with 447 values expose the slice; fighter,
+  observation, and RL/compact layouts are unchanged. The immutable stage copy
+  raises opaque state storage from 2,360 to 2,376 bytes; scratch remains 1,040
+  bytes and both stay inside the existing 4 KiB envelopes.
+- The existing match suite adds 24 revival invariants, including invalid/hash
+  content cases, exact interpolation, ignored early input, a mid-platform
+  save/load continuation, input/automatic release events, and post-drop
+  invulnerability. The existing browser match probe covers the ordinary input
+  path; no emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1970,8 +1999,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Character-specific move breadth, additional specials, broader recovery
   options, broader throw routes,
   broader per-action launch-angle data and stale-move behavior,
-  prone-orientation-specific getup-roll timing, a moving revival platform,
-  and journal producers for every remaining action.
+  prone-orientation-specific getup-roll timing, and journal producers for every
+  remaining action.
 - Repeated human matches.
 - The mandatory owner combat playtest; the generated browser worksheet is
   ready, but only the owner can supply and approve its evidence.
@@ -1993,7 +2022,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   ledge attack, and ledge-roll invulnerability plus 51
   combat-journal invariants,
   24 stock/respawn/result
-  invariants plus 44 match-journal invariants,
+  invariants plus 44 match-journal and 24 moving-revival invariants,
   46 projectile invariants including short-hop laser, projectile camping, and
   powershield reflection,
   32 reflector invariants including Shine spike and active-box projectile
@@ -2006,9 +2035,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,418
   bytes,
   replay SHA-256
-  `3f12c9091b250032e989b361d2c66621afc2657393a0942d820722ad1164ae68`,
+  `27e2748ee0b3ec51e6f6770bedb15ef9d220569c764592023bab84a434ba43c3`,
   final SHA-256
-  `559d0dba9f59dc44f2f5567cfa88f7c2ae2ac636e60586eeae556aa3f2435c36`,
+  `6698790677b34cd9145f5ef464b5b033bbfe82f450bba38595c388fd9c11973d`,
   and event-journal SHA-256
   `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -2026,7 +2055,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping-and-turtling/Shine-spike/charge-storage/Vector-Ascent/
   combat-and-event-journal/reaction-and-crouch-cancel/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
-  /stock-respawn probes and live rendering).
+  /stock-revival probes and live rendering).
 - Browser-standard gamepad mapping/polling contract: pass for synthetic mapping,
   axis quantization/dead zone, D-pad override, button routes, non-standard
   rejection, two-slot assignment, and live `navigator.getGamepads()` polling;

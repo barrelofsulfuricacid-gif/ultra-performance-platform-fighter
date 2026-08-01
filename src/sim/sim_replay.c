@@ -497,7 +497,8 @@ static int pf_replay_tick_events_valid(
             (event_index != UINT32_C(0) &&
              event->sequence != previous_sequence + UINT32_C(1)) ||
             event->type <= (uint16_t)PF_SIM_EVENT_NONE ||
-            event->type > (uint16_t)PF_SIM_EVENT_PUMMEL ||
+            event->type >
+                (uint16_t)PF_SIM_EVENT_REVIVAL_DROP ||
             (event->flags & (uint16_t)~known_flags) != UINT16_C(0) ||
             (event->source_player != PF_SIM_EVENT_NO_PLAYER &&
              event->source_player >= player_count) ||

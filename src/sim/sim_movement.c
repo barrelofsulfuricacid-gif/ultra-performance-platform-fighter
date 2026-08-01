@@ -743,7 +743,9 @@ static uint8_t pf_m4_grab_action_for_input(
 
 static int pf_m4_action_locks_ground_control(uint8_t action_state)
 {
-    return action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+    return action_state ==
+               (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+           action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
            action_state == (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
            action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
            action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
@@ -1048,6 +1050,10 @@ static int pf_m4_action_is_recovery_invulnerable(
     uint8_t action_state,
     uint16_t action_ticks)
 {
+    if (action_state == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM)
+    {
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
@@ -1974,6 +1980,24 @@ static void pf_m4_copy_combat_scratch(
         world->tech_direction[player_index];
 }
 
+static int32_t pf_m4_revival_platform_y(
+    const pf_m4_stage_data *stage,
+    uint16_t action_ticks)
+{
+    const uint16_t descent_ticks =
+        stage->revival_platform_descent_ticks;
+    const uint16_t elapsed =
+        action_ticks < descent_ticks ? action_ticks : descent_ticks;
+    const int64_t distance =
+        (int64_t)stage->revival_platform_end_y_q16 -
+        (int64_t)stage->revival_platform_start_y_q16;
+
+    return stage->revival_platform_start_y_q16 +
+           (int32_t)(
+               distance * (int64_t)elapsed /
+               (int64_t)descent_ticks);
+}
+
 static void pf_m4_prepare_spawn(
     const pf_m4_fighter_data *fighter,
     const pf_m4_stage_data *stage,
@@ -2002,13 +2026,14 @@ static void pf_m4_prepare_spawn(
         (int32_t)world->player_count;
 
     *position_x = centered_slot * stage->spawn_spacing_q16;
-    *position_y = stage->floor_y_q16 - fighter->half_height_q16;
+    *position_y = stage->revival_platform_start_y_q16 -
+                  fighter->half_height_q16;
     *velocity_x = INT32_C(0);
     *velocity_y = INT32_C(0);
     *action_ticks = UINT16_C(0);
     *grounded = UINT8_C(1);
-    *action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-    *support = (uint8_t)PF_M4_SURFACE_FLOOR;
+    *action_state = (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM;
+    *support = (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM;
     *air_jumps_remaining = fighter->air_jump_count;
     *short_hop_latched = UINT8_C(0);
     *platform_drop_ticks = UINT8_C(0);
@@ -2340,7 +2365,7 @@ pf_status pf_m4_step_player(
                     &previous_dodge_down);
                 scratch->active[player_index] = UINT8_C(1);
                 scratch->respawn_invulnerability_ticks[player_index] =
-                    world->respawn_invulnerability_config_ticks;
+                    UINT16_C(0);
                 if (world->sudden_death != UINT8_C(0))
                 {
                     scratch->damage_q16[player_index] =
@@ -2374,6 +2399,99 @@ pf_status pf_m4_step_player(
                 velocity_x = INT32_C(0);
                 velocity_y = INT32_C(0);
             }
+        }
+
+        pf_m4_update_shield_tilt(
+            fighter,
+            scratch,
+            input,
+            player_index,
+            action_state,
+            scratch->hitlag_resume_action[player_index]);
+        pf_m4_write_scratch(
+            scratch,
+            player_index,
+            input,
+            position_x,
+            position_y,
+            velocity_x,
+            velocity_y,
+            action_ticks,
+            respawn_count,
+            grounded,
+            action_state,
+            support,
+            air_jumps_remaining,
+            recovery_available,
+            short_hop_latched,
+            platform_drop_ticks,
+            fast_fall,
+            facing,
+            dash_direction,
+            previous_strong_direction,
+            previous_dodge_down);
+        return PF_STATUS_OK;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM)
+    {
+        const uint32_t total_ticks =
+            (uint32_t)stage->revival_platform_descent_ticks +
+            (uint32_t)stage->revival_platform_hold_ticks;
+        const int descent_complete =
+            action_ticks >= stage->revival_platform_descent_ticks;
+        const int input_drop =
+            descent_complete != 0 &&
+            (horizontal_magnitude > fighter->axis_dead_zone ||
+             vertical_magnitude > fighter->axis_dead_zone ||
+             (input->buttons &
+              (PF_INPUT_KNOWN_BUTTONS & ~PF_INPUT_BUTTON_FORFEIT)) !=
+                 UINT64_C(0) ||
+             shield_held != 0);
+        const int automatic_drop =
+            (uint32_t)action_ticks >= total_ticks;
+
+        position_x =
+            ((int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
+             (int32_t)world->player_count) *
+            stage->spawn_spacing_q16;
+        velocity_x = INT32_C(0);
+        velocity_y = INT32_C(0);
+        grounded = UINT8_C(1);
+        support = (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM;
+        fast_fall = UINT8_C(0);
+        if (input_drop != 0 || automatic_drop != 0)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+            action_ticks = UINT16_C(0);
+            grounded = UINT8_C(0);
+            support = (uint8_t)PF_M4_SURFACE_NONE;
+            position_y = stage->revival_platform_end_y_q16 -
+                         fighter->half_height_q16;
+            scratch->respawn_invulnerability_ticks[player_index] =
+                world->respawn_invulnerability_config_ticks;
+            status = pf_sim_push_event(
+                scratch,
+                world->tick,
+                PF_SIM_EVENT_REVIVAL_DROP,
+                PF_SIM_EVENT_NO_PLAYER,
+                (uint8_t)player_index,
+                UINT32_C(0),
+                velocity_x,
+                velocity_y,
+                UINT16_C(0),
+                automatic_drop != 0 ? UINT16_C(1) : UINT16_C(0),
+                NULL);
+            if (status != PF_STATUS_OK)
+            {
+                return status;
+            }
+        }
+        else
+        {
+            ++action_ticks;
+            position_y =
+                pf_m4_revival_platform_y(stage, action_ticks) -
+                fighter->half_height_q16;
         }
 
         pf_m4_update_shield_tilt(
@@ -5676,6 +5794,16 @@ pf_status pf_m4_inspect(
         stage->blast_top_q16;
     out_inspection->stage.blast_bottom_q16 =
         stage->blast_bottom_q16;
+    out_inspection->stage.revival_platform_start_y_q16 =
+        stage->revival_platform_start_y_q16;
+    out_inspection->stage.revival_platform_end_y_q16 =
+        stage->revival_platform_end_y_q16;
+    out_inspection->stage.revival_platform_half_width_q16 =
+        stage->revival_platform_half_width_q16;
+    out_inspection->stage.revival_platform_descent_ticks =
+        stage->revival_platform_descent_ticks;
+    out_inspection->stage.revival_platform_hold_ticks =
+        stage->revival_platform_hold_ticks;
     out_inspection->item.position_x_q16 =
         sim->world.item_position_x_q16;
     out_inspection->item.position_y_q16 =
@@ -5881,6 +6009,23 @@ pf_status pf_m4_inspect(
             &player->shield_right_q16,
             &player->shield_top_q16,
             &player->shield_bottom_q16);
+        player->revival_platform_active =
+            player->action_state ==
+                    (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM
+                ? UINT8_C(1)
+                : UINT8_C(0);
+        if (player->revival_platform_active != UINT8_C(0))
+        {
+            player->revival_platform_left_q16 =
+                player->position_x_q16 -
+                stage->revival_platform_half_width_q16;
+            player->revival_platform_right_q16 =
+                player->position_x_q16 +
+                stage->revival_platform_half_width_q16;
+            player->revival_platform_y_q16 =
+                player->position_y_q16 +
+                sim->content.fighter.half_height_q16;
+        }
         player->grab_target =
             sim->world.grab_target_slot[player_index] != UINT8_C(0)
                 ? (uint8_t)(

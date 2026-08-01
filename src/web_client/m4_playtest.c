@@ -26,7 +26,9 @@
 #define PF_WEB_M4_VIEW_ITEM0 397
 #define PF_WEB_M4_VIEW_PROJECTILE0 415
 #define PF_WEB_M4_VIEW_RECOVERY0 427
-#define PF_WEB_M4_VIEW_COUNT 431
+#define PF_WEB_M4_VIEW_REVIVAL0 431
+#define PF_WEB_M4_VIEW_REVIVAL_STRIDE 4
+#define PF_WEB_M4_VIEW_COUNT 447
 
 enum pf_web_m4_view_field
 {
@@ -148,7 +150,11 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PROJECTILE_LIFETIME = 8,
     PF_WEB_M4_VIEW_PROJECTILE_HALF_WIDTH = 9,
     PF_WEB_M4_VIEW_PROJECTILE_HALF_HEIGHT = 10,
-    PF_WEB_M4_VIEW_PROJECTILE_REFLECT_WINDOW = 11
+    PF_WEB_M4_VIEW_PROJECTILE_REFLECT_WINDOW = 11,
+    PF_WEB_M4_VIEW_REVIVAL_ACTIVE = 0,
+    PF_WEB_M4_VIEW_REVIVAL_LEFT = 1,
+    PF_WEB_M4_VIEW_REVIVAL_RIGHT = 2,
+    PF_WEB_M4_VIEW_REVIVAL_Y = 3
 };
 
 typedef struct pf_web_m4_storage
@@ -2783,6 +2789,8 @@ static int pf_web_m4_initialize_ladder_fixture(void)
     pf_web_m4_content.stage.solid_right_q16 =
         INT32_C(30) * PF_Q16_ONE;
     pf_web_m4_content.stage.blast_top_q16 = INT32_C(4) * PF_Q16_ONE;
+    pf_web_m4_content.stage.revival_platform_start_y_q16 =
+        INT32_C(5) * PF_Q16_ONE;
     pf_web_m4_content.stage.spawn_spacing_q16 =
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
     return pf_web_m4_initialize_current_content();
@@ -3024,6 +3032,8 @@ static int pf_web_m4_initialize_kill_confirm_fixture(void)
         INT32_C(64) * PF_Q16_ONE;
     pf_web_m4_content.stage.blast_top_q16 =
         INT32_C(8) * PF_Q16_ONE;
+    pf_web_m4_content.stage.revival_platform_start_y_q16 =
+        INT32_C(9) * PF_Q16_ONE;
     pf_web_m4_content.stage.spawn_spacing_q16 =
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
     return pf_web_m4_initialize_current_content();
@@ -10324,11 +10334,81 @@ static int pf_web_m4_run_match_probe(void)
             return 0;
         }
     }
-    return inspection.players[0].active == UINT8_C(1) &&
-           inspection.players[0].respawn_ticks == UINT16_C(0) &&
+    if (inspection.players[0].active != UINT8_C(1) ||
+        inspection.players[0].respawn_ticks != UINT16_C(0) ||
+        inspection.players[0].respawn_invulnerability_ticks !=
+            UINT16_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
+        inspection.players[0].invulnerable != UINT8_C(1) ||
+        inspection.players[0].revival_platform_active != UINT8_C(1) ||
+        inspection.players[0].revival_platform_y_q16 !=
+            pf_web_m4_content.stage.revival_platform_start_y_q16 ||
+        pf_web_m4_find_event(PF_SIM_EVENT_RESPAWN) == NULL)
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)pf_web_m4_content.stage
+                 .revival_platform_descent_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+            inspection.players[0].action_ticks !=
+                (uint16_t)(tick + UINT32_C(1)) ||
+            inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+            inspection.players[0].velocity_y_q16 != INT32_C(0) ||
+            inspection.players[0].revival_platform_active != UINT8_C(1))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].revival_platform_y_q16 !=
+            pf_web_m4_content.stage.revival_platform_end_y_q16 ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    if (!(inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AIRBORNE &&
+           inspection.players[0].grounded == UINT8_C(0) &&
+           inspection.players[0].support ==
+               (uint8_t)PF_M4_SURFACE_NONE &&
+           inspection.players[0].revival_platform_active == UINT8_C(0) &&
            inspection.players[0].respawn_invulnerability_ticks ==
                PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS &&
-           inspection.players[0].invulnerable == UINT8_C(1);
+           inspection.players[0].invulnerable == UINT8_C(1) &&
+           pf_web_m4_find_event(PF_SIM_EVENT_REVIVAL_DROP) != NULL &&
+           pf_web_m4_find_event(PF_SIM_EVENT_REVIVAL_DROP)->detail ==
+               UINT16_C(0)))
+    {
+        return 0;
+    }
+    return 1;
 }
 
 static int pf_web_m4_initialize_item_fixture(void)
@@ -12023,7 +12103,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(42);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(43);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12346,8 +12426,26 @@ static int pf_web_m4_render(void)
          player_index < (uint32_t)pf_web_m4_player_count;
          ++player_index)
     {
+        const pf_m4_player_inspection *player =
+            &inspection.players[player_index];
+        const int revival_base =
+            PF_WEB_M4_VIEW_REVIVAL0 +
+            (int)player_index * PF_WEB_M4_VIEW_REVIVAL_STRIDE;
+
         pf_web_m4_view[PF_WEB_M4_VIEW_RECOVERY0 + (int)player_index] =
-            (int32_t)inspection.players[player_index].recovery_available;
+            (int32_t)player->recovery_available;
+        pf_web_m4_view[
+            revival_base + PF_WEB_M4_VIEW_REVIVAL_ACTIVE] =
+            (int32_t)player->revival_platform_active;
+        pf_web_m4_view[
+            revival_base + PF_WEB_M4_VIEW_REVIVAL_LEFT] =
+            player->revival_platform_left_q16;
+        pf_web_m4_view[
+            revival_base + PF_WEB_M4_VIEW_REVIVAL_RIGHT] =
+            player->revival_platform_right_q16;
+        pf_web_m4_view[
+            revival_base + PF_WEB_M4_VIEW_REVIVAL_Y] =
+            player->revival_platform_y_q16;
     }
 
     pf_web_m4_playtest_render(

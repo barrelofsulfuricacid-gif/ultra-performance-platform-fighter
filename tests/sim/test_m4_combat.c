@@ -523,6 +523,8 @@ static int make_ladder_content(
     out_content->stage.solid_left_q16 = INT32_C(20) * PF_Q16_ONE;
     out_content->stage.solid_right_q16 = INT32_C(30) * PF_Q16_ONE;
     out_content->stage.blast_top_q16 = INT32_C(4) * PF_Q16_ONE;
+    out_content->stage.revival_platform_start_y_q16 =
+        INT32_C(5) * PF_Q16_ONE;
     out_content->stage.spawn_spacing_q16 =
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
     return expect_status(
@@ -570,6 +572,8 @@ static int make_kill_confirm_content(
     out_content->stage.blast_right_q16 =
         INT32_C(64) * PF_Q16_ONE;
     out_content->stage.blast_top_q16 = INT32_C(8) * PF_Q16_ONE;
+    out_content->stage.revival_platform_start_y_q16 =
+        INT32_C(9) * PF_Q16_ONE;
     out_content->stage.spawn_spacing_q16 =
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
     return expect_status(
@@ -2147,7 +2151,7 @@ static int run_smash_charge_snapshot_test(
             PF_STATUS_OK,
             "smash-charge-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE44", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE45", (size_t)8) != 0)
     {
         return fail("smash-charge-save-format");
     }
@@ -2980,7 +2984,7 @@ static int run_directional_aerial_snapshot_test(
             PF_STATUS_OK,
             "directional-aerial-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE44", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE45", (size_t)8) != 0)
     {
         return fail("directional-aerial-save-format");
     }
@@ -19391,7 +19395,7 @@ static int run_ledge_attack_snapshot_test(
             PF_STATUS_OK,
             "ledge-attack-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE44", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE45", (size_t)8) != 0)
     {
         return fail("ledge-attack-save-format");
     }

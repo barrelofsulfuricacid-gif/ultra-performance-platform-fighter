@@ -45,6 +45,112 @@ static int expect_status(
     return 1;
 }
 
+static int run_revival_content_contract_test(void)
+{
+    pf_m4_content content;
+    pf_m4_content invalid;
+    pf_m4_content tuned;
+    pf_content_view content_view;
+    pf_content_view tuned_view;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "revival-default-content") ||
+        content.schema_version != PF_M4_CONTENT_SCHEMA_VERSION ||
+        content.stage.schema_version != PF_M4_STAGE_SCHEMA_VERSION ||
+        content.stage.revival_platform_start_y_q16 !=
+            INT32_C(4) * PF_Q16_ONE ||
+        content.stage.revival_platform_end_y_q16 !=
+            INT32_C(12) * PF_Q16_ONE ||
+        content.stage.revival_platform_half_width_q16 !=
+            INT32_C(2) * PF_Q16_ONE ||
+        content.stage.revival_platform_descent_ticks != UINT16_C(30) ||
+        content.stage.revival_platform_hold_ticks != UINT16_C(90) ||
+        !expect_status(
+            pf_m4_make_content_view(&content, &content_view),
+            PF_STATUS_OK,
+            "revival-default-content-view"))
+    {
+        return fail("revival-default-contract");
+    }
+
+    invalid = content;
+    invalid.stage.revival_platform_start_y_q16 =
+        invalid.stage.blast_top_q16 +
+        invalid.fighter.half_height_q16 - INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-revival-above-top-blast"))
+    {
+        return 0;
+    }
+    invalid = content;
+    invalid.stage.revival_platform_end_y_q16 =
+        invalid.stage.revival_platform_start_y_q16;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-revival-non-descending"))
+    {
+        return 0;
+    }
+    invalid = content;
+    invalid.stage.revival_platform_half_width_q16 =
+        invalid.fighter.half_width_q16 - INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-revival-narrow-platform"))
+    {
+        return 0;
+    }
+    invalid = content;
+    invalid.stage.revival_platform_descent_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-revival-zero-descent"))
+    {
+        return 0;
+    }
+    invalid = content;
+    invalid.stage.revival_platform_hold_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-revival-zero-hold"))
+    {
+        return 0;
+    }
+    invalid = content;
+    invalid.stage.revival_platform_descent_ticks = UINT16_C(600);
+    invalid.stage.revival_platform_hold_ticks = UINT16_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-revival-total-duration"))
+    {
+        return 0;
+    }
+
+    tuned = content;
+    ++tuned.stage.revival_platform_hold_ticks;
+    if (!expect_status(
+            pf_m4_make_content_view(&tuned, &tuned_view),
+            PF_STATUS_OK,
+            "revival-tuned-content-view") ||
+        memcmp(
+            content_view.content_hash.bytes,
+            tuned_view.content_hash.bytes,
+            sizeof(content_view.content_hash.bytes)) == 0)
+    {
+        return fail("revival-content-hash-participation");
+    }
+    return 1;
+}
+
 static int make_match_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -78,6 +184,14 @@ static int make_match_content(
         INT32_C(34) * PF_Q16_ONE;
     out_content->stage.spawn_spacing_q16 =
         (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
+    out_content->stage.revival_platform_start_y_q16 =
+        INT32_C(4) * PF_Q16_ONE;
+    out_content->stage.revival_platform_end_y_q16 =
+        INT32_C(8) * PF_Q16_ONE;
+    out_content->stage.revival_platform_half_width_q16 =
+        INT32_C(1) * PF_Q16_ONE;
+    out_content->stage.revival_platform_descent_ticks = UINT16_C(3);
+    out_content->stage.revival_platform_hold_ticks = UINT16_C(4);
 
     return expect_status(
         pf_m4_make_content_view(out_content, out_view),
@@ -427,8 +541,31 @@ static int run_stock_respawn_match_test(
     if (inspection.players[0].active != UINT8_C(1) ||
         inspection.players[0].respawn_ticks != UINT16_C(0) ||
         inspection.players[0].respawn_invulnerability_ticks !=
-            UINT16_C(5) ||
+            UINT16_C(0) ||
         inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
+        inspection.players[0].invulnerable != UINT8_C(1) ||
+        inspection.players[0].revival_platform_active != UINT8_C(1) ||
+        inspection.players[0].position_x_q16 !=
+            -(INT32_C(4) * PF_Q16_ONE) / INT32_C(5) ||
+        inspection.players[0].position_y_q16 !=
+            inspection.stage.revival_platform_start_y_q16 -
+                (INT32_C(4) * PF_Q16_ONE) / INT32_C(5) ||
+        inspection.players[0].revival_platform_y_q16 !=
+            inspection.stage.revival_platform_start_y_q16 ||
+        inspection.players[0].revival_platform_left_q16 !=
+            inspection.players[0].position_x_q16 -
+                inspection.stage.revival_platform_half_width_q16 ||
+        inspection.players[0].revival_platform_right_q16 !=
+            inspection.players[0].position_x_q16 +
+                inspection.stage.revival_platform_half_width_q16 ||
+        inspection.stage.revival_platform_descent_ticks != UINT16_C(3) ||
+        inspection.stage.revival_platform_hold_ticks != UINT16_C(4) ||
         result.event_count != UINT8_C(1) ||
         result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_RESPAWN ||
@@ -437,6 +574,152 @@ static int run_stock_respawn_match_test(
         !events_equal(&result, &loaded_result))
     {
         return fail("respawn-delay-boundary");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        const uint16_t expected_action_ticks = (uint16_t)(tick + UINT32_C(1));
+        const int32_t expected_platform_y =
+            inspection.stage.revival_platform_start_y_q16 +
+            (int32_t)(
+                ((int64_t)inspection.stage.revival_platform_end_y_q16 -
+                 (int64_t)inspection.stage.revival_platform_start_y_q16) *
+                (int64_t)expected_action_ticks /
+                (int64_t)inspection.stage.revival_platform_descent_ticks);
+        const uint64_t player0_buttons =
+            tick == UINT32_C(0) ? PF_INPUT_BUTTON_ATTACK : UINT64_C(0);
+
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                player0_buttons,
+                INT16_C(0),
+                UINT64_C(0),
+                &result,
+                &inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                player0_buttons,
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_result,
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "hash-source-revival-descent") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "hash-loaded-revival-descent") ||
+            !hash_equal(&source_hash, &loaded_hash) ||
+            !events_equal(&result, &loaded_result) ||
+            result.event_count != UINT8_C(0) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+            inspection.players[0].action_ticks != expected_action_ticks ||
+            inspection.players[0].position_x_q16 !=
+                loaded_inspection.players[0].position_x_q16 ||
+            inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+            inspection.players[0].velocity_y_q16 != INT32_C(0) ||
+            inspection.players[0].revival_platform_active != UINT8_C(1) ||
+            inspection.players[0].revival_platform_y_q16 !=
+                expected_platform_y)
+        {
+            return fail("revival-platform-deterministic-descent");
+        }
+        if (tick == UINT32_C(0))
+        {
+            destination.size = (size_t)0;
+            if (!expect_status(
+                    pf_sim_save(source, &destination),
+                    PF_STATUS_OK,
+                    "save-mid-revival") ||
+                destination.size != save_size)
+            {
+                return fail("mid-revival-save");
+            }
+            save.size = destination.size;
+            if (!expect_status(
+                    pf_sim_load(loaded, save),
+                    PF_STATUS_OK,
+                    "load-mid-revival") ||
+                !expect_status(
+                    pf_sim_hash(source, &source_hash),
+                    PF_STATUS_OK,
+                    "hash-source-mid-revival") ||
+                !expect_status(
+                    pf_sim_hash(loaded, &loaded_hash),
+                    PF_STATUS_OK,
+                    "hash-loaded-mid-revival") ||
+                !hash_equal(&source_hash, &loaded_hash))
+            {
+                return fail("mid-revival-save-round-trip");
+            }
+        }
+    }
+
+    if (!step_duel(
+            source,
+            INT16_MAX,
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &result,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        inspection.players[0].revival_platform_active != UINT8_C(0) ||
+        inspection.players[0].respawn_invulnerability_ticks !=
+            UINT16_C(5) ||
+        inspection.players[0].invulnerable != UINT8_C(1) ||
+        result.event_count != UINT8_C(1) ||
+        result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_REVIVAL_DROP ||
+        result.events[0].source_player != PF_SIM_EVENT_NO_PLAYER ||
+        result.events[0].target_player != UINT8_C(0) ||
+        result.events[0].value_q16 != UINT32_C(0) ||
+        result.events[0].velocity_x_q16 != INT32_C(0) ||
+        result.events[0].velocity_y_q16 != INT32_C(0) ||
+        result.events[0].flags != UINT16_C(0) ||
+        result.events[0].detail != UINT16_C(0))
+    {
+        return fail("revival-platform-input-drop");
+    }
+
+    for (tick = UINT32_C(0); tick <= UINT32_C(4); ++tick)
+    {
+        if (!step_duel(
+                loaded,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_result,
+                &loaded_inspection))
+        {
+            return 0;
+        }
+    }
+    if (loaded_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        loaded_inspection.players[0].revival_platform_active != UINT8_C(0) ||
+        loaded_inspection.players[0].respawn_invulnerability_ticks !=
+            UINT16_C(5) ||
+        loaded_result.event_count != UINT8_C(1) ||
+        loaded_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_REVIVAL_DROP ||
+        loaded_result.events[0].source_player !=
+            PF_SIM_EVENT_NO_PLAYER ||
+        loaded_result.events[0].target_player != UINT8_C(0) ||
+        loaded_result.events[0].flags != UINT16_C(0) ||
+        loaded_result.events[0].detail != UINT16_C(1))
+    {
+        return fail("revival-platform-automatic-drop");
     }
 
     if (!step_duel(
@@ -467,10 +750,10 @@ static int run_stock_respawn_match_test(
         inspection.players[0].respawn_invulnerability_ticks !=
             UINT16_C(2))
     {
-        return fail("respawn-invulnerability-rejects-hit");
+        return fail("post-revival-invulnerability-rejects-hit");
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(40); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
     {
         if (!step_duel(
                 source,
@@ -485,13 +768,14 @@ static int run_stock_respawn_match_test(
         }
         if (inspection.players[0].respawn_invulnerability_ticks ==
                 UINT16_C(0) &&
+            inspection.players[0].grounded != UINT8_C(0) &&
             inspection.players[1].action_state ==
                 (uint8_t)PF_M4_ACTION_GROUND_IDLE)
         {
             break;
         }
     }
-    if (tick == UINT32_C(40))
+    if (tick == UINT32_C(120))
     {
         return fail("post-respawn-neutral-timeout");
     }
@@ -817,7 +1101,8 @@ int main(void)
     pf_m4_content content;
     pf_content_view view;
 
-    if (!make_match_content(&content, &view) ||
+    if (!run_revival_content_contract_test() ||
+        !make_match_content(&content, &view) ||
         !run_invalid_config_test() ||
         !run_stock_respawn_match_test(&view) ||
         !run_simultaneous_ko_sudden_death_test(&view) ||
@@ -829,6 +1114,7 @@ int main(void)
     (void)printf(
         "m4-match=pass stocks=4 respawn_delay=60 "
         "respawn_invulnerability=120 sudden_death=1 "
-        "team_result=1 invariants=24 journal_invariants=44\n");
+        "team_result=1 invariants=24 journal_invariants=44 "
+        "revival_invariants=24\n");
     return 0;
 }

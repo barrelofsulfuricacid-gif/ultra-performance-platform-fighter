@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(48)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(49)
 #define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(43)
-#define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
+#define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(3)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(41)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(42)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -122,7 +122,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_DOWN_STRONG_ATTACK = 90,
     PF_M4_ACTION_FORWARD_STRONG_CHARGE = 91,
     PF_M4_ACTION_UP_STRONG_CHARGE = 92,
-    PF_M4_ACTION_DOWN_STRONG_CHARGE = 93
+    PF_M4_ACTION_DOWN_STRONG_CHARGE = 93,
+    PF_M4_ACTION_REVIVAL_PLATFORM = 94
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -307,7 +308,8 @@ typedef enum pf_m4_surface
     PF_M4_SURFACE_NONE = 0,
     PF_M4_SURFACE_FLOOR = 1,
     PF_M4_SURFACE_PLATFORM = 2,
-    PF_M4_SURFACE_SOLID_TOP = 3
+    PF_M4_SURFACE_SOLID_TOP = 3,
+    PF_M4_SURFACE_REVIVAL_PLATFORM = 4
 } pf_m4_surface;
 
 typedef enum pf_m4_ledge
@@ -611,6 +613,11 @@ typedef struct pf_m4_stage_data
     int32_t spawn_spacing_q16;
     uint16_t platform_motion_period_ticks;
     uint16_t reserved2;
+    int32_t revival_platform_start_y_q16;
+    int32_t revival_platform_end_y_q16;
+    int32_t revival_platform_half_width_q16;
+    uint16_t revival_platform_descent_ticks;
+    uint16_t revival_platform_hold_ticks;
 } pf_m4_stage_data;
 
 typedef struct pf_m4_content
@@ -705,7 +712,11 @@ typedef struct pf_m4_player_inspection
     int32_t shield_top_q16;
     int32_t shield_bottom_q16;
     uint8_t shield_active;
-    uint8_t reserved2[3];
+    uint8_t revival_platform_active;
+    uint8_t reserved2[2];
+    int32_t revival_platform_left_q16;
+    int32_t revival_platform_right_q16;
+    int32_t revival_platform_y_q16;
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection
@@ -727,6 +738,11 @@ typedef struct pf_m4_stage_inspection
     int32_t blast_right_q16;
     int32_t blast_top_q16;
     int32_t blast_bottom_q16;
+    int32_t revival_platform_start_y_q16;
+    int32_t revival_platform_end_y_q16;
+    int32_t revival_platform_half_width_q16;
+    uint16_t revival_platform_descent_ticks;
+    uint16_t revival_platform_hold_ticks;
 } pf_m4_stage_inspection;
 
 typedef struct pf_m4_item_inspection

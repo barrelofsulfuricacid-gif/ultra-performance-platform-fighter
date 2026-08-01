@@ -575,6 +575,11 @@ static void pf_m4_hash_stage(
     pf_m4_hash_i32(hash, stage->blast_bottom_q16);
     pf_m4_hash_i32(hash, stage->spawn_spacing_q16);
     pf_m4_hash_u16(hash, stage->platform_motion_period_ticks);
+    pf_m4_hash_i32(hash, stage->revival_platform_start_y_q16);
+    pf_m4_hash_i32(hash, stage->revival_platform_end_y_q16);
+    pf_m4_hash_i32(hash, stage->revival_platform_half_width_q16);
+    pf_m4_hash_u16(hash, stage->revival_platform_descent_ticks);
+    pf_m4_hash_u16(hash, stage->revival_platform_hold_ticks);
 }
 
 static void pf_m4_hash_item(
@@ -1330,6 +1335,14 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     stage->blast_bottom_q16 = INT32_C(58) * PF_Q16_ONE;
     stage->spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
     stage->platform_motion_period_ticks = UINT16_C(120);
+    stage->revival_platform_start_y_q16 =
+        INT32_C(4) * PF_Q16_ONE;
+    stage->revival_platform_end_y_q16 =
+        INT32_C(12) * PF_Q16_ONE;
+    stage->revival_platform_half_width_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    stage->revival_platform_descent_ticks = UINT16_C(30);
+    stage->revival_platform_hold_ticks = UINT16_C(90);
 
     item = &out_content->item;
     item->struct_size = (uint32_t)sizeof(*item);
@@ -1456,6 +1469,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t platform_right_extent;
     int64_t spawn_left_extent;
     int64_t spawn_right_extent;
+    int64_t revival_left_extent;
+    int64_t revival_right_extent;
     int64_t maximum_dash_attack_knockback_x;
     int64_t maximum_dash_attack_knockback_y;
     int64_t maximum_jab_knockback_x;
@@ -2365,6 +2380,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     spawn_right_extent =
         INT64_C(3) * (int64_t)stage->spawn_spacing_q16 +
         (int64_t)fighter->half_width_q16;
+    revival_left_extent =
+        -INT64_C(3) * (int64_t)stage->spawn_spacing_q16 -
+        (int64_t)stage->revival_platform_half_width_q16;
+    revival_right_extent =
+        INT64_C(3) * (int64_t)stage->spawn_spacing_q16 +
+        (int64_t)stage->revival_platform_half_width_q16;
     solid_overlaps_platform =
         stage->platform_y_q16 >= stage->solid_top_q16 &&
         stage->platform_y_q16 <= stage->solid_bottom_q16 &&
@@ -2390,6 +2411,21 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         stage->spawn_spacing_q16 <= INT32_C(0) ||
         spawn_right_extent > (int64_t)stage->floor_right_q16 ||
         spawn_left_extent < (int64_t)stage->floor_left_q16 ||
+        (int64_t)stage->revival_platform_start_y_q16 -
+                (int64_t)fighter->half_height_q16 <
+            (int64_t)stage->blast_top_q16 ||
+        stage->revival_platform_end_y_q16 <=
+            stage->revival_platform_start_y_q16 ||
+        stage->revival_platform_end_y_q16 >= stage->solid_top_q16 ||
+        stage->revival_platform_half_width_q16 <
+            fighter->half_width_q16 ||
+        revival_left_extent < (int64_t)stage->floor_left_q16 ||
+        revival_right_extent > (int64_t)stage->floor_right_q16 ||
+        stage->revival_platform_descent_ticks == UINT16_C(0) ||
+        stage->revival_platform_hold_ticks == UINT16_C(0) ||
+        (uint32_t)stage->revival_platform_descent_ticks +
+                (uint32_t)stage->revival_platform_hold_ticks >
+            UINT32_C(600) ||
         stage->blast_left_q16 < -maximum_coordinate_q16 ||
         stage->blast_right_q16 > maximum_coordinate_q16 ||
         stage->blast_top_q16 < INT32_C(0) ||

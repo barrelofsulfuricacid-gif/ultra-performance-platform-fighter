@@ -32,8 +32,9 @@ grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction including grounded low-percent crouch cancel, and dense-shield
-primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
-result/rematch loop and a deterministic combat-event feed in
+primitives plus a four-stock KO, moving revival platform, post-drop
+invulnerability, sudden-death, and result/rematch loop and a deterministic
+combat-event feed in
 WebAssembly. It is no longer the
 disposable M0 float32/Q16.16 comparison. The default duel's two visible
 players, and all four fighters in the optional team lab, use the same validated
@@ -151,12 +152,14 @@ are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 42 contains 431 signed values. Each of the four player
+Browser view schema 43 contains 447 signed values. Each of the four player
 blocks has a 53-value stride and appends shield-active, exact
 left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
 event count is at 236, event entries begin at 237, the item block begins at
-397, the projectile block begins at 415, and recovery availability begins at
-427. The state card shows raw strength, percentage, and tilt. Bubble fill and
+397, the projectile block begins at 415, recovery availability begins at 427,
+and four append-only revival-platform values per fixed player occupy 431–446.
+The state card shows raw strength, percentage, tilt, and platform activity.
+Bubble fill and
 stroke weight distinguish light from dense input, while the collision
 inspector draws the authoritative shield AABB and the regular presentation
 draws an ellipse inside those same bounds.
@@ -495,11 +498,14 @@ the fighter. The light aerial remains the ordinary 12/6-frame SHFFL route.
 
 The live fixture is a four-stock match. Crossing any blast boundary consumes
 one stock and shows `RESPAWN WAIT` with a 60-frame countdown. The fighter then
-returns at its authored ground spawn with zero damage and 120 frames of
-hitbox-rejecting invulnerability; the dashed gold ring and state card expose
-the exact timer while movement and attacks remain available. Losing the final
-stock enters `ELIMINATED`, pauses the match, displays the winner, and changes
-Reset to Rematch.
+returns at zero damage on a glowing player-colored revival platform. It
+descends for 30 frames while input is ignored and the fighter is
+collision-invulnerable. Once it stops, movement, an attack/special/jump/shield
+input, or the 90-frame neutral timeout drops the fighter. The 120-frame
+hitbox-rejecting timer and dashed gold ring begin at that drop; ordinary
+movement and attacks remain available. Losing the final stock enters
+`ELIMINATED`, pauses the match, displays the winner, and changes Reset to
+Rematch.
 
 If both players lose their final stock on the same tick, neither is awarded an
 immediate win. The page displays `SUDDEN DEATH · 300%`, gives each fighter one
@@ -572,8 +578,9 @@ direction, and the last combat-event sequence.
 The event panel is driven by the ABI-4 per-tick journal rather than inferred
 from the rendered state. It shows canonical sequence/tick labels for hits and
 their tumble/crouch-cancel flags,
-    shield interactions, grabs, pummels, escapes, throws, KOs, respawns, sudden death, results,
-forfeits, and time limits. The simulation returns at most 16 records for the current tick; the
+shield interactions, grabs, pummels, escapes, throws, KOs, respawns, revival
+drops, sudden death, results, forfeits, and time limits. The simulation returns
+at most 16 records for the current tick; the
 browser keeps only the newest ten as non-authoritative presentation history
 and clears them on Reset or any observed rewind.
 
@@ -880,12 +887,16 @@ broader acceptance evidence.
     confirm `STRONG L-CANCEL LANDING`, a green success banner/ring, and a
     15-frame countdown.
 33. Run Player 1 beyond a blast boundary. Confirm one stock disappears,
-    `RESPAWN WAIT` counts down from 60, then the fighter returns at zero
-    percent with the dashed ring and 120-frame invulnerability timer. Move and
-    attack during that timer, then confirm the ring expires. Repeat until the
-    final stock and confirm the result banner, paused match, and Rematch
-    button. Confirm the feed records KO, respawn, and final match result in
-    increasing sequence order.
+    `RESPAWN WAIT` counts down from 60, then the fighter returns at zero percent
+    on the glowing revival platform. Press attack during the descent and
+    confirm it stays locked and collision-invulnerable. After the platform
+    stops, move to drop; confirm the platform disappears, the feed records
+    `REVIVAL DROP · player input`, and the dashed ring starts at 120 frames.
+    Move and attack during that timer, then confirm the ring expires. Repeat
+    once while staying neutral through the hold and confirm `automatic
+    timeout`. Repeat until the final stock and confirm the result banner,
+    paused match, and Rematch button. Confirm the feed records KO, respawn,
+    revival drop, and final match result in increasing sequence order.
 34. Repeat with Player 2's arrow-key controls and try both players
     simultaneously.
 35. Strong-launch Player 2 and move Player 1 toward the projected landing.
@@ -1157,8 +1168,9 @@ through:
 - a strong airborne attack route with production hit data, 30-tick normal
   landing lag, and 15-tick L-cancel landing lag;
 - an ordinary-input blast KO consuming exactly one of four stocks, entering
-  the exact 60-tick respawn wait, then returning active with the exact
-  120-tick hitbox-rejecting invulnerability timer;
+  the exact 60-tick respawn wait, then riding the exact authored revival
+  descent, rejecting early input, dropping through ordinary input, and starting
+  the exact 120-tick hitbox-rejecting invulnerability timer;
 - a real grounded attack producing the configured damage, hitlag, attacker
   identity, and typed ABI-4 hit event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun

@@ -16,6 +16,11 @@ grep -Fq 'PF_M4_ACTION_DOWN_STRONG_ATTACK = 90' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_FORWARD_STRONG_CHARGE = 91' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_UP_STRONG_CHARGE = 92' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_DOWN_STRONG_CHARGE = 93' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_REVIVAL_PLATFORM = 94' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_SURFACE_REVIVAL_PLATFORM = 4' "$root/include/pf/m4.h"
+grep -Fq 'PF_SIM_EVENT_REVIVAL_DROP = 23' "$root/include/pf/sim.h"
+grep -Fq '#define PF_WEB_M4_VIEW_REVIVAL0 431' \
+    "$root/src/web_client/m4_playtest.c"
 grep -Fq 'pf_web_m4_run_ledge_option_probe' \
     "$root/src/web_client/m4_playtest.c"
 
@@ -212,7 +217,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 42' \
+    'view[0] !== 43' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pf_web_m4_run_directional_aerial_probe' \
@@ -246,6 +251,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'case 22:' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'case 23:' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"REVIVAL PLATFORM"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DOWN THROW"' \
@@ -299,7 +310,10 @@ grep -Fq \
     '"Local 1v1 match setup"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 431' \
+    'viewCount !== 447' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"MOVE / BUTTON TO DROP"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MASH OUT · "' \

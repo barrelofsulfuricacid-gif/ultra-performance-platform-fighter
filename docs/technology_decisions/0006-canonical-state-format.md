@@ -54,6 +54,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 42 | 43 | 140 | 562 | 702 | One canonical smash-charge tick value per player plus forward/up/down charge actions, early and automatic release, scaled damage, hitlag retention, and interruption clearing |
 | 43 | 44 | 140 | 570 | 710 | One canonical raw shield-strength value per player plus analog light-shield entry, interpolated hold depletion and defender pushback, dense-only powershield eligibility, and strength lifecycle semantics |
 | 44 | 45 | 140 | 586 | 726 | One canonical signed x/y shield-tilt pair per player plus health/strength-derived shield geometry, collision priority over overlapping hurtbox, exposed-hurtbox pokes, and tilt lifecycle semantics |
+| 45 | 46 | 140 | 586 | 726 | No payload-layout change; moving revival-platform action/support IDs, exact stage-derived position, zero-motion lifecycle, input/timeout release, and post-drop invulnerability semantics fail closed |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -62,8 +63,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
-`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, or `PFSAVE44`.
-The active M4 runtime emits and accepts format 44 with state schema 45. Earlier
+`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, or `PFSAVE45`.
+The active M4 runtime emits and accepts format 45 with state schema 46. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -312,6 +313,16 @@ shield wins where shield and hurtbox both overlap, while hurtbox-only contact
 is an ordinary hit. A format-43 reader cannot silently discard tilt or recreate
 the same future collision result.
 
+Format 45 retains the format-44 byte layout while adding fail-closed semantics
+for action 94 `REVIVAL_PLATFORM` and support 4. During that action, loading
+requires an active grounded fighter, zero velocity and fast-fall, an available
+recovery resource, zero post-drop respawn-invulnerability ticks, the exact
+centered slot x, and the exact y derived from the authored start/end and
+clamped action tick. Action ticks may not exceed descent plus hold. The revival
+support is illegal in every other action. The format changes despite no new
+payload bytes because a format-44 reader would reject or misinterpret the new
+enum values and could not validate the same future release behavior.
+
 ## Why SHA-256
 
 SHA-256 has a stable public specification in
@@ -379,10 +390,11 @@ service-envelope responsibility.
 - Strong-aerial action, airborne hitlag-resume, grounded 30-tick landing, and
   grounded 15-tick L-cancel action relationships, while retaining the fixed
   437-byte payload.
-- Mid-respawn save/load plus equal future hashes, stock-loss and elimination
-  invariants, exact respawn-delay and invulnerability timers, 300% sudden-death
-  setup, deterministic repeated-tie resolution, and team winner masks in
-  `tests/sim/test_m4_match.c`.
+- Mid-respawn and mid-revival-platform save/load plus equal future hashes,
+  stock-loss and elimination invariants, exact inactive wait, stage-derived
+  platform interpolation, input/timeout release, post-drop invulnerability,
+  300% sudden-death setup, deterministic repeated-tie resolution, and team
+  winner masks in `tests/sim/test_m4_match.c`.
 - Exact per-tick journal equality after a mid-respawn save/load continuation,
   plus typed KO, respawn, sudden-death, result, forfeit, and time-limit event
   validation.

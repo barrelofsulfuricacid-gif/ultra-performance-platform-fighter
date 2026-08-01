@@ -7,6 +7,10 @@ compiler=${CC:-cc}
 
 mkdir -p "$output_dir"
 
+grep -Fq 'PF_M4_ACTION_REVIVAL_PLATFORM = 94' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_SURFACE_REVIVAL_PLATFORM = 4' "$root/include/pf/m4.h"
+grep -Fq 'PF_SIM_EVENT_REVIVAL_DROP = 23' "$root/include/pf/sim.h"
+
 common_flags="
     -std=c17
     -O2
@@ -47,7 +51,7 @@ common_flags="
 
 "$output_dir/m4_match_test" >"$output_dir/m4_match.txt"
 grep -Fqx \
-    'm4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24 journal_invariants=44' \
+    'm4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24 journal_invariants=44 revival_invariants=24' \
     "$output_dir/m4_match.txt"
 
-echo "m4-match-verification=pass invariants=24 journal_invariants=44"
+echo "m4-match-verification=pass invariants=24 journal_invariants=44 revival_invariants=24"

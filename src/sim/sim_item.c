@@ -258,6 +258,8 @@ pf_m4_item_input_intent pf_m4_prepare_item_input(
                  (uint8_t)PF_M4_ITEM_STATE_GROUND &&
              scratch->item_pickup_lockout_ticks == UINT16_C(0) &&
              world->grounded[player_index] != UINT8_C(0) &&
+             action_state !=
+                 (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM &&
              light_pressed != 0 && shield_held != 0 &&
              pf_m4_item_player_in_pickup_range(
                  &content->item,
@@ -305,6 +307,8 @@ pf_status pf_m4_apply_item_input(
             scratch->item_pickup_lockout_ticks != UINT16_C(0) ||
             scratch->active[player_index] == UINT8_C(0) ||
             scratch->grounded[player_index] == UINT8_C(0) ||
+            scratch->action_state[player_index] ==
+                (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
             !pf_m4_item_player_in_pickup_range(
                 item,
                 scratch->position_x_q16[player_index],

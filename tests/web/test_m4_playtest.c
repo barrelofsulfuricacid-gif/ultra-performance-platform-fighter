@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 431
+#define TEST_VIEW_COUNT 447
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 53
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -88,6 +88,12 @@
 #define TEST_PROJECTILE_HALF_HEIGHT 10
 #define TEST_PROJECTILE_REFLECT_WINDOW 11
 #define TEST_RECOVERY_BASE 427
+#define TEST_REVIVAL_BASE 431
+#define TEST_REVIVAL_STRIDE 4
+#define TEST_REVIVAL_ACTIVE 0
+#define TEST_REVIVAL_LEFT 1
+#define TEST_REVIVAL_RIGHT 2
+#define TEST_REVIVAL_Y 3
 
 static int test_install_count;
 static int test_render_count;
@@ -518,7 +524,7 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 42 ||
+        test_view[0] != 43 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -572,6 +578,13 @@ int main(void)
             TEST_PROJECTILE_BASE + TEST_PROJECTILE_REFLECT_WINDOW] != 2 ||
         test_view[TEST_RECOVERY_BASE] != 1 ||
         test_view[TEST_RECOVERY_BASE + 1] != 1 ||
+        test_view[TEST_REVIVAL_BASE + TEST_REVIVAL_ACTIVE] != 0 ||
+        test_view[TEST_REVIVAL_BASE + TEST_REVIVAL_LEFT] != 0 ||
+        test_view[TEST_REVIVAL_BASE + TEST_REVIVAL_RIGHT] != 0 ||
+        test_view[TEST_REVIVAL_BASE + TEST_REVIVAL_Y] != 0 ||
+        test_view[
+            TEST_REVIVAL_BASE + TEST_REVIVAL_STRIDE +
+            TEST_REVIVAL_ACTIVE] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||

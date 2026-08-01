@@ -164,6 +164,10 @@ static int pf_m4_action_is_recovery_invulnerable(
     uint8_t action_state,
     uint16_t action_ticks)
 {
+    if (action_state == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM)
+    {
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action_state ==
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
