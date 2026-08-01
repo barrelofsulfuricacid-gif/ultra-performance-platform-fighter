@@ -18,9 +18,14 @@ grep -Fq 'PF_M4_ACTION_FORWARD_AERIAL = 81' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_BACK_AERIAL = 82' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_UP_AERIAL = 83' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_DOWN_AERIAL = 84' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_LEDGE_ROLL = 85' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_LEDGE_ATTACK = 86' "$root/include/pf/m4.h"
 grep -Fq 'forward_aerial' "$root/include/pf/m4.h"
+grep -Fq 'ledge_attack' "$root/include/pf/m4.h"
+grep -Fq 'ledge_attack_invulnerability_ticks' "$root/include/pf/m4.h"
 grep -Fq 'pf_m4_select_light_aerial_action' "$root/src/sim/sim_movement.c"
 grep -Fq 'directional_aerials=1' "$root/tests/sim/test_m4_combat.c"
+grep -Fq 'ledge_attack=1' "$root/tests/sim/test_m4_combat.c"
 
 common_flags="
     -std=c17
@@ -62,9 +67,9 @@ common_flags="
 
 "$output_dir/m4_combat_test" >"$output_dir/m4_combat.txt"
 grep -Fqx \
-    'm4-combat=pass content_schema=42 deterministic_ticks=20000 combat_invariants=780 journal_invariants=50 weight=1 directional_ground_attacks=1 directional_aerials=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1' \
+    'm4-combat=pass content_schema=43 deterministic_ticks=20000 combat_invariants=815 journal_invariants=51 weight=1 directional_ground_attacks=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1' \
     "$output_dir/m4_combat.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"
 
-echo "m4-combat-verification=pass invariants=780 journal_invariants=50 deterministic_ticks=20000 weight=1 directional_ground_attacks=1 directional_aerials=1 crouch_cancel=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1"
+echo "m4-combat-verification=pass invariants=815 journal_invariants=51 deterministic_ticks=20000 weight=1 directional_ground_attacks=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1"

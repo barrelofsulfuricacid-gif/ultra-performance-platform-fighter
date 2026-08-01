@@ -7,6 +7,12 @@ compiler=${CC:-cc}
 
 mkdir -p "$output_dir"
 
+grep -Fq 'PF_M4_ACTION_LEDGE_ROLL = 85' "$root/include/pf/m4.h"
+grep -Fq 'ledge_roll_distance_q16' "$root/include/pf/m4.h"
+grep -Fq 'ledge_roll_movement_ticks' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_LEDGE_ROLL' "$root/src/sim/sim_movement.c"
+grep -Fq 'ledge_roll=1' "$root/tests/sim/test_m4_movement.c"
+
 common_flags="
     -std=c17
     -O2
@@ -47,7 +53,7 @@ common_flags="
 
 "$output_dir/m4_movement_test" >"$output_dir/m4_movement.txt"
 grep -Fqx \
-    'm4-movement=pass content_schema=42 deterministic_ticks=20000 movement_invariants=306 moonwalk=1 teeter_cancel=1 taunt_cancel=1 scar_jump=1 stage_humping=1 double_jump_cancel=1 vector_ascent=1 ledge_cancel=1 planking=1' \
+    'm4-movement=pass content_schema=43 deterministic_ticks=20000 movement_invariants=334 moonwalk=1 teeter_cancel=1 taunt_cancel=1 scar_jump=1 stage_humping=1 double_jump_cancel=1 vector_ascent=1 ledge_cancel=1 planking=1 ledge_roll=1' \
     "$output_dir/m4_movement.txt"
 
-echo "m4-movement-verification=pass invariants=306 moonwalk=1 teeter_cancel=1 taunt_cancel=1 scar_jump=1 stage_humping=1 deterministic_ticks=20000 double_jump_cancel=1 vector_ascent=1 ledge_cancel=1 planking=1"
+echo "m4-movement-verification=pass invariants=334 moonwalk=1 teeter_cancel=1 taunt_cancel=1 scar_jump=1 stage_humping=1 deterministic_ticks=20000 double_jump_cancel=1 vector_ascent=1 ledge_cancel=1 planking=1 ledge_roll=1"

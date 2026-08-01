@@ -11,7 +11,8 @@ respawn, charge, projectile, item, and recovery state. M4 is in progress with
 production-path movement, directional ground attacks,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the
-the complete five-direction light-aerial vocabulary plus a direct strong
+complete ledge-roll and ledge-attack option set, the five-direction
+light-aerial vocabulary plus a direct strong
 aerial route, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge,
 grounded low-percent crouch cancel, target-weighted hit reaction, grab pummels,

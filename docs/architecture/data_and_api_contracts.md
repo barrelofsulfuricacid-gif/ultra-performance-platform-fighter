@@ -81,14 +81,17 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–38 remain historical checkpoints. The current M4
+Save formats 1–39 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
 taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack/
-directional-aerial state uses save format 39: a fixed 694-byte checkpoint with
-state schema 40 and a 554-byte payload. It retains the layout while making the
-four directional-aerial action IDs, five-way airborne light-input arbitration,
-grounding, authored two-axis launch, and hitlag resume fail closed. Save format
-38/state schema 39 made the `UP_ATTACK` and `DOWN_ATTACK` action IDs,
+directional-aerial/ledge-option state uses save format 40: a fixed 694-byte
+checkpoint with state schema 41 and a 554-byte payload. It retains the layout
+while making the two ledge-option action IDs, grounding, ledge claims, timing,
+invulnerability, and ledge-attack hitlag resume fail closed. Save format
+39/state schema 40 made the four directional-aerial action IDs, five-way
+airborne light-input arbitration, grounding, authored two-axis launch, and
+hitlag resume fail closed. Save format 38/state schema 39 made the `UP_ATTACK`
+and `DOWN_ATTACK` action IDs,
 vertical-dominant ground-light arbitration, authored two-axis launch, hitlag
 resume, and powershield-cancel routing fail closed. Save format 37/state schema
 38 made the grounded crouch-cancel action,
@@ -258,6 +261,18 @@ values remain unchanged. The public memory-requirements query now reports
 2,080 state bytes and 1,008 scratch bytes; the 4 KiB M4 caller envelopes remain
 valid, and this opaque in-memory growth does not change the 694-byte canonical
 checkpoint.
+State schema 41 / save format 40 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE40` while adding fail-closed `LEDGE_ROLL` and
+`LEDGE_ATTACK` action, timing, grounding, ledge-claim, invulnerability, and
+hitlag-resume semantics. Content schema 43/fighter schema 38 append and hash
+the ledge-roll distance and timing windows plus one embedded ledge-attack
+record. Inspection schema 37 and browser view schema 38 version the new action
+interpretation and labels while retaining the inspection and 396-value
+browser layouts. Input schema 5, structured observation schema 6, RL schema 8,
+compact schema 7, and 66 compact values remain unchanged. The public
+memory-requirements query now reports 2,128 state bytes and 1,008 scratch
+bytes; existing callers retain their 4 KiB opaque state and scratch envelopes,
+and canonical checkpoint size remains unchanged.
 The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do

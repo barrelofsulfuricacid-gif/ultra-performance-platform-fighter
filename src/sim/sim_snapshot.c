@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x39)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x30)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1241,6 +1241,10 @@ static int pf_m4_snapshot_content_state_consistent(
             (uint32_t)charge->release_recovery_ticks;
         const int recovery_action =
             action == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
+        const uint32_t ledge_attack_ticks =
+            (uint32_t)content->fighter.ledge_attack.startup_ticks +
+            (uint32_t)content->fighter.ledge_attack.active_ticks +
+            (uint32_t)content->fighter.ledge_attack.recovery_ticks;
 
         if (world->charge_ticks[player_index] >
                 charge->max_charge_ticks ||
@@ -1276,8 +1280,14 @@ static int pf_m4_snapshot_content_state_consistent(
              action_ticks >= content->fighter.taunt_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
+            (action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
+             action_ticks >= content->fighter.ledge_roll_ticks) ||
+            (action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
+             (uint32_t)action_ticks >= ledge_attack_ticks) ||
             (resume_action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
+            (resume_action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
+             (uint32_t)action_ticks >= ledge_attack_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_PUMMEL &&
              action_ticks >= content->fighter.pummel_total_ticks) ||
             (recovery->enabled == UINT8_C(0) &&
@@ -1361,6 +1371,8 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
+               action != (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
+               action != (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1);
@@ -1391,7 +1403,9 @@ static int pf_m4_player_state_consistent(
         return 1;
     }
     return (action == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
-            action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB) &&
+            action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
+            action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
+            action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK) &&
            world->velocity_x_q16[player_index] == INT32_C(0) &&
            world->velocity_y_q16[player_index] == INT32_C(0) &&
            world->fast_fall[player_index] == UINT8_C(0) &&
@@ -1634,7 +1648,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_DOWN_AERIAL ||
+                action > (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1767,6 +1781,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_JAB_FINAL &&
                  resume_action !=
+                     (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
+                 resume_action !=
                      (uint8_t)PF_M4_ACTION_RESET_BOUND &&
                   resume_action !=
                       (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
@@ -1843,6 +1859,19 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  (hitstun != UINT16_C(0) ||
                   tumble != UINT8_C(0) ||
                   world->grounded[player_index] != UINT8_C(0) ||
+                  world->pending_velocity_x_q16[player_index] !=
+                      INT32_C(0) ||
+                  world->pending_velocity_y_q16[player_index] !=
+                      INT32_C(0))) ||
+                (resume_action ==
+                     (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
+                 (hitstun != UINT16_C(0) ||
+                  tumble != UINT8_C(0) ||
+                  world->grounded[player_index] != UINT8_C(0) ||
+                  world->support[player_index] !=
+                      (uint8_t)PF_M4_SURFACE_NONE ||
+                  world->velocity_x_q16[player_index] != INT32_C(0) ||
+                  world->velocity_y_q16[player_index] != INT32_C(0) ||
                   world->pending_velocity_x_q16[player_index] !=
                       INT32_C(0) ||
                   world->pending_velocity_y_q16[player_index] !=
@@ -2033,7 +2062,15 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
             if (world->action_state[player_index] ==
                     (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
                 world->action_state[player_index] ==
-                    (uint8_t)PF_M4_ACTION_LEDGE_CLIMB)
+                    (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
+                world->action_state[player_index] ==
+                    (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
+                world->action_state[player_index] ==
+                    (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
+                (world->action_state[player_index] ==
+                     (uint8_t)PF_M4_ACTION_HITLAG &&
+                 world->hitlag_resume_action[player_index] ==
+                     (uint8_t)PF_M4_ACTION_LEDGE_ATTACK))
             {
                 const uint8_t ledge_bit =
                     world->facing[player_index] == INT8_C(1)

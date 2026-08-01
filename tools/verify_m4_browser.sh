@@ -7,6 +7,11 @@ compiler=${CC:-cc}
 
 mkdir -p "$output_dir"
 
+grep -Fq 'PF_M4_ACTION_LEDGE_ROLL = 85' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_LEDGE_ATTACK = 86' "$root/include/pf/m4.h"
+grep -Fq 'pf_web_m4_run_ledge_option_probe' \
+    "$root/src/web_client/m4_playtest.c"
+
 common_flags="
     -std=c17
     -O2
@@ -200,7 +205,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 37' \
+    'view[0] !== 38' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pf_web_m4_run_directional_aerial_probe' \
@@ -399,6 +404,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DOWN AERIAL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"LEDGE ROLL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"LEDGE ATTACK"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pummel for 3%' \

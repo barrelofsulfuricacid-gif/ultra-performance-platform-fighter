@@ -838,6 +838,40 @@ presentation gates ticking during setup, pauses on either a terminal result or
 time limit, and offers both same-configuration rematch and return-to-setup.
 This narrow playable loop is separate from the complete M7 menu contract.
 
+## Ledge roll and ledge attack
+
+After the existing seven-tick catch lock, an actionable `LEDGE_HANG` accepts
+two additional ordinary options. A fresh light or strong attack enters
+`LEDGE_ATTACK`; a fresh shield trigger without a fresh attack enters
+`LEDGE_ROLL`. Attack has priority when attack and shield arrive together, so
+the ordinary light-plus-trigger grab chord cannot escape the ledge router.
+Held attack or trigger input that began during catch lock does not repeat when
+the hang becomes actionable. Jump, down/away release, and inward climb retain
+their existing routes after those fresh option checks.
+
+The original fighter's ledge roll travels 7/4 units inward from the ledge. It
+interpolates from the canonical hang point for 20 ticks, holds the completed
+position through a 30-tick total action, and is invulnerable for action ticks
+0–21. `LEDGE_ATTACK` interpolates to the normal on-stage ledge-climb position
+during six startup ticks, exposes a three-tick authored hitbox for 10% damage,
+then has 20 recovery ticks and five hitlag ticks. Its action-derived
+invulnerability lasts through action tick 9. The independent remaining
+37-tick catch invulnerability is still honored, so either source can reject a
+hit without rewriting the other timer.
+
+Both actions remain ledge-owned, zero-velocity canonical states until their
+authored completion. They retain the ledge claim, mirror from either edge via
+facing, and finish through the existing floor-landing path. Ledge attack uses
+the shared physical-hit, shield, weight, DI/SDI, once-per-target, typed-event,
+and hitlag-resume machinery. The focused native oracles cover invalid and
+hash-sensitive data, held-input negatives, attack-over-trigger priority,
+exact roll motion and invulnerability expiry, both attack buttons, an active
+opponent jab rejected during ledge-attack invulnerability, typed damage and
+attribution, and mid-action/mid-hitlag save-load future equality. Browser
+readiness folds roll, light attack, strong attack, active hitbox, and
+completion checks into the existing combat probe; no tactic-specific harness
+is added.
+
 ## Ledge regrab and planking
 
 An ordinary jump, down release, or outward release from `LEDGE_HANG` starts a
@@ -1404,6 +1438,17 @@ and exports `team_wobble_probe`; the live Team Wobble Lab maps the second
 physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
+
+Browser view schema 38 retains the 396-value presentation layout while
+versioning the `LEDGE_ROLL` and `LEDGE_ATTACK` labels. State schema 41 / save
+format 40 retains the 694-byte stream (140-byte header plus 554-byte payload),
+changes the active magic to `PFSAVE40`, and makes the two ledge-option action
+IDs, grounding, ledge claims, timing, invulnerability, and ledge-attack hitlag
+resume fail closed. Content schema 43/fighter schema 38 appends and hashes the
+roll distance/timing fields and embedded attack record. Inspection schema 37
+versions the action and derived-invulnerability interpretation. Input schema
+5, structured observation schema 6, RL schema 8, compact observation schema 7,
+and its 66-value vector remain unchanged.
 
 Browser view schema 37 retains the 396-value presentation layout while
 versioning the `FORWARD_AERIAL`, `BACK_AERIAL`, `UP_AERIAL`, and `DOWN_AERIAL`

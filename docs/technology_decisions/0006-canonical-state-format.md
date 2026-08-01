@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–39 / state schemas 1–40
+- **Status:** Accepted for save formats 1–40 / state schemas 1–41
 - **Date:** 2026-08-01
 
 ## Decision
@@ -49,6 +49,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 37 | 38 | 140 | 554 | 694 | Grounded low-percent crouch-cancel qualification, data-defined launch/hitstun scaling, derived tumble, and typed hit-event flag; no payload-layout change |
 | 38 | 39 | 140 | 554 | 694 | Canonical `UP_ATTACK` and `DOWN_ATTACK` action IDs, directional light-attack arbitration, authored two-axis launch, hitlag resume, and powershield-cancel routing; no payload-layout change |
 | 39 | 40 | 140 | 554 | 694 | Canonical `FORWARD_AERIAL`, `BACK_AERIAL`, `UP_AERIAL`, and `DOWN_AERIAL` action IDs, five-direction airborne light-attack arbitration, authored launch, hitlag resume, and shared light-aerial landing semantics; no payload-layout change |
+| 40 | 41 | 140 | 554 | 694 | Canonical `LEDGE_ROLL` and `LEDGE_ATTACK` action IDs, fresh-input arbitration from actionable hang, authored roll motion and invulnerability, authored attack timing/hitlag resume, and shared physical-hit semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -56,8 +57,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
-`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, or `PFSAVE39`. The active M4
-runtime emits and accepts format 39 with state schema 40. Earlier
+`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, or `PFSAVE40`.
+The active M4 runtime emits and accepts format 40 with state schema 41. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

@@ -5,7 +5,8 @@ M4.2 ground attacks, hit-reaction layers, missed-tech floor recovery, dense shie
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
 ledge-cancelling, 29-tick ledge-regrab lockout and planking, the complete
-five-direction light-aerial vocabulary and direct strong aerial route,
+ledge-roll and ledge-attack option set, the complete five-direction
+light-aerial vocabulary and direct strong aerial route,
 auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump, double-jump-cancel,
@@ -36,8 +37,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   fall, landing, moving-platform support, normal and shield platform drop,
   support edges,
   solid-block top/side/underside collision with sealed upper-corner seams,
-  blast-zone stock loss/respawn, ledge catch, catch lockout, hang, release, ledge jump,
-  and ledge climb.
+  blast-zone stock loss/respawn, ledge catch, catch lockout, hang, release,
+  ledge jump, climb, roll, and attack.
 - Deterministic one-fighter-per-ledge occupancy with stable lower-slot priority
   for simultaneous catches.
 - A rollback-safe state-schema-25/save-format-24 contract that serializes every
@@ -159,8 +160,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - All eight reference duels finish through stock results rather than time-limit
   truncation. The current reference corpus spans 1,203 ticks, 19 combat
   events, eight KOs, and five projectile events, with final digest
-  `5bb192028a42ed35` over every per-tick state hash and terminal outcome under
-  state schema 40/content schema 42.
+  `a7c9d1cc1f812ba0` over every per-tick state hash and terminal outcome under
+  state schema 41/content schema 43.
 - Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
   re-simulates the complete suffix against per-tick state hashes, encodes a
   format-1 replay, and verifies that replay to the exact terminal outcome.
@@ -1663,6 +1664,38 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   emergent rows continue to reuse constituent mechanics; no emergent-only
   harness was added.
 
+## Implemented in the ledge-option slice
+
+- After the seven-tick catch lock, fresh light or strong attack now selects
+  canonical `LEDGE_ATTACK`; a fresh trigger without attack selects canonical
+  `LEDGE_ROLL`. Attack wins the simultaneous light-plus-trigger chord. Inputs
+  held from catch lock do not repeat, while jump, down/away release, and inward
+  climb retain their existing routes.
+- The original fighter authors a 7/4-unit inward ledge roll with 20 movement
+  ticks, 30 total ticks, and action-derived invulnerability through tick 21.
+  Its ledge attack has six startup, three active, and 20 recovery ticks, deals
+  10%, applies five hitlag ticks through shared combat, and remains
+  action-invulnerable through tick 9. Both actions retain the ledge claim and
+  finish through the existing floor-landing path.
+- State schema 41/save format 40 and `PFSAVE40` retain the 554-byte payload and
+  694-byte checkpoint while failing closed on action IDs 85/86, timing,
+  grounding, ledge claims, invulnerability, and attack hitlag resume. Content
+  schema 43/fighter schema 38, inspection schema 37, and browser view schema 38
+  version the authored data and labels while retaining the 396-value browser
+  view, input schema 5, observation schema 6, RL schema 8, compact schema 7,
+  and 66 compact values. The opaque simulation storage is now 2,128 bytes;
+  scratch storage remains 1,008 bytes and the 4 KiB caller envelopes remain
+  valid.
+- The movement oracle reaches 334 invariants and covers held-trigger rejection,
+  exact roll interpolation, invulnerability expiry, completion, content
+  validation/hash sensitivity, and mid-roll future hashes. The combat oracle
+  reaches 815 invariants plus 51 journal invariants and covers held-attack
+  rejection, attack-over-trigger priority, both attack buttons, concurrent-jab
+  rejection, typed damage/attribution, retained ledge ownership through
+  attacker hitlag, and mid-hitlag future hashes. Browser
+  readiness folds all three option inputs and the active hitbox into the
+  existing combat probe. No emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1823,13 +1856,14 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 306 movement invariants including Moonwalk timing,
+- Mechanical oracles: 334 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 780
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
+  815
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
-  directional ground attacks and the five-direction light-aerial vocabulary
-  plus 50
+  directional ground attacks, the five-direction light-aerial vocabulary,
+  ledge attack, and ledge-roll invulnerability plus 51
   combat-journal invariants,
   24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1845,9 +1879,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
   bytes,
   replay SHA-256
-  `4e0e593f8221b917a40fc3eb02af0aaecb387a47f15080b5f646958d04b487c8`,
+  `f7baa647a4503e20259f819ccca0e6a13d1fe42435b0f24ba4cb86e3bfd22dc6`,
   final SHA-256
-  `bb4f27c373668db557afb3232ac43b0a1a59a980c8753cefd7b55da8ea6e00a3`,
+  `cc53b760f1163936d7f541cd9e6fac4370fa18579ee03e4b4d1629f69364a728`,
   and event-journal SHA-256
   `cea7f525bc5cb4009c69f8ca7c1daf85e6bdfebc12f1a9583d45dde34da4d10a`;
   local native/WebAssembly output is byte-identical and CI repeats it.

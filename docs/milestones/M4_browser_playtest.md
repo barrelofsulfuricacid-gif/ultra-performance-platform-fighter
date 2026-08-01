@@ -88,6 +88,7 @@ silently inferred from replay metadata.
 | Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
 | Taunt / Taunt cancel | `T`; while dashing toward an edge, release horizontal and press `T` just before crossing | `,`; use the same edge timing |
 | Scar Jump | From the right ledge, jump inward with `W`/Space, then freshly press full `D` at the raised-block wall; cancel with Jump or Attack | From the right ledge, jump inward with Up, then freshly press full Right at the wall; cancel with Jump or Attack |
+| Ledge roll / ledge attack | After `LEDGE HANG` catch lock: fresh `G` rolls inward; fresh `F` or `H` attacks | After catch lock: fresh `.`/Numpad `1` rolls inward; fresh `/`/Numpad `0` or `'`/Numpad `2` attacks |
 | Team Wobble Lab | Click `Team Wobble Lab`; physical Player 1 controls allied P1 | Physical Player 2 controls allied P3; P2 auto-mashes and P4 stays neutral |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
@@ -495,9 +496,12 @@ second simultaneous KO resolves deterministically to Player 1 rather than
 looping forever.
 
 To grab a ledge, fall beside it while facing inward. After the seven-tick catch
-window, press toward the stage to climb, press down or away to release, or press
-jump for a ledge jump. A claimed ledge rejects another fighter until its current
-occupant releases or completes the climb.
+window, press toward the stage to climb, freshly tap the trigger to roll,
+freshly press either attack key for ledge attack, press down or away to release,
+or press jump for a ledge jump. Roll shows a 30-tick inward transition;
+ledge attack shows its active box after six startup ticks and deals 10%. A
+claimed ledge rejects another fighter until its current occupant releases or
+completes the climb, roll, or attack.
 
 For a Scar Jump, catch the right ledge and wait for `LEDGE HANG`, then press
 Jump and hold left/inward so the ledge jump travels into the raised block.
@@ -706,7 +710,11 @@ mandatory owner playtest and broader acceptance evidence.
 12. Approach the right edge in `RUN`, press left before leaving it to enter
    `RUN TURNAROUND`, and let the retained rightward momentum carry the fighter
    off while facing inward. Confirm `LEDGE HANG`, then try neutral hang,
-   down/away release, jump, and inward climb.
+   down/away release, jump, inward climb, fresh-trigger `LEDGE ROLL`, and fresh
+   light/strong `LEDGE ATTACK`. Hold trigger or attack during catch lock and
+   confirm it does not repeat when the hang becomes actionable. For roll,
+   confirm the fighter travels inward and lands after 30 ticks; for attack,
+   confirm the active box, 10% hit, and on-stage landing.
 13. Put one player on a ledge and attempt to grab it with the other player.
    Confirm only the original occupant enters `LEDGE HANG`.
 14. From `LEDGE HANG`, tap down, release it, then press jump plus inward on the
@@ -1126,9 +1134,10 @@ through:
 - full held-shield depletion producing the typed system-source break event,
   upward launch, down/stand/stun phase order, fresh-versus-held mash behavior,
   and 30-HP recovery; and
-- the native movement oracle covering ledge catch, hang, release, jump, climb,
-  simultaneous occupancy, exact disabled-regrab timing, three hash-equivalent
-  planking refreshes, a mistimed punish, and mid-climb save/load equivalence.
+- the native movement/combat oracles covering ledge catch, hang, release, jump,
+  climb, roll, attack, simultaneous occupancy, exact option and disabled-regrab
+  timing, three hash-equivalent planking refreshes, a mistimed punish,
+  mid-climb/mid-roll save-load equivalence, and ledge-attack hitlag rollback.
 
 The page reports
 `playtest=ready input_probe=pass air_facing_probe=pass

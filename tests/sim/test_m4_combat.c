@@ -78,6 +78,33 @@ static int make_combat_content(
         "combat-content-view");
 }
 
+static int make_ledge_attack_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "ledge-attack-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    out_content->stage.solid_left_q16 =
+        -INT32_C(27) * PF_Q16_ONE;
+    out_content->stage.solid_right_q16 =
+        -INT32_C(14) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->fighter.ledge_invulnerability_ticks = UINT16_C(1);
+    out_content->item.enabled = UINT8_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "ledge-attack-content-view");
+}
+
 static int make_grab_content(
     int32_t spawn_spacing_q16,
     pf_m4_content *out_content,
@@ -2458,7 +2485,7 @@ static int run_directional_aerial_snapshot_test(
             PF_STATUS_OK,
             "directional-aerial-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE39", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE40", (size_t)8) != 0)
     {
         return fail("directional-aerial-save-format");
     }
@@ -17509,9 +17536,474 @@ static int run_chain_grab_di_escape_test(
     return 1;
 }
 
+static int prepare_player0_right_ledge(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, out_inspection),
+            PF_STATUS_OK,
+            "ledge-attack-initial-inspect"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(400); ++tick)
+    {
+        const int16_t target_axis =
+            out_inspection->players[1].position_x_q16 <
+                    out_inspection->stage.right_ledge_x_q16 -
+                        (INT32_C(7) * PF_Q16_ONE) / INT32_C(4)
+                ? INT16_MAX
+                : INT16_C(0);
+
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                UINT64_C(0),
+                target_axis,
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_RUN &&
+            out_inspection->players[0].position_x_q16 >=
+                out_inspection->stage.right_ledge_x_q16 -
+                    PF_Q16_ONE / INT32_C(2))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(400))
+    {
+        return fail("ledge-attack-right-edge-setup");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MIN,
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(48) ||
+        out_inspection->players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT ||
+        out_inspection->players[1].grounded == UINT8_C(0) ||
+        out_inspection->players[1].position_x_q16 <
+            out_inspection->stage.right_ledge_x_q16 -
+                INT32_C(3) * PF_Q16_ONE ||
+        out_inspection->players[1].position_x_q16 >=
+            out_inspection->stage.right_ledge_x_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=fail operation=ledge-attack-hang-target"
+            " attacker_x=%" PRId32 " target_x=%" PRId32 "\n",
+            out_inspection->players[0].position_x_q16,
+            out_inspection->players[1].position_x_q16);
+        return 0;
+    }
+    (void)content;
+    return 1;
+}
+
+static int make_player0_ledge_actionable_combat(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    const uint32_t catch_ticks =
+        (uint32_t)content->fighter.landing_ticks +
+        (uint32_t)content->fighter.jump_squat_ticks;
+
+    while ((uint32_t)out_inspection->players[0].action_ticks <
+           catch_ticks)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
+           out_inspection->players[0].action_ticks ==
+               (uint16_t)catch_ticks;
+}
+
+static int run_ledge_attack_snapshot_test(
+    pf_sim *source,
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    pf_m4_inspection *source_inspection)
+{
+    test_sim_storage loaded_storage;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "ledge-attack-query-save-size") ||
+        save_size != (size_t)694)
+    {
+        return fail("ledge-attack-snapshot-size");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "ledge-attack-save") ||
+        destination.size != save_size ||
+        memcmp(save_bytes, "PFSAVE40", (size_t)8) != 0)
+    {
+        return fail("ledge-attack-save-format");
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "ledge-attack-load"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.ledge_attack.hitlag_ticks +
+                    UINT32_C(4);
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "ledge-attack-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "ledge-attack-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("ledge-attack-snapshot-continuation");
+        }
+        if (source_inspection->players[0].ledge !=
+                (uint8_t)PF_M4_LEDGE_RIGHT ||
+            loaded_inspection.players[0].ledge !=
+                (uint8_t)PF_M4_LEDGE_RIGHT)
+        {
+            return fail("ledge-attack-hitlag-ledge-claim");
+        }
+    }
+    return 1;
+}
+
+static int run_ledge_attack_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_content changed = *content;
+    pf_m4_content invalid_attack = *content;
+    pf_m4_content invalid_invulnerability = *content;
+    pf_content_view changed_view;
+    const pf_m4_attack_data *attack = &content->fighter.ledge_attack;
+    const uint32_t catch_ticks =
+        (uint32_t)content->fighter.landing_ticks +
+        (uint32_t)content->fighter.jump_squat_ticks;
+    const uint32_t attack_ticks =
+        (uint32_t)attack->startup_ticks +
+        (uint32_t)attack->active_ticks +
+        (uint32_t)attack->recovery_ticks;
+    const pf_sim_event *hit_event = NULL;
+    uint32_t tick;
+    int defender_hitbox_seen = 0;
+
+    changed.fighter.ledge_attack.damage_q16 += UINT32_C(1);
+    invalid_attack.fighter.ledge_attack.startup_ticks = UINT16_C(0);
+    invalid_invulnerability.fighter
+        .ledge_attack_invulnerability_ticks =
+        (uint16_t)(attack_ticks + UINT32_C(1));
+    if (attack->damage_q16 != UINT32_C(10) * UINT32_C(65536) ||
+        attack->startup_ticks != UINT16_C(6) ||
+        attack->active_ticks != UINT16_C(3) ||
+        attack->recovery_ticks != UINT16_C(20) ||
+        content->fighter.ledge_attack_invulnerability_ticks !=
+            UINT16_C(10) ||
+        !expect_status(
+            pf_m4_make_content_view(&changed, &changed_view),
+            PF_STATUS_OK,
+            "ledge-attack-changed-content") ||
+        memcmp(
+            view->content_hash.bytes,
+            changed_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0 ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_attack),
+            PF_STATUS_INVALID_CONFIG,
+            "ledge-attack-invalid-data") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_invulnerability),
+            PF_STATUS_INVALID_CONFIG,
+            "ledge-attack-invalid-invulnerability") ||
+        !initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !prepare_player0_right_ledge(sim, content, &inspection))
+    {
+        return fail("ledge-attack-content-or-setup");
+    }
+
+    while ((uint32_t)inspection.players[0].action_ticks < catch_ticks)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_LEDGE_HANG)
+        {
+            return fail("ledge-attack-held-lock");
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            content->fighter.digital_trigger_threshold,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].damage_q16 != UINT32_C(0))
+    {
+        return fail("ledge-attack-input-arbitration");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)attack->startup_ticks +
+                    (uint32_t)attack->active_ticks + UINT32_C(2);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[1].hitbox_active != UINT8_C(0))
+        {
+            defender_hitbox_seen = 1;
+        }
+        if (inspection.players[0].damage_q16 != UINT32_C(0))
+        {
+            return fail("ledge-attack-invulnerability-rejection");
+        }
+        hit_event = find_last_tick_event(PF_SIM_EVENT_HIT);
+        if (hit_event != NULL &&
+            hit_event->detail ==
+                (uint16_t)PF_M4_ACTION_LEDGE_ATTACK)
+        {
+            break;
+        }
+    }
+    if (hit_event == NULL ||
+        hit_event->source_player != UINT8_C(0) ||
+        hit_event->target_player != UINT8_C(1) ||
+        hit_event->value_q16 != attack->damage_q16 ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_RIGHT ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].damage_q16 != attack->damage_q16 ||
+        defender_hitbox_seen == 0 ||
+        !run_ledge_attack_snapshot_test(
+            sim,
+            content,
+            view,
+            &inspection) ||
+        inspection.players[0].damage_q16 != UINT32_C(0) ||
+        inspection.players[0].invulnerable != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=fail operation=ledge-attack-hit-detail"
+            " event=%u source=%u target=%u value=%" PRIu32
+            " attacker_action=%u target_action=%u"
+            " target_damage=%" PRIu32 " defender_hitbox=%d"
+            " attacker_damage=%" PRIu32 " invulnerable=%u"
+            " attacker_x=%" PRId32 " target_x=%" PRId32
+            " action_ticks=%u hitbox=(%" PRId32 ",%" PRId32
+            ")\n",
+            hit_event != NULL ? UINT32_C(1) : UINT32_C(0),
+            hit_event != NULL
+                ? (unsigned int)hit_event->source_player
+                : UINT32_C(255),
+            hit_event != NULL
+                ? (unsigned int)hit_event->target_player
+                : UINT32_C(255),
+            hit_event != NULL ? hit_event->value_q16 : UINT32_C(0),
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[1].action_state,
+            inspection.players[1].damage_q16,
+            defender_hitbox_seen,
+            inspection.players[0].damage_q16,
+            (unsigned int)inspection.players[0].invulnerable,
+            inspection.players[0].position_x_q16,
+            inspection.players[1].position_x_q16,
+            (unsigned int)inspection.players[0].action_ticks,
+            inspection.players[0].hitbox_left_q16,
+            inspection.players[0].hitbox_right_q16);
+        return fail("ledge-attack-hit-or-snapshot");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(64) &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_LANDING;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LANDING ||
+        inspection.players[0].grounded != UINT8_C(1) ||
+        inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        inspection.players[0].ledge !=
+            (uint8_t)PF_M4_LEDGE_NONE)
+    {
+        return fail("ledge-attack-completion");
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x1ed6ea77ac)),
+            PF_STATUS_OK,
+            "ledge-attack-strong-reset") ||
+        !prepare_player0_right_ledge(sim, content, &inspection) ||
+        !make_player0_ledge_actionable_combat(
+            sim,
+            content,
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_ATTACK)
+    {
+        return fail("ledge-attack-strong-input");
+    }
+    return 1;
+}
+
 int main(void)
 {
     pf_m4_content content;
+    pf_m4_content ledge_attack_content;
     pf_m4_content invalid_content;
     pf_m4_content invalid_strong_content;
     pf_m4_content invalid_tech_content;
@@ -17562,6 +18054,7 @@ int main(void)
     pf_m4_content jab_reset_over_damage_content;
     pf_m4_content jab_reset_over_hitstun_content;
     pf_content_view view;
+    pf_content_view ledge_attack_view;
     pf_content_view reaction_view;
     pf_content_view tech_invulnerability_view;
     pf_content_view floor_attack_view;
@@ -17595,6 +18088,9 @@ int main(void)
     pf_content_view jab_reset_over_hitstun_view;
 
     if (!make_combat_content(&content, &view) ||
+        !make_ledge_attack_content(
+            &ledge_attack_content,
+            &ledge_attack_view) ||
         !make_reaction_content(
             &reaction_content,
             &reaction_view) ||
@@ -17874,6 +18370,9 @@ int main(void)
         !run_weight_test(&content, &view) ||
         !run_directional_ground_attack_test(&content, &view) ||
         !run_directional_aerial_test(&content, &view) ||
+        !run_ledge_attack_test(
+            &ledge_attack_content,
+            &ledge_attack_view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
             &v_cancel_content,
@@ -18018,7 +18517,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=780 journal_invariants=50 weight=1 directional_ground_attacks=1 directional_aerials=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=815 journal_invariants=51 weight=1 directional_ground_attacks=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

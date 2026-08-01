@@ -195,6 +195,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->short_hop_speed_q16);
     pf_m4_hash_i32(hash, fighter->double_jump_speed_q16);
     pf_m4_hash_i32(hash, fighter->platform_drop_nudge_q16);
+    pf_m4_hash_i32(hash, fighter->ledge_roll_distance_q16);
     pf_m4_hash_i32(hash, fighter->drop_cancel_snap_distance_q16);
     pf_m4_hash_i32(hash, fighter->air_dodge_speed_q16);
     pf_m4_hash_i32(hash, fighter->air_dodge_decay_q16);
@@ -247,6 +248,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_attack(hash, &fighter->back_aerial);
     pf_m4_hash_attack(hash, &fighter->up_aerial);
     pf_m4_hash_attack(hash, &fighter->down_aerial);
+    pf_m4_hash_attack(hash, &fighter->ledge_attack);
     pf_m4_hash_u32(hash, fighter->reset_max_damage_q16);
     pf_m4_hash_i32(hash, fighter->reset_bound_speed_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
@@ -368,6 +370,10 @@ static void pf_m4_hash_fighter(
         fighter->air_dodge_invulnerability_end_tick);
     pf_m4_hash_u16(hash, fighter->ledge_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_regrab_lockout_ticks);
+    pf_m4_hash_u16(hash, fighter->ledge_roll_ticks);
+    pf_m4_hash_u16(hash, fighter->ledge_roll_movement_ticks);
+    pf_m4_hash_u16(hash, fighter->ledge_roll_invulnerability_ticks);
+    pf_m4_hash_u16(hash, fighter->ledge_attack_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->special_landing_ticks);
     pf_m4_hash_u16(hash, fighter->run_turnaround_ticks);
     pf_m4_hash_u16(hash, fighter->run_brake_ticks);
@@ -745,6 +751,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->short_hop_speed_q16 = PF_Q16_RATIO(9, 25);
     fighter->double_jump_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->platform_drop_nudge_q16 = PF_Q16_RATIO(1, 256);
+    fighter->ledge_roll_distance_q16 = PF_Q16_RATIO(7, 4);
     fighter->drop_cancel_snap_distance_q16 = PF_Q16_RATIO(5, 8);
     fighter->air_dodge_speed_q16 = PF_Q16_RATIO(1, 2);
     fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
@@ -888,6 +895,26 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->down_aerial.active_ticks = UINT16_C(4);
     fighter->down_aerial.recovery_ticks = UINT16_C(21);
     fighter->down_aerial.hitlag_ticks = UINT16_C(5);
+    fighter->ledge_attack.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(3, 4);
+    fighter->ledge_attack.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(1, 20);
+    fighter->ledge_attack.hitbox_half_width_q16 =
+        PF_Q16_RATIO(13, 20);
+    fighter->ledge_attack.hitbox_half_height_q16 =
+        PF_Q16_RATIO(9, 20);
+    fighter->ledge_attack.damage_q16 =
+        UINT32_C(10) * UINT32_C(65536);
+    fighter->ledge_attack.base_knockback_x_q16 =
+        PF_Q16_RATIO(8, 25);
+    fighter->ledge_attack.base_knockback_y_q16 =
+        PF_Q16_RATIO(1, 4);
+    fighter->ledge_attack.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 640);
+    fighter->ledge_attack.startup_ticks = UINT16_C(6);
+    fighter->ledge_attack.active_ticks = UINT16_C(3);
+    fighter->ledge_attack.recovery_ticks = UINT16_C(20);
+    fighter->ledge_attack.hitlag_ticks = UINT16_C(5);
     fighter->reset_max_damage_q16 =
         UINT32_C(7) * UINT32_C(65536);
     fighter->reset_bound_speed_q16 = PF_Q16_RATIO(1, 10);
@@ -1041,6 +1068,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
     fighter->ledge_invulnerability_ticks = UINT16_C(37);
     fighter->ledge_regrab_lockout_ticks = UINT16_C(29);
+    fighter->ledge_roll_ticks = UINT16_C(30);
+    fighter->ledge_roll_movement_ticks = UINT16_C(20);
+    fighter->ledge_roll_invulnerability_ticks = UINT16_C(22);
+    fighter->ledge_attack_invulnerability_ticks = UINT16_C(10);
     fighter->special_landing_ticks = UINT16_C(10);
     fighter->run_turnaround_ticks = UINT16_C(12);
     fighter->run_brake_ticks = UINT16_C(8);
@@ -1390,6 +1421,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             maximum_fighter_extent_q16) ||
         !pf_m4_attack_data_is_valid(
             &fighter->down_aerial,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->ledge_attack,
             maximum_fighter_extent_q16))
     {
         return PF_STATUS_INVALID_CONFIG;
@@ -1486,6 +1520,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->short_hop_speed_q16 <= INT32_C(0) ||
         fighter->double_jump_speed_q16 <= INT32_C(0) ||
         fighter->platform_drop_nudge_q16 <= INT32_C(0) ||
+        fighter->ledge_roll_distance_q16 <=
+            fighter->half_width_q16 +
+                fighter->platform_drop_nudge_q16 ||
+        fighter->ledge_roll_distance_q16 >
+            INT32_C(8) * PF_Q16_ONE ||
         fighter->drop_cancel_snap_distance_q16 <=
             fighter->platform_drop_nudge_q16 ||
         fighter->drop_cancel_snap_distance_q16 >
@@ -1823,6 +1862,19 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->ledge_invulnerability_ticks > UINT16_C(600) ||
         fighter->ledge_regrab_lockout_ticks == UINT16_C(0) ||
         fighter->ledge_regrab_lockout_ticks > UINT16_C(600) ||
+        fighter->ledge_roll_ticks == UINT16_C(0) ||
+        fighter->ledge_roll_ticks > UINT16_C(240) ||
+        fighter->ledge_roll_movement_ticks == UINT16_C(0) ||
+        fighter->ledge_roll_movement_ticks >
+            fighter->ledge_roll_ticks ||
+        fighter->ledge_roll_invulnerability_ticks == UINT16_C(0) ||
+        fighter->ledge_roll_invulnerability_ticks >
+            fighter->ledge_roll_ticks ||
+        fighter->ledge_attack_invulnerability_ticks == UINT16_C(0) ||
+        fighter->ledge_attack_invulnerability_ticks >
+            (uint32_t)fighter->ledge_attack.startup_ticks +
+                (uint32_t)fighter->ledge_attack.active_ticks +
+                (uint32_t)fighter->ledge_attack.recovery_ticks ||
         fighter->special_landing_ticks == UINT16_C(0) ||
         fighter->special_landing_ticks > UINT16_C(240) ||
         fighter->run_turnaround_ticks < UINT16_C(2) ||

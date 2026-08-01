@@ -1454,7 +1454,8 @@ mergeInto(LibraryManager.library, {
       "attack; jump and shield are the other live cancel routes. Shield remains " +
       "locked out during INITIAL DASH and down cannot cancel RUN TURNAROUND. " +
       "Fall beside a ledge while facing inward " +
-      "to grab it; after the catch, press inward to climb, down or away to " +
+      "to grab it; after the catch, press inward to climb, a fresh trigger to " +
+      "ledge-roll, light or strong attack to ledge-attack, down or away to " +
       "release, or jump to ledge-jump. For an edge hop, tap down from hang, " +
       "release it, then press jump plus inward on the next tick and follow " +
       "with an aerial. F and / perform the light jab; H and ' " +
@@ -2331,7 +2332,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 37) {
+    if (view[0] !== 38) {
       return;
     }
     var canvas = state.canvas;
@@ -2431,6 +2432,8 @@ mergeInto(LibraryManager.library, {
       "BACK AERIAL",
       "UP AERIAL",
       "DOWN AERIAL",
+      "LEDGE ROLL",
+      "LEDGE ATTACK",
     ];
 
     if (view[1] < previousTick) {
