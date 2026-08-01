@@ -40,6 +40,27 @@ players, and all four fighters in the optional team lab, use the same validated
 M4 fighter and stage content used by native, replay, rollback, and headless
 execution.
 
+## Owner evidence checklist
+
+Expand `Owner evidence` below the live state/event cards. The build generates
+its 61 ordered technique names and exact browser recipes directly from registry
+schema 1, pinned source revision 2048934; a registry edit therefore cannot
+silently leave the browser worksheet stale. Record each ordinary-input recipe
+as observed pass, observed fail, or untested, and put reproduction detail on
+every failure.
+
+The same panel records the eight mandatory combat-rubric scores, critical
+collision-anomaly confirmation, completed setup-to-results/rematch matches,
+two-player input use, real Standard Gamepad use, environment/build identity,
+and the explicit owner decision. Drafts persist in browser-local storage under
+the evidence schema and source revision. `Export Markdown` produces the
+repository-review record; `Export JSON` preserves the structured source data.
+The page never changes registry status automatically.
+
+Tactical and emergent rows remain observations of legal match sequences made
+from independently verified constituent mechanics. Completing this worksheet
+does not add, require, or imply a tactic-specific simulation harness.
+
 ## Replay-file inspector
 
 The replay panel below the live playtest can download the generated canonical
@@ -1083,6 +1104,6 @@ camping_probe=pass
 shine_spike_probe=pass charge_storage_probe=pass vector_ascent_probe=pass
 gamepad_probe=pass
 gamepad_api=available
-controls=keyboard-gamepad-two-controller-duel-team-lab` only after all checks
-pass.
+controls=keyboard-gamepad-two-controller-duel-team-lab
+owner_checklist=ready-61` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

@@ -166,6 +166,26 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - This match soak covers the playable loop and constituent mechanics. It does
   not add tactic-specific harnesses for emergent techniques.
 
+## Delivered in the owner-evidence capture slice
+
+- The generated WebAssembly page now includes a collapsible 61-row owner
+  checklist sourced at configure time from the versioned M4 registry. Each row
+  carries the registry's exact human recipe, an observed pass/fail/untested
+  state, and optional reproduction notes; configuration fails if any ordered
+  row cannot be parsed.
+- Evidence-schema 1 records tester, full build reference, browser/OS/input
+  environment, the eight M0 combat-rubric scores, critical collision status,
+  completed setup-to-result/rematch and repeated-match gates, real Standard
+  Gamepad use, overall notes, and an explicit approve/request-changes decision.
+- Drafts persist locally under the pinned source revision. Markdown and JSON
+  exports include all 61 outcomes plus runtime-probe status, while a two-step
+  reset avoids accidental deletion. The page deliberately cannot promote the
+  technique registry; owner evidence must be exported, reviewed, and committed.
+- Tactical and emergent rows reuse their independently verified constituent
+  mechanics. This presentation-only slice adds no emergent-specific simulation
+  harnesses and makes no new deterministic-state, replay, save, observation,
+  RL, or performance claim.
+
 ## Delivered in the first M4.2 combat slice
 
 - Input-schema-3 light- and strong-attack buttons for native, replay, RL, and
@@ -1652,7 +1672,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
 - Repeated human matches.
-- The mandatory owner combat playtest.
+- The mandatory owner combat playtest; the generated browser worksheet is
+  ready, but only the owner can supply and approve its evidence.
 
 ## First-slice verification
 
@@ -1705,6 +1726,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Address/undefined-behavior sanitizer adapter contract: pass.
 - Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.
+- Generated owner-evidence contract: pass for registry schema 1/source revision
+  2048934, exactly 61 live recipe rows, local draft persistence, filtering,
+  rubric/match gates, and Markdown/JSON export. No synthetic result remains in
+  the delivered page; human execution is still pending.
 - Focused owner controls and expected results:
   [`M4_browser_playtest.md`](M4_browser_playtest.md).
 - Generated-page execution: pass in the clean Chrome CI lane.

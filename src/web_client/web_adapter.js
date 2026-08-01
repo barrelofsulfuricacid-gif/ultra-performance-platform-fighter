@@ -1017,6 +1017,21 @@ mergeInto(LibraryManager.library, {
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
     var previous = document.getElementById("pf-m4-playtest");
+    var ownerChecklist =
+      typeof globalThis !== "undefined"
+        ? globalThis.PF_M4_OWNER_CHECKLIST
+        : null;
+    var ownerEvidenceInstaller =
+      typeof globalThis !== "undefined"
+        ? globalThis.PFInstallM4OwnerEvidence
+        : null;
+    var ownerChecklistReady =
+      ownerChecklist &&
+      ownerChecklist.schema === 1 &&
+      ownerChecklist.sourceRevision === "2048934" &&
+      Array.isArray(ownerChecklist.techniques) &&
+      ownerChecklist.techniques.length === 61 &&
+      typeof ownerEvidenceInstaller === "function";
 
     if (previous) {
       previous.remove();
@@ -1101,11 +1116,54 @@ mergeInto(LibraryManager.library, {
         "background:#101a29;color:#bed0e8}.pf-m4-event-feed code{" +
         "color:#75dfff}.pf-m4-event-empty{color:#7287a4!important}" +
         ".pf-m4-note{color:#8294ad;font-size:12px;margin:13px 0 0}" +
+        ".pf-m4-owner{margin-top:18px;background:#0a1523;border:1px solid #355170;" +
+        "border-radius:13px;color:#bed0e8}.pf-m4-owner>summary{cursor:pointer;" +
+        "padding:16px 18px;font:800 14px/1.3 system-ui;color:#edf5ff}" +
+        ".pf-m4-owner-body{padding:0 18px 18px}.pf-m4-owner-copy{color:#91a5bf;" +
+        "font:12px/1.5 system-ui;margin:0 0 14px}.pf-m4-owner-meta{" +
+        "display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}" +
+        ".pf-m4-owner label{display:grid;gap:5px;color:#9fb0c7;" +
+        "font:700 11px/1.2 ui-monospace,monospace}.pf-m4-owner input," +
+        ".pf-m4-owner textarea,.pf-m4-owner select{width:100%;background:#101d2e;" +
+        "color:#edf5ff;border:1px solid #3b5678;border-radius:7px;padding:8px;" +
+        "font:12px/1.35 system-ui}.pf-m4-owner textarea{min-height:62px;resize:vertical}" +
+        ".pf-m4-owner-progress{display:grid;grid-template-columns:1fr auto;gap:10px;" +
+        "align-items:center;margin:12px 0}.pf-m4-owner-progress progress{width:100%;" +
+        "accent-color:#4ce0a8}.pf-m4-owner-progress span{font:700 11px/1 " +
+        "ui-monospace,monospace;color:#8edcff}.pf-m4-owner-toolbar{display:flex;" +
+        "gap:8px;flex-wrap:wrap;align-items:end;margin:12px 0}" +
+        ".pf-m4-owner-toolbar label{min-width:130px}.pf-m4-owner button{" +
+        "background:#182841;color:#e8f1ff;border:1px solid #385274;" +
+        "border-radius:8px;padding:8px 11px;font:700 11px/1 system-ui;cursor:pointer}" +
+        ".pf-m4-owner button:hover{background:#203654}.pf-m4-owner-list{" +
+        "display:grid;gap:7px;margin:12px 0}.pf-m4-owner-technique{" +
+        "background:#0d1a2b;border:1px solid #29415f;border-radius:9px}" +
+        ".pf-m4-owner-technique[data-result=pass]{border-color:#27725d}" +
+        ".pf-m4-owner-technique[data-result=fail]{border-color:#9b4459}" +
+        ".pf-m4-owner-technique>summary{display:flex;justify-content:space-between;" +
+        "gap:12px;cursor:pointer;padding:10px 12px;font:700 12px/1.35 system-ui}" +
+        ".pf-m4-owner-result{font:800 10px/1 ui-monospace,monospace;" +
+        "text-transform:uppercase;color:#8294ad}.pf-m4-owner-technique[data-result=pass] " +
+        ".pf-m4-owner-result{color:#77efc6}.pf-m4-owner-technique[data-result=fail] " +
+        ".pf-m4-owner-result{color:#ff91a9}.pf-m4-owner-technique-body{" +
+        "padding:0 12px 12px}.pf-m4-owner-recipe{color:#b8c8dc;" +
+        "font:12px/1.5 system-ui;margin:0 0 10px}.pf-m4-owner-actions{" +
+        "display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}" +
+        ".pf-m4-owner-actions button[data-result=pass]{border-color:#3ba985}" +
+        ".pf-m4-owner-actions button[data-result=fail]{border-color:#b6536a}" +
+        ".pf-m4-owner-rubric{display:grid;grid-template-columns:repeat(4,1fr);" +
+        "gap:9px;margin:14px 0}.pf-m4-owner-collision{display:flex!important;" +
+        "grid-column:1/-1;grid-template-columns:auto 1fr!important;align-items:center}" +
+        ".pf-m4-owner-collision input{width:auto}.pf-m4-owner-ready{" +
+        "border-left:3px solid #6f86a6;padding:9px 11px;background:#101d2e;" +
+        "font:12px/1.45 system-ui;color:#b8c8dc}.pf-m4-owner[data-ready=true] " +
+        ".pf-m4-owner-ready{border-color:#4ce0a8;color:#cffff0}" +
         "@media(max-width:680px){.pf-m4-heading{flex-direction:column}" +
         ".pf-m4-controls,.pf-m4-state-grid{grid-template-columns:1fr}" +
         ".pf-m4-tick{margin-left:0;width:100%}" +
         "#pf-m4-playtest{padding:16px}.pf-m4-setup{grid-template-columns:1fr;" +
-        "align-items:stretch}}";
+        "align-items:stretch}.pf-m4-owner-meta,.pf-m4-owner-rubric{" +
+        "grid-template-columns:1fr}}";
       document.head.appendChild(style);
     }
 
@@ -1121,6 +1179,13 @@ mergeInto(LibraryManager.library, {
     section.dataset.collisionOverlay = "visible";
     section.dataset.collisionOverlaySemantics =
       "stage-hurtbox-attack-grab-item-projectile-blast";
+    section.dataset.ownerChecklist = ownerChecklistReady ? "ready" : "fail";
+    section.dataset.ownerChecklistSchema = ownerChecklistReady
+      ? String(ownerChecklist.schema)
+      : "unavailable";
+    section.dataset.ownerChecklistRevision = ownerChecklistReady
+      ? ownerChecklist.sourceRevision
+      : "unavailable";
     section.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
     section.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
     section.dataset.jumpCancelThrowProbe =
@@ -1519,6 +1584,19 @@ mergeInto(LibraryManager.library, {
     eventPanel.appendChild(eventFeed);
     stateGrid.appendChild(eventPanel);
     section.appendChild(stateGrid);
+
+    if (ownerChecklistReady) {
+      ownerEvidenceInstaller(section, ownerChecklist, status);
+    } else {
+      var ownerEvidenceFailure = document.createElement("p");
+      ownerEvidenceFailure.id = "pf-m4-owner-evidence-failure";
+      ownerEvidenceFailure.className = "pf-m4-owner-ready";
+      ownerEvidenceFailure.textContent =
+        "Owner evidence checklist unavailable: expected registry schema 1, " +
+        "source revision 2048934, and exactly 61 generated recipes.";
+      section.appendChild(ownerEvidenceFailure);
+      section.dataset.ownerEvidence = "unavailable";
+    }
 
     if (replayInspector) {
       document.body.insertBefore(section, replayInspector);
@@ -2108,7 +2186,9 @@ mergeInto(LibraryManager.library, {
         (gamepadProbePassed ? "pass" : "fail") +
         " gamepad_api=" +
         (gamepadApiAvailable ? "available" : "unavailable") +
-        " controls=keyboard-gamepad-two-controller-duel-team-lab";
+        " controls=keyboard-gamepad-two-controller-duel-team-lab" +
+        " owner_checklist=" +
+        (ownerChecklistReady ? "ready-61" : "fail");
       status.dataset.playtest =
         gamepadApiAvailable && gamepadProbePassed ? "ready" : "fail";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -2221,6 +2301,7 @@ mergeInto(LibraryManager.library, {
         gamepadApiAvailable ? "available" : "unavailable";
       status.dataset.controls = "keyboard-gamepad-two-controller-duel-team-lab";
       status.dataset.matchFlow = "setup-duel-results-rematch";
+      status.dataset.ownerChecklist = ownerChecklistReady ? "ready-61" : "fail";
     }
     openSetup();
     requestAnimationFrame(frame);

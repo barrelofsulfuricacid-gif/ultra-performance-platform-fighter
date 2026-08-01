@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(PFBuildModes)
 include(PFDeterministicBoundary)
 include(PFProjectWarnings)
+include(GenerateM4OwnerChecklist)
 
 option(PF_BUILD_HEADLESS "Build the renderer-free headless product" ON)
 option(PF_BUILD_NATIVE_CLIENT "Build the native-client product boundary" ON)
@@ -250,12 +251,27 @@ function(pf_add_smoke_product target product_name render_probe)
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/web_adapter.js")
         set(pf_web_shell
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/shell.html")
+        set(pf_m4_technique_registry
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/product/m4_advanced_technique_registry.md")
+        set(pf_m4_owner_checklist
+            "${CMAKE_CURRENT_BINARY_DIR}/generated/m4_owner_checklist.js")
+        set(pf_m4_owner_evidence
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/m4_owner_evidence.js")
+        set_property(
+            DIRECTORY
+            APPEND
+            PROPERTY CMAKE_CONFIGURE_DEPENDS "${pf_m4_technique_registry}")
+        pf_generate_m4_owner_checklist(
+            "${pf_m4_technique_registry}"
+            "${pf_m4_owner_checklist}")
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=1)
         target_link_options(
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
                 "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_pf_web_replay_import,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_configure_duel,_pf_web_m4_playtest_set_team_lab"
+                "--pre-js=${pf_m4_owner_checklist}"
+                "--pre-js=${pf_m4_owner_evidence}"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(
@@ -263,7 +279,10 @@ function(pf_add_smoke_product target product_name render_probe)
             APPEND
             PROPERTY LINK_DEPENDS
                 "${pf_web_adapter}"
-                "${pf_web_shell}")
+                "${pf_web_shell}"
+                "${pf_m4_owner_checklist}"
+                "${pf_m4_owner_evidence}"
+                "${pf_m4_technique_registry}")
         set_target_properties(${target} PROPERTIES SUFFIX ".html")
     else()
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=0)

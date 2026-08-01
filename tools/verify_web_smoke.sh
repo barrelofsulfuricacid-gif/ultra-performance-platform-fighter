@@ -128,6 +128,33 @@ pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'
 pf_require_dom \
+    "M4 owner checklist status" \
+    'owner_checklist=ready-61'
+pf_require_dom \
+    "M4 owner checklist source" \
+    'data-owner-checklist="ready"'
+pf_require_dom \
+    "M4 owner checklist schema" \
+    'data-owner-checklist-schema="1"'
+pf_require_dom \
+    "M4 owner checklist revision" \
+    'data-owner-checklist-revision="2048934"'
+pf_require_dom \
+    "M4 owner evidence panel" \
+    'id="pf-m4-owner-evidence"'
+pf_require_dom \
+    "M4 owner evidence exports" \
+    'id="pf-m4-owner-export-markdown"'
+pf_require_dom \
+    "M4 owner match gate" \
+    'id="pf-m4-owner-complete-match"'
+owner_recipe_count=$(grep -Fo 'class="pf-m4-owner-technique"' "$dom_output" | wc -l)
+if [ "$owner_recipe_count" -ne 61 ]; then
+    echo "web browser smoke failed: expected 61 owner recipes, got $owner_recipe_count" >&2
+    pf_dump_browser_diagnostics
+    exit 1
+fi
+pf_require_dom \
     "M4 collision inspector semantics" \
     'data-collision-overlay-semantics="stage-hurtbox-attack-grab-item-projectile-blast"'
 pf_require_dom \

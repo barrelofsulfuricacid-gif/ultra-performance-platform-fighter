@@ -58,6 +58,32 @@ command -v node >/dev/null 2>&1 ||
         exit 1
     }
 node --check "$root/src/web_client/web_adapter.js"
+node --check "$root/src/web_client/m4_owner_evidence.js"
+
+grep -Fq \
+    'PFInstallM4OwnerEvidence' \
+    "$root/src/web_client/m4_owner_evidence.js"
+grep -Fq \
+    'pf-m4-owner-evidence' \
+    "$root/src/web_client/m4_owner_evidence.js"
+grep -Fq \
+    'pf-m4-owner-techniques' \
+    "$root/src/web_client/m4_owner_evidence.js"
+grep -Fq \
+    'technique-only simulation behavior or harnesses' \
+    "$root/src/web_client/m4_owner_evidence.js"
+grep -Fq \
+    'root.localStorage.setItem(storageKey, JSON.stringify(evidence))' \
+    "$root/src/web_client/m4_owner_evidence.js"
+grep -Fq \
+    'm4-owner-playtest-' \
+    "$root/src/web_client/m4_owner_evidence.js"
+grep -Fq \
+    'ownerChecklist.techniques.length === 61' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'owner_checklist=' \
+    "$root/src/web_client/web_adapter.js"
 
 grep -Fq \
     'held("ShiftLeft") || held("ShiftRight")' \
@@ -369,4 +395,4 @@ grep -Fq \
     'controls=keyboard-gamepad-two-controller-duel-team-lab' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 moonwalk_probe=1 teeter_cancel_probe=1 stage_humping_probe=1 taunt_cancel_probe=1 scar_jump_probe=1 team_wobble_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 camping_probe=1 shine_spike_probe=1 charge_storage_probe=1 vector_ascent_probe=1 gamepad_polling=1 standard_mapping=1 team_lab=1"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 moonwalk_probe=1 teeter_cancel_probe=1 stage_humping_probe=1 taunt_cancel_probe=1 scar_jump_probe=1 team_wobble_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 camping_probe=1 shine_spike_probe=1 charge_storage_probe=1 vector_ascent_probe=1 gamepad_polling=1 standard_mapping=1 team_lab=1 owner_checklist=61"

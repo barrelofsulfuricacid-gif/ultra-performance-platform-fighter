@@ -122,6 +122,9 @@ stock KOs show results/rematch, and simultaneous final-stock KOs enter the
 hit, shield, KO, respawn, sudden-death, and result events. It must report
 `web-client-smoke=pass sim_abi=4 tick_hz=60`, `webgl2=pass batch_draws=1`,
 `replay=pass ticks=180 winner_mask=5`, and every M4 startup probe as `pass`.
+The collapsible owner-evidence panel presents all 61 registry recipes, saves a
+local draft, captures the combat rubric and mandatory match/input gates, and
+exports Markdown or JSON without automatically changing registry status.
 Controls and focused human checks are documented in
 [`docs/milestones/M4_browser_playtest.md`](docs/milestones/M4_browser_playtest.md).
 
