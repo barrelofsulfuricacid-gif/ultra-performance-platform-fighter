@@ -833,7 +833,9 @@ through:
 - the same fixture beginning at exact 0% and chaining 21 earliest-recovery
   jabs into a 138% strong-finisher stock loss without an actionable defender
   frame, plus outward DI after first contact breaking the sequence before the
-  finisher while a later active jab whiffs;
+  finisher while a later active jab whiffs; this uninterrupted prefix also
+  supplies the emergent Infinite recipe when the target is wall-pinned and
+  jab replaces the finisher after canonical damage saturation;
 - a full-hop platform waveland whose retained momentum crosses the support
   edge on the first `SPECIAL LANDING` recovery tick, plus the same ordinary
   inputs at platform center remaining locked for all ten ticks before default

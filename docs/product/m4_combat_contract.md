@@ -276,6 +276,22 @@ No kill-confirm action, mutable state, or special-case combat branch exists.
 Broader fighter/percent windows, owner execution, and encoded replay/rollback
 coverage remain before the row can become fully verified.
 
+## Infinite
+
+The playable [infinite](https://www.ssbwiki.com/Infinite) is an emergent branch
+of the existing fast-jab fixture. Place the defender against the fixture's
+solid wall and restart the ordinary jab on each earliest grounded-idle frame.
+The authored near-zero knockback growth and wall collision prevent separation;
+after the canonical 999% damage cap is reached, the same attack/hitlag/hitstun
+cycle can continue without a changing damage resource. No infinite-only state,
+action, or outcome exists.
+
+The existing zero-to-death oracle supplies a 21-jab uninterrupted prefix,
+mid-chain save/load equality, and browser-native execution. Its open-stage
+outward-DI branch makes a later active jab whiff, providing the input/geometry
+change that breaks the loop. A longer repeated-state trace and owner execution
+remain before the registry row can advance beyond `playable`.
+
 ## Zero-to-death combo
 
 A [zero-to-death combo](https://www.ssbwiki.com/Zero-to-death_combo) begins
@@ -291,8 +307,8 @@ The declared defense policy begins outward DI only after the first hit makes
 contact. Its hitlag displacement and launch influence break the chain before
 the strong finisher: a subsequent ordinary jab produces an active hitbox that
 whiffs, the defender becomes actionable, and no stock is lost. This bounded
-route ends in a stock conversion and makes no claim that the sequence is an
-infinite.
+finisher branch ends in a stock conversion and does not itself claim to be the
+wall-pinned infinite described above.
 
 The native oracle starts from exact zero damage, saves immediately after hit
 11, loads a second simulation, and compares every future hash through the

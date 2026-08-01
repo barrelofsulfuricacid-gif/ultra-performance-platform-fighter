@@ -1268,6 +1268,18 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   production-path native/browser evidence. Owner execution and broader
   avoidance policies remain before `verified`.
 
+## Classified in the emergent-infinite slice
+
+- Infinite adds no new mechanic or dedicated oracle. The existing fast-jab
+  fixture can repeat its earliest-idle jab cycle against a wall with near-zero
+  knockback growth; canonical damage caps at 999%, so the pinned cycle has no
+  exhaustible damage resource after saturation.
+- Existing zero-to-death evidence already proves a 21-jab uninterrupted
+  prefix, mid-chain save/load equality, native/browser execution, and an
+  open-stage outward-DI branch that makes the later active jab whiff.
+- Registry row 20, Infinite, advances from `planned` to `playable`. A longer
+  repeated-state trace and owner execution remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1370,7 +1382,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
-  hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
+  hopping, fox-trotting, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, teeter cancel,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
@@ -1383,7 +1395,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 53 playable, 3 primitive-ready, and 4 planned.
+  blocked: 1 verified, 54 playable, 3 primitive-ready, and 3 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
