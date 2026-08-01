@@ -1223,6 +1223,7 @@ mergeInto(LibraryManager.library, {
       setupPanel: setupPanel,
       setMatchFlow: setMatchFlow,
       startMatchButton: startMatchButton,
+      stepButton: stepButton,
       stockSelect: stockSelect,
       teamLabButton: teamLabButton,
       attackQueued: [false, false],

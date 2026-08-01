@@ -59,6 +59,14 @@ pf_require_source \
     'setupButton.addEventListener("click", openSetup);' \
     "$adapter"
 pf_require_source \
+    "step control state ownership" \
+    'stepButton: stepButton,' \
+    "$adapter"
+pf_require_source \
+    "setup control gating" \
+    'state.stepButton.disabled = !playing;' \
+    "$adapter"
+pf_require_source \
     "bounded native stock validation" \
     'stock_count > (int)PF_WEB_M4_MAX_SETUP_STOCKS' \
     "$bridge"
