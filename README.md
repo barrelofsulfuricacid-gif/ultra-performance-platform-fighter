@@ -12,8 +12,9 @@ attacks,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the
 first light and strong production aerial routes, auto-cancel, visibly scored
-L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge, and
-a deterministic four-stock KO/respawn/match-result loop in the live
+L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge,
+grab pummels, four directional throws, and a deterministic four-stock
+KO/respawn/match-result loop in the live
 two-player browser playtest. M0 selected
 Q16.16 deterministic motion and geometry after benchmark,
 verifier, and blind human-playtest evidence. The accepted
@@ -115,11 +116,13 @@ walk/dash keyboard magnitudes, binary short/full hops, attacks, hitlag,
 hitstun, tumble, ground/wall/ceiling teching, missed-impact bounce, floor
 recovery, shields, directional air dodge/wavedash, aerial attacks,
 auto-cancel, L-cancel/SHFFL, a 30-frame strong-aerial landing-lag drill with
-red/green success feedback, grounded forward/backward rolls, and spot-dodge
-behavior. The HUD exposes stocks, respawn countdown and invulnerability; final
+red/green success feedback, grounded forward/backward rolls, spot-dodge,
+grab-pummel, and directional-throw behavior. The HUD exposes stocks, respawn
+countdown and invulnerability; final
 stock KOs show results/rematch, and simultaneous final-stock KOs enter the
 300% sudden-death fixture. A sequenced deterministic feed shows the current
-hit, shield, KO, respawn, sudden-death, and result events. It must report
+hit, shield, grab, pummel, throw, KO, respawn, sudden-death, and result events.
+It must report
 `web-client-smoke=pass sim_abi=4 tick_hz=60`, `webgl2=pass batch_draws=1`,
 `replay=pass ticks=180 winner_mask=5`, and every M4 startup probe as `pass`.
 The collapsible owner-evidence panel presents all 61 registry recipes, saves a

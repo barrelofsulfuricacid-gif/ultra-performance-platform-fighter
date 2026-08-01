@@ -16,7 +16,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   reduced-down shield platform dropping, three-frame V-cancelling, and
   ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
   kill-confirm, zero-to-death, platform-sharking, jump-canceled-grab, and
-  directional-throw/chain-grab and jab-reset routes, plus two-pad
+  pummel, directional-throw/chain-grab, and jab-reset routes, plus two-pad
   browser polling and a verifier-readable collision inspector implemented
 
 **Accepted baseline:** `5cfb263d9ba322da0bf330b75e3c7e656a15043a`
@@ -81,7 +81,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   check, while tolerant screenshot comparison remains the separate planned M7
   visual-reference check.
 - This is a presentation/verifier slice over already inspected canonical data.
-  Browser view schema 33 remains 396 values and no simulation, replay, save,
+  At that slice, browser view schema 33 remained 396 values and no simulation, replay, save,
   observation, or RL format changes.
 
 ## Delivered in the temporary M4.3 local-match flow
@@ -157,7 +157,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - All eight reference duels finish through stock results rather than time-limit
   truncation. The reference corpus spans 1,001 ticks, 17 combat events, eight
   KOs, and four projectile events, with final digest
-  `af6bce6fcd16328c` over every per-tick state hash and terminal outcome.
+  `02dc3a38e8cb0884` over every per-tick state hash and terminal outcome under
+  state schema 37/content schema 38.
 - Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
   re-simulates the complete suffix against per-tick state hashes, encodes a
   format-1 replay, and verifies that replay to the exact terminal outcome.
@@ -520,6 +521,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   inspection schema to 32, observation schema to 6, RL schema to 8, compact
   observation schema to 7, and browser view schema to 33 for the new action,
   once-per-airtime byte, and visible recovery resource.
+  The pummel slice advances state schema to 37/save format 36, content schema
+  to 38 with fighter schema 33, inspection schema to 33, and browser view
+  schema to 34 for the data-defined action and typed event; the 554-byte
+  payload, 694-byte save, 396-value browser view, input, observation, RL, and
+  compact layouts remain unchanged.
   Config/identity schema 2 remains current. The canonical save is 694 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1521,6 +1527,28 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   edgeguard hit/KO and surface-bounce/tech/stock mechanics. In accordance with
   the emergent-technique policy, no duplicate tactic-only harness is added.
 
+## Implemented in the grab-pummel slice
+
+- A fresh neutral or reduced-stick light/strong attack during `GRAB_HOLD`
+  enters explicit `PUMMEL`; full-direction fresh attacks continue to select
+  the four authored throws.
+- The original fighter authors 3% non-launching damage at tick 2 of a ten-tick
+  action. One typed `PUMMEL` event records damage and attribution with zero
+  launch, while reciprocal links, tethering, and the victim's ordinary mash
+  countdown remain active. The holder returns to `GRAB_HOLD`; holding attack
+  through recovery cannot retrigger without a fresh edge.
+- State schema 37/save format 36 and `PFSAVE36` retain the 554-byte payload and
+  694-byte checkpoint while failing closed on the new action, timing, live-link,
+  and event semantics. Content schema 38/fighter schema 33 hash damage, hit
+  tick, and duration. Inspection schema 33 and browser view schema 34 version
+  the unchanged inspection and 396-value presentation layouts.
+- The focused combat oracle reaches 620 invariants, including invalid/default
+  data, isolated hashing, both attack buttons, reduced-stick entry, exact
+  event/damage/link behavior, held-input rejection, and mid-pummel save/load
+  future equality. Browser startup repeats the complete pummel before all four
+  throws and the low-percent chain route. This primitive is not a 61-row
+  emergent-technique entry, so registry status does not change.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1665,8 +1693,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Remaining M4.2 and M4.3 work
 
 - Remaining ground attacks, aerials, specials, broader recovery options, broader throw routes,
-  pummels, analog
-  light shield, shield size/tilt/pokes and shield SDI,
+  analog light shield, shield size/tilt/pokes and shield SDI,
   expansion of the powershield-cancel router to each future ground action,
   complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
@@ -1682,9 +1709,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 306 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 596
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 620
   attack/reaction/shield/floor/surface
-  invariants plus 50 combat-journal invariants, 24 stock/respawn/result
+  invariants including data-defined pummels plus 50 combat-journal invariants,
+  24 stock/respawn/result
   invariants plus 44 match-journal invariants,
   46 projectile invariants including short-hop laser, projectile camping, and
   powershield reflection,
@@ -1698,9 +1726,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
   bytes,
   replay SHA-256
-  `ac2d636c9b529c6fb1cda8bc1b225f79f5bf5c7c402b06ac1d1035b24dce8e28`,
+  `45e536a1a1eb4685b224ca78201bb93563b3d528e8962210283dbc34af3d613f`,
   final SHA-256
-  `e4e13bede51559acd3dabed736b1cd961a0f97294ab772309fe7f0d1e0c0e535`,
+  `251e61c0e53f1289edb5aa02be7e9ade9384300a92b9a5a155b6147af008be1d`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.

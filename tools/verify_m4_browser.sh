@@ -200,7 +200,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 33' \
+    'view[0] !== 34' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DASH ATTACK"' \
@@ -228,6 +228,9 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'case 21:' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'case 22:' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DOWN THROW"' \
@@ -372,6 +375,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"VECTOR ASCENT"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"PUMMEL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'pummel for 3%' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'Vector Ascent recovery in the air' \

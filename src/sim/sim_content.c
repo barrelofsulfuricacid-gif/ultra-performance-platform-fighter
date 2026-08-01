@@ -262,6 +262,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->grabbed_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->grabbed_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->grab_escape_damage_ticks_q16);
+    pf_m4_hash_u32(hash, fighter->pummel_damage_q16);
+    pf_m4_hash_u16(hash, fighter->pummel_hit_tick);
+    pf_m4_hash_u16(hash, fighter->pummel_total_ticks);
     pf_m4_hash_throw(hash, &fighter->forward_throw);
     pf_m4_hash_throw(hash, &fighter->back_throw);
     pf_m4_hash_throw(hash, &fighter->up_throw);
@@ -949,6 +952,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->grab_escape_max_ticks = UINT16_C(90);
     fighter->grab_mash_reduction_ticks = UINT16_C(3);
     fighter->grab_release_ticks = UINT16_C(8);
+    fighter->pummel_damage_q16 = UINT32_C(3) * UINT32_C(65536);
+    fighter->pummel_hit_tick = UINT16_C(2);
+    fighter->pummel_total_ticks = UINT16_C(10);
     fighter->air_jump_count = UINT8_C(1);
     fighter->powershield_cancel_enabled = UINT8_C(1);
     fighter->wall_jump_enabled = UINT8_C(1);
@@ -1877,6 +1883,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->grab_mash_reduction_ticks > UINT16_C(60) ||
         fighter->grab_release_ticks == UINT16_C(0) ||
         fighter->grab_release_ticks > UINT16_C(120) ||
+        fighter->pummel_damage_q16 == UINT32_C(0) ||
+        fighter->pummel_damage_q16 >
+            UINT32_C(50) * UINT32_C(65536) ||
+        fighter->pummel_hit_tick == UINT16_C(0) ||
+        fighter->pummel_hit_tick >= fighter->pummel_total_ticks ||
+        fighter->pummel_total_ticks > UINT16_C(120) ||
         fighter->air_jump_count > UINT8_C(8) ||
         fighter->powershield_cancel_enabled > UINT8_C(1) ||
         fighter->wall_jump_enabled > UINT8_C(1))

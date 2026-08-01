@@ -464,6 +464,7 @@ mergeInto(LibraryManager.library, {
       "PROJECTILE FIRE",
       "PROJECTILE HIT",
       "PROJECTILE REFLECT",
+      "PUMMEL",
     ];
     var replayEventTicks = [];
     for (eventTick = 0; eventTick < checkpointCount; ++eventTick) {
@@ -1501,8 +1502,10 @@ mergeInto(LibraryManager.library, {
       "ordinary dash grab. For boost grab, press and hold light from RUN to " +
       "start DASH ATTACK, then freshly press shield on its next, second, or " +
       "third stored action tick; the cancel preserves the faster slide. A " +
-      "later shield press leaves DASH ATTACK intact. During GRAB HOLD, hold a " +
-      "full direction and freshly press either attack: forward/back are relative " +
+      "later shield press leaves DASH ATTACK intact. During GRAB HOLD, freshly " +
+      "press either attack without a full direction to pummel for 3% while " +
+      "retaining the grab. Hold a full direction with that fresh press to throw: " +
+      "forward/back are relative " +
       "to facing, while up/down select the vertical throws. Low-percent down " +
       "throws can lead to another grab; accumulated percent and outward DI move " +
       "the defender beyond the regrab window. " +
@@ -2319,7 +2322,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 33) {
+    if (view[0] !== 34) {
       return;
     }
     var canvas = state.canvas;
@@ -2412,6 +2415,7 @@ mergeInto(LibraryManager.library, {
       "TAUNT",
       "WALL JUMP",
       "VECTOR ASCENT",
+      "PUMMEL",
     ];
 
     if (view[1] < previousTick) {
@@ -2564,6 +2568,8 @@ mergeInto(LibraryManager.library, {
             "'s Pulse Bolt · velocity " +
             velocity
           );
+        case 22:
+          return source + " pummeled " + target + " for " + value + "%";
         default:
           return "unknown event type " + event.type;
       }

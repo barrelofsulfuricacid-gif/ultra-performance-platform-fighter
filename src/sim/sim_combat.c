@@ -829,6 +829,8 @@ static void pf_m4_release_grab(
     pf_m4_clear_grab_links(scratch, holder_index, target_index);
     if (scratch->action_state[holder_index] ==
             (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        scratch->action_state[holder_index] ==
+            (uint8_t)PF_M4_ACTION_PUMMEL ||
         pf_m4_action_is_throw(scratch->action_state[holder_index]))
     {
         scratch->action_state[holder_index] =
@@ -1074,6 +1076,7 @@ static pf_status pf_m4_resolve_grabs(
         if (scratch->active[holder_index] == UINT8_C(0) ||
             scratch->active[target_index] == UINT8_C(0) ||
             (holder_action != (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+             holder_action != (uint8_t)PF_M4_ACTION_PUMMEL &&
              throw_data == NULL) ||
             scratch->action_state[target_index] !=
                 (uint8_t)PF_M4_ACTION_GRABBED ||
@@ -1117,6 +1120,47 @@ static pf_status pf_m4_resolve_grabs(
             scratch->grounded[holder_index];
         scratch->support[target_index] =
             scratch->support[holder_index];
+        if (holder_action == (uint8_t)PF_M4_ACTION_PUMMEL)
+        {
+            const uint16_t action_ticks =
+                scratch->action_ticks[holder_index];
+
+            if (action_ticks >= content->fighter.pummel_total_ticks)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            if (action_ticks == content->fighter.pummel_hit_tick)
+            {
+                uint32_t pummel_sequence;
+
+                scratch->damage_q16[target_index] =
+                    pf_m4_saturating_damage(
+                        scratch->damage_q16[target_index],
+                        content->fighter.pummel_damage_q16);
+                if (pf_sim_push_event(
+                        scratch,
+                        world->tick,
+                        PF_SIM_EVENT_PUMMEL,
+                        (uint8_t)holder_index,
+                        (uint8_t)target_index,
+                        content->fighter.pummel_damage_q16,
+                        INT32_C(0),
+                        INT32_C(0),
+                        UINT16_C(0),
+                        (uint16_t)PF_M4_ACTION_PUMMEL,
+                        &pummel_sequence) != PF_STATUS_OK)
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                scratch->last_hit_sequence[target_index] =
+                    pummel_sequence;
+                scratch->last_hit_tick[target_index] = world->tick;
+                scratch->last_hit_damage_q16[target_index] =
+                    content->fighter.pummel_damage_q16;
+                scratch->last_hit_attacker[target_index] =
+                    (uint8_t)holder_index;
+            }
+        }
         if (throw_data != NULL)
         {
             const uint16_t action_ticks =

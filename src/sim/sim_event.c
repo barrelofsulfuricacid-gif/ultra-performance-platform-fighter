@@ -34,7 +34,7 @@ pf_status pf_sim_push_event(
 
     if (scratch == NULL ||
         type <= PF_SIM_EVENT_NONE ||
-        type > PF_SIM_EVENT_PROJECTILE_REFLECT ||
+        type > PF_SIM_EVENT_PUMMEL ||
         (source_player != PF_SIM_EVENT_NO_PLAYER &&
          source_player >= PF_SIM_MAX_PLAYERS) ||
         (target_player != PF_SIM_EVENT_NO_PLAYER &&

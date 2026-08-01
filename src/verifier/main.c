@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0xaf6bce6fcd16328c)
+    UINT64_C(0x02dc3a38e8cb0884)
 
 typedef struct pf_verifier_storage
 {
@@ -547,6 +547,7 @@ static void record_m4_match_events(
             case PF_SIM_EVENT_HIT:
             case PF_SIM_EVENT_ITEM_HIT:
             case PF_SIM_EVENT_PROJECTILE_HIT:
+            case PF_SIM_EVENT_PUMMEL:
                 ++summary->combat_events;
                 break;
             case PF_SIM_EVENT_SHIELD_BLOCK:

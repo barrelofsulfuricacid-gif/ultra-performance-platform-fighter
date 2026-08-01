@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(37)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(32)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(38)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(33)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(32)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(33)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -106,7 +106,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_CROUCH_STEP = 74,
     PF_M4_ACTION_TAUNT = 75,
     PF_M4_ACTION_WALL_JUMP = 76,
-    PF_M4_ACTION_VECTOR_ASCENT = 77
+    PF_M4_ACTION_VECTOR_ASCENT = 77,
+    PF_M4_ACTION_PUMMEL = 78
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -400,6 +401,9 @@ typedef struct pf_m4_fighter_data
     int32_t grabbed_offset_x_q16;
     int32_t grabbed_offset_y_q16;
     int32_t grab_escape_damage_ticks_q16;
+    uint32_t pummel_damage_q16;
+    uint16_t pummel_hit_tick;
+    uint16_t pummel_total_ticks;
     pf_m4_throw_data forward_throw;
     pf_m4_throw_data back_throw;
     pf_m4_throw_data up_throw;

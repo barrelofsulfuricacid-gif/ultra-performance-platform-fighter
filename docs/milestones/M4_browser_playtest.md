@@ -7,8 +7,8 @@ wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking,
 jump-canceled standing grab with capture/mash escape, production dash attack
 with ordinary/boost-grab routes, a production two-hit jab with shield cancel
 and a weak-hit jab-reset route,
-and four directional
-throws with a low-percent chain-grab route,
+and a data-defined grab pummel plus four directional throws with a
+low-percent chain-grab route,
 an optional four-player Team Wobble Lab with alternating allied down-throw and
 fresh-grab handoffs against a legally mashing victim,
 one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
@@ -96,6 +96,7 @@ silently inferred from replay metadata.
 | Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir while grounded or Vector Ascent while airborne | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
+| Pummel while holding a victim | Neutral/reduced direction + fresh `F` or `H` | Neutral/reduced direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
 | Pick up / drop the nearby Relay Rod | Near the rod, or while holding it: hold `G`, tap `F` | Near the rod, or while holding it: hold `.`/Numpad `1`, tap `/`/Numpad `0` |
 | Directional item throw | While holding the rod: direction + fresh `F` or `H` | While holding the rod: direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
@@ -328,10 +329,14 @@ bound expires, so the card returns to `AIRBORNE` and permits an aerial instead
 of forcing a getup. This follows the documented weak-hit reset and SDI escape
 behavior for a [jab reset/lock](https://www.ssbwiki.com/Spooky_stun).
 
-While in `GRAB HOLD`, keep a full direction held and freshly press either
-attack. Left/right selects forward or back relative to the thrower's facing;
-up/down selects the vertical throw only when that axis is strictly dominant,
-so horizontal wins a diagonal tie. Reduced or neutral direction does not throw.
+While in `GRAB HOLD`, freshly press either attack with neutral or reduced
+direction to enter `PUMMEL`. At tick 2 the victim takes 3%, the feed records a
+typed non-launching pummel, and both grab links remain active; after ten total
+ticks the holder returns to `GRAB HOLD`. Holding the attack through that return
+does not repeat it without a fresh edge. Keep a full direction held with a
+fresh attack to throw instead. Left/right selects forward or back relative to
+the thrower's facing; up/down selects the vertical throw only when that axis is
+strictly dominant, so horizontal wins a diagonal tie.
 The victim remains tethered until the authored release tick, then both links
 clear, both players enter hitlag, and the feed records the selected throw,
 damage, and launch vector. Down throw at low percent leaves enough proximity to
@@ -841,9 +846,12 @@ registry row can advance from `playable` to `verified`.
     trigger after hitstun for a directional air dodge; confirm Player 1's
     active aerial whiffs and Player 2 retains only the launcher damage.
 45. From idle, press light plus shield to capture Player 2. While the card shows
-    `GRAB HOLD`, hold full down and freshly press either attack. Confirm `DOWN
-    THROW`, link clearing at release, shared hitlag, 6% damage, and a typed
-    throw feed entry. Pursue and repeat until two regrabs complete. Then build
+    `GRAB HOLD`, keep the stick neutral and freshly press either attack. Confirm
+    `PUMMEL`, one typed 3% event at tick 2, retained links, and the return to
+    `GRAB HOLD` after ten ticks. Release attack, then hold full down and freshly
+    press either attack. Confirm `DOWN THROW`, link clearing at release, shared
+    hitlag, 6% damage, and a typed throw feed entry. Pursue and repeat until two
+    regrabs complete. Then build
     Player 2 to high percent, hold outward DI through the same down throw, and
     confirm the earliest standing regrab whiffs rather than starting a new
     capture.
@@ -977,8 +985,9 @@ through:
   bound and 30-tick forced getup, plus same-tick invulnerable getup,
   over-7%-damage rejection, and hitlag-SDI airborne escape before default
   content is restored;
-- all four full-direction throws with exact typed release events, a neutral
-  attack remaining in `GRAB HOLD`, and a three-down-throw/two-regrab chain
+- a complete neutral pummel with exact typed 3% event, retained links, return
+  to `GRAB HOLD`, and held-input non-repetition; all four full-direction throws
+  with exact typed release events; and a three-down-throw/two-regrab chain
   before default content is restored;
 - two alternating four-player team handoffs using the production low down
   throw and fresh allied grab while the victim legally mashes, plus an early

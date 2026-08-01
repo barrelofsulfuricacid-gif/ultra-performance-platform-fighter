@@ -32,7 +32,7 @@ reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
 does not claim the remaining
 attacks, analog light shields, general shield tilt/size/pokes, shield SDI,
-pummels and broader throw routes, complete
+broader throw routes, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
@@ -928,14 +928,38 @@ Browser startup repeats the positive, getup, over-damage, and SDI routes,
 restores default content, exposes `jab_reset_probe=pass`, and labels
 `RESET BOUND` and `FORCED GETUP`.
 
+## Grab pummel
+
+During `GRAB_HOLD`, a fresh light or strong attack with neutral or reduced
+stick magnitude enters the data-defined `PUMMEL` action. The original fighter
+authors 3% damage at action tick 2 and a ten-tick total duration. The event is
+typed `PUMMEL`, carries the action ID in `detail`, the authored damage in
+`value`, and zero launch velocity and flags. It updates ordinary last-hit
+attribution without applying launch, hitlag, hitstun, or tumble.
+
+Both reciprocal grab links remain active and the victim stays tethered and
+`GRABBED` throughout the action. The victim's ordinary escape countdown and
+fresh mash edges continue to run; an escape reaching zero on the hit tick is
+resolved before pummel damage. At tick 10 the holder returns to `GRAB_HOLD`.
+Holding an attack through that transition does not retrigger because entry
+requires a fresh edge, while releasing and freshly pressing either attack may
+start another pummel. A full direction continues to select a throw.
+
+The native oracle validates default/invalid data and content hashing, both
+attack-button routes, the reduced-direction boundary, exact damage/event/link
+semantics, held-input rejection, and a 694-byte mid-pummel save/load with
+byte-identical future events and hashes. Browser startup repeats the neutral
+route through the hit and return to `GRAB_HOLD` before exercising all four
+directional throws and the existing chain-grab route.
+
 ## Directional throws and chain grab
 
 During `GRAB_HOLD`, a fresh light or strong attack plus a full stick direction
 selects one of `THROW_FORWARD`, `THROW_BACK`, `THROW_UP`, or `THROW_DOWN`.
 Horizontal direction is resolved relative to facing. A strictly larger vertical
 magnitude selects up/down; horizontal wins an exact diagonal tie. Neutral or
-reduced direction plus attack remains `GRAB_HOLD`, so no hidden neutral throw
-or presentation-only shortcut exists.
+reduced direction plus attack selects the pummel above, so no hidden neutral
+throw or presentation-only shortcut exists.
 
 Each throw is authored independently:
 
@@ -963,9 +987,9 @@ victim beyond the earliest standing regrab, whose active grabbox whiffs without
 a new link or event. The native oracle also saves during the second down-throw
 startup with live reciprocal links, loads it, and compares every future hash
 and event through the remaining throws and regrabs. Browser startup executes
-all four directional throws, the complete low-percent chain, and the neutral
-input negative before restoring default content; the live adapter exposes all
-four action labels and the typed throw event.
+one complete pummel, all four directional throws, and the complete low-percent
+chain before restoring default content; the live adapter exposes all five
+action labels and both typed event kinds.
 
 ## Relay Rod item contract
 
@@ -1134,8 +1158,9 @@ default and invalid data, isolated content hashing, ordinary jump-to-recovery
 entry, authored velocity and consumption, structured and compact observation,
 694-byte mid-action save/load with equal future hashes, blocked second use,
 landing restoration, and second-airtime reuse. Browser startup repeats the
-ordinary input entry and exposes `vector_ascent_probe`; live view schema 33
-appends one READY/SPENT value per player. Gimp and Stage spike are emergent
+ordinary input entry and exposes `vector_ascent_probe`; browser view schema 33
+introduced one READY/SPENT value per player, retained by current schema 34.
+Gimp and Stage spike are emergent
 compositions of this independently checked recovery with existing aerial or
 Prism Burst interruption, solid-surface bounce/tech, and stock/KO mechanics;
 they intentionally do not add technique-only state or duplicate harnesses.
@@ -1288,22 +1313,30 @@ physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
 
-Browser view schema 33 expands the presentation-only view from 392 to 396
-values by appending one recovery-availability value per possible player at
-indices 392–395. Player blocks remain 44 values each at base 25; event count
-remains at 201, the 16 ten-value event entries start at 202, the 18-value item
-block starts at 362, and the 12-value projectile block starts at 380.
+Browser view schema 34 retains the 396-value presentation layout while
+versioning the new pummel action and event interpretation. Player blocks remain
+44 values each at base 25; event count remains at 201, the 16 ten-value event
+entries start at 202, the 18-value item block starts at 362, the 12-value
+projectile block starts at 380, and recovery availability remains at 392–395.
 
-State schema 36 / save format 35 expands the stream to 694 bytes (140-byte
-header plus 554-byte payload), changes the active magic to `PFSAVE35`, appends
-one canonical recovery-availability byte per player, and makes the
-`VECTOR_ASCENT` action, legal source actions, authored tick range, consumption,
-blocked reuse, special-fall completion, and restoration paths fail closed.
-Inspection schema 32 and structured observation schema 6 expose the byte.
-RL schema 8 / compact observation schema 7 packs it into player flag bit 18
-without changing the 66-value vector. Content schema 37 adds one recovery
-definition under recovery schema 1; fighter schema 32 and input schema 5 remain
-unchanged.
+State schema 37 / save format 36 retains the 694-byte stream (140-byte header
+plus 554-byte payload), changes the active magic to `PFSAVE36`, and makes the
+`PUMMEL` action ID, authored tick range, reciprocal-link requirements, damage,
+attribution, and typed event semantics fail closed. Content schema 38/fighter
+schema 33 add and hash pummel damage, hit tick, and total duration. Inspection
+schema 33 versions the action/event interpretation. Input schema 5, structured
+observation schema 6, RL schema 8, compact observation schema 7, and its
+66-value vector remain unchanged.
+
+It follows state schema 36 / save format 35, which expanded the stream to 694
+bytes under `PFSAVE35`, appended one canonical recovery-availability byte per
+player, and made the `VECTOR_ASCENT` action, legal source actions, authored
+tick range, consumption, blocked reuse, special-fall completion, and
+restoration paths fail closed. Inspection schema 32 and structured observation
+schema 6 exposed the byte. RL schema 8 / compact observation schema 7 packed it
+into player flag bit 18. Content schema 37 added recovery schema 1; fighter
+schema 32 and input schema 5 remained unchanged. Browser view schema 33
+expanded the presentation-only view from 392 to 396 values.
 
 Browser view schema 32 previously expanded the presentation-only view from 304
 to 392 values so all four inspection records could be rendered, with no
@@ -1569,9 +1602,13 @@ mechanics invariants plus 50 journal invariants, including:
   cancel with retained dash momentum, direct-dash and airborne negatives,
   typed grab/escape events, invalid data, and mid-hold save/load event/hash
   continuation;
+- neutral/reduced-stick pummel entry from both attack buttons, exact 3% typed
+  non-launching damage at tick 2, reciprocal-link retention, ten-tick return to
+  grab hold, held-input non-retriggering, invalid/hash-sensitive authored data,
+  and mid-pummel save/load event/hash continuation;
 - all four directional throw selections and exact startup/release/hitlag/
   recovery schedules, horizontal diagonal-tie and vertical-dominance boundaries,
-  neutral/reduced-input rejection, signed percent-scaled launch,
+  signed percent-scaled launch,
   reciprocal link clearing, typed throw events, a three-throw/two-regrab chain,
   a 96% outward-DI regrab whiff, invalid throw data, and mid-chain save/load
   event/hash continuation;

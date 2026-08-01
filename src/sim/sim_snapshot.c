@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x35)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x36)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1268,6 +1268,8 @@ static int pf_m4_snapshot_content_state_consistent(
              action_ticks >= content->fighter.wall_jump_ticks) ||
             (resume_action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
+            (action == (uint8_t)PF_M4_ACTION_PUMMEL &&
+             action_ticks >= content->fighter.pummel_total_ticks) ||
             (recovery->enabled == UINT8_C(0) &&
              (recovery_action ||
               (player_index < (uint32_t)world->player_count &&
@@ -1625,7 +1627,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+                action > (uint8_t)PF_M4_ACTION_PUMMEL ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1964,6 +1966,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
                   action == (uint8_t)PF_M4_ACTION_GRAB ||
                   action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                  action == (uint8_t)PF_M4_ACTION_PUMMEL ||
                   action == (uint8_t)PF_M4_ACTION_GRABBED ||
                   action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
                   pf_m4_snapshot_action_is_throw(action) ||
@@ -2127,6 +2130,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->team[player_index] == world->team[target_index]) ||
                 (world->action_state[player_index] !=
                      (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+                 world->action_state[player_index] !=
+                     (uint8_t)PF_M4_ACTION_PUMMEL &&
                  !pf_m4_snapshot_action_is_throw(
                      world->action_state[player_index])) ||
                 world->grab_owner_slot[target_index] !=
@@ -2139,7 +2144,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
             }
         }
         else if (world->action_state[player_index] ==
-                 (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+                     (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                 world->action_state[player_index] ==
+                     (uint8_t)PF_M4_ACTION_PUMMEL)
         {
             return PF_STATUS_INVALID_STATE;
         }
@@ -2157,6 +2164,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     (uint8_t)PF_M4_ACTION_GRABBED ||
                 (world->action_state[owner_index] !=
                      (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+                 world->action_state[owner_index] !=
+                     (uint8_t)PF_M4_ACTION_PUMMEL &&
                  !pf_m4_snapshot_action_is_throw(
                      world->action_state[owner_index])) ||
                 world->grab_target_slot[owner_index] !=

@@ -15084,42 +15084,273 @@ static int run_directional_throw_case(
     return 1;
 }
 
-static int run_throw_input_negative_case(
-    const pf_content_view *view,
-    int16_t stick_x,
-    int16_t stick_y,
-    const char *operation)
+static int run_pummel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
 {
-    test_sim_storage storage;
-    pf_sim *sim = NULL;
-    pf_m4_inspection inspection;
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_m4_content invalid_content = *content;
+    pf_m4_content changed_content = *content;
+    pf_content_view changed_view;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
     pf_sim_event grab_event;
+    pf_tick_result source_result;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t future_tick;
+    uint32_t pummel_events = UINT32_C(0);
+
+    if (content->fighter.pummel_damage_q16 !=
+            UINT32_C(3) * UINT32_C(65536) ||
+        content->fighter.pummel_hit_tick != UINT16_C(2) ||
+        content->fighter.pummel_total_ticks != UINT16_C(10))
+    {
+        return fail("pummel-default-data");
+    }
+    invalid_content.fighter.pummel_hit_tick =
+        invalid_content.fighter.pummel_total_ticks;
+    changed_content.fighter.pummel_damage_q16 += UINT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-pummel-window") ||
+        !expect_status(
+            pf_m4_make_content_view(&changed_content, &changed_view),
+            PF_STATUS_OK,
+            "changed-pummel-content-view") ||
+        memcmp(
+            view->content_hash.bytes,
+            changed_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0)
+    {
+        return fail("pummel-content-contract");
+    }
 
     if (!initialize_sim(
-            &storage,
+            &source_storage,
             view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
             1,
-            &sim) ||
-        !begin_close_grab(sim, 0, &inspection, &grab_event) ||
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !begin_close_grab(
+            source,
+            0,
+            &source_inspection,
+            &grab_event) ||
         !step_reaction_duel(
-            sim,
-            stick_x,
-            stick_y,
+            source,
+            INT16_C(0),
+            INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
             UINT16_C(0),
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
             UINT16_C(0),
-            &inspection) ||
-        inspection.players[0].action_state !=
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_PUMMEL ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].grab_target != UINT8_C(1) ||
+        source_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED ||
+        source_inspection.players[1].grab_owner != UINT8_C(0) ||
+        find_last_tick_event(PF_SIM_EVENT_PUMMEL) != NULL ||
+        find_last_tick_event(PF_SIM_EVENT_THROW) != NULL ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_PUMMEL ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[1].damage_q16 != UINT32_C(0) ||
+        find_last_tick_event(PF_SIM_EVENT_PUMMEL) != NULL ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "pummel-query-save-size") ||
+        save_size != (size_t)694)
+    {
+        return fail("pummel-entry");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "pummel-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "pummel-load") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "pummel-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "pummel-loaded-hash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("pummel-save-load");
+    }
+
+    for (future_tick = UINT32_C(0);
+         future_tick < (uint32_t)content->fighter.pummel_total_ticks;
+         ++future_tick)
+    {
+        const pf_sim_event *pummel_event;
+
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+        source_result = test_last_result;
+        if (!step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            source_result.event_count != test_last_result.event_count ||
+            memcmp(
+                source_result.events,
+                test_last_result.events,
+                sizeof(source_result.events[0]) *
+                    (size_t)source_result.event_count) != 0 ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "pummel-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "pummel-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("pummel-snapshot-continuation");
+        }
+        pummel_event = find_last_tick_event(PF_SIM_EVENT_PUMMEL);
+        if (pummel_event != NULL)
+        {
+            ++pummel_events;
+            if (pummel_event->source_player != UINT8_C(0) ||
+                pummel_event->target_player != UINT8_C(1) ||
+                pummel_event->value_q16 !=
+                    content->fighter.pummel_damage_q16 ||
+                pummel_event->velocity_x_q16 != INT32_C(0) ||
+                pummel_event->velocity_y_q16 != INT32_C(0) ||
+                pummel_event->flags != UINT16_C(0) ||
+                pummel_event->detail !=
+                    (uint16_t)PF_M4_ACTION_PUMMEL ||
+                source_inspection.players[0].action_state !=
+                    (uint8_t)PF_M4_ACTION_PUMMEL ||
+                source_inspection.players[0].action_ticks !=
+                    content->fighter.pummel_hit_tick)
+            {
+                return fail("pummel-event-contract");
+            }
+        }
+    }
+
+    if (pummel_events != UINT32_C(1) ||
+        source_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
-        inspection.players[0].grab_target != UINT8_C(1) ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].grab_target != UINT8_C(1) ||
+        source_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GRABBED ||
+        source_inspection.players[1].grab_owner != UINT8_C(0) ||
+        source_inspection.players[1].damage_q16 !=
+            content->fighter.pummel_damage_q16 ||
+        source_inspection.players[1].last_hit_valid != UINT8_C(1) ||
+        source_inspection.players[1].last_hit_attacker != UINT8_C(0) ||
+        source_inspection.players[1].last_hit_damage_q16 !=
+            content->fighter.pummel_damage_q16)
+    {
+        return fail("pummel-return-and-held-input");
+    }
+
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        !step_reaction_duel(
+            source,
+            (int16_t)(
+                content->fighter.dash_axis_threshold - UINT16_C(1)),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_PUMMEL ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].grab_target != UINT8_C(1) ||
+        source_inspection.players[1].grab_owner != UINT8_C(0) ||
+        find_last_tick_event(PF_SIM_EVENT_PUMMEL) != NULL ||
         find_last_tick_event(PF_SIM_EVENT_THROW) != NULL)
     {
-        return fail(operation);
+        return fail("pummel-fresh-strong-reduced-input");
     }
     return 1;
 }
@@ -15163,17 +15394,7 @@ static int run_directional_throw_test(
             &content->fighter.up_throw,
             INT16_C(30000),
             INT16_C(-32767),
-            PF_M4_ACTION_THROW_UP) ||
-        !run_throw_input_negative_case(
-            view,
-            INT16_C(0),
-            INT16_C(0),
-            "directional-throw-neutral-negative") ||
-        !run_throw_input_negative_case(
-            view,
-            (int16_t)(content->fighter.dash_axis_threshold - UINT16_C(1)),
-            INT16_C(0),
-            "directional-throw-reduced-negative"))
+            PF_M4_ACTION_THROW_UP))
     {
         return 0;
     }
@@ -16131,6 +16352,9 @@ int main(void)
             &grab_close_content,
             &grab_close_view,
             &grab_far_view) ||
+        !run_pummel_test(
+            &grab_close_content,
+            &grab_close_view) ||
         !run_directional_throw_test(
             &grab_close_content,
             &grab_close_view) ||
@@ -16157,7 +16381,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=596 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=620 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

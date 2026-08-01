@@ -593,7 +593,7 @@ static const pf_m4_throw_data *pf_m4_throw_for_action(
     return NULL;
 }
 
-static uint8_t pf_m4_throw_action_for_input(
+static uint8_t pf_m4_grab_action_for_input(
     const pf_m4_fighter_data *fighter,
     const pf_input_frame *input,
     int8_t facing)
@@ -606,7 +606,7 @@ static uint8_t pf_m4_throw_action_for_input(
     if (horizontal < fighter->dash_axis_threshold &&
         vertical < fighter->dash_axis_threshold)
     {
-        return (uint8_t)PF_M4_ACTION_GRAB_HOLD;
+        return (uint8_t)PF_M4_ACTION_PUMMEL;
     }
     if (vertical > horizontal)
     {
@@ -636,6 +636,7 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+           action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
            action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
            pf_m4_action_is_throw(action_state) ||
@@ -1000,6 +1001,8 @@ void pf_m4_reset_player(
             sim->world.grab_target_slot[other_index] = UINT8_C(0);
             if (sim->world.action_state[other_index] ==
                     (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                sim->world.action_state[other_index] ==
+                    (uint8_t)PF_M4_ACTION_PUMMEL ||
                 pf_m4_action_is_throw(
                     sim->world.action_state[other_index]))
             {
@@ -2964,6 +2967,7 @@ pf_status pf_m4_step_player(
         grounded != UINT8_C(0) &&
         (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
          action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+         action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
          action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
          action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
          pf_m4_action_is_throw(action_state)))
@@ -2989,22 +2993,31 @@ pf_status pf_m4_step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD)
         {
-            const uint8_t throw_action =
+            const uint8_t grab_action =
                 throw_pressed != 0
-                    ? pf_m4_throw_action_for_input(
+                    ? pf_m4_grab_action_for_input(
                           fighter,
                           input,
                           facing)
                     : (uint8_t)PF_M4_ACTION_GRAB_HOLD;
 
-            if (throw_action != (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+            if (grab_action != (uint8_t)PF_M4_ACTION_GRAB_HOLD)
             {
-                action_state = throw_action;
+                action_state = grab_action;
                 action_ticks = UINT16_C(0);
             }
             else if (action_ticks < UINT16_C(600))
             {
                 ++action_ticks;
+            }
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_PUMMEL)
+        {
+            ++action_ticks;
+            if (action_ticks >= fighter->pummel_total_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_GRAB_HOLD;
+                action_ticks = UINT16_C(0);
             }
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_GRABBED)

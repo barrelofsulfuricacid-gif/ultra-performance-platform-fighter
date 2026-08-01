@@ -6720,6 +6720,104 @@ static int pf_web_m4_run_directional_throw_case(
                &inspection);
 }
 
+static int pf_web_m4_run_pummel_case(void)
+{
+    pf_m4_inspection inspection;
+    const pf_sim_event *pummel_event;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_begin_close_grab(&inspection) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_PUMMEL ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].grab_target != UINT8_C(1) ||
+        inspection.players[1].grab_owner != UINT8_C(0) ||
+        pf_web_m4_find_event(PF_SIM_EVENT_PUMMEL) != NULL)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)pf_web_m4_content.fighter.pummel_hit_tick;
+         ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    pummel_event = pf_web_m4_find_event(PF_SIM_EVENT_PUMMEL);
+    if (pummel_event == NULL ||
+        pummel_event->source_player != UINT8_C(0) ||
+        pummel_event->target_player != UINT8_C(1) ||
+        pummel_event->value_q16 !=
+            pf_web_m4_content.fighter.pummel_damage_q16 ||
+        pummel_event->velocity_x_q16 != INT32_C(0) ||
+        pummel_event->velocity_y_q16 != INT32_C(0) ||
+        pummel_event->flags != UINT16_C(0) ||
+        pummel_event->detail != (uint16_t)PF_M4_ACTION_PUMMEL ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_PUMMEL ||
+        inspection.players[0].action_ticks !=
+            pf_web_m4_content.fighter.pummel_hit_tick ||
+        inspection.players[1].damage_q16 !=
+            pf_web_m4_content.fighter.pummel_damage_q16)
+    {
+        return 0;
+    }
+    for (tick =
+             (uint32_t)pf_web_m4_content.fighter.pummel_hit_tick;
+         tick <
+             (uint32_t)pf_web_m4_content.fighter.pummel_total_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    return pf_web_m4_tick(
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_ATTACK,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               &inspection) &&
+           inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
+           inspection.players[0].action_ticks == UINT16_C(1) &&
+           inspection.players[0].grab_target == UINT8_C(1) &&
+           inspection.players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GRABBED &&
+           inspection.players[1].grab_owner == UINT8_C(0) &&
+           inspection.players[1].damage_q16 ==
+               pf_web_m4_content.fighter.pummel_damage_q16 &&
+           pf_web_m4_find_event(PF_SIM_EVENT_PUMMEL) == NULL;
+}
+
 static int pf_web_m4_run_chain_grab_route(void)
 {
     pf_m4_inspection inspection;
@@ -6757,7 +6855,6 @@ static int pf_web_m4_run_chain_grab_route(void)
 
 static int pf_web_m4_run_chain_grab_probe(void)
 {
-    pf_m4_inspection inspection;
     int passed;
     int restored;
 
@@ -6788,20 +6885,8 @@ static int pf_web_m4_run_chain_grab_probe(void)
             PF_WEB_M4_DASH_AXIS,
             PF_M4_ACTION_THROW_DOWN,
             &pf_web_m4_content.fighter.down_throw) &&
-        pf_web_m4_run_chain_grab_route() &&
-        pf_web_m4_reset_internal() &&
-        pf_web_m4_begin_close_grab(&inspection) &&
-        pf_web_m4_tick(
-            INT16_C(0),
-            INT16_C(0),
-            PF_INPUT_BUTTON_ATTACK,
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            &inspection) &&
-        inspection.players[0].action_state ==
-            (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
-        pf_web_m4_find_event(PF_SIM_EVENT_THROW) == NULL;
+        pf_web_m4_run_pummel_case() &&
+        pf_web_m4_run_chain_grab_route();
 
     restored =
         pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
@@ -11214,7 +11299,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(33);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(34);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
