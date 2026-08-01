@@ -91,7 +91,7 @@ silently inferred from replay metadata.
 | Team Wobble Lab | Click `Team Wobble Lab`; physical Player 1 controls allied P1 | Physical Player 2 controls allied P3; P2 auto-mashes and P4 stays neutral |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
-| Light ground/aerial attack; full vertical up/down grounded attack; full horizontal/equal-diagonal forward smash | `F` | `/` or Numpad `0` |
+| Light attack; grounded full vertical selects up/down and full horizontal/equal-diagonal selects forward smash; airborne full direction selects forward/back/up/down aerial | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir while grounded or Vector Ascent while airborne | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
@@ -368,6 +368,14 @@ vertical tilt retains `GROUND ATTACK`, while an equal full diagonal retains
 the existing `STRONG ATTACK` forward-smash priority. The up attack's amber box
 and launch point upward; the lower, forward down-attack box launches shallowly
 downward. Horizontal geometry and launch still mirror with facing.
+
+While airborne, neutral or reduced stick plus a fresh light press retains the
+8% neutral `AERIAL ATTACK`. Full vertical-dominant input selects the 9% `UP
+AERIAL` or 10% `DOWN AERIAL`; full horizontal-dominant or equal-diagonal input
+selects the 10% `FORWARD AERIAL` or 11% `BACK AERIAL` relative to current
+facing. All five light aerials retain ordinary drift, auto-cancel, 12-tick
+landing lag, and six-tick L-cancel landing. The dedicated strong key remains
+the direct `STRONG AERIAL ATTACK` route regardless of stick direction.
 
 Once `INITIAL DASH` has transitioned to `RUN`, a full opposite input enters
 `RUN TURNAROUND`, not another initial dash. The placeholder fighter uses a
@@ -719,7 +727,12 @@ mandatory owner playtest and broader acceptance evidence.
    for `DOWN ATTACK` and 8% shallow downward launch. Try reduced vertical plus
    light for the neutral jab, equal full diagonal plus light for `STRONG
    ATTACK`, and the dedicated strong key plus up for the same direct strong
-   action.
+   action. Then jump and freshly press light with neutral, full forward, full
+   back, full up, and full down input. Confirm `AERIAL ATTACK`, `FORWARD
+   AERIAL`, `BACK AERIAL`, `UP AERIAL`, and `DOWN AERIAL` labels; compare
+   8/10/11/9/10% damage and the visible signed launch directions. Repeat an
+   equal full diagonal for horizontal priority and use the dedicated strong
+   key with a direction to confirm it still enters `STRONG AERIAL ATTACK`.
 17. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
@@ -983,7 +996,7 @@ through:
   the same responder;
 - floor-to-platform full-hop aerial sharking on the default moving platform,
   plus a too-early active-hitbox whiff and a correctly timed held-shield block;
-- ordinary movement into a short-hop back-aerial cross-up behind held shield,
+- ordinary movement into a short-hop neutral-aerial cross-up behind held shield,
   plus an immediate wrong-side whiff and a forward-facing front-block control;
 - a combined mindgame gate requiring the jab-read ground conversion,
   shield-read rear cross-up, and both wrong-read outcomes together;

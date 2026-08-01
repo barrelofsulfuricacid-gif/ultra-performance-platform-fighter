@@ -12,7 +12,7 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_INPUT_COUNT 720U
 #define TEST_HASH_COUNT 181U

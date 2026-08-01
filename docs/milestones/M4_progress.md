@@ -4,8 +4,9 @@
 M4.2 ground attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
-ledge-cancelling, 29-tick ledge-regrab lockout and planking, the first
-light and strong production aerial routes, auto-cancel, visibly scored
+ledge-cancelling, 29-tick ledge-regrab lockout and planking, the complete
+five-direction light-aerial vocabulary and direct strong aerial route,
+auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump, double-jump-cancel,
 and double-jump-cancel-counter verification
@@ -156,10 +157,10 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   attack, strong-attack, jump, shield-trigger, and special inputs; a late legal
   movement policy prevents an inert match from being mistaken for coverage.
 - All eight reference duels finish through stock results rather than time-limit
-  truncation. The reference corpus spans 1,001 ticks, 17 combat events, eight
-  KOs, and four projectile events, with final digest
-  `de76efc3ed438312` over every per-tick state hash and terminal outcome under
-  state schema 39/content schema 41.
+  truncation. The current reference corpus spans 1,203 ticks, 19 combat
+  events, eight KOs, and five projectile events, with final digest
+  `5bb192028a42ed35` over every per-tick state hash and terminal outcome under
+  state schema 40/content schema 42.
 - Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
   re-simulates the complete suffix against per-tick state hashes, encodes a
   format-1 replay, and verifies that replay to the exact terminal outcome.
@@ -1061,7 +1062,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   with ordinary drift, and begin the existing light aerial from the rear side.
   Its backward-facing hitbox blocks and the attacker finishes behind while
   preserving the away-facing direction.
-- Starting that back aerial immediately after takeoff produces active frames
+- Starting that neutral aerial immediately after takeoff produces active frames
   on the wrong side and whiffs. Repeating the descent timing while facing
   toward the defender blocks but leaves the attacker in front, providing the
   deterministic side/facing control.
@@ -1080,7 +1081,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   counters recovery. Against held shield, the attacker faces away, short hops
   through, and finishes the rear-side aerial cross-up behind the defender.
 - The wrong branches remain ordinary outcomes: strong attack into shield is
-  blocked, an immediate back aerial whiffs on the wrong side, and the
+  blocked, an immediate neutral aerial whiffs on the wrong side, and the
   forward-facing aerial control blocks while staying in front.
 - Browser readiness exposes `mindgame_probe=1` only when the approach, all
   close/safe/far spacing outcomes, shield control, cross-up, early whiff, and
@@ -1631,6 +1632,37 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   the directional cases into its ordinary attack and shield probes. No
   emergent-technique-only harness was added.
 
+## Implemented in the directional-aerial slice
+
+- A fresh airborne light edge now selects the complete five-direction normal
+  vocabulary. Neutral or reduced input remains `AERIAL_ATTACK`; a full,
+  strictly vertical-dominant stick selects `UP_AERIAL` or `DOWN_AERIAL`; and a
+  full horizontal-dominant or equal-diagonal stick selects `FORWARD_AERIAL` or
+  `BACK_AERIAL` relative to facing. The direct strong button remains
+  `STRONG_AERIAL_ATTACK`. The same selector applies from ordinary air,
+  delayed-air-jump cancel, and wall-jump cancel routes.
+- Four embedded fighter attack records independently author and hash box
+  geometry, damage, signed two-axis base knockback, growth, startup, active,
+  recovery, and hitlag. All five light aerials use the existing shared
+  physical-hit, shield, weighted-reaction, DI/SDI, journal, once-per-target,
+  auto-cancel, 12-tick landing-lag, and six-tick L-cancel paths.
+- State schema 40/save format 39 and `PFSAVE39` retain the 554-byte payload and
+  694-byte checkpoint while failing closed on action IDs 81–84, grounding,
+  timing, and hitlag resume. Content schema 42/fighter schema 37, inspection
+  schema 36, and browser view schema 37 version the new data and labels while
+  retaining the 396-value browser view, input schema 5, observation schema 6,
+  RL schema 8, compact schema 7, and 66 compact values. The opaque simulation
+  storage requirement grows from 1,920 to 2,080 bytes because authored content
+  is copied into the simulation; existing callers use the 4 KiB M4 envelope,
+  while canonical checkpoint size remains unchanged.
+- The focused combat oracle reaches 780 invariants and covers all four new
+  defaults, invalid and hash-sensitive data, exact input arbitration, signed
+  launch, damage, hitstun, hitlag, typed event identity, and mid-hitlag
+  save/load future equality. Browser readiness folds neutral, four-direction,
+  and direct-strong arbitration into the existing combat probe. Tactical and
+  emergent rows continue to reuse constituent mechanics; no emergent-only
+  harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1712,7 +1744,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Platform sharking must begin with the attacker in legal floor space below a
   target supported by the pass-through platform. A too-early aerial must whiff,
   while the correctly timed route must damage either the target or held shield.
-- The back-aerial cross-up must begin in front while facing away, pass the held
+- The neutral-aerial cross-up must begin in front while facing away, pass the held
   shield through air drift, and finish behind with facing preserved. The early
   attempt must whiff and the forward-facing control must remain in front.
 - The mindgame route must reuse the same readable approach cue and branch only
@@ -1774,7 +1806,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.2 and M4.3 work
 
-- Remaining ground-attack variants, aerials, specials, broader recovery options, broader throw routes,
+- Remaining ground-attack variants, character-specific aerial breadth,
+  specials, broader recovery options, broader throw routes,
   analog light shield, shield size/tilt/pokes and shield SDI,
   routing each future standing ground action through the shared
   powershield-cancel selector,
@@ -1792,10 +1825,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 306 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 708
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 780
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
-  directional ground attacks plus 50
+  directional ground attacks and the five-direction light-aerial vocabulary
+  plus 50
   combat-journal invariants,
   24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1811,9 +1845,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
   bytes,
   replay SHA-256
-  `67ff1c3503bdda326906273ceffad8b175bcced103781dde448a5aeb1303ce7b`,
+  `4e0e593f8221b917a40fc3eb02af0aaecb387a47f15080b5f646958d04b487c8`,
   final SHA-256
-  `b7a5fbfea9010aee916851a95bbd8c6daef01abcd59bc3ec51113da62334e64f`,
+  `bb4f27c373668db557afb3232ac43b0a1a59a980c8753cefd7b55da8ea6e00a3`,
   and event-journal SHA-256
   `cea7f525bc5cb4009c69f8ca7c1daf85e6bdfebc12f1a9583d45dde34da4d10a`;
   local native/WebAssembly output is byte-identical and CI repeats it.

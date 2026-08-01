@@ -200,8 +200,11 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 36' \
+    'view[0] !== 37' \
     "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'pf_web_m4_run_directional_aerial_probe' \
+    "$root/src/web_client/m4_playtest.c"
 grep -Fq \
     '"DASH ATTACK"' \
     "$root/src/web_client/web_adapter.js"
@@ -384,6 +387,18 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DOWN ATTACK"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"FORWARD AERIAL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"BACK AERIAL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"UP AERIAL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"DOWN AERIAL"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pummel for 3%' \

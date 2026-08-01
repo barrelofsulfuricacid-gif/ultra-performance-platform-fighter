@@ -1467,7 +1467,11 @@ mergeInto(LibraryManager.library, {
       "damage and hitlag stay ordinary, launch and hitstun become two-thirds, " +
       "and the event feed labels CROUCH CANCEL. Hits ending above 40 percent " +
       "keep the ordinary reaction. Press " +
-      "a light-attack key while airborne for the original aerial. For SHFFL, " +
+      "a light-attack key while airborne with neutral or reduced stick for the " +
+      "neutral aerial. Full vertical-dominant input selects up/down aerial; " +
+      "full horizontal-dominant or equal-diagonal input selects forward/back " +
+      "aerial relative to facing. The dedicated strong key remains direct. " +
+      "For SHFFL, " +
       "short hop, press the aerial, hold down after the apex to fast-fall, then " +
       "tap the trigger within the seven-frame pre-landing window. A normal " +
       "aerial landing shows 12 ticks of AERIAL LANDING; success shows six " +
@@ -2327,7 +2331,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 36) {
+    if (view[0] !== 37) {
       return;
     }
     var canvas = state.canvas;
@@ -2423,6 +2427,10 @@ mergeInto(LibraryManager.library, {
       "PUMMEL",
       "UP ATTACK",
       "DOWN ATTACK",
+      "FORWARD AERIAL",
+      "BACK AERIAL",
+      "UP AERIAL",
+      "DOWN AERIAL",
     ];
 
     if (view[1] < previousTick) {

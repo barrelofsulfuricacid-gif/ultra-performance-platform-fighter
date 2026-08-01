@@ -7,7 +7,7 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 
 typedef struct test_sim_storage

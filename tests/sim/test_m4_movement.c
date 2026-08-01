@@ -8212,7 +8212,7 @@ static int run_edge_hop_test(
             PF_INPUT_BUTTON_ATTACK,
             &loaded_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+            (uint8_t)PF_M4_ACTION_FORWARD_AERIAL ||
         source_inspection.players[0].invulnerable != UINT8_C(1) ||
         !expect_status(
             pf_sim_hash(source, &source_hash),

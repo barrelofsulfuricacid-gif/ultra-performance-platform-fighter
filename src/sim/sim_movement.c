@@ -703,6 +703,83 @@ static int pf_m4_action_is_ground_attack(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL;
 }
 
+static int pf_m4_action_is_light_aerial(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_FORWARD_AERIAL ||
+           action_state == (uint8_t)PF_M4_ACTION_BACK_AERIAL ||
+           action_state == (uint8_t)PF_M4_ACTION_UP_AERIAL ||
+           action_state == (uint8_t)PF_M4_ACTION_DOWN_AERIAL;
+}
+
+static const pf_m4_attack_data *pf_m4_directional_aerial_data(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_FORWARD_AERIAL:
+            return &fighter->forward_aerial;
+        case PF_M4_ACTION_BACK_AERIAL:
+            return &fighter->back_aerial;
+        case PF_M4_ACTION_UP_AERIAL:
+            return &fighter->up_aerial;
+        case PF_M4_ACTION_DOWN_AERIAL:
+            return &fighter->down_aerial;
+        default:
+            return NULL;
+    }
+}
+
+static uint32_t pf_m4_light_aerial_ticks(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    const pf_m4_attack_data *attack =
+        pf_m4_directional_aerial_data(fighter, action_state);
+
+    if (attack == NULL)
+    {
+        return (uint32_t)fighter->aerial_startup_ticks +
+               (uint32_t)fighter->aerial_active_ticks +
+               (uint32_t)fighter->aerial_recovery_ticks;
+    }
+    return (uint32_t)attack->startup_ticks +
+           (uint32_t)attack->active_ticks +
+           (uint32_t)attack->recovery_ticks;
+}
+
+static uint8_t pf_m4_select_light_aerial_action(
+    const pf_m4_fighter_data *fighter,
+    int16_t stick_x,
+    int16_t stick_y,
+    int8_t facing)
+{
+    const uint16_t horizontal_magnitude =
+        pf_m4_axis_magnitude(stick_x);
+    const uint16_t vertical_magnitude =
+        pf_m4_axis_magnitude(stick_y);
+
+    if (vertical_magnitude >= fighter->dash_axis_threshold &&
+        vertical_magnitude > horizontal_magnitude)
+    {
+        return stick_y < INT16_C(0)
+                   ? (uint8_t)PF_M4_ACTION_UP_AERIAL
+                   : (uint8_t)PF_M4_ACTION_DOWN_AERIAL;
+    }
+    if (horizontal_magnitude >= fighter->dash_axis_threshold &&
+        horizontal_magnitude >= vertical_magnitude)
+    {
+        const int8_t input_direction =
+            stick_x < INT16_C(0) ? INT8_C(-1) : INT8_C(1);
+
+        return input_direction == facing
+                   ? (uint8_t)PF_M4_ACTION_FORWARD_AERIAL
+                   : (uint8_t)PF_M4_ACTION_BACK_AERIAL;
+    }
+    return (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+}
+
 static int pf_m4_action_can_enter_teeter(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
@@ -1233,7 +1310,7 @@ static void pf_m4_land_from_air(
         return;
     }
 
-    if (*action_state == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+    if (pf_m4_action_is_light_aerial(*action_state) ||
         *action_state ==
             (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK)
     {
@@ -4162,8 +4239,11 @@ pf_status pf_m4_step_player(
             }
             else if (light_attack_pressed != 0)
             {
-                action_state =
-                    (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+                action_state = pf_m4_select_light_aerial_action(
+                    fighter,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    facing);
                 action_ticks = UINT16_C(0);
                 scratch->attack_hit_mask[player_index] = UINT8_C(0);
             }
@@ -4200,10 +4280,6 @@ pf_status pf_m4_step_player(
             const int32_t air_target = pf_m4_scale_axis_q16(
                 input->main_stick_x,
                 fighter->air_speed_q16);
-            const uint32_t aerial_attack_ticks =
-                (uint32_t)fighter->aerial_startup_ticks +
-                (uint32_t)fighter->aerial_active_ticks +
-                (uint32_t)fighter->aerial_recovery_ticks;
             const uint32_t strong_aerial_attack_ticks =
                 (uint32_t)fighter->strong_startup_ticks +
                 (uint32_t)fighter->strong_active_ticks +
@@ -4250,9 +4326,11 @@ pf_status pf_m4_step_player(
                     action_ticks = UINT16_C(0);
                 }
             }
-            else if (action_state ==
-                (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
+            else if (pf_m4_action_is_light_aerial(action_state))
             {
+                const uint32_t aerial_attack_ticks =
+                    pf_m4_light_aerial_ticks(fighter, action_state);
+
                 velocity_x = pf_m4_approach(
                     velocity_x,
                     air_target,
@@ -4310,8 +4388,11 @@ pf_status pf_m4_step_player(
                 {
                     velocity_y = INT32_C(0);
                 }
-                action_state =
-                    (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+                action_state = pf_m4_select_light_aerial_action(
+                    fighter,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    facing);
                 action_ticks = UINT16_C(0);
                 scratch->attack_hit_mask[player_index] =
                     UINT8_C(0);

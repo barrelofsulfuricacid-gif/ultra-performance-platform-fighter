@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x38)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x39)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1194,6 +1194,16 @@ static int pf_m4_snapshot_action_is_throw(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_THROW_DOWN;
 }
 
+static int pf_m4_snapshot_action_is_aerial_attack(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_FORWARD_AERIAL ||
+           action == (uint8_t)PF_M4_ACTION_BACK_AERIAL ||
+           action == (uint8_t)PF_M4_ACTION_UP_AERIAL ||
+           action == (uint8_t)PF_M4_ACTION_DOWN_AERIAL;
+}
+
 static int pf_m4_snapshot_content_state_consistent(
     const pf_m4_content *content,
     const pf_world_state *world)
@@ -1345,9 +1355,7 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                action != (uint8_t)PF_M4_ACTION_AIR_DODGE &&
                action != (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
-               action != (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
-               action !=
-                   (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
+               !pf_m4_snapshot_action_is_aerial_attack(action) &&
                action !=
                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
@@ -1368,8 +1376,7 @@ static int pf_m4_player_state_consistent(
         action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
-        action == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
-        action == (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+        pf_m4_snapshot_action_is_aerial_attack(action) ||
         action == (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR ||
         action == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
     {
@@ -1627,7 +1634,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
+                action > (uint8_t)PF_M4_ACTION_DOWN_AERIAL ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1765,10 +1772,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
                   resume_action !=
                       (uint8_t)PF_M4_ACTION_WALL_JUMP &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
+                 !pf_m4_snapshot_action_is_aerial_attack(
+                     resume_action) &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND &&
                  resume_action !=
@@ -1797,10 +1802,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_JAB_FINAL ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+                  pf_m4_snapshot_action_is_aerial_attack(
+                      resume_action) ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
                   resume_action ==
@@ -1811,18 +1814,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
                   pf_m4_snapshot_action_is_throw(resume_action)) &&
                  (hitstun != UINT16_C(0) ||
-                  (resume_action !=
-                       (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
-                   resume_action !=
-                       (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
+                  (!pf_m4_snapshot_action_is_aerial_attack(
+                       resume_action) &&
                    resume_action !=
                        (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                    world->grounded[player_index] == UINT8_C(0)) ||
-                  ((resume_action ==
-                        (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
-                    resume_action ==
-                        (uint8_t)
-                            PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+                  ((pf_m4_snapshot_action_is_aerial_attack(
+                        resume_action) ||
                     resume_action ==
                         (uint8_t)PF_M4_ACTION_REFLECTOR_AIR) &&
                    world->grounded[player_index] != UINT8_C(0)) ||

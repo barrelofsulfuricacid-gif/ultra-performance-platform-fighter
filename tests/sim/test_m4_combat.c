@@ -2152,6 +2152,553 @@ static int run_directional_ground_attack_test(
     return run_directional_attack_snapshot_test(&close, &close_view);
 }
 
+static int start_directional_aerial_case(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    int turn_left,
+    int16_t input_x,
+    int16_t input_y,
+    uint64_t attack_button,
+    pf_m4_action_state expected_action,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (turn_left != 0)
+    {
+        const int16_t turn_axis = (int16_t)-(
+            (int32_t)content->fighter.axis_dead_zone + INT32_C(1));
+
+        if (!step_reaction_duel(
+                sim,
+                turn_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection) ||
+            out_inspection->players[0].facing != INT8_C(-1))
+        {
+            return fail("directional-aerial-turn-setup");
+        }
+    }
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_C(0),
+            out_inspection))
+    {
+        return fail("directional-aerial-jump-start");
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         (out_inspection->players[0].grounded != UINT8_C(0) ||
+          out_inspection->players[1].grounded != UINT8_C(0));
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return fail("directional-aerial-jump-squat");
+        }
+    }
+    if (out_inspection->players[0].grounded != UINT8_C(0) ||
+        out_inspection->players[1].grounded != UINT8_C(0) ||
+        !step_reaction_duel(
+            sim,
+            input_x,
+            input_y,
+            attack_button,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)expected_action ||
+        out_inspection->players[0].action_ticks != UINT16_C(0))
+    {
+        return fail("directional-aerial-input-route");
+    }
+    return 1;
+}
+
+static int run_directional_aerial_route_case(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    int turn_left,
+    int16_t input_x,
+    int16_t input_y,
+    uint64_t attack_button,
+    pf_m4_action_state expected_action)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+
+    return initialize_sim(
+               &storage,
+               view,
+               UINT8_C(2),
+               PF_SIM_MODE_DUEL,
+               1,
+               &sim) &&
+           start_directional_aerial_case(
+               sim,
+               content,
+               turn_left,
+               input_x,
+               input_y,
+               attack_button,
+               expected_action,
+               &inspection);
+}
+
+static int run_directional_aerial_hit_case(
+    const pf_m4_content *content,
+    const pf_content_view *view,
+    const pf_m4_attack_data *attack,
+    int turn_left,
+    int16_t input_x,
+    int16_t input_y,
+    pf_m4_action_state expected_action,
+    test_directional_attack_reaction *out_reaction)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !start_directional_aerial_case(
+            sim,
+            content,
+            turn_left,
+            input_x,
+            input_y,
+            PF_INPUT_BUTTON_ATTACK,
+            expected_action,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)attack->startup_ticks +
+                    (uint32_t)attack->active_ticks + UINT32_C(2);
+         ++tick)
+    {
+        const pf_sim_event *event;
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        event = find_last_tick_event(PF_SIM_EVENT_HIT);
+        if (event == NULL)
+        {
+            continue;
+        }
+        if (event->source_player != UINT8_C(0) ||
+            event->target_player != UINT8_C(1) ||
+            event->detail != (uint16_t)expected_action ||
+            event->value_q16 != attack->damage_q16 ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG ||
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG ||
+            inspection.players[1].damage_q16 != attack->damage_q16 ||
+            inspection.players[1].hitlag_ticks != attack->hitlag_ticks)
+        {
+            return fail("directional-aerial-hit-event");
+        }
+        out_reaction->velocity_x_q16 = event->velocity_x_q16;
+        out_reaction->velocity_y_q16 = event->velocity_y_q16;
+        out_reaction->damage_q16 = event->value_q16;
+        out_reaction->hitstun_ticks =
+            inspection.players[1].hitstun_ticks;
+        out_reaction->hitlag_ticks =
+            inspection.players[1].hitlag_ticks;
+        return 1;
+    }
+    (void)fprintf(
+        stderr,
+        "m4-combat=fail operation=directional-aerial-hit-missing"
+        " expected_action=%u attacker=(%d,%d) target=(%d,%d)\n",
+        (unsigned int)expected_action,
+        inspection.players[0].position_x_q16,
+        inspection.players[0].position_y_q16,
+        inspection.players[1].position_x_q16,
+        inspection.players[1].position_y_q16);
+    return 0;
+}
+
+static int run_directional_aerial_snapshot_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int hit_found = 0;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !start_directional_aerial_case(
+            source,
+            content,
+            0,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_ATTACK,
+            PF_M4_ACTION_UP_AERIAL,
+            &source_inspection))
+    {
+        return fail("directional-aerial-snapshot-setup");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.up_aerial.startup_ticks +
+                    (uint32_t)content->fighter.up_aerial.active_ticks +
+                    UINT32_C(2);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+        if (find_last_tick_event(PF_SIM_EVENT_HIT) != NULL)
+        {
+            hit_found = 1;
+            break;
+        }
+    }
+    if (hit_found == 0 ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "directional-aerial-query-save-size") ||
+        save_size != (size_t)694)
+    {
+        return fail("directional-aerial-hitlag-snapshot-boundary");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "directional-aerial-save") ||
+        destination.size != save_size ||
+        memcmp(save_bytes, "PFSAVE39", (size_t)8) != 0)
+    {
+        return fail("directional-aerial-save-format");
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "directional-aerial-load"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.up_aerial.hitlag_ticks +
+                    UINT32_C(4);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "directional-aerial-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "directional-aerial-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("directional-aerial-snapshot-continuation");
+        }
+    }
+    return 1;
+}
+
+static int run_directional_aerial_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    pf_m4_content changed = *content;
+    pf_m4_content close = *content;
+    pf_m4_content invalid_extent = *content;
+    pf_m4_content invalid_timing = *content;
+    pf_content_view changed_view;
+    pf_content_view close_view;
+    test_directional_attack_reaction forward_reaction;
+    test_directional_attack_reaction back_reaction;
+    test_directional_attack_reaction up_reaction;
+    test_directional_attack_reaction down_reaction;
+    const pf_m4_attack_data *attacks[4] = {
+        &content->fighter.forward_aerial,
+        &content->fighter.back_aerial,
+        &content->fighter.up_aerial,
+        &content->fighter.down_aerial};
+    const test_directional_attack_reaction *reactions[4] = {
+        &forward_reaction,
+        &back_reaction,
+        &up_reaction,
+        &down_reaction};
+    uint32_t attack_index;
+
+    changed.fighter.forward_aerial.damage_q16 += UINT32_C(1);
+    close.stage.spawn_spacing_q16 =
+        PF_Q16_ONE / INT32_C(2);
+    close.stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    close.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    invalid_extent.fighter.down_aerial.hitbox_half_height_q16 =
+        INT32_C(0);
+    invalid_timing.fighter.back_aerial.startup_ticks = UINT16_C(0);
+    if (content->fighter.forward_aerial.damage_q16 !=
+            UINT32_C(10) * UINT32_C(65536) ||
+        content->fighter.forward_aerial.startup_ticks != UINT16_C(5) ||
+        content->fighter.back_aerial.damage_q16 !=
+            UINT32_C(11) * UINT32_C(65536) ||
+        content->fighter.back_aerial.startup_ticks != UINT16_C(4) ||
+        content->fighter.up_aerial.damage_q16 !=
+            UINT32_C(9) * UINT32_C(65536) ||
+        content->fighter.up_aerial.startup_ticks != UINT16_C(5) ||
+        content->fighter.down_aerial.damage_q16 !=
+            UINT32_C(10) * UINT32_C(65536) ||
+        content->fighter.down_aerial.startup_ticks != UINT16_C(7) ||
+        !expect_status(
+            pf_m4_make_content_view(&changed, &changed_view),
+            PF_STATUS_OK,
+            "directional-aerial-changed-content-view") ||
+        !expect_status(
+            pf_m4_make_content_view(&close, &close_view),
+            PF_STATUS_OK,
+            "directional-aerial-close-content-view") ||
+        memcmp(
+            view->content_hash.bytes,
+            changed_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0 ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_extent),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-directional-aerial-invalid-extent") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_timing),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-directional-aerial-invalid-timing"))
+    {
+        return fail("directional-aerial-data-and-hash");
+    }
+
+    if (!run_directional_aerial_hit_case(
+            &close,
+            &close_view,
+            &content->fighter.forward_aerial,
+            0,
+            INT16_C(32767),
+            INT16_C(0),
+            PF_M4_ACTION_FORWARD_AERIAL,
+            &forward_reaction) ||
+        !run_directional_aerial_hit_case(
+            &close,
+            &close_view,
+            &content->fighter.back_aerial,
+            1,
+            INT16_C(32767),
+            INT16_C(0),
+            PF_M4_ACTION_BACK_AERIAL,
+            &back_reaction) ||
+        !run_directional_aerial_hit_case(
+            &close,
+            &close_view,
+            &content->fighter.up_aerial,
+            0,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_M4_ACTION_UP_AERIAL,
+            &up_reaction) ||
+        !run_directional_aerial_hit_case(
+            &close,
+            &close_view,
+            &content->fighter.down_aerial,
+            0,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_M4_ACTION_DOWN_AERIAL,
+            &down_reaction))
+    {
+        return 0;
+    }
+
+    for (attack_index = UINT32_C(0);
+         attack_index < UINT32_C(4);
+         ++attack_index)
+    {
+        const int64_t growth =
+            ((int64_t)attacks[attack_index]->knockback_growth_q16 *
+             (int64_t)attacks[attack_index]->damage_q16) >>
+            16U;
+        const int32_t expected_x =
+            attacks[attack_index]->base_knockback_x_q16 +
+            (int32_t)growth;
+        const int32_t vertical_magnitude =
+            attacks[attack_index]->base_knockback_y_q16 +
+            (int32_t)(growth / INT64_C(2));
+        const int32_t expected_y =
+            attack_index == UINT32_C(3)
+                ? vertical_magnitude
+                : -vertical_magnitude;
+
+        if (reactions[attack_index]->velocity_x_q16 != expected_x ||
+            reactions[attack_index]->velocity_y_q16 != expected_y ||
+            reactions[attack_index]->damage_q16 !=
+                attacks[attack_index]->damage_q16 ||
+            reactions[attack_index]->hitstun_ticks !=
+                expected_weight_hitstun_ticks(
+                    &content->fighter,
+                    expected_x,
+                    expected_y) ||
+            reactions[attack_index]->hitlag_ticks !=
+                attacks[attack_index]->hitlag_ticks)
+        {
+            return fail("directional-aerial-exact-launch");
+        }
+    }
+
+    if (!run_directional_aerial_route_case(
+            content,
+            view,
+            0,
+            INT16_C(0),
+            (int16_t)(
+                content->fighter.dash_axis_threshold - UINT16_C(1)),
+            PF_INPUT_BUTTON_ATTACK,
+            PF_M4_ACTION_AERIAL_ATTACK) ||
+        !run_directional_aerial_route_case(
+            content,
+            view,
+            0,
+            INT16_C(32767),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_ATTACK,
+            PF_M4_ACTION_FORWARD_AERIAL) ||
+        !run_directional_aerial_route_case(
+            content,
+            view,
+            0,
+            INT16_C(-32767),
+            INT16_C(32767),
+            PF_INPUT_BUTTON_ATTACK,
+            PF_M4_ACTION_BACK_AERIAL) ||
+        !run_directional_aerial_route_case(
+            content,
+            view,
+            0,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            PF_M4_ACTION_STRONG_AERIAL_ATTACK))
+    {
+        return fail("directional-aerial-input-arbitration");
+    }
+    return run_directional_aerial_snapshot_test(&close, &close_view);
+}
+
 static int run_v_cancel_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -5485,9 +6032,7 @@ static int prepare_cross_up_aerial(
     }
     return step_reaction_duel(
                sim,
-               back_aerial != 0
-                   ? (int16_t)cross_up_steering_axis(out_inspection)
-                   : INT16_C(0),
+               INT16_C(0),
                INT16_C(0),
                PF_INPUT_BUTTON_ATTACK,
                UINT16_C(0),
@@ -15241,7 +15786,7 @@ static int run_jump_cancelling_test(
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+            (uint8_t)PF_M4_ACTION_UP_AERIAL ||
         inspection.players[0].grounded != UINT8_C(0))
     {
         return fail("jump-cancel-first-airborne-negative");
@@ -17328,6 +17873,7 @@ int main(void)
         !run_one_way_hit_test(&content, &view) ||
         !run_weight_test(&content, &view) ||
         !run_directional_ground_attack_test(&content, &view) ||
+        !run_directional_aerial_test(&content, &view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
             &v_cancel_content,
@@ -17472,7 +18018,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=708 journal_invariants=50 weight=1 directional_ground_attacks=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=780 journal_invariants=50 weight=1 directional_ground_attacks=1 directional_aerials=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

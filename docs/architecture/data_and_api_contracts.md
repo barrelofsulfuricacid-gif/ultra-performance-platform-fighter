@@ -81,14 +81,17 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–37 remain historical checkpoints. The current M4
+Save formats 1–38 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
-taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack
-state uses save format 38: a fixed 694-byte checkpoint with state schema 39 and
-a 554-byte payload. It retains the layout while making the `UP_ATTACK` and
-`DOWN_ATTACK` action IDs, vertical-dominant light-input arbitration, authored
-two-axis launch, hitlag resume, and powershield-cancel routing fail closed. Save
-format 37/state schema 38 made the grounded crouch-cancel action,
+taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack/
+directional-aerial state uses save format 39: a fixed 694-byte checkpoint with
+state schema 40 and a 554-byte payload. It retains the layout while making the
+four directional-aerial action IDs, five-way airborne light-input arbitration,
+grounding, authored two-axis launch, and hitlag resume fail closed. Save format
+38/state schema 39 made the `UP_ATTACK` and `DOWN_ATTACK` action IDs,
+vertical-dominant ground-light arbitration, authored two-axis launch, hitlag
+resume, and powershield-cancel routing fail closed. Save format 37/state schema
+38 made the grounded crouch-cancel action,
 resulting-damage ceiling, eligible physical event kinds, scaled
 launch/hitstun, derived tumble, and typed flag fail closed. Save format
 36/state schema 37 made the explicit
@@ -244,6 +247,17 @@ view schema 36 version the new action/event interpretation while retaining the
 existing inspection and 396-value presentation layouts. Input schema 5,
 structured observation schema 6, RL schema 8, compact schema 7, and 66 compact
 values remain unchanged.
+State schema 40 / save format 39 retains those serialized sizes under
+`PFSAVE39` while adding fail-closed `FORWARD_AERIAL`, `BACK_AERIAL`,
+`UP_AERIAL`, and `DOWN_AERIAL` semantics. Content schema 42/fighter schema 37
+append and hash four more embedded attack-data records. Inspection schema 36
+and browser view schema 37 version the new action interpretation while
+retaining the inspection and 396-value browser layouts. Input schema 5,
+structured observation schema 6, RL schema 8, compact schema 7, and 66 compact
+values remain unchanged. The public memory-requirements query now reports
+2,080 state bytes and 1,008 scratch bytes; the 4 KiB M4 caller envelopes remain
+valid, and this opaque in-memory growth does not change the 694-byte canonical
+checkpoint.
 The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do

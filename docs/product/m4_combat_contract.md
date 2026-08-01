@@ -29,9 +29,10 @@ provide the first defensive-air action and the wavedash/waveland foundation.
 Grounded forward roll, backward roll, and spot dodge provide the first locked
 grounded escape actions with exact data-defined vulnerability,
 invulnerability, motion, and recovery windows.
-The first original light aerial now uses the production hit path and composes
-with auto-cancel, normal aerial landing lag, exact seven-frame L-cancel timing,
-and short-hop-fast-fall-L-cancel. The strong button also works airborne,
+The complete five-direction light-aerial vocabulary now uses the production
+hit path and composes with auto-cancel, normal aerial landing lag, exact
+seven-frame L-cancel timing, and short-hop-fast-fall-L-cancel. The strong
+button also works airborne,
 reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
 does not claim the remaining
@@ -59,18 +60,26 @@ selected light attack, and an opposite-direction smash has only the one-tick
 pivot window. The separate strong button remains a direct strong-attack route
 regardless of stick direction. A run light edge remains `DASH_ATTACK`.
 
-An airborne light-attack edge enters the original light aerial, while an
-airborne strong-attack edge enters `STRONG_AERIAL_ATTACK`; the new directional
-light actions are grounded only. There is no universal input buffer. The
+An airborne light-attack edge selects one of five light aerials. Neutral or
+reduced input enters `AERIAL_ATTACK`; a full, strictly vertical-dominant stick
+enters `UP_AERIAL` or `DOWN_AERIAL`; and a full horizontal-dominant or equal
+diagonal stick enters `FORWARD_AERIAL` or `BACK_AERIAL` relative to facing.
+The same selector applies from ordinary air and from the existing
+delayed-air-jump and wall-jump aerial-cancel routes. An airborne strong-attack
+edge remains the direct `STRONG_AERIAL_ATTACK` route. There is no universal
+input buffer. The
 default neutral jab defines two startup ticks, two active ticks, eight recovery
 ticks, and four hitlag ticks. Default `UP_ATTACK` deals 9%, defines four startup,
 three active, 12 recovery, and five hitlag ticks, and authors a predominantly
 upward launch. Default `DOWN_ATTACK` deals 8%, defines five startup, three
 active, 11 recovery, and four hitlag ticks, and authors a shallow downward
 launch. The default strong attack defines five startup ticks, three active
-ticks, 18 recovery ticks, and six hitlag ticks. The aerial defines four startup
-ticks, five active ticks, 23 recovery ticks, and five hitlag ticks while
-retaining aerial drift, gravity, and fast fall.
+ticks, 18 recovery ticks, and six hitlag ticks. The neutral aerial defines four
+startup ticks, five active ticks, 23 recovery ticks, and five hitlag ticks.
+The default forward, back, up, and down aerials respectively define
+5/4/19 ticks at 10%, 4/4/20 ticks at 11%, 5/4/18 ticks at 9%, and 7/4/21 ticks
+at 10%; each uses five hitlag ticks. Every route retains aerial drift, gravity,
+and fast fall.
 
 The strong aerial deliberately reuses the strong attack's five-startup,
 three-active, 18-recovery, 12%-damage, six-hitlag, launch, and mirrored-hitbox
@@ -100,8 +109,18 @@ launch; the action signs the vertical authored magnitude upward for
 shield, hitlag, weighted reaction, DI/SDI, event-journal, and once-per-target
 paths rather than action-specific collision code.
 
-The aerial adds 8% on hit and uses its independent base launch and growth data.
-Landing during action ticks 4–24 normally enters 12 ticks of
+The four directional aerial definitions use the same embedded attack-data
+layout. Each independently owns geometry, damage, positive authored
+horizontal/vertical base-knockback magnitudes, growth, startup, active,
+recovery, and hitlag. Facing signs the forward aerial; the back aerial reverses
+that horizontal sign; and the up/down actions sign their vertical component.
+All four reuse the neutral aerial's shared physical hit, shield, hitlag,
+weighted reaction, DI/SDI, event-journal, once-per-target, auto-cancel, landing,
+and L-cancel paths.
+
+The neutral aerial adds 8% on hit and uses its independent base launch and
+growth data. Landing during the shared light-aerial landing-lag window normally
+enters 12 ticks of
 `AERIAL_LANDING`. A fresh trigger age below seven replaces that with six ticks
 of `L_CANCEL_LANDING`; age seven is ineligible. Landing outside the active
 window auto-cancels into ordinary `LANDING`. Trigger timing is canonical and
@@ -187,16 +206,17 @@ than adding duplicate state or a tactic-specific test.
 
 A [cross-up](https://www.ssbwiki.com/Cross-up) times a moving attack so the
 attacker passes the opponent and finishes behind them after the hitbox ends.
-The focused route uses the documented short-hop back-aerial form. Player 0
+The focused route uses a facing-locked rear-side neutral-aerial form. Player 0
 first faces away while standing in front of the defender, short hops through
 them with ordinary air drift, and preserves that facing through the airborne
-route. The production light aerial begins only after player 0 reaches the rear
-side, so its backward-facing hitbox contacts the held shield.
+route. The directional stick is released before the production light aerial
+begins only after player 0 reaches the rear side, so `AERIAL_ATTACK` and its
+backward-facing hitbox contact the held shield.
 
 The physical block deals zero percent and emits the typed `SHIELD_BLOCK`
 event. Because the aerial faces away, normal shield pushback separates the
 fighters with the attacker still behind the defender and still facing away
-after the hitbox and landing recovery finish. Starting the same back aerial
+after the hitbox and landing recovery finish. Starting the same neutral aerial
 immediately after takeoff activates it on the wrong side and whiffs. A
 forward-facing aerial at the same descent timing blocks but leaves the attacker
 in front, providing the side/facing control without scripted repositioning.
@@ -216,12 +236,12 @@ outcome. Player 0 presents the same visible reduced-stick approach cue while
 the responder selects one of two ordinary policies. A jab response is read by
 braking outside its reach and converting the recovery with the longer strong
 attack. A held-shield response is read by facing away, short hopping through,
-and using the rear-side aerial cross-up instead.
+and using the rear-side neutral-aerial cross-up instead.
 
 The wrong reads remain observable. Committing the ground strong attack into
 held shield produces an ordinary physical block rather than damage, while an
-immediate back aerial activates on the wrong side and whiffs. The front-facing
-aerial control also blocks but stays in front. The startup gate reports
+immediate neutral aerial activates on the wrong side and whiffs. The
+front-facing aerial control also blocks but stays in front. The startup gate reports
 `mindgame_probe=1` only when the approach, close/safe/far spacing, shield
 control, rear cross-up, early whiff, and front-block probes all pass together.
 Their native save/load continuations cover both the ground counter and aerial
@@ -377,11 +397,11 @@ and the shield control. No mutable state, action, or content schema was added.
 platform opponent from underneath the stage surface. The focused route uses
 the existing one-way platform collision: the target stands on top while the
 attacker remains in legal floor space below it, full hops upward, and begins
-the production light aerial before crossing the platform line. The attacker
+the production `BACK_AERIAL` before crossing the platform line. The attacker
 may then pass through the semisoft platform while the active hitbox connects.
 
-The positive route deals the authored 8% aerial damage and records player 0 as
-the attacker. Starting the same aerial immediately after takeoff activates its
+The positive route deals the authored 11% back-aerial damage and records player
+0 as the attacker. Starting the same aerial immediately after takeoff activates its
 hitbox too far below the target and whiffs, proving the hit is geometric rather
 than scripted. Holding the target trigger produces a normal shield block with
 zero percent, reduced shield health, no powershield, and a typed
@@ -1385,21 +1405,28 @@ physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
 
-Browser view schema 36 retains the 396-value presentation layout while
-versioning the `UP_ATTACK` and `DOWN_ATTACK` action labels and typed-hit
-interpretation. Player blocks remain 44 values each at base 25; event count
+Browser view schema 37 retains the 396-value presentation layout while
+versioning the `FORWARD_AERIAL`, `BACK_AERIAL`, `UP_AERIAL`, and `DOWN_AERIAL`
+action labels. Player blocks remain 44 values each at base 25; event count
 remains at 201, the 16 ten-value event entries start at 202, the 18-value item
 block starts at 362, the 12-value projectile block starts at 380, and recovery
 availability remains at 392–395.
 
-State schema 39 / save format 38 retains the 694-byte stream (140-byte header
-plus 554-byte payload), changes the active magic to `PFSAVE38`, and makes the
-two directional action IDs, input arbitration, attack timing, hitlag resume,
-launch signing, and powershield-cancel selection fail closed. Content schema
-41/fighter schema 36 append and hash the two embedded attack records.
-Inspection schema 35 versions the action/event interpretation. Input schema 5,
+State schema 40 / save format 39 retains the 694-byte stream (140-byte header
+plus 554-byte payload), changes the active magic to `PFSAVE39`, and makes the
+four directional-aerial action IDs, grounding, attack timing, hitlag resume,
+and five-way airborne light-input arbitration fail closed. Content schema
+42/fighter schema 37 append and hash the four embedded aerial attack records.
+Inspection schema 36 versions the action interpretation. Input schema 5,
 structured observation schema 6, RL schema 8, compact observation schema 7,
 and its 66-value vector remain unchanged.
+
+It follows browser view schema 36 and state schema 39 / save format 38, which
+retained those layouts, used `PFSAVE38`, and made `UP_ATTACK`/`DOWN_ATTACK`,
+grounded input arbitration, attack timing, hitlag resume, launch signing, and
+powershield-cancel selection fail closed. Content schema 41/fighter schema 36
+appended and hashed the two embedded ground-attack records; inspection schema
+35 versioned that action/event interpretation.
 
 It follows browser view schema 35 and state schema 38 / save format 37, which
 retained the same layouts, used `PFSAVE37`, and made the grounded
@@ -1668,7 +1695,7 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 708 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 780 focused
 mechanics invariants plus 50 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -1679,6 +1706,11 @@ mechanics invariants plus 50 journal invariants, including:
   full-threshold vertical-dominance selection, sub-threshold neutral-jab and
   equal-diagonal forward-smash controls, exact signed two-axis launches,
   typed hit identity, hitlag, and mid-hitlag save/load future equality;
+- authored forward/back/up/down aerial defaults, validation and isolated
+  content hash; neutral, vertical-dominant, horizontal-dominant, equal-diagonal,
+  facing-relative, and direct-strong arbitration; exact signed two-axis launch,
+  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE39`
+  continuation with equal future hashes;
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
   records short hop, aerial, fast fall, eligible trigger, and L-cancel landing;
@@ -1729,7 +1761,7 @@ mechanics invariants plus 50 journal invariants, including:
 - reduced-stick walking from the default 16-unit neutral separation into that
   safe band, the resulting whiff conversion, and the overextended approach
   being intercepted by the same jab-first responder;
-- a short-hop back-aerial cross-up finishing behind held shield, an immediate
+- a short-hop neutral-aerial cross-up finishing behind held shield, an immediate
   wrong-side whiff, a forward-facing front-side block control, and mid-aerial
   save/load with 48 equal future hashes;
 - the combined mindgame gate requiring the jab-read spacing conversion,

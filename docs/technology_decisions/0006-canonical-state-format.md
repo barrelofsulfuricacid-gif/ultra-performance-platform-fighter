@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–38 / state schemas 1–39
+- **Status:** Accepted for save formats 1–39 / state schemas 1–40
 - **Date:** 2026-08-01
 
 ## Decision
@@ -48,6 +48,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 36 | 37 | 140 | 554 | 694 | Canonical `PUMMEL` action, authored hit/total timing, reciprocal grab-link retention, non-launching damage and attribution, and typed pummel event; no payload-layout change |
 | 37 | 38 | 140 | 554 | 694 | Grounded low-percent crouch-cancel qualification, data-defined launch/hitstun scaling, derived tumble, and typed hit-event flag; no payload-layout change |
 | 38 | 39 | 140 | 554 | 694 | Canonical `UP_ATTACK` and `DOWN_ATTACK` action IDs, directional light-attack arbitration, authored two-axis launch, hitlag resume, and powershield-cancel routing; no payload-layout change |
+| 39 | 40 | 140 | 554 | 694 | Canonical `FORWARD_AERIAL`, `BACK_AERIAL`, `UP_AERIAL`, and `DOWN_AERIAL` action IDs, five-direction airborne light-attack arbitration, authored launch, hitlag resume, and shared light-aerial landing semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -55,8 +56,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
-`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, or `PFSAVE38`. The active M4 runtime emits
-and accepts format 38 with state schema 39. Earlier
+`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, or `PFSAVE39`. The active M4
+runtime emits and accepts format 39 with state schema 40. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -240,6 +241,18 @@ schema. Loading rejects their action IDs under earlier schemas and validates
 their ground-attack timing, hitlag-resume, and reaction relationships. A
 format-37 reader therefore cannot silently reinterpret actions 79 or 80.
 
+Format 39 retains the same payload while making the complete directional light
+aerial vocabulary fail closed under schema 40. Neutral or reduced stick input
+selects `AERIAL_ATTACK`; a full, strictly vertical-dominant stick selects
+`UP_AERIAL` or `DOWN_AERIAL`; and full horizontal-dominant or equal-diagonal
+input selects `FORWARD_AERIAL` or `BACK_AERIAL` relative to facing. The four
+new actions independently author box geometry, damage, two-axis base
+knockback, growth, startup, active, recovery, and hitlag through the parent
+fighter schema, while reusing the existing light-aerial landing and L-cancel
+states. Loading validates airborne action/timer and hitlag-resume
+relationships and rejects action IDs 81–84 under earlier schemas. A format-38
+reader therefore cannot silently reinterpret the same canonical bytes.
+
 ## Why SHA-256
 
 SHA-256 has a stable public specification in
@@ -290,6 +303,9 @@ service-envelope responsibility.
 - Mid-aerial save/load plus equal trigger age, L-cancel eligibility, action,
   and future hash; validation enforces airborne aerial attack, grounded aerial
   landing states, and inactive-slot trigger-age rules.
+- Mid-directional-aerial hitlag save/load plus equal future hashes and exact
+  forward/back/up/down action, grounding, timing, hitlag-resume, signed launch,
+  damage, hitstun, and typed-event identity in `tests/sim/test_m4_combat.c`.
 - Mid-spot-dodge save/load plus equal fresh-down history, action,
   invulnerability derivation, and future hashes; validation enforces grounded
   roll/spot-dodge reaction-state rules and inactive-slot fresh-down history.

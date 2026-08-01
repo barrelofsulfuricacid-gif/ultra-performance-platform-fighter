@@ -367,6 +367,62 @@ static int pf_m4_attack_for_action(
         out_attack->action_state = action_state;
         return 1;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_FORWARD_AERIAL ||
+        action_state == (uint8_t)PF_M4_ACTION_BACK_AERIAL ||
+        action_state == (uint8_t)PF_M4_ACTION_UP_AERIAL ||
+        action_state == (uint8_t)PF_M4_ACTION_DOWN_AERIAL)
+    {
+        const pf_m4_attack_data *attack;
+
+        switch ((pf_m4_action_state)action_state)
+        {
+            case PF_M4_ACTION_FORWARD_AERIAL:
+                attack = &fighter->forward_aerial;
+                break;
+            case PF_M4_ACTION_BACK_AERIAL:
+                attack = &fighter->back_aerial;
+                break;
+            case PF_M4_ACTION_UP_AERIAL:
+                attack = &fighter->up_aerial;
+                break;
+            case PF_M4_ACTION_DOWN_AERIAL:
+                attack = &fighter->down_aerial;
+                break;
+            default:
+                return 0;
+        }
+
+        out_attack->hitbox_offset_x_q16 =
+            attack->hitbox_offset_x_q16;
+        out_attack->hitbox_offset_y_q16 =
+            attack->hitbox_offset_y_q16;
+        out_attack->hitbox_half_width_q16 =
+            attack->hitbox_half_width_q16;
+        out_attack->hitbox_half_height_q16 =
+            attack->hitbox_half_height_q16;
+        out_attack->damage_q16 = attack->damage_q16;
+        out_attack->base_knockback_x_q16 =
+            attack->base_knockback_x_q16;
+        out_attack->base_knockback_y_q16 =
+            attack->base_knockback_y_q16;
+        out_attack->knockback_growth_q16 =
+            attack->knockback_growth_q16;
+        out_attack->active_begin_tick = attack->startup_ticks;
+        out_attack->active_end_tick = (uint16_t)(
+            (uint32_t)attack->startup_ticks +
+            (uint32_t)attack->active_ticks - UINT32_C(1));
+        out_attack->hitlag_ticks = attack->hitlag_ticks;
+        out_attack->direction =
+            action_state == (uint8_t)PF_M4_ACTION_BACK_AERIAL
+                ? INT8_C(-1)
+                : INT8_C(1);
+        out_attack->vertical_direction =
+            action_state == (uint8_t)PF_M4_ACTION_DOWN_AERIAL
+                ? INT8_C(1)
+                : INT8_C(-1);
+        out_attack->action_state = action_state;
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
         action_state ==
             (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK)

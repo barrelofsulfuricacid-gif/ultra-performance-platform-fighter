@@ -243,6 +243,10 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
     pf_m4_hash_attack(hash, &fighter->up_attack);
     pf_m4_hash_attack(hash, &fighter->down_attack);
+    pf_m4_hash_attack(hash, &fighter->forward_aerial);
+    pf_m4_hash_attack(hash, &fighter->back_aerial);
+    pf_m4_hash_attack(hash, &fighter->up_aerial);
+    pf_m4_hash_attack(hash, &fighter->down_aerial);
     pf_m4_hash_u32(hash, fighter->reset_max_damage_q16);
     pf_m4_hash_i32(hash, fighter->reset_bound_speed_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
@@ -804,6 +808,86 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->down_attack.active_ticks = UINT16_C(3);
     fighter->down_attack.recovery_ticks = UINT16_C(11);
     fighter->down_attack.hitlag_ticks = UINT16_C(4);
+    fighter->forward_aerial.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(3, 4);
+    fighter->forward_aerial.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(1, 20);
+    fighter->forward_aerial.hitbox_half_width_q16 =
+        PF_Q16_RATIO(13, 20);
+    fighter->forward_aerial.hitbox_half_height_q16 =
+        PF_Q16_RATIO(9, 20);
+    fighter->forward_aerial.damage_q16 =
+        UINT32_C(10) * UINT32_C(65536);
+    fighter->forward_aerial.base_knockback_x_q16 =
+        PF_Q16_RATIO(3, 10);
+    fighter->forward_aerial.base_knockback_y_q16 =
+        PF_Q16_RATIO(1, 4);
+    fighter->forward_aerial.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 640);
+    fighter->forward_aerial.startup_ticks = UINT16_C(5);
+    fighter->forward_aerial.active_ticks = UINT16_C(4);
+    fighter->forward_aerial.recovery_ticks = UINT16_C(19);
+    fighter->forward_aerial.hitlag_ticks = UINT16_C(5);
+    fighter->back_aerial.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(7, 10);
+    fighter->back_aerial.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(1, 10);
+    fighter->back_aerial.hitbox_half_width_q16 =
+        PF_Q16_RATIO(7, 10);
+    fighter->back_aerial.hitbox_half_height_q16 =
+        PF_Q16_RATIO(1, 2);
+    fighter->back_aerial.damage_q16 =
+        UINT32_C(11) * UINT32_C(65536);
+    fighter->back_aerial.base_knockback_x_q16 =
+        PF_Q16_RATIO(19, 50);
+    fighter->back_aerial.base_knockback_y_q16 =
+        PF_Q16_RATIO(11, 50);
+    fighter->back_aerial.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 576);
+    fighter->back_aerial.startup_ticks = UINT16_C(4);
+    fighter->back_aerial.active_ticks = UINT16_C(4);
+    fighter->back_aerial.recovery_ticks = UINT16_C(20);
+    fighter->back_aerial.hitlag_ticks = UINT16_C(5);
+    fighter->up_aerial.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(1, 10);
+    fighter->up_aerial.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(7, 10);
+    fighter->up_aerial.hitbox_half_width_q16 =
+        PF_Q16_RATIO(13, 20);
+    fighter->up_aerial.hitbox_half_height_q16 =
+        PF_Q16_RATIO(13, 20);
+    fighter->up_aerial.damage_q16 =
+        UINT32_C(9) * UINT32_C(65536);
+    fighter->up_aerial.base_knockback_x_q16 =
+        PF_Q16_RATIO(3, 25);
+    fighter->up_aerial.base_knockback_y_q16 =
+        PF_Q16_RATIO(19, 50);
+    fighter->up_aerial.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 672);
+    fighter->up_aerial.startup_ticks = UINT16_C(5);
+    fighter->up_aerial.active_ticks = UINT16_C(4);
+    fighter->up_aerial.recovery_ticks = UINT16_C(18);
+    fighter->up_aerial.hitlag_ticks = UINT16_C(5);
+    fighter->down_aerial.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(1, 10);
+    fighter->down_aerial.hitbox_offset_y_q16 =
+        PF_Q16_RATIO(13, 20);
+    fighter->down_aerial.hitbox_half_width_q16 =
+        PF_Q16_RATIO(3, 5);
+    fighter->down_aerial.hitbox_half_height_q16 =
+        PF_Q16_RATIO(11, 20);
+    fighter->down_aerial.damage_q16 =
+        UINT32_C(10) * UINT32_C(65536);
+    fighter->down_aerial.base_knockback_x_q16 =
+        PF_Q16_RATIO(7, 50);
+    fighter->down_aerial.base_knockback_y_q16 =
+        PF_Q16_RATIO(17, 50);
+    fighter->down_aerial.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 640);
+    fighter->down_aerial.startup_ticks = UINT16_C(7);
+    fighter->down_aerial.active_ticks = UINT16_C(4);
+    fighter->down_aerial.recovery_ticks = UINT16_C(21);
+    fighter->down_aerial.hitlag_ticks = UINT16_C(5);
     fighter->reset_max_damage_q16 =
         UINT32_C(7) * UINT32_C(65536);
     fighter->reset_bound_speed_q16 = PF_Q16_RATIO(1, 10);
@@ -1294,6 +1378,18 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             maximum_fighter_extent_q16) ||
         !pf_m4_attack_data_is_valid(
             &fighter->down_attack,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->forward_aerial,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->back_aerial,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->up_aerial,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->down_aerial,
             maximum_fighter_extent_q16))
     {
         return PF_STATUS_INVALID_CONFIG;

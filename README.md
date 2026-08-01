@@ -7,11 +7,12 @@ The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
 simulation is complete, and its reinforcement-learning contract has been
 accepted by the owner; its current schema-6 observation includes M4 stock,
-respawn, charge, projectile, item, and recovery state. M4 is in progress with production-path movement, two ground
-attacks,
+respawn, charge, projectile, item, and recovery state. M4 is in progress with
+production-path movement, directional ground attacks,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the
-first light and strong production aerial routes, auto-cancel, visibly scored
+the complete five-direction light-aerial vocabulary plus a direct strong
+aerial route, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge,
 grounded low-percent crouch cancel, target-weighted hit reaction, grab pummels,
 four directional throws, and a deterministic four-stock
@@ -115,7 +116,8 @@ the authored-C 180-tick four-player replay, presents a draggable timeline, and
 runs the real two-player M4 simulation at 60 Hz. The playtest includes explicit
 walk/dash keyboard magnitudes, binary short/full hops, attacks, hitlag,
 hitstun, tumble, ground/wall/ceiling teching, missed-impact bounce, floor
-recovery, shields, directional air dodge/wavedash, aerial attacks,
+recovery, shields, directional air dodge/wavedash, neutral/forward/back/up/down
+light aerials plus the direct strong aerial,
 auto-cancel, L-cancel/SHFFL, a 30-frame strong-aerial landing-lag drill with
 red/green success feedback, grounded forward/backward rolls, spot-dodge,
 held-down crouch cancel with a typed feed label, grab-pummel, and
