@@ -800,6 +800,8 @@ registry row can advance from `playable` to `verified`.
     bolt resolves, and confirm the approaching Player 2 remains outside melee
     range while taking repeated projectile hits. Reset, omit Special, and
     confirm the same continuous approach reaches Player 1 and lands a jab.
+    This is also the Turtling recipe: the ranged policy avoids contact and
+    punishes bad approaches, while the no-projectile control loses that space.
 52. Click `Team Wobble Lab`. Use P1 to grab P2, then start P1's down throw and
     P3's fresh light-plus-shield grab together. Repeat with P3 throwing and P1
     waiting; confirm the reciprocal grab owner alternates. Reset the lab, spend

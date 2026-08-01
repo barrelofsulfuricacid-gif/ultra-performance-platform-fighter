@@ -1264,6 +1264,21 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   execution, broader stages/projectiles, and complete cross-target evidence
   remain before `verified`.
 
+## Classified in the emergent-turtling slice
+
+- Turtling adds no new mechanic or dedicated oracle. Its researched definition
+  is avoiding the opponent, using ranged attacks, and punishing bad approaches;
+  the existing projectile-camping trace already performs all three against a
+  continuous approach-and-jab responder.
+- Seven legal fires produce six ranged hits while maintaining more than 10.58
+  units of separation and taking zero damage. The existing no-projectile
+  control lets the identical responder land three jabs, while the independent
+  Approach/Spacing route proves the safe whiff punish.
+- Registry row 58 advances from `primitive-ready` to `playable` using those
+  independently tested production mechanics. Broader stage/fighter policies,
+  complete cross-target/replay evidence, and owner execution remain before
+  `verified`.
+
 ## Classified in the emergent-stalling slice
 
 - Stalling adds no new mechanic or dedicated oracle. The existing playable
@@ -1469,7 +1484,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   hopping, fox-trotting, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   charge storage canceling, mindgame, moonwalk, planking, Scar Jump, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, Team wobble, teeter cancel,
-  sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
+  sharking, spacing, tech-chasing, turtling, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
@@ -1479,7 +1494,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 57 playable, 3 primitive-ready, and 0 planned.
+  blocked: 1 verified, 58 playable, 2 primitive-ready, and 0 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1547,7 +1562,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
-  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping/Shine-spike/charge-storage/
+  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping-and-turtling/Shine-spike/charge-storage/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).

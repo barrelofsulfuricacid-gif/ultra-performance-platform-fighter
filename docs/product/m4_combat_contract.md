@@ -153,6 +153,15 @@ save/load, replay verification, structured observation, and compact RL
 coverage remain unchanged; broader stages, projectile choices, adaptive
 opponents, and owner execution remain before full verification.
 
+The same production trace also supplies the playable
+[Turtling](https://www.ssbwiki.com/Turtling) route. That tactic is the broader
+defensive composition of avoiding the opponent, using ranged attacks, and
+punishing bad approaches. The Pulse Bolt policy supplies all three against a
+continuously responding opponent; the no-projectile trace shows the same
+approach reaching melee, while the independent Approach/Spacing route proves a
+safe whiff punish. Turtling therefore reuses those constituent oracles rather
+than adding duplicate state or a tactic-specific test.
+
 ## Cross-up
 
 A [cross-up](https://www.ssbwiki.com/Cross-up) times a moving attack so the
