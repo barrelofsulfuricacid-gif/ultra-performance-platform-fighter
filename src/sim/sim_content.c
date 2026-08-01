@@ -186,6 +186,8 @@ static void pf_m4_hash_fighter(
     pf_sha256 *hash,
     const pf_m4_fighter_data *fighter)
 {
+    uint32_t stale_index;
+
     pf_m4_hash_u16(hash, fighter->schema_version);
     pf_m4_hash_i32(hash, fighter->half_width_q16);
     pf_m4_hash_i32(hash, fighter->half_height_q16);
@@ -551,6 +553,15 @@ static void pf_m4_hash_fighter(
         hash,
         fighter->powershield_cancel_enabled);
     pf_m4_hash_u8(hash, fighter->wall_jump_enabled);
+    for (stale_index = UINT32_C(0);
+         stale_index <
+             (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+         ++stale_index)
+    {
+        pf_m4_hash_u16(
+            hash,
+            fighter->stale_move_slot_reduction_q16[stale_index]);
+    }
 }
 
 static void pf_m4_hash_stage(
@@ -1313,6 +1324,15 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->air_jump_count = UINT8_C(1);
     fighter->powershield_cancel_enabled = UINT8_C(1);
     fighter->wall_jump_enabled = UINT8_C(1);
+    fighter->stale_move_slot_reduction_q16[0] = UINT16_C(4608);
+    fighter->stale_move_slot_reduction_q16[1] = UINT16_C(4096);
+    fighter->stale_move_slot_reduction_q16[2] = UINT16_C(3584);
+    fighter->stale_move_slot_reduction_q16[3] = UINT16_C(3072);
+    fighter->stale_move_slot_reduction_q16[4] = UINT16_C(2560);
+    fighter->stale_move_slot_reduction_q16[5] = UINT16_C(2048);
+    fighter->stale_move_slot_reduction_q16[6] = UINT16_C(1536);
+    fighter->stale_move_slot_reduction_q16[7] = UINT16_C(1024);
+    fighter->stale_move_slot_reduction_q16[8] = UINT16_C(512);
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -1491,6 +1511,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_reflector_knockback_y;
     int64_t maximum_charge_knockback_x;
     int64_t maximum_charge_knockback_y;
+    uint32_t stale_index;
+    uint32_t stale_reduction_total_q16 = UINT32_C(0);
     int solid_overlaps_platform;
 
     if (content == NULL)
@@ -1537,6 +1559,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
         content->fighter.reserved != UINT16_C(0) ||
         content->fighter.smash_charge_reserved != UINT16_C(0) ||
+        content->fighter.reserved2 != UINT8_C(0) ||
         content->stage.reserved != UINT16_C(0) ||
         content->stage.reserved2 != UINT16_C(0) ||
         content->item.reserved != UINT8_C(0) ||
@@ -1551,6 +1574,28 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     }
 
     fighter = &content->fighter;
+    for (stale_index = UINT32_C(0);
+         stale_index <
+             (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+         ++stale_index)
+    {
+        const uint16_t reduction =
+            fighter->stale_move_slot_reduction_q16[stale_index];
+
+        if (reduction == UINT16_C(0) ||
+            (stale_index != UINT32_C(0) &&
+             reduction >= fighter->stale_move_slot_reduction_q16[
+                              stale_index - UINT32_C(1)]))
+        {
+            return PF_STATUS_INVALID_CONFIG;
+        }
+        stale_reduction_total_q16 += (uint32_t)reduction;
+    }
+    if (stale_reduction_total_q16 >
+        (uint32_t)PF_Q16_ONE / UINT32_C(2))
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
     if (!pf_m4_throw_data_is_valid(&fighter->forward_throw) ||
         !pf_m4_throw_data_is_valid(&fighter->back_throw) ||
         !pf_m4_throw_data_is_valid(&fighter->up_throw) ||

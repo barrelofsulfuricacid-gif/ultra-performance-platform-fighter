@@ -28,7 +28,10 @@
 #define PF_WEB_M4_VIEW_RECOVERY0 427
 #define PF_WEB_M4_VIEW_REVIVAL0 431
 #define PF_WEB_M4_VIEW_REVIVAL_STRIDE 4
-#define PF_WEB_M4_VIEW_COUNT 447
+#define PF_WEB_M4_VIEW_STALE_MOVE0 447
+#define PF_WEB_M4_VIEW_STALE_MOVE_STRIDE 12
+#define PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED 495
+#define PF_WEB_M4_VIEW_COUNT 496
 
 enum pf_web_m4_view_field
 {
@@ -154,8 +157,72 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_REVIVAL_ACTIVE = 0,
     PF_WEB_M4_VIEW_REVIVAL_LEFT = 1,
     PF_WEB_M4_VIEW_REVIVAL_RIGHT = 2,
-    PF_WEB_M4_VIEW_REVIVAL_Y = 3
+    PF_WEB_M4_VIEW_REVIVAL_Y = 3,
+    PF_WEB_M4_VIEW_STALE_MOVE_COUNT = 0,
+    PF_WEB_M4_VIEW_STALE_MOVE_MULTIPLIER = 1,
+    PF_WEB_M4_VIEW_STALE_MOVE_REGISTERED = 2,
+    PF_WEB_M4_VIEW_STALE_MOVE_IDS = 3
 };
+
+static uint32_t pf_web_m4_expected_repeated_move_damage_q16(
+    const pf_m4_fighter_data *fighter,
+    uint32_t damage_q16,
+    uint32_t hit_count)
+{
+    uint32_t total_q16 = UINT32_C(0);
+    uint32_t hit;
+
+    for (hit = UINT32_C(0); hit < hit_count; ++hit)
+    {
+        uint32_t reduction_q16 = UINT32_C(0);
+        uint32_t slot;
+        const uint32_t occupied_slots =
+            hit < (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY
+                ? hit
+                : (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+
+        for (slot = UINT32_C(0); slot < occupied_slots; ++slot)
+        {
+            reduction_q16 +=
+                (uint32_t)fighter
+                    ->stale_move_slot_reduction_q16[slot];
+        }
+        total_q16 += (uint32_t)(
+            (uint64_t)damage_q16 *
+            ((uint64_t)(uint32_t)PF_Q16_ONE -
+             (uint64_t)reduction_q16) /
+            (uint64_t)(uint32_t)PF_Q16_ONE);
+    }
+    return total_q16;
+}
+
+static uint32_t pf_web_m4_expected_stale_damage_q16(
+    const pf_m4_fighter_data *fighter,
+    uint32_t damage_q16,
+    const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
+    uint8_t stale_move_count,
+    uint8_t move_id)
+{
+    uint32_t reduction_q16 = UINT32_C(0);
+    uint32_t slot;
+
+    for (slot = UINT32_C(0);
+         slot < (uint32_t)stale_move_count;
+         ++slot)
+    {
+        if (stale_move_ids[slot] == move_id)
+        {
+            reduction_q16 +=
+                (uint32_t)fighter
+                    ->stale_move_slot_reduction_q16[slot];
+        }
+    }
+    return (uint32_t)(
+        (uint64_t)damage_q16 *
+        ((uint64_t)(uint32_t)PF_Q16_ONE -
+         (uint64_t)reduction_q16) /
+        (uint64_t)(uint32_t)PF_Q16_ONE);
+}
 
 typedef struct pf_web_m4_storage
 {
@@ -2944,9 +3011,11 @@ static int pf_web_m4_run_ladder_route(
                    hit_count < UINT32_C(3) &&
                    strong_started == 0 &&
                    inspection.players[1].damage_q16 ==
-                       hit_count *
+                       pf_web_m4_expected_repeated_move_damage_q16(
+                           &pf_web_m4_content.fighter,
                            pf_web_m4_content.fighter
-                               .aerial_damage_q16;
+                               .aerial_damage_q16,
+                           hit_count);
         }
         if (inspection.players[1].respawn_count != UINT16_C(0))
         {
@@ -2964,9 +3033,11 @@ static int pf_web_m4_run_ladder_route(
                    pf_web_m4_last_result.events[0].target_player ==
                        UINT8_C(1) &&
                    pf_web_m4_last_result.events[0].value_q16 ==
-                       UINT32_C(3) *
-                               pf_web_m4_content.fighter
-                                   .aerial_damage_q16 +
+                       pf_web_m4_expected_repeated_move_damage_q16(
+                           &pf_web_m4_content.fighter,
+                           pf_web_m4_content.fighter
+                               .aerial_damage_q16,
+                           UINT32_C(3)) +
                            pf_web_m4_content.fighter
                                .strong_damage_q16;
         }
@@ -3009,6 +3080,8 @@ static int pf_web_m4_initialize_kill_confirm_fixture(void)
     pf_web_m4_content.fighter.jab_knockback_growth_q16 = INT32_C(1);
     pf_web_m4_content.fighter.strong_base_knockback_x_q16 =
         PF_Q16_ONE / INT32_C(20);
+    pf_web_m4_content.fighter.strong_base_knockback_y_q16 =
+        (INT32_C(37) * PF_Q16_ONE) / INT32_C(40);
     pf_web_m4_content.fighter.hitstun_velocity_per_tick_q16 =
         PF_Q16_ONE / INT32_C(200);
     pf_web_m4_content.fighter.jab_recovery_ticks = UINT16_C(3);
@@ -3134,8 +3207,10 @@ static int pf_web_m4_run_kill_confirm_route(
         const uint32_t previous_sequence =
             inspection.players[1].last_hit_sequence;
         const uint32_t expected_damage =
-            (jab_index + UINT32_C(1)) *
-            pf_web_m4_content.fighter.jab_damage_q16;
+            pf_web_m4_expected_repeated_move_damage_q16(
+                &pf_web_m4_content.fighter,
+                pf_web_m4_content.fighter.jab_damage_q16,
+                jab_index + UINT32_C(1));
 
         if (!pf_web_m4_wait_for_kill_confirm_neutral(&inspection) ||
             !pf_web_m4_tick(
@@ -3213,8 +3288,10 @@ static int pf_web_m4_run_kill_confirm_route(
     }
     if (tick == UINT32_C(32) || setup_sequence == UINT32_C(0) ||
         inspection.players[1].damage_q16 !=
-            (buildup_jabs + UINT32_C(1)) *
-                pf_web_m4_content.fighter.jab_damage_q16)
+            pf_web_m4_expected_repeated_move_damage_q16(
+                &pf_web_m4_content.fighter,
+                pf_web_m4_content.fighter.jab_damage_q16,
+                buildup_jabs + UINT32_C(1)))
     {
         return 0;
     }
@@ -3270,8 +3347,10 @@ static int pf_web_m4_run_kill_confirm_route(
             saw_strong_hitbox != 0 && finisher_hit == 0 &&
             inspection.players[0].hitbox_active == UINT8_C(0) &&
             inspection.players[1].damage_q16 ==
-                (buildup_jabs + UINT32_C(1)) *
-                    pf_web_m4_content.fighter.jab_damage_q16 &&
+                pf_web_m4_expected_repeated_move_damage_q16(
+                    &pf_web_m4_content.fighter,
+                    pf_web_m4_content.fighter.jab_damage_q16,
+                    buildup_jabs + UINT32_C(1)) &&
             inspection.players[1].respawn_count == UINT16_C(0))
         {
             return 1;
@@ -3287,8 +3366,10 @@ static int pf_web_m4_run_kill_confirm_route(
                    pf_web_m4_last_result.events[0].target_player ==
                        UINT8_C(1) &&
                    pf_web_m4_last_result.events[0].value_q16 ==
-                       (buildup_jabs + UINT32_C(1)) *
-                               pf_web_m4_content.fighter.jab_damage_q16 +
+                       pf_web_m4_expected_repeated_move_damage_q16(
+                           &pf_web_m4_content.fighter,
+                           pf_web_m4_content.fighter.jab_damage_q16,
+                           buildup_jabs + UINT32_C(1)) +
                            pf_web_m4_content.fighter.strong_damage_q16;
         }
         if (expect_ko == 0 && finisher_hit != 0 &&
@@ -3426,9 +3507,10 @@ static int pf_web_m4_run_zero_to_death_route(
                    hit_count < UINT32_C(21) &&
                    strong_started == 0 &&
                    inspection.players[1].damage_q16 ==
-                       hit_count *
-                           pf_web_m4_content.fighter
-                               .jab_damage_q16;
+                       pf_web_m4_expected_repeated_move_damage_q16(
+                           &pf_web_m4_content.fighter,
+                           pf_web_m4_content.fighter.jab_damage_q16,
+                           hit_count);
         }
         if (inspection.players[1].respawn_count != UINT16_C(0))
         {
@@ -3443,9 +3525,10 @@ static int pf_web_m4_run_zero_to_death_route(
                    pf_web_m4_last_result.events[0].target_player ==
                        UINT8_C(1) &&
                    pf_web_m4_last_result.events[0].value_q16 ==
-                       UINT32_C(21) *
-                               pf_web_m4_content.fighter
-                                   .jab_damage_q16 +
+                       pf_web_m4_expected_repeated_move_damage_q16(
+                           &pf_web_m4_content.fighter,
+                           pf_web_m4_content.fighter.jab_damage_q16,
+                           UINT32_C(21)) +
                            pf_web_m4_content.fighter
                                .strong_damage_q16;
         }
@@ -6647,6 +6730,13 @@ static int pf_web_m4_perform_throw(
     const pf_m4_throw_data *throw_data,
     pf_m4_inspection *out_inspection)
 {
+    const uint32_t expected_damage_q16 =
+        pf_web_m4_expected_stale_damage_q16(
+            &pf_web_m4_content.fighter,
+            throw_data->damage_q16,
+            out_inspection->players[0].stale_move_ids,
+            out_inspection->players[0].stale_move_count,
+            (uint8_t)action);
     uint32_t tick;
 
     if (!pf_web_m4_tick(
@@ -6685,7 +6775,7 @@ static int pf_web_m4_perform_throw(
         return throw_event != NULL &&
                throw_event->source_player == UINT8_C(0) &&
                throw_event->target_player == UINT8_C(1) &&
-               throw_event->value_q16 == throw_data->damage_q16 &&
+               throw_event->value_q16 == expected_damage_q16 &&
                throw_event->detail == (uint16_t)action &&
                out_inspection->players[0].grab_target ==
                    PF_SIM_EVENT_NO_PLAYER &&
@@ -6868,8 +6958,10 @@ static int pf_web_m4_run_chain_grab_route(void)
                &pf_web_m4_content.fighter.down_throw,
                &inspection) &&
            inspection.players[1].damage_q16 ==
-               UINT32_C(3) *
-                   pf_web_m4_content.fighter.down_throw.damage_q16;
+               pf_web_m4_expected_repeated_move_damage_q16(
+                   &pf_web_m4_content.fighter,
+                   pf_web_m4_content.fighter.down_throw.damage_q16,
+                   UINT32_C(3));
 }
 
 static int pf_web_m4_run_chain_grab_probe(void)
@@ -12103,7 +12195,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(43);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(44);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12431,6 +12523,10 @@ static int pf_web_m4_render(void)
         const int revival_base =
             PF_WEB_M4_VIEW_REVIVAL0 +
             (int)player_index * PF_WEB_M4_VIEW_REVIVAL_STRIDE;
+        const int stale_move_base =
+            PF_WEB_M4_VIEW_STALE_MOVE0 +
+            (int)player_index * PF_WEB_M4_VIEW_STALE_MOVE_STRIDE;
+        uint32_t stale_slot;
 
         pf_web_m4_view[PF_WEB_M4_VIEW_RECOVERY0 + (int)player_index] =
             (int32_t)player->recovery_available;
@@ -12446,7 +12542,28 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             revival_base + PF_WEB_M4_VIEW_REVIVAL_Y] =
             player->revival_platform_y_q16;
+        pf_web_m4_view[
+            stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_COUNT] =
+            (int32_t)player->stale_move_count;
+        pf_web_m4_view[
+            stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_MULTIPLIER] =
+            (int32_t)player->stale_move_multiplier_q16;
+        pf_web_m4_view[
+            stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_REGISTERED] =
+            (int32_t)player->attack_stale_registered;
+        for (stale_slot = UINT32_C(0);
+             stale_slot <
+                 (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+             ++stale_slot)
+        {
+            pf_web_m4_view[
+                stale_move_base + PF_WEB_M4_VIEW_STALE_MOVE_IDS +
+                (int)stale_slot] =
+                (int32_t)player->stale_move_ids[stale_slot];
+        }
     }
+    pf_web_m4_view[PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED] =
+        (int32_t)inspection.item.stale_registered;
 
     pf_web_m4_playtest_render(
         pf_web_m4_view,

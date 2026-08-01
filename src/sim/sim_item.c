@@ -138,6 +138,7 @@ static void pf_m4_item_enter_respawn_wait(
     scratch->item_holder_slot = UINT8_C(0);
     scratch->item_source_slot = UINT8_C(0);
     scratch->item_hit_mask = UINT8_C(0);
+    scratch->item_stale_registered = UINT8_C(0);
     scratch->item_throw_direction =
         (uint8_t)PF_M4_ITEM_THROW_NONE;
 }
@@ -154,12 +155,14 @@ void pf_m4_reset_item(pf_sim *sim)
     if (sim->content.item.enabled == UINT8_C(0))
     {
         world->item_state = (uint8_t)PF_M4_ITEM_STATE_INACTIVE;
+        world->item_stale_registered = UINT8_C(0);
         return;
     }
     world->item_position_x_q16 = sim->content.item.spawn_x_q16;
     world->item_position_y_q16 = sim->content.item.spawn_y_q16;
     world->item_lifetime_ticks = sim->content.item.lifetime_ticks;
     world->item_state = (uint8_t)PF_M4_ITEM_STATE_GROUND;
+    world->item_stale_registered = UINT8_C(0);
 }
 
 void pf_m4_begin_item_tick(
@@ -178,6 +181,7 @@ void pf_m4_begin_item_tick(
     scratch->item_holder_slot = world->item_holder_slot;
     scratch->item_source_slot = world->item_source_slot;
     scratch->item_hit_mask = world->item_hit_mask;
+    scratch->item_stale_registered = world->item_stale_registered;
     scratch->item_throw_direction = world->item_throw_direction;
 }
 
@@ -322,6 +326,7 @@ pf_status pf_m4_apply_item_input(
         scratch->item_holder_slot = player_slot;
         scratch->item_source_slot = UINT8_C(0);
         scratch->item_hit_mask = UINT8_C(0);
+        scratch->item_stale_registered = UINT8_C(0);
         scratch->item_throw_direction =
             (uint8_t)PF_M4_ITEM_THROW_NONE;
         scratch->item_velocity_x_q16 = INT32_C(0);
@@ -355,6 +360,7 @@ pf_status pf_m4_apply_item_input(
     scratch->item_holder_slot = UINT8_C(0);
     scratch->item_source_slot = player_slot;
     scratch->item_hit_mask = UINT8_C(0);
+    scratch->item_stale_registered = UINT8_C(0);
     scratch->item_pickup_lockout_ticks = item->pickup_lockout_ticks;
     scratch->item_lifetime_ticks = item->lifetime_ticks;
 
@@ -438,6 +444,8 @@ pf_status pf_m4_apply_item_input(
                     : (uint8_t)PF_M4_ACTION_ITEM_THROW;
             scratch->action_ticks[player_index] = UINT16_C(0);
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            scratch->attack_stale_registered[player_index] =
+                UINT8_C(0);
             scratch->dash_direction[player_index] = INT8_C(0);
             scratch->short_hop_latched[player_index] = UINT8_C(0);
             if (intent == PF_M4_ITEM_INPUT_DASH_THROW)
@@ -524,6 +532,7 @@ pf_status pf_m4_step_item(
         scratch->item_holder_slot = UINT8_C(0);
         scratch->item_source_slot = UINT8_C(0);
         scratch->item_hit_mask = UINT8_C(0);
+        scratch->item_stale_registered = UINT8_C(0);
         scratch->item_throw_direction =
             (uint8_t)PF_M4_ITEM_THROW_NONE;
     }
@@ -568,6 +577,7 @@ pf_status pf_m4_step_item(
             scratch->item_state = (uint8_t)PF_M4_ITEM_STATE_GROUND;
             scratch->item_source_slot = UINT8_C(0);
             scratch->item_hit_mask = UINT8_C(0);
+            scratch->item_stale_registered = UINT8_C(0);
             scratch->item_throw_direction =
                 (uint8_t)PF_M4_ITEM_THROW_NONE;
         }

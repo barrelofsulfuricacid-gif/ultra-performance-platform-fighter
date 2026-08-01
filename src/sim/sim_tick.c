@@ -508,6 +508,14 @@ pf_status pf_sim_tick_impl(
             scratch->hitlag_resume_action[player_index];
         world->attack_hit_mask[player_index] =
             scratch->attack_hit_mask[player_index];
+        world->attack_stale_registered[player_index] =
+            scratch->attack_stale_registered[player_index];
+        world->stale_move_count[player_index] =
+            scratch->stale_move_count[player_index];
+        (void)memcpy(
+            world->stale_move_ids[player_index],
+            scratch->stale_move_ids[player_index],
+            sizeof(world->stale_move_ids[player_index]));
         world->last_hit_attacker[player_index] =
             scratch->last_hit_attacker[player_index];
         world->shield_held[player_index] =
@@ -539,6 +547,7 @@ pf_status pf_sim_tick_impl(
     world->item_holder_slot = scratch->item_holder_slot;
     world->item_source_slot = scratch->item_source_slot;
     world->item_hit_mask = scratch->item_hit_mask;
+    world->item_stale_registered = scratch->item_stale_registered;
     world->item_throw_direction = scratch->item_throw_direction;
     world->projectile_position_x_q16 =
         scratch->projectile_position_x_q16;

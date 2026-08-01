@@ -481,6 +481,26 @@ pf_status pf_sim_observe(
             sim->world.shield_tilt_y[player_index];
         player->shield_health_q16 =
             sim->world.shield_health_q16[player_index];
+        {
+            const uint8_t current_action =
+                sim->world.action_state[player_index] ==
+                        (uint8_t)PF_M4_ACTION_HITLAG
+                    ? sim->world.hitlag_resume_action[player_index]
+                    : sim->world.action_state[player_index];
+
+            player->stale_move_multiplier_q16 =
+                pf_m4_stale_move_multiplier_q16(
+                    &sim->content.fighter,
+                    sim->world.stale_move_ids[player_index],
+                    sim->world.stale_move_count[player_index],
+                    pf_m4_stale_move_id_for_action(current_action));
+        }
+        player->stale_move_count =
+            sim->world.stale_move_count[player_index];
+        (void)memcpy(
+            player->stale_move_ids,
+            sim->world.stale_move_ids[player_index],
+            sizeof(player->stale_move_ids));
     }
 
     return PF_STATUS_OK;

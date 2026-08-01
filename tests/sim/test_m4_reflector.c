@@ -298,7 +298,10 @@ static int run_hit_and_reflection_contract(
         event->target_player != UINT8_C(1) ||
         event->detail != (uint16_t)PF_M4_ACTION_REFLECTOR_GROUND ||
         event->velocity_y_q16 <= INT32_C(0) ||
-        inspection.players[1].damage_q16 == UINT32_C(0))
+        inspection.players[1].damage_q16 == UINT32_C(0) ||
+        inspection.players[0].stale_move_count != UINT8_C(1) ||
+        inspection.players[0].stale_move_ids[0] !=
+            (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND)
     {
         (void)fprintf(
             stderr,
@@ -553,7 +556,7 @@ static int run_state_interfaces_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "reflector-save-size") ||
-        save_size != (size_t)726)
+        save_size != (size_t)771)
     {
         return fail("reflector-save-setup");
     }
@@ -765,7 +768,7 @@ int main(void)
     }
     (void)printf(
         "m4-reflector=pass content_schema=%u state_schema=%u "
-        "save_bytes=726 reflector_invariants=32 shine_spike=1 "
+        "save_bytes=771 reflector_invariants=32 shine_spike=1 "
         "projectile_reflect=1 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         (unsigned int)PF_SIM_STATE_SCHEMA_VERSION);

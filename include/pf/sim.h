@@ -14,16 +14,17 @@ extern "C"
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(5)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(46)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(9)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(47)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(10)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(45)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(46)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
 #define PF_SIM_MAX_PLAYERS UINT32_C(4)
+#define PF_SIM_STALE_MOVE_QUEUE_CAPACITY UINT8_C(9)
 #define PF_SIM_MAX_EVENTS_PER_TICK UINT8_C(16)
 #define PF_SIM_EVENT_NO_PLAYER UINT8_MAX
 #define PF_SIM_MAX_STOCK_COUNT UINT8_C(99)
@@ -268,6 +269,10 @@ typedef struct pf_player_observation
     int16_t shield_tilt_x;
     int16_t shield_tilt_y;
     uint32_t shield_health_q16;
+    uint32_t stale_move_multiplier_q16;
+    uint8_t stale_move_count;
+    uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
+    uint8_t reserved2[2];
 } pf_player_observation;
 
 typedef struct pf_item_observation

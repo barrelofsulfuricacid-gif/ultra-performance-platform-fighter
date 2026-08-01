@@ -17,7 +17,9 @@ _Static_assert(
             PF_RL_COMPACT_SMASH_CHARGE_VALUES +
             PF_RL_COMPACT_SHIELD_STRENGTH_VALUES +
             PF_RL_COMPACT_SHIELD_HEALTH_VALUES +
-            PF_RL_COMPACT_SHIELD_TILT_VALUES,
+            PF_RL_COMPACT_SHIELD_TILT_VALUES +
+            PF_SIM_MAX_PLAYERS *
+                PF_RL_COMPACT_STALE_MOVE_PLAYER_STRIDE,
     "compact RL observation dimensions must cover canonical entity state");
 _Static_assert(
     (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
@@ -184,6 +186,7 @@ static void pf_rl_fill_compact(
 {
     uint32_t match_bits;
     uint32_t player_index;
+    uint32_t stale_index;
 
     compact->values[PF_RL_COMPACT_TICK_LOW_INDEX] =
         pf_rl_u64_low(observation->tick);
@@ -365,6 +368,32 @@ static void pf_rl_fill_compact(
         compact->values[base + UINT16_C(1)] =
             (int32_t)observation->players[player_index]
                 .shield_tilt_y;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const pf_player_observation *player =
+            &observation->players[player_index];
+        const uint16_t base =
+            PF_RL_COMPACT_STALE_MOVE_PLAYER_BASE(player_index);
+
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_COUNT_OFFSET] =
+            (int32_t)player->stale_move_count;
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
+            (int32_t)player->stale_move_multiplier_q16;
+        for (stale_index = UINT32_C(0);
+             stale_index <
+                 (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+             ++stale_index)
+        {
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_IDS_OFFSET +
+                (uint16_t)stale_index] =
+                (int32_t)player->stale_move_ids[stale_index];
+        }
     }
 }
 

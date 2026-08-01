@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 447
+#define TEST_VIEW_COUNT 496
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 53
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -94,6 +94,13 @@
 #define TEST_REVIVAL_LEFT 1
 #define TEST_REVIVAL_RIGHT 2
 #define TEST_REVIVAL_Y 3
+#define TEST_STALE_MOVE_BASE 447
+#define TEST_STALE_MOVE_STRIDE 12
+#define TEST_STALE_MOVE_COUNT 0
+#define TEST_STALE_MOVE_MULTIPLIER 1
+#define TEST_STALE_MOVE_REGISTERED 2
+#define TEST_STALE_MOVE_IDS 3
+#define TEST_ITEM_STALE_REGISTERED 495
 
 static int test_install_count;
 static int test_render_count;
@@ -524,7 +531,7 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 43 ||
+        test_view[0] != 44 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -585,6 +592,18 @@ int main(void)
         test_view[
             TEST_REVIVAL_BASE + TEST_REVIVAL_STRIDE +
             TEST_REVIVAL_ACTIVE] != 0 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_COUNT] != 0 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_MULTIPLIER] != 65536 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_REGISTERED] != 0 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_IDS] != 0 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_STRIDE +
+            TEST_STALE_MOVE_MULTIPLIER] != 65536 ||
+        test_view[TEST_ITEM_STALE_REGISTERED] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||
@@ -1276,7 +1295,15 @@ int main(void)
         test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 1 ||
         test_view[TEST_EVENT0 + TEST_EVENT_SOURCE] != 0 ||
         test_view[TEST_EVENT0 + TEST_EVENT_TARGET] != 1 ||
-        test_view[TEST_EVENT0 + TEST_EVENT_VALUE] <= 0)
+        test_view[TEST_EVENT0 + TEST_EVENT_VALUE] <= 0 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_COUNT] != 1 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_MULTIPLIER] != 60928 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_REGISTERED] != 1 ||
+        test_view[
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_IDS] != 12)
     {
         return fail("event-journal-hit-view");
     }

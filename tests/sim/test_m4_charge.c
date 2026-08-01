@@ -14,9 +14,9 @@
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_REPLAY_TICKS UINT32_C(24)
 #define TEST_SAVE_HEADER_BYTES ((size_t)140)
-#define TEST_SAVE_PAYLOAD_BYTES ((size_t)586)
+#define TEST_SAVE_PAYLOAD_BYTES ((size_t)631)
 #define TEST_SAVE_CHECKSUM_OFFSET ((size_t)108)
-#define TEST_SAVE_CHARGE0_OFFSET ((size_t)627)
+#define TEST_SAVE_CHARGE0_OFFSET ((size_t)671)
 
 typedef struct test_storage
 {
@@ -413,7 +413,11 @@ static int release_damage_after_charge(
         if (hit != NULL)
         {
             if (hit->detail !=
-                (uint16_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND)
+                    (uint16_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
+                inspection.players[0].stale_move_count !=
+                    UINT8_C(1) ||
+                inspection.players[0].stale_move_ids[0] !=
+                    (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND)
             {
                 return fail("charge-release-event-detail");
             }
@@ -562,7 +566,7 @@ static int run_state_interfaces_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "charge-save-size") ||
-        save_size != (size_t)726)
+        save_size != (size_t)771)
     {
         return fail("charge-save-setup");
     }
@@ -772,7 +776,7 @@ int main(void)
         return 1;
     }
     (void)printf(
-        "m4-charge=pass content_schema=%u state_schema=%u save_bytes=726 "
+        "m4-charge=pass content_schema=%u state_schema=%u save_bytes=771 "
         "charge_invariants=28 charge_storage_cancel=1 resumed_release=1 "
         "replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,

@@ -16,6 +16,124 @@ static uint32_t pf_m4_saturating_damage(
     return current + added;
 }
 
+uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state)
+{
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_GROUND_ATTACK:
+        case PF_M4_ACTION_STRONG_ATTACK:
+        case PF_M4_ACTION_AERIAL_ATTACK:
+        case PF_M4_ACTION_STRONG_AERIAL_ATTACK:
+        case PF_M4_ACTION_GETUP_ATTACK:
+        case PF_M4_ACTION_THROW_FORWARD:
+        case PF_M4_ACTION_THROW_BACK:
+        case PF_M4_ACTION_THROW_UP:
+        case PF_M4_ACTION_THROW_DOWN:
+        case PF_M4_ACTION_DASH_ATTACK:
+        case PF_M4_ACTION_JAB_FINAL:
+        case PF_M4_ACTION_PUMMEL:
+        case PF_M4_ACTION_UP_ATTACK:
+        case PF_M4_ACTION_DOWN_ATTACK:
+        case PF_M4_ACTION_FORWARD_AERIAL:
+        case PF_M4_ACTION_BACK_AERIAL:
+        case PF_M4_ACTION_UP_AERIAL:
+        case PF_M4_ACTION_DOWN_AERIAL:
+        case PF_M4_ACTION_LEDGE_ATTACK:
+        case PF_M4_ACTION_FORWARD_ATTACK:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+        case PF_M4_ACTION_UP_STRONG_ATTACK:
+        case PF_M4_ACTION_DOWN_STRONG_ATTACK:
+        case PF_M4_ACTION_CHARGE_RELEASE_GROUND:
+            return action_state;
+        case PF_M4_ACTION_ITEM_THROW:
+        case PF_M4_ACTION_ITEM_DASH_THROW:
+            return (uint8_t)PF_M4_ACTION_ITEM_THROW;
+        case PF_M4_ACTION_PROJECTILE_FIRE_GROUND:
+        case PF_M4_ACTION_PROJECTILE_FIRE_AIR:
+            return (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
+        case PF_M4_ACTION_REFLECTOR_GROUND:
+        case PF_M4_ACTION_REFLECTOR_AIR:
+            return (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND;
+        default:
+            return UINT8_C(0);
+    }
+}
+
+uint32_t pf_m4_stale_move_multiplier_q16(
+    const pf_m4_fighter_data *fighter,
+    const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
+    uint8_t stale_move_count,
+    uint8_t move_id)
+{
+    uint32_t reduction_q16 = UINT32_C(0);
+    uint32_t stale_index;
+
+    if (fighter == NULL || stale_move_ids == NULL ||
+        stale_move_count > PF_SIM_STALE_MOVE_QUEUE_CAPACITY ||
+        move_id == UINT8_C(0))
+    {
+        return (uint32_t)PF_Q16_ONE;
+    }
+    for (stale_index = UINT32_C(0);
+         stale_index < (uint32_t)stale_move_count;
+         ++stale_index)
+    {
+        if (stale_move_ids[stale_index] == move_id)
+        {
+            reduction_q16 +=
+                (uint32_t)fighter
+                    ->stale_move_slot_reduction_q16[stale_index];
+        }
+    }
+    return (uint32_t)PF_Q16_ONE - reduction_q16;
+}
+
+static uint32_t pf_m4_stale_scaled_damage_q16(
+    const pf_m4_fighter_data *fighter,
+    const pf_sim_scratch *scratch,
+    uint32_t player_index,
+    uint8_t move_id,
+    uint32_t damage_q16)
+{
+    const uint32_t multiplier_q16 =
+        pf_m4_stale_move_multiplier_q16(
+            fighter,
+            scratch->stale_move_ids[player_index],
+            scratch->stale_move_count[player_index],
+            move_id);
+
+    return (uint32_t)(
+        (uint64_t)damage_q16 * (uint64_t)multiplier_q16 /
+        (uint64_t)(uint32_t)PF_Q16_ONE);
+}
+
+static void pf_m4_register_stale_move(
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    uint8_t move_id)
+{
+    uint32_t stale_index;
+    uint32_t stale_count =
+        (uint32_t)scratch->stale_move_count[player_index];
+
+    if (stale_count <
+        (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY)
+    {
+        ++stale_count;
+        scratch->stale_move_count[player_index] =
+            (uint8_t)stale_count;
+    }
+    for (stale_index = stale_count - UINT32_C(1);
+         stale_index != UINT32_C(0);
+         --stale_index)
+    {
+        scratch->stale_move_ids[player_index][stale_index] =
+            scratch->stale_move_ids[player_index]
+                                   [stale_index - UINT32_C(1)];
+    }
+    scratch->stale_move_ids[player_index][0] = move_id;
+}
+
 static int32_t pf_m4_scaled_knockback(
     int32_t base_q16,
     int32_t growth_q16,
@@ -1271,6 +1389,7 @@ static void pf_m4_release_grab(
         scratch->action_state[holder_index] =
             (uint8_t)PF_M4_ACTION_GRAB_RELEASE;
         scratch->action_ticks[holder_index] = UINT16_C(0);
+        scratch->attack_stale_registered[holder_index] = UINT8_C(0);
     }
     if (scratch->action_state[target_index] ==
         (uint8_t)PF_M4_ACTION_GRABBED)
@@ -1481,6 +1600,7 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->short_hop_latched[target_index] = UINT8_C(0);
     scratch->fast_fall[target_index] = UINT8_C(0);
     scratch->attack_hit_mask[target_index] = UINT8_C(0);
+    scratch->attack_stale_registered[target_index] = UINT8_C(0);
     scratch->sdi_pulse_count[target_index] = UINT8_C(0);
     scratch->sdi_direction_x[target_index] = INT8_C(0);
     scratch->sdi_direction_y[target_index] = INT8_C(0);
@@ -1605,19 +1725,28 @@ static pf_status pf_m4_resolve_grabs(
             }
             if (action_ticks == content->fighter.pummel_hit_tick)
             {
+                const uint8_t move_id =
+                    (uint8_t)PF_M4_ACTION_PUMMEL;
+                const uint32_t damage_q16 =
+                    pf_m4_stale_scaled_damage_q16(
+                        &content->fighter,
+                        scratch,
+                        holder_index,
+                        move_id,
+                        content->fighter.pummel_damage_q16);
                 uint32_t pummel_sequence;
 
                 scratch->damage_q16[target_index] =
                     pf_m4_saturating_damage(
                         scratch->damage_q16[target_index],
-                        content->fighter.pummel_damage_q16);
+                        damage_q16);
                 if (pf_sim_push_event(
                         scratch,
                         world->tick,
                         PF_SIM_EVENT_PUMMEL,
                         (uint8_t)holder_index,
                         (uint8_t)target_index,
-                        content->fighter.pummel_damage_q16,
+                        damage_q16,
                         INT32_C(0),
                         INT32_C(0),
                         UINT16_C(0),
@@ -1630,9 +1759,19 @@ static pf_status pf_m4_resolve_grabs(
                     pummel_sequence;
                 scratch->last_hit_tick[target_index] = world->tick;
                 scratch->last_hit_damage_q16[target_index] =
-                    content->fighter.pummel_damage_q16;
+                    damage_q16;
                 scratch->last_hit_attacker[target_index] =
                     (uint8_t)holder_index;
+                if (scratch->attack_stale_registered[holder_index] ==
+                    UINT8_C(0))
+                {
+                    pf_m4_register_stale_move(
+                        scratch,
+                        holder_index,
+                        move_id);
+                    scratch->attack_stale_registered[holder_index] =
+                        UINT8_C(1);
+                }
             }
         }
         if (throw_data != NULL)
@@ -1646,10 +1785,18 @@ static pf_status pf_m4_resolve_grabs(
             }
             if (action_ticks == throw_data->release_tick)
             {
+                const uint8_t move_id = holder_action;
+                const uint32_t damage_q16 =
+                    pf_m4_stale_scaled_damage_q16(
+                        &content->fighter,
+                        scratch,
+                        holder_index,
+                        move_id,
+                        throw_data->damage_q16);
                 const uint32_t resulting_damage =
                     pf_m4_saturating_damage(
                         scratch->damage_q16[target_index],
-                        throw_data->damage_q16);
+                        damage_q16);
                 const int32_t launch_velocity_x =
                     (int32_t)scratch->facing[holder_index] *
                     pf_m4_scaled_throw_velocity(
@@ -1672,7 +1819,7 @@ static pf_status pf_m4_resolve_grabs(
                         scratch,
                         (uint8_t)holder_index,
                         target_index,
-                        throw_data->damage_q16,
+                        damage_q16,
                         launch_velocity_x,
                         launch_velocity_y,
                         throw_data->hitlag_ticks,
@@ -1687,6 +1834,16 @@ static pf_status pf_m4_resolve_grabs(
                     holder_action;
                 scratch->action_state[holder_index] =
                     (uint8_t)PF_M4_ACTION_HITLAG;
+                if (scratch->attack_stale_registered[holder_index] ==
+                    UINT8_C(0))
+                {
+                    pf_m4_register_stale_move(
+                        scratch,
+                        holder_index,
+                        move_id);
+                    scratch->attack_stale_registered[holder_index] =
+                        UINT8_C(1);
+                }
             }
         }
     }
@@ -1791,6 +1948,8 @@ static pf_status pf_m4_resolve_grabs(
             scratch->short_hop_latched[target_index] = UINT8_C(0);
             scratch->fast_fall[target_index] = UINT8_C(0);
             scratch->attack_hit_mask[target_index] = UINT8_C(0);
+            scratch->attack_stale_registered[target_index] =
+                UINT8_C(0);
             scratch->powershield[target_index] = UINT8_C(0);
             scratch->tumble[target_index] = UINT8_C(0);
             if (pf_sim_push_event(
@@ -1905,6 +2064,16 @@ static pf_status pf_m4_resolve_item_combat(
         scratch->item_velocity_y_q16 =
             item->hit_bounce_velocity_y_q16;
 
+        const uint8_t move_id =
+            (uint8_t)PF_M4_ACTION_ITEM_THROW;
+        const uint32_t damage_q16 =
+            pf_m4_stale_scaled_damage_q16(
+                &content->fighter,
+                scratch,
+                source_index,
+                move_id,
+                item->damage_q16);
+
         if (pf_m4_action_is_guarding(
                 scratch->action_state[target_index]) &&
             shield_overlap != 0)
@@ -1919,11 +2088,11 @@ static pf_status pf_m4_resolve_item_combat(
             const uint32_t shield_damage =
                 pf_m4_shield_damage_q16(
                     &content->fighter,
-                    item->damage_q16);
+                    damage_q16);
             const int32_t defender_pushback =
                 pf_m4_shield_defender_pushback_q16(
                     &content->fighter,
-                    item->damage_q16,
+                    damage_q16,
                     powershield,
                     scratch->shield_strength[target_index]);
 
@@ -1964,7 +2133,7 @@ static pf_status pf_m4_resolve_item_combat(
                 scratch->shield_stun_ticks[target_index] =
                     pf_m4_shield_stun_ticks(
                         &content->fighter,
-                        item->damage_q16);
+                        damage_q16);
                 scratch->hitlag_resume_action[target_index] =
                     (uint8_t)PF_M4_ACTION_SHIELD_STUN;
             }
@@ -1995,7 +2164,7 @@ static pf_status pf_m4_resolve_item_combat(
             const uint32_t resulting_damage =
                 pf_m4_saturating_damage(
                     scratch->damage_q16[target_index],
-                    item->damage_q16);
+                    damage_q16);
             const int32_t knockback_x = pf_m4_scaled_knockback(
                 item->base_knockback_x_q16,
                 item->knockback_growth_q16,
@@ -2013,7 +2182,7 @@ static pf_status pf_m4_resolve_item_combat(
                     scratch,
                     (uint8_t)source_index,
                     target_index,
-                    item->damage_q16,
+                    damage_q16,
                     (int32_t)launch_direction * knockback_x,
                     -knockback_y,
                     item->hitlag_ticks,
@@ -2022,6 +2191,14 @@ static pf_status pf_m4_resolve_item_combat(
                 PF_STATUS_OK)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            if (scratch->item_stale_registered == UINT8_C(0))
+            {
+                pf_m4_register_stale_move(
+                    scratch,
+                    source_index,
+                    move_id);
+                scratch->item_stale_registered = UINT8_C(1);
             }
         }
         return PF_STATUS_OK;
@@ -2224,14 +2401,23 @@ static pf_status pf_m4_resolve_projectile_combat(
                 scratch->action_state[target_index]) &&
             shield_overlap != 0)
         {
+            const uint8_t move_id =
+                (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
+            const uint32_t damage_q16 =
+                pf_m4_stale_scaled_damage_q16(
+                    &content->fighter,
+                    scratch,
+                    owner_index,
+                    move_id,
+                    projectile->damage_q16);
             const uint32_t shield_damage =
                 pf_m4_shield_damage_q16(
                     &content->fighter,
-                    projectile->damage_q16);
+                    damage_q16);
             const int32_t defender_pushback =
                 pf_m4_shield_defender_pushback_q16(
                     &content->fighter,
-                    projectile->damage_q16,
+                    damage_q16,
                     0,
                     scratch->shield_strength[target_index]);
             pf_sim_event_type event_type;
@@ -2270,7 +2456,7 @@ static pf_status pf_m4_resolve_projectile_combat(
                 scratch->shield_stun_ticks[target_index] =
                     pf_m4_shield_stun_ticks(
                         &content->fighter,
-                        projectile->damage_q16);
+                        damage_q16);
                 scratch->hitlag_resume_action[target_index] =
                     (uint8_t)PF_M4_ACTION_SHIELD_STUN;
                 event_type = PF_SIM_EVENT_SHIELD_BLOCK;
@@ -2295,10 +2481,19 @@ static pf_status pf_m4_resolve_projectile_combat(
         }
 
         {
+            const uint8_t move_id =
+                (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
+            const uint32_t damage_q16 =
+                pf_m4_stale_scaled_damage_q16(
+                    &content->fighter,
+                    scratch,
+                    owner_index,
+                    move_id,
+                    projectile->damage_q16);
             const uint32_t resulting_damage =
                 pf_m4_saturating_damage(
                     scratch->damage_q16[target_index],
-                    projectile->damage_q16);
+                    damage_q16);
             const int32_t knockback_x = pf_m4_scaled_knockback(
                 projectile->base_knockback_x_q16,
                 projectile->knockback_growth_q16,
@@ -2316,7 +2511,7 @@ static pf_status pf_m4_resolve_projectile_combat(
                     scratch,
                     (uint8_t)owner_index,
                     target_index,
-                    projectile->damage_q16,
+                    damage_q16,
                     (int32_t)launch_direction * knockback_x,
                     -knockback_y,
                     projectile->hitlag_ticks,
@@ -2326,6 +2521,10 @@ static pf_status pf_m4_resolve_projectile_combat(
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
+            pf_m4_register_stale_move(
+                scratch,
+                owner_index,
+                move_id);
         }
         pf_m4_clear_projectile_combat(scratch);
         return PF_STATUS_OK;
@@ -2404,6 +2603,14 @@ pf_status pf_m4_resolve_combat(
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
+        attacker_attack[attacker_index].damage_q16 =
+            pf_m4_stale_scaled_damage_q16(
+                &content->fighter,
+                scratch,
+                attacker_index,
+                pf_m4_stale_move_id_for_action(
+                    attacker_action[attacker_index]),
+                attacker_attack[attacker_index].damage_q16);
 
         for (target_index = UINT32_C(0);
              target_index < (uint32_t)world->player_count;
@@ -2621,6 +2828,17 @@ pf_status pf_m4_resolve_combat(
                     (uint16_t)attacker_action[owner]) != PF_STATUS_OK)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            if (scratch->attack_stale_registered[owner] ==
+                UINT8_C(0))
+            {
+                pf_m4_register_stale_move(
+                    scratch,
+                    owner,
+                    pf_m4_stale_move_id_for_action(
+                        attacker_action[owner]));
+                scratch->attack_stale_registered[owner] =
+                    UINT8_C(1);
             }
         }
     }

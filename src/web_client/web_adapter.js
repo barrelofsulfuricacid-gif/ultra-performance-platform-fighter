@@ -2365,7 +2365,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 447) {
+    if (!state || viewCount !== 496) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2374,7 +2374,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 43) {
+    if (view[0] !== 44) {
       return;
     }
     var canvas = state.canvas;
@@ -3412,6 +3412,19 @@ mergeInto(LibraryManager.library, {
       if (view[base + 22] !== 0) {
         action = "TUMBLE · " + action;
       }
+      var staleMoveBase = 447 + playerIndex * 12;
+      var staleMoveQueue = [];
+      var staleMoveSlot;
+      for (
+        staleMoveSlot = 0;
+        staleMoveSlot < view[staleMoveBase];
+        staleMoveSlot += 1
+      ) {
+        var staleMoveId = view[staleMoveBase + 3 + staleMoveSlot];
+        staleMoveQueue.push(
+          actionNames[staleMoveId] || "STATE " + staleMoveId
+        );
+      }
       state.playerStates[playerIndex].innerHTML =
         "<strong>P" +
         (playerIndex + 1) +
@@ -3498,7 +3511,15 @@ mergeInto(LibraryManager.library, {
         "<br>revival platform " +
         (view[431 + playerIndex * 4] !== 0
           ? "ACTIVE · move/button to drop"
-          : "inactive");
+          : "inactive") +
+        "<br>stale queue newest first " +
+        (staleMoveQueue.length === 0
+          ? "empty"
+          : staleMoveQueue.join(" ← ")) +
+        " · selected move scale " +
+        ((view[staleMoveBase + 1] / q16) * 100).toFixed(3) +
+        "% · attack registered " +
+        view[staleMoveBase + 2];
     });
 
     var itemStateNames = [
@@ -3539,7 +3560,9 @@ mergeInto(LibraryManager.library, {
       "f · pickup lockout " +
       view[itemBase + 12] +
       "f · hit mask " +
-      view[itemBase + 13];
+      view[itemBase + 13] +
+      " · stale registered " +
+      view[495];
 
     var projectileStateNames = ["INACTIVE", "SPAWNING", "ACTIVE"];
     state.projectileState.innerHTML =

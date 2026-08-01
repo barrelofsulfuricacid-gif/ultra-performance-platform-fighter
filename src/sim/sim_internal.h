@@ -85,6 +85,10 @@ typedef struct pf_world_state
     uint32_t shield_health_q16[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
+    uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
+    uint8_t stale_move_count[PF_SIM_MAX_PLAYERS];
+    uint8_t stale_move_ids[PF_SIM_MAX_PLAYERS]
+                          [PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
@@ -105,6 +109,7 @@ typedef struct pf_world_state
     uint8_t item_holder_slot;
     uint8_t item_source_slot;
     uint8_t item_hit_mask;
+    uint8_t item_stale_registered;
     uint8_t item_throw_direction;
     int32_t projectile_position_x_q16;
     int32_t projectile_position_y_q16;
@@ -165,6 +170,10 @@ typedef struct pf_sim_scratch
     uint32_t shield_health_q16[PF_SIM_MAX_PLAYERS];
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
+    uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
+    uint8_t stale_move_count[PF_SIM_MAX_PLAYERS];
+    uint8_t stale_move_ids[PF_SIM_MAX_PLAYERS]
+                          [PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
@@ -185,6 +194,7 @@ typedef struct pf_sim_scratch
     uint8_t item_holder_slot;
     uint8_t item_source_slot;
     uint8_t item_hit_mask;
+    uint8_t item_stale_registered;
     uint8_t item_throw_direction;
     int32_t projectile_position_x_q16;
     int32_t projectile_position_y_q16;
@@ -315,6 +325,12 @@ pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch);
+uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state);
+uint32_t pf_m4_stale_move_multiplier_q16(
+    const pf_m4_fighter_data *fighter,
+    const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
+    uint8_t stale_move_count,
+    uint8_t move_id);
 int pf_m4_attack_hitbox(
     const pf_m4_content *content,
     int32_t position_x_q16,

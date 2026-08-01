@@ -162,6 +162,8 @@ static int verify_transition_contract(
     {
         const uint16_t base =
             PF_RL_COMPACT_PLAYER_BASE(player_index);
+        const uint16_t stale_base =
+            PF_RL_COMPACT_STALE_MOVE_PLAYER_BASE(player_index);
         const pf_player_observation *player =
             &transition->structured_observation.players[player_index];
         if (transition->compact_observation.values[
@@ -208,7 +210,15 @@ static int verify_transition_contract(
                 (uint16_t)(UINT16_C(2) *
                            (uint16_t)player_index) +
                 UINT16_C(1)] !=
-                (int32_t)player->shield_tilt_y)
+                (int32_t)player->shield_tilt_y ||
+            transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_COUNT_OFFSET] !=
+                (int32_t)player->stale_move_count ||
+            transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] !=
+                (int32_t)player->stale_move_multiplier_q16)
         {
             (void)fprintf(
                 stderr,
@@ -216,6 +226,30 @@ static int verify_transition_contract(
                 "\n",
                 player_index);
             return 0;
+        }
+        {
+            uint32_t stale_slot;
+
+            for (stale_slot = UINT32_C(0);
+                 stale_slot <
+                     (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+                 ++stale_slot)
+            {
+                if (transition->compact_observation.values[
+                        stale_base +
+                        PF_RL_COMPACT_STALE_MOVE_IDS_OFFSET +
+                        (uint16_t)stale_slot] !=
+                    (int32_t)player->stale_move_ids[stale_slot])
+                {
+                    (void)fprintf(
+                        stderr,
+                        "rl-api=fail operation=compact-stale-move "
+                        "slot=%" PRIu32 " queue=%" PRIu32 "\n",
+                        player_index,
+                        stale_slot);
+                    return 0;
+                }
+            }
         }
     }
     return 1;

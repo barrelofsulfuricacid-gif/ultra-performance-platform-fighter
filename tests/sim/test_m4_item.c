@@ -695,7 +695,11 @@ static int run_aerial_drop_contract(
         inspection.players[1].damage_q16 !=
             UINT32_C(7) * UINT32_C(65536) ||
         inspection.item.velocity_y_q16 >= INT32_C(0) ||
-        inspection.item.hit_mask != UINT8_C(2))
+        inspection.item.hit_mask != UINT8_C(2) ||
+        inspection.item.stale_registered != UINT8_C(1) ||
+        inspection.players[0].stale_move_count != UINT8_C(1) ||
+        inspection.players[0].stale_move_ids[0] !=
+            (uint8_t)PF_M4_ACTION_ITEM_THROW)
     {
         (void)fprintf(
             stderr,
@@ -804,7 +808,7 @@ static int run_save_replay_rl_contract(
                 pf_sim_query_save_size(source, &save_size),
                 PF_STATUS_OK,
                 "item-save-size") ||
-            save_size != (size_t)726)
+            save_size != (size_t)771)
         {
             return fail("item-save-setup");
         }
@@ -1064,7 +1068,7 @@ int main(void)
     }
 
     (void)printf(
-        "m4-item=pass content_schema=%u state_schema=%u save_bytes=726 "
+        "m4-item=pass content_schema=%u state_schema=%u save_bytes=771 "
         "item_invariants=44 bat_drop=1 glide_toss=1 "
         "jump_cancel_throw=1 directional_throws=4 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
