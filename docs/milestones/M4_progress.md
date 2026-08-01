@@ -1256,6 +1256,18 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   execution, broader stages/projectiles, and complete cross-target evidence
   remain before `verified`.
 
+## Classified in the emergent-stalling slice
+
+- Stalling adds no new mechanic or dedicated oracle. The existing playable
+  Planking route already repeats legal conflict-avoidance cycles against an
+  attacking opponent through the canonical ledge, air-jump, and timer state.
+- Its three exact-boundary drop/double-jump/regrab cycles demonstrate the
+  time-extending route and resource/protection refresh; the existing two-tick
+  fast-fall control demonstrates the vulnerability limit and responder punish.
+- Registry row 52, Stalling, advances from `planned` to `playable` using that
+  production-path native/browser evidence. Owner execution and broader
+  avoidance policies remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1360,7 +1372,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, teeter cancel,
+  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, teeter cancel,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1371,7 +1383,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 52 playable, 3 primitive-ready, and 5 planned.
+  blocked: 1 verified, 53 playable, 3 primitive-ready, and 4 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1435,7 +1447,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Stage-humping/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Stage-humping/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

@@ -390,6 +390,10 @@ The startup `planking_probe` uses a narrow data fixture to perform three exact
 drop/double-jump/regrab refreshes while Player 2's jab is active, then
 fast-falls for the final two ticks in the negative route so the same jab hits.
 The fixture is restored before the live default match is rendered.
+That same ordinary-input route is the Stalling recipe: repeat the safe cycle
+to delay engagement, then use the fast-fall control to confirm the resource and
+vulnerability limit. Stalling is emergent and therefore shares the existing
+Planking native/browser evidence rather than adding a duplicate probe.
 
 The light jab has two startup ticks, two active ticks, eight recovery ticks,
 6% damage, and four hitlag ticks. Its translucent amber rectangle is the exact

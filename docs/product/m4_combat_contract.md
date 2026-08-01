@@ -737,6 +737,13 @@ immediately after release and compares every future canonical hash through all
 three regrabs; browser startup repeats both outcomes and restores default
 content.
 
+The same bounded production route satisfies playable
+[stalling](https://www.ssbwiki.com/Stalling) evidence without adding a
+stalling-only action or test path: repeated safe refreshes deliberately delay
+engagement, consume and restore the air-jump/protection resources, and the
+existing mistimed route proves that the attacking opponent can punish its
+vulnerability boundary.
+
 ## Grab, capture, escape, and jump-canceled grab
 
 A fresh light-attack edge while a shield trigger is held selects the standing
