@@ -3,8 +3,9 @@
 **Status:** In progress; M4.1 movement/ledge core, the complete grounded
 jab/tilt/dash-attack/directional-strong vocabulary, charged directional smashes,
 M4.2 hit-reaction layers, missed-tech floor recovery, dense and analog light
-shield with health/strength-derived collision volume, tilt, and pokes, and
-physical powershield cancel, solid stage geometry, and wall/ceiling tech
+shield with health/strength-derived collision volume, tilt, pokes, grounded
+horizontal shield SDI/ASDI, and physical powershield cancel, solid stage
+geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
 ledge-cancelling, 29-tick ledge-regrab lockout and planking, the complete
 ledge-roll and ledge-attack option set, the complete five-direction
@@ -146,7 +147,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   production 1v1 workload varied by +1.92% on WSL and -2.03% on Windows; the
   maximum-combat-entities workload varied by +0.70% and +1.11% respectively,
   all within their same-target non-regression envelopes.
-- A clean Tracy 0.13.1 profile-only capture at `0c72167` records all thirteen
+- A clean Tracy 0.13.1 profile-only capture at exact grounded-shield-SDI commit
+  `f55f07e` records all thirteen
   workload slots, ten measured scenarios, frame marks, and canonical zones.
   WSL uses the recorded timer fallback; the raw trace remains local and the
   platform-profiler claim remains unavailable because `perf` was not installed.

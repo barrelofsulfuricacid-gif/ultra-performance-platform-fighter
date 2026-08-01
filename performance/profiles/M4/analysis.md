@@ -4,7 +4,7 @@ Tracy 0.13.1 capture: **pass**. The canonical profile workload entered its
 instrumented scenario zones and emitted frame marks while exercising all 13
 scenario slots.
 
-- Commit: `08c927a618d42e6f355383937aca026a1c8e566c`
+- Commit: `f55f07eb4b023efb074af6c9d8215838f0154dcc`
 - Dirty tree: `false`
 - Profile workload: `pass`
 - Measured scenarios: 10
@@ -15,8 +15,8 @@ scenario slots.
 - Captured frames: 3
 - Captured zones: 2
 - Trace SHA-256:
-  `82374094bab9f4c79695b6d628601f10862d8318693ff261f84c86f24dd88967`
-- Trace size: 11,777 bytes
+  `b5966a38d9dd4ff17f1de95909005d0c9492215ee7ffa9a77497cea06505225f`
+- Trace size: 11,801 bytes
 - Tracy timer fallback: `ON`
 - Platform-profiler claim: none (`perf` was not installed in the WSL image)
 
@@ -29,7 +29,7 @@ The trace qualifies the production M4 benchmark workload and capture path. It
 does not establish a machine-independent throughput claim or attribute a new
 optimization. The raw trace, capture log, workload log, manifest, exact machine
 fingerprint, and capture-tool build remain under
-`performance/local/profiles/M4-shield-geometry-08c927a/` in the measuring
+`performance/local/profiles/M4-shield-sdi-f55f07e/` in the measuring
 worktree.
 
 See the [M4 combat performance checkpoint](../../reports/2026-08-01_m4_combat.md)
