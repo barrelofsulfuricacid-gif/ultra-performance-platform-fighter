@@ -172,6 +172,43 @@ static uint16_t pf_m4_axis_magnitude(int16_t axis)
     return (uint16_t)axis;
 }
 
+static int16_t pf_m4_shield_tilt_axis(
+    const pf_m4_fighter_data *fighter,
+    int16_t axis)
+{
+    return pf_m4_axis_magnitude(axis) <= fighter->axis_dead_zone
+               ? INT16_C(0)
+               : axis;
+}
+
+static void pf_m4_update_shield_tilt(
+    const pf_m4_fighter_data *fighter,
+    pf_sim_scratch *scratch,
+    const pf_input_frame *input,
+    uint32_t player_index,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
+    {
+        scratch->shield_tilt_x[player_index] =
+            pf_m4_shield_tilt_axis(
+                fighter,
+                input->main_stick_x);
+        scratch->shield_tilt_y[player_index] =
+            pf_m4_shield_tilt_axis(
+                fighter,
+                input->main_stick_y);
+    }
+    else if (!pf_m4_action_retains_shield_strength(
+                 action_state,
+                 hitlag_resume_action))
+    {
+        scratch->shield_tilt_x[player_index] = INT16_C(0);
+        scratch->shield_tilt_y[player_index] = INT16_C(0);
+    }
+}
+
 static uint32_t pf_m4_u64_sqrt(uint64_t value)
 {
     uint64_t result = UINT64_C(0);
@@ -1335,6 +1372,8 @@ void pf_m4_reset_player(
     sim->world.charge_ticks[player_index] = UINT16_C(0);
     sim->world.smash_charge_ticks[player_index] = UINT16_C(0);
     sim->world.shield_strength[player_index] = UINT16_C(0);
+    sim->world.shield_tilt_x[player_index] = INT16_C(0);
+    sim->world.shield_tilt_y[player_index] = INT16_C(0);
     sim->world.grab_target_slot[player_index] = UINT8_C(0);
     sim->world.grab_owner_slot[player_index] = UINT8_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
@@ -1435,6 +1474,8 @@ static void pf_m4_enter_shield_break_launch(
     scratch->shield_stun_ticks[player_index] = UINT16_C(0);
     scratch->powershield[player_index] = UINT8_C(0);
     scratch->shield_strength[player_index] = UINT16_C(0);
+    scratch->shield_tilt_x[player_index] = INT16_C(0);
+    scratch->shield_tilt_y[player_index] = INT16_C(0);
     scratch->tech_window_ticks[player_index] = UINT16_C(0);
     scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
@@ -1864,6 +1905,10 @@ static void pf_m4_copy_combat_scratch(
         world->smash_charge_ticks[player_index];
     scratch->shield_strength[player_index] =
         world->shield_strength[player_index];
+    scratch->shield_tilt_x[player_index] =
+        world->shield_tilt_x[player_index];
+    scratch->shield_tilt_y[player_index] =
+        world->shield_tilt_y[player_index];
     scratch->grab_target_slot[player_index] =
         world->grab_target_slot[player_index];
     scratch->grab_owner_slot[player_index] =
@@ -1992,6 +2037,8 @@ static void pf_m4_prepare_spawn(
     scratch->charge_ticks[player_index] = UINT16_C(0);
     scratch->smash_charge_ticks[player_index] = UINT16_C(0);
     scratch->shield_strength[player_index] = UINT16_C(0);
+    scratch->shield_tilt_x[player_index] = INT16_C(0);
+    scratch->shield_tilt_y[player_index] = INT16_C(0);
     scratch->grab_target_slot[player_index] = UINT8_C(0);
     scratch->grab_owner_slot[player_index] = UINT8_C(0);
 }
@@ -2316,6 +2363,13 @@ pf_status pf_m4_step_player(
             }
         }
 
+        pf_m4_update_shield_tilt(
+            fighter,
+            scratch,
+            input,
+            player_index,
+            action_state,
+            scratch->hitlag_resume_action[player_index]);
         pf_m4_write_scratch(
             scratch,
             player_index,
@@ -2577,6 +2631,13 @@ pf_status pf_m4_step_player(
         {
             scratch->shield_strength[player_index] = UINT16_C(0);
         }
+        pf_m4_update_shield_tilt(
+            fighter,
+            scratch,
+            input,
+            player_index,
+            action_state,
+            scratch->hitlag_resume_action[player_index]);
         pf_m4_write_scratch(
             scratch,
             player_index,
@@ -5465,6 +5526,14 @@ pf_status pf_m4_step_player(
         scratch->shield_strength[player_index] = UINT16_C(0);
     }
 
+    pf_m4_update_shield_tilt(
+        fighter,
+        scratch,
+        input,
+        player_index,
+        action_state,
+        scratch->hitlag_resume_action[player_index]);
+
     pf_m4_write_scratch(
         scratch,
         player_index,
@@ -5746,6 +5815,24 @@ pf_status pf_m4_inspect(
             sim->world.smash_charge_ticks[player_index];
         player->shield_strength =
             sim->world.shield_strength[player_index];
+        player->shield_tilt_x =
+            sim->world.shield_tilt_x[player_index];
+        player->shield_tilt_y =
+            sim->world.shield_tilt_y[player_index];
+        player->shield_active = (uint8_t)pf_m4_shield_box(
+            &sim->content.fighter,
+            player->position_x_q16,
+            player->position_y_q16,
+            player->action_state,
+            sim->world.hitlag_resume_action[player_index],
+            player->shield_health_q16,
+            player->shield_strength,
+            player->shield_tilt_x,
+            player->shield_tilt_y,
+            &player->shield_left_q16,
+            &player->shield_right_q16,
+            &player->shield_top_q16,
+            &player->shield_bottom_q16);
         player->grab_target =
             sim->world.grab_target_slot[player_index] != UINT8_C(0)
                 ? (uint8_t)(

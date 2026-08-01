@@ -475,6 +475,12 @@ pf_status pf_sim_observe(
             sim->world.smash_charge_ticks[player_index];
         player->shield_strength =
             sim->world.shield_strength[player_index];
+        player->shield_tilt_x =
+            sim->world.shield_tilt_x[player_index];
+        player->shield_tilt_y =
+            sim->world.shield_tilt_y[player_index];
+        player->shield_health_q16 =
+            sim->world.shield_health_q16[player_index];
     }
 
     return PF_STATUS_OK;

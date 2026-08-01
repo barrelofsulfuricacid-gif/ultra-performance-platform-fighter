@@ -53,6 +53,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 41 | 42 | 140 | 554 | 694 | Canonical forward tilt and forward/up/down directional strong action IDs, input arbitration, authored attack data, and hitlag-resume semantics; no payload-layout change |
 | 42 | 43 | 140 | 562 | 702 | One canonical smash-charge tick value per player plus forward/up/down charge actions, early and automatic release, scaled damage, hitlag retention, and interruption clearing |
 | 43 | 44 | 140 | 570 | 710 | One canonical raw shield-strength value per player plus analog light-shield entry, interpolated hold depletion and defender pushback, dense-only powershield eligibility, and strength lifecycle semantics |
+| 44 | 45 | 140 | 586 | 726 | One canonical signed x/y shield-tilt pair per player plus health/strength-derived shield geometry, collision priority over overlapping hurtbox, exposed-hurtbox pokes, and tilt lifecycle semantics |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -61,8 +62,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
-`PFSAVE41`, `PFSAVE42`, or `PFSAVE43`.
-The active M4 runtime emits and accepts format 43 with state schema 44. Earlier
+`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, or `PFSAVE44`.
+The active M4 runtime emits and accepts format 44 with state schema 45. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -294,6 +295,22 @@ Release after the minimum hold, break, hit, grab, stock loss, respawn, and reset
 clear the value. Retaining the exact strength makes interpolated hold depletion
 and defender pushback deterministic across rollback; a format-42 reader cannot
 silently substitute dense behavior.
+
+Format 44 appends one little-endian signed 16-bit x tilt followed by one signed
+16-bit y tilt for each fixed player slot. Values inside the authored main-stick
+dead zone canonicalize to zero; ordinary shield ticks sample the current axes,
+while shield hitlag/stun retain the collision tilt. Loading permits nonzero
+tilt only when nonzero shield strength is legal and requires inactive slots and
+ended shield lifecycles to remain zero.
+
+Exact shield bounds are derived rather than serialized. The default base half
+extents are 0.8 by 1.4. A 0.15 minimum scale is blended with shield-health
+fraction times a strength-density scale that is 1 at light threshold and 0.5 at
+dense threshold. Signed tilt offsets the center by at most 0.3 per axis.
+Physical attacks, items, and projectiles block when they overlap this volume;
+shield wins where shield and hurtbox both overlap, while hurtbox-only contact
+is an ordinary hit. A format-43 reader cannot silently discard tilt or recreate
+the same future collision result.
 
 ## Why SHA-256
 

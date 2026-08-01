@@ -81,14 +81,15 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–42 remain historical checkpoints. The current M4
+Save formats 1–43 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
 taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack/
-directional-aerial/ledge-option/smash-charge/analog-light-shield state uses save
-format 43: a fixed 710-byte checkpoint with state schema 44 and a 570-byte
-payload. It appends one little-endian raw shield-strength value per fixed player
-slot and makes light/dense entry, held depletion, blocking, powershield
-eligibility, release, interruption, and hitlag-resume state fail closed. Save
+directional-aerial/ledge-option/smash-charge/analog-light-shield/shield-geometry
+state uses save format 44: a fixed 726-byte checkpoint with state schema 45 and
+a 586-byte payload. It appends one little-endian signed x-tilt and y-tilt value
+per fixed player slot and makes tilt lifecycle, shield-volume derivation,
+blocking-versus-poke priority, release, interruption, and hitlag-resume state
+fail closed. Save
 format 42/state schema 43 introduced the smash-charge values and their charge,
 early/automatic release, charged damage, interruption, and hitlag-resume
 relationships. Save format 41/state schema 42 retained the prior layout while
@@ -316,11 +317,25 @@ schema 10/transition schema 8 and compact schema 9 append four values at indices
 to 46 values and the whole view from 400 to 404 values. The public
 memory-requirements query reports 2,320 state bytes and 1,024 scratch bytes; the
 4 KiB caller envelopes remain valid.
-The M4 collision inspector consumes existing schema-35 stage geometry, fighter
-dimensions and active box bounds, and item/projectile extents. Its default-on
-toggle, legend, and pause-safe redraw are presentation semantics only; they do
-not add fields beyond the current 404-value layout or change any canonical,
-replay, save, observation, or RL schema.
+State schema 45 / save format 44 appends little-endian signed 16-bit x/y shield
+tilt for every fixed player slot, producing a 586-byte payload and 726-byte
+checkpoint under `PFSAVE44`. Loading permits nonzero tilt only wherever raw
+strength is legal and rejects inactive-slot or ended-lifecycle residue. Shield
+bounds are derived from canonical position, health, strength, and tilt rather
+than serialized. Content schema 47/fighter schema 42 add and hash base half
+extents, minimum/dense scales, and maximum x/y tilt. Inspection schema 41
+exposes shield-active, exact bounds, and tilt. Structured observation schema 9
+adds shield health and tilt. RL schema 11/transition schema 9 and compact schema
+10 retain strength at 70–73, append health at 74–77 and two tilt values per
+player at 78–85, for 86 total. Browser view schema 42 expands each player
+record from 46 to 53 values and the whole view from 404 to 431 values. The
+public memory-requirements query reports 2,360 state bytes and 1,040 scratch
+bytes; the 4 KiB caller envelopes remain valid.
+The M4 collision inspector consumes schema-35 stage geometry, fighter and
+active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
+extents. Its default-on toggle, legend, and pause-safe redraw remain
+presentation semantics; the new shield overlay reads the versioned view and
+does not add canonical, replay, save, observation, or RL state.
 The temporary M4.3 browser setup calls
 `pf_web_m4_playtest_configure_duel(stock_count)` for stock choices 1–4. The
 bridge validates the value, rebuilds a fresh production duel, and renders tick

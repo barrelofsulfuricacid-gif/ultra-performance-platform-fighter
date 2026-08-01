@@ -2,7 +2,8 @@
 
 **Status:** In progress; M4.1 movement/ledge core, the complete grounded
 jab/tilt/dash-attack/directional-strong vocabulary, charged directional smashes,
-M4.2 hit-reaction layers, missed-tech floor recovery, dense shield, and
+M4.2 hit-reaction layers, missed-tech floor recovery, dense and analog light
+shield with health/strength-derived collision volume, tilt, and pokes, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
 ledge-cancelling, 29-tick ledge-regrab lockout and planking, the complete
@@ -550,8 +551,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   694-byte save, 396-value browser view, input, observation, RL, compact, and
   66-value compact layouts remain unchanged.
   Config/identity schema 2 remains current. At that slice, the canonical save
-  was 694 bytes; the later grounded-normal/smash-charge and analog-light-shield
-  slices below supersede it with the current 710-byte format.
+  was 694 bytes; the later grounded-normal/smash-charge, analog-light-shield,
+  and shield-geometry slices below supersede it with the current 726-byte
+  format.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -1766,6 +1768,37 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   primitive. Tactical rows continue to reuse constituent primitive evidence;
   no emergent-technique-only harness was added.
 
+## Implemented in the shield-geometry, tilt, and poke slice
+
+- Shield collision now uses a distinct deterministic AABB derived from
+  authored 0.8-by-1.4 half extents. The scale is
+  `0.15 + 0.85 * health_fraction * density`; density is 1 at the light
+  threshold, interpolates downward with trigger pressure, and is 0.5 at the
+  dense threshold. Light shields are therefore larger at equal health and all
+  shields shrink as health is lost.
+- Canonical signed x/y main-stick tilt moves the shield center up to an
+  authored 0.3 unit per axis after the ordinary dead zone. Tilt samples
+  directly while shielding, freezes with collision strength through shield
+  hitlag/stun, survives save/load and rollback, and clears everywhere the
+  shield lifecycle ends.
+- Physical attacks, thrown items, and projectiles block wherever their hitbox
+  overlaps shield, including outside the body. Shield wins where shield and
+  hurtbox both overlap. A hitbox that reaches only exposed hurtbox takes the
+  ordinary hit path and clears shield state; grabs remain hurtbox-only.
+- State schema 45/save format 44 adds four signed x-tilt and four signed y-tilt
+  values for a 586-byte payload and 726-byte checkpoint under `PFSAVE44`.
+  Content schema 47/fighter schema 42, inspection schema 41, observation schema
+  9, RL schema 11/transition schema 9, compact schema 10 with 86 values, and
+  browser view schema 42 with 431 values expose the contract. Opaque
+  requirements are 2,360 state bytes and 1,040 scratch bytes within the
+  unchanged 4 KiB envelopes.
+- The existing combat executable now covers 884 mechanics invariants, including
+  exact formula/bounds, light-versus-dense size, signed tilt, observation/RL
+  exposure, save/load continuation, centered block priority, and an identical
+  attack becoming a poke only when tilt exposes the hurtbox. The browser
+  collision inspector draws the exact shield AABB and retains the 61-row owner
+  checklist; no emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1912,7 +1945,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Character-specific move breadth, additional specials, broader recovery
   options, broader throw routes,
-  shield size/tilt/pokes and shield SDI,
+  shield SDI,
   broader per-action launch-angle data and stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
@@ -1928,11 +1961,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Mechanical oracles: 334 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
-  829
+  884
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
   complete directional ground normals, canonical smash charge, the
-  five-direction light-aerial vocabulary,
+  five-direction light-aerial vocabulary, exact shield size/tilt/poke geometry,
   ledge attack, and ledge-roll invulnerability plus 51
   combat-journal invariants,
   24 stock/respawn/result
@@ -1946,12 +1979,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,402
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,418
   bytes,
   replay SHA-256
-  `7c88b63efe32f0aee0ea95ff29c48eaaa9cb83c7f8b16f854fc047fe73ca7baf`,
+  `3f12c9091b250032e989b361d2c66621afc2657393a0942d820722ad1164ae68`,
   final SHA-256
-  `c08fe7518639715fd1d88a2dc2cc8e763e8a11a484ecbff71b8790c85afdbb88`,
+  `559d0dba9f59dc44f2f5567cfa88f7c2ae2ac636e60586eeae556aa3f2435c36`,
   and event-journal SHA-256
   `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
   local native/WebAssembly output is byte-identical and CI repeats it.

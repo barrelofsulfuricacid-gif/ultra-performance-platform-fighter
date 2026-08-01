@@ -12,6 +12,7 @@
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_BATCH_ENVIRONMENTS 6U
 #define TEST_LIGHT_SHIELD_TRIGGER UINT16_C(8192)
+#define TEST_SHIELD_TILT_AXIS INT16_C(5000)
 
 typedef struct test_sim_storage
 {
@@ -192,7 +193,22 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 PF_RL_COMPACT_SHIELD_STRENGTH_BASE +
                 (uint16_t)player_index] !=
-                (int32_t)player->shield_strength)
+                (int32_t)player->shield_strength ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_HEALTH_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->shield_health_q16 ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_TILT_BASE +
+                (uint16_t)(UINT16_C(2) *
+                           (uint16_t)player_index)] !=
+                (int32_t)player->shield_tilt_x ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_TILT_BASE +
+                (uint16_t)(UINT16_C(2) *
+                           (uint16_t)player_index) +
+                UINT16_C(1)] !=
+                (int32_t)player->shield_tilt_y)
         {
             (void)fprintf(
                 stderr,
@@ -285,6 +301,8 @@ static int run_duel_test(const pf_content_view *content)
 
     initialize_actions(actions);
     actions[0].left_trigger = TEST_LIGHT_SHIELD_TRIGGER;
+    actions[0].main_stick_x = TEST_SHIELD_TILT_AXIS;
+    actions[0].main_stick_y = -TEST_SHIELD_TILT_AXIS;
     if (!expect_status(
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
@@ -298,6 +316,20 @@ static int run_duel_test(const pf_content_view *content)
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_STRENGTH_BASE] !=
             (int32_t)TEST_LIGHT_SHIELD_TRIGGER ||
+        transition.structured_observation.players[0].shield_tilt_x !=
+            TEST_SHIELD_TILT_AXIS ||
+        transition.structured_observation.players[0].shield_tilt_y !=
+            -TEST_SHIELD_TILT_AXIS ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_HEALTH_BASE] !=
+            (int32_t)transition.structured_observation.players[0]
+                .shield_health_q16 ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_TILT_BASE] !=
+            (int32_t)TEST_SHIELD_TILT_AXIS ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_TILT_BASE + UINT16_C(1)] !=
+            (int32_t)-TEST_SHIELD_TILT_AXIS ||
         !expect_status(
             pf_rl_reset(
                 sim,

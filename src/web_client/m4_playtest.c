@@ -19,14 +19,14 @@
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
 #define PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 46
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 53
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
-#define PF_WEB_M4_VIEW_EVENT0 210
-#define PF_WEB_M4_VIEW_ITEM0 370
-#define PF_WEB_M4_VIEW_PROJECTILE0 388
-#define PF_WEB_M4_VIEW_RECOVERY0 400
-#define PF_WEB_M4_VIEW_COUNT 404
+#define PF_WEB_M4_VIEW_EVENT0 237
+#define PF_WEB_M4_VIEW_ITEM0 397
+#define PF_WEB_M4_VIEW_PROJECTILE0 415
+#define PF_WEB_M4_VIEW_RECOVERY0 427
+#define PF_WEB_M4_VIEW_COUNT 431
 
 enum pf_web_m4_view_field
 {
@@ -55,7 +55,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_TERMINATED = 22,
     PF_WEB_M4_VIEW_TRUNCATED = 23,
     PF_WEB_M4_VIEW_WINNER_MASK = 24,
-    PF_WEB_M4_VIEW_EVENT_COUNT = 209,
+    PF_WEB_M4_VIEW_EVENT_COUNT = 236,
     PF_WEB_M4_VIEW_PLAYER_X = 0,
     PF_WEB_M4_VIEW_PLAYER_Y = 1,
     PF_WEB_M4_VIEW_PLAYER_VX = 2,
@@ -102,6 +102,13 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS = 43,
     PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS = 44,
     PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH = 45,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_ACTIVE = 46,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_LEFT = 47,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_RIGHT = 48,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_TOP = 49,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_BOTTOM = 50,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_X = 51,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_Y = 52,
     PF_WEB_M4_VIEW_EVENT_SEQUENCE = 0,
     PF_WEB_M4_VIEW_EVENT_TICK = 1,
     PF_WEB_M4_VIEW_EVENT_TYPE = 2,
@@ -1936,7 +1943,9 @@ static int pf_web_m4_run_sharking_route(int route)
 {
     pf_m4_inspection inspection;
     const uint16_t target_trigger =
-        route == 2 ? UINT16_MAX : UINT16_C(0);
+        route == 2
+            ? pf_web_m4_content.fighter.light_shield_trigger_threshold
+            : UINT16_C(0);
     uint32_t tick;
     int saw_hitbox = 0;
 
@@ -1950,7 +1959,7 @@ static int pf_web_m4_run_sharking_route(int route)
              INT16_C(0),
              INT16_C(0),
              UINT64_C(0),
-             UINT16_MAX,
+             target_trigger,
              &inspection)) ||
         !pf_web_m4_start_sharking_aerial(
             route == 1,
@@ -11962,7 +11971,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(41);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(42);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12122,6 +12131,27 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH] =
             (int32_t)player->shield_strength;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_ACTIVE] =
+            (int32_t)player->shield_active;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_LEFT] =
+            player->shield_left_q16;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_RIGHT] =
+            player->shield_right_q16;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TOP] =
+            player->shield_top_q16;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_BOTTOM] =
+            player->shield_bottom_q16;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_X] =
+            (int32_t)player->shield_tilt_x;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_TILT_Y] =
+            (int32_t)player->shield_tilt_y;
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
         (int32_t)pf_web_m4_last_result.event_count;

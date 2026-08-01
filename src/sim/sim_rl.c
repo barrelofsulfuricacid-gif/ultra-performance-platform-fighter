@@ -15,7 +15,9 @@ _Static_assert(
             PF_RL_COMPACT_PROJECTILE_VALUES +
             PF_RL_COMPACT_CHARGE_VALUES +
             PF_RL_COMPACT_SMASH_CHARGE_VALUES +
-            PF_RL_COMPACT_SHIELD_STRENGTH_VALUES,
+            PF_RL_COMPACT_SHIELD_STRENGTH_VALUES +
+            PF_RL_COMPACT_SHIELD_HEALTH_VALUES +
+            PF_RL_COMPACT_SHIELD_TILT_VALUES,
     "compact RL observation dimensions must cover canonical entity state");
 _Static_assert(
     (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
@@ -336,6 +338,33 @@ static void pf_rl_fill_compact(
             (uint16_t)player_index] =
             (int32_t)observation->players[player_index]
                 .shield_strength;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        compact->values[
+            PF_RL_COMPACT_SHIELD_HEALTH_BASE +
+            (uint16_t)player_index] =
+            (int32_t)observation->players[player_index]
+                .shield_health_q16;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const uint16_t base =
+            (uint16_t)(
+                PF_RL_COMPACT_SHIELD_TILT_BASE +
+                (uint16_t)(UINT16_C(2) *
+                           (uint16_t)player_index));
+
+        compact->values[base] =
+            (int32_t)observation->players[player_index]
+                .shield_tilt_x;
+        compact->values[base + UINT16_C(1)] =
+            (int32_t)observation->players[player_index]
+                .shield_tilt_y;
     }
 }
 

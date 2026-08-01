@@ -1,6 +1,6 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner; current implementation is RL schema 10
+- **Status:** Accepted by owner; current implementation is RL schema 11
 - **Date:** 2026-08-01
 
 ## Scope
@@ -15,9 +15,9 @@ RL schema/transition schema 4 retain the same action, observation, reward, and
 batch semantics while embedding the ABI-4 per-tick event journal in every
 transition result. Later compatible revisions expose the fixed item slot,
 projectile slot, per-player special charge, per-player recovery availability,
-per-player smash charge, and per-player raw shield strength. The current
-contract is RL schema 10, action schema 1, transition schema 8, structured
-observation schema 8, and compact observation schema 9.
+per-player smash charge, raw shield strength, shield health, and shield tilt.
+The current contract is RL schema 11, action schema 1, transition schema 9,
+structured observation schema 9, and compact observation schema 10.
 
 ## Actions
 
@@ -46,7 +46,7 @@ Every RL transition contains both:
 
 - A structured `pf_sim_observation`, preserving named fields for bindings and
   schema review.
-- A flat 74-element signed-32-bit observation for low-overhead contiguous
+- A flat 86-element signed-32-bit observation for low-overhead contiguous
   transfer.
 
 Both normal RL views redact the reset seed. The structured seed field is zero,
@@ -74,6 +74,8 @@ The compact layout is:
 | 62–65 | Per-player Arc Reservoir charge ticks |
 | 66–69 | Per-player smash-charge ticks |
 | 70–73 | Per-player raw shield strength; zero outside shield, shield stun, or hitlag resuming into shield stun |
+| 74–77 | Per-player canonical shield health in Q16.16 |
+| 78–85 | Per-player signed x/y shield tilt; two consecutive values per fixed player slot |
 
 Bit patterns are copied rather than implementation-defined signed casts.
 Inactive slots remain canonical zero except for their implicit packed slot.

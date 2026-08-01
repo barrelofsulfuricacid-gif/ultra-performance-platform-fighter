@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)570)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)586)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x33)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x34)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -110,6 +110,14 @@ static void pf_writer_u64(pf_byte_writer *writer, uint64_t value)
 static void pf_writer_i32(pf_byte_writer *writer, int32_t value)
 {
     pf_writer_u32(writer, (uint32_t)value);
+}
+
+static void pf_writer_i16(pf_byte_writer *writer, int16_t value)
+{
+    uint16_t bits;
+
+    (void)memcpy(&bits, &value, sizeof(bits));
+    pf_writer_u16(writer, bits);
 }
 
 static void pf_writer_i8(pf_byte_writer *writer, int8_t value)
@@ -208,6 +216,15 @@ static int32_t pf_reader_i32(pf_byte_reader *reader)
 {
     const uint32_t bits = pf_reader_u32(reader);
     int32_t value;
+
+    (void)memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+static int16_t pf_reader_i16(pf_byte_reader *reader)
+{
+    const uint16_t bits = pf_reader_u16(reader);
+    int16_t value;
 
     (void)memcpy(&value, &bits, sizeof(value));
     return value;
@@ -612,6 +629,18 @@ static void pf_write_payload(
          ++player_index)
     {
         pf_writer_u16(writer, world->shield_strength[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i16(writer, world->shield_tilt_x[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i16(writer, world->shield_tilt_y[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1025,6 +1054,18 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->shield_tilt_x[player_index] = pf_reader_i16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->shield_tilt_y[player_index] = pf_reader_i16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->recovery_available[player_index] =
             pf_reader_u8(reader);
     }
@@ -1371,6 +1412,9 @@ static int pf_m4_snapshot_content_state_consistent(
                  content->fighter.light_shield_trigger_threshold) ||
             ((shield_strength != UINT16_C(0)) !=
              (shield_strength_action != 0)) ||
+            ((world->shield_tilt_x[player_index] != INT16_C(0) ||
+              world->shield_tilt_y[player_index] != INT16_C(0)) &&
+             shield_strength == UINT16_C(0)) ||
             (world->powershield[player_index] != UINT8_C(0) &&
              shield_strength_action != 0 &&
              shield_strength <
@@ -1482,6 +1526,8 @@ static int pf_m4_player_state_consistent(
                world->charge_ticks[player_index] == UINT16_C(0) &&
                world->smash_charge_ticks[player_index] == UINT16_C(0) &&
                world->shield_strength[player_index] == UINT16_C(0) &&
+               world->shield_tilt_x[player_index] == INT16_C(0) &&
+               world->shield_tilt_y[player_index] == INT16_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1) &&
                world->grab_target_slot[player_index] == UINT8_C(0) &&
                world->grab_owner_slot[player_index] == UINT8_C(0) &&
@@ -2270,7 +2316,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   world->charge_ticks[player_index] != UINT16_C(0) ||
                   world->smash_charge_ticks[player_index] !=
                       UINT16_C(0) ||
-                  world->shield_strength[player_index] != UINT16_C(0) ||
+                   world->shield_strength[player_index] != UINT16_C(0) ||
+                   world->shield_tilt_x[player_index] != INT16_C(0) ||
+                   world->shield_tilt_y[player_index] != INT16_C(0) ||
                   world->grab_target_slot[player_index] != UINT8_C(0) ||
                   world->grab_owner_slot[player_index] != UINT8_C(0) ||
                   world->stocks_remaining[player_index] != UINT8_C(0))

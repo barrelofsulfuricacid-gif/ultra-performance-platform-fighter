@@ -357,6 +357,16 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(
         hash,
         fighter->shield_attacker_pushback_base_q16);
+    pf_m4_hash_i32(hash, fighter->shield_half_width_q16);
+    pf_m4_hash_i32(hash, fighter->shield_half_height_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_minimum_size_scale_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dense_shield_size_scale_q16);
+    pf_m4_hash_i32(hash, fighter->shield_tilt_max_x_q16);
+    pf_m4_hash_i32(hash, fighter->shield_tilt_max_y_q16);
     pf_m4_hash_i32(hash, fighter->grabbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->grabbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->grabbox_half_width_q16);
@@ -1107,6 +1117,14 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         PF_Q16_RATIO(7, 100);
     fighter->shield_attacker_pushback_base_q16 =
         PF_Q16_RATIO(1, 50);
+    fighter->shield_half_width_q16 = PF_Q16_RATIO(4, 5);
+    fighter->shield_half_height_q16 = PF_Q16_RATIO(7, 5);
+    fighter->shield_minimum_size_scale_q16 =
+        PF_Q16_RATIO(3, 20);
+    fighter->dense_shield_size_scale_q16 =
+        PF_Q16_RATIO(1, 2);
+    fighter->shield_tilt_max_x_q16 = PF_Q16_RATIO(3, 10);
+    fighter->shield_tilt_max_y_q16 = PF_Q16_RATIO(3, 10);
     fighter->grabbox_offset_x_q16 = PF_Q16_RATIO(3, 4);
     fighter->grabbox_offset_y_q16 = INT32_C(0);
     fighter->grabbox_half_width_q16 = PF_Q16_RATIO(1, 2);
@@ -1904,6 +1922,22 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             INT32_C(0) ||
         fighter->shield_attacker_pushback_base_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->shield_half_width_q16 <= INT32_C(0) ||
+        fighter->shield_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->shield_half_height_q16 <= INT32_C(0) ||
+        fighter->shield_half_height_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->shield_minimum_size_scale_q16 <= INT32_C(0) ||
+        fighter->shield_minimum_size_scale_q16 >=
+            fighter->dense_shield_size_scale_q16 ||
+        fighter->dense_shield_size_scale_q16 > PF_Q16_ONE ||
+        fighter->shield_tilt_max_x_q16 < INT32_C(0) ||
+        fighter->shield_tilt_max_x_q16 >
+            fighter->shield_half_width_q16 ||
+        fighter->shield_tilt_max_y_q16 < INT32_C(0) ||
+        fighter->shield_tilt_max_y_q16 >
+            fighter->shield_half_height_q16 ||
         maximum_dash_attack_knockback_x >
             (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
         maximum_dash_attack_knockback_y >

@@ -151,12 +151,15 @@ are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 41 contains 404 signed values. Each of the four player
-blocks has a 46-value stride and appends raw shield strength; event count is at
-209, event entries begin at 210, the item block begins at 370, the projectile
-block begins at 388, and recovery availability begins at 400. The state card
-shows both the raw value and percentage, while bubble fill and stroke weight
-distinguish light input from dense input without altering simulation.
+Browser view schema 42 contains 431 signed values. Each of the four player
+blocks has a 53-value stride and appends shield-active, exact
+left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
+event count is at 236, event entries begin at 237, the item block begins at
+397, the projectile block begins at 415, and recovery availability begins at
+427. The state card shows raw strength, percentage, and tilt. Bubble fill and
+stroke weight distinguish light from dense input, while the collision
+inspector draws the authoritative shield AABB and the regular presentation
+draws an ellipse inside those same bounds.
 
 Unmodified horizontal keys emit full stick magnitude and can enter initial
 dash. Reversing them during the ten-tick initial-dash window performs a
@@ -614,6 +617,16 @@ no shield damage but keeps ordinary physical hitlag/stun and receives the larger
 Melee-style pushback. Light shield cannot powershield. The state card shows
 shield health, raw strength, shield stun, and a powershield indicator.
 
+While ordinary shield is active, move the main stick outside the dead zone to
+tilt its collision volume up to 0.3 world unit on each axis; return the stick to
+neutral to recenter it. Light shield begins larger than dense shield at equal
+health, and either volume shrinks with lost shield health down to its authored
+minimum scale. Enable the collision inspector to compare the violet shield AABB
+with the blue hurtbox. An attack touching the shield blocks even outside the
+body; an attack touching only exposed blue hurtbox is an ordinary shield poke.
+Tilt and raw strength freeze through shield hitlag/stun and remain visible in
+the state card.
+
 After a physical powershield, release shield by the end of shield stun. Frame 1
 of `SHIELD RELEASE` cannot start a ground attack; a fresh attack press on frame
 2 cancels the remaining release animation into the selected neutral, up, down,
@@ -667,8 +680,8 @@ Successful surface techs clear hitstun/tumble and show the gold
 invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
-This shield slice does not yet include general shield size/tilt/poke behavior or
-shield SDI. All current standing ground actions share the same
+This shield slice does not yet include shield SDI. All current standing ground
+actions share the same
 powershield-cancel selector; the registry row remains `playable` pending the
 mandatory owner playtest and broader acceptance evidence.
 
@@ -812,7 +825,10 @@ mandatory owner playtest and broader acceptance evidence.
     minimum, and `SHIELD RELEASE` lasts 15 ticks. With a Standard Gamepad,
     compare a trigger just below the 12.5% light threshold, exactly at/above it,
     midway toward the 50% dense threshold, and fully pressed; confirm the state
-    card preserves raw strength and the lighter shields drain more slowly.
+    card preserves raw strength, the lighter shields drain more slowly, and the
+    light bubble is larger at equal health. With the inspector enabled, move
+    the stick while shielding and confirm the violet AABB and card tilt move
+    together while the blue hurtbox stays fixed; release the stick to recenter.
     Press jump during shield/release and
     confirm `JUMP SQUAT`.
 27. Reach `RUN`, tap shield for one tick, and release. Confirm `SHIELD`

@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=c08fe7518639715fd1d88a2dc2cc8e763e8a11a484ecbff71b8790c85afdbb88'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=559d0dba9f59dc44f2f5567cfa88f7c2ae2ac636e60586eeae556aa3f2435c36'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -159,7 +159,7 @@ if [ "$owner_recipe_count" -ne 61 ]; then
 fi
 pf_require_dom \
     "M4 collision inspector semantics" \
-    'data-collision-overlay-semantics="stage-hurtbox-attack-grab-item-projectile-blast"'
+    'data-collision-overlay-semantics="stage-hurtbox-shield-attack-grab-item-projectile-blast"'
 pf_require_dom \
     "M4 collision inspector toggle" \
     'id="pf-m4-collision-overlay"'

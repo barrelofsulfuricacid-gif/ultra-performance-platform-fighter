@@ -212,7 +212,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 41' \
+    'view[0] !== 42' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pf_web_m4_run_directional_aerial_probe' \
@@ -299,7 +299,7 @@ grep -Fq \
     '"Local 1v1 match setup"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 404' \
+    'viewCount !== 431' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MASH OUT · "' \

@@ -149,6 +149,16 @@ static int pf_m4_action_is_guarding(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN;
 }
 
+static int pf_m4_action_has_shield_volume(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    return pf_m4_action_is_guarding(action_state) ||
+           (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+            hitlag_resume_action ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN);
+}
+
 static int pf_m4_action_is_recovery_invulnerable(
     const pf_m4_fighter_data *fighter,
     uint8_t action_state,
@@ -961,6 +971,121 @@ int pf_m4_grabbox(
     return 1;
 }
 
+int pf_m4_shield_box(
+    const pf_m4_fighter_data *fighter,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action,
+    uint32_t shield_health_q16,
+    uint16_t shield_strength,
+    int16_t shield_tilt_x,
+    int16_t shield_tilt_y,
+    int32_t *out_left_q16,
+    int32_t *out_right_q16,
+    int32_t *out_top_q16,
+    int32_t *out_bottom_q16)
+{
+    int32_t density_scale_q16;
+    int32_t health_scale_q16;
+    int32_t combined_scale_q16;
+    int32_t size_scale_q16;
+    int32_t half_width_q16;
+    int32_t half_height_q16;
+    int32_t offset_x_q16;
+    int32_t offset_y_q16;
+    int64_t center_x_q16;
+    int64_t center_y_q16;
+
+    if (fighter == NULL || out_left_q16 == NULL ||
+        out_right_q16 == NULL || out_top_q16 == NULL ||
+        out_bottom_q16 == NULL || shield_strength == UINT16_C(0) ||
+        shield_health_q16 == UINT32_C(0) ||
+        !pf_m4_action_has_shield_volume(
+            action_state,
+            hitlag_resume_action))
+    {
+        return 0;
+    }
+
+    if (shield_strength <= fighter->light_shield_trigger_threshold)
+    {
+        density_scale_q16 = PF_Q16_ONE;
+    }
+    else if (shield_strength >= fighter->digital_trigger_threshold)
+    {
+        density_scale_q16 = fighter->dense_shield_size_scale_q16;
+    }
+    else
+    {
+        density_scale_q16 =
+            PF_Q16_ONE -
+            (int32_t)(
+                ((int64_t)(
+                     PF_Q16_ONE -
+                     fighter->dense_shield_size_scale_q16) *
+                 (int64_t)(
+                     shield_strength -
+                     fighter->light_shield_trigger_threshold)) /
+                (int64_t)(
+                    fighter->digital_trigger_threshold -
+                    fighter->light_shield_trigger_threshold));
+    }
+    health_scale_q16 =
+        (int32_t)(
+            ((uint64_t)shield_health_q16 *
+             (uint64_t)(uint32_t)PF_Q16_ONE) /
+            (uint64_t)fighter->shield_health_q16);
+    combined_scale_q16 =
+        (int32_t)(
+            ((int64_t)health_scale_q16 *
+             (int64_t)density_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    size_scale_q16 =
+        fighter->shield_minimum_size_scale_q16 +
+        (int32_t)(
+            ((int64_t)(
+                 PF_Q16_ONE -
+                 fighter->shield_minimum_size_scale_q16) *
+             (int64_t)combined_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    half_width_q16 =
+        (int32_t)(
+            ((int64_t)fighter->shield_half_width_q16 *
+             (int64_t)size_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    half_height_q16 =
+        (int32_t)(
+            ((int64_t)fighter->shield_half_height_q16 *
+             (int64_t)size_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    offset_x_q16 =
+        (int32_t)(
+            ((int64_t)fighter->shield_tilt_max_x_q16 *
+             (int64_t)shield_tilt_x) /
+            (shield_tilt_x < INT16_C(0)
+                 ? INT64_C(32768)
+                 : INT64_C(32767)));
+    offset_y_q16 =
+        (int32_t)(
+            ((int64_t)fighter->shield_tilt_max_y_q16 *
+             (int64_t)shield_tilt_y) /
+            (shield_tilt_y < INT16_C(0)
+                 ? INT64_C(32768)
+                 : INT64_C(32767)));
+    center_x_q16 = (int64_t)position_x_q16 + offset_x_q16;
+    center_y_q16 = (int64_t)position_y_q16 + offset_y_q16;
+    *out_left_q16 =
+        (int32_t)(center_x_q16 - (int64_t)half_width_q16);
+    *out_right_q16 =
+        (int32_t)(center_x_q16 + (int64_t)half_width_q16);
+    *out_top_q16 =
+        (int32_t)(center_y_q16 - (int64_t)half_height_q16);
+    *out_bottom_q16 =
+        (int32_t)(center_y_q16 + (int64_t)half_height_q16);
+    return 1;
+}
+
 static int pf_m4_hitbox_overlaps_player(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
@@ -987,6 +1112,67 @@ static int pf_m4_hitbox_overlaps_player(
            hitbox_right_q16 >= hurtbox_left &&
            hitbox_top_q16 <= hurtbox_bottom &&
            hitbox_bottom_q16 >= hurtbox_top;
+}
+
+static int pf_m4_hitbox_overlaps_shield(
+    const pf_m4_fighter_data *fighter,
+    const pf_sim_scratch *scratch,
+    uint32_t target_index,
+    int32_t hitbox_left_q16,
+    int32_t hitbox_right_q16,
+    int32_t hitbox_top_q16,
+    int32_t hitbox_bottom_q16)
+{
+    int32_t shield_left_q16;
+    int32_t shield_right_q16;
+    int32_t shield_top_q16;
+    int32_t shield_bottom_q16;
+
+    return pf_m4_shield_box(
+               fighter,
+               scratch->position_x_q16[target_index],
+               scratch->position_y_q16[target_index],
+               scratch->action_state[target_index],
+               scratch->hitlag_resume_action[target_index],
+               scratch->shield_health_q16[target_index],
+               scratch->shield_strength[target_index],
+               scratch->shield_tilt_x[target_index],
+               scratch->shield_tilt_y[target_index],
+               &shield_left_q16,
+               &shield_right_q16,
+               &shield_top_q16,
+               &shield_bottom_q16) &&
+           hitbox_left_q16 <= shield_right_q16 &&
+           hitbox_right_q16 >= shield_left_q16 &&
+           hitbox_top_q16 <= shield_bottom_q16 &&
+           hitbox_bottom_q16 >= shield_top_q16;
+}
+
+static int pf_m4_hitbox_overlaps_player_or_shield(
+    const pf_m4_fighter_data *fighter,
+    const pf_sim_scratch *scratch,
+    uint32_t target_index,
+    int32_t hitbox_left_q16,
+    int32_t hitbox_right_q16,
+    int32_t hitbox_top_q16,
+    int32_t hitbox_bottom_q16)
+{
+    return pf_m4_hitbox_overlaps_player(
+               fighter,
+               scratch,
+               target_index,
+               hitbox_left_q16,
+               hitbox_right_q16,
+               hitbox_top_q16,
+               hitbox_bottom_q16) ||
+           pf_m4_hitbox_overlaps_shield(
+               fighter,
+               scratch,
+               target_index,
+               hitbox_left_q16,
+               hitbox_right_q16,
+               hitbox_top_q16,
+               hitbox_bottom_q16);
 }
 
 static int pf_m4_boxes_overlap(
@@ -1272,6 +1458,8 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->shield_stun_ticks[target_index] = UINT16_C(0);
     scratch->powershield[target_index] = UINT8_C(0);
     scratch->shield_strength[target_index] = UINT16_C(0);
+    scratch->shield_tilt_x[target_index] = INT16_C(0);
+    scratch->shield_tilt_y[target_index] = INT16_C(0);
     scratch->hitlag_ticks[target_index] = hitlag_ticks;
     scratch->hitlag_resume_action[target_index] =
         armored != 0
@@ -1589,6 +1777,8 @@ static pf_status pf_m4_resolve_grabs(
             scratch->hitstun_ticks[target_index] = UINT16_C(0);
             scratch->shield_stun_ticks[target_index] = UINT16_C(0);
             scratch->shield_strength[target_index] = UINT16_C(0);
+            scratch->shield_tilt_x[target_index] = INT16_C(0);
+            scratch->shield_tilt_y[target_index] = INT16_C(0);
             scratch->grounded[target_index] =
                 scratch->grounded[attacker_index];
             scratch->support[target_index] =
@@ -1664,6 +1854,15 @@ static pf_status pf_m4_resolve_item_combat(
                 : scratch->item_velocity_x_q16 > INT32_C(0)
                 ? INT8_C(1)
                 : scratch->facing[source_index];
+        const int shield_overlap =
+            pf_m4_hitbox_overlaps_shield(
+                &content->fighter,
+                scratch,
+                target_index,
+                hitbox_left,
+                hitbox_right,
+                hitbox_top,
+                hitbox_bottom);
 
         if (target_index == source_index ||
             scratch->active[target_index] == UINT8_C(0) ||
@@ -1679,7 +1878,7 @@ static pf_status pf_m4_resolve_item_combat(
                 scratch->action_ticks[target_index]) ||
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[source_index] == world->team[target_index]) ||
-            !pf_m4_hitbox_overlaps_player(
+            !pf_m4_hitbox_overlaps_player_or_shield(
                 &content->fighter,
                 scratch,
                 target_index,
@@ -1703,7 +1902,8 @@ static pf_status pf_m4_resolve_item_combat(
             item->hit_bounce_velocity_y_q16;
 
         if (pf_m4_action_is_guarding(
-                scratch->action_state[target_index]))
+                scratch->action_state[target_index]) &&
+            shield_overlap != 0)
         {
             const int powershield =
                 scratch->action_state[target_index] ==
@@ -1752,6 +1952,8 @@ static pf_status pf_m4_resolve_item_combat(
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
                 scratch->action_ticks[target_index] = UINT16_C(0);
                 scratch->shield_strength[target_index] = UINT16_C(0);
+                scratch->shield_tilt_x[target_index] = INT16_C(0);
+                scratch->shield_tilt_y[target_index] = INT16_C(0);
             }
             else
             {
@@ -1907,6 +2109,15 @@ static pf_status pf_m4_resolve_projectile_combat(
                 reflector_right,
                 reflector_top,
                 reflector_bottom);
+        const int shield_overlap =
+            pf_m4_hitbox_overlaps_shield(
+                &content->fighter,
+                scratch,
+                target_index,
+                hitbox_left,
+                hitbox_right,
+                hitbox_top,
+                hitbox_bottom);
 
         if (target_index == owner_index ||
             scratch->active[target_index] == UINT8_C(0) ||
@@ -1922,10 +2133,10 @@ static pf_status pf_m4_resolve_projectile_combat(
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[owner_index] == world->team[target_index]) ||
             (reflector_active == 0 &&
-             !pf_m4_hitbox_overlaps_player(
-                 &content->fighter,
-                 scratch,
-                 target_index,
+             !pf_m4_hitbox_overlaps_player_or_shield(
+                  &content->fighter,
+                  scratch,
+                  target_index,
                  hitbox_left,
                  hitbox_right,
                  hitbox_top,
@@ -1964,6 +2175,7 @@ static pf_status pf_m4_resolve_projectile_combat(
 
         if (pf_m4_action_is_guarding(
                 scratch->action_state[target_index]) &&
+            shield_overlap != 0 &&
             scratch->action_state[target_index] ==
                 (uint8_t)PF_M4_ACTION_SHIELD &&
             scratch->action_ticks[target_index] <=
@@ -2005,7 +2217,8 @@ static pf_status pf_m4_resolve_projectile_combat(
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         if (pf_m4_action_is_guarding(
-                scratch->action_state[target_index]))
+                scratch->action_state[target_index]) &&
+            shield_overlap != 0)
         {
             const uint32_t shield_damage =
                 pf_m4_shield_damage_q16(
@@ -2044,6 +2257,8 @@ static pf_status pf_m4_resolve_projectile_combat(
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
                 scratch->action_ticks[target_index] = UINT16_C(0);
                 scratch->shield_strength[target_index] = UINT16_C(0);
+                scratch->shield_tilt_x[target_index] = INT16_C(0);
+                scratch->shield_tilt_y[target_index] = INT16_C(0);
                 event_type = PF_SIM_EVENT_SHIELD_BREAK;
             }
             else
@@ -2192,6 +2407,15 @@ pf_status pf_m4_resolve_combat(
         {
             const uint8_t target_bit =
                 (uint8_t)(UINT32_C(1) << target_index);
+            const int shield_overlap =
+                pf_m4_hitbox_overlaps_shield(
+                    &content->fighter,
+                    scratch,
+                    target_index,
+                    hitbox_left,
+                    hitbox_right,
+                    hitbox_top,
+                    hitbox_bottom);
 
             if (target_index == attacker_index ||
                 scratch->active[target_index] == UINT8_C(0) ||
@@ -2211,7 +2435,7 @@ pf_status pf_m4_resolve_combat(
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[attacker_index] ==
                      world->team[target_index]) ||
-                !pf_m4_hitbox_overlaps_player(
+                !pf_m4_hitbox_overlaps_player_or_shield(
                     &content->fighter,
                     scratch,
                     target_index,
@@ -2226,7 +2450,8 @@ pf_status pf_m4_resolve_combat(
             target_owner[target_index] = (uint8_t)attacker_index;
             attacker_hit[attacker_index] = UINT8_C(1);
             if (pf_m4_action_is_guarding(
-                    scratch->action_state[target_index]))
+                    scratch->action_state[target_index]) &&
+                shield_overlap != 0)
             {
                 target_blocked[target_index] = UINT8_C(1);
                 attacker_blocked[attacker_index] = UINT8_C(1);
@@ -2326,6 +2551,8 @@ pf_status pf_m4_resolve_combat(
                 scratch->action_ticks[target_index] =
                     UINT16_C(0);
                 scratch->shield_strength[target_index] = UINT16_C(0);
+                scratch->shield_tilt_x[target_index] = INT16_C(0);
+                scratch->shield_tilt_y[target_index] = INT16_C(0);
             }
             else
             {

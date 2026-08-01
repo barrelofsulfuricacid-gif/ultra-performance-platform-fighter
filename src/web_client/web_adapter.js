@@ -1102,6 +1102,7 @@ mergeInto(LibraryManager.library, {
         "display:inline-block;border-radius:2px}" +
         ".pf-m4-overlay-stage{border-color:#4ce0a8}" +
         ".pf-m4-overlay-hurt{border-color:#73b7ff;background:#73b7ff22}" +
+        ".pf-m4-overlay-shield{border-color:#d8d0ff;background:#a991ff22}" +
         ".pf-m4-overlay-attack{border-color:#ffd089;background:#ffb34733}" +
         ".pf-m4-overlay-grab{border-color:#8cf3ff;background:#62e7ff22}" +
         ".pf-m4-overlay-blast{border-color:#ff6c8f}" +
@@ -1204,7 +1205,7 @@ mergeInto(LibraryManager.library, {
     section.dataset.matchFlow = "setup";
     section.dataset.collisionOverlay = "visible";
     section.dataset.collisionOverlaySemantics =
-      "stage-hurtbox-attack-grab-item-projectile-blast";
+      "stage-hurtbox-shield-attack-grab-item-projectile-blast";
     section.dataset.ownerChecklist = ownerChecklistReady ? "ready" : "fail";
     section.dataset.ownerChecklistSchema = ownerChecklistReady
       ? String(ownerChecklist.schema)
@@ -1246,7 +1247,8 @@ mergeInto(LibraryManager.library, {
       "Keyboard and up to two Standard Gamepads drive the same deterministic " +
       "Q16.16 simulation used by native, replay, rollback, and headless " +
       "execution. The collision inspector draws production stage surfaces, " +
-      "hurtboxes, attack and grab boxes, item/projectile extents, and blast zones.";
+      "hurtboxes, shield volumes, attack and grab boxes, item/projectile " +
+      "extents, and blast zones.";
     headingCopy.appendChild(title);
     headingCopy.appendChild(subtitle);
     var live = document.createElement("span");
@@ -1411,6 +1413,7 @@ mergeInto(LibraryManager.library, {
       "<strong>Inspector (I)</strong>" +
       '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-stage"></i>stage/item/projectile</span>' +
       '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-hurt"></i>hurtbox</span>' +
+      '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-shield"></i>shield</span>' +
       '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-attack"></i>attack</span>' +
       '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-grab"></i>grab</span>' +
       '<span class="pf-m4-overlay-key"><i class="pf-m4-overlay-swatch pf-m4-overlay-blast"></i>blast zone</span>';
@@ -2355,7 +2358,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 404) {
+    if (!state || viewCount !== 431) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2364,7 +2367,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 41) {
+    if (view[0] !== 42) {
       return;
     }
     var canvas = state.canvas;
@@ -2654,10 +2657,10 @@ mergeInto(LibraryManager.library, {
       });
     }
 
-    var eventCount = Math.max(0, Math.min(16, view[209]));
+    var eventCount = Math.max(0, Math.min(16, view[236]));
     var eventIndex;
     for (eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
-      var eventBase = 210 + eventIndex * 10;
+      var eventBase = 237 + eventIndex * 10;
       var sequence = view[eventBase];
       if (sequence <= state.lastEventSequence) {
         continue;
@@ -2800,13 +2803,13 @@ mergeInto(LibraryManager.library, {
       "P1 STOCKS " +
         view[25 + 32] +
         "  ·  P2 STOCKS " +
-        view[25 + 46 + 32],
+        view[25 + 53 + 32],
       canvas.width / 2,
       25
     );
     context.restore();
 
-    var itemBase = 370;
+    var itemBase = 397;
     var itemStateCode = view[itemBase + 1];
     if (view[itemBase] !== 0 && itemStateCode > 0 && itemStateCode < 4) {
       var itemWorldX = view[itemBase + 6];
@@ -2895,7 +2898,7 @@ mergeInto(LibraryManager.library, {
       context.fillText("RELAY ROD", itemX, itemY - Math.max(10, itemHeight) / 2 - 8);
     }
 
-    var projectileBase = 388;
+    var projectileBase = 415;
     var projectileStateCode = view[projectileBase + 1];
     if (
       view[projectileBase] !== 0 &&
@@ -2978,7 +2981,7 @@ mergeInto(LibraryManager.library, {
       if (playerIndex >= livePlayerCount) {
         return;
       }
-      var base = 25 + playerIndex * 46;
+      var base = 25 + playerIndex * 53;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -3000,10 +3003,7 @@ mergeInto(LibraryManager.library, {
         actionState === 46 ||
         (actionState === 59 && view[base + 6] !== 0);
       var invulnerable = view[base + 28] !== 0;
-      var shielding =
-        view[base + 4] === 18 ||
-        view[base + 4] === 19 ||
-        (view[base + 4] === 13 && view[base + 26] > 0);
+      var shielding = view[base + 46] !== 0;
 
       context.globalAlpha = eliminated ? 0.12 : respawning ? 0.32 : 1;
       if (state.collisionOverlayVisible && !eliminated) {
@@ -3093,16 +3093,38 @@ mergeInto(LibraryManager.library, {
       }
 
       if (shielding) {
-        var shieldFraction = Math.max(
-          0,
-          Math.min(1, view[base + 25] / (60 * q16))
-        );
         var shieldInputFraction = Math.max(
           0,
           Math.min(1, view[base + 45] / 65535)
         );
-        var shieldRadius =
-          Math.max(width, height) * (0.72 + shieldFraction * 0.2);
+        var shieldLeft = sx(view[base + 47]);
+        var shieldRight = sx(view[base + 48]);
+        var shieldTop = sy(view[base + 49]);
+        var shieldBottom = sy(view[base + 50]);
+        var shieldWidth = Math.max(1, shieldRight - shieldLeft);
+        var shieldHeight = Math.max(1, shieldBottom - shieldTop);
+        var shieldCenterX = (shieldLeft + shieldRight) / 2;
+        var shieldCenterY = (shieldTop + shieldBottom) / 2;
+        context.save();
+        if (state.collisionOverlayVisible) {
+          context.fillStyle = "#a991ff18";
+          context.strokeStyle = "#d8d0ff";
+          context.lineWidth = 1.5;
+          context.setLineDash([3, 3]);
+          context.fillRect(
+            shieldLeft,
+            shieldTop,
+            shieldWidth,
+            shieldHeight
+          );
+          context.strokeRect(
+            shieldLeft,
+            shieldTop,
+            shieldWidth,
+            shieldHeight
+          );
+          context.setLineDash([]);
+        }
         context.fillStyle =
           view[base + 27] !== 0
             ? "#f7fbff55"
@@ -3112,9 +3134,18 @@ mergeInto(LibraryManager.library, {
         context.lineWidth =
           view[base + 27] !== 0 ? 4 : 1.5 + shieldInputFraction * 1.5;
         context.beginPath();
-        context.arc(x, y, shieldRadius, 0, Math.PI * 2);
+        context.ellipse(
+          shieldCenterX,
+          shieldCenterY,
+          shieldWidth / 2,
+          shieldHeight / 2,
+          0,
+          0,
+          Math.PI * 2
+        );
         context.fill();
         context.stroke();
+        context.restore();
       }
 
       context.save();
@@ -3361,7 +3392,10 @@ mergeInto(LibraryManager.library, {
         Math.round((view[base + 45] / 65535) * 100) +
         "% (" +
         view[base + 45] +
-        ")" +
+        ") · tilt x " +
+        view[base + 51] +
+        " · y " +
+        view[base + 52] +
         " · powershield " +
         view[base + 27] +
         " · invulnerable " +
@@ -3384,7 +3418,7 @@ mergeInto(LibraryManager.library, {
         view[base + 44] +
         " / 60f" +
         " · Vector Ascent " +
-        (view[400 + playerIndex] !== 0 ? "READY" : "SPENT");
+        (view[427 + playerIndex] !== 0 ? "READY" : "SPENT");
     });
 
     var itemStateNames = [

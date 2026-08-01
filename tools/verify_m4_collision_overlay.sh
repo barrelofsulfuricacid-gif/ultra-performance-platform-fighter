@@ -32,7 +32,7 @@ pf_require_source \
     "$adapter"
 pf_require_source \
     "complete semantic inventory" \
-    'stage-hurtbox-attack-grab-item-projectile-blast' \
+    'stage-hurtbox-shield-attack-grab-item-projectile-blast' \
     "$adapter"
 pf_require_source \
     "accessible toggle" \
