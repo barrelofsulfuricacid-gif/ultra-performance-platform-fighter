@@ -26,6 +26,8 @@ with the standing grab to provide ordinary dash grab and boost grab through
 the same input, movement, collision, hit, and capture paths.
 These primitives use the same normalized input, simulation, save/load, replay,
 RL, and browser paths.
+The owner-local nine-entry stale-move queue now scales every production damage
+source and registers only successful hurtbox contacts through those same paths.
 
 Directional air dodge, helpless fall, and momentum-preserving special landing
 provide the first defensive-air action and the wavedash/waveland foundation.
@@ -480,7 +482,7 @@ replay verification, the browser feed, and external verifiers to distinguish
 the reaction without adding a mutable crouch-cancel state field.
 
 The native oracle compares standing and crouched jabs, the exact and first-over
-damage boundaries, invalid data and content hashes, and a 726-byte mid-hitlag
+damage boundaries, invalid data and content hashes, and a 771-byte mid-hitlag
 save/load with equal future events and hashes. Browser readiness folds the same
 standing-versus-crouched comparison into its existing reaction probe.
 
@@ -1180,7 +1182,7 @@ start another pummel. A full direction continues to select a throw.
 
 The native oracle validates default/invalid data and content hashing, both
 attack-button routes, the reduced-direction boundary, exact damage/event/link
-semantics, held-input rejection, and a 726-byte mid-pummel save/load with
+semantics, held-input rejection, and a 771-byte mid-pummel save/load with
 byte-identical future events and hashes. Browser startup repeats the neutral
 route through the hit and return to `GRAB_HOLD` before exercising all four
 directional throws and the existing chain-grab route.
@@ -1294,7 +1296,7 @@ can return through the normal hit path. Typed events 19–21 are
 `tests/sim/test_m4_projectile.c` supplies 38 focused invariants covering
 content validation/hash, simultaneous arbitration, grounded hit, ordinary
 block, exact reflect timing and returned hit, short-hop fire and generic
-landing, 726-byte save/load future equality, replay verification, and RL
+landing, 771-byte save/load future equality, replay verification, and RL
 visibility. Strict verifier and browser startup oracles repeat the original
 short-hop-laser route. Browser view schema 24 appends 12 projectile values at
 indices 290–301 without moving existing offsets, draws the cyan bolt and its
@@ -1359,7 +1361,7 @@ it before normal reaction processing.
 and invalid data, accumulation and clamping, early store cancel with a
 same-tick ordinary attack, the held-shield negative, exact resume, low/full
 release damage, interruption loss, over-cap checksum-valid load rejection,
-726-byte mid-store save/load future equality, replay verification, and
+771-byte mid-store save/load future equality, replay verification, and
 structured/compact RL visibility. Browser
 startup repeats charge, store cancel, resume, and release before readiness;
 browser view schema 26 appends one charge-tick value to each player, shifting
@@ -1389,7 +1391,7 @@ cannot manufacture an extra recovery.
 `tests/sim/test_m4_movement.c` supplies nine focused recovery invariants:
 default and invalid data, isolated content hashing, ordinary jump-to-recovery
 entry, authored velocity and consumption, structured and compact observation,
-726-byte mid-action save/load with equal future hashes, blocked second use,
+771-byte mid-action save/load with equal future hashes, blocked second use,
 landing restoration, and second-airtime reuse. Browser startup repeats the
 ordinary input entry and exposes `vector_ascent_probe`; browser view schema 33
 introduced one READY/SPENT value per player at indices 392–395; current browser
@@ -1420,7 +1422,7 @@ timing through save/load, rollback, replay, and hash.
 `tests/sim/test_m4_movement.c` supplies 12 focused invariants covering default
 and invalid authored timing, isolated content hashing, the exact two setup
 ticks, entry/hold/release velocity and facing, both dashback controls, and a
-726-byte mid-setup save/load with equal future hashes. Browser startup repeats
+771-byte mid-setup save/load with equal future hashes. Browser startup repeats
 all three timing outcomes and exports an independent `moonwalk_probe` before
 readiness. Browser controls use Shift plus the opposite horizontal key for two
 ticks, then the unmodified opposite key.
@@ -1445,7 +1447,7 @@ technique-only input or mutable history field.
 
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 exact entry state, duration, attack and reverse-dash cancels, held-outward and
-early-release negatives, and a 726-byte mid-teeter save/load with equal future
+early-release negatives, and a 771-byte mid-teeter save/load with equal future
 hashes. Browser startup repeats both cancels and both negatives and exports an
 independent `teeter_cancel_probe` before readiness.
 
@@ -1468,7 +1470,7 @@ input is introduced.
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 exact positive and negative displacement, eight release/reset repetitions,
 held-diagonal non-repetition, neutral-down and horizontal-only controls, and a
-726-byte mid-step save/load with equal future hashes. Browser startup repeats
+771-byte mid-step save/load with equal future hashes. Browser startup repeats
 the positive route and all controls and exports an independent
 `stage_humping_probe` before readiness.
 
@@ -1491,7 +1493,7 @@ ticks and returns to `GROUND_IDLE`.
 
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 dash-momentum entry, exact recovery and input lock, held-button non-repetition,
-edge cancellation, and a 726-byte mid-taunt save/load with equal future
+edge cancellation, and a 771-byte mid-taunt save/load with equal future
 hashes. Browser startup repeats the full-duration and cancel routes and exports
 an independent `taunt_cancel_probe` before readiness.
 
@@ -1518,7 +1520,7 @@ primitive while keeping the midair jump for a deeper recovery or edgeguard.
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 production ledge/block geometry, exact launch, preserved air jump, the four-
 tick invulnerability and 24-tick action windows, aerial and saved-jump cancels,
-the early-away negative, and a 726-byte mid-action save/load with equal future
+the early-away negative, and a 771-byte mid-action save/load with equal future
 hashes. Browser startup repeats the positive and negative routes and exports an
 independent `scar_jump_probe` before readiness.
 
@@ -1545,6 +1547,45 @@ links, damage, legal victim mash, same-team rejection, and the early-grab
 control. Browser startup independently repeats the positive and negative route
 and exports `team_wobble_probe`; the live Team Wobble Lab maps the second
 physical controller to simulation slot 2 rather than the scripted victim.
+
+## Stale-move queue
+
+Each player owns a fixed nine-entry queue of canonical move IDs, newest first.
+Before an attack applies damage, its multiplier is one minus the authored
+reduction for every queue slot that contains the same canonical ID. The default
+newest-to-oldest reductions are 4,608, 4,096, 3,584, 3,072, 2,560, 2,048,
+1,536, 1,024, and 512 in Q16.16. Their maximum combined reduction is 35.15625%,
+and multiplication uses the existing deterministic integer floor. Content
+validation requires every reduction to be positive and strictly descending and
+caps their sum at one half.
+
+Ground and air variants that express the same authored move share one identity:
+ordinary and dash item throws use `ITEM_THROW`, grounded and airborne Pulse
+Bolt use `PROJECTILE_FIRE_GROUND`, and grounded and airborne Prism Burst use
+`REFLECTOR_GROUND`. Directional normals, aerials, pummel, each directional
+throw, charged release, and the remaining physical actions keep their canonical
+action ID. Reflected projectile damage and registration belong to the current
+projectile owner, so ownership transfer also transfers the queue consequence.
+
+Only a successful hurtbox hit inserts the move. A whiff inserts nothing, and a
+shield contact uses the already-staled damage for shield damage, stun, and
+pushback without inserting a new queue entry. One physical attack instance can
+hit multiple legal targets but registers at most once; pummels and throws use
+the same per-action latch, a thrown item has its own per-flight latch, and the
+single-hit projectile registers once before it is cleared. Damage is scaled
+before insertion, so the hit that creates a queue entry is fresh with respect
+to itself.
+
+The queue is owner-local and survives ordinary stock loss, respawn wait, and
+revival-platform release. Starting a new match and the sudden-death rebuild
+clear it. Save/load, clone, rollback, and replay preserve both the queue and any
+live per-instance registration latch exactly. Inspection exposes queue IDs,
+count, selected or hitlag-resume move multiplier, and fighter/item latches;
+structured and compact RL observations expose the policy-relevant queue,
+count, and multiplier without the latch. The browser state cards render the
+same newest-first queue and selected-move scale. Existing tactical rows reuse
+these production primitives; no stale-specific emergent-technique harness is
+introduced.
 
 ## Canonical state and inspection
 
@@ -1585,6 +1626,18 @@ schema 10 with 86 values, and the 1,040-byte scratch requirement are unchanged.
 Copying the larger immutable stage record into the opaque simulation raises
 the state requirement from 2,368 to 2,384 bytes, still inside the 4 KiB caller
 envelope.
+
+State schema 47 / save format 46 appends four fighter registration latches,
+four queue counts, 36 canonical move IDs, and one thrown-item latch. The
+631-byte payload yields a 771-byte checkpoint under `PFSAVE46`. Content schema
+50/fighter schema 44 add and hash the nine authored reductions. Inspection
+schema 43 exposes queue and latch state; structured observation schema 10 adds
+queue count, multiplier, and IDs. RL schema 12/transition schema 10 and compact
+schema 11 append four packed four-value records at 86–101 for 102 values total. Browser
+view schema 44 retains indices 0–446 and appends player stale records at
+447–494 plus the item latch at 495, producing 496 values. Opaque requirements
+are 2,448 state bytes and 1,080 scratch bytes within the existing 4 KiB caller
+envelopes.
 
 Browser view schema 40 previously expanded each player block from 44 to 45 values by
 appending smash-charge ticks, yielding 400 values total. Event count moves to
@@ -1906,23 +1959,30 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 921 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 958 focused
 mechanics invariants plus 51 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
   launch, hitstun, one-hit masks, simultaneous trades, and the default strong
   attack's direct tumble-to-knockdown route;
+- all nine exact authored stale reductions; ten repeated jabs with deterministic
+  floor-scaled damage, capped newest-first queue order, multiplier, and
+  opponent isolation; a fresh different move shifting the queue; hurt-only
+  insertion, shield scaling without insertion, whiff/reset negatives,
+  observation/RL exposure, content identity/validation, pummel and directional
+  throw identities, and populated item/projectile/reflection/reflector/charge
+  ownership assertions;
 - authored forward/up/down light and forward/up/down strong defaults,
   validation and isolated content hashes; neutral, reduced-direction,
   full-direction, equal-diagonal, immediate-strong, charge/release, and
   60-tick auto-release arbitration; exact signed two-axis launches, partial
   and maximum charged damage, typed hit identity, hitlag, mid-hitlag equality,
-  and mid-charge `PFSAVE44` continuation with equal future hashes/events;
+  and mid-charge `PFSAVE46` continuation with equal future hashes/events;
 - authored forward/back/up/down aerial defaults, validation and isolated
   content hash; neutral, vertical-dominant, horizontal-dominant, equal-diagonal,
   facing-relative, and direct-strong arbitration; exact signed two-axis launch,
-  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE44`
+  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE46`
   continuation with equal future hashes;
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
@@ -1937,7 +1997,7 @@ mechanics invariants plus 51 journal invariants, including:
   mid-route save/load event/hash continuation;
 - exact light/dense health-and-density size calculation, signed dead-zone
   tilt translation, derived bounds, observation/RL/browser exposure,
-  `PFSAVE44` tilt continuation, centered-shield block priority, and an
+  `PFSAVE46` tilt continuation, centered-shield block priority, and an
   otherwise identical exposed-hurtbox poke that takes the ordinary hit path;
 - standing versus held-crouch contact with unchanged damage/hitlag, exact 2/3
   two-axis launch and hitstun scaling, derived tumble and typed flag, inclusive
@@ -2064,7 +2124,7 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,418-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,463-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 

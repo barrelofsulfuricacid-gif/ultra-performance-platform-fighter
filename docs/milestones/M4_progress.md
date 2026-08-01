@@ -1864,6 +1864,38 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   SHA-256
   `79c40233d75676750bba213579d6cb679dbb347c414b7ace8805af3565d4aa74`.
 
+## Implemented in the stale-move slice
+
+- Every player now owns a fixed nine-entry newest-first queue of canonical move
+  IDs. Damage is multiplied by one minus the authored reductions in matching
+  slots before the current hit registers. The exact default reductions total
+  at most 35.15625%, use deterministic integer flooring, and are validated,
+  hashed, and isolated per owner.
+- Only successful hurtbox hits register. Whiffs add nothing; shield contacts
+  use the already-staled damage for shield damage, stun, and pushback without
+  inserting. Physical attacks and pummels/throws use per-action deduplication,
+  thrown items use a per-flight latch, and the single projectile registers to
+  its current owner, including after reflection. Ground/air item, projectile,
+  and reflector variants share their intended canonical identity.
+- Queues survive ordinary stock loss, respawn wait, and revival-platform drop.
+  New-match and sudden-death player rebuilds clear them. Save/load, clone,
+  rollback, and replay preserve the queue and live registration latches.
+  Inspection, structured observation, compact RL, and browser state cards
+  expose their appropriate queue/count/multiplier views.
+- Content schema 50/fighter schema 44 define the authored weights. State schema
+  47/save format 46 emits a 631-byte payload and 771-byte checkpoint under
+  `PFSAVE46`; inspection schema 43, observation schema 10, RL schema 12/
+  transition schema 10, compact schema 11 with 102 values, and browser schema
+  44 with 496 values expose the contract. Opaque requirements are 2,448 state
+  bytes and 1,080 scratch bytes within the unchanged 4 KiB envelopes.
+- The existing combat executable now covers 958 mechanics invariants. Its 37
+  new assertions cover all authored weights, repeated-move floors and queue
+  order, owner isolation, different-move shifting, hurt/shield/whiff/reset
+  boundaries, content identity/validation, observation/RL parity, and canonical
+  pummel, throw, item, projectile, reflected-owner, reflector, and charge IDs.
+  Existing tactical rows reuse the changed primitive behavior; no
+  emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -2010,7 +2042,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Character-specific move breadth, additional specials, broader recovery
   options, broader throw routes,
-  broader per-action launch-angle data and stale-move behavior,
+  broader per-action launch-angle data,
   prone-orientation-specific getup-roll timing, and journal producers for every
   remaining action.
 - Repeated human matches.
@@ -2025,9 +2057,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Mechanical oracles: 334 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
-  921
+  958
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
+  stale-move queue scaling/registration,
   complete directional ground normals, canonical smash charge, the
   five-direction light-aerial vocabulary, exact shield size/tilt/poke geometry,
   horizontal shield SDI/ASDI,
@@ -2044,12 +2077,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,418
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,463
   bytes,
   replay SHA-256
-  `27e2748ee0b3ec51e6f6770bedb15ef9d220569c764592023bab84a434ba43c3`,
+  `142117769ea04308848f89a8812ce97861c56a5342862dded8bf506096fc2809`,
   final SHA-256
-  `6698790677b34cd9145f5ef464b5b033bbfe82f450bba38595c388fd9c11973d`,
+  `931c3ccc547f92f6d9ae9dc1ea4c7428315a757b4c165565424b41a6f788ada4`,
   and event-journal SHA-256
   `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
   local native/WebAssembly output is byte-identical and CI repeats it.

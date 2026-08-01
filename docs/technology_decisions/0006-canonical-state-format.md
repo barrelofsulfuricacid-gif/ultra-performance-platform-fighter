@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–43 / state schemas 1–44
+- **Status:** Accepted for save formats 1–46 / state schemas 1–47
 - **Date:** 2026-08-01
 
 ## Decision
@@ -55,6 +55,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 43 | 44 | 140 | 570 | 710 | One canonical raw shield-strength value per player plus analog light-shield entry, interpolated hold depletion and defender pushback, dense-only powershield eligibility, and strength lifecycle semantics |
 | 44 | 45 | 140 | 586 | 726 | One canonical signed x/y shield-tilt pair per player plus health/strength-derived shield geometry, collision priority over overlapping hurtbox, exposed-hurtbox pokes, and tilt lifecycle semantics |
 | 45 | 46 | 140 | 586 | 726 | No payload-layout change; moving revival-platform action/support IDs, exact stage-derived position, zero-motion lifecycle, input/timeout release, and post-drop invulnerability semantics fail closed |
+| 46 | 47 | 140 | 631 | 771 | Per-player attack-registration latch, stale-move count, and nine newest-first canonical move IDs plus one thrown-item registration latch; owner-local stale damage, successful-hurt registration, and reset/persistence semantics fail closed |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -63,8 +64,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
-`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, or `PFSAVE45`.
-The active M4 runtime emits and accepts format 45 with state schema 46. Earlier
+`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, or `PFSAVE46`.
+The active M4 runtime emits and accepts format 46 with state schema 47. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

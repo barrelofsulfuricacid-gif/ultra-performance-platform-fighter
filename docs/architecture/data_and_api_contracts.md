@@ -81,13 +81,16 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–43 remain historical checkpoints. The current M4
-movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
-taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack/
-directional-aerial/ledge-option/smash-charge/analog-light-shield/shield-geometry
-state uses save format 44: a fixed 726-byte checkpoint with state schema 45 and
-a 586-byte payload. It appends one little-endian signed x-tilt and y-tilt value
-per fixed player slot and makes tilt lifecycle, shield-volume derivation,
+Save formats 1–45 remain historical checkpoints. The current M4 state uses
+save format 46: a fixed 771-byte checkpoint with state schema 47 and a 631-byte
+payload. It appends one attack-registration latch, one queue count, and nine
+newest-first canonical stale-move IDs per fixed player slot plus one thrown-item
+registration latch. Load makes owner-local scaling, successful-hurt-only queue
+insertion, per-instance deduplication, queue persistence, and reset semantics
+fail closed. Save format 45/state schema 46 retained the preceding byte layout
+while adding the moving revival-platform action/support semantics. Save format
+44/state schema 45 appended one little-endian signed x-tilt and y-tilt value per
+fixed player slot and made tilt lifecycle, shield-volume derivation,
 blocking-versus-poke priority, release, interruption, and hitlag-resume state
 fail closed. Save
 format 42/state schema 43 introduced the smash-charge values and their charge,
@@ -351,6 +354,21 @@ schema 9, compact schema 10 with 86 values, checkpoint size, and public memory
 scratch requirement remain unchanged. The larger copied immutable stage record
 raises the opaque state requirement from 2,368 to 2,384 bytes; the 4 KiB caller
 envelope remains valid.
+State schema 47 / save format 46 appends 45 bytes to the canonical payload:
+one attack-registration latch and one queue count per fixed player, nine
+newest-first canonical move IDs per fixed player, and one thrown-item
+registration latch. The 631-byte payload produces a 771-byte checkpoint under
+`PFSAVE46`. Loading rejects noncanonical IDs, nonzero unused queue slots,
+out-of-range counts or latches, and inconsistent item registration state.
+Content schema 50/fighter schema 44 add, validate, hash, and default nine
+strictly descending Q16.16 slot reductions. Inspection schema 43 exposes each
+queue, the current or hitlag-resume move multiplier, and fighter/item
+registration latches. Structured observation schema 10 exposes queue count,
+multiplier, and IDs; RL schema 12/transition schema 10 and compact schema 11
+append four packed four-value records at 86–101 for 102 values total. Browser schema 44
+keeps indices 0–446 stable, appends the four 12-value player records at 447–494,
+and exposes the item latch at 495 for 496 values total. Opaque requirements are
+2,448 state bytes and 1,080 scratch bytes inside the unchanged 4 KiB envelopes.
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain

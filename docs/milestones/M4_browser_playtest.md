@@ -152,13 +152,17 @@ are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 43 contains 447 signed values. Each of the four player
+Browser view schema 44 contains 496 signed values. Each of the four player
 blocks has a 53-value stride and appends shield-active, exact
 left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
 event count is at 236, event entries begin at 237, the item block begins at
 397, the projectile block begins at 415, recovery availability begins at 427,
 and four append-only revival-platform values per fixed player occupy 431–446.
-The state card shows raw strength, percentage, tilt, and platform activity.
+Four 12-value stale-move records occupy 447–494: queue count, the selected
+move's Q16.16 multiplier, the per-attack registration latch, and nine canonical
+move IDs newest first. The thrown item's per-instance registration latch is at
+495. The state cards show raw shield strength, percentage, tilt, platform
+activity, the readable stale queue, selected-move scale, and registration.
 Bubble fill and
 stroke weight distinguish light from dense input, while the collision
 inspector draws the authoritative shield AABB and the regular presentation
