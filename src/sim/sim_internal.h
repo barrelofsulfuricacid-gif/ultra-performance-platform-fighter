@@ -205,6 +205,8 @@ typedef struct pf_sim_scratch
     uint8_t projectile_owner_slot;
     uint32_t combat_event_sequence;
     uint8_t combat_event_count;
+    uint8_t stale_move_sync_valid;
+    uint8_t stale_move_dirty_mask;
     pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
 } pf_sim_scratch;
 

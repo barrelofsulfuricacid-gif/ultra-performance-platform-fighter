@@ -1971,12 +1971,6 @@ static void pf_m4_copy_combat_scratch(
         world->attack_hit_mask[player_index];
     scratch->attack_stale_registered[player_index] =
         world->attack_stale_registered[player_index];
-    scratch->stale_move_count[player_index] =
-        world->stale_move_count[player_index];
-    (void)memcpy(
-        scratch->stale_move_ids[player_index],
-        world->stale_move_ids[player_index],
-        sizeof(scratch->stale_move_ids[player_index]));
     scratch->last_hit_attacker[player_index] =
         world->last_hit_attacker[player_index];
     scratch->shield_held[player_index] =
@@ -6092,6 +6086,14 @@ pf_status pf_m4_inspect(
                 player->position_y_q16 +
                 sim->content.fighter.half_height_q16;
         }
+        player->stale_move_count =
+            sim->world.stale_move_count[player_index];
+        if (player->stale_move_count == UINT8_C(0))
+        {
+            player->stale_move_multiplier_q16 =
+                (uint32_t)PF_Q16_ONE;
+        }
+        else
         {
             const uint8_t current_action =
                 player->action_state == (uint8_t)PF_M4_ACTION_HITLAG
@@ -6104,15 +6106,13 @@ pf_status pf_m4_inspect(
                     sim->world.stale_move_ids[player_index],
                     sim->world.stale_move_count[player_index],
                     pf_m4_stale_move_id_for_action(current_action));
+            (void)memcpy(
+                player->stale_move_ids,
+                sim->world.stale_move_ids[player_index],
+                (size_t)player->stale_move_count);
         }
-        player->stale_move_count =
-            sim->world.stale_move_count[player_index];
         player->attack_stale_registered =
             sim->world.attack_stale_registered[player_index];
-        (void)memcpy(
-            player->stale_move_ids,
-            sim->world.stale_move_ids[player_index],
-            sizeof(player->stale_move_ids));
         player->grab_target =
             sim->world.grab_target_slot[player_index] != UINT8_C(0)
                 ? (uint8_t)(

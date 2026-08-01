@@ -166,6 +166,19 @@ static int verify_transition_contract(
             PF_RL_COMPACT_STALE_MOVE_PLAYER_BASE(player_index);
         const pf_player_observation *player =
             &transition->structured_observation.players[player_index];
+        const uint32_t stale_count_ids_0_2 =
+            (uint32_t)player->stale_move_count |
+            ((uint32_t)player->stale_move_ids[0] << 8U) |
+            ((uint32_t)player->stale_move_ids[1] << 16U) |
+            ((uint32_t)player->stale_move_ids[2] << 24U);
+        const uint32_t stale_ids_3_6 =
+            (uint32_t)player->stale_move_ids[3] |
+            ((uint32_t)player->stale_move_ids[4] << 8U) |
+            ((uint32_t)player->stale_move_ids[5] << 16U) |
+            ((uint32_t)player->stale_move_ids[6] << 24U);
+        const uint32_t stale_ids_7_8 =
+            (uint32_t)player->stale_move_ids[7] |
+            ((uint32_t)player->stale_move_ids[8] << 8U);
         if (transition->compact_observation.values[
                 base + UINT16_C(2)] != player->position_x_q16 ||
             transition->compact_observation.values[
@@ -213,12 +226,20 @@ static int verify_transition_contract(
                 (int32_t)player->shield_tilt_y ||
             transition->compact_observation.values[
                 stale_base +
-                PF_RL_COMPACT_STALE_MOVE_COUNT_OFFSET] !=
-                (int32_t)player->stale_move_count ||
-            transition->compact_observation.values[
-                stale_base +
                 PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] !=
-                (int32_t)player->stale_move_multiplier_q16)
+                (int32_t)player->stale_move_multiplier_q16 ||
+            i32_bits(transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET]) !=
+                stale_count_ids_0_2 ||
+            i32_bits(transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_IDS_3_6_OFFSET]) !=
+                stale_ids_3_6 ||
+            i32_bits(transition->compact_observation.values[
+                stale_base +
+                PF_RL_COMPACT_STALE_MOVE_IDS_7_8_OFFSET]) !=
+                stale_ids_7_8)
         {
             (void)fprintf(
                 stderr,
@@ -226,30 +247,6 @@ static int verify_transition_contract(
                 "\n",
                 player_index);
             return 0;
-        }
-        {
-            uint32_t stale_slot;
-
-            for (stale_slot = UINT32_C(0);
-                 stale_slot <
-                     (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
-                 ++stale_slot)
-            {
-                if (transition->compact_observation.values[
-                        stale_base +
-                        PF_RL_COMPACT_STALE_MOVE_IDS_OFFSET +
-                        (uint16_t)stale_slot] !=
-                    (int32_t)player->stale_move_ids[stale_slot])
-                {
-                    (void)fprintf(
-                        stderr,
-                        "rl-api=fail operation=compact-stale-move "
-                        "slot=%" PRIu32 " queue=%" PRIu32 "\n",
-                        player_index,
-                        stale_slot);
-                    return 0;
-                }
-            }
         }
     }
     return 1;

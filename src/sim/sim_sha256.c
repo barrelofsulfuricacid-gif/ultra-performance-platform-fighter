@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 static const uint32_t pf_sha256_round_constants[64] = {
     UINT32_C(0x428a2f98), UINT32_C(0x71374491),
@@ -50,7 +51,9 @@ static uint32_t pf_read_big_u32(const uint8_t *bytes)
            (uint32_t)bytes[3];
 }
 
-static void pf_sha256_transform(pf_sha256 *context)
+static void pf_sha256_transform(
+    pf_sha256 *context,
+    const uint8_t block[64])
 {
     uint32_t schedule[64];
     uint32_t a;
@@ -66,7 +69,7 @@ static void pf_sha256_transform(pf_sha256 *context)
     for (round = UINT32_C(0); round < UINT32_C(16); ++round)
     {
         schedule[round] =
-            pf_read_big_u32(&context->block[(size_t)round * (size_t)4]);
+            pf_read_big_u32(&block[(size_t)round * (size_t)4]);
     }
     for (; round < UINT32_C(64); ++round)
     {
@@ -150,18 +153,42 @@ void pf_sha256_update(
     const uint8_t *bytes,
     size_t byte_count)
 {
-    size_t byte_index;
+    size_t remaining = byte_count;
 
-    for (byte_index = (size_t)0; byte_index < byte_count; ++byte_index)
+    if (remaining == (size_t)0)
     {
-        context->block[context->block_size] = bytes[byte_index];
-        ++context->block_size;
-        ++context->byte_count;
+        return;
+    }
+    context->byte_count += (uint64_t)byte_count;
+    if (context->block_size != (size_t)0)
+    {
+        const size_t available =
+            sizeof(context->block) - context->block_size;
+        const size_t copied = remaining < available ? remaining : available;
+
+        (void)memcpy(
+            &context->block[context->block_size],
+            bytes,
+            copied);
+        context->block_size += copied;
+        bytes += copied;
+        remaining -= copied;
         if (context->block_size == sizeof(context->block))
         {
-            pf_sha256_transform(context);
+            pf_sha256_transform(context, context->block);
             context->block_size = (size_t)0;
         }
+    }
+    while (remaining >= sizeof(context->block))
+    {
+        pf_sha256_transform(context, bytes);
+        bytes += sizeof(context->block);
+        remaining -= sizeof(context->block);
+    }
+    if (remaining != (size_t)0)
+    {
+        (void)memcpy(context->block, bytes, remaining);
+        context->block_size = remaining;
     }
 }
 
@@ -181,7 +208,7 @@ void pf_sha256_finish(pf_sha256 *context, uint8_t digest[32])
             context->block[context->block_size] = UINT8_C(0);
             ++context->block_size;
         }
-        pf_sha256_transform(context);
+        pf_sha256_transform(context, context->block);
         context->block_size = (size_t)0;
     }
 
@@ -196,7 +223,7 @@ void pf_sha256_finish(pf_sha256 *context, uint8_t digest[32])
             (uint8_t)(bit_count >>
                       (UINT32_C(56) - UINT32_C(8) * byte_index));
     }
-    pf_sha256_transform(context);
+    pf_sha256_transform(context, context->block);
 
     for (state_index = UINT32_C(0);
          state_index < UINT32_C(8);

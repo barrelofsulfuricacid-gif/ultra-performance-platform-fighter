@@ -481,6 +481,14 @@ pf_status pf_sim_observe(
             sim->world.shield_tilt_y[player_index];
         player->shield_health_q16 =
             sim->world.shield_health_q16[player_index];
+        player->stale_move_count =
+            sim->world.stale_move_count[player_index];
+        if (player->stale_move_count == UINT8_C(0))
+        {
+            player->stale_move_multiplier_q16 =
+                (uint32_t)PF_Q16_ONE;
+        }
+        else
         {
             const uint8_t current_action =
                 sim->world.action_state[player_index] ==
@@ -494,13 +502,11 @@ pf_status pf_sim_observe(
                     sim->world.stale_move_ids[player_index],
                     sim->world.stale_move_count[player_index],
                     pf_m4_stale_move_id_for_action(current_action));
+            (void)memcpy(
+                player->stale_move_ids,
+                sim->world.stale_move_ids[player_index],
+                (size_t)player->stale_move_count);
         }
-        player->stale_move_count =
-            sim->world.stale_move_count[player_index];
-        (void)memcpy(
-            player->stale_move_ids,
-            sim->world.stale_move_ids[player_index],
-            sizeof(player->stale_move_ids));
     }
 
     return PF_STATUS_OK;

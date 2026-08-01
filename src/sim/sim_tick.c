@@ -131,6 +131,7 @@ static pf_status pf_m4_begin_sudden_death(
         world->damage_q16[player_index] =
             UINT32_C(300) * (uint32_t)PF_Q16_ONE;
     }
+    scratch->stale_move_sync_valid = UINT8_C(0);
     return PF_STATUS_OK;
 }
 
@@ -291,6 +292,19 @@ pf_status pf_sim_tick_impl(
         scratch->combat_events,
         0,
         sizeof(scratch->combat_events));
+    if (scratch->stale_move_sync_valid == UINT8_C(0))
+    {
+        (void)memcpy(
+            scratch->stale_move_count,
+            world->stale_move_count,
+            sizeof(scratch->stale_move_count));
+        (void)memcpy(
+            scratch->stale_move_ids,
+            world->stale_move_ids,
+            sizeof(scratch->stale_move_ids));
+    }
+    scratch->stale_move_sync_valid = UINT8_C(0);
+    scratch->stale_move_dirty_mask = UINT8_C(0);
     pf_m4_begin_item_tick(world, scratch);
     pf_m4_begin_projectile_tick(world, scratch);
     for (player_index = UINT32_C(0);
@@ -510,12 +524,6 @@ pf_status pf_sim_tick_impl(
             scratch->attack_hit_mask[player_index];
         world->attack_stale_registered[player_index] =
             scratch->attack_stale_registered[player_index];
-        world->stale_move_count[player_index] =
-            scratch->stale_move_count[player_index];
-        (void)memcpy(
-            world->stale_move_ids[player_index],
-            scratch->stale_move_ids[player_index],
-            sizeof(world->stale_move_ids[player_index]));
         world->last_hit_attacker[player_index] =
             scratch->last_hit_attacker[player_index];
         world->shield_held[player_index] =
@@ -535,6 +543,25 @@ pf_status pf_sim_tick_impl(
         world->tech_direction[player_index] =
             scratch->tech_direction[player_index];
     }
+    if (scratch->stale_move_dirty_mask != UINT8_C(0))
+    {
+        for (player_index = UINT32_C(0);
+             player_index < PF_SIM_MAX_PLAYERS;
+             ++player_index)
+        {
+            if ((scratch->stale_move_dirty_mask &
+                 (uint8_t)(UINT32_C(1) << player_index)) != UINT8_C(0))
+            {
+                world->stale_move_count[player_index] =
+                    scratch->stale_move_count[player_index];
+                (void)memcpy(
+                    world->stale_move_ids[player_index],
+                    scratch->stale_move_ids[player_index],
+                    sizeof(world->stale_move_ids[player_index]));
+            }
+        }
+    }
+    scratch->stale_move_sync_valid = UINT8_C(1);
     world->item_position_x_q16 = scratch->item_position_x_q16;
     world->item_position_y_q16 = scratch->item_position_y_q16;
     world->item_velocity_x_q16 = scratch->item_velocity_x_q16;

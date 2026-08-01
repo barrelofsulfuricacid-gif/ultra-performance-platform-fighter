@@ -95,12 +95,23 @@ static uint32_t pf_m4_stale_scaled_damage_q16(
     uint8_t move_id,
     uint32_t damage_q16)
 {
-    const uint32_t multiplier_q16 =
+    uint32_t multiplier_q16;
+
+    if (scratch->stale_move_count[player_index] == UINT8_C(0) ||
+        move_id == UINT8_C(0))
+    {
+        return damage_q16;
+    }
+    multiplier_q16 =
         pf_m4_stale_move_multiplier_q16(
             fighter,
             scratch->stale_move_ids[player_index],
             scratch->stale_move_count[player_index],
             move_id);
+    if (multiplier_q16 == (uint32_t)PF_Q16_ONE)
+    {
+        return damage_q16;
+    }
 
     return (uint32_t)(
         (uint64_t)damage_q16 * (uint64_t)multiplier_q16 /
@@ -132,6 +143,8 @@ static void pf_m4_register_stale_move(
                                    [stale_index - UINT32_C(1)];
     }
     scratch->stale_move_ids[player_index][0] = move_id;
+    scratch->stale_move_dirty_mask |=
+        (uint8_t)(UINT32_C(1) << player_index);
 }
 
 static int32_t pf_m4_scaled_knockback(

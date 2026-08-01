@@ -36,6 +36,9 @@ static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
     UINT8_C(0x47), UINT8_C(0x30), UINT8_C(0x30), UINT8_C(0x31)};
 
+static const uint8_t pf_empty_stale_move_queue[
+    PF_SIM_STALE_MOVE_QUEUE_CAPACITY] = {UINT8_C(0)};
+
 static void pf_writer_bytes(
     pf_byte_writer *writer,
     const uint8_t *bytes,
@@ -265,7 +268,6 @@ static void pf_write_payload(
     const pf_world_state *world)
 {
     uint32_t player_index;
-    uint32_t stale_index;
 
     pf_writer_u64(writer, world->tick);
     pf_writer_u64(writer, world->seed);
@@ -525,34 +527,18 @@ static void pf_write_payload(
     {
         pf_writer_u8(writer, world->attack_hit_mask[player_index]);
     }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        pf_writer_u8(
-            writer,
-            world->attack_stale_registered[player_index]);
-    }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        pf_writer_u8(writer, world->stale_move_count[player_index]);
-    }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        for (stale_index = UINT32_C(0);
-             stale_index <
-                 (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
-             ++stale_index)
-        {
-            pf_writer_u8(
-                writer,
-                world->stale_move_ids[player_index][stale_index]);
-        }
-    }
+    pf_writer_bytes(
+        writer,
+        world->attack_stale_registered,
+        sizeof(world->attack_stale_registered));
+    pf_writer_bytes(
+        writer,
+        world->stale_move_count,
+        sizeof(world->stale_move_count));
+    pf_writer_bytes(
+        writer,
+        &world->stale_move_ids[0][0],
+        sizeof(world->stale_move_ids));
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
@@ -718,7 +704,6 @@ static void pf_read_payload(
     pf_world_state *world)
 {
     uint32_t player_index;
-    uint32_t stale_index;
 
     world->tick = pf_reader_u64(reader);
     world->seed = pf_reader_u64(reader);
@@ -967,32 +952,18 @@ static void pf_read_payload(
     {
         world->attack_hit_mask[player_index] = pf_reader_u8(reader);
     }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        world->attack_stale_registered[player_index] =
-            pf_reader_u8(reader);
-    }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        world->stale_move_count[player_index] = pf_reader_u8(reader);
-    }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        for (stale_index = UINT32_C(0);
-             stale_index <
-                 (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
-             ++stale_index)
-        {
-            world->stale_move_ids[player_index][stale_index] =
-                pf_reader_u8(reader);
-        }
-    }
+    pf_reader_bytes(
+        reader,
+        world->attack_stale_registered,
+        sizeof(world->attack_stale_registered));
+    pf_reader_bytes(
+        reader,
+        world->stale_move_count,
+        sizeof(world->stale_move_count));
+    pf_reader_bytes(
+        reader,
+        &world->stale_move_ids[0][0],
+        sizeof(world->stale_move_ids));
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
@@ -1160,23 +1131,6 @@ static void pf_read_payload(
     world->projectile_owner_slot = pf_reader_u8(reader);
 }
 
-static void pf_hash_payload(
-    const pf_world_state *world,
-    uint8_t digest[32])
-{
-    pf_sha256 hash;
-    pf_byte_writer writer;
-
-    pf_sha256_init(&hash);
-    writer.bytes = NULL;
-    writer.capacity = PF_SIM_SAVE_PAYLOAD_BYTES;
-    writer.position = (size_t)0;
-    writer.hash = &hash;
-    writer.failed = 0;
-    pf_write_payload(&writer, world);
-    pf_sha256_finish(&hash, digest);
-}
-
 void pf_sim_snapshot_config_hash(
     const pf_world_state *world,
     uint8_t digest[32])
@@ -1236,17 +1190,52 @@ static void pf_write_header(
     pf_writer_bytes(writer, payload_checksum, (size_t)32);
 }
 
-static void pf_write_save_stream(
-    pf_byte_writer *writer,
+static int pf_write_save_bytes(
+    uint8_t *bytes,
+    size_t capacity,
     const pf_world_state *world)
 {
     uint8_t config_hash[32];
     uint8_t payload_checksum[32];
+    pf_byte_writer header_writer;
+    pf_byte_writer payload_writer;
+    pf_sha256 hash;
 
+    if (bytes == NULL || capacity < PF_SIM_SAVE_TOTAL_BYTES)
+    {
+        return 0;
+    }
+    payload_writer.bytes = &bytes[PF_SIM_SAVE_HEADER_BYTES];
+    payload_writer.capacity = PF_SIM_SAVE_PAYLOAD_BYTES;
+    payload_writer.position = (size_t)0;
+    payload_writer.hash = NULL;
+    payload_writer.failed = 0;
+    pf_write_payload(&payload_writer, world);
+    if (payload_writer.failed != 0 ||
+        payload_writer.position != PF_SIM_SAVE_PAYLOAD_BYTES)
+    {
+        return 0;
+    }
+
+    pf_sha256_init(&hash);
+    pf_sha256_update(
+        &hash,
+        &bytes[PF_SIM_SAVE_HEADER_BYTES],
+        PF_SIM_SAVE_PAYLOAD_BYTES);
+    pf_sha256_finish(&hash, payload_checksum);
     pf_sim_snapshot_config_hash(world, config_hash);
-    pf_hash_payload(world, payload_checksum);
-    pf_write_header(writer, world, config_hash, payload_checksum);
-    pf_write_payload(writer, world);
+    header_writer.bytes = bytes;
+    header_writer.capacity = PF_SIM_SAVE_HEADER_BYTES;
+    header_writer.position = (size_t)0;
+    header_writer.hash = NULL;
+    header_writer.failed = 0;
+    pf_write_header(
+        &header_writer,
+        world,
+        config_hash,
+        payload_checksum);
+    return header_writer.failed == 0 &&
+           header_writer.position == PF_SIM_SAVE_HEADER_BYTES;
 }
 
 static int pf_hash_equal(
@@ -1913,22 +1902,35 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         {
             return PF_STATUS_INVALID_STATE;
         }
-        for (stale_index = UINT32_C(0);
-             stale_index <
-                 (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
-             ++stale_index)
+        if (stale_move_count == UINT8_C(0))
         {
-            const uint8_t move_id =
-                world->stale_move_ids[player_index][stale_index];
-
-            if ((stale_index < (uint32_t)stale_move_count &&
-                 (move_id == UINT8_C(0) ||
-                  pf_m4_stale_move_id_for_action(move_id) !=
-                      move_id)) ||
-                (stale_index >= (uint32_t)stale_move_count &&
-                 move_id != UINT8_C(0)))
+            if (memcmp(
+                    world->stale_move_ids[player_index],
+                    pf_empty_stale_move_queue,
+                    sizeof(pf_empty_stale_move_queue)) != 0)
             {
                 return PF_STATUS_INVALID_STATE;
+            }
+        }
+        else
+        {
+            for (stale_index = UINT32_C(0);
+                 stale_index <
+                     (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
+                 ++stale_index)
+            {
+                const uint8_t move_id =
+                    world->stale_move_ids[player_index][stale_index];
+
+                if ((stale_index < (uint32_t)stale_move_count &&
+                     (move_id == UINT8_C(0) ||
+                      pf_m4_stale_move_id_for_action(move_id) !=
+                          move_id)) ||
+                    (stale_index >= (uint32_t)stale_move_count &&
+                     move_id != UINT8_C(0)))
+                {
+                    return PF_STATUS_INVALID_STATE;
+                }
             }
         }
         if (player_index < (uint32_t)world->player_count)
@@ -2633,7 +2635,6 @@ pf_status pf_sim_save(
     const pf_sim *sim,
     pf_mut_bytes *destination)
 {
-    pf_byte_writer writer;
     pf_status status;
 
     if (destination == NULL)
@@ -2663,14 +2664,10 @@ pf_status pf_sim_save(
         return PF_STATUS_BUFFER_TOO_SMALL;
     }
 
-    writer.bytes = destination->bytes;
-    writer.capacity = destination->capacity;
-    writer.position = (size_t)0;
-    writer.hash = NULL;
-    writer.failed = 0;
-    pf_write_save_stream(&writer, &sim->world);
-    if (writer.failed != 0 ||
-        writer.position != PF_SIM_SAVE_TOTAL_BYTES)
+    if (!pf_write_save_bytes(
+            destination->bytes,
+            destination->capacity,
+            &sim->world))
     {
         return PF_STATUS_BUFFER_TOO_SMALL;
     }
@@ -2681,8 +2678,8 @@ pf_status pf_sim_hash(
     const pf_sim *sim,
     pf_state_hash *out_hash)
 {
+    uint8_t save_bytes[PF_SIM_SAVE_TOTAL_BYTES];
     pf_sha256 hash;
-    pf_byte_writer writer;
     pf_status status;
 
     if (out_hash == NULL)
@@ -2707,18 +2704,15 @@ pf_status pf_sim_hash(
         return PF_STATUS_INVALID_STATE;
     }
 
-    pf_sha256_init(&hash);
-    writer.bytes = NULL;
-    writer.capacity = PF_SIM_SAVE_TOTAL_BYTES;
-    writer.position = (size_t)0;
-    writer.hash = &hash;
-    writer.failed = 0;
-    pf_write_save_stream(&writer, &sim->world);
-    if (writer.failed != 0 ||
-        writer.position != PF_SIM_SAVE_TOTAL_BYTES)
+    if (!pf_write_save_bytes(
+            save_bytes,
+            sizeof(save_bytes),
+            &sim->world))
     {
         return PF_STATUS_INVALID_STATE;
     }
+    pf_sha256_init(&hash);
+    pf_sha256_update(&hash, save_bytes, sizeof(save_bytes));
     pf_sha256_finish(&hash, out_hash->bytes);
     out_hash->algorithm = PF_SIM_STATE_HASH_ALGORITHM_SHA256;
     out_hash->algorithm_version =

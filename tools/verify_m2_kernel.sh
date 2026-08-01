@@ -99,7 +99,7 @@ grep -Fqx \
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=130 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=12' \
+    'rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=12' \
     "$output_dir/rl_api.txt"
 
 # shellcheck disable=SC2086

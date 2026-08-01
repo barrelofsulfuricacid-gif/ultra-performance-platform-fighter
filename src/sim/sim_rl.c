@@ -167,6 +167,29 @@ static void pf_rl_transition_init(pf_rl_transition *transition)
         PF_RL_COMPACT_VALUE_COUNT;
 }
 
+static void pf_rl_transition_init_fast(pf_rl_transition *transition)
+{
+    transition->struct_size = (uint32_t)sizeof(*transition);
+    transition->schema_version = PF_RL_TRANSITION_SCHEMA_VERSION;
+    transition->reserved = UINT16_C(0);
+    transition->status = (uint32_t)PF_STATUS_OK;
+    transition->diagnostic_flags = UINT32_C(0);
+    transition->compact_observation.struct_size =
+        (uint32_t)sizeof(transition->compact_observation);
+    transition->compact_observation.schema_version =
+        PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION;
+    transition->compact_observation.value_count =
+        PF_RL_COMPACT_VALUE_COUNT;
+    (void)memset(
+        transition->reward_q16,
+        0,
+        sizeof(transition->reward_q16));
+    (void)memset(
+        transition->legal_buttons,
+        0,
+        sizeof(transition->legal_buttons));
+}
+
 static void pf_rl_world_result(
     const pf_world_state *world,
     pf_tick_result *result)
@@ -186,7 +209,6 @@ static void pf_rl_fill_compact(
 {
     uint32_t match_bits;
     uint32_t player_index;
-    uint32_t stale_index;
 
     compact->values[PF_RL_COMPACT_TICK_LOW_INDEX] =
         pf_rl_u64_low(observation->tick);
@@ -377,23 +399,49 @@ static void pf_rl_fill_compact(
             &observation->players[player_index];
         const uint16_t base =
             PF_RL_COMPACT_STALE_MOVE_PLAYER_BASE(player_index);
+        if (player->stale_move_count == UINT8_C(0))
+        {
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
+                (int32_t)PF_Q16_ONE;
+            compact->values[
+                base +
+                PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
+                INT32_C(0);
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_IDS_3_6_OFFSET] =
+                INT32_C(0);
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_IDS_7_8_OFFSET] =
+                INT32_C(0);
+            continue;
+        }
+        const uint32_t count_ids_0_2 =
+            (uint32_t)player->stale_move_count |
+            ((uint32_t)player->stale_move_ids[0] << 8U) |
+            ((uint32_t)player->stale_move_ids[1] << 16U) |
+            ((uint32_t)player->stale_move_ids[2] << 24U);
+        const uint32_t ids_3_6 =
+            (uint32_t)player->stale_move_ids[3] |
+            ((uint32_t)player->stale_move_ids[4] << 8U) |
+            ((uint32_t)player->stale_move_ids[5] << 16U) |
+            ((uint32_t)player->stale_move_ids[6] << 24U);
+        const uint32_t ids_7_8 =
+            (uint32_t)player->stale_move_ids[7] |
+            ((uint32_t)player->stale_move_ids[8] << 8U);
 
-        compact->values[
-            base + PF_RL_COMPACT_STALE_MOVE_COUNT_OFFSET] =
-            (int32_t)player->stale_move_count;
         compact->values[
             base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
             (int32_t)player->stale_move_multiplier_q16;
-        for (stale_index = UINT32_C(0);
-             stale_index <
-                 (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
-             ++stale_index)
-        {
-            compact->values[
-                base + PF_RL_COMPACT_STALE_MOVE_IDS_OFFSET +
-                (uint16_t)stale_index] =
-                (int32_t)player->stale_move_ids[stale_index];
-        }
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
+            pf_rl_u32_bits(count_ids_0_2);
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_IDS_3_6_OFFSET] =
+            pf_rl_u32_bits(ids_3_6);
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_IDS_7_8_OFFSET] =
+            pf_rl_u32_bits(ids_7_8);
     }
 }
 
@@ -569,12 +617,13 @@ pf_status pf_rl_step(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    pf_rl_transition_init(out_transition);
     if (!pf_sim_is_valid(sim) || sim->has_reset == UINT8_C(0))
     {
+        pf_rl_transition_init(out_transition);
         out_transition->status = (uint32_t)PF_STATUS_INVALID_STATE;
         return PF_STATUS_INVALID_STATE;
     }
+    pf_rl_transition_init_fast(out_transition);
     if (actions == NULL ||
         action_count != (size_t)sim->world.player_count)
     {
