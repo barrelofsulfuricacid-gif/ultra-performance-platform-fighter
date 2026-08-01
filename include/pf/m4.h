@@ -10,14 +10,14 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(32)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(28)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(33)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(29)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(27)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(28)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -99,7 +99,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_CHARGE_STORE_GROUND = 69,
     PF_M4_ACTION_CHARGE_RELEASE_GROUND = 70,
     PF_M4_ACTION_MOONWALK_SETUP = 71,
-    PF_M4_ACTION_MOONWALK = 72
+    PF_M4_ACTION_MOONWALK = 72,
+    PF_M4_ACTION_TEETER = 73
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -279,6 +280,7 @@ typedef struct pf_m4_fighter_data
     int32_t walk_speed_q16;
     int32_t run_speed_q16;
     int32_t initial_dash_speed_q16;
+    int32_t teeter_snap_distance_q16;
     int32_t air_acceleration_q16;
     int32_t air_speed_q16;
     int32_t gravity_q16;
@@ -386,6 +388,7 @@ typedef struct pf_m4_fighter_data
     uint16_t double_jump_armor_max_hitstun_ticks;
     uint16_t initial_dash_ticks;
     uint16_t moonwalk_setup_ticks;
+    uint16_t teeter_ticks;
     uint16_t forward_smash_input_window_ticks;
     uint16_t landing_ticks;
     uint16_t platform_drop_ticks;

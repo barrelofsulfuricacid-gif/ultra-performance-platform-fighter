@@ -1068,16 +1068,46 @@ all three timing outcomes and exports an independent `moonwalk_probe` before
 readiness. Browser controls use Shift plus the opposite horizontal key for two
 ticks, then the unmodified opposite key.
 
+## Teeter-cancel contract
+
+The original fighter authors `teeter_snap_distance_q16=0.4` and
+`teeter_ticks=30`. Following the researched
+[teeter-cancel route](https://www.ssbwiki.com/Teeter_cancel), neutral
+horizontal input converts grounded residual momentum that crosses the facing
+support edge within the snap distance into explicit `TEETER`. Entry clamps the
+fighter center to the exact support bound, preserves grounding/support/facing,
+and clears horizontal velocity and dash direction. Held outward input does not
+qualify and runs off; a release that stops before crossing does not qualify.
+
+Neutral `TEETER` persists for action ticks 0–29 and expires to `GROUND_IDLE`.
+The ordinary standing input routers remain available on the next tick, so
+Attack begins the standing light attack and full opposite input begins a fresh
+opposite `INITIAL_DASH` without run-brake delay. The same routing also permits
+jump, shield, crouch, special, grab, and reduced-direction walk without a
+technique-only input or mutable history field.
+
+`tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
+exact entry state, duration, attack and reverse-dash cancels, held-outward and
+early-release negatives, and a 690-byte mid-teeter save/load with equal future
+hashes. Browser startup repeats both cancels and both negatives and exports an
+independent `teeter_cancel_probe` before readiness.
+
 ## Canonical state and inspection
 
-State schema 31 / save format 30 retains the 690-byte stream (140-byte header
-plus 550-byte payload), changes the active magic to `PFSAVE30`, and makes both
-Moonwalk action IDs, setup/activation timing, retained facing/dash direction,
-reverse velocity, and mistimed dashback semantics fail closed. Inspection
-schema 27 and browser view schema 27 version the action interpretation without
-changing the 304-value browser layout. Content schema 32/fighter schema 28 add
-and hash the authored setup duration. Structured observation schema 5, RL
+State schema 32 / save format 31 retains the 690-byte stream (140-byte header
+plus 550-byte payload), changes the active magic to `PFSAVE31`, and makes the
+Teeter action ID, grounding, zero horizontal velocity, authored tick range,
+edge entry, and legal cancel semantics fail closed. Inspection schema 28 and
+browser view schema 28 version the action interpretation without changing the
+304-value browser layout. Content schema 33/fighter schema 29 add and hash the
+authored snap distance and duration. Structured observation schema 5, RL
 schema 7, compact observation schema 6, and its 66 values remain unchanged.
+
+It follows state schema 31 / save format 30, which retained the 690-byte
+stream, used `PFSAVE30`, and made both Moonwalk action IDs,
+setup/activation timing, retained facing/dash direction, reverse velocity, and
+mistimed dashback semantics fail closed. Inspection/browser view schema 27 and
+content schema 32/fighter schema 28 versioned and hashed that interpretation.
 
 It follows state schema 30 / save format 29, which expanded the stream to 690
 bytes, used `PFSAVE29`, appended one canonical charge-tick value per player,

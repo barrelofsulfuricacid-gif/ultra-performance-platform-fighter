@@ -81,13 +81,16 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–29 remain historical checkpoints. The current M4
-movement/combat/item/projectile/reflector/charge/Moonwalk state uses save
-format 30: a fixed 690-byte checkpoint with state schema 31 and a 550-byte
-payload. It retains the format-29 byte layout while making the two Moonwalk
-action IDs, authored two-tick shallow-back setup, full-back activation,
-facing-preserving backward velocity, and mistimed dashback semantics fail
-closed. State schema 30 / save format 29 appended one canonical charge-tick
+Save formats 1–30 remain historical checkpoints. The current M4
+movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter state uses
+save format 31: a fixed 690-byte checkpoint with state schema 32 and a 550-byte
+payload. It retains the format-30 byte layout while making the explicit Teeter
+action ID, grounding, zero horizontal velocity, authored tick range,
+support-edge entry, and standing-action cancel semantics fail closed. State
+schema 31 / save format 30 retained the same layout while making the two
+Moonwalk action IDs, authored two-tick shallow-back setup, full-back
+activation, facing-preserving backward velocity, and mistimed dashback
+semantics fail closed. State schema 30 / save format 29 appended one canonical charge-tick
 value per player and made Arc Reservoir charge, storage, early cancel, exact
 resume, scaled release, completion, and interruption semantics fail closed.
 State schema 29 / save format 28 retained
@@ -156,6 +159,11 @@ schema 28 adds and hashes the data-defined setup duration. Inspection and
 browser view schema 27 version the new action interpretation without changing
 the 304-value layout; structured observation schema 5, RL schema 7, compact
 observation schema 6, and its 66 values remain unchanged.
+State schema 32 also retains the 550-byte payload while adding explicit
+`TEETER` action semantics. Content schema 33/fighter schema 29 add and hash the
+data-defined support-edge snap distance and duration. Inspection and browser
+view schema 28 version that interpretation without changing the 304-value
+layout; observation and RL schemas remain unchanged.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

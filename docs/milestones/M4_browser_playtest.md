@@ -19,6 +19,8 @@ one data-defined Arc Reservoir with charge, storage cancel, exact resume, and
 scaled grounded release,
 an authored two-tick shallow-back Moonwalk setup with facing-preserving reverse
 slide and immediate/one-tick dashback controls,
+an authored support-edge Teeter with neutral duration, standing-attack and
+reverse-dash cancels, plus held-outward and early-release controls,
 grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -37,6 +39,7 @@ headless execution.
 | Full left/right input and horizontal DI | `A` / `D` | Left / Right |
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Moonwalk | Dash, hold `Shift` plus the opposite direction for two ticks, then release `Shift` while keeping the direction | Same with Left / Right |
+| Teeter cancel | Dash toward an edge, release the direction just before crossing, then Attack or press full opposite direction | Same with Left / Right |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
@@ -125,6 +128,15 @@ while keeping the opposite direction held. `MOONWALK SETUP` becomes
 Release the direction to see ordinary traction preserve the diminishing slide.
 Switching to full back immediately or after only one reduced-back tick instead
 turns the fighter into an ordinary opposite `INITIAL DASH`.
+
+For a Teeter cancel, dash toward the floor edge and release the horizontal key
+just before residual momentum would carry the fighter off. The inspector names
+the exact clamped edge state `TEETER`. Press Attack immediately for a standing
+attack, or press the full opposite direction for a fresh reverse
+`INITIAL DASH` without waiting through run brake. Hold outward continuously to
+confirm the ordinary run-off, and release well before the edge to confirm the
+fighter stops short. Leaving `TEETER` neutral shows its authored 30-tick
+duration before returning to `IDLE`.
 
 For a pivot, begin an initial dash, tap the opposite full direction for one
 tick, then return to neutral and immediately press the attack key. The attack
@@ -845,6 +857,9 @@ through:
   before the live charge lab is installed;
 - a two-tick reduced-back Moonwalk setup entering a facing-preserving backward
   slide, plus immediate full-back and one-tick-setup dashback negatives;
+- a support-edge Teeter entering only after near-edge input release, cancelling
+  immediately into standing attack and reverse dash, plus held-outward run-off
+  and early-release negatives;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -894,7 +909,8 @@ double_jump_cancel_counter_probe=pass
 bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
 jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
-fox_trot_probe=pass moonwalk_probe=pass pivot_probe=pass dash_cancel_probe=pass
+fox_trot_probe=pass moonwalk_probe=pass teeter_cancel_probe=pass
+pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass

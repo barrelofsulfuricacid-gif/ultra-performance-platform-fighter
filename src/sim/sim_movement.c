@@ -667,6 +667,16 @@ static int pf_m4_action_is_ground_attack(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL;
 }
 
+static int pf_m4_action_can_enter_teeter(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+           action_state == (uint8_t)PF_M4_ACTION_WALK ||
+           action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
+}
+
 static int pf_m4_action_is_aerial_landing(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_AERIAL_LANDING ||
@@ -1319,6 +1329,7 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_TEETER ||
            action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
            action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
 }
@@ -3446,7 +3457,42 @@ pf_status pf_m4_step_player(
         const int moonwalk_full_back =
             strong_direction == -facing;
 
-        if (action_state ==
+        if (action_state == (uint8_t)PF_M4_ACTION_TEETER)
+        {
+            if (horizontal_magnitude <= fighter->axis_dead_zone)
+            {
+                velocity_x = INT32_C(0);
+                ++action_ticks;
+                if (action_ticks >= fighter->teeter_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                    action_ticks = UINT16_C(0);
+                }
+            }
+            else if (strong_direction != INT8_C(0))
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_INITIAL_DASH;
+                action_ticks = UINT16_C(1);
+                dash_direction = strong_direction;
+                facing = strong_direction;
+                velocity_x =
+                    (int32_t)strong_direction *
+                    fighter->initial_dash_speed_q16;
+            }
+            else
+            {
+                action_state = (uint8_t)PF_M4_ACTION_WALK;
+                action_ticks = UINT16_C(0);
+                dash_direction = INT8_C(0);
+                facing = horizontal_direction;
+                velocity_x = pf_m4_scale_axis_q16(
+                    input->main_stick_x,
+                    fighter->walk_speed_q16);
+            }
+        }
+        else if (action_state ==
             (uint8_t)PF_M4_ACTION_MOONWALK_SETUP)
         {
             if (moonwalk_shallow_back)
@@ -4127,7 +4173,36 @@ pf_status pf_m4_step_player(
             world->tick + UINT64_C(1),
             &surface_left,
             &surface_right);
-        if (position_x < surface_left || position_x > surface_right)
+        if (horizontal_magnitude <= fighter->axis_dead_zone &&
+            pf_m4_action_can_enter_teeter(action_state) != 0 &&
+            position_x < surface_left &&
+            facing == INT8_C(-1) &&
+            previous_position_x >= surface_left &&
+            (int64_t)surface_left - (int64_t)position_x <=
+                (int64_t)fighter->teeter_snap_distance_q16)
+        {
+            position_x = surface_left;
+            velocity_x = INT32_C(0);
+            action_state = (uint8_t)PF_M4_ACTION_TEETER;
+            action_ticks = UINT16_C(0);
+            dash_direction = INT8_C(0);
+        }
+        else if (
+            horizontal_magnitude <= fighter->axis_dead_zone &&
+            pf_m4_action_can_enter_teeter(action_state) != 0 &&
+            position_x > surface_right &&
+            facing == INT8_C(1) &&
+            previous_position_x <= surface_right &&
+            (int64_t)position_x - (int64_t)surface_right <=
+                (int64_t)fighter->teeter_snap_distance_q16)
+        {
+            position_x = surface_right;
+            velocity_x = INT32_C(0);
+            action_state = (uint8_t)PF_M4_ACTION_TEETER;
+            action_ticks = UINT16_C(0);
+            dash_direction = INT8_C(0);
+        }
+        else if (position_x < surface_left || position_x > surface_right)
         {
             const int shield_break_fall =
                 pf_m4_action_is_shield_break(action_state);

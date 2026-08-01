@@ -379,7 +379,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   inspection/browser view schema to 27 for the two authored grounded actions,
   exact two-tick shallow-back setup, facing-preserving reverse slide, and
   fail-closed action timing. Observation, RL, payload, save-size, and browser
-  layout counts do not change.
+  layout counts do not change. The Teeter-cancel slice advances state schema
+  to 32/save format 31, content schema to 33 with fighter schema 29, and
+  inspection/browser view schema to 28 for the explicit edge state, authored
+  snap distance/duration, and legal standing-action cancels; its payload,
+  save-size, observation, RL, and browser layout counts also do not change.
   Config/identity schema 2 remains current. The canonical save is 690 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1175,6 +1179,33 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 33, Moonwalk, advances from `planned` to `playable`. Owner
   execution and complete cross-target evidence remain before `verified`.
 
+## Delivered in the Teeter-cancel slice
+
+- Releasing horizontal input while grounded residual momentum crosses a
+  support edge by no more than the authored 0.4-unit snap distance clamps the
+  fighter at that edge in explicit `TEETER`, with zero horizontal velocity and
+  a 30-tick neutral duration. Continued outward input still runs off normally,
+  and releasing too early stops short.
+- Existing standing routers interrupt `TEETER` without a new lockout. The
+  focused recipe proves an immediate standing attack and full opposite
+  initial dash; jump, shield, crouch, special, grab, and walking remain routed
+  by the same production controls.
+- `tests/sim/test_m4_movement.c` adds 11 focused invariants for default and
+  invalid authored data, isolated content hashing, exact clamp/support/facing,
+  neutral duration, both cancels, both negative routes, and a 690-byte
+  mid-teeter save/load with equal future hashes.
+- State schema 32/save format 31 and `PFSAVE31` make action 73, its tick range,
+  grounding, zero-velocity edge state, and cancel semantics fail closed while
+  retaining the 550-byte payload and 690-byte checkpoint. Content schema
+  33/fighter schema 29 hash the snap distance and duration; inspection and
+  browser view schema 28 retain the 304-value layout. Observation and RL
+  schemas remain unchanged.
+- Browser startup independently performs the attack and reverse-dash cancels,
+  held-outward run-off, and early-release control before readiness, exports
+  `teeter_cancel_probe`, and names action 73 `TEETER`.
+- Registry row 57, Teeter cancel, advances from `planned` to `playable`. Owner
+  execution and complete cross-target evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1279,7 +1310,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash,
+  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, teeter cancel,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1290,7 +1321,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 49 playable, 3 primitive-ready, and 8 planned.
+  blocked: 1 verified, 50 playable, 3 primitive-ready, and 7 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1323,8 +1354,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 255 movement invariants including Moonwalk timing,
-  dashback controls, and mid-setup save/load; 584
+- Mechanical oracles: 266 movement invariants including Moonwalk timing,
+  Teeter-cancel routes and controls, and mid-action save/load; 584
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1339,9 +1370,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,382
   bytes,
   replay SHA-256
-  `02d364c8e2139ea817337c69b81d19b8fb6756de551dcd2195224abb2f004d5c`,
+  `ec58a865638b92e0296e1d9b0bced6dc3c30b6cfb9c5a694d3a381ad024486e0`,
   final SHA-256
-  `12e46d784656ffa3697568fa9f36d4da41d1884dc614bb5bd094aa8bc4811ff0`,
+  `8bf36e3e8787292a173688fb276544c2f3e4e372babb7e57b443419ee8fb51ae`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1352,7 +1383,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

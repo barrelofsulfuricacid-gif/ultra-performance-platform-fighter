@@ -1678,9 +1678,11 @@ static int run_content_contract_test(
     test_sim_storage tuned_storage;
     pf_m4_content invalid_content = *default_content;
     pf_m4_content moonwalk_tuned_content = *default_content;
+    pf_m4_content teeter_tuned_content = *default_content;
     pf_m4_content tuned_content = *default_content;
     pf_content_view damaged_view = *default_view;
     pf_content_view moonwalk_tuned_view;
+    pf_content_view teeter_tuned_view;
     pf_content_view tuned_view;
     pf_sim_config config;
     pf_sim *rejected = NULL;
@@ -1736,6 +1738,56 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=moonwalk-content-hash\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.teeter_snap_distance_q16 = INT32_C(0);
+    if (default_content->fighter.teeter_snap_distance_q16 !=
+            (INT32_C(2) * PF_Q16_ONE) / INT32_C(5) ||
+        default_content->fighter.teeter_ticks != UINT16_C(30) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-teeter-snap"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.teeter_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-teeter-duration"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.teeter_ticks = UINT16_C(121);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-long-teeter-duration"))
+    {
+        return 0;
+    }
+
+    teeter_tuned_content.fighter.teeter_snap_distance_q16 +=
+        INT32_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &teeter_tuned_content,
+                &teeter_tuned_view),
+            PF_STATUS_OK,
+            "teeter-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            teeter_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-content-hash\n");
         return 0;
     }
 
@@ -2745,6 +2797,513 @@ static int run_moonwalk_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=moonwalk-short-negative\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int enter_right_teeter(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, out_inspection),
+            PF_STATUS_OK,
+            "teeter-inspect-start"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        const int32_t distance_q16 =
+            content->stage.floor_right_q16 -
+            out_inspection->players[0].position_x_q16;
+
+        if (distance_q16 <= INT32_C(3) * PF_Q16_ONE)
+        {
+            break;
+        }
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection) ||
+            out_inspection->players[0].grounded == UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=teeter-approach-dash"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(60); ++tick)
+    {
+        if (out_inspection->players[0].velocity_x_q16 == INT32_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection) ||
+            out_inspection->players[0].grounded == UINT8_C(0) ||
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_TEETER)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=teeter-approach-stop\n");
+            return 0;
+        }
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        const int32_t position_q16 =
+            out_inspection->players[0].position_x_q16;
+        const int32_t velocity_q16 =
+            out_inspection->players[0].velocity_x_q16;
+        const int32_t distance_q16 =
+            content->stage.floor_right_q16 - position_q16;
+        const int32_t release_velocity_q16 =
+            velocity_q16 > content->fighter.traction_q16
+                ? velocity_q16 - content->fighter.traction_q16
+                : INT32_C(0);
+        int16_t selected_axis = INT16_C(0);
+        int32_t selected_velocity_q16 = INT32_C(0);
+        uint32_t axis;
+
+        if (release_velocity_q16 > distance_q16)
+        {
+            if (!step_duel(
+                    sim,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    out_inspection))
+            {
+                return 0;
+            }
+            break;
+        }
+
+        for (axis =
+                 (uint32_t)content->fighter.axis_dead_zone + UINT32_C(1);
+             axis < (uint32_t)content->fighter.dash_axis_threshold;
+             ++axis)
+        {
+            const int32_t target_q16 =
+                (int32_t)(
+                    (int64_t)(int32_t)axis *
+                    (int64_t)content->fighter.walk_speed_q16 /
+                    INT64_C(32767));
+            int32_t next_velocity_q16 = velocity_q16;
+            const int32_t acceleration_q16 =
+                content->fighter.ground_acceleration_q16;
+            int32_t next_release_velocity_q16;
+
+            if (next_velocity_q16 < target_q16)
+            {
+                next_velocity_q16 += acceleration_q16;
+                if (next_velocity_q16 > target_q16)
+                {
+                    next_velocity_q16 = target_q16;
+                }
+            }
+            else if (next_velocity_q16 > target_q16)
+            {
+                next_velocity_q16 -= acceleration_q16;
+                if (next_velocity_q16 < target_q16)
+                {
+                    next_velocity_q16 = target_q16;
+                }
+            }
+            next_release_velocity_q16 =
+                next_velocity_q16 > content->fighter.traction_q16
+                    ? next_velocity_q16 -
+                          content->fighter.traction_q16
+                    : INT32_C(0);
+
+            if (next_velocity_q16 < distance_q16 &&
+                distance_q16 - next_velocity_q16 <
+                    next_release_velocity_q16)
+            {
+                selected_axis = (int16_t)axis;
+                selected_velocity_q16 = next_velocity_q16;
+                break;
+            }
+            if (next_velocity_q16 < distance_q16 &&
+                next_velocity_q16 > selected_velocity_q16)
+            {
+                selected_axis = (int16_t)axis;
+                selected_velocity_q16 = next_velocity_q16;
+            }
+        }
+        if (selected_axis == INT16_C(0) ||
+            !step_duel(
+                sim,
+                selected_axis,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection) ||
+            out_inspection->players[0].grounded == UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=teeter-approach-walk"
+                " tick=%" PRIu32 " distance=%" PRId32
+                " velocity=%" PRId32 " axis=%d\n",
+                tick,
+                distance_q16,
+                velocity_q16,
+                (int)selected_axis);
+            return 0;
+        }
+    }
+
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TEETER ||
+        out_inspection->players[0].action_ticks != UINT16_C(0) ||
+        out_inspection->players[0].position_x_q16 !=
+            content->stage.floor_right_q16 ||
+        out_inspection->players[0].velocity_x_q16 != INT32_C(0) ||
+        out_inspection->players[0].grounded == UINT8_C(0) ||
+        out_inspection->players[0].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        out_inspection->players[0].facing != INT8_C(1) ||
+        out_inspection->players[0].dash_direction != INT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-entry"
+            " action=%u ticks=%u position=%" PRId32
+            " velocity=%" PRId32 " grounded=%u\n",
+            (unsigned int)out_inspection->players[0].action_state,
+            (unsigned int)out_inspection->players[0].action_ticks,
+            out_inspection->players[0].position_x_q16,
+            out_inspection->players[0].velocity_x_q16,
+            (unsigned int)out_inspection->players[0].grounded);
+        return 0;
+    }
+    return 1;
+}
+
+static int run_teeter_cancel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int observed_teeter = 0;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x7ee7e2)),
+            PF_STATUS_OK,
+            "teeter-reset") ||
+        !enter_right_teeter(source, content, &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TEETER ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "teeter-query-save-size") ||
+        save_size != (size_t)690)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "teeter-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "teeter-load"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "teeter-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "teeter-loaded-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0 ||
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_TEETER ||
+            source_inspection.players[0].action_ticks !=
+                (uint16_t)(tick + UINT32_C(2)))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=teeter-snapshot"
+                " continuation_tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        source_inspection.players[0].position_x_q16 !=
+            content->stage.floor_right_q16 ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "teeter-attack-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "teeter-attack-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-attack-cancel\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x7ee7e3)),
+            PF_STATUS_OK,
+            "teeter-dash-reset") ||
+        !enter_right_teeter(source, content, &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].facing != INT8_C(-1) ||
+        source_inspection.players[0].dash_direction != INT8_C(-1) ||
+        source_inspection.players[0].velocity_x_q16 !=
+            -content->fighter.initial_dash_speed_q16 ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        source_inspection.players[0].position_x_q16 >=
+            content->stage.floor_right_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-reverse-dash-cancel\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x7ee7e4)),
+            PF_STATUS_OK,
+            "teeter-held-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+        if (source_inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_TEETER)
+        {
+            observed_teeter = 1;
+        }
+        if (source_inspection.players[0].grounded == UINT8_C(0))
+        {
+            break;
+        }
+    }
+    if (observed_teeter != 0 ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-held-outward-negative\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x7ee7e5)),
+            PF_STATUS_OK,
+            "teeter-early-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(60); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            source_inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_TEETER)
+        {
+            return 0;
+        }
+        if (source_inspection.players[0].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+    }
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        source_inspection.players[0].position_x_q16 >=
+            content->stage.floor_right_q16 -
+                content->fighter.teeter_snap_distance_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-early-release-negative\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x7ee7e6)),
+            PF_STATUS_OK,
+            "teeter-expiry-reset") ||
+        !enter_right_teeter(source, content, &source_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.teeter_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+        if (tick + UINT32_C(1) <
+                (uint32_t)content->fighter.teeter_ticks &&
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_TEETER)
+        {
+            return 0;
+        }
+    }
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].position_x_q16 !=
+            content->stage.floor_right_q16 ||
+        source_inspection.players[0].grounded == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=teeter-expiry\n");
         return 0;
     }
     return 1;
@@ -8105,6 +8664,7 @@ int main(void)
         !run_ground_control_test(&content, &view) ||
         !run_fox_trot_test(&content, &view) ||
         !run_moonwalk_test(&content, &view) ||
+        !run_teeter_cancel_test(&content, &view) ||
         !run_pivot_test(&content, &view) ||
         !run_dash_cancel_test(&content, &view) ||
         !run_air_control_test(&content, &view) ||
@@ -8129,7 +8689,8 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=255 moonwalk=1 double_jump_cancel=1 "
+        "movement_invariants=266 moonwalk=1 teeter_cancel=1 "
+        "double_jump_cancel=1 "
         "ledge_cancel=1 planking=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;

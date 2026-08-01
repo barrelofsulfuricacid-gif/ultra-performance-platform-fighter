@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -458,6 +458,7 @@ mergeInto(LibraryManager.library, {
     edgeDashProbePassed,
     foxTrotProbePassed,
     moonwalkProbePassed,
+    teeterCancelProbePassed,
     pivotProbePassed,
     dashCancelProbePassed,
     dashingShieldProbePassed,
@@ -759,6 +760,8 @@ mergeInto(LibraryManager.library, {
     section.dataset.chargeStorageProbe =
       chargeStorageProbePassed ? "pass" : "fail";
     section.dataset.moonwalkProbe = moonwalkProbePassed ? "pass" : "fail";
+    section.dataset.teeterCancelProbe =
+      teeterCancelProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -790,6 +793,7 @@ mergeInto(LibraryManager.library, {
       edgeDashProbePassed &&
       foxTrotProbePassed &&
       moonwalkProbePassed &&
+      teeterCancelProbePassed &&
       pivotProbePassed &&
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
@@ -1373,6 +1377,8 @@ mergeInto(LibraryManager.library, {
         (foxTrotProbePassed ? "pass" : "fail") +
         " moonwalk_probe=" +
         (moonwalkProbePassed ? "pass" : "fail") +
+        " teeter_cancel_probe=" +
+        (teeterCancelProbePassed ? "pass" : "fail") +
         " pivot_probe=" +
         (pivotProbePassed ? "pass" : "fail") +
         " dash_cancel_probe=" +
@@ -1479,6 +1485,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
       status.dataset.moonwalkProbe = moonwalkProbePassed ? "pass" : "fail";
+      status.dataset.teeterCancelProbe =
+        teeterCancelProbePassed ? "pass" : "fail";
       status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
       status.dataset.dashCancelProbe =
         dashCancelProbePassed ? "pass" : "fail";
@@ -1572,7 +1580,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 27) {
+    if (view[0] !== 28) {
       return;
     }
     var canvas = state.canvas;
@@ -1660,6 +1668,7 @@ mergeInto(LibraryManager.library, {
       "ARC RESERVOIR RELEASE",
       "MOONWALK SETUP",
       "MOONWALK",
+      "TEETER",
     ];
 
     if (view[1] < previousTick) {

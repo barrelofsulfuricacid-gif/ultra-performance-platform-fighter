@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output_dir=${1:-/tmp/pf-m4-charge}
 compiler=${CC:-cc}
-expected='m4-charge=pass content_schema=32 state_schema=31 save_bytes=690 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1'
+expected='m4-charge=pass content_schema=33 state_schema=32 save_bytes=690 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1'
 
 mkdir -p "$output_dir"
 

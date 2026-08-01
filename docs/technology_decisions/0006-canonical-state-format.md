@@ -40,14 +40,15 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 28 | 29 | 140 | 542 | 682 | Canonical grounded/aerial Prism Burst action IDs, hitlag-resume and landing semantics, downward physical launch, and active-box projectile reflection; no payload-layout change |
 | 29 | 30 | 140 | 550 | 690 | One canonical charge-tick value per player plus Arc Reservoir charge, store, early-cancel, resume, scaled-release, completion, interruption, and action-ID semantics |
 | 30 | 31 | 140 | 550 | 690 | Canonical `MOONWALK_SETUP` and `MOONWALK` action IDs, authored shallow-back timing, full-back activation, retained facing/dash direction, backward velocity, and mistimed dashback semantics; no payload-layout change |
+| 31 | 32 | 140 | 550 | 690 | Canonical `TEETER` action ID, authored support-edge snap distance and duration, neutral persistence, zero-velocity grounding, standing-attack/reverse-dash cancels, held-outward run-off, and early-release semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
-`PFSAVE29`, or `PFSAVE30`. The active M4 runtime emits and accepts format 30
-with state schema 31. Earlier
+`PFSAVE29`, `PFSAVE30`, or `PFSAVE31`. The active M4 runtime emits and accepts
+format 31 with state schema 32. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -177,6 +178,12 @@ or active ticks, airborne/reaction-incompatible actions, missing or
 facing-inconsistent dash direction, and any action value unknown to schema 31.
 The bump prevents a format-29 reader from silently treating those action IDs
 or their facing-preserving reverse-motion semantics as ordinary movement.
+Format 31 also retains the same payload and adds no mutable field. Explicit
+`TEETER` action ID/ticks encode the authored edge state. Loading rejects
+out-of-range Teeter ticks, an airborne Teeter, nonzero Teeter horizontal
+velocity, reaction-incompatible state, or any action value unknown to schema
+32. The bump prevents a format-30 reader from silently treating action 73 or
+its edge-clamp and standing-cancel semantics as ordinary grounded movement.
 
 ## Why SHA-256
 

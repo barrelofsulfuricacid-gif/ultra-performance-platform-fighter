@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x30)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x31)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1237,7 +1237,10 @@ static int pf_m4_snapshot_content_state_consistent(
                   content->fighter.moonwalk_setup_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_MOONWALK &&
              (action_ticks == UINT16_C(0) ||
-              action_ticks >= content->fighter.initial_dash_ticks)))
+              action_ticks >= content->fighter.initial_dash_ticks)) ||
+            (action == (uint8_t)PF_M4_ACTION_TEETER &&
+             (action_ticks >= content->fighter.teeter_ticks ||
+              world->velocity_x_q16[player_index] != INT32_C(0))))
         {
             return 0;
         }
@@ -1581,8 +1584,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action >
-                    (uint8_t)PF_M4_ACTION_MOONWALK ||
+                action > (uint8_t)PF_M4_ACTION_TEETER ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1929,6 +1931,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                        (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
                    action ==
                        (uint8_t)PF_M4_ACTION_MOONWALK ||
+                   action == (uint8_t)PF_M4_ACTION_TEETER ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
