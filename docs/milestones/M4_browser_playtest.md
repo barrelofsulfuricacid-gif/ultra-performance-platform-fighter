@@ -21,6 +21,8 @@ an authored two-tick shallow-back Moonwalk setup with facing-preserving reverse
 slide and immediate/one-tick dashback controls,
 an authored support-edge Teeter with neutral duration, standing-attack and
 reverse-dash cancels, plus held-outward and early-release controls,
+an authored one-tick crouch step with release-gated repetition and held,
+neutral-down, and horizontal-only controls,
 grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -40,6 +42,7 @@ headless execution.
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
 | Moonwalk | Dash, hold `Shift` plus the opposite direction for two ticks, then release `Shift` while keeping the direction | Same with Left / Right |
 | Teeter cancel | Dash toward an edge, release the direction just before crossing, then Attack or press full opposite direction | Same with Left / Right |
+| Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
@@ -137,6 +140,13 @@ attack, or press the full opposite direction for a fresh reverse
 confirm the ordinary run-off, and release well before the edge to confirm the
 fighter stops short. Leaving `TEETER` neutral shows its authored 30-tick
 duration before returning to `IDLE`.
+
+For Stage humping, tap diagonal down-forward or down-back from standing or
+`CROUCH`. Each fresh diagonal-down edge enters `CROUCH STEP`, moves exactly
+0.1 unit for one simulation tick, and settles into ordinary `CROUCH`. Release
+the keys and repeat to chain the microsteps. Holding the diagonal produces
+only the first step; neutral down remains a stationary crouch, and horizontal
+alone remains an ordinary dash.
 
 For a pivot, begin an initial dash, tap the opposite full direction for one
 tick, then return to neutral and immediately press the attack key. The attack
@@ -860,6 +870,8 @@ through:
 - a support-edge Teeter entering only after near-edge input release, cancelling
   immediately into standing attack and reverse dash, plus held-outward run-off
   and early-release negatives;
+- eight release-gated diagonal-down crouch steps with exact displacement, plus
+  held-diagonal, neutral-down, and horizontal-only negative routes;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -910,6 +922,7 @@ bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
 jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass moonwalk_probe=pass teeter_cancel_probe=pass
+stage_humping_probe=pass
 pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass

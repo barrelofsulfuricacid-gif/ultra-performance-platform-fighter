@@ -119,6 +119,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->run_speed_q16);
     pf_m4_hash_i32(hash, fighter->initial_dash_speed_q16);
     pf_m4_hash_i32(hash, fighter->teeter_snap_distance_q16);
+    pf_m4_hash_i32(hash, fighter->crouch_step_speed_q16);
     pf_m4_hash_i32(hash, fighter->air_acceleration_q16);
     pf_m4_hash_i32(hash, fighter->air_speed_q16);
     pf_m4_hash_i32(hash, fighter->gravity_q16);
@@ -271,6 +272,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
     pf_m4_hash_u16(hash, fighter->moonwalk_setup_ticks);
     pf_m4_hash_u16(hash, fighter->teeter_ticks);
+    pf_m4_hash_u16(hash, fighter->crouch_step_ticks);
     pf_m4_hash_u16(
         hash,
         fighter->forward_smash_input_window_ticks);
@@ -633,6 +635,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->run_speed_q16 = PF_Q16_RATIO(6, 25);
     fighter->initial_dash_speed_q16 = PF_Q16_RATIO(3, 10);
     fighter->teeter_snap_distance_q16 = PF_Q16_RATIO(2, 5);
+    fighter->crouch_step_speed_q16 = PF_Q16_RATIO(1, 10);
     fighter->air_acceleration_q16 = PF_Q16_RATIO(1, 100);
     fighter->air_speed_q16 = PF_Q16_RATIO(4, 25);
     fighter->gravity_q16 = PF_Q16_RATIO(1, 50);
@@ -818,6 +821,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->initial_dash_ticks = UINT16_C(10);
     fighter->moonwalk_setup_ticks = UINT16_C(2);
     fighter->teeter_ticks = UINT16_C(30);
+    fighter->crouch_step_ticks = UINT16_C(1);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
     fighter->landing_ticks = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(9);
@@ -1218,6 +1222,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->run_speed_q16 <= fighter->walk_speed_q16 ||
         fighter->initial_dash_speed_q16 < fighter->run_speed_q16 ||
         fighter->teeter_snap_distance_q16 <= INT32_C(0) ||
+        fighter->crouch_step_speed_q16 <= INT32_C(0) ||
+        fighter->crouch_step_speed_q16 > fighter->walk_speed_q16 ||
         fighter->air_acceleration_q16 <= INT32_C(0) ||
         fighter->air_speed_q16 <= INT32_C(0) ||
         fighter->gravity_q16 <= INT32_C(0) ||
@@ -1479,6 +1485,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->teeter_snap_distance_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->crouch_step_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->air_acceleration_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->air_speed_q16 > PF_SIM_MAX_MOTION_SPEED_Q16 ||
@@ -1529,6 +1537,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->initial_dash_ticks ||
         fighter->teeter_ticks == UINT16_C(0) ||
         fighter->teeter_ticks > UINT16_C(120) ||
+        fighter->crouch_step_ticks == UINT16_C(0) ||
+        fighter->crouch_step_ticks > UINT16_C(30) ||
         fighter->forward_smash_input_window_ticks == UINT16_C(0) ||
         fighter->forward_smash_input_window_ticks >
             fighter->initial_dash_ticks ||

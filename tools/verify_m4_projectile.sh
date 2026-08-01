@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output_dir=${1:-/tmp/pf-m4-projectile}
 compiler=${CC:-cc}
-expected='m4-projectile=pass content_schema=33 state_schema=32 save_bytes=690 projectile_invariants=38 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1'
+expected='m4-projectile=pass content_schema=34 state_schema=33 save_bytes=690 projectile_invariants=38 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1'
 
 mkdir -p "$output_dir"
 

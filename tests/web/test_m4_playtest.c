@@ -93,6 +93,7 @@ static int test_edge_dash_probe;
 static int test_fox_trot_probe;
 static int test_moonwalk_probe;
 static int test_teeter_cancel_probe;
+static int test_stage_humping_probe;
 static int test_pivot_probe;
 static int test_dash_cancel_probe;
 static int test_dashing_shield_probe;
@@ -152,6 +153,7 @@ void pf_web_m4_playtest_install(
     int fox_trot_probe_passed,
     int moonwalk_probe_passed,
     int teeter_cancel_probe_passed,
+    int stage_humping_probe_passed,
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
@@ -214,6 +216,7 @@ void pf_web_m4_playtest_install(
     int fox_trot_probe_passed,
     int moonwalk_probe_passed,
     int teeter_cancel_probe_passed,
+    int stage_humping_probe_passed,
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
@@ -275,6 +278,7 @@ void pf_web_m4_playtest_install(
     test_fox_trot_probe = fox_trot_probe_passed;
     test_moonwalk_probe = moonwalk_probe_passed;
     test_teeter_cancel_probe = teeter_cancel_probe_passed;
+    test_stage_humping_probe = stage_humping_probe_passed;
     test_pivot_probe = pivot_probe_passed;
     test_dash_cancel_probe = dash_cancel_probe_passed;
     test_dashing_shield_probe = dashing_shield_probe_passed;
@@ -434,6 +438,7 @@ int main(void)
         test_fox_trot_probe != 1 ||
         test_moonwalk_probe != 1 ||
         test_teeter_cancel_probe != 1 ||
+        test_stage_humping_probe != 1 ||
         test_pivot_probe != 1 ||
         test_dash_cancel_probe != 1 ||
         test_dashing_shield_probe != 1 ||
@@ -474,7 +479,7 @@ int main(void)
         test_charge_storage_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 28 ||
+        test_view[0] != 29 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -538,6 +543,7 @@ int main(void)
             "jump_cancel_probe=%d edge_hop_probe=%d "
             "edge_dash_probe=%d fox_trot_probe=%d moonwalk_probe=%d "
             "teeter_cancel_probe=%d "
+            "stage_humping_probe=%d "
             "pivot_probe=%d "
             "dash_cancel_probe=%d dashing_shield_probe=%d "
             "shield_platform_drop_probe=%d "
@@ -589,6 +595,7 @@ int main(void)
             test_fox_trot_probe,
             test_moonwalk_probe,
             test_teeter_cancel_probe,
+            test_stage_humping_probe,
             test_pivot_probe,
             test_dash_cancel_probe,
             test_dashing_shield_probe,
@@ -1195,6 +1202,7 @@ int main(void)
         "edge_hop_probe=%d "
         "edge_dash_probe=%d fox_trot_probe=%d moonwalk_probe=%d "
         "teeter_cancel_probe=%d "
+        "stage_humping_probe=%d "
         "pivot_probe=%d "
         "dash_cancel_probe=%d dashing_shield_probe=%d "
         "shield_platform_drop_probe=%d "
@@ -1243,6 +1251,7 @@ int main(void)
         test_fox_trot_probe,
         test_moonwalk_probe,
         test_teeter_cancel_probe,
+        test_stage_humping_probe,
         test_pivot_probe,
         test_dash_cancel_probe,
         test_dashing_shield_probe,

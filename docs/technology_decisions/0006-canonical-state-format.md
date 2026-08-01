@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–30 / state schemas 1–31
+- **Status:** Accepted for save formats 1–32 / state schemas 1–33
 - **Date:** 2026-07-31
 
 ## Decision
@@ -41,14 +41,15 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 29 | 30 | 140 | 550 | 690 | One canonical charge-tick value per player plus Arc Reservoir charge, store, early-cancel, resume, scaled-release, completion, interruption, and action-ID semantics |
 | 30 | 31 | 140 | 550 | 690 | Canonical `MOONWALK_SETUP` and `MOONWALK` action IDs, authored shallow-back timing, full-back activation, retained facing/dash direction, backward velocity, and mistimed dashback semantics; no payload-layout change |
 | 31 | 32 | 140 | 550 | 690 | Canonical `TEETER` action ID, authored support-edge snap distance and duration, neutral persistence, zero-velocity grounding, standing-attack/reverse-dash cancels, held-outward run-off, and early-release semantics; no payload-layout change |
+| 32 | 33 | 140 | 550 | 690 | Canonical `CROUCH_STEP` action ID, authored speed and one-tick duration, fresh diagonal-down entry, release-gated repetition, and ordinary crouch transition; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
-`PFSAVE29`, `PFSAVE30`, or `PFSAVE31`. The active M4 runtime emits and accepts
-format 31 with state schema 32. Earlier
+`PFSAVE29`, `PFSAVE30`, `PFSAVE31`, or `PFSAVE32`. The active M4 runtime emits
+and accepts format 32 with state schema 33. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -184,6 +185,13 @@ out-of-range Teeter ticks, an airborne Teeter, nonzero Teeter horizontal
 velocity, reaction-incompatible state, or any action value unknown to schema
 32. The bump prevents a format-30 reader from silently treating action 73 or
 its edge-clamp and standing-cancel semantics as ordinary grounded movement.
+Format 32 again retains the same payload and adds no mutable field. Explicit
+`CROUCH_STEP` action ID/ticks and existing fresh-down history encode one
+authored diagonal-down microstep followed by ordinary crouch. Loading rejects
+out-of-range ticks, an airborne or reaction-incompatible step, and action
+values unknown to schema 33. The bump prevents a format-31 reader from
+silently treating action 74 and its release-gated transition as ordinary
+grounded movement.
 
 ## Why SHA-256
 

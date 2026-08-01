@@ -81,12 +81,13 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–30 remain historical checkpoints. The current M4
-movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter state uses
-save format 31: a fixed 690-byte checkpoint with state schema 32 and a 550-byte
-payload. It retains the format-30 byte layout while making the explicit Teeter
-action ID, grounding, zero horizontal velocity, authored tick range,
-support-edge entry, and standing-action cancel semantics fail closed. State
+Save formats 1–31 remain historical checkpoints. The current M4
+movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step
+state uses save format 32: a fixed 690-byte checkpoint with state schema 33 and
+a 550-byte payload. It retains the format-31 byte layout while making the
+explicit `CROUCH_STEP` action ID, grounding, authored tick range, fresh
+diagonal-down entry, release-gated repetition, and ordinary crouch transition
+fail closed. State
 schema 31 / save format 30 retained the same layout while making the two
 Moonwalk action IDs, authored two-tick shallow-back setup, full-back
 activation, facing-preserving backward velocity, and mistimed dashback
@@ -164,6 +165,11 @@ State schema 32 also retains the 550-byte payload while adding explicit
 data-defined support-edge snap distance and duration. Inspection and browser
 view schema 28 version that interpretation without changing the 304-value
 layout; observation and RL schemas remain unchanged.
+State schema 33 likewise retains the 550-byte payload while adding explicit
+`CROUCH_STEP` action semantics. Content schema 34/fighter schema 30 add and
+hash the data-defined speed and duration. Inspection and browser view schema
+29 version that interpretation without changing the 304-value layout;
+observation and RL schemas remain unchanged.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

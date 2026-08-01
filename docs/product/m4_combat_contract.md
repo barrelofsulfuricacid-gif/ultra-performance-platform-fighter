@@ -1092,16 +1092,45 @@ early-release negatives, and a 690-byte mid-teeter save/load with equal future
 hashes. Browser startup repeats both cancels and both negatives and exports an
 independent `teeter_cancel_probe` before readiness.
 
+## Stage-humping crouch-step contract
+
+The original fighter authors `crouch_step_speed_q16=0.1` and
+`crouch_step_ticks=1`. Following the repeated crouch-step basis of researched
+[Stage humping](https://www.ssbwiki.com/Stage_humping), a fresh diagonal-down
+edge from `GROUND_IDLE` or `CROUCH` enters explicit `CROUCH_STEP`, faces the
+chosen direction, and advances exactly the authored distance. The following
+action tick clears horizontal velocity and enters ordinary `CROUCH`.
+
+The existing canonical fresh-down history supplies the release gate. Holding
+the diagonal after entry therefore cannot manufacture repeated steps;
+releasing and pressing it again can. Neutral down retains stationary crouch,
+horizontal input alone retains ordinary dash, and the earlier pass-through
+support router retains platform drop. No new mutable state or technique-only
+input is introduced.
+
+`tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
+exact positive and negative displacement, eight release/reset repetitions,
+held-diagonal non-repetition, neutral-down and horizontal-only controls, and a
+690-byte mid-step save/load with equal future hashes. Browser startup repeats
+the positive route and all controls and exports an independent
+`stage_humping_probe` before readiness.
+
 ## Canonical state and inspection
 
-State schema 32 / save format 31 retains the 690-byte stream (140-byte header
-plus 550-byte payload), changes the active magic to `PFSAVE31`, and makes the
-Teeter action ID, grounding, zero horizontal velocity, authored tick range,
-edge entry, and legal cancel semantics fail closed. Inspection schema 28 and
-browser view schema 28 version the action interpretation without changing the
-304-value browser layout. Content schema 33/fighter schema 29 add and hash the
-authored snap distance and duration. Structured observation schema 5, RL
-schema 7, compact observation schema 6, and its 66 values remain unchanged.
+State schema 33 / save format 32 retains the 690-byte stream (140-byte header
+plus 550-byte payload), changes the active magic to `PFSAVE32`, and makes the
+crouch-step action ID, grounding, authored tick range, fresh diagonal-down
+entry, and ordinary-crouch transition fail closed. Inspection schema 29 and
+browser view schema 29 version the action interpretation without changing the
+304-value browser layout. Content schema 34/fighter schema 30 add and hash the
+authored step speed and duration. Structured observation schema 5, RL schema
+7, compact observation schema 6, and its 66 values remain unchanged.
+
+It follows state schema 32 / save format 31, which retained the 690-byte
+stream, used `PFSAVE31`, and made the Teeter action ID, grounding, zero
+horizontal velocity, authored tick range, edge entry, and legal cancel
+semantics fail closed. Inspection/browser view schema 28 and content schema
+33/fighter schema 29 versioned and hashed that interpretation.
 
 It follows state schema 31 / save format 30, which retained the 690-byte
 stream, used `PFSAVE30`, and made both Moonwalk action IDs,

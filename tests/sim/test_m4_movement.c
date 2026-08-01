@@ -1679,10 +1679,12 @@ static int run_content_contract_test(
     pf_m4_content invalid_content = *default_content;
     pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
+    pf_m4_content crouch_step_tuned_content = *default_content;
     pf_m4_content tuned_content = *default_content;
     pf_content_view damaged_view = *default_view;
     pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
+    pf_content_view crouch_step_tuned_view;
     pf_content_view tuned_view;
     pf_sim_config config;
     pf_sim *rejected = NULL;
@@ -1788,6 +1790,57 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=teeter-content-hash\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.crouch_step_speed_q16 = INT32_C(0);
+    if (default_content->fighter.crouch_step_speed_q16 !=
+            PF_Q16_ONE / INT32_C(10) ||
+        default_content->fighter.crouch_step_ticks != UINT16_C(1) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-crouch-step-speed"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.crouch_step_speed_q16 =
+        invalid_content.fighter.walk_speed_q16 + INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-fast-crouch-step"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.crouch_step_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-crouch-step-duration"))
+    {
+        return 0;
+    }
+
+    crouch_step_tuned_content.fighter.crouch_step_speed_q16 +=
+        INT32_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &crouch_step_tuned_content,
+                &crouch_step_tuned_view),
+            PF_STATUS_OK,
+            "crouch-step-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            crouch_step_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-step-content-hash\n");
         return 0;
     }
 
@@ -3304,6 +3357,316 @@ static int run_teeter_cancel_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=teeter-expiry\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_stage_humping_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    int32_t start_position_q16;
+    int32_t first_step_position_q16;
+    uint32_t repetition;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x57a6e40)),
+            PF_STATUS_OK,
+            "stage-humping-reset") ||
+        !expect_status(
+            pf_m4_inspect(source, &source_inspection),
+            PF_STATUS_OK,
+            "stage-humping-inspect-start"))
+    {
+        return 0;
+    }
+    start_position_q16 =
+        source_inspection.players[0].position_x_q16;
+    if (!step_duel(
+            source,
+            INT16_MAX,
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].position_x_q16 !=
+            start_position_q16 +
+                content->fighter.crouch_step_speed_q16 ||
+        source_inspection.players[0].velocity_x_q16 !=
+            content->fighter.crouch_step_speed_q16 ||
+        source_inspection.players[0].facing != INT8_C(1) ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "stage-humping-query-save-size") ||
+        save_size != (size_t)690)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=stage-humping-first-step"
+            " action=%u ticks=%u position=%" PRId32
+            " velocity=%" PRId32 "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            source_inspection.players[0].position_x_q16,
+            source_inspection.players[0].velocity_x_q16);
+        return 0;
+    }
+    first_step_position_q16 =
+        source_inspection.players[0].position_x_q16;
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "stage-humping-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "stage-humping-load") ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].position_x_q16 !=
+            first_step_position_q16 ||
+        source_inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "stage-humping-source-crouch-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "stage-humping-loaded-crouch-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=stage-humping-snapshot\n");
+        return 0;
+    }
+
+    for (repetition = UINT32_C(1);
+         repetition < UINT32_C(8);
+         ++repetition)
+    {
+        if (!step_duel(
+                source,
+                INT16_MAX,
+                INT16_MAX,
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_MAX,
+                INT16_MAX,
+                UINT64_C(0),
+                &loaded_inspection) ||
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
+            source_inspection.players[0].position_x_q16 !=
+                start_position_q16 +
+                    (int32_t)(repetition + UINT32_C(1)) *
+                        content->fighter.crouch_step_speed_q16 ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "stage-humping-source-step-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "stage-humping-loaded-step-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0 ||
+            !step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            source_inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_CROUCH ||
+            source_inspection.players[0].velocity_x_q16 != INT32_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=stage-humping-repeat"
+                " repetition=%" PRIu32 "\n",
+                repetition);
+            return 0;
+        }
+    }
+
+    if (!step_duel(
+            source,
+            INT16_MIN,
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
+        source_inspection.players[0].facing != INT8_C(-1) ||
+        source_inspection.players[0].velocity_x_q16 !=
+            -content->fighter.crouch_step_speed_q16 ||
+        source_inspection.players[0].position_x_q16 !=
+            start_position_q16 +
+                INT32_C(7) *
+                    content->fighter.crouch_step_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=stage-humping-opposite-step\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x57a6e41)),
+            PF_STATUS_OK,
+            "stage-humping-held-reset") ||
+        !expect_status(
+            pf_m4_inspect(source, &source_inspection),
+            PF_STATUS_OK,
+            "stage-humping-held-inspect"))
+    {
+        return 0;
+    }
+    start_position_q16 =
+        source_inspection.players[0].position_x_q16;
+    if (!step_duel(
+            source,
+            INT16_MAX,
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        source_inspection.players[0].position_x_q16 !=
+            start_position_q16 +
+                content->fighter.crouch_step_speed_q16 ||
+        source_inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        source_inspection.players[0].position_x_q16 !=
+            start_position_q16 +
+                content->fighter.crouch_step_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=stage-humping-held-negative\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x57a6e42)),
+            PF_STATUS_OK,
+            "stage-humping-neutral-reset") ||
+        !expect_status(
+            pf_m4_inspect(source, &source_inspection),
+            PF_STATUS_OK,
+            "stage-humping-neutral-inspect"))
+    {
+        return 0;
+    }
+    start_position_q16 =
+        source_inspection.players[0].position_x_q16;
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        source_inspection.players[0].position_x_q16 !=
+            start_position_q16 ||
+        source_inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x57a6e43)),
+            PF_STATUS_OK,
+            "stage-humping-horizontal-reset") ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=stage-humping-input-negatives\n");
         return 0;
     }
     return 1;
@@ -8665,6 +9028,7 @@ int main(void)
         !run_fox_trot_test(&content, &view) ||
         !run_moonwalk_test(&content, &view) ||
         !run_teeter_cancel_test(&content, &view) ||
+        !run_stage_humping_test(&content, &view) ||
         !run_pivot_test(&content, &view) ||
         !run_dash_cancel_test(&content, &view) ||
         !run_air_control_test(&content, &view) ||
@@ -8689,7 +9053,8 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=266 moonwalk=1 teeter_cancel=1 "
+        "movement_invariants=276 moonwalk=1 teeter_cancel=1 "
+        "stage_humping=1 "
         "double_jump_cancel=1 "
         "ledge_cancel=1 planking=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);

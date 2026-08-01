@@ -1329,6 +1329,7 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
            action_state == (uint8_t)PF_M4_ACTION_TEETER ||
            action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
            action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
@@ -3400,6 +3401,19 @@ pf_status pf_m4_step_player(
     }
     else if (!ledge_motion_handled &&
              grounded != UINT8_C(0) &&
+             action_state ==
+                 (uint8_t)PF_M4_ACTION_CROUCH_STEP)
+    {
+        velocity_x = INT32_C(0);
+        ++action_ticks;
+        if (action_ticks >= fighter->crouch_step_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
              action_state !=
                  (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
              input->main_stick_y >=
@@ -3417,6 +3431,21 @@ pf_status pf_m4_step_player(
             velocity_y = fighter->gravity_q16;
             fast_fall = UINT8_C(0);
             dropped_platform_this_tick = 1;
+        }
+        else if (
+            (action_state ==
+                 (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+             action_state == (uint8_t)PF_M4_ACTION_CROUCH) &&
+            horizontal_magnitude > fighter->axis_dead_zone &&
+            world->previous_dodge_down[player_index] == UINT8_C(0))
+        {
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH_STEP;
+            action_ticks = UINT16_C(0);
+            facing = horizontal_direction;
+            velocity_x =
+                (int32_t)horizontal_direction *
+                fighter->crouch_step_speed_q16;
+            dash_direction = INT8_C(0);
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
         {
