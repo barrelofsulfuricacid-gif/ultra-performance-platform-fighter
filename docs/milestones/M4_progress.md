@@ -1923,7 +1923,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## First-slice verification
 
 - Release workflow: 22/22 tests.
-- Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
+- Address/undefined-behavior sanitizer workflow: 22/22 tests; leak discovery
   disabled only for the restricted workspace.
 - Mechanical oracles: 334 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
@@ -1975,7 +1975,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   rejection, two-slot assignment, and live `navigator.getGamepads()` polling;
   representative hardware remains an owner check.
 - Address/undefined-behavior sanitizer adapter contract: pass.
-- Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass.
+- Emscripten 6.0.3 build and native/WebAssembly replay comparison: pass; the
+  generated client also passes the live DOM smoke in headless Microsoft Edge.
 - Browser JavaScript syntax and M1 source-boundary checks: pass.
 - Generated owner-evidence contract: pass for registry schema 1/source revision
   2048934, exactly 61 live recipe rows, local draft persistence, filtering,
