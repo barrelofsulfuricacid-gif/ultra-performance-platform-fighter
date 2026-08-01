@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=251e61c0e53f1289edb5aa02be7e9ade9384300a92b9a5a155b6147af008be1d'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=ae74e310ab407546a1a5e4c2394d9b4fd7ba12d7ad3d1e414d3331c2b1fb7ddb'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -127,6 +127,9 @@ pf_require_dom \
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'
+pf_require_dom \
+    "M4 crouch-cancel help" \
+    'CROUCH CANCEL'
 pf_require_dom \
     "M4 owner checklist status" \
     'owner_checklist=ready-61'

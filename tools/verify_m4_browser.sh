@@ -200,7 +200,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 34' \
+    'view[0] !== 35' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DASH ATTACK"' \
@@ -381,6 +381,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pummel for 3%' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'CROUCH CANCEL' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'to crouch cancel' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'Vector Ascent recovery in the air' \

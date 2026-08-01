@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–36 / state schemas 1–37
+- **Status:** Accepted for save formats 1–37 / state schemas 1–38
 - **Date:** 2026-08-01
 
 ## Decision
@@ -46,6 +46,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 34 | 35 | 140 | 550 | 690 | Canonical `WALL_JUMP` action ID, authored speed, duration, and brief invulnerability, preserved air jump, fresh-away wall contact, and jump/aerial cancel; no payload-layout change |
 | 35 | 36 | 140 | 554 | 694 | One recovery-availability byte per player plus canonical `VECTOR_ASCENT` action, once-per-airtime consumption, authored launch/steering/duration, special-fall completion, and landing/ledge/respawn restoration |
 | 36 | 37 | 140 | 554 | 694 | Canonical `PUMMEL` action, authored hit/total timing, reciprocal grab-link retention, non-launching damage and attribution, and typed pummel event; no payload-layout change |
+| 37 | 38 | 140 | 554 | 694 | Grounded low-percent crouch-cancel qualification, data-defined launch/hitstun scaling, derived tumble, and typed hit-event flag; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -53,8 +54,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
-`PFSAVE35`, or `PFSAVE36`. The active M4 runtime emits and accepts format 36
-with state schema 37. Earlier
+`PFSAVE35`, `PFSAVE36`, or `PFSAVE37`. The active M4 runtime emits and accepts
+format 37 with state schema 38. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -216,8 +217,17 @@ grab enters the authored action; the exact hit tick applies typed non-launching
 damage and attribution while reciprocal links remain active, and the authored
 total tick returns to grab hold. Loading rejects pummel without a reciprocal
 target, out-of-range timing, incompatible reaction state, and action values or
-event semantics unknown to schema 36. A format-35 reader therefore cannot
+event semantics unknown to schema 37. A format-35 reader therefore cannot
 silently reinterpret action 78 or event type 22.
+Format 37 retains the same payload while making crouch-cancel reaction semantics
+fail closed under schema 38. A grounded defender already in `CROUCH` qualifies
+eligible fighter, item, or projectile hits only when post-hit damage is at or
+below the authored ceiling. Damage and hitlag remain ordinary; authored Q16.16
+scales modify both launch components and hitstun, a nonzero result retains a
+one-tick hitstun floor, tumble is derived afterward, and event flag bit 4 marks
+the reaction. Standing, airborne, throw, shield, armor/reset, and over-ceiling
+routes cannot set the flag. A format-36 reader therefore cannot silently
+reinterpret the same canonical action/timer state under the new reaction rule.
 
 ## Why SHA-256
 
@@ -295,6 +305,10 @@ service-envelope responsibility.
 - Mid-pummel save/load plus exact action timing, reciprocal-link retention,
   typed non-launching damage, last-hit attribution, held-input non-repetition,
   byte-identical future events, and equal future hashes in
+  `tests/sim/test_m4_combat.c`.
+- Mid-crouch-cancel hitlag save/load plus equal future events/hashes, standing
+  and inclusive/first-over controls, exact launch/hitstun scaling, derived
+  tumble, typed flag, and invalid/hash-sensitive authored data in
   `tests/sim/test_m4_combat.c`.
 - Mid-dash-attack save/load on the first boost-grab cancel tick plus
   byte-identical future events, equal future hashes, retained momentum, and

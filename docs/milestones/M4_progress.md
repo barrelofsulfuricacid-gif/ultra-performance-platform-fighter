@@ -13,7 +13,8 @@ plus a local stock-select setup, delayed respawn, invulnerability, sudden death,
 results, rematch/return-to-setup, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
-  reduced-down shield platform dropping, three-frame V-cancelling, and
+  reduced-down shield platform dropping, three-frame V-cancelling, grounded
+  low-percent crouch cancel, and
   ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
   kill-confirm, zero-to-death, platform-sharking, jump-canceled-grab, and
   pummel, directional-throw/chain-grab, and jab-reset routes, plus two-pad
@@ -157,8 +158,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - All eight reference duels finish through stock results rather than time-limit
   truncation. The reference corpus spans 1,001 ticks, 17 combat events, eight
   KOs, and four projectile events, with final digest
-  `02dc3a38e8cb0884` over every per-tick state hash and terminal outcome under
-  state schema 37/content schema 38.
+  `5cfbadeb7afb86c9` over every per-tick state hash and terminal outcome under
+  state schema 38/content schema 39.
 - Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
   re-simulates the complete suffix against per-tick state hashes, encodes a
   format-1 replay, and verifies that replay to the exact terminal outcome.
@@ -526,6 +527,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   schema to 34 for the data-defined action and typed event; the 554-byte
   payload, 694-byte save, 396-value browser view, input, observation, RL, and
   compact layouts remain unchanged.
+  The crouch-cancel slice advances state schema to 38/save format 37, content
+  schema to 39 with fighter schema 34, inspection schema to 34, and browser
+  view schema to 35 for the grounded/resulting-damage qualification, two
+  reaction scales, derived tumble, and typed event flag; those same payload,
+  save, browser, input, observation, RL, and compact layouts remain unchanged.
   Config/identity schema 2 remains current. The canonical save is 694 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1549,6 +1555,27 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   throws and the low-percent chain route. This primitive is not a 61-row
   emergent-technique entry, so registry status does not change.
 
+## Implemented in the crouch-cancel slice
+
+- A defender already in grounded `CROUCH` qualifies an eligible physical hit
+  only when its post-hit damage is at or below the authored inclusive 40%
+  ceiling. Standing/released-down, airborne, over-ceiling, throw, armor, reset,
+  and shield routes retain ordinary reaction semantics.
+- Damage, attribution, and hitlag remain unchanged. Both pending launch
+  components and hitstun use independent authored 2/3 Q16.16 scales, with a
+  one-tick floor for nonzero hitstun; tumble is derived afterward. The typed hit
+  event carries the scaled vector and `PF_SIM_EVENT_FLAG_CROUCH_CANCEL`.
+- State schema 38/save format 37 and `PFSAVE37` retain the 554-byte payload and
+  694-byte checkpoint while failing closed on the new reaction semantics.
+  Content schema 39/fighter schema 34 hash the ceiling and both scales;
+  inspection schema 34 and browser view schema 35 version the unchanged
+  inspection and 396-value presentation layouts.
+- The combat oracle reaches 650 invariants with standing/crouched/released-down equivalence,
+  exact scaling, invalid/hash-sensitive data, inclusive/first-over boundaries,
+  typed-event/tumble consistency, and mid-hitlag save/load future equality.
+  Browser readiness folds the same comparison into the existing reaction probe
+  and the live/replay feeds label the flag `CROUCH CANCEL`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1709,9 +1736,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 306 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 620
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 650
   attack/reaction/shield/floor/surface
-  invariants including data-defined pummels plus 50 combat-journal invariants,
+  invariants including data-defined pummels and crouch cancel plus 50
+  combat-journal invariants,
   24 stock/respawn/result
   invariants plus 44 match-journal invariants,
   46 projectile invariants including short-hop laser, projectile camping, and
@@ -1726,9 +1754,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
   bytes,
   replay SHA-256
-  `45e536a1a1eb4685b224ca78201bb93563b3d528e8962210283dbc34af3d613f`,
+  `50b9a3d4512cf9aab93bafbcffec23a1403c7848ae52f2eef939e4d4f077e382`,
   final SHA-256
-  `251e61c0e53f1289edb5aa02be7e9ade9384300a92b9a5a155b6147af008be1d`,
+  `ae74e310ab407546a1a5e4c2394d9b4fd7ba12d7ad3d1e414d3331c2b1fb7ddb`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1744,7 +1772,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
   aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping-and-turtling/Shine-spike/charge-storage/Vector-Ascent/
-  combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
+  combat-and-event-journal/reaction-and-crouch-cancel/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).
 - Browser-standard gamepad mapping/polling contract: pass for synthetic mapping,

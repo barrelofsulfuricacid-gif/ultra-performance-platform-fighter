@@ -127,7 +127,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31386 corpus_sha256=45e536a1a1eb4685b224ca78201bb93563b3d528e8962210283dbc34af3d613f final_sha256=251e61c0e53f1289edb5aa02be7e9ade9384300a92b9a5a155b6147af008be1d events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f' \
+    'sim-replay=pass ticks=180 players=4 bytes=31386 corpus_sha256=50b9a3d4512cf9aab93bafbcffec23a1403c7848ae52f2eef939e4d4f077e382 final_sha256=ae74e310ab407546a1a5e4c2394d9b4fd7ba12d7ad3d1e414d3331c2b1fb7ddb events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086

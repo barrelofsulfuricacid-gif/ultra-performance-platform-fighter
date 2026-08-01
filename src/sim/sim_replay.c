@@ -473,7 +473,8 @@ static int pf_replay_tick_events_valid(
         (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE |
         (uint16_t)PF_SIM_EVENT_FLAG_ELIMINATED |
         (uint16_t)PF_SIM_EVENT_FLAG_LAST_STOCK |
-        (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH;
+        (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH |
+        (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL;
     uint32_t event_index;
     uint32_t previous_sequence = UINT32_C(0);
 

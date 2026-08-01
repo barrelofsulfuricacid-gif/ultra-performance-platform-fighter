@@ -195,6 +195,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->aerial_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
     pf_m4_hash_i32(hash, fighter->v_cancel_velocity_scale_q16);
+    pf_m4_hash_u32(hash, fighter->crouch_cancel_max_damage_q16);
+    pf_m4_hash_i32(hash, fighter->crouch_cancel_velocity_scale_q16);
+    pf_m4_hash_i32(hash, fighter->crouch_cancel_hitstun_scale_q16);
     pf_m4_hash_i32(hash, fighter->di_max_tangent_q16);
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
@@ -729,6 +732,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->aerial_knockback_growth_q16 = PF_Q16_RATIO(1, 1024);
     fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
     fighter->v_cancel_velocity_scale_q16 = PF_Q16_RATIO(95, 100);
+    fighter->crouch_cancel_max_damage_q16 =
+        UINT32_C(40) * UINT32_C(65536);
+    fighter->crouch_cancel_velocity_scale_q16 = PF_Q16_RATIO(2, 3);
+    fighter->crouch_cancel_hitstun_scale_q16 = PF_Q16_RATIO(2, 3);
     fighter->di_max_tangent_q16 = INT32_C(21294);
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
     fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
@@ -1432,6 +1439,13 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->hitstun_velocity_per_tick_q16 <= INT32_C(0) ||
         fighter->v_cancel_velocity_scale_q16 <= INT32_C(0) ||
         fighter->v_cancel_velocity_scale_q16 >= PF_Q16_ONE ||
+        fighter->crouch_cancel_max_damage_q16 == UINT32_C(0) ||
+        fighter->crouch_cancel_max_damage_q16 >
+            UINT32_C(300) * UINT32_C(65536) ||
+        fighter->crouch_cancel_velocity_scale_q16 <= INT32_C(0) ||
+        fighter->crouch_cancel_velocity_scale_q16 >= PF_Q16_ONE ||
+        fighter->crouch_cancel_hitstun_scale_q16 <= INT32_C(0) ||
+        fighter->crouch_cancel_hitstun_scale_q16 >= PF_Q16_ONE ||
         fighter->di_max_tangent_q16 <= INT32_C(0) ||
         fighter->di_max_tangent_q16 > PF_Q16_ONE ||
         fighter->sdi_distance_q16 <= INT32_C(0) ||

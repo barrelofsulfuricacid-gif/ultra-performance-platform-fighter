@@ -1950,6 +1950,401 @@ static int run_v_cancel_snapshot_test(
     return 1;
 }
 
+typedef struct test_crouch_cancel_result
+{
+    pf_sim_event event;
+    uint32_t damage_q16;
+    uint16_t hitlag_ticks;
+    uint16_t hitstun_ticks;
+    uint8_t tumble;
+} test_crouch_cancel_result;
+
+static int start_crouch_cancel_hit(
+    pf_sim *sim,
+    int target_crouches,
+    int target_holds_crouch,
+    pf_m4_inspection *out_inspection,
+    test_crouch_cancel_result *out_result)
+{
+    const int16_t setup_target_y =
+        target_crouches != 0 ? INT16_MAX : INT16_C(0);
+    const int16_t reaction_target_y =
+        target_holds_crouch != 0 ? INT16_MAX : INT16_C(0);
+    uint32_t tick;
+
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            setup_target_y,
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection) ||
+        (target_crouches != 0 &&
+         out_inspection->players[1].action_state !=
+             (uint8_t)PF_M4_ACTION_CROUCH) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            reaction_target_y,
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        const pf_sim_event *event =
+            find_last_tick_event(PF_SIM_EVENT_HIT);
+
+        if (event != NULL &&
+            event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1))
+        {
+            out_result->event = *event;
+            out_result->damage_q16 =
+                out_inspection->players[1].damage_q16;
+            out_result->hitlag_ticks =
+                out_inspection->players[1].hitlag_ticks;
+            out_result->hitstun_ticks =
+                out_inspection->players[1].hitstun_ticks;
+            out_result->tumble =
+                out_inspection->players[1].tumble;
+            return out_inspection->players[1].action_state ==
+                   (uint8_t)PF_M4_ACTION_HITLAG;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                reaction_target_y,
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+static int run_crouch_cancel_case(
+    const pf_content_view *view,
+    int target_crouches,
+    int target_holds_crouch,
+    test_crouch_cancel_result *out_result)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+
+    return initialize_sim(
+               &storage,
+               view,
+               UINT8_C(2),
+               PF_SIM_MODE_DUEL,
+               1,
+               &sim) &&
+           start_crouch_cancel_hit(
+               sim,
+               target_crouches,
+               target_holds_crouch,
+               &inspection,
+               out_result);
+}
+
+static int run_crouch_cancel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_content invalid_velocity = *content;
+    pf_m4_content invalid_hitstun = *content;
+    pf_m4_content invalid_damage = *content;
+    pf_m4_content exact_content = *content;
+    pf_m4_content below_content = *content;
+    pf_m4_content hash_content = *content;
+    pf_content_view exact_view;
+    pf_content_view below_view;
+    pf_content_view hash_view;
+    test_crouch_cancel_result ordinary;
+    test_crouch_cancel_result crouched;
+    test_crouch_cancel_result released;
+    test_crouch_cancel_result exact;
+    test_crouch_cancel_result below;
+    test_crouch_cancel_result snapshot;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    pf_tick_result source_result;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    int32_t expected_x;
+    int32_t expected_y;
+    uint32_t expected_hitstun;
+    uint32_t tick;
+
+    if (content->fighter.crouch_cancel_max_damage_q16 !=
+            UINT32_C(40) * UINT32_C(65536) ||
+        content->fighter.crouch_cancel_velocity_scale_q16 !=
+            (INT32_C(2) * PF_Q16_ONE) / INT32_C(3) ||
+        content->fighter.crouch_cancel_hitstun_scale_q16 !=
+            (INT32_C(2) * PF_Q16_ONE) / INT32_C(3))
+    {
+        return fail("crouch-cancel-default-data");
+    }
+    invalid_velocity.fighter.crouch_cancel_velocity_scale_q16 =
+        PF_Q16_ONE;
+    invalid_hitstun.fighter.crouch_cancel_hitstun_scale_q16 =
+        INT32_C(0);
+    invalid_damage.fighter.crouch_cancel_max_damage_q16 =
+        UINT32_C(0);
+    hash_content.fighter.crouch_cancel_max_damage_q16 +=
+        UINT32_C(1);
+    exact_content.fighter.jab_damage_q16 =
+        content->fighter.crouch_cancel_max_damage_q16;
+    below_content.fighter.jab_damage_q16 =
+        content->fighter.crouch_cancel_max_damage_q16;
+    below_content.fighter.crouch_cancel_max_damage_q16 =
+        content->fighter.crouch_cancel_max_damage_q16 - UINT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_velocity),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-crouch-cancel-velocity-scale") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_hitstun),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-crouch-cancel-hitstun-scale") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_damage),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-crouch-cancel-damage") ||
+        !expect_status(
+            pf_m4_make_content_view(&hash_content, &hash_view),
+            PF_STATUS_OK,
+            "crouch-cancel-hash-content-view") ||
+        memcmp(
+            view->content_hash.bytes,
+            hash_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0 ||
+        !expect_status(
+            pf_m4_make_content_view(&exact_content, &exact_view),
+            PF_STATUS_OK,
+            "crouch-cancel-exact-content-view") ||
+        !expect_status(
+            pf_m4_make_content_view(&below_content, &below_view),
+            PF_STATUS_OK,
+            "crouch-cancel-below-content-view") ||
+        !run_crouch_cancel_case(view, 0, 0, &ordinary) ||
+        !run_crouch_cancel_case(view, 1, 1, &crouched) ||
+        !run_crouch_cancel_case(view, 1, 0, &released) ||
+        !run_crouch_cancel_case(&exact_view, 1, 1, &exact) ||
+        !run_crouch_cancel_case(&below_view, 1, 1, &below))
+    {
+        return fail("crouch-cancel-case-setup");
+    }
+
+    expected_x = (int32_t)(
+        ((int64_t)ordinary.event.velocity_x_q16 *
+         (int64_t)content->fighter
+             .crouch_cancel_velocity_scale_q16) /
+        (int64_t)PF_Q16_ONE);
+    expected_y = (int32_t)(
+        ((int64_t)ordinary.event.velocity_y_q16 *
+         (int64_t)content->fighter
+             .crouch_cancel_velocity_scale_q16) /
+        (int64_t)PF_Q16_ONE);
+    expected_hitstun =
+        ((uint32_t)ordinary.hitstun_ticks *
+         (uint32_t)content->fighter
+             .crouch_cancel_hitstun_scale_q16) /
+        (uint32_t)PF_Q16_ONE;
+    if (ordinary.hitstun_ticks != UINT16_C(0) &&
+        expected_hitstun == UINT32_C(0))
+    {
+        expected_hitstun = UINT32_C(1);
+    }
+    if ((ordinary.event.flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) != UINT16_C(0) ||
+        (crouched.event.flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) == UINT16_C(0) ||
+        crouched.event.value_q16 != ordinary.event.value_q16 ||
+        crouched.damage_q16 != ordinary.damage_q16 ||
+        crouched.hitlag_ticks != ordinary.hitlag_ticks ||
+        crouched.event.velocity_x_q16 != expected_x ||
+        crouched.event.velocity_y_q16 != expected_y ||
+        crouched.hitstun_ticks != (uint16_t)expected_hitstun ||
+        crouched.hitstun_ticks >= ordinary.hitstun_ticks ||
+        crouched.tumble !=
+            (uint8_t)(
+                crouched.hitstun_ticks >=
+                content->fighter.tumble_hitstun_threshold_ticks) ||
+        (((crouched.event.flags &
+           (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE) != UINT16_C(0)) !=
+         (crouched.tumble != UINT8_C(0))))
+    {
+        return fail("crouch-cancel-scaled-reaction");
+    }
+    if ((released.event.flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) != UINT16_C(0) ||
+        released.event.velocity_x_q16 != ordinary.event.velocity_x_q16 ||
+        released.event.velocity_y_q16 != ordinary.event.velocity_y_q16 ||
+        released.hitstun_ticks != ordinary.hitstun_ticks)
+    {
+        return fail("crouch-cancel-released-down");
+    }
+    if ((exact.event.flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) == UINT16_C(0) ||
+        exact.damage_q16 !=
+            content->fighter.crouch_cancel_max_damage_q16 ||
+        (below.event.flags &
+         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) != UINT16_C(0) ||
+        below.damage_q16 != exact.damage_q16 ||
+        exact.hitlag_ticks != below.hitlag_ticks ||
+        exact.event.velocity_x_q16 !=
+            (int32_t)(
+                ((int64_t)below.event.velocity_x_q16 *
+                 (int64_t)content->fighter
+                     .crouch_cancel_velocity_scale_q16) /
+                (int64_t)PF_Q16_ONE) ||
+        exact.event.velocity_y_q16 !=
+            (int32_t)(
+                ((int64_t)below.event.velocity_y_q16 *
+                 (int64_t)content->fighter
+                     .crouch_cancel_velocity_scale_q16) /
+                (int64_t)PF_Q16_ONE) ||
+        exact.hitstun_ticks !=
+            (uint16_t)(
+                ((uint32_t)below.hitstun_ticks *
+                 (uint32_t)content->fighter
+                     .crouch_cancel_hitstun_scale_q16) /
+                (uint32_t)PF_Q16_ONE))
+    {
+        return fail("crouch-cancel-threshold-boundary");
+    }
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !start_crouch_cancel_hit(
+            source,
+            1,
+            1,
+            &source_inspection,
+            &snapshot) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "query-crouch-cancel-save-size") ||
+        save_size != (size_t)694)
+    {
+        return fail("crouch-cancel-snapshot-setup");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "save-crouch-cancel") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "load-crouch-cancel") ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "hash-crouch-cancel-source") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "hash-crouch-cancel-loaded") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("crouch-cancel-snapshot-round-trip");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection))
+        {
+            return fail("crouch-cancel-source-continuation");
+        }
+        source_result = test_last_result;
+        if (!step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            source_result.event_count != test_last_result.event_count ||
+            memcmp(
+                source_result.events,
+                test_last_result.events,
+                sizeof(source_result.events[0]) *
+                    (size_t)source_result.event_count) != 0 ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "hash-crouch-cancel-source-continuation") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "hash-crouch-cancel-loaded-continuation") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("crouch-cancel-snapshot-continuation");
+        }
+    }
+    return 1;
+}
+
 static int launch_double_jump_counter_pair(
     pf_sim *sim,
     pf_m4_inspection *out_inspection)
@@ -16242,6 +16637,7 @@ int main(void)
         !run_v_cancel_snapshot_test(
             &v_cancel_content,
             &v_cancel_view) ||
+        !run_crouch_cancel_test(&content, &view) ||
         !run_double_jump_cancel_counter_test(
             &double_jump_cancel_counter_content,
             &double_jump_cancel_counter_view) ||
@@ -16381,7 +16777,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=620 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=650 journal_invariants=50 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

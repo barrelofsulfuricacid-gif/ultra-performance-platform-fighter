@@ -13,7 +13,8 @@ shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
 physical powershielding, frame-2 powershield canceling into either supported
 standing ground attack, and the hitlag-assisted same-platform drop-cancel
-route, plus three-frame V-cancelling of eligible airborne launch.
+route, plus three-frame V-cancelling of eligible airborne launch and grounded
+low-percent crouch cancel.
 The production dash attack and its three-frame grab-cancel window now compose
 with the standing grab to provide ordinary dash grab and boost grab through
 the same input, movement, collision, hit, and capture paths.
@@ -392,6 +393,28 @@ the ordinary launch first and remain unchanged. The typed hit event reports the
 scaled vector, so save/load, replay, browser, and verifier paths observe the
 same deterministic result. See the
 [V-cancelling description](https://www.ssbwiki.com/V-cancelling).
+
+## Crouch cancel
+
+A grounded defender that is already in `CROUCH` when an eligible physical hit
+connects can reduce its reaction while its resulting damage remains at or below
+the authored Q16.16 ceiling, 40% by default. The inclusive boundary is evaluated
+after damage is applied. Ordinary fighter, Relay Rod, and Pulse Bolt hits can
+qualify; throws, shield interactions, armor/reset reactions, airborne targets,
+released-down input, and hits that cross the ceiling cannot.
+
+Damage, attribution, and the attack's authored hitlag are unchanged. Both
+pending launch components and computed hitstun are multiplied by independent
+data-defined Q16.16 scales, each 2/3 by default; a nonzero hitstun result retains
+a one-tick minimum. Tumble is derived from the scaled hitstun. The typed event
+reports the scaled vector and sets `PF_SIM_EVENT_FLAG_CROUCH_CANCEL`, allowing
+replay verification, the browser feed, and external verifiers to distinguish
+the reaction without adding a mutable crouch-cancel state field.
+
+The native oracle compares standing and crouched jabs, the exact and first-over
+damage boundaries, invalid data and content hashes, and a 694-byte mid-hitlag
+save/load with equal future events and hashes. Browser readiness folds the same
+standing-versus-crouched comparison into its existing reaction probe.
 
 ## Double jump cancel counter
 
@@ -1313,20 +1336,27 @@ physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
 
-Browser view schema 34 retains the 396-value presentation layout while
-versioning the new pummel action and event interpretation. Player blocks remain
+Browser view schema 35 retains the 396-value presentation layout while
+versioning the crouch-cancel event-flag interpretation. Player blocks remain
 44 values each at base 25; event count remains at 201, the 16 ten-value event
 entries start at 202, the 18-value item block starts at 362, the 12-value
 projectile block starts at 380, and recovery availability remains at 392–395.
 
-State schema 37 / save format 36 retains the 694-byte stream (140-byte header
-plus 554-byte payload), changes the active magic to `PFSAVE36`, and makes the
+State schema 38 / save format 37 retains the 694-byte stream (140-byte header
+plus 554-byte payload), changes the active magic to `PFSAVE37`, and makes the
+grounded action, resulting-damage boundary, eligible event kinds, two reaction
+scales, one-tick hitstun floor, derived tumble, and typed flag semantics fail
+closed. Content schema 39/fighter schema 34 add and hash the ceiling and both
+scales. Inspection schema 34 versions the action/event interpretation. Input
+schema 5, structured observation schema 6, RL schema 8, compact observation
+schema 7, and its 66-value vector remain unchanged.
+
+It follows browser view schema 34 and state schema 37 / save format 36, which
+retained the same layouts, used `PFSAVE36`, and made the
 `PUMMEL` action ID, authored tick range, reciprocal-link requirements, damage,
 attribution, and typed event semantics fail closed. Content schema 38/fighter
 schema 33 add and hash pummel damage, hit tick, and total duration. Inspection
-schema 33 versions the action/event interpretation. Input schema 5, structured
-observation schema 6, RL schema 8, compact observation schema 7, and its
-66-value vector remain unchanged.
+schema 33 versioned that action/event interpretation.
 
 It follows state schema 36 / save format 35, which expanded the stream to 694
 bytes under `PFSAVE35`, appended one canonical recovery-availability byte per
@@ -1578,7 +1608,7 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 492 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 650 focused
 mechanics invariants plus 50 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -1596,6 +1626,10 @@ mechanics invariants plus 50 journal invariants, including:
   launch components with unchanged hitstun/tumble, grounded and aerial-attack
   exclusions, repeated-trigger lockout, invalid data, and byte-identical
   mid-route save/load event/hash continuation;
+- standing versus held-crouch contact with unchanged damage/hitlag, exact 2/3
+  two-axis launch and hitstun scaling, derived tumble and typed flag, inclusive
+  40%-ceiling semantics, first-over rejection, invalid/hash-sensitive data, and
+  mid-hitlag save/load event/hash continuation;
 - exact grab startup/active/recovery phases, shield bypass, spot-dodge and
   same-team rejection, lower-port collision priority, reciprocal capture
   links, percent scaling/cap, natural and fresh-input mash escape, jump-squat
@@ -1707,7 +1741,8 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, jump-cancel
+drop-cancel, V-cancel, crouch-cancel reaction, bat-drop, glide-toss,
+jump-cancel-throw, jump-cancel
 attack, planking, short-hop laser, Shine spike, charge storage, Vector Ascent,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
@@ -1724,6 +1759,9 @@ V-cancel probe moves the default fighters together, compares ordinary launch
 with a collision-frame trigger, requires exact 95% two-axis scaling and
 unchanged hitstun, then proves an active aerial and a repeated trigger inside
 the 40-tick lockout both receive ordinary launch. The
+reaction probe also compares a fresh standing jab with the same jab against a
+held grounded crouch, requiring unchanged damage/hitlag, exact 2/3 launch and
+hitstun, and the typed crouch-cancel flag. The
 surface probe moves the ordinary default fighters near the raised block,
 strong-launches a tumbling target, opens the real trigger window during
 flight, holds up, and requires `WALL_TECH_JUMP` with cleared reaction state.

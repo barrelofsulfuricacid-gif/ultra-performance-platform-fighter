@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(38)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(33)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(39)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(34)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(33)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(34)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -360,6 +360,9 @@ typedef struct pf_m4_fighter_data
     int32_t aerial_knockback_growth_q16;
     int32_t hitstun_velocity_per_tick_q16;
     int32_t v_cancel_velocity_scale_q16;
+    uint32_t crouch_cancel_max_damage_q16;
+    int32_t crouch_cancel_velocity_scale_q16;
+    int32_t crouch_cancel_hitstun_scale_q16;
     int32_t di_max_tangent_q16;
     int32_t sdi_distance_q16;
     int32_t asdi_distance_q16;

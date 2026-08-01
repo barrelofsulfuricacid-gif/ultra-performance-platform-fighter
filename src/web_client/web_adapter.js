@@ -524,6 +524,7 @@ mergeInto(LibraryManager.library, {
         velocity +
         " · flags " +
         event.flags +
+        ((event.flags & 16) !== 0 ? " · CROUCH CANCEL" : "") +
         " · detail " +
         event.detail
       );
@@ -1462,6 +1463,10 @@ mergeInto(LibraryManager.library, {
       "show active frames, and tumbling " +
       "fighters visibly rotate after hitlag. During hitlag, " +
       "change stick direction for SDI and hold a launch direction for DI. Press " +
+      "and hold down until CROUCH before a low-percent hit to crouch cancel; " +
+      "damage and hitlag stay ordinary, launch and hitstun become two-thirds, " +
+      "and the event feed labels CROUCH CANCEL. Hits ending above 40 percent " +
+      "keep the ordinary reaction. Press " +
       "a light-attack key while airborne for the original aerial. For SHFFL, " +
       "short hop, press the aerial, hold down after the apex to fast-fall, then " +
       "tap the trigger within the seven-frame pre-landing window. A normal " +
@@ -2322,7 +2327,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 34) {
+    if (view[0] !== 35) {
       return;
     }
     var canvas = state.canvas;
@@ -2459,7 +2464,8 @@ mergeInto(LibraryManager.library, {
             value +
             "% · launch " +
             velocity +
-            ((event.flags & 1) !== 0 ? " · TUMBLE" : "")
+            ((event.flags & 1) !== 0 ? " · TUMBLE" : "") +
+            ((event.flags & 16) !== 0 ? " · CROUCH CANCEL" : "")
           );
         case 2:
           return (

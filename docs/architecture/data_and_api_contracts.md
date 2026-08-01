@@ -81,13 +81,16 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–35 remain historical checkpoints. The current M4
+Save formats 1–36 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
-taunt/wall-jump/Vector-Ascent/pummel state uses save format 36: a fixed
-694-byte checkpoint with state schema 37 and a 554-byte payload. It retains
-the layout while making the explicit `PUMMEL` action ID, authored hit/total
-ticks, reciprocal-link requirements, non-launching damage, attribution, and
-typed event fail closed. Save format 35/state schema 36 appended one
+taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel state uses save format 37: a
+fixed 694-byte checkpoint with state schema 38 and a 554-byte payload. It
+retains the layout while making the grounded action, resulting-damage ceiling,
+eligible physical event kinds, scaled launch/hitstun, derived tumble, and typed
+crouch-cancel flag fail closed. Save format 36/state schema 37 made the explicit
+`PUMMEL` action ID, authored hit/total ticks, reciprocal-link requirements,
+non-launching damage, attribution, and typed event fail closed. Save format
+35/state schema 36 appended one
 recovery-availability byte per player and made the explicit `VECTOR_ASCENT`
 action ID, once-per-airtime consumption, authored launch/steering/duration,
 special-fall completion, interruption persistence, and landing/ledge/respawn
@@ -215,7 +218,14 @@ damage, hit tick, and total duration; inspection schema 33 versions the new
 action/event interpretation. Input schema 5, observation schema 6, RL schema
 8, compact schema 7, and 66 compact values remain unchanged. Browser view
 schema 34 retains 396 values while versioning the action and event labels.
-The M4 collision inspector consumes existing schema-34 stage geometry, fighter
+State schema 38 / save format 37 retains those sizes under `PFSAVE37` while
+making crouch-cancel qualification, scaling, hitstun flooring, tumble, and
+event-flag semantics fail closed. Content schema 39/fighter schema 34 add and
+hash the post-hit damage ceiling plus independent launch/hitstun scales;
+inspection schema 34 versions the interpretation. Input schema 5, observation
+schema 6, RL schema 8, compact schema 7, and 66 compact values remain unchanged.
+Browser view schema 35 retains 396 values and labels the new typed flag.
+The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do
 not change the 396-value layout or any canonical, replay, save, observation, or

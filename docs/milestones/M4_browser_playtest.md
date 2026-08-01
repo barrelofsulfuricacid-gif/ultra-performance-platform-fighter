@@ -31,7 +31,7 @@ neutral-down, and horizontal-only controls,
 grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
-hit-reaction, and dense-shield
+hit-reaction including grounded low-percent crouch cancel, and dense-shield
 primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
 result/rematch loop and a deterministic combat-event feed in
 WebAssembly. It is no longer the
@@ -105,6 +105,7 @@ silently inferred from replay metadata.
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Shield platform drop | Hold trigger, then `Shift+S` | Hold trigger, then `Shift+Down` |
 | Crouch, platform drop, fast fall | `S` | Down |
+| Crouch cancel | Hold `S` until `CROUCH` before a low-percent hit | Hold Down until `CROUCH` before a low-percent hit |
 | Reset/rematch both players | `R` or Reset/Rematch button | Same |
 | Pause/resume | `P` or Pause button | Same |
 | One tick while paused | `N` or Step button | Same |
@@ -438,6 +439,14 @@ trigger inside the 40-tick lockout; both negative routes keep ordinary launch.
 The exact age-3 boundary is also ineligible. This follows the documented
 [V-cancelling](https://www.ssbwiki.com/V-cancelling) interaction.
 
+For a crouch cancel, leave the defender grounded and hold down until the state
+card says `CROUCH`, then have the opponent jab. Compare against the same jab
+while standing: damage and four-tick hitlag stay equal, while launch and
+hitstun become exactly 2/3 and the event feed appends `CROUCH CANCEL`. The
+resulting damage must be at or below 40%; repeat with enough prior damage that
+the jab ends above 40% and confirm ordinary launch/hitstun with no flag. Throws
+and airborne contact also use the ordinary reaction path.
+
 For an L-cancel, make a fresh trigger press during the seven ticks before
 landing while the aerial's landing-lag window is active. Trigger ages 0–6 are
 eligible; age 7 is not. Success shows `L-CANCEL LANDING` for six ticks. The
@@ -529,8 +538,9 @@ also show percent, hitstun, SDI pulse count, tech window/lockout, tech
 direction, and the last combat-event sequence.
 
 The event panel is driven by the ABI-4 per-tick journal rather than inferred
-from the rendered state. It shows canonical sequence/tick labels for hits,
-    shield interactions, grabs, escapes, throws, KOs, respawns, sudden death, results,
+from the rendered state. It shows canonical sequence/tick labels for hits and
+their tumble/crouch-cancel flags,
+    shield interactions, grabs, pummels, escapes, throws, KOs, respawns, sudden death, results,
 forfeits, and time limits. The simulation returns at most 16 records for the current tick; the
 browser keeps only the newest ten as non-authoritative presentation history
 and clears them on Reset or any observed rewind.
@@ -703,7 +713,11 @@ registry row can advance from `playable` to `verified`.
     target hitlag tick, press a horizontal direction and confirm `SDI pulses`
     becomes 1 and the target shifts. Keep holding it for another tick and
     confirm the count stays 1. Add the vertical component and confirm the count
-    becomes 2.
+    becomes 2. Reset at zero percent, hold down until the target says `CROUCH`,
+    and jab it; compare with a standing jab and confirm equal damage/hitlag,
+    visibly reduced launch/hitstun, and `CROUCH CANCEL` in the typed feed. Build
+    enough prior damage for the jab to finish above 40% and confirm the label
+    and reduction disappear.
 19. Compare otherwise similar launches while holding perpendicular opposite
     vertical directions on the final hitlag tick. Confirm the visible launch
     vector changes while the state remains deterministic after Reset.
@@ -940,6 +954,8 @@ through:
 - ordinary and collision-frame-trigger aerial hits proving exact 95% two-axis
   V-cancel launch with unchanged hitstun, plus active-aerial and repeated-edge
   lockout exclusions;
+- standing and held-grounded-crouch jabs proving equal damage/hitlag, exact 2/3
+  launch and hitstun, and a typed crouch-cancel flag in the reaction probe;
 - reduced-stick walking to close, safe, and far attack bands, followed by a
   jab-first responder proving close jab contact, a safe jab-whiff-to-strong
   counter, a far double whiff, and a safe-tip shield block;

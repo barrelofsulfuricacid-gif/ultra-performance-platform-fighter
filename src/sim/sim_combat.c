@@ -77,6 +77,22 @@ static int32_t pf_m4_scale_velocity_q16(
         (int64_t)PF_Q16_ONE);
 }
 
+static uint16_t pf_m4_scale_hitstun_ticks(
+    uint16_t hitstun_ticks,
+    int32_t scale_q16)
+{
+    uint32_t scaled_ticks =
+        (uint32_t)(
+            ((uint64_t)hitstun_ticks * (uint64_t)(uint32_t)scale_q16) /
+            (uint64_t)(uint32_t)PF_Q16_ONE);
+
+    if (hitstun_ticks != UINT16_C(0) && scaled_ticks == UINT32_C(0))
+    {
+        scaled_ticks = UINT32_C(1);
+    }
+    return (uint16_t)scaled_ticks;
+}
+
 static int pf_m4_action_is_v_cancel_eligible(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
@@ -917,6 +933,7 @@ static pf_status pf_m4_apply_hit_reaction(
     const uint8_t previous_action =
         scratch->action_state[target_index];
     int armored;
+    int crouch_cancelled;
     int v_cancelled;
     int reset;
     uint32_t hit_sequence;
@@ -951,12 +968,6 @@ static pf_status pf_m4_apply_hit_reaction(
               hitstun_ticks <=
                   content->fighter
                       .double_jump_armor_max_hitstun_ticks;
-    v_cancelled = armored == 0
-                      ? pf_m4_player_v_cancelled(
-                            &content->fighter,
-                            scratch,
-                            target_index)
-                      : 0;
     reset = armored == 0 &&
             pf_m4_event_is_physical_hit(event_type) &&
             (previous_action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
@@ -964,6 +975,19 @@ static pf_status pf_m4_apply_hit_reaction(
             damage_q16 <= content->fighter.reset_max_damage_q16 &&
             hitstun_ticks <=
                 content->fighter.reset_max_hitstun_ticks;
+    crouch_cancelled =
+        armored == 0 && reset == 0 &&
+        pf_m4_event_is_physical_hit(event_type) &&
+        previous_action == (uint8_t)PF_M4_ACTION_CROUCH &&
+        scratch->grounded[target_index] != UINT8_C(0) &&
+        scratch->damage_q16[target_index] <=
+            content->fighter.crouch_cancel_max_damage_q16;
+    v_cancelled = armored == 0 && reset == 0 && crouch_cancelled == 0
+                      ? pf_m4_player_v_cancelled(
+                            &content->fighter,
+                            scratch,
+                            target_index)
+                      : 0;
     scratch->pending_velocity_x_q16[target_index] =
         armored != 0 || reset != 0
             ? INT32_C(0)
@@ -976,6 +1000,21 @@ static pf_status pf_m4_apply_hit_reaction(
             : launch_velocity_y_q16;
     scratch->hitstun_ticks[target_index] =
         armored != 0 ? UINT16_C(0) : hitstun_ticks;
+    if (crouch_cancelled != 0)
+    {
+        scratch->pending_velocity_x_q16[target_index] =
+            pf_m4_scale_velocity_q16(
+                scratch->pending_velocity_x_q16[target_index],
+                content->fighter.crouch_cancel_velocity_scale_q16);
+        scratch->pending_velocity_y_q16[target_index] =
+            pf_m4_scale_velocity_q16(
+                scratch->pending_velocity_y_q16[target_index],
+                content->fighter.crouch_cancel_velocity_scale_q16);
+        scratch->hitstun_ticks[target_index] =
+            pf_m4_scale_hitstun_ticks(
+                scratch->hitstun_ticks[target_index],
+                content->fighter.crouch_cancel_hitstun_scale_q16);
+    }
     if (v_cancelled != 0)
     {
         scratch->pending_velocity_x_q16[target_index] =
@@ -1017,10 +1056,15 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->sdi_direction_y[target_index] = INT8_C(0);
     scratch->tech_direction[target_index] = INT8_C(0);
 
-    event_flags =
-        scratch->tumble[target_index] != UINT8_C(0)
-            ? (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE
-            : UINT16_C(0);
+    event_flags = UINT16_C(0);
+    if (scratch->tumble[target_index] != UINT8_C(0))
+    {
+        event_flags |= (uint16_t)PF_SIM_EVENT_FLAG_TUMBLE;
+    }
+    if (crouch_cancelled != 0)
+    {
+        event_flags |= (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL;
+    }
     if (pf_sim_push_event(
             scratch,
             world->tick,

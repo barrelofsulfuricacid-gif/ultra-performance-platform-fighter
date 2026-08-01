@@ -9045,6 +9045,143 @@ static int pf_web_m4_run_tech_chase_probe(void)
            pf_web_m4_run_tech_chase_route(2, 0);
 }
 
+typedef struct pf_web_m4_crouch_cancel_result
+{
+    pf_sim_event event;
+    uint32_t damage_q16;
+    uint16_t hitlag_ticks;
+    uint16_t hitstun_ticks;
+} pf_web_m4_crouch_cancel_result;
+
+static int pf_web_m4_run_crouch_cancel_route(
+    int target_crouches,
+    pf_web_m4_crouch_cancel_result *out_result)
+{
+    pf_m4_inspection inspection;
+    const int16_t target_y =
+        target_crouches != 0 ? INT16_MAX : INT16_C(0);
+    uint32_t tick;
+
+    if (out_result == NULL || !pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(27); ++tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                -PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            target_y,
+            UINT64_C(0),
+            &inspection) ||
+        (target_crouches != 0 &&
+         inspection.players[1].action_state !=
+             (uint8_t)PF_M4_ACTION_CROUCH) ||
+        !pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            target_y,
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        const pf_sim_event *event =
+            pf_web_m4_find_event(PF_SIM_EVENT_HIT);
+
+        if (event != NULL &&
+            event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1))
+        {
+            out_result->event = *event;
+            out_result->damage_q16 =
+                inspection.players[1].damage_q16;
+            out_result->hitlag_ticks =
+                inspection.players[1].hitlag_ticks;
+            out_result->hitstun_ticks =
+                inspection.players[1].hitstun_ticks;
+            return inspection.players[1].action_state ==
+                   (uint8_t)PF_M4_ACTION_HITLAG;
+        }
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                target_y,
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+static int pf_web_m4_run_crouch_cancel_probe(void)
+{
+    pf_web_m4_crouch_cancel_result ordinary;
+    pf_web_m4_crouch_cancel_result crouched;
+    int32_t expected_x;
+    int32_t expected_y;
+    uint32_t expected_hitstun;
+
+    if (!pf_web_m4_run_crouch_cancel_route(0, &ordinary) ||
+        !pf_web_m4_run_crouch_cancel_route(1, &crouched))
+    {
+        return 0;
+    }
+    expected_x = (int32_t)(
+        ((int64_t)ordinary.event.velocity_x_q16 *
+         (int64_t)pf_web_m4_content.fighter
+             .crouch_cancel_velocity_scale_q16) /
+        (int64_t)PF_Q16_ONE);
+    expected_y = (int32_t)(
+        ((int64_t)ordinary.event.velocity_y_q16 *
+         (int64_t)pf_web_m4_content.fighter
+             .crouch_cancel_velocity_scale_q16) /
+        (int64_t)PF_Q16_ONE);
+    expected_hitstun =
+        ((uint32_t)ordinary.hitstun_ticks *
+         (uint32_t)pf_web_m4_content.fighter
+             .crouch_cancel_hitstun_scale_q16) /
+        (uint32_t)PF_Q16_ONE;
+    if (ordinary.hitstun_ticks != UINT16_C(0) &&
+        expected_hitstun == UINT32_C(0))
+    {
+        expected_hitstun = UINT32_C(1);
+    }
+    return (ordinary.event.flags &
+            (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) == UINT16_C(0) &&
+           (crouched.event.flags &
+            (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) != UINT16_C(0) &&
+           crouched.event.value_q16 == ordinary.event.value_q16 &&
+           crouched.damage_q16 == ordinary.damage_q16 &&
+           crouched.hitlag_ticks == ordinary.hitlag_ticks &&
+           crouched.event.velocity_x_q16 == expected_x &&
+           crouched.event.velocity_y_q16 == expected_y &&
+           crouched.hitstun_ticks == (uint16_t)expected_hitstun &&
+           crouched.hitstun_ticks < ordinary.hitstun_ticks;
+}
+
 static int pf_web_m4_run_reaction_probe(void)
 {
     pf_m4_inspection inspection;
@@ -9153,7 +9290,7 @@ static int pf_web_m4_run_reaction_probe(void)
     {
         return 0;
     }
-    return 1;
+    return pf_web_m4_run_crouch_cancel_probe();
 }
 
 static int pf_web_m4_run_shield_probe(void)
@@ -11299,7 +11436,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(34);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(35);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
