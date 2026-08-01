@@ -747,6 +747,25 @@ jump-cancel route and both negatives; browser view schema 18 retains the cyan
 grabbox, `GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
 links, and the victim's `MASH OUT · Nf` countdown.
 
+## Jump-cancelling attack
+
+During the production three-tick jump squat, full up plus a fresh light or
+strong attack selects the existing grounded `STRONG_ATTACK`, cancels takeoff,
+and preserves inherited dash velocity before ordinary traction. This is the
+attack branch of the documented
+[jump-cancel](https://www.ssbwiki.com/Jump_cancel) pre-jump-lag router; the
+existing light-plus-shield grab and held-item throw are its grab and item
+branches. It adds no technique-only action, mutable flag, or input bit.
+
+Neutral stick or an up magnitude one unit below the full-input threshold keeps
+the fighter in jump squat. Waiting until the first airborne frame selects the
+ordinary aerial attack instead. The native oracle covers both attack buttons,
+both grounded exclusions, retained dash momentum, the late aerial route, a
+real 12% strong hit, and a mid-action save/load whose remaining state hashes
+and events match. Browser startup repeats both positive routes and all three
+negative controls before readiness; browser view schema 23 carries that new
+readiness semantic without changing the 290-value view layout.
+
 ## Dash attack and boost grab
 
 A fresh light-attack edge from `RUN` enters the production `DASH_ATTACK` and
@@ -926,11 +945,15 @@ an ordinary pickup and throw.
 
 ## Canonical state and inspection
 
-State schema 26 / save format 25 expands the stream to 662 bytes (140-byte
-header plus 522-byte payload) and changes the active magic to `PFSAVE25`. It
-adds the fixed item entity, timers, ownership/attribution, hit mask, throw
-direction, `ITEM_THROW`/`ITEM_DASH_THROW` action semantics, and typed item
-events. It follows state schema 25 / save format 24, which retained the
+State schema 27 / save format 26 retains the 662-byte stream (140-byte header
+plus 522-byte payload), changes the active magic to `PFSAVE26`, and makes the
+full-up jump-squat attack cancel, grounded standing-strong selection, inherited
+momentum, and neutral/shallow/late exclusions fail closed without adding
+mutable fields. It follows state schema 26 / save format 25, which expanded the
+stream to 662 bytes and added the fixed item entity, timers,
+ownership/attribution, hit mask, throw direction,
+`ITEM_THROW`/`ITEM_DASH_THROW` action semantics, and typed item events. It
+follows state schema 25 / save format 24, which retained the
 635-byte stream and made
 knockback-based delayed-air-jump armor, zero-launch hit events, preserved
 trajectory/action timing, and `DELAYED_AIR_JUMP` hitlag resume fail closed
@@ -1219,7 +1242,8 @@ replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
-drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, planking,
+drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, jump-cancel
+attack, planking,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,

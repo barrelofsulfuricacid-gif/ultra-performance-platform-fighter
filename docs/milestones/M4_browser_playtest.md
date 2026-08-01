@@ -11,6 +11,7 @@ and four directional
 throws with a low-percent chain-grab route,
 one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
 plus bat-drop, glide-toss, and jump-cancel-throw routes,
+grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
 hit-reaction, and dense-shield
@@ -36,6 +37,7 @@ headless execution.
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
 | Pick up / drop the nearby Relay Rod | Near the rod, or while holding it: hold `G`, tap `F` | Near the rod, or while holding it: hold `.`/Numpad `1`, tap `/`/Numpad `0` |
 | Directional item throw | While holding the rod: direction + fresh `F` or `H` | While holding the rod: direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
+| Jump-cancel attack | During `JUMP SQUAT`, hold full up and freshly press `F` or `H` | During `JUMP SQUAT`, hold full Up and freshly press `/`/Numpad `0` or `'`/Numpad `2` |
 | Grounded forward/backward roll | Trigger + fresh `A` / `D` | Trigger + fresh Left / Right |
 | Grounded spot dodge | Trigger + fresh `S` | Trigger + fresh Down |
 | Shield platform drop | Hold trigger, then `Shift+S` | Hold trigger, then `Shift+Down` |
@@ -91,6 +93,13 @@ reach `RUN` and either press down for a sliding `CROUCH` or hold shield for a
 sliding `SHIELD`. A ground attack can immediately interrupt the crouch while
 the remaining momentum carries forward. Shield during `INITIAL DASH` and down
 during `RUN TURNAROUND` are deliberate negative cases.
+
+For a jump-cancel attack, begin a dash, press jump, then keep full up held and
+freshly press light or strong during `JUMP SQUAT`. The grounded `STRONG ATTACK`
+starts while inherited dash momentum keeps sliding under traction. Neutral or
+reduced-magnitude up continues jump squat; waiting until `AIRBORNE` performs the
+ordinary aerial attack instead. Light plus shield remains jump-canceled grab,
+and attacking with the Relay Rod held remains jump-cancel throw.
 
 For a dashing shield, reach `RUN`, tap shield for one tick, and release it.
 The inherited run momentum continues sliding under traction through the
@@ -822,6 +831,7 @@ The page reports
 instant_double_jump_probe=pass double_jump_cancel_probe=pass
 double_jump_cancel_counter_probe=pass
 bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
+jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass

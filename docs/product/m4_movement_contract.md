@@ -406,7 +406,8 @@ shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
 and browser-specific device exposure remain part of the owner playtest.
 
 The focused movement oracle currently reports 243 invariants. The focused
-combat oracle reports 560 invariants, including the double-jump-cancel-counter
+combat oracle reports 584 invariants, including the jump-cancelling attack
+threshold/late-input routes, the double-jump-cancel-counter
 armor/resume boundaries and the dashing-shield
 tap-versus-held boundary, reaction-driven tech-chase routes, and the
 frame-perfect drop-cancel hit/snap versus one-tick-late and whiff fall-through

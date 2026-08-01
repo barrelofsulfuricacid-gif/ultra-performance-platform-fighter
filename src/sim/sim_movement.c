@@ -1688,6 +1688,13 @@ pf_status pf_m4_step_player(
     const int attack_pressed =
         grab_pressed == 0 &&
         (light_attack_pressed != 0 || strong_attack_pressed != 0);
+    const int jump_cancel_attack_pressed =
+        world->grounded[player_index] != UINT8_C(0) &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
+        attack_pressed != 0 &&
+        input->main_stick_y <=
+            -(int16_t)fighter->dash_axis_threshold;
     const int throw_pressed =
         light_attack_pressed != 0 || strong_attack_pressed != 0;
     const int dodge_down_held =
@@ -2267,6 +2274,18 @@ pf_status pf_m4_step_player(
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        jump_cancel_attack_pressed != 0)
+    {
+        action_state = (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
+        action_ticks = UINT16_C(0);
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        short_hop_latched = UINT8_C(0);
+        dash_direction = INT8_C(0);
+        scratch->powershield[player_index] = UINT8_C(0);
     }
 
     if (!ledge_motion_handled &&

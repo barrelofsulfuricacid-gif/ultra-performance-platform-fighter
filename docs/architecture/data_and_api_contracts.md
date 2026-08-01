@@ -81,13 +81,15 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–24 remain historical checkpoints. The current M4
-movement/combat/item state uses save format 25: a fixed 662-byte checkpoint
-with state schema 26. Its 522-byte payload adds one fixed canonical item
-entity with position/velocity, lifecycle timers, state, holder/source slots,
-hit mask, and throw direction; load validates all state/ownership/timer
-relationships before atomic replacement. The preceding state schema 25 and
-save format 24 define canonical solid-surface tech/bounce,
+Save formats 1–25 remain historical checkpoints. The current M4
+movement/combat/item state uses save format 26: a fixed 662-byte checkpoint
+with state schema 27. Its 522-byte payload is unchanged from format 25, but the
+new version makes the full-up plus fresh light/strong jump-squat cancel into
+standing strong attack fail closed. State schema 26 / save format 25 added one
+fixed canonical item entity with position/velocity, lifecycle timers, state,
+holder/source slots, hit mask, and throw direction; load validates all
+state/ownership/timer relationships before atomic replacement. The preceding
+state schema 25 and save format 24 define canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
 forward/backward roll and spot-dodge semantics, fresh-down input history, and
@@ -117,6 +119,9 @@ layout. State schema 26 adds fixed-capacity item pickup/drop/throw/hit/reset
 semantics, two item-throw action IDs, and typed item events. Structured
 observation schema 3 and RL schema 5 expose the same item state; compact
 observation schema 4 appends eight values without changing existing indices.
+State schema 27 retains that layout while making the full-up threshold,
+fresh-attack edge, grounded standing-strong selection, retained inherited
+momentum, and neutral/shallow-up/first-airborne-frame exclusions fail closed.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

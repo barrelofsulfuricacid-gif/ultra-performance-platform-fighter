@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -453,6 +453,7 @@ mergeInto(LibraryManager.library, {
     batDropProbePassed,
     glideTossProbePassed,
     jumpCancelThrowProbePassed,
+    jumpCancelProbePassed,
     edgeHopProbePassed,
     edgeDashProbePassed,
     foxTrotProbePassed,
@@ -743,6 +744,8 @@ mergeInto(LibraryManager.library, {
     section.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
     section.dataset.jumpCancelThrowProbe =
       jumpCancelThrowProbePassed ? "pass" : "fail";
+    section.dataset.jumpCancelProbe =
+      jumpCancelProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -769,6 +772,7 @@ mergeInto(LibraryManager.library, {
       batDropProbePassed &&
       glideTossProbePassed &&
       jumpCancelThrowProbePassed &&
+      jumpCancelProbePassed &&
       edgeHopProbePassed &&
       edgeDashProbePassed &&
       foxTrotProbePassed &&
@@ -967,6 +971,9 @@ mergeInto(LibraryManager.library, {
       "ground roll and press light during action ticks 0–4 for a glide toss. " +
       "Dash, jump, then press light during jump squat for a jump-cancel throw; " +
       "waiting until airborne produces an ordinary aerial item throw instead. " +
+      "Without an item, hold full up and freshly press light or strong during " +
+      "jump squat to cancel into the standing strong attack; neutral, shallow-up, " +
+      "and first-airborne-frame attacks keep their ordinary routes. " +
       "The deterministic event feed below records hits, shield interactions, " +
       "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
       "sequence order. " +
@@ -1298,6 +1305,8 @@ mergeInto(LibraryManager.library, {
         (glideTossProbePassed ? "pass" : "fail") +
         " jump_cancel_throw_probe=" +
         (jumpCancelThrowProbePassed ? "pass" : "fail") +
+        " jump_cancel_probe=" +
+        (jumpCancelProbePassed ? "pass" : "fail") +
         " edge_hop_probe=" +
         (edgeHopProbePassed ? "pass" : "fail") +
         " edge_dash_probe=" +
@@ -1398,6 +1407,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
       status.dataset.jumpCancelThrowProbe =
         jumpCancelThrowProbePassed ? "pass" : "fail";
+      status.dataset.jumpCancelProbe =
+        jumpCancelProbePassed ? "pass" : "fail";
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
@@ -1489,7 +1500,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 22) {
+    if (view[0] !== 23) {
       return;
     }
     var canvas = state.canvas;

@@ -355,7 +355,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   evidence. The Relay Rod slice advances state schema to 26/save format 25,
   content schema to 28 with fighter schema 27 and item schema 1, inspection
   schema to 23, and browser view schema to 22 for fixed-capacity item state,
-  actions, events, and readiness evidence.
+  actions, events, and readiness evidence. The jump-cancelling slice advances
+  state schema to 27/save format 26 and browser view schema to 23 for the
+  fail-closed full-up jump-squat attack route and readiness evidence, without
+  changing the content, inspection, observation, RL, or payload layouts.
   Config/identity schema 2 remains current; observation schema 3 and RL schema
   5 expose the item. The canonical save is 662 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
@@ -1020,6 +1023,26 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry rows 3, 18, and 25 advance from `planned` to `playable`; cross-target
   evidence and owner execution remain before `verified`.
 
+## Delivered in the jump-cancelling attack slice
+
+- Full up plus a fresh light or strong edge during the production three-tick
+  jump squat now selects the existing grounded standing strong attack, cancels
+  takeoff, and preserves inherited dash momentum under ordinary traction.
+- Neutral input, an up magnitude one unit below the full-input threshold, and
+  first-airborne-frame input retain their ordinary jump-squat or aerial routes.
+  Light plus shield and a held-item attack remain the existing grab and item
+  jump-cancel branches.
+- The native combat oracle adds 24 invariants covering both attack buttons,
+  exact threshold/neutral/late exclusions, retained momentum, a real 12% hit,
+  and mid-action save/load with equal future hashes and events. Browser startup
+  repeats every positive and negative route before readiness.
+- State schema 27/save format 26 and `PFSAVE26` make the new interpretation fail
+  closed while retaining the 522-byte payload and 662-byte checkpoint. Browser
+  view schema 23 adds the jump-cancel readiness semantic without changing its
+  290-value layout.
+- Registry row 27, Jump-cancelling, advances from `planned` to `playable`;
+  owner execution and complete cross-target evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1112,7 +1135,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
-  sharking, spacing, tech-chasing, V-cancelling, and wavedash are
+  sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
   movement, combat, item, team, or fighter-content dependencies are present.
@@ -1122,7 +1145,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 44 playable, 3 primitive-ready, and 13 planned.
+  blocked: 1 verified, 45 playable, 3 primitive-ready, and 12 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1156,7 +1179,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 19/19 tests.
 - Address/undefined-behavior sanitizer workflow: 19/19 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 243 movement invariants, 560
+- Mechanical oracles: 243 movement invariants, 584
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1167,9 +1190,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,354
   bytes,
   replay SHA-256
-  `cc0bb0092fc382d0f17ac8996bd3cc3d639c12dda741717ffd393b84052bddd0`,
+  `a981462f29b8b7ebb291d856e19021b41fa8cdf7868f29a55bc4054502cf4dc6`,
   final SHA-256
-  `d6446a15e39dac2fc45696c57b68dc80cc7a8e800fcda9a47596caa6d9bd1958`,
+  `0415bd3c886e4e1157791a4a29f51697707ae220371a16a77c2b67cff8cb4fe8`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1180,7 +1203,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

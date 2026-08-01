@@ -1,7 +1,7 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–25 / state schemas 1–26
-- **Date:** 2026-07-28
+- **Status:** Accepted for save formats 1–26 / state schemas 1–27
+- **Date:** 2026-07-31
 
 ## Decision
 
@@ -35,13 +35,14 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 23 | 24 | 140 | 495 | 635 | Canonical delayed-air-jump action ID, exact authored aerial-cancel window, vertical-momentum cancellation, and late full-arc semantics; no payload-layout change |
 | 24 | 25 | 140 | 495 | 635 | Knockback-based delayed-air-jump armor, zero-launch hit events, preserved action timing/trajectory, and delayed-action hitlag resume semantics; no payload-layout change |
 | 25 | 26 | 140 | 522 | 662 | One fixed canonical item entity: position/velocity, lifetime/respawn/pickup-lockout timers, state, holder/source slots, hit mask, and throw direction; item-throw action IDs and typed item-event semantics |
+| 26 | 27 | 140 | 522 | 662 | Full-up plus fresh light/strong during jump squat selects grounded standing strong attack while retaining inherited momentum; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
-`PFSAVE23`, `PFSAVE24`, or `PFSAVE25`. The active M4 runtime emits and accepts
-format 25 with state schema 26. Earlier
+`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, or `PFSAVE26`. The active M4 runtime emits
+and accepts format 26 with state schema 27. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -130,6 +131,14 @@ tumble. Qualification is bounded by the authored computed-hitstun threshold;
 non-physical reactions, late hits, disabled armor, and stronger hits use the
 ordinary launch path. Loading validates the zero-launch pending state and the
 airborne delayed-action resume relationship under schema 25.
+Format 25 expands the payload by 27 bytes for one fixed canonical item entity
+and makes its lifecycle, ownership, attribution, hit mask, directional throw,
+item action, and typed event semantics fail closed under schema 26. Format 26
+retains that 522-byte payload while making the production jump-cancel attack
+router fail closed: only full up plus a fresh light or strong edge during jump
+squat selects grounded standing strong attack and retains inherited momentum;
+neutral or shallow up continues jump squat, and the first airborne frame uses
+the ordinary aerial route. Loading validates those semantics under schema 27.
 
 ## Why SHA-256
 
@@ -214,6 +223,9 @@ service-envelope responsibility.
 - Mid-item-throw save/load plus equal future hashes and events, strict item
   state/holder/source/timer validation, encoded replay verification, and
   structured/compact RL observation checks in `tests/sim/test_m4_item.c`.
+- Mid-jump-cancel save/load plus retained dash momentum, both attack-button
+  routes, threshold/neutral/late exclusions, a real strong hit, and equal
+  future hashes and events in `tests/sim/test_m4_combat.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in
