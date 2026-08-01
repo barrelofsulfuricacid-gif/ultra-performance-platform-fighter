@@ -145,10 +145,13 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   production 1v1 workload varied by +1.92% on WSL and -2.03% on Windows; the
   maximum-combat-entities workload varied by +0.70% and +1.11% respectively,
   all within their same-target non-regression envelopes.
-- A clean Tracy 0.13.1 profile-only capture at `1df6923` records all thirteen
+- A clean Tracy 0.13.1 profile-only capture at `0c72167` records all thirteen
   workload slots, ten measured scenarios, frame marks, and canonical zones.
   WSL uses the recorded timer fallback; the raw trace remains local and the
   platform-profiler claim remains unavailable because `perf` was not installed.
+  Two fresh native-Windows milestone runs at the same exact commit qualified
+  all ten available scenarios against an isolated same-commit baseline with
+  zero invalid comparisons, suspected regressions, or confirmed regressions.
   See the [M4 performance checkpoint](../../performance/reports/2026-08-01_m4_combat.md)
   and [profile analysis](../../performance/profiles/M4/analysis.md).
 
