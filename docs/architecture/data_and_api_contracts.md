@@ -81,12 +81,16 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–28 remain historical checkpoints. The current M4
-movement/combat/item/projectile/reflector/charge state uses save format 29: a
-fixed 690-byte checkpoint with state schema 30 and a 550-byte payload. It
-appends one canonical charge-tick value per player and makes Arc Reservoir
-charge, storage, early cancel, exact resume, scaled release, completion, and
-interruption semantics fail closed. State schema 29 / save format 28 retained
+Save formats 1–29 remain historical checkpoints. The current M4
+movement/combat/item/projectile/reflector/charge/Moonwalk state uses save
+format 30: a fixed 690-byte checkpoint with state schema 31 and a 550-byte
+payload. It retains the format-29 byte layout while making the two Moonwalk
+action IDs, authored two-tick shallow-back setup, full-back activation,
+facing-preserving backward velocity, and mistimed dashback semantics fail
+closed. State schema 30 / save format 29 appended one canonical charge-tick
+value per player and made Arc Reservoir charge, storage, early cancel, exact
+resume, scaled release, completion, and interruption semantics fail closed.
+State schema 29 / save format 28 retained
 the format-27 byte layout while making grounded/aerial Prism Burst actions,
 hitlag resume, landing, downward physical launch, and active-box projectile
 reflection fail closed. State schema 28 / save format 27 appended one
@@ -146,6 +150,12 @@ schema 6 appends four values at indices 62–65, for 66 total. Content schema 31
 adds one charge definition under charge schema 1. Inspection schema 26 appends
 the charge value, and browser view schema 26 appends it to both visible players
 for a 304-value view.
+State schema 31 retains the 550-byte payload while versioning
+`MOONWALK_SETUP` and `MOONWALK` action timing. Content schema 32/fighter
+schema 28 adds and hashes the data-defined setup duration. Inspection and
+browser view schema 27 version the new action interpretation without changing
+the 304-value layout; structured observation schema 5, RL schema 7, compact
+observation schema 6, and its 66 values remain unchanged.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

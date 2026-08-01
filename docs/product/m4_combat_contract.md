@@ -1043,14 +1043,47 @@ startup repeats charge, store cancel, resume, and release before readiness;
 browser view schema 26 appends one charge-tick value to each player, shifting
 the event/item/projectile blocks by two values and producing a 304-value view.
 
+## Moonwalk contract
+
+The original fighter authors `moonwalk_setup_ticks=2`. While in
+`INITIAL_DASH`, reduced horizontal input opposite the retained facing enters
+`MOONWALK_SETUP` at action tick 1. Holding that shallow-back input through
+action tick 2 and then switching to full back enters `MOONWALK`, retains the
+original facing and dash direction, and applies initial-dash speed in the
+opposite direction. Releasing the input returns to `GROUND_IDLE` while normal
+traction preserves a decaying backward slide.
+
+Full back immediately after the forward dash is the ordinary initial-dash
+reversal. Full back after only one shallow setup tick also falls back to that
+same dashback. Neutral or invalid input during setup cancels to grounded idle.
+The actions remain interruptible by the existing legal grounded routers and
+need no new per-player mutable field: action ID and action ticks carry the
+timing through save/load, rollback, replay, and hash.
+
+`tests/sim/test_m4_movement.c` supplies 12 focused invariants covering default
+and invalid authored timing, isolated content hashing, the exact two setup
+ticks, entry/hold/release velocity and facing, both dashback controls, and a
+690-byte mid-setup save/load with equal future hashes. Browser startup repeats
+all three timing outcomes and exports an independent `moonwalk_probe` before
+readiness. Browser controls use Shift plus the opposite horizontal key for two
+ticks, then the unmodified opposite key.
+
 ## Canonical state and inspection
 
-State schema 30 / save format 29 expands the stream to 690 bytes (140-byte
-header plus 550-byte payload), changes the active magic to `PFSAVE29`, appends
-one canonical charge-tick value per player, and makes all three charge action
-IDs, storage, resume, release, scaling, completion, and interruption semantics
-fail closed. Inspection schema 26 and browser view schema 26 expose the charge
-value and action interpretation; the browser view contains 304 values.
+State schema 31 / save format 30 retains the 690-byte stream (140-byte header
+plus 550-byte payload), changes the active magic to `PFSAVE30`, and makes both
+Moonwalk action IDs, setup/activation timing, retained facing/dash direction,
+reverse velocity, and mistimed dashback semantics fail closed. Inspection
+schema 27 and browser view schema 27 version the action interpretation without
+changing the 304-value browser layout. Content schema 32/fighter schema 28 add
+and hash the authored setup duration. Structured observation schema 5, RL
+schema 7, compact observation schema 6, and its 66 values remain unchanged.
+
+It follows state schema 30 / save format 29, which expanded the stream to 690
+bytes, used `PFSAVE29`, appended one canonical charge-tick value per player,
+and made all three charge action IDs, storage, resume, release, scaling,
+completion, and interruption semantics fail closed. Inspection schema 26 and
+browser view schema 26 exposed the charge value and action interpretation.
 Structured observation schema 5 exposes charge per player. RL schema 7 and
 compact observation schema 6 append four charge values at indices 62–65 for
 66 total values without moving earlier compact indices. Content schema 31

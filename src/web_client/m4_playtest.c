@@ -161,6 +161,7 @@ extern void pf_web_m4_playtest_install(
     int edge_hop_probe_passed,
     int edge_dash_probe_passed,
     int fox_trot_probe_passed,
+    int moonwalk_probe_passed,
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
@@ -9801,6 +9802,133 @@ static int pf_web_m4_run_charge_storage_probe(void)
     return passed != 0 && restored != 0;
 }
 
+static int pf_web_m4_run_moonwalk_probe(void)
+{
+    pf_m4_inspection inspection;
+    int passed = 0;
+    int restored;
+
+    if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content() &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        pf_web_m4_tick(
+            -PF_WEB_M4_WALK_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
+        inspection.players[0].action_ticks == UINT16_C(1) &&
+        inspection.players[0].facing == INT8_C(1) &&
+        pf_web_m4_tick(
+            -PF_WEB_M4_WALK_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
+        inspection.players[0].action_ticks ==
+            pf_web_m4_content.fighter.moonwalk_setup_ticks &&
+        pf_web_m4_tick(
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_MOONWALK &&
+        inspection.players[0].facing == INT8_C(1) &&
+        inspection.players[0].velocity_x_q16 < INT32_C(0) &&
+        pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+        inspection.players[0].facing == INT8_C(1) &&
+        inspection.players[0].velocity_x_q16 < INT32_C(0) &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        pf_web_m4_tick(
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        inspection.players[0].facing == INT8_C(-1) &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        pf_web_m4_tick(
+            -PF_WEB_M4_WALK_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
+        inspection.players[0].action_ticks == UINT16_C(1) &&
+        pf_web_m4_tick(
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+        inspection.players[0].facing == INT8_C(-1))
+    {
+        passed = 1;
+    }
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_render(void)
 {
     pf_m4_inspection inspection;
@@ -9814,7 +9942,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(26);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(27);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -10128,6 +10256,7 @@ int pf_web_m4_playtest_start(void)
     int edge_hop_probe_passed;
     int edge_dash_probe_passed;
     int fox_trot_probe_passed;
+    int moonwalk_probe_passed;
     int pivot_probe_passed;
     int dash_cancel_probe_passed;
     int dashing_shield_probe_passed;
@@ -10184,6 +10313,7 @@ int pf_web_m4_playtest_start(void)
     edge_hop_probe_passed = pf_web_m4_run_edge_hop_probe();
     edge_dash_probe_passed = pf_web_m4_run_edge_dash_probe();
     fox_trot_probe_passed = pf_web_m4_run_fox_trot_probe();
+    moonwalk_probe_passed = pf_web_m4_run_moonwalk_probe();
     pivot_probe_passed = pf_web_m4_run_pivot_probe();
     dash_cancel_probe_passed = pf_web_m4_run_dash_cancel_probe();
     dashing_shield_probe_passed =
@@ -10260,6 +10390,7 @@ int pf_web_m4_playtest_start(void)
         edge_hop_probe_passed == 0 ||
         edge_dash_probe_passed == 0 ||
         fox_trot_probe_passed == 0 ||
+        moonwalk_probe_passed == 0 ||
         pivot_probe_passed == 0 ||
         dash_cancel_probe_passed == 0 ||
         dashing_shield_probe_passed == 0 ||
@@ -10317,6 +10448,7 @@ int pf_web_m4_playtest_start(void)
         edge_hop_probe_passed,
         edge_dash_probe_passed,
         fox_trot_probe_passed,
+        moonwalk_probe_passed,
         pivot_probe_passed,
         dash_cancel_probe_passed,
         dashing_shield_probe_passed,

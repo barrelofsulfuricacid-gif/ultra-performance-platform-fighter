@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–29 / state schemas 1–30
+- **Status:** Accepted for save formats 1–30 / state schemas 1–31
 - **Date:** 2026-07-31
 
 ## Decision
@@ -39,14 +39,15 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 27 | 28 | 140 | 542 | 682 | One fixed canonical projectile slot: position/velocity, lifetime, inactive/spawning/active state, owner slot, grounded/aerial fire action IDs, and typed fire/hit/reflect semantics |
 | 28 | 29 | 140 | 542 | 682 | Canonical grounded/aerial Prism Burst action IDs, hitlag-resume and landing semantics, downward physical launch, and active-box projectile reflection; no payload-layout change |
 | 29 | 30 | 140 | 550 | 690 | One canonical charge-tick value per player plus Arc Reservoir charge, store, early-cancel, resume, scaled-release, completion, interruption, and action-ID semantics |
+| 30 | 31 | 140 | 550 | 690 | Canonical `MOONWALK_SETUP` and `MOONWALK` action IDs, authored shallow-back timing, full-back activation, retained facing/dash direction, backward velocity, and mistimed dashback semantics; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
-`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`, or
-`PFSAVE29`. The active M4 runtime emits and accepts format 29 with state schema
-30. Earlier
+`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
+`PFSAVE29`, or `PFSAVE30`. The active M4 runtime emits and accepts format 30
+with state schema 31. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -168,6 +169,14 @@ incompatible with disabled content or the action/grounding relationship.
 Storage cancel, exact resume, charge-scaled release, completion clearing, and
 hit-interruption clearing therefore participate in the canonical future under
 schema 30.
+Format 30 retains the same payload and adds no mutable field. During initial
+dash, the two explicit Moonwalk actions encode the authored shallow-back setup
+and the subsequent full-back slide in existing action ID/timer, facing,
+dash-direction, and velocity fields. Loading rejects zero/out-of-range setup
+or active ticks, airborne/reaction-incompatible actions, missing or
+facing-inconsistent dash direction, and any action value unknown to schema 31.
+The bump prevents a format-29 reader from silently treating those action IDs
+or their facing-preserving reverse-motion semantics as ordinary movement.
 
 ## Why SHA-256
 
@@ -255,6 +264,9 @@ service-envelope responsibility.
 - Mid-jump-cancel save/load plus retained dash momentum, both attack-button
   routes, threshold/neutral/late exclusions, a real strong hit, and equal
   future hashes and events in `tests/sim/test_m4_combat.c`.
+- Mid-Moonwalk-setup save/load plus exact setup/activation timing, preserved
+  facing, reverse velocity, traction exit, two mistimed dashback controls, and
+  equal future hashes in `tests/sim/test_m4_movement.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

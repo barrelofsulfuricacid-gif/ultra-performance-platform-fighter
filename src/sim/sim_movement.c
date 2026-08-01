@@ -3439,8 +3439,94 @@ pf_status pf_m4_step_player(
             horizontal_direction == facing &&
             horizontal_magnitude >=
                 fighter->run_continue_axis_threshold;
+        const int moonwalk_shallow_back =
+            horizontal_direction == -facing &&
+            horizontal_magnitude > fighter->axis_dead_zone &&
+            strong_direction == INT8_C(0);
+        const int moonwalk_full_back =
+            strong_direction == -facing;
 
         if (action_state ==
+            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP)
+        {
+            if (moonwalk_shallow_back)
+            {
+                if (action_ticks < fighter->moonwalk_setup_ticks)
+                {
+                    ++action_ticks;
+                }
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    -(int32_t)facing *
+                        fighter->initial_dash_speed_q16,
+                    fighter->turn_acceleration_q16);
+            }
+            else if (moonwalk_full_back)
+            {
+                if (action_ticks >= fighter->moonwalk_setup_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_MOONWALK;
+                    action_ticks = UINT16_C(1);
+                    velocity_x =
+                        -(int32_t)facing *
+                        fighter->initial_dash_speed_q16;
+                }
+                else
+                {
+                    facing = (int8_t)-facing;
+                    dash_direction = facing;
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_INITIAL_DASH;
+                    action_ticks = UINT16_C(1);
+                    velocity_x =
+                        (int32_t)facing *
+                        fighter->initial_dash_speed_q16;
+                }
+            }
+            else
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                dash_direction = INT8_C(0);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    INT32_C(0),
+                    fighter->traction_q16);
+            }
+        }
+        else if (action_state ==
+                 (uint8_t)PF_M4_ACTION_MOONWALK)
+        {
+            if (horizontal_direction == -facing &&
+                horizontal_magnitude > fighter->axis_dead_zone)
+            {
+                velocity_x =
+                    -(int32_t)facing *
+                    fighter->initial_dash_speed_q16;
+                ++action_ticks;
+                if (action_ticks >= fighter->initial_dash_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                    action_ticks = UINT16_C(0);
+                    dash_direction = INT8_C(0);
+                }
+            }
+            else
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                action_ticks = UINT16_C(0);
+                dash_direction = INT8_C(0);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    INT32_C(0),
+                    fighter->traction_q16);
+            }
+        }
+        else if (action_state ==
             (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
         {
             const int8_t target_direction = dash_direction;
@@ -3557,6 +3643,10 @@ pf_status pf_m4_step_player(
         }
         else
         {
+            const int moonwalk_setup_started =
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                moonwalk_shallow_back;
             const int dash_started =
                 strong_direction != INT8_C(0) &&
                 (previous_strong_direction == INT8_C(0) ||
@@ -3564,7 +3654,18 @@ pf_status pf_m4_step_player(
                       (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
                   strong_direction == -dash_direction));
 
-            if (dash_started)
+            if (moonwalk_setup_started)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_MOONWALK_SETUP;
+                action_ticks = UINT16_C(1);
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    -(int32_t)facing *
+                        fighter->initial_dash_speed_q16,
+                    fighter->turn_acceleration_q16);
+            }
+            else if (dash_started)
             {
                 action_state =
                     (uint8_t)PF_M4_ACTION_INITIAL_DASH;

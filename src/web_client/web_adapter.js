@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -457,6 +457,7 @@ mergeInto(LibraryManager.library, {
     edgeHopProbePassed,
     edgeDashProbePassed,
     foxTrotProbePassed,
+    moonwalkProbePassed,
     pivotProbePassed,
     dashCancelProbePassed,
     dashingShieldProbePassed,
@@ -757,6 +758,7 @@ mergeInto(LibraryManager.library, {
     section.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
     section.dataset.chargeStorageProbe =
       chargeStorageProbePassed ? "pass" : "fail";
+    section.dataset.moonwalkProbe = moonwalkProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -787,6 +789,7 @@ mergeInto(LibraryManager.library, {
       edgeHopProbePassed &&
       edgeDashProbePassed &&
       foxTrotProbePassed &&
+      moonwalkProbePassed &&
       pivotProbePassed &&
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
@@ -908,6 +911,9 @@ mergeInto(LibraryManager.library, {
       "enters RUN TURNAROUND instead. To fox-trot, rhythmically tap and release " +
       "one full direction; each fresh tap restarts INITIAL DASH, while holding " +
       "the direction reaches RUN and a reduced-magnitude re-entry only walks. " +
+      "To moonwalk, dash, hold Shift plus the opposite direction for two ticks, " +
+      "then release Shift while keeping that direction held; the fighter slides " +
+      "backward without changing facing. A faster reversal is a dashback. " +
       "To pivot, dash, tap the opposite full direction for one tick, return to " +
       "neutral on the next tick, and immediately attack; the fighter keeps the " +
       "new facing and reversal momentum. Holding the reversal continues the " +
@@ -1365,6 +1371,8 @@ mergeInto(LibraryManager.library, {
         (edgeDashProbePassed ? "pass" : "fail") +
         " fox_trot_probe=" +
         (foxTrotProbePassed ? "pass" : "fail") +
+        " moonwalk_probe=" +
+        (moonwalkProbePassed ? "pass" : "fail") +
         " pivot_probe=" +
         (pivotProbePassed ? "pass" : "fail") +
         " dash_cancel_probe=" +
@@ -1470,6 +1478,7 @@ mergeInto(LibraryManager.library, {
       status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
       status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
       status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
+      status.dataset.moonwalkProbe = moonwalkProbePassed ? "pass" : "fail";
       status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
       status.dataset.dashCancelProbe =
         dashCancelProbePassed ? "pass" : "fail";
@@ -1563,7 +1572,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 26) {
+    if (view[0] !== 27) {
       return;
     }
     var canvas = state.canvas;
@@ -1649,6 +1658,8 @@ mergeInto(LibraryManager.library, {
       "ARC RESERVOIR CHARGE",
       "ARC RESERVOIR STORE",
       "ARC RESERVOIR RELEASE",
+      "MOONWALK SETUP",
+      "MOONWALK",
     ];
 
     if (view[1] < previousTick) {

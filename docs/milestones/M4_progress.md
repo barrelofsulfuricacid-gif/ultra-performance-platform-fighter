@@ -374,7 +374,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   schema to 26, observation schema to 5, RL schema to 7, and compact
   observation schema to 6 for canonical charge ticks, three grounded actions,
   storage cancel/resume/release semantics, readiness evidence, and four
-  appended compact values.
+  appended compact values. The Moonwalk slice advances state schema to
+  31/save format 30, content schema to 32 with fighter schema 28, and
+  inspection/browser view schema to 27 for the two authored grounded actions,
+  exact two-tick shallow-back setup, facing-preserving reverse slide, and
+  fail-closed action timing. Observation, RL, payload, save-size, and browser
+  layout counts do not change.
   Config/identity schema 2 remains current. The canonical save is 690 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1144,6 +1149,32 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `playable`. Owner execution and complete cross-target evidence remain before
   `verified`.
 
+## Delivered in the Moonwalk slice
+
+- During `INITIAL DASH`, two ticks of reduced opposite horizontal input enter
+  the authored `MOONWALK SETUP`; switching to full opposite input on the next
+  tick enters `MOONWALK`, retains the original facing, and applies backward
+  initial-dash velocity. Releasing input exits to ordinary grounded traction.
+- Immediate full-back reversal and only one reduced-back setup tick both remain
+  ordinary dashbacks, so the browser recipe distinguishes correct timing from
+  the two nearest mistakes without a hidden per-player history counter.
+- `tests/sim/test_m4_movement.c` adds 12 focused invariants for default and
+  invalid authored timing, isolated content hashing, exact positive timing,
+  facing/dash direction/velocity, traction exit, both negative routes, and a
+  690-byte mid-setup save/load with equal future hashes.
+- State schema 31/save format 30 and `PFSAVE30` make the two action IDs and
+  timing semantics fail closed while retaining the 550-byte payload and
+  690-byte checkpoint. Content schema 32/fighter schema 28 hash the authored
+  setup duration; inspection and browser view schema 27 retain the 304-value
+  layout. Structured observation schema 5, RL schema 7, and compact schema 6
+  remain unchanged.
+- Browser startup repeats the correct two-tick route plus immediate and
+  one-tick dashback controls before readiness, exposes an independent
+  `moonwalk_probe`, names both actions, and documents the Shift-to-full input
+  transition.
+- Registry row 33, Moonwalk, advances from `planned` to `playable`. Owner
+  execution and complete cross-target evidence remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1248,7 +1279,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash,
+  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1259,7 +1290,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 48 playable, 3 primitive-ready, and 9 planned.
+  blocked: 1 verified, 49 playable, 3 primitive-ready, and 8 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1292,7 +1323,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 243 movement invariants, 584
+- Mechanical oracles: 255 movement invariants including Moonwalk timing,
+  dashback controls, and mid-setup save/load; 584
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1307,9 +1339,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,382
   bytes,
   replay SHA-256
-  `bd6f3d511346bd7b5407c1cd99e7b06d8c4b12104088e334576ed5f10c114c54`,
+  `02d364c8e2139ea817337c69b81d19b8fb6756de551dcd2195224abb2f004d5c`,
   final SHA-256
-  `b589652de041e5a6ae8baef49d539d971c5d465a17d117305473ee1cfbebfb42`,
+  `12e46d784656ffa3697568fa9f36d4da41d1884dc614bb5bd094aa8bc4811ff0`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1320,7 +1352,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

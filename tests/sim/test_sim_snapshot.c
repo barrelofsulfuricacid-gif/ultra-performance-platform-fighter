@@ -206,11 +206,11 @@ static int verify_wire_prefix(
 {
     static const uint8_t expected_magic[8] = {
         UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x39)};
+        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x30)};
 
     if (save_size != (size_t)690 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
-        save_bytes[8] != UINT8_C(29) ||
+        save_bytes[8] != UINT8_C(30) ||
         save_bytes[9] != UINT8_C(0) ||
         save_bytes[10] != UINT8_C(140) ||
         save_bytes[11] != UINT8_C(0) ||
@@ -218,7 +218,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(30) ||
+        save_bytes[16] != UINT8_C(31) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(4) ||
         save_bytes[23] != UINT8_C(0) ||

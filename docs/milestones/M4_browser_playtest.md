@@ -17,6 +17,8 @@ one data-defined Prism Burst reflector with grounded/aerial physical hit and
 active-box projectile reflection plus the Shine-spike route,
 one data-defined Arc Reservoir with charge, storage cancel, exact resume, and
 scaled grounded release,
+an authored two-tick shallow-back Moonwalk setup with facing-preserving reverse
+slide and immediate/one-tick dashback controls,
 grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -34,6 +36,7 @@ headless execution.
 |---|---|---|
 | Full left/right input and horizontal DI | `A` / `D` | Left / Right |
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
+| Moonwalk | Dash, hold `Shift` plus the opposite direction for two ticks, then release `Shift` while keeping the direction | Same with Left / Right |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
@@ -114,6 +117,14 @@ direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
 and the neutral tick preserves a short traction slide. Holding the direction
 instead reaches `RUN` after the data-defined ten-tick window; using the
 `Shift`/reduced-magnitude input after release produces `WALK`, not another dash.
+
+For a Moonwalk, begin a full forward dash, hold `Shift` plus the opposite
+horizontal direction for exactly two simulation ticks, then release `Shift`
+while keeping the opposite direction held. `MOONWALK SETUP` becomes
+`MOONWALK`; the fighter keeps the original facing while sliding backward.
+Release the direction to see ordinary traction preserve the diminishing slide.
+Switching to full back immediately or after only one reduced-back tick instead
+turns the fighter into an ordinary opposite `INITIAL DASH`.
 
 For a pivot, begin an initial dash, tap the opposite full direction for one
 tick, then return to neutral and immediately press the attack key. The attack
@@ -832,6 +843,8 @@ through:
 - an Arc Reservoir charge entering store, early shield release into a
   same-tick ordinary attack, exact stored-charge resume, and scaled release
   before the live charge lab is installed;
+- a two-tick reduced-back Moonwalk setup entering a facing-preserving backward
+  slide, plus immediate full-back and one-tick-setup dashback negatives;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -881,7 +894,7 @@ double_jump_cancel_counter_probe=pass
 bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
 jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
-fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass
+fox_trot_probe=pass moonwalk_probe=pass pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
 drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass
@@ -898,7 +911,7 @@ floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass
 air_dodge_probe=pass
 ground_dodge_probe=pass
 aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass
-shine_spike_probe=pass gamepad_probe=pass
+shine_spike_probe=pass charge_storage_probe=pass gamepad_probe=pass
 gamepad_api=available controls=keyboard-gamepad-two-player` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.
