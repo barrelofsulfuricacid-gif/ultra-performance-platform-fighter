@@ -12,7 +12,8 @@ _Static_assert(
         PF_RL_COMPACT_GLOBAL_VALUES +
             PF_SIM_MAX_PLAYERS * PF_RL_COMPACT_PLAYER_STRIDE +
             PF_RL_COMPACT_ITEM_VALUES +
-            PF_RL_COMPACT_PROJECTILE_VALUES,
+            PF_RL_COMPACT_PROJECTILE_VALUES +
+            PF_RL_COMPACT_CHARGE_VALUES,
     "compact RL observation dimensions must cover canonical entity state");
 _Static_assert(
     (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
@@ -304,6 +305,14 @@ static void pf_rl_fill_compact(
             PF_RL_COMPACT_PROJECTILE_BASE +
             PF_RL_COMPACT_PROJECTILE_LIFETIME_OFFSET] =
             (int32_t)projectile->lifetime_ticks;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        compact->values[
+            PF_RL_COMPACT_CHARGE_BASE + (uint16_t)player_index] =
+            (int32_t)observation->players[player_index].charge_ticks;
     }
 }
 

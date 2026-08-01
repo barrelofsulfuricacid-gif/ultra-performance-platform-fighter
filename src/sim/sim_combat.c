@@ -196,6 +196,7 @@ static int pf_m4_attack_for_action(
     const pf_m4_content *content,
     uint8_t action_state,
     uint16_t action_ticks,
+    uint16_t charge_ticks,
     pf_m4_attack_runtime *out_attack)
 {
     const pf_m4_fighter_data *fighter;
@@ -388,6 +389,50 @@ static int pf_m4_attack_for_action(
         out_attack->action_state = action_state;
         return 1;
     }
+    if (action_state ==
+        (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND)
+    {
+        const pf_m4_charge_data *charge = &content->charge;
+        const uint16_t bounded_charge =
+            charge_ticks < charge->max_charge_ticks
+                ? charge_ticks
+                : charge->max_charge_ticks;
+
+        if (charge->enabled == UINT8_C(0))
+        {
+            return 0;
+        }
+        out_attack->hitbox_offset_x_q16 =
+            charge->hitbox_offset_x_q16;
+        out_attack->hitbox_offset_y_q16 =
+            charge->hitbox_offset_y_q16;
+        out_attack->hitbox_half_width_q16 =
+            charge->hitbox_half_width_q16;
+        out_attack->hitbox_half_height_q16 =
+            charge->hitbox_half_height_q16;
+        out_attack->damage_q16 =
+            charge->base_damage_q16 +
+            (uint32_t)(
+                (uint64_t)charge->bonus_damage_q16 *
+                (uint64_t)bounded_charge /
+                (uint64_t)charge->max_charge_ticks);
+        out_attack->base_knockback_x_q16 =
+            charge->base_knockback_x_q16;
+        out_attack->base_knockback_y_q16 =
+            charge->base_knockback_y_q16;
+        out_attack->knockback_growth_q16 =
+            charge->knockback_growth_q16;
+        out_attack->active_begin_tick =
+            charge->release_startup_ticks + UINT16_C(1);
+        out_attack->active_end_tick =
+            charge->release_startup_ticks +
+            charge->release_active_ticks;
+        out_attack->hitlag_ticks = charge->release_hitlag_ticks;
+        out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(-1);
+        out_attack->action_state = action_state;
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK)
     {
         const uint32_t action_frame =
@@ -568,6 +613,7 @@ int pf_m4_attack_hitbox(
             content,
             action_state,
             action_ticks,
+            UINT16_C(0),
             &attack))
     {
         return 0;
@@ -873,6 +919,12 @@ static pf_status pf_m4_apply_hit_reaction(
     uint16_t event_flags;
     uint16_t hitstun_ticks;
 
+    if (previous_action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
+        previous_action ==
+            (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND)
+    {
+        scratch->charge_ticks[target_index] = UINT16_C(0);
+    }
     if (scratch->action_state[target_index] ==
         (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
     {
@@ -1860,6 +1912,7 @@ pf_status pf_m4_resolve_combat(
                 content,
                 attacker_action[owner],
                 scratch->action_ticks[owner],
+                scratch->charge_ticks[owner],
                 &attack))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
@@ -2009,6 +2062,7 @@ pf_status pf_m4_resolve_combat(
                     content,
                     attacker_action[attacker_index],
                     scratch->action_ticks[attacker_index],
+                    scratch->charge_ticks[attacker_index],
                     &attack))
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;

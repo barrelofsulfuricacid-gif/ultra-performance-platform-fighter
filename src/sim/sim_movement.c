@@ -613,7 +613,13 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state ==
                (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND ||
            action_state ==
-               (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND;
+               (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -985,6 +991,7 @@ void pf_m4_reset_player(
     sim->world.ledge_regrab_lockout_ticks[player_index] =
         UINT16_C(0);
     sim->world.grab_escape_ticks[player_index] = UINT16_C(0);
+    sim->world.charge_ticks[player_index] = UINT16_C(0);
     sim->world.grab_target_slot[player_index] = UINT8_C(0);
     sim->world.grab_owner_slot[player_index] = UINT8_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
@@ -1486,6 +1493,8 @@ static void pf_m4_copy_combat_scratch(
         world->ledge_regrab_lockout_ticks[player_index];
     scratch->grab_escape_ticks[player_index] =
         world->grab_escape_ticks[player_index];
+    scratch->charge_ticks[player_index] =
+        world->charge_ticks[player_index];
     scratch->grab_target_slot[player_index] =
         world->grab_target_slot[player_index];
     scratch->grab_owner_slot[player_index] =
@@ -1611,6 +1620,7 @@ static void pf_m4_prepare_spawn(
     scratch->ledge_regrab_lockout_ticks[player_index] =
         UINT16_C(0);
     scratch->grab_escape_ticks[player_index] = UINT16_C(0);
+    scratch->charge_ticks[player_index] = UINT16_C(0);
     scratch->grab_target_slot[player_index] = UINT8_C(0);
     scratch->grab_owner_slot[player_index] = UINT8_C(0);
 }
@@ -2306,15 +2316,33 @@ pf_status pf_m4_step_player(
 
     if (!ledge_motion_handled &&
         !hitstun_locked &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND &&
+        shield_held == 0 &&
+        action_ticks < content->charge.store_animation_ticks)
+    {
+        action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        action_ticks = UINT16_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
         special_pressed != 0)
     {
+        const int charge_requested =
+            content->charge.enabled != UINT8_C(0) &&
+            grounded != UINT8_C(0) &&
+            input->main_stick_y <=
+                -(int16_t)fighter->dash_axis_threshold;
         const int reflector_requested =
             content->reflector.enabled != UINT8_C(0) &&
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
 
         action_state =
-            grounded != UINT8_C(0)
+            charge_requested != 0
+                ? (uint8_t)PF_M4_ACTION_CHARGE_GROUND
+                : grounded != UINT8_C(0)
                 ? (reflector_requested != 0
                        ? (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND
                        : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
@@ -2326,6 +2354,32 @@ pf_status pf_m4_step_player(
         short_hop_latched = UINT8_C(0);
         dash_direction = INT8_C(0);
         scratch->powershield[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_CHARGE_GROUND &&
+        shield_pressed != 0)
+    {
+        action_state =
+            (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND;
+        action_ticks = UINT16_C(0);
+        velocity_x = INT32_C(0);
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_CHARGE_GROUND &&
+        attack_pressed != 0)
+    {
+        action_state =
+            (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND;
+        action_ticks = UINT16_C(0);
+        velocity_x = INT32_C(0);
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
     }
 
     if (!ledge_motion_handled &&
@@ -2864,6 +2918,63 @@ pf_status pf_m4_step_player(
                 action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);
             }
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_CHARGE_GROUND)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        if (scratch->charge_ticks[player_index] <
+            content->charge.max_charge_ticks)
+        {
+            ++scratch->charge_ticks[player_index];
+        }
+        if (action_ticks < UINT16_C(600))
+        {
+            ++action_ticks;
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if (action_ticks >= content->charge.store_animation_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_SHIELD;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND)
+    {
+        const uint32_t release_ticks =
+            (uint32_t)content->charge.release_startup_ticks +
+            (uint32_t)content->charge.release_active_ticks +
+            (uint32_t)content->charge.release_recovery_ticks;
+
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if ((uint32_t)action_ticks >= release_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+            scratch->charge_ticks[player_index] = UINT16_C(0);
+            scratch->attack_hit_mask[player_index] = UINT8_C(0);
         }
     }
     else if (!ledge_motion_handled &&
@@ -4573,6 +4684,8 @@ pf_status pf_m4_inspect(
             sim->world.ledge_regrab_lockout_ticks[player_index];
         player->grab_escape_ticks =
             sim->world.grab_escape_ticks[player_index];
+        player->charge_ticks =
+            sim->world.charge_ticks[player_index];
         player->grab_target =
             sim->world.grab_target_slot[player_index] != UINT8_C(0)
                 ? (uint8_t)(

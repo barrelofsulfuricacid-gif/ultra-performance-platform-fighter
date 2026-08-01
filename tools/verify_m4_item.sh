@@ -35,6 +35,7 @@ common_flags="
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_reflector.c" \
+    "$root/src/sim/sim_charge.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -46,7 +47,7 @@ common_flags="
 
 "$output_dir/m4_item_test" >"$output_dir/m4_item.txt"
 grep -Fqx \
-    'm4-item=pass content_schema=30 state_schema=29 save_bytes=682 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1' \
+    'm4-item=pass content_schema=31 state_schema=30 save_bytes=690 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1' \
     "$output_dir/m4_item.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"

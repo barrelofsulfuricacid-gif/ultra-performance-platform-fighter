@@ -369,8 +369,13 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   view schema to 25 for grounded/aerial reflector actions, downward physical
   launch, active-box projectile reflection, Shine-spike readiness, and
   fail-closed action semantics. Observation, RL, and byte layouts do not
-  change.
-  Config/identity schema 2 remains current. The canonical save is 682 bytes.
+  change. The Arc Reservoir slice advances state schema to 30/save format 29,
+  content schema to 31 with charge schema 1, inspection and browser view
+  schema to 26, observation schema to 5, RL schema to 7, and compact
+  observation schema to 6 for canonical charge ticks, three grounded actions,
+  storage cancel/resume/release semantics, readiness evidence, and four
+  appended compact values.
+  Config/identity schema 2 remains current. The canonical save is 690 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -1108,6 +1113,37 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 43, Shine spike, advances from `planned` to `playable`.
   Owner execution and complete cross-target evidence remain before `verified`.
 
+## Delivered in the Arc Reservoir charge storage slice
+
+- The original data-defined Arc Reservoir gives grounded full-up plus fresh
+  special a distinct charge action. It accumulates to an authored 120-tick
+  cap, stores through shield, resumes from the exact stored value, and releases
+  a deterministic 4%-to-20% scaled hit through the ordinary combat pipeline.
+- Releasing shield before the four-tick store animation ends returns to the
+  complete grounded router and preserves charge, including a same-tick normal
+  attack. Holding shield through the boundary commits to ordinary shield;
+  taking a physical hit during charge or store clears the value.
+- `tests/sim/test_m4_charge.c` adds 28 focused invariants covering default and
+  invalid data, accumulation/clamp, early store cancel, the held-shield
+  negative, exact resume, low/full release damage, interruption loss,
+  checksum-valid over-cap load rejection, save/load future equality, replay
+  verification, and structured/compact RL visibility.
+  `tools/verify_m4_charge.sh` is an independent strict-warning
+  verifier check.
+- State schema 30/save format 29 and `PFSAVE29` append one `uint16_t` charge
+  value per player, producing a 550-byte payload and 690-byte checkpoint.
+  Content schema 31 adds charge schema 1, structured observation schema 5 and
+  RL schema 7 expose charge, and compact observation schema 6 appends four
+  values at indices 62–65 for 66 total.
+- Browser startup must charge, enter store, cancel early into an ordinary
+  attack, resume, and release before readiness. Inspection and browser view
+  schema 26 append charge ticks per player; the browser's event, item, and
+  projectile blocks shift by two values for a 304-value view, while controls
+  expose up plus special on keyboard and Standard Gamepad.
+- Registry row 7, Charge storage canceling, advances from `planned` to
+  `playable`. Owner execution and complete cross-target evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1124,6 +1160,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Its active physical hit must launch downward, its active box must transfer
   projectile ownership without powershield, and invalid or held input must not
   manufacture either action.
+- Grounded full up plus a fresh special edge must start or resume Arc
+  Reservoir. Early shield release during store must preserve charge and regain
+  the grounded router, holding shield through the boundary must enter ordinary
+  shield, Attack must release scaled damage, and a hit during charge/store must
+  clear the value.
 - Airborne horizontal input changes drift velocity but never changes facing;
   an opposite-direction air jump likewise preserves the takeoff-facing
   direction.
@@ -1207,7 +1248,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  mindgame, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash,
+  charge storage canceling, mindgame, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1218,7 +1259,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 47 playable, 3 primitive-ready, and 10 planned.
+  blocked: 1 verified, 48 playable, 3 primitive-ready, and 9 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1248,7 +1289,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## First-slice verification
 
-- Release workflow: 21/21 tests.
+- Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
 - Mechanical oracles: 243 movement invariants, 584
@@ -1257,17 +1298,18 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   invariants plus 44 match-journal invariants,
   38 projectile invariants including short-hop laser and powershield reflection,
   32 reflector invariants including Shine spike and active-box projectile
-  reflection,
+  reflection, 28 charge invariants including storage cancel, exact resume,
+  scaled release, interruption loss, and over-cap load rejection,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,374
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,382
   bytes,
   replay SHA-256
-  `3115914e6972924b856ccb02f9e4457818483c661efee8a1981c873ac52ebe13`,
+  `bd6f3d511346bd7b5407c1cd99e7b06d8c4b12104088e334576ed5f10c114c54`,
   final SHA-256
-  `1985071d6a58c81c7842e378fe8f0ff229d9846c0fabd2ee341308f057d087e6`,
+  `b589652de041e5a6ae8baef49d539d971c5d465a17d117305473ee1cfbebfb42`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1282,7 +1324,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
-  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/Shine-spike/
+  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/Shine-spike/charge-storage/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).

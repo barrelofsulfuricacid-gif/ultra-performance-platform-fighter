@@ -467,6 +467,8 @@ pf_status pf_sim_observe(
         player->respawn_invulnerability_ticks =
             sim->world
                 .respawn_invulnerability_ticks[player_index];
+        player->charge_ticks =
+            sim->world.charge_ticks[player_index];
     }
 
     return PF_STATUS_OK;

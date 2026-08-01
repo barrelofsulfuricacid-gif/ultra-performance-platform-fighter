@@ -972,7 +972,7 @@ can return through the normal hit path. Typed events 19–21 are
 `tests/sim/test_m4_projectile.c` supplies 38 focused invariants covering
 content validation/hash, simultaneous arbitration, grounded hit, ordinary
 block, exact reflect timing and returned hit, short-hop fire and generic
-landing, 682-byte save/load future equality, replay verification, and RL
+landing, 690-byte save/load future equality, replay verification, and RL
 visibility. Strict verifier and browser startup oracles repeat the original
 short-hop-laser route. Browser view schema 24 appends 12 projectile values at
 indices 290–301 without moving existing offsets, draws the cyan bolt and its
@@ -1010,19 +1010,63 @@ and structured/compact RL visibility. Browser startup repeats both recovery
 outcomes before readiness; browser view schema 25 retains the 302-value layout
 while naming both actions and exporting the Shine-spike result.
 
+## Arc Reservoir charge storage contract
+
+The original Arc Reservoir is one immutable grounded charge definition.
+Default content keeps it disabled so earlier fixtures remain isolated; the
+focused charge fixture and live browser lab enable the same authored data.
+From grounded idle, walk, initial dash, run, or crouch, full up plus a fresh
+special edge selects `CHARGE_GROUND`. Invalid, airborne, hitlag, tumble, held,
+or disabled requests are consumed without falling through to Pulse Bolt.
+
+Every charging tick adds one canonical charge tick through an inclusive
+120-tick clamp. A fresh shield edge enters `CHARGE_STORE_GROUND`. Releasing
+shield before the four-tick store animation completes returns to grounded
+idle, retains the stored value, and permits a same-tick ordinary attack. Holding
+shield through the animation commits to ordinary shield while retaining the
+stored value. A later legal up-special resumes at that exact value.
+
+A fresh light attack during charge selects `CHARGE_RELEASE_GROUND`. Its
+four-tick startup, three active ticks, and fourteen recovery ticks use one
+ordinary combat hitbox and five hitlag ticks. Damage scales deterministically
+from 4% to 20% as stored charge scales from zero to 120 ticks. Completion
+clears the charge; a physical hit received during charge or store also clears
+it before normal reaction processing.
+
+`tests/sim/test_m4_charge.c` supplies 28 focused invariants covering disabled
+and invalid data, accumulation and clamping, early store cancel with a
+same-tick ordinary attack, the held-shield negative, exact resume, low/full
+release damage, interruption loss, over-cap checksum-valid load rejection,
+690-byte mid-store save/load future equality, replay verification, and
+structured/compact RL visibility. Browser
+startup repeats charge, store cancel, resume, and release before readiness;
+browser view schema 26 appends one charge-tick value to each player, shifting
+the event/item/projectile blocks by two values and producing a 304-value view.
+
 ## Canonical state and inspection
 
-State schema 29 / save format 28 retains the 682-byte stream (140-byte header
-plus 542-byte payload), changes the active magic to `PFSAVE28`, and makes the
-two reflector action IDs, hitlag resume, landing, downward-launch, and
-active-box projectile-reflection semantics fail closed without adding mutable
-fields. Inspection schema 25 and browser view schema 25 expose the new action
-interpretation without changing their layouts. It follows state schema 28 /
-save format 27, which added the complete fixed projectile slot and made fire,
-collision, block, powershield reflection, hit, ownership, action, and
-typed-event semantics fail closed. Structured observation schema 4 exposes
-the same slot. RL schema 6 and compact observation schema 5 append six
-projectile values at indices 56–61 without moving earlier indices. State
+State schema 30 / save format 29 expands the stream to 690 bytes (140-byte
+header plus 550-byte payload), changes the active magic to `PFSAVE29`, appends
+one canonical charge-tick value per player, and makes all three charge action
+IDs, storage, resume, release, scaling, completion, and interruption semantics
+fail closed. Inspection schema 26 and browser view schema 26 expose the charge
+value and action interpretation; the browser view contains 304 values.
+Structured observation schema 5 exposes charge per player. RL schema 7 and
+compact observation schema 6 append four charge values at indices 62–65 for
+66 total values without moving earlier compact indices. Content schema 31
+adds one charge definition under charge schema 1.
+
+It follows state schema 29 / save format 28, which retained the 682-byte
+stream, used `PFSAVE28`, and made the two reflector action IDs, hitlag resume,
+landing, downward-launch, and active-box projectile-reflection semantics fail
+closed without adding mutable fields. Inspection schema 25 and browser view
+schema 25 exposed the new action interpretation without changing their
+layouts. It follows state schema 28 / save format 27, which added the complete
+fixed projectile slot and made fire, collision, block, powershield reflection,
+hit, ownership, action, and typed-event semantics fail closed. Structured
+observation schema 4 exposed the same slot. RL schema 6 and compact observation
+schema 5 appended six projectile values at indices 56–61 without moving earlier
+indices. State
 schema 28 / save format 27 follows state schema 27 / save format 26, which
 retains the 662-byte stream and makes the full-up jump-squat attack cancel,
 grounded standing-strong selection, inherited momentum, and
@@ -1315,14 +1359,13 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,374-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,382-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
 drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, jump-cancel
-attack, planking,
-short-hop laser,
+attack, planking, short-hop laser, Shine spike, charge storage,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,

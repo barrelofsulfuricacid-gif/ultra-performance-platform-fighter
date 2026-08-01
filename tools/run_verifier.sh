@@ -138,6 +138,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_reflector.sh" \
     "$pf_artifact_dir/m4_reflector"
 pf_record \
+    m4-charge \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_charge.sh" \
+    "$pf_artifact_dir/m4_charge"
+pf_record \
     m4-browser-adapter \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
     "$pf_artifact_dir/m4_browser"

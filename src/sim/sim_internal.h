@@ -49,6 +49,7 @@ typedef struct pf_world_state
     uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t team[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
@@ -124,6 +125,7 @@ typedef struct pf_sim_scratch
     uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
     uint8_t stocks_remaining[PF_SIM_MAX_PLAYERS];
@@ -214,6 +216,12 @@ typedef enum pf_m4_projectile_input_intent
 } pf_m4_projectile_input_intent;
 
 void pf_m4_prepare_reflector_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    const pf_input_frame *input,
+    uint32_t player_index,
+    pf_input_frame *effective_input);
+void pf_m4_prepare_charge_input(
     const pf_m4_content *content,
     const pf_world_state *world,
     const pf_input_frame *input,

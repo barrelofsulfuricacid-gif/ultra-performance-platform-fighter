@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)542)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)550)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x38)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x39)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -597,6 +597,12 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(writer, world->charge_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->grab_target_slot[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -978,6 +984,12 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->charge_ticks[player_index] = pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->grab_target_slot[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1167,6 +1179,64 @@ static int pf_m4_snapshot_action_is_throw(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_THROW_DOWN;
 }
 
+static int pf_m4_snapshot_charge_state_consistent(
+    const pf_m4_content *content,
+    const pf_world_state *world)
+{
+    const pf_m4_charge_data *charge;
+    uint32_t player_index;
+
+    if (content == NULL || world == NULL)
+    {
+        return 0;
+    }
+    charge = &content->charge;
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const uint8_t action = world->action_state[player_index];
+        const uint8_t resume_action =
+            world->hitlag_resume_action[player_index];
+        const uint16_t action_ticks =
+            world->action_ticks[player_index];
+        const int charge_action =
+            action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
+            action == (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
+            action ==
+                (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND;
+        const int release_resume =
+            resume_action ==
+            (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND;
+        const uint32_t release_ticks =
+            (uint32_t)charge->release_startup_ticks +
+            (uint32_t)charge->release_active_ticks +
+            (uint32_t)charge->release_recovery_ticks;
+
+        if (world->charge_ticks[player_index] >
+                charge->max_charge_ticks ||
+            (charge->enabled == UINT8_C(0) &&
+             (world->charge_ticks[player_index] != UINT16_C(0) ||
+              charge_action || release_resume)) ||
+            (action ==
+                 (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND &&
+             action_ticks >= charge->store_animation_ticks) ||
+            (action ==
+                 (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND &&
+             (uint32_t)action_ticks >= release_ticks) ||
+            (release_resume &&
+             (action_ticks <
+                  charge->release_startup_ticks + UINT16_C(1) ||
+              action_ticks >
+                  charge->release_startup_ticks +
+                      charge->release_active_ticks)))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int pf_m4_player_state_consistent(
     const pf_world_state *world,
     uint32_t player_index)
@@ -1204,6 +1274,7 @@ static int pf_m4_player_state_consistent(
                world->ledge_regrab_lockout_ticks[player_index] ==
                    UINT16_C(0) &&
                world->grab_escape_ticks[player_index] == UINT16_C(0) &&
+               world->charge_ticks[player_index] == UINT16_C(0) &&
                world->grab_target_slot[player_index] == UINT8_C(0) &&
                world->grab_owner_slot[player_index] == UINT8_C(0) &&
                ((waiting &&
@@ -1503,7 +1574,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_REFLECTOR_AIR ||
+                    (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1577,6 +1648,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 tech_direction < INT8_C(-1) ||
                 tech_direction > INT8_C(1) ||
                 world->grab_escape_ticks[player_index] > UINT16_C(600) ||
+                world->charge_ticks[player_index] > UINT16_C(600) ||
                 world->grab_target_slot[player_index] >
                     world->player_count ||
                 world->grab_owner_slot[player_index] >
@@ -1630,6 +1702,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                  resume_action !=
+                     (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND &&
+                 resume_action !=
                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
                  !pf_m4_snapshot_action_is_throw(resume_action) &&
                  resume_action != (uint8_t)PF_M4_ACTION_HITSTUN &&
@@ -1655,6 +1729,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_REFLECTOR_AIR ||
+                  resume_action ==
+                      (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
                   pf_m4_snapshot_action_is_throw(resume_action)) &&
@@ -1823,6 +1899,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                        (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND ||
                    action ==
                        (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
@@ -1931,6 +2013,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->ledge_regrab_lockout_ticks[player_index] !=
                       UINT16_C(0) ||
                   world->grab_escape_ticks[player_index] != UINT16_C(0) ||
+                  world->charge_ticks[player_index] != UINT16_C(0) ||
                   world->grab_target_slot[player_index] != UINT8_C(0) ||
                   world->grab_owner_slot[player_index] != UINT8_C(0) ||
                   world->stocks_remaining[player_index] != UINT8_C(0))
@@ -2100,6 +2183,12 @@ pf_status pf_sim_save(
     {
         return status;
     }
+    if (!pf_m4_snapshot_charge_state_consistent(
+            &sim->content,
+            &sim->world))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
     if (destination->bytes == NULL ||
         destination->capacity < PF_SIM_SAVE_TOTAL_BYTES)
     {
@@ -2143,6 +2232,12 @@ pf_status pf_sim_hash(
     {
         return status;
     }
+    if (!pf_m4_snapshot_charge_state_consistent(
+            &sim->content,
+            &sim->world))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
 
     pf_sha256_init(&hash);
     writer.bytes = NULL;
@@ -2181,6 +2276,12 @@ pf_status pf_sim_clone(
     if (status != PF_STATUS_OK)
     {
         return status;
+    }
+    if (!pf_m4_snapshot_charge_state_consistent(
+            &source->content,
+            &source->world))
+    {
+        return PF_STATUS_INVALID_STATE;
     }
     if (!pf_world_identity_equal(
             &destination->world,
@@ -2340,6 +2441,12 @@ pf_status pf_sim_load(
     if (!pf_world_identity_equal(&sim->world, &candidate))
     {
         return PF_STATUS_INCOMPATIBLE_STATE;
+    }
+    if (!pf_m4_snapshot_charge_state_consistent(
+            &sim->content,
+            &candidate))
+    {
+        return PF_STATUS_INVALID_STATE;
     }
 
     sim->world = candidate;

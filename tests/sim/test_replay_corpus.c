@@ -502,7 +502,7 @@ int main(void)
             pf_replay_query_size(&replay_source, &replay_size),
             PF_STATUS_OK,
             "query-replay-size") ||
-        replay_size != (size_t)31374)
+        replay_size != (size_t)31382)
     {
         (void)fprintf(
             stderr,

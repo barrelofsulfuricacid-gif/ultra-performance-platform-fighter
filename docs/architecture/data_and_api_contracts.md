@@ -81,11 +81,14 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–27 remain historical checkpoints. The current M4
-movement/combat/item/projectile/reflector state uses save format 28: a fixed
-682-byte checkpoint with state schema 29 and a 542-byte payload. It retains the
-format-27 byte layout while making grounded/aerial Prism Burst actions, hitlag
-resume, landing, downward physical launch, and active-box projectile
+Save formats 1–28 remain historical checkpoints. The current M4
+movement/combat/item/projectile/reflector/charge state uses save format 29: a
+fixed 690-byte checkpoint with state schema 30 and a 550-byte payload. It
+appends one canonical charge-tick value per player and makes Arc Reservoir
+charge, storage, early cancel, exact resume, scaled release, completion, and
+interruption semantics fail closed. State schema 29 / save format 28 retained
+the format-27 byte layout while making grounded/aerial Prism Burst actions,
+hitlag resume, landing, downward physical launch, and active-box projectile
 reflection fail closed. State schema 28 / save format 27 appended one
 fixed-capacity projectile slot with position/velocity, lifetime, state, and
 owner, and made grounded/aerial fire, shield block, powershield reflection,
@@ -137,6 +140,12 @@ Burst. State schema 29 adds no bytes: it versions the two reflector action IDs
 and their physical/projectile collision interpretation. Content schema 30 adds
 one reflector definition under reflector schema 1; inspection schema 25 and
 browser view schema 25 expose the action semantics without changing layouts.
+State schema 30 appends eight bytes for four players' charge ticks. Structured
+observation schema 5 and RL schema 7 expose the same state; compact observation
+schema 6 appends four values at indices 62–65, for 66 total. Content schema 31
+adds one charge definition under charge schema 1. Inspection schema 26 appends
+the charge value, and browser view schema 26 appends it to both visible players
+for a 304-value view.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.
@@ -167,8 +176,9 @@ attack, and bit 63 to forfeit. Unknown bits fail before any player state is
 advanced.
 Input schema 4 additionally assigns bit 3 to special. Neutral special may
 request the fixed Pulse Bolt; full down plus a fresh special edge may request
-the grounded or airborne Prism Burst when its content and action state are
-legal.
+the grounded or airborne Prism Burst, and grounded full up plus a fresh
+special edge may start or resume Arc Reservoir when its content and action
+state are legal.
 
 ## Deterministic state schema
 

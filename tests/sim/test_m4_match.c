@@ -362,7 +362,7 @@ static int run_stock_respawn_match_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-save-size") ||
-        save_size != (size_t)682)
+        save_size != (size_t)690)
     {
         return fail("respawn-save-size");
     }

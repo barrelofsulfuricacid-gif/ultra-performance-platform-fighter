@@ -106,8 +106,10 @@ pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
         (world->previous_buttons[player_index] &
          PF_INPUT_BUTTON_SPECIAL) == UINT64_C(0);
     if (special_pressed != 0 &&
-        input->main_stick_y >=
-            (int16_t)content->fighter.crouch_axis_threshold)
+        (input->main_stick_y >=
+             (int16_t)content->fighter.crouch_axis_threshold ||
+         input->main_stick_y <=
+             -(int16_t)content->fighter.dash_axis_threshold))
     {
         return PF_M4_PROJECTILE_INPUT_NONE;
     }

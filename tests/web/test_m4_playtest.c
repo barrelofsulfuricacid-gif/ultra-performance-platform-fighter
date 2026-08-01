@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 302
+#define TEST_VIEW_COUNT 304
 #define TEST_PLAYER0_BASE 25
-#define TEST_PLAYER_STRIDE 43
+#define TEST_PLAYER_STRIDE 44
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
@@ -33,8 +33,8 @@
 #define TEST_PLAYER_GRAB_ESCAPE_TICKS 40
 #define TEST_PLAYER_GRAB_TARGET 41
 #define TEST_PLAYER_GRAB_OWNER 42
-#define TEST_EVENT_COUNT 111
-#define TEST_EVENT0 112
+#define TEST_EVENT_COUNT 113
+#define TEST_EVENT0 114
 #define TEST_EVENT_SEQUENCE 0
 #define TEST_EVENT_TICK 1
 #define TEST_EVENT_TYPE 2
@@ -42,7 +42,7 @@
 #define TEST_EVENT_TARGET 4
 #define TEST_EVENT_VALUE 5
 #define TEST_EVENT_DETAIL 9
-#define TEST_ITEM_BASE 272
+#define TEST_ITEM_BASE 274
 #define TEST_ITEM_ENABLED 0
 #define TEST_ITEM_STATE 1
 #define TEST_ITEM_HOLDER 2
@@ -61,7 +61,7 @@
 #define TEST_ITEM_HALF_HEIGHT 15
 #define TEST_ITEM_HITBOX_HALF_WIDTH 16
 #define TEST_ITEM_HITBOX_HALF_HEIGHT 17
-#define TEST_PROJECTILE_BASE 290
+#define TEST_PROJECTILE_BASE 292
 #define TEST_PROJECTILE_ENABLED 0
 #define TEST_PROJECTILE_STATE 1
 #define TEST_PROJECTILE_OWNER 2
@@ -128,6 +128,7 @@ static int test_aerial_l_cancel_probe;
 static int test_match_probe;
 static int test_short_hop_laser_probe;
 static int test_shine_spike_probe;
+static int test_charge_storage_probe;
 static int test_aerial_landing_lag_ticks;
 static int test_strong_aerial_landing_lag_ticks;
 static int32_t test_view[TEST_VIEW_COUNT];
@@ -184,6 +185,7 @@ void pf_web_m4_playtest_install(
     int match_probe_passed,
     int short_hop_laser_probe_passed,
     int shine_spike_probe_passed,
+    int charge_storage_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -243,6 +245,7 @@ void pf_web_m4_playtest_install(
     int match_probe_passed,
     int short_hop_laser_probe_passed,
     int shine_spike_probe_passed,
+    int charge_storage_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks)
 {
@@ -304,6 +307,7 @@ void pf_web_m4_playtest_install(
     test_match_probe = match_probe_passed;
     test_short_hop_laser_probe = short_hop_laser_probe_passed;
     test_shine_spike_probe = shine_spike_probe_passed;
+    test_charge_storage_probe = charge_storage_probe_passed;
     test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
     test_strong_aerial_landing_lag_ticks =
         strong_aerial_landing_lag_ticks;
@@ -457,9 +461,10 @@ int main(void)
         test_match_probe != 1 ||
         test_short_hop_laser_probe != 1 ||
         test_shine_spike_probe != 1 ||
+        test_charge_storage_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 25 ||
+        test_view[0] != 26 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -551,6 +556,7 @@ int main(void)
             "air_dodge_probe=%d ground_dodge_probe=%d "
             "aerial_l_cancel_probe=%d match_probe=%d "
             "short_hop_laser_probe=%d shine_spike_probe=%d "
+            "charge_storage_probe=%d "
             "aerial_lag=%d strong_aerial_lag=%d "
             "schema=%d tick=%d\n",
             test_install_count,
@@ -606,6 +612,7 @@ int main(void)
             test_match_probe,
             test_short_hop_laser_probe,
             test_shine_spike_probe,
+            test_charge_storage_probe,
             test_aerial_landing_lag_ticks,
             test_strong_aerial_landing_lag_ticks,
             (int)test_view[0],
@@ -1202,6 +1209,7 @@ int main(void)
         "air_dodge_probe=%d ground_dodge_probe=%d "
         "aerial_l_cancel_probe=%d match_probe=%d "
         "short_hop_laser_probe=%d shine_spike_probe=%d "
+        "charge_storage_probe=%d "
         "event_journal_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
@@ -1255,6 +1263,7 @@ int main(void)
         test_match_probe,
         test_short_hop_laser_probe,
         test_shine_spike_probe,
+        test_charge_storage_probe,
         test_combat_probe,
         test_render_count);
     return 0;

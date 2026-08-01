@@ -16,13 +16,13 @@
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 43
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 44
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
-#define PF_WEB_M4_VIEW_EVENT0 112
-#define PF_WEB_M4_VIEW_ITEM0 272
-#define PF_WEB_M4_VIEW_PROJECTILE0 290
-#define PF_WEB_M4_VIEW_COUNT 302
+#define PF_WEB_M4_VIEW_EVENT0 114
+#define PF_WEB_M4_VIEW_ITEM0 274
+#define PF_WEB_M4_VIEW_PROJECTILE0 292
+#define PF_WEB_M4_VIEW_COUNT 304
 
 enum pf_web_m4_view_field
 {
@@ -51,7 +51,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_TERMINATED = 22,
     PF_WEB_M4_VIEW_TRUNCATED = 23,
     PF_WEB_M4_VIEW_WINNER_MASK = 24,
-    PF_WEB_M4_VIEW_EVENT_COUNT = 111,
+    PF_WEB_M4_VIEW_EVENT_COUNT = 113,
     PF_WEB_M4_VIEW_PLAYER_X = 0,
     PF_WEB_M4_VIEW_PLAYER_Y = 1,
     PF_WEB_M4_VIEW_PLAYER_VX = 2,
@@ -95,6 +95,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_GRAB_ESCAPE_TICKS = 40,
     PF_WEB_M4_VIEW_PLAYER_GRAB_TARGET = 41,
     PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER = 42,
+    PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS = 43,
     PF_WEB_M4_VIEW_EVENT_SEQUENCE = 0,
     PF_WEB_M4_VIEW_EVENT_TICK = 1,
     PF_WEB_M4_VIEW_EVENT_TYPE = 2,
@@ -197,6 +198,7 @@ extern void pf_web_m4_playtest_install(
     int match_probe_passed,
     int short_hop_laser_probe_passed,
     int shine_spike_probe_passed,
+    int charge_storage_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -9074,6 +9076,7 @@ static int pf_web_m4_initialize_live_item_lab(void)
     pf_web_m4_content.item.lifetime_ticks = UINT16_C(3600);
     pf_web_m4_content.projectile.enabled = UINT8_C(1);
     pf_web_m4_content.reflector.enabled = UINT8_C(1);
+    pf_web_m4_content.charge.enabled = UINT8_C(1);
     return pf_web_m4_initialize_current_content() &&
            pf_web_m4_reset_internal();
 }
@@ -9682,6 +9685,122 @@ static int pf_web_m4_run_shine_spike_probe(void)
     return passed != 0 && restored != 0;
 }
 
+static int pf_web_m4_run_charge_storage_probe(void)
+{
+    pf_m4_inspection inspection;
+    uint16_t stored_charge;
+    uint32_t tick;
+    int passed = 0;
+    int restored;
+
+    if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK)
+    {
+        pf_web_m4_content.charge.enabled = UINT8_C(1);
+        if (pf_web_m4_initialize_current_content() &&
+            pf_web_m4_reset_internal() &&
+            pf_web_m4_tick(
+                INT16_C(0),
+                INT16_MIN,
+                PF_INPUT_BUTTON_SPECIAL,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_CHARGE_GROUND &&
+            inspection.players[0].charge_ticks == UINT16_C(1))
+        {
+            for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+            {
+                if (!pf_web_m4_tick(
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection))
+                {
+                    break;
+                }
+            }
+            stored_charge = inspection.players[0].charge_ticks;
+            if (tick == UINT32_C(5) && stored_charge == UINT16_C(6) &&
+                pf_web_m4_tick_with_triggers(
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_MAX,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    &inspection) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND &&
+                pf_web_m4_tick(
+                    INT16_C(0),
+                    INT16_C(0),
+                    PF_INPUT_BUTTON_ATTACK,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    &inspection) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+                inspection.players[0].charge_ticks == stored_charge)
+            {
+                for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+                {
+                    if (!pf_web_m4_tick(
+                            INT16_C(0),
+                            INT16_C(0),
+                            UINT64_C(0),
+                            INT16_C(0),
+                            INT16_C(0),
+                            UINT64_C(0),
+                            &inspection))
+                    {
+                        break;
+                    }
+                }
+                if (tick == UINT32_C(20) &&
+                    inspection.players[0].action_state ==
+                        (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                    pf_web_m4_tick(
+                        INT16_C(0),
+                        INT16_MIN,
+                        PF_INPUT_BUTTON_SPECIAL,
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection) &&
+                    inspection.players[0].action_state ==
+                        (uint8_t)PF_M4_ACTION_CHARGE_GROUND &&
+                    inspection.players[0].charge_ticks ==
+                        (uint16_t)(stored_charge + UINT16_C(1)) &&
+                    pf_web_m4_tick(
+                        INT16_C(0),
+                        INT16_C(0),
+                        PF_INPUT_BUTTON_ATTACK,
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection) &&
+                    inspection.players[0].action_state ==
+                        (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND)
+                {
+                    passed = 1;
+                }
+            }
+        }
+    }
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_render(void)
 {
     pf_m4_inspection inspection;
@@ -9695,7 +9814,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(25);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(26);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -9847,6 +9966,8 @@ static int pf_web_m4_render(void)
             (int32_t)player->grab_target;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER] =
             (int32_t)player->grab_owner;
+        pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS] =
+            (int32_t)player->charge_ticks;
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
         (int32_t)pf_web_m4_last_result.event_count;
@@ -10044,6 +10165,7 @@ int pf_web_m4_playtest_start(void)
     int match_probe_passed;
     int short_hop_laser_probe_passed;
     int shine_spike_probe_passed;
+    int charge_storage_probe_passed;
 
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
         !pf_web_m4_initialize_current_content())
@@ -10123,6 +10245,8 @@ int pf_web_m4_playtest_start(void)
     short_hop_laser_probe_passed =
         pf_web_m4_run_short_hop_laser_probe();
     shine_spike_probe_passed = pf_web_m4_run_shine_spike_probe();
+    charge_storage_probe_passed =
+        pf_web_m4_run_charge_storage_probe();
     if (input_probe_passed == 0 ||
         air_facing_probe_passed == 0 ||
         instant_double_jump_probe_passed == 0 ||
@@ -10173,6 +10297,7 @@ int pf_web_m4_playtest_start(void)
         match_probe_passed == 0 ||
         short_hop_laser_probe_passed == 0 ||
         shine_spike_probe_passed == 0 ||
+        charge_storage_probe_passed == 0 ||
         !pf_web_m4_initialize_live_item_lab())
     {
         return 0;
@@ -10229,6 +10354,7 @@ int pf_web_m4_playtest_start(void)
         match_probe_passed,
         short_hop_laser_probe_passed,
         shine_spike_probe_passed,
+        charge_storage_probe_passed,
         (int)pf_web_m4_content.fighter.aerial_landing_lag_ticks,
         (int)pf_web_m4_content.fighter
             .strong_aerial_landing_lag_ticks);

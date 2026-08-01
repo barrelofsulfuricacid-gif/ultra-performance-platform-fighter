@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–28 / state schemas 1–29
+- **Status:** Accepted for save formats 1–29 / state schemas 1–30
 - **Date:** 2026-07-31
 
 ## Decision
@@ -38,13 +38,15 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 26 | 27 | 140 | 522 | 662 | Full-up plus fresh light/strong during jump squat selects grounded standing strong attack while retaining inherited momentum; no payload-layout change |
 | 27 | 28 | 140 | 542 | 682 | One fixed canonical projectile slot: position/velocity, lifetime, inactive/spawning/active state, owner slot, grounded/aerial fire action IDs, and typed fire/hit/reflect semantics |
 | 28 | 29 | 140 | 542 | 682 | Canonical grounded/aerial Prism Burst action IDs, hitlag-resume and landing semantics, downward physical launch, and active-box projectile reflection; no payload-layout change |
+| 29 | 30 | 140 | 550 | 690 | One canonical charge-tick value per player plus Arc Reservoir charge, store, early-cancel, resume, scaled-release, completion, interruption, and action-ID semantics |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
-`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, or `PFSAVE28`.
-The active M4 runtime emits and accepts format 28 with state schema 29. Earlier
+`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`, or
+`PFSAVE29`. The active M4 runtime emits and accepts format 29 with state schema
+30. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -158,6 +160,14 @@ projectile velocity and ownership without setting powershield. Loading rejects
 the new action IDs under earlier schemas and validates hitlag resume, grounded
 versus airborne action choice, action timing, landing, and existing projectile
 ownership relationships under schema 29.
+Format 29 appends one little-endian `uint16_t` charge value for each of the
+four fixed player slots. Loading requires the values to fit the enabled
+content's configured maximum, validates the three grounded action IDs,
+their action timing and hitlag resume, and rejects charge state that is
+incompatible with disabled content or the action/grounding relationship.
+Storage cancel, exact resume, charge-scaled release, completion clearing, and
+hit-interruption clearing therefore participate in the canonical future under
+schema 30.
 
 ## Why SHA-256
 

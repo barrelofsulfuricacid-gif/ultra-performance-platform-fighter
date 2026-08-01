@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=180 players=4 bytes=31374 corpus_sha256=3115914e6972924b856ccb02f9e4457818483c661efee8a1981c873ac52ebe13 final_sha256=1985071d6a58c81c7842e378fe8f0ff229d9846c0fabd2ee341308f057d087e6 events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f'
+expected='sim-replay=pass ticks=180 players=4 bytes=31382 corpus_sha256=bd6f3d511346bd7b5407c1cd99e7b06d8c4b12104088e334576ed5f10c114c54 final_sha256=b589652de041e5a6ae8baef49d539d971c5d465a17d117305473ee1cfbebfb42 events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f'
 
 mkdir -p "$output_dir"
 
@@ -36,6 +36,7 @@ common_flags="
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_reflector.c" \
+    "$root/src/sim/sim_charge.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -67,4 +68,4 @@ else
     echo "m2-replay-cross-target=partial native=1 wasm=deferred ticks=180"
 fi
 
-echo "m2-replay-verification=pass bytes=31374 ticks=180 players=4"
+echo "m2-replay-verification=pass bytes=31382 ticks=180 players=4"
