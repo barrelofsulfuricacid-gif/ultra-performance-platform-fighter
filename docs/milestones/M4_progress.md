@@ -1895,6 +1895,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   pummel, throw, item, projectile, reflected-owner, reflector, and charge IDs.
   Existing tactical rows reuse the changed primitive behavior; no
   emergent-technique-only harness was added.
+- Exact clean commit `8eed68f4333248ae9a8abf584070bc0ca1ac653c`
+  passes Windows MSVC Release 22/22, WSL GCC 13.3 Release 22/22, pinned
+  Emscripten 6.0.3, and the live Microsoft Edge DOM/Wasm smoke. Native Windows,
+  WSL, and WebAssembly emit the same 31,463-byte replay and all three published
+  digests. Windows and WSL verifier self-tests repeat the same
+  `34648cdeb4e2d4e1` match-soak digest.
+- Its clean unsampled Windows milestone benchmark classifies all 10 measurable
+  scenarios as compatible, with zero invalid comparisons and zero suspected or
+  confirmed regressions. Relative to the exact pre-stale `fecd6ac` raw medians
+  in the same qualified database, 1v1 and 2v2 are +0.58% and +0.28%, save and
+  restore are +32.88% and +25.12%, rollback is +12.72%, and replay verification
+  is +26.72%; empty tick, maximum entities, single RL, and batched RL are
+  -5.21%, -1.32%, -1.63%, and -0.03%. These cross-revision percentages are
+  descriptive; the compatible classifier result is the acceptance decision.
+- A clean Tracy 0.13.1 profile-only capture passes in WSL with the supported
+  timer fallback enabled. Its 11,533-byte local trace has SHA-256
+  `04c6e3c6f475abc21bad130b2789da98fae0d8a66c8fb5d065ee7b3b9adfb14b`;
+  the manifest records `perf` as unavailable because it is not installed.
 
 ## Explicitly preserved playtest requirements
 
