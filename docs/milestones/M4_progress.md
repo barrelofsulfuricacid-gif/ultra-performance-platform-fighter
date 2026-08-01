@@ -117,6 +117,25 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   browser smoke requires the file control, stable visualization semantics, and
   three re-simulated canonical events.
 
+## Delivered in the M4 benchmark-workload slice
+
+- Canonical `representative_1v1` scenario version 2 now initializes the actual
+  M4 content extension with combat, item, projectile, reflector, charge, and
+  recovery fixtures enabled. Its 240-tick ordinary-input cycle covers fighter
+  hitboxes, a live projectile, shielding, and at least one combat event before
+  timing is accepted.
+- `maximum_combat_entities` is no longer a future-capability placeholder. Its
+  bounded four-player team cycle uses only ordinary pickup, throw, projectile,
+  attack, and shield inputs and resets through `pf_sim_reset`; it performs no
+  state injection. The untimed preflight requires all four hurtboxes, at least
+  two simultaneous fighter hitboxes, at least four simultaneous attacking
+  entities, overlapping item and projectile hitboxes, and a typed event.
+- The representative workload's scenario-version bump deliberately starts a
+  new compatibility series instead of comparing M4 combat measurements with
+  the former pre-M4 movement trace. Ten of the thirteen canonical scenarios
+  are now measurable; hazards, workbook import, and client-frame timing retain
+  their later-milestone availability reasons.
+
 ## Delivered in the first M4.2 combat slice
 
 - Input-schema-3 light- and strong-attack buttons for native, replay, RL, and

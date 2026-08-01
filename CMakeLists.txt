@@ -671,7 +671,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             benchmarks.self_test
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "benchmarks-self-test=pass scenarios=13 available=9 sqlite=3.53.4 schema=1")
+                       "benchmarks-self-test=pass scenarios=13 available=10 sqlite=3.53.4 schema=1")
     endif()
 
     if(PF_BUILD_VERIFIER)

@@ -221,7 +221,7 @@ static int run_self_test(void)
         return 1;
     }
     (void)printf(
-        "benchmarks-self-test=pass scenarios=%u available=9 "
+        "benchmarks-self-test=pass scenarios=%u available=10 "
         "sqlite=%s schema=%" PRIu32 "\n",
         (unsigned int)PF_BENCHMARK_SCENARIO_COUNT,
         sqlite3_libversion(),
@@ -248,7 +248,7 @@ static int run_profile_workload(void)
         return 1;
     }
     (void)printf(
-        "profile-workload=pass scenarios=13 available=9 "
+        "profile-workload=pass scenarios=13 available=10 "
         "sample_target_ns=%" PRIu64 " repetitions=%" PRIu32 "\n",
         PF_MILESTONE_SAMPLE_TARGET_NS,
         PF_MILESTONE_REPETITIONS);
