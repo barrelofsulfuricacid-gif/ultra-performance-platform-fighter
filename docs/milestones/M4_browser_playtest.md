@@ -92,8 +92,8 @@ silently inferred from replay metadata.
 | Team Wobble Lab | Click `Team Wobble Lab`; physical Player 1 controls allied P1 | Physical Player 2 controls allied P3; P2 auto-mashes and P4 stays neutral |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
-| Light attack; grounded full vertical selects up/down and full horizontal/equal-diagonal selects forward smash; airborne full direction selects forward/back/up/down aerial | `F` | `/` or Numpad `0` |
-| Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
+| Light attack; grounded reduced direction selects a tilt and full direction charges a smash; airborne full direction selects forward/back/up/down aerial | `F` | `/` or Numpad `0` |
+| Immediate uncharged strong; grounded direction selects forward/up/down strong, airborne remains direct strong aerial | `H` | `'` or Numpad `2` |
 | Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir while grounded or Vector Ascent while airborne | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
@@ -138,8 +138,8 @@ Up to two gamepads using the
 [W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) are
 assigned in browser index order. On each pad, the left stick supplies analog
 movement/DI, the D-pad supplies full
-magnitude, the bottom face button is light attack or a directional forward
-smash, the right face button is a direct strong attack, the left face button
+magnitude, the bottom face button is light attack, directional tilt, or charged
+smash, the right face button is an immediate uncharged directional strong, the left face button
 jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
 Burst, and up plus top face starts/resumes Arc Reservoir while grounded or
 Vector Ascent while airborne. Back/View taunts, and any shoulder or trigger
@@ -275,7 +275,7 @@ the remaining momentum carries forward. Shield during `INITIAL DASH` and down
 during `RUN TURNAROUND` are deliberate negative cases.
 
 For a jump-cancel attack, begin a dash, press jump, then keep full up held and
-freshly press light or strong during `JUMP SQUAT`. The grounded `STRONG ATTACK`
+freshly press light or strong during `JUMP SQUAT`. The grounded `UP STRONG`
 starts while inherited dash momentum keeps sliding under traction. Neutral or
 reduced-magnitude up continues jump squat; waiting until `AIRBORNE` performs the
 ordinary aerial attack instead. Light plus shield remains jump-canceled grab,
@@ -355,20 +355,21 @@ pass timer. Too little down remains `SHIELD`, while full down enters
 [shield drop](https://www.ssbwiki.com/Shield_drop) interaction.
 
 For a small-step forward smash, press full direction and light attack together
-for the standing comparison. Reset, tap and hold the same full direction, wait
-one to three simulation ticks, then press light attack. The fighter enters
-`STRONG ATTACK` after traveling forward, extending the same pink hitbox's range.
-Waiting four ticks or releasing the direction before light attack instead
-produces the ordinary non-smash ground attack. The dedicated strong key/button
-remains the direct strong-attack route.
+for the standing charge comparison, then release light. Reset, tap and hold the
+same full direction, wait one to three simulation ticks, then press light. The
+fighter enters `FORWARD STRONG CHARGE` after traveling forward; hold light to
+charge and release it for `FORWARD STRONG`. Waiting four ticks instead produces
+`FORWARD ATTACK`. The dedicated strong key/button remains the immediate
+uncharged route.
 
-From standing, full up plus a fresh light press enters `UP ATTACK`; full down
-plus a fresh light press enters `DOWN ATTACK`. The stick must reach the full
-attack threshold and be strictly more vertical than horizontal. A reduced
-vertical tilt retains `GROUND ATTACK`, while an equal full diagonal retains
-the existing `STRONG ATTACK` forward-smash priority. The up attack's amber box
-and launch point upward; the lower, forward down-attack box launches shallowly
-downward. Horizontal geometry and launch still mirror with facing.
+From standing, reduced forward/up/down plus fresh light enters `FORWARD
+ATTACK`, `UP ATTACK`, or `DOWN ATTACK`; neutral remains `GROUND ATTACK`. Full
+forward/up/down instead enters the matching smash charge, with equal diagonals
+using horizontal priority. Hold light for up to 60 simulation ticks, watch the
+HUD counter, then release; damage scales linearly by up to +50% and tick 60 releases
+automatically. The dedicated strong key plus direction enters the same
+forward/up/down strong immediately with zero charge. Horizontal geometry and
+launch still mirror with facing.
 
 While airborne, neutral or reduced stick plus a fresh light press retains the
 8% neutral `AERIAL ATTACK`. Full vertical-dominant input selects the 9% `UP
@@ -728,14 +729,16 @@ mandatory owner playtest and broader acceptance evidence.
    remains. Wait on ledge until the ring expires and repeat to confirm the same
    route is vulnerable.
 16. Move into range, press `F`, and confirm the amber hitbox appears only on the
-   active frames. On contact, confirm the target gains 6%, both players visibly
-   freeze, the target then launches in `HITSTUN`, and the event feed adds one
-   sequenced 6% `hit` entry naming both players. Reset and repeat with full up
-   plus light for `UP ATTACK` and 9% upward launch, then full down plus light
-   for `DOWN ATTACK` and 8% shallow downward launch. Try reduced vertical plus
-   light for the neutral jab, equal full diagonal plus light for `STRONG
-   ATTACK`, and the dedicated strong key plus up for the same direct strong
-   action. Then jump and freshly press light with neutral, full forward, full
+    active frames. On contact, confirm the target gains 6%, both players visibly
+    freeze, the target then launches in `HITSTUN`, and the event feed adds one
+    sequenced 6% `hit` entry naming both players. Reset and repeat with reduced
+    forward/up/down plus light for 7% `FORWARD ATTACK`, 9% `UP ATTACK`, and 8%
+    `DOWN ATTACK`. Use full forward/up/down plus light to enter each charge,
+    release early, then hold one to the 60-tick automatic release and confirm
+    the HUD counter and increased damage. Use the dedicated strong key with
+    neutral/forward/up/down input to confirm immediate uncharged `STRONG
+    ATTACK`, `FORWARD STRONG`, `UP STRONG`, and `DOWN STRONG`. Then jump and
+    freshly press light with neutral, full forward, full
    back, full up, and full down input. Confirm `AERIAL ATTACK`, `FORWARD
    AERIAL`, `BACK AERIAL`, `UP AERIAL`, and `DOWN AERIAL` labels; compare
    8/10/11/9/10% damage and the visible signed launch directions. Repeat an
@@ -807,9 +810,10 @@ mandatory owner playtest and broader acceptance evidence.
     loses only its normal hold depletion, and pushback is larger.
 29. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
-    on frame 2 and confirm it enters `GROUND ATTACK`. Repeat with full up plus
-    light, full down plus light, and direct strong to confirm `UP ATTACK`,
-    `DOWN ATTACK`, and `STRONG ATTACK` use the same cancel. Repeat after an
+    on frame 2 and confirm it enters `GROUND ATTACK`. Repeat with reduced
+    forward/up/down plus light and directional direct strong to confirm all
+    immediate ground normals use the same cancel without entering charge.
+    Repeat after an
     ordinary block and confirm none can skip the 15-tick release.
 30. Hold shield until it reaches zero. Confirm upward `SHIELD BREAK`, forced
     landing, prone `SHIELD BREAK DOWN`, `SHIELD BREAK STAND`, then the

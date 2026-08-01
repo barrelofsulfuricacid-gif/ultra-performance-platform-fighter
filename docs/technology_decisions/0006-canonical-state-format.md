@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–40 / state schemas 1–41
+- **Status:** Accepted for save formats 1–42 / state schemas 1–43
 - **Date:** 2026-08-01
 
 ## Decision
@@ -50,6 +50,8 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 38 | 39 | 140 | 554 | 694 | Canonical `UP_ATTACK` and `DOWN_ATTACK` action IDs, directional light-attack arbitration, authored two-axis launch, hitlag resume, and powershield-cancel routing; no payload-layout change |
 | 39 | 40 | 140 | 554 | 694 | Canonical `FORWARD_AERIAL`, `BACK_AERIAL`, `UP_AERIAL`, and `DOWN_AERIAL` action IDs, five-direction airborne light-attack arbitration, authored launch, hitlag resume, and shared light-aerial landing semantics; no payload-layout change |
 | 40 | 41 | 140 | 554 | 694 | Canonical `LEDGE_ROLL` and `LEDGE_ATTACK` action IDs, fresh-input arbitration from actionable hang, authored roll motion and invulnerability, authored attack timing/hitlag resume, and shared physical-hit semantics; no payload-layout change |
+| 41 | 42 | 140 | 554 | 694 | Canonical forward tilt and forward/up/down directional strong action IDs, input arbitration, authored attack data, and hitlag-resume semantics; no payload-layout change |
+| 42 | 43 | 140 | 562 | 702 | One canonical smash-charge tick value per player plus forward/up/down charge actions, early and automatic release, scaled damage, hitlag retention, and interruption clearing |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -57,8 +59,9 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
-`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, or `PFSAVE40`.
-The active M4 runtime emits and accepts format 40 with state schema 41. Earlier
+`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
+`PFSAVE41`, or `PFSAVE42`.
+The active M4 runtime emits and accepts format 42 with state schema 43. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -254,6 +257,29 @@ states. Loading validates airborne action/timer and hitlag-resume
 relationships and rejects action IDs 81–84 under earlier schemas. A format-38
 reader therefore cannot silently reinterpret the same canonical bytes.
 
+Format 40 retains the same payload while making `LEDGE_ROLL` and
+`LEDGE_ATTACK` fail closed under schema 41. Loading validates actionable-hang
+entry, grounding, retained ledge ownership, authored timing and
+invulnerability, attack hitlag resume, and action IDs 85–86.
+
+Format 41 retains the same payload while completing the grounded directional
+normal vocabulary under schema 42. `FORWARD_ATTACK` and the forward/up/down
+strong actions use independent authored attack records and the shared combat,
+shield, reaction, event, and hitlag-resume paths. Loading validates their
+grounded action schedules and rejects action IDs 87–90 under earlier schemas.
+
+Format 42 appends one little-endian `uint16_t` smash-charge value for each of
+the four fixed player slots. Full directional light input enters action 91,
+92, or 93 from a legal grounded route; holding light advances the canonical
+timer through tick 60, release starts the matching directional strong early,
+and tick 60 releases automatically. The authored Q16.16 bonus scales damage
+linearly to +50% at the default cap. Loading requires charge-action and timer
+equality, rejects a charge action at zero or the auto-release boundary,
+permits a nonzero timer only during charge, released strong, or its attacker
+hitlag resume, and requires inactive slots to remain zero. Completion, stock
+loss, and interruption clear the timer, so a format-41 reader cannot silently
+drop future-affecting charge state.
+
 ## Why SHA-256
 
 SHA-256 has a stable public specification in
@@ -307,6 +333,11 @@ service-envelope responsibility.
 - Mid-directional-aerial hitlag save/load plus equal future hashes and exact
   forward/back/up/down action, grounding, timing, hitlag-resume, signed launch,
   damage, hitstun, and typed-event identity in `tests/sim/test_m4_combat.c`.
+- Mid-smash-charge save/load plus equal source/loaded hashes and events through
+  the 60-tick automatic release, exact maximum charged damage, attacker-hitlag
+  retention, slot-independent simultaneous charged trades, completion clearing,
+  and invalid timer/action rejection in
+  `tests/sim/test_m4_combat.c`.
 - Mid-spot-dodge save/load plus equal fresh-down history, action,
   invulnerability derivation, and future hashes; validation enforces grounded
   roll/spot-dodge reaction-state rules and inactive-slot fresh-down history.

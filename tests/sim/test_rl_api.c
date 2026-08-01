@@ -179,7 +179,15 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 base +
                 PF_RL_COMPACT_PLAYER_INVULNERABILITY_OFFSET] !=
-                (int32_t)player->respawn_invulnerability_ticks)
+                (int32_t)player->respawn_invulnerability_ticks ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_CHARGE_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->charge_ticks ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SMASH_CHARGE_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->smash_charge_ticks)
         {
             (void)fprintf(
                 stderr,
@@ -266,6 +274,30 @@ static int run_duel_test(const pf_content_view *content)
             "duel-diagnostic-observe") ||
         diagnostic_observation.seed !=
             UINT64_C(0xabcdef0123456789))
+    {
+        return 0;
+    }
+
+    initialize_actions(actions);
+    actions[0].buttons = PF_INPUT_BUTTON_ATTACK;
+    actions[0].main_stick_x = INT16_MAX;
+    if (!expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "duel-smash-charge-step") ||
+        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)) ||
+        transition.structured_observation.players[0]
+                .smash_charge_ticks != UINT16_C(1) ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SMASH_CHARGE_BASE] != INT32_C(1) ||
+        !expect_status(
+            pf_rl_reset(
+                sim,
+                UINT64_C(0xabcdef0123456789),
+                &transition),
+            PF_STATUS_OK,
+            "duel-post-smash-charge-reset") ||
+        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(0)))
     {
         return 0;
     }

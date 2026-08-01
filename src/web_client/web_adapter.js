@@ -1406,13 +1406,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face special · down + top face reflector · up + top face charge/recovery · Back/View taunt · any shoulder/trigger shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · down + top face reflector · up + top face charge/recovery · Back/View taunt · any shoulder/trigger shield · light + shield grab/item"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge on the ground / Vector Ascent recovery in the air · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge on the ground / Vector Ascent recovery in the air · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -1443,8 +1443,9 @@ mergeInto(LibraryManager.library, {
       "dash, while attempting it after RUN enters RUN TURNAROUND. " +
       "For a small-step forward smash, tap and hold a full direction, delay " +
       "one to three simulation ticks, then press the light-attack button; " +
-      "the initial-dash travel extends the strong hitbox's reach. Pressing " +
-      "direction plus light simultaneously gives the standing comparison, " +
+      "hold light to charge for up to 60 ticks, then release it; the " +
+      "initial-dash travel extends the strong hitbox's reach. Pressing " +
+      "direction plus light simultaneously gives the standing charged comparison, " +
       "while waiting four ticks produces the ordinary non-smash attack. " +
       "For a drop cancel, put both fighters close together on the moving " +
       "platform, press down with the attacker, then press light attack on the " +
@@ -1458,8 +1459,12 @@ mergeInto(LibraryManager.library, {
       "ledge-roll, light or strong attack to ledge-attack, down or away to " +
       "release, or jump to ledge-jump. For an edge hop, tap down from hang, " +
       "release it, then press jump plus inward on the next tick and follow " +
-      "with an aerial. F and / perform the light jab; H and ' " +
-      "perform a slower strong attack on the ground or in the air that " +
+      "with an aerial. F and / perform light attacks: neutral jabs, " +
+      "reduced-direction tilts, and full-direction charged smashes from idle " +
+      "or walk. Release light early or hold to the 60-tick automatic release; " +
+      "the charge scales damage by up to +50%. H and ' perform an immediate " +
+      "uncharged directional strong attack on the ground or a slower strong " +
+      "attack in the air that " +
       "immediately launches the default fighter into tumble. Translucent boxes " +
       "show active frames, and tumbling " +
       "fighters visibly rotate after hitlag. During hitlag, " +
@@ -2323,7 +2328,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 396) {
+    if (!state || viewCount !== 400) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2332,7 +2337,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 38) {
+    if (view[0] !== 40) {
       return;
     }
     var canvas = state.canvas;
@@ -2434,6 +2439,13 @@ mergeInto(LibraryManager.library, {
       "DOWN AERIAL",
       "LEDGE ROLL",
       "LEDGE ATTACK",
+      "FORWARD ATTACK",
+      "FORWARD STRONG",
+      "UP STRONG",
+      "DOWN STRONG",
+      "FORWARD STRONG CHARGE",
+      "UP STRONG CHARGE",
+      "DOWN STRONG CHARGE",
     ];
 
     if (view[1] < previousTick) {
@@ -2615,10 +2627,10 @@ mergeInto(LibraryManager.library, {
       });
     }
 
-    var eventCount = Math.max(0, Math.min(16, view[201]));
+    var eventCount = Math.max(0, Math.min(16, view[205]));
     var eventIndex;
     for (eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
-      var eventBase = 202 + eventIndex * 10;
+      var eventBase = 206 + eventIndex * 10;
       var sequence = view[eventBase];
       if (sequence <= state.lastEventSequence) {
         continue;
@@ -2761,13 +2773,13 @@ mergeInto(LibraryManager.library, {
       "P1 STOCKS " +
         view[25 + 32] +
         "  ·  P2 STOCKS " +
-        view[25 + 44 + 32],
+        view[25 + 45 + 32],
       canvas.width / 2,
       25
     );
     context.restore();
 
-    var itemBase = 362;
+    var itemBase = 366;
     var itemStateCode = view[itemBase + 1];
     if (view[itemBase] !== 0 && itemStateCode > 0 && itemStateCode < 4) {
       var itemWorldX = view[itemBase + 6];
@@ -2856,7 +2868,7 @@ mergeInto(LibraryManager.library, {
       context.fillText("RELAY ROD", itemX, itemY - Math.max(10, itemHeight) / 2 - 8);
     }
 
-    var projectileBase = 380;
+    var projectileBase = 384;
     var projectileStateCode = view[projectileBase + 1];
     if (
       view[projectileBase] !== 0 &&
@@ -2939,7 +2951,7 @@ mergeInto(LibraryManager.library, {
       if (playerIndex >= livePlayerCount) {
         return;
       }
-      var base = 25 + playerIndex * 44;
+      var base = 25 + playerIndex * 45;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -3002,13 +3014,15 @@ mergeInto(LibraryManager.library, {
         var hitboxBottom = sy(view[base + 18]);
 
         context.fillStyle =
-          actionState === 22 || actionState === 41
+          actionState === 22 || actionState === 41 ||
+              (actionState >= 88 && actionState <= 90)
             ? "#ff5f874d"
             : actionState === 26
               ? "#b977ff55"
               : "#ffb34744";
         context.strokeStyle =
-          actionState === 22 || actionState === 41
+          actionState === 22 || actionState === 41 ||
+              (actionState >= 88 && actionState <= 90)
             ? "#ff8cab"
             : actionState === 26
               ? "#d7adff"
@@ -3327,9 +3341,11 @@ mergeInto(LibraryManager.library, {
         view[base + 40] +
         "f · Arc Reservoir " +
         view[base + 43] +
-        " / 120f" +
+        " / 120f · Smash charge " +
+        view[base + 44] +
+        " / 60f" +
         " · Vector Ascent " +
-        (view[392 + playerIndex] !== 0 ? "READY" : "SPENT");
+        (view[396 + playerIndex] !== 0 ? "READY" : "SPENT");
     });
 
     var itemStateNames = [

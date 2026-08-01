@@ -9,6 +9,13 @@ mkdir -p "$output_dir"
 
 grep -Fq 'PF_M4_ACTION_LEDGE_ROLL = 85' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_ACTION_LEDGE_ATTACK = 86' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_FORWARD_ATTACK = 87' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_FORWARD_STRONG_ATTACK = 88' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_UP_STRONG_ATTACK = 89' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_DOWN_STRONG_ATTACK = 90' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_FORWARD_STRONG_CHARGE = 91' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_UP_STRONG_CHARGE = 92' "$root/include/pf/m4.h"
+grep -Fq 'PF_M4_ACTION_DOWN_STRONG_CHARGE = 93' "$root/include/pf/m4.h"
 grep -Fq 'pf_web_m4_run_ledge_option_probe' \
     "$root/src/web_client/m4_playtest.c"
 
@@ -205,7 +212,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 38' \
+    'view[0] !== 40' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pf_web_m4_run_directional_aerial_probe' \
@@ -292,7 +299,7 @@ grep -Fq \
     '"Local 1v1 match setup"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 396' \
+    'viewCount !== 400' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MASH OUT · "' \
@@ -410,6 +417,27 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"LEDGE ATTACK"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"FORWARD ATTACK"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"FORWARD STRONG"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"UP STRONG"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"DOWN STRONG"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"FORWARD STRONG CHARGE"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"UP STRONG CHARGE"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"DOWN STRONG CHARGE"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pummel for 3%' \

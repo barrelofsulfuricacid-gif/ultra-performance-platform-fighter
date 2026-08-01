@@ -81,13 +81,19 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–39 remain historical checkpoints. The current M4
+Save formats 1–41 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
 taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack/
-directional-aerial/ledge-option state uses save format 40: a fixed 694-byte
-checkpoint with state schema 41 and a 554-byte payload. It retains the layout
-while making the two ledge-option action IDs, grounding, ledge claims, timing,
-invulnerability, and ledge-attack hitlag resume fail closed. Save format
+directional-aerial/ledge-option/smash-charge state uses save format 42: a fixed
+702-byte checkpoint with state schema 43 and a 562-byte payload. It appends one
+little-endian smash-charge tick value per fixed player slot and makes charge,
+early/automatic release, charged damage, interruption, and hitlag-resume state
+fail closed. Save format 41/state schema 42 retained the prior layout while
+adding forward tilt plus forward/up/down directional strong actions and their
+timing, grounding, hitlag-resume, and input-arbitration semantics. Save format
+40/state schema 41 made the two ledge-option action IDs, grounding, ledge
+claims, timing, invulnerability, and ledge-attack hitlag resume fail closed.
+Save format
 39/state schema 40 made the four directional-aerial action IDs, five-way
 airborne light-input arbitration, grounding, authored two-axis launch, and
 hitlag resume fail closed. Save format 38/state schema 39 made the `UP_ATTACK`
@@ -273,11 +279,32 @@ compact schema 7, and 66 compact values remain unchanged. The public
 memory-requirements query now reports 2,128 state bytes and 1,008 scratch
 bytes; existing callers retain their 4 KiB opaque state and scratch envelopes,
 and canonical checkpoint size remains unchanged.
+State schema 42 / save format 41 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE41` while adding fail-closed `FORWARD_ATTACK`,
+`FORWARD_STRONG_ATTACK`, `UP_STRONG_ATTACK`, and `DOWN_STRONG_ATTACK` action,
+grounding, timing, hitlag-resume, powershield-cancel, and directional-input
+semantics. Content schema 44/fighter schema 39 append and hash four embedded
+attack-data records. Inspection schema 38 and browser view schema 39 version
+the new action interpretation and labels while retaining the inspection and
+396-value browser layouts. Input schema 5, structured observation schema 6,
+RL schema 8, compact schema 7, and 66 compact values remain unchanged.
+State schema 43 / save format 42 appends one little-endian `uint16_t` smash-
+charge value for each of the four fixed player slots, producing a 562-byte
+payload and 702-byte checkpoint under `PFSAVE42`. Loading validates the three
+charge actions, 60-tick cap, action-timer equality, early or automatic release,
+released-action and attacker-hitlag retention, interruption clearing, and
+inactive-slot zero state. Content schema 45/fighter schema 40 add and hash the
+maximum charge and Q16.16 damage bonus. Inspection schema 39 and structured
+observation schema 7 expose the timer; RL schema 9/transition schema 7 and
+compact schema 8 append four values at indices 66–69, for 70 total. Browser
+view schema 40 expands each player record from 44 to 45 values and the whole
+view from 396 to 400 values. The public memory-requirements query reports 2,304
+state bytes and 1,016 scratch bytes; the 4 KiB caller envelopes remain valid.
 The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do
-not change the 396-value layout or any canonical, replay, save, observation, or
-RL schema.
+not add fields beyond the current 400-value layout or change any canonical,
+replay, save, observation, or RL schema.
 The temporary M4.3 browser setup calls
 `pf_web_m4_playtest_configure_duel(stock_count)` for stock choices 1–4. The
 bridge validates the value, rebuilds a fresh production duel, and renders tick

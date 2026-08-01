@@ -1,7 +1,8 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 movement/ledge core, neutral, up, down, and strong
-M4.2 ground attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
+**Status:** In progress; M4.1 movement/ledge core, the complete grounded
+jab/tilt/dash-attack/directional-strong vocabulary, charged directional smashes,
+M4.2 hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
 ledge-cancelling, 29-tick ledge-regrab lockout and planking, the complete
@@ -545,7 +546,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   launch, hitlag resume, and powershield-cancel routing. The 554-byte payload,
   694-byte save, 396-value browser view, input, observation, RL, compact, and
   66-value compact layouts remain unchanged.
-  Config/identity schema 2 remains current. The canonical save is 694 bytes.
+  Config/identity schema 2 remains current. At that slice, the canonical save
+  was 694 bytes; the later grounded-normal/smash-charge slice below supersedes
+  it with the current 702-byte format.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -1696,6 +1699,37 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   readiness folds all three option inputs and the active hitbox into the
   existing combat probe. No emergent-technique-only harness was added.
 
+## Implemented in the grounded-normal and smash-charge slice
+
+- Reduced directional light now completes the grounded tilt vocabulary with
+  `FORWARD_ATTACK` alongside the existing up/down actions. The direct strong
+  button selects immediate neutral/forward/up/down strong attacks. Full
+  directional light from idle or walk enters the matching smash charge; the
+  established one-through-three-tick initial-dash window enters forward charge
+  with retained movement, while frame 4 remains the forward tilt.
+- Holding light advances an independent canonical timer through tick 60.
+  Releasing early or reaching tick 60 starts the matching directional strong;
+  the default Q16.16 bonus scales damage linearly to +50% at maximum. The timer
+  survives save/load, release, and attacker hitlag, then clears on completion,
+  stock loss, or interruption. Direct strong, powershield cancel, and
+  jump-squat cancel routes remain immediate and uncharged.
+- State schema 42/save format 41 first retained the 554-byte payload and
+  694-byte checkpoint under `PFSAVE41` while adding action IDs 87–90 and four
+  authored attack records. State schema 43/save format 42 then appends four
+  charge counters for a 562-byte payload and 702-byte checkpoint under
+  `PFSAVE42`; charge action IDs 91–93 and every timer/action relationship fail
+  closed. Content schema 45/fighter schema 40, inspection schema 39,
+  observation schema 7, RL schema 9/transition schema 7, compact schema 8 with
+  70 values, and browser view schema 40 with 400 values expose the final
+  contract. Opaque requirements are 2,304 state bytes and 1,016 scratch bytes,
+  within the existing 4 KiB envelopes.
+- The existing 815-mechanic/51-journal combat oracle now covers authored
+  forward/up/down light and strong data, selection, shields, hitlag, partial and
+  full charge damage, slot-independent simultaneous charged trades, mid-charge
+  save/load, 60-tick automatic release, and interruption clearing. Browser
+  readiness reuses its ordinary directional
+  attack probe; no tactical or emergent-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1760,10 +1794,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A one-tick shield tap from run retains the held shield stop's traction path,
   but enters release as soon as the eight-tick minimum completes. Holding the
   trigger remains `SHIELD`, while the same tap from idle has no travel.
-- Full direction plus light attack remains the standing forward smash; delaying
-  light by one to three same-direction initial-dash ticks remains the
-  range-extending small-step route. Frame 4 or releasing the direction must
-  remain the ordinary non-smash ground attack.
+- Full direction plus light attack from idle or walk must enter the matching
+  charged smash. Holding light charges through tick 60; releasing early or
+  reaching the cap starts the directional strong. Delaying forward light by
+  one to three same-direction initial-dash ticks remains the range-extending
+  small-step route, while frame 4 must remain the forward tilt.
 - Following the opponent's airborne path and observed ground-tech direction
   remains the tech-chase route. The punish begins only when the 20-tick gold
   invulnerability ring clears; attacking from the original spacing at that
@@ -1839,11 +1874,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.2 and M4.3 work
 
-- Remaining ground-attack variants, character-specific aerial breadth,
-  specials, broader recovery options, broader throw routes,
+- Character-specific move breadth, additional specials, broader recovery
+  options, broader throw routes,
   analog light shield, shield size/tilt/pokes and shield SDI,
-  routing each future standing ground action through the shared
-  powershield-cancel selector,
   broader per-action launch-angle data and stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
@@ -1862,7 +1895,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   815
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
-  directional ground attacks, the five-direction light-aerial vocabulary,
+  complete directional ground normals, canonical smash charge, the
+  five-direction light-aerial vocabulary,
   ledge attack, and ledge-roll invulnerability plus 51
   combat-journal invariants,
   24 stock/respawn/result
@@ -1876,14 +1910,14 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,394
   bytes,
   replay SHA-256
-  `f7baa647a4503e20259f819ccca0e6a13d1fe42435b0f24ba4cb86e3bfd22dc6`,
+  `15cbb7c4dc51788fd97b5e211af6fe89212af524a6598160237a01f06f8520e9`,
   final SHA-256
-  `cc53b760f1163936d7f541cd9e6fac4370fa18579ee03e4b4d1629f69364a728`,
+  `54b719dce63e11db5fc700a51da8dac2895ed810c85ef41fb6fd8f1d1149848d`,
   and event-journal SHA-256
-  `cea7f525bc5cb4009c69f8ca7c1daf85e6bdfebc12f1a9583d45dde34da4d10a`;
+  `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.

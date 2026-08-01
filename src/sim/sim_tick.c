@@ -436,6 +436,8 @@ pf_status pf_sim_tick_impl(
             scratch->grab_escape_ticks[player_index];
         world->charge_ticks[player_index] =
             scratch->charge_ticks[player_index];
+        world->smash_charge_ticks[player_index] =
+            scratch->smash_charge_ticks[player_index];
         world->grab_target_slot[player_index] =
             scratch->grab_target_slot[player_index];
         world->grab_owner_slot[player_index] =

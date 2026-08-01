@@ -50,6 +50,7 @@ typedef struct pf_world_state
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t smash_charge_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t team[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
@@ -127,6 +128,7 @@ typedef struct pf_sim_scratch
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t smash_charge_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
     uint8_t stocks_remaining[PF_SIM_MAX_PLAYERS];

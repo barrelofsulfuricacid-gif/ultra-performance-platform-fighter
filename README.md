@@ -6,9 +6,10 @@ native, web, rollback, headless, and reinforcement-learning targets.
 The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
 simulation is complete, and its reinforcement-learning contract has been
-accepted by the owner; its current schema-6 observation includes M4 stock,
-respawn, charge, projectile, item, and recovery state. M4 is in progress with
-production-path movement, directional ground attacks,
+accepted by the owner; its current schema-7 observation includes M4 stock,
+respawn, special charge, smash charge, projectile, item, and recovery state.
+M4 is in progress with production-path movement, the complete jab/tilt/dash-
+attack/directional-strong ground vocabulary, charged directional smashes,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the
 complete ledge-roll and ledge-attack option set, the five-direction
@@ -118,7 +119,8 @@ runs the real two-player M4 simulation at 60 Hz. The playtest includes explicit
 walk/dash keyboard magnitudes, binary short/full hops, attacks, hitlag,
 hitstun, tumble, ground/wall/ceiling teching, missed-impact bounce, floor
 recovery, shields, directional air dodge/wavedash, neutral/forward/back/up/down
-light aerials plus the direct strong aerial,
+ground tilts and immediate directional strong attacks, charged directional
+smashes, neutral/forward/back/up/down light aerials plus the direct strong aerial,
 auto-cancel, L-cancel/SHFFL, a 30-frame strong-aerial landing-lag drill with
 red/green success feedback, grounded forward/backward rolls, spot-dodge,
 held-down crouch cancel with a typed feed label, grab-pummel, and

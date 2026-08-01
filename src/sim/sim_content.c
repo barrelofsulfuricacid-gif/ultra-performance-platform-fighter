@@ -123,6 +123,18 @@ static int pf_m4_attack_data_is_valid(
                UINT32_C(600);
 }
 
+static int pf_m4_charged_attack_damage_is_valid(
+    const pf_m4_attack_data *attack,
+    uint32_t bonus_q16)
+{
+    const uint64_t charged_damage =
+        (uint64_t)attack->damage_q16 +
+        ((uint64_t)attack->damage_q16 * (uint64_t)bonus_q16 >> 16U);
+
+    return charged_damage <=
+           (uint64_t)UINT32_C(50) * UINT64_C(65536);
+}
+
 static int pf_m4_throw_data_is_valid(
     const pf_m4_throw_data *throw_data)
 {
@@ -244,6 +256,13 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
     pf_m4_hash_attack(hash, &fighter->up_attack);
     pf_m4_hash_attack(hash, &fighter->down_attack);
+    pf_m4_hash_attack(hash, &fighter->forward_attack);
+    pf_m4_hash_attack(hash, &fighter->forward_strong_attack);
+    pf_m4_hash_attack(hash, &fighter->up_strong_attack);
+    pf_m4_hash_attack(hash, &fighter->down_strong_attack);
+    pf_m4_hash_u32(hash, fighter->smash_charge_damage_bonus_q16);
+    pf_m4_hash_u16(hash, fighter->smash_charge_max_ticks);
+    pf_m4_hash_u16(hash, fighter->smash_charge_reserved);
     pf_m4_hash_attack(hash, &fighter->forward_aerial);
     pf_m4_hash_attack(hash, &fighter->back_aerial);
     pf_m4_hash_attack(hash, &fighter->up_aerial);
@@ -815,6 +834,88 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->down_attack.active_ticks = UINT16_C(3);
     fighter->down_attack.recovery_ticks = UINT16_C(11);
     fighter->down_attack.hitlag_ticks = UINT16_C(4);
+    fighter->forward_attack.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(4, 5);
+    fighter->forward_attack.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(1, 20);
+    fighter->forward_attack.hitbox_half_width_q16 =
+        PF_Q16_RATIO(7, 10);
+    fighter->forward_attack.hitbox_half_height_q16 =
+        PF_Q16_RATIO(9, 20);
+    fighter->forward_attack.damage_q16 =
+        UINT32_C(7) * UINT32_C(65536);
+    fighter->forward_attack.base_knockback_x_q16 =
+        PF_Q16_RATIO(6, 25);
+    fighter->forward_attack.base_knockback_y_q16 =
+        PF_Q16_RATIO(1, 4);
+    fighter->forward_attack.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 704);
+    fighter->forward_attack.startup_ticks = UINT16_C(4);
+    fighter->forward_attack.active_ticks = UINT16_C(3);
+    fighter->forward_attack.recovery_ticks = UINT16_C(12);
+    fighter->forward_attack.hitlag_ticks = UINT16_C(4);
+    fighter->forward_strong_attack.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(9, 10);
+    fighter->forward_strong_attack.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(1, 10);
+    fighter->forward_strong_attack.hitbox_half_width_q16 =
+        PF_Q16_RATIO(3, 4);
+    fighter->forward_strong_attack.hitbox_half_height_q16 =
+        PF_Q16_RATIO(11, 20);
+    fighter->forward_strong_attack.damage_q16 =
+        UINT32_C(12) * UINT32_C(65536);
+    fighter->forward_strong_attack.base_knockback_x_q16 =
+        PF_Q16_RATIO(9, 20);
+    fighter->forward_strong_attack.base_knockback_y_q16 =
+        PF_Q16_RATIO(17, 20);
+    fighter->forward_strong_attack.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 512);
+    fighter->forward_strong_attack.startup_ticks = UINT16_C(5);
+    fighter->forward_strong_attack.active_ticks = UINT16_C(3);
+    fighter->forward_strong_attack.recovery_ticks = UINT16_C(18);
+    fighter->forward_strong_attack.hitlag_ticks = UINT16_C(6);
+    fighter->up_strong_attack.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(1, 10);
+    fighter->up_strong_attack.hitbox_offset_y_q16 =
+        -PF_Q16_RATIO(4, 5);
+    fighter->up_strong_attack.hitbox_half_width_q16 =
+        PF_Q16_RATIO(11, 10);
+    fighter->up_strong_attack.hitbox_half_height_q16 =
+        PF_Q16_RATIO(4, 5);
+    fighter->up_strong_attack.damage_q16 =
+        UINT32_C(13) * UINT32_C(65536);
+    fighter->up_strong_attack.base_knockback_x_q16 =
+        PF_Q16_RATIO(3, 20);
+    fighter->up_strong_attack.base_knockback_y_q16 =
+        PF_Q16_RATIO(9, 10);
+    fighter->up_strong_attack.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 544);
+    fighter->up_strong_attack.startup_ticks = UINT16_C(7);
+    fighter->up_strong_attack.active_ticks = UINT16_C(4);
+    fighter->up_strong_attack.recovery_ticks = UINT16_C(22);
+    fighter->up_strong_attack.hitlag_ticks = UINT16_C(6);
+    fighter->down_strong_attack.hitbox_offset_x_q16 =
+        PF_Q16_RATIO(7, 10);
+    fighter->down_strong_attack.hitbox_offset_y_q16 =
+        PF_Q16_RATIO(2, 5);
+    fighter->down_strong_attack.hitbox_half_width_q16 =
+        PF_Q16_RATIO(9, 10);
+    fighter->down_strong_attack.hitbox_half_height_q16 =
+        PF_Q16_RATIO(2, 5);
+    fighter->down_strong_attack.damage_q16 =
+        UINT32_C(11) * UINT32_C(65536);
+    fighter->down_strong_attack.base_knockback_x_q16 =
+        PF_Q16_RATIO(2, 5);
+    fighter->down_strong_attack.base_knockback_y_q16 =
+        PF_Q16_RATIO(3, 10);
+    fighter->down_strong_attack.knockback_growth_q16 =
+        PF_Q16_RATIO(1, 576);
+    fighter->down_strong_attack.startup_ticks = UINT16_C(6);
+    fighter->down_strong_attack.active_ticks = UINT16_C(4);
+    fighter->down_strong_attack.recovery_ticks = UINT16_C(20);
+    fighter->down_strong_attack.hitlag_ticks = UINT16_C(5);
+    fighter->smash_charge_damage_bonus_q16 = PF_Q16_RATIO(1, 2);
+    fighter->smash_charge_max_ticks = UINT16_C(60);
     fighter->forward_aerial.hitbox_offset_x_q16 =
         PF_Q16_RATIO(3, 4);
     fighter->forward_aerial.hitbox_offset_y_q16 =
@@ -1386,6 +1487,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->charge_count != PF_M4_TEST_CHARGE_COUNT ||
         content->recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
         content->fighter.reserved != UINT16_C(0) ||
+        content->fighter.smash_charge_reserved != UINT16_C(0) ||
         content->stage.reserved != UINT16_C(0) ||
         content->stage.reserved2 != UINT16_C(0) ||
         content->item.reserved != UINT8_C(0) ||
@@ -1410,6 +1512,32 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         !pf_m4_attack_data_is_valid(
             &fighter->down_attack,
             maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->forward_attack,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->forward_strong_attack,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->up_strong_attack,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->down_strong_attack,
+            maximum_fighter_extent_q16) ||
+        fighter->smash_charge_damage_bonus_q16 == UINT32_C(0) ||
+        fighter->smash_charge_damage_bonus_q16 >
+            (uint32_t)PF_Q16_ONE ||
+        fighter->smash_charge_max_ticks == UINT16_C(0) ||
+        fighter->smash_charge_max_ticks > UINT16_C(600) ||
+        !pf_m4_charged_attack_damage_is_valid(
+            &fighter->forward_strong_attack,
+            fighter->smash_charge_damage_bonus_q16) ||
+        !pf_m4_charged_attack_damage_is_valid(
+            &fighter->up_strong_attack,
+            fighter->smash_charge_damage_bonus_q16) ||
+        !pf_m4_charged_attack_damage_is_valid(
+            &fighter->down_strong_attack,
+            fighter->smash_charge_damage_bonus_q16) ||
         !pf_m4_attack_data_is_valid(
             &fighter->forward_aerial,
             maximum_fighter_extent_q16) ||

@@ -11,8 +11,10 @@ missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, dashing shield, shield platform dropping,
 shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
-physical powershielding, frame-2 powershield canceling into the neutral,
-vertical-directional, or strong standing ground attacks, and the
+physical powershielding, frame-2 powershield canceling into the neutral or
+directional light/strong standing ground attacks, the complete grounded
+jab/tilt/dash-attack/directional-strong vocabulary, charged directional
+smashes, and the
 hitlag-assisted same-platform drop-cancel
 route, plus three-frame V-cancelling of eligible airborne launch and grounded
 low-percent crouch cancel. The shared unblocked reaction path also applies the
@@ -34,9 +36,9 @@ hit path and composes with auto-cancel, normal aerial landing lag, exact
 seven-frame L-cancel timing, and short-hop-fast-fall-L-cancel. The strong
 button also works airborne,
 reusing the production strong hit data and adding a deliberately conspicuous
-30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
-does not claim the remaining
-attacks, analog light shields, general shield tilt/size/pokes, shield SDI,
+30/15-tick landing-lag practice route. This is still an incremental checkpoint.
+It does not claim character-specific move breadth, analog light shields,
+general shield tilt/size/pokes, shield SDI,
 broader throw routes, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
@@ -48,17 +50,23 @@ simultaneous-final-stock sudden death are now part of the checkpoint.
 
 The light or strong ground attack is entered by a rising edge on its separate
 input-schema-3 button while the fighter is grounded and outside a locked
-action. If both edges occur on one tick, strong attack takes priority. A fresh
-light edge with full-threshold, strictly vertical-dominant stick input selects
-`UP_ATTACK` or `DOWN_ATTACK`. Sub-threshold vertical input retains the ordinary
-neutral light jab. Full horizontal input, including an equal-magnitude
-diagonal, retains forward-smash priority from idle; delaying that light edge
-for one through three same-direction `INITIAL_DASH` ticks produces the
-small-step forward smash, whose retained travel and velocity extend the same
-authored hitbox. Frame 4 or a missing full horizontal direction produces the
-selected light attack, and an opposite-direction smash has only the one-tick
-pivot window. The separate strong button remains a direct strong-attack route
-regardless of stick direction. A run light edge remains `DASH_ATTACK`.
+action. If both edges occur on one tick, strong attack takes priority. Neutral
+light remains the jab. Reduced directional light selects `FORWARD_ATTACK`,
+`UP_ATTACK`, or `DOWN_ATTACK`, using strict vertical dominance for up/down and
+horizontal priority for an equal diagonal. A full directional light edge from
+idle or walk enters the matching forward/up/down smash-charge action. Full
+horizontal light during the existing one-through-three-tick `INITIAL_DASH`
+window enters forward smash charge with retained travel; frame 4 instead
+produces `FORWARD_ATTACK`, and the opposite-direction route retains its
+one-tick pivot window. Holding light charges, releasing it starts the matching
+directional strong early, and tick 60 releases automatically.
+
+The separate strong button is the immediate uncharged route. Neutral input
+retains `STRONG_ATTACK`; directional input selects
+`FORWARD_STRONG_ATTACK`, `UP_STRONG_ATTACK`, or `DOWN_STRONG_ATTACK`. A run
+light edge remains `DASH_ATTACK`. Powershield cancels use the immediate
+light/strong selectors, while a full-up jump-squat cancel selects immediate up
+strong; neither route creates hidden charge state.
 
 An airborne light-attack edge selects one of five light aerials. Neutral or
 reduced input enters `AERIAL_ATTACK`; a full, strictly vertical-dominant stick
@@ -73,8 +81,11 @@ ticks, and four hitlag ticks. Default `UP_ATTACK` deals 9%, defines four startup
 three active, 12 recovery, and five hitlag ticks, and authors a predominantly
 upward launch. Default `DOWN_ATTACK` deals 8%, defines five startup, three
 active, 11 recovery, and four hitlag ticks, and authors a shallow downward
-launch. The default strong attack defines five startup ticks, three active
-ticks, 18 recovery ticks, and six hitlag ticks. The neutral aerial defines four
+launch. Default `FORWARD_ATTACK` deals 7% with 4/3/12
+startup/active/recovery ticks and four hitlag ticks. The default neutral and
+forward strong attacks deal 12% with 5/3/18 timing and six hitlag ticks. The up
+strong deals 13% with 7/4/22 timing and six hitlag ticks; the down strong deals
+11% with 6/4/20 timing and five hitlag ticks. The neutral aerial defines four
 startup ticks, five active ticks, 23 recovery ticks, and five hitlag ticks.
 The default forward, back, up, and down aerials respectively define
 5/4/19 ticks at 10%, 4/4/20 ticks at 11%, 5/4/18 ticks at 9%, and 7/4/21 ticks
@@ -100,14 +111,31 @@ grounded strong action.
 Collision resolves once after every active player completes movement for the
 tick, making ownership independent of player step order.
 
-The two new directional light definitions are embedded fixed-layout records in
-the parent fighter content. Each independently owns hitbox offset/extents,
+The three directional light definitions and three directional strong
+definitions are embedded fixed-layout records in the parent fighter content.
+Each independently owns hitbox offset/extents,
 damage, positive horizontal and vertical base-knockback magnitudes, growth,
 startup, active, recovery, and hitlag. Facing signs horizontal geometry and
-launch; the action signs the vertical authored magnitude upward for
-`UP_ATTACK` and downward for `DOWN_ATTACK`. Both use the shared physical hit,
+launch; the action signs the vertical authored magnitude downward only for
+`DOWN_ATTACK`, while the other current directional normals launch upward. All
+six use the shared physical hit,
 shield, hitlag, weighted reaction, DI/SDI, event-journal, and once-per-target
 paths rather than action-specific collision code.
+
+Smash charge is independent canonical state, not an emergent-technique flag.
+Each active player owns one `uint16_t` charge counter. It begins at one on the
+entry tick, advances once per held-light tick, survives save/load and attacker
+hitlag, and remains attached to the released directional strong until that
+attack completes. Being hit, losing a stock, or any other action interruption
+clears it. Active attack data is frozen before target reactions, so both sides
+of a simultaneous charged trade retain the charge they had when their hitboxes
+overlapped regardless of player-slot order. The default 60-tick maximum adds
+a linearly scaled Q16.16 damage
+bonus up to 50%; direct strong attacks keep a zero counter and base damage.
+Content validation rejects a zero or excessive charge cap, a bonus outside
+the accepted range, and any authored directional strong whose maximum charged
+damage would exceed 50%. Save format 42/state schema 43 validates every
+timer/action relationship before atomic load.
 
 The four directional aerial definitions use the same embedded attack-data
 layout. Each independently owns geometry, damage, positive authored
@@ -452,7 +480,7 @@ replay verification, the browser feed, and external verifiers to distinguish
 the reaction without adding a mutable crouch-cancel state field.
 
 The native oracle compares standing and crouched jabs, the exact and first-over
-damage boundaries, invalid data and content hashes, and a 694-byte mid-hitlag
+damage boundaries, invalid data and content hashes, and a 702-byte mid-hitlag
 save/load with equal future events and hashes. Browser readiness folds the same
 standing-versus-crouched comparison into its existing reaction probe.
 
@@ -724,7 +752,8 @@ the one-tick delay and whether the fighter supports the technique.
 - Either attack on frame 1 of shield drop is rejected.
 - A fresh light- or strong-attack edge on frame 2 or later cancels directly
   into the selected production action. The same selector preserves neutral
-  jab, vertical-dominant up/down light attacks, and the direct strong route.
+  jab, all three directional light attacks, and neutral/forward/up/down direct
+  strong routes. It does not enter smash charge.
 - An attack pressed too early is not buffered; it must be released and pressed
   again on a legal frame.
 - Holding shield through the end of shield stun consumes the opportunity.
@@ -1073,7 +1102,7 @@ start another pummel. A full direction continues to select a throw.
 
 The native oracle validates default/invalid data and content hashing, both
 attack-button routes, the reduced-direction boundary, exact damage/event/link
-semantics, held-input rejection, and a 694-byte mid-pummel save/load with
+semantics, held-input rejection, and a 702-byte mid-pummel save/load with
 byte-identical future events and hashes. Browser startup repeats the neutral
 route through the hit and return to `GRAB_HOLD` before exercising all four
 directional throws and the existing chain-grab route.
@@ -1187,7 +1216,7 @@ can return through the normal hit path. Typed events 19–21 are
 `tests/sim/test_m4_projectile.c` supplies 38 focused invariants covering
 content validation/hash, simultaneous arbitration, grounded hit, ordinary
 block, exact reflect timing and returned hit, short-hop fire and generic
-landing, 694-byte save/load future equality, replay verification, and RL
+landing, 702-byte save/load future equality, replay verification, and RL
 visibility. Strict verifier and browser startup oracles repeat the original
 short-hop-laser route. Browser view schema 24 appends 12 projectile values at
 indices 290–301 without moving existing offsets, draws the cyan bolt and its
@@ -1252,7 +1281,7 @@ it before normal reaction processing.
 and invalid data, accumulation and clamping, early store cancel with a
 same-tick ordinary attack, the held-shield negative, exact resume, low/full
 release damage, interruption loss, over-cap checksum-valid load rejection,
-694-byte mid-store save/load future equality, replay verification, and
+702-byte mid-store save/load future equality, replay verification, and
 structured/compact RL visibility. Browser
 startup repeats charge, store cancel, resume, and release before readiness;
 browser view schema 26 appends one charge-tick value to each player, shifting
@@ -1282,10 +1311,12 @@ cannot manufacture an extra recovery.
 `tests/sim/test_m4_movement.c` supplies nine focused recovery invariants:
 default and invalid data, isolated content hashing, ordinary jump-to-recovery
 entry, authored velocity and consumption, structured and compact observation,
-694-byte mid-action save/load with equal future hashes, blocked second use,
+702-byte mid-action save/load with equal future hashes, blocked second use,
 landing restoration, and second-airtime reuse. Browser startup repeats the
 ordinary input entry and exposes `vector_ascent_probe`; browser view schema 33
-introduced one READY/SPENT value per player, retained by current schema 34.
+introduced one READY/SPENT value per player at indices 392–395; current browser
+view schema 40 retains those values at indices 396–399 after the smash-charge
+player-field expansion.
 Gimp and Stage spike are emergent
 compositions of this independently checked recovery with existing aerial or
 Prism Burst interruption, solid-surface bounce/tech, and stock/KO mechanics;
@@ -1311,7 +1342,7 @@ timing through save/load, rollback, replay, and hash.
 `tests/sim/test_m4_movement.c` supplies 12 focused invariants covering default
 and invalid authored timing, isolated content hashing, the exact two setup
 ticks, entry/hold/release velocity and facing, both dashback controls, and a
-694-byte mid-setup save/load with equal future hashes. Browser startup repeats
+702-byte mid-setup save/load with equal future hashes. Browser startup repeats
 all three timing outcomes and exports an independent `moonwalk_probe` before
 readiness. Browser controls use Shift plus the opposite horizontal key for two
 ticks, then the unmodified opposite key.
@@ -1336,7 +1367,7 @@ technique-only input or mutable history field.
 
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 exact entry state, duration, attack and reverse-dash cancels, held-outward and
-early-release negatives, and a 694-byte mid-teeter save/load with equal future
+early-release negatives, and a 702-byte mid-teeter save/load with equal future
 hashes. Browser startup repeats both cancels and both negatives and exports an
 independent `teeter_cancel_probe` before readiness.
 
@@ -1359,7 +1390,7 @@ input is introduced.
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 exact positive and negative displacement, eight release/reset repetitions,
 held-diagonal non-repetition, neutral-down and horizontal-only controls, and a
-694-byte mid-step save/load with equal future hashes. Browser startup repeats
+702-byte mid-step save/load with equal future hashes. Browser startup repeats
 the positive route and all controls and exports an independent
 `stage_humping_probe` before readiness.
 
@@ -1382,7 +1413,7 @@ ticks and returns to `GROUND_IDLE`.
 
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 dash-momentum entry, exact recovery and input lock, held-button non-repetition,
-edge cancellation, and a 694-byte mid-taunt save/load with equal future
+edge cancellation, and a 702-byte mid-taunt save/load with equal future
 hashes. Browser startup repeats the full-duration and cancel routes and exports
 an independent `taunt_cancel_probe` before readiness.
 
@@ -1409,7 +1440,7 @@ primitive while keeping the midair jump for a deeper recovery or edgeguard.
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 production ledge/block geometry, exact launch, preserved air jump, the four-
 tick invulnerability and 24-tick action windows, aerial and saved-jump cancels,
-the early-away negative, and a 694-byte mid-action save/load with equal future
+the early-away negative, and a 702-byte mid-action save/load with equal future
 hashes. Browser startup repeats the positive and negative routes and exports an
 independent `scar_jump_probe` before readiness.
 
@@ -1438,6 +1469,25 @@ and exports `team_wobble_probe`; the live Team Wobble Lab maps the second
 physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
+
+Browser view schema 40 expands each player block from 44 to 45 values by
+appending smash-charge ticks, yielding 400 values total. Event count moves to
+205, the 16 ten-value event entries begin at 206, the item block begins at 366,
+the projectile block begins at 384, and recovery availability begins at 396.
+State schema 43 / save format 42 appends four little-endian charge counters for
+a 702-byte stream (140-byte header plus 562-byte payload) under `PFSAVE42`.
+Content schema 45/fighter schema 40 add the maximum and damage bonus;
+inspection schema 39 and structured observation schema 7 expose the timer. RL
+schema 9/transition schema 7 and compact schema 8 append values 66–69 for a
+70-value vector.
+
+State schema 42 / save format 41 immediately preceded it and retained the
+694-byte stream under `PFSAVE41` while adding the forward light and three
+directional strong action IDs. Content schema 44/fighter schema 39 appended
+four attack records; inspection schema 38 and browser view schema 39 versioned
+their action interpretation without changing the 396-value presentation
+layout. Input schema 5 and the then-current observation/RL layouts were
+unchanged.
 
 Browser view schema 38 retains the 396-value presentation layout while
 versioning the `LEDGE_ROLL` and `LEDGE_ATTACK` labels. State schema 41 / save
@@ -1740,21 +1790,23 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 780 focused
-mechanics invariants plus 50 journal invariants, including:
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 815 focused
+mechanics invariants plus 51 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
   launch, hitstun, one-hit masks, simultaneous trades, and the default strong
   attack's direct tumble-to-knockdown route;
-- authored up/down light-attack defaults, validation and isolated content hash,
-  full-threshold vertical-dominance selection, sub-threshold neutral-jab and
-  equal-diagonal forward-smash controls, exact signed two-axis launches,
-  typed hit identity, hitlag, and mid-hitlag save/load future equality;
+- authored forward/up/down light and forward/up/down strong defaults,
+  validation and isolated content hashes; neutral, reduced-direction,
+  full-direction, equal-diagonal, immediate-strong, charge/release, and
+  60-tick auto-release arbitration; exact signed two-axis launches, partial
+  and maximum charged damage, typed hit identity, hitlag, mid-hitlag equality,
+  and mid-charge `PFSAVE42` continuation with equal future hashes/events;
 - authored forward/back/up/down aerial defaults, validation and isolated
   content hash; neutral, vertical-dominant, horizontal-dominant, equal-diagonal,
   facing-relative, and direct-strong arbitration; exact signed two-axis launch,
-  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE39`
+  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE42`
   continuation with equal future hashes;
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
@@ -1858,7 +1910,7 @@ mechanics invariants plus 50 journal invariants, including:
   zero powershield damage, larger powershield pushback, and result-flag
   clearing;
 - physical powershield opportunity preservation, frame-1 rejection, frame-2
-  neutral/up/down light and strong attack selection, ordinary-shield negative
+  neutral/forward/up/down light and strong attack selection, ordinary-shield negative
   behavior, content validation, and a focused encode/verify replay that
   performs the cancel;
 - deterministic hit/depletion shield-break events, upward flight and gravity,
@@ -1881,7 +1933,7 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,386-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,394-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 

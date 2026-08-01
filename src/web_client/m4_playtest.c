@@ -19,14 +19,14 @@
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
 #define PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 44
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 45
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
-#define PF_WEB_M4_VIEW_EVENT0 202
-#define PF_WEB_M4_VIEW_ITEM0 362
-#define PF_WEB_M4_VIEW_PROJECTILE0 380
-#define PF_WEB_M4_VIEW_RECOVERY0 392
-#define PF_WEB_M4_VIEW_COUNT 396
+#define PF_WEB_M4_VIEW_EVENT0 206
+#define PF_WEB_M4_VIEW_ITEM0 366
+#define PF_WEB_M4_VIEW_PROJECTILE0 384
+#define PF_WEB_M4_VIEW_RECOVERY0 396
+#define PF_WEB_M4_VIEW_COUNT 400
 
 enum pf_web_m4_view_field
 {
@@ -55,7 +55,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_TERMINATED = 22,
     PF_WEB_M4_VIEW_TRUNCATED = 23,
     PF_WEB_M4_VIEW_WINNER_MASK = 24,
-    PF_WEB_M4_VIEW_EVENT_COUNT = 201,
+    PF_WEB_M4_VIEW_EVENT_COUNT = 205,
     PF_WEB_M4_VIEW_PLAYER_X = 0,
     PF_WEB_M4_VIEW_PLAYER_Y = 1,
     PF_WEB_M4_VIEW_PLAYER_VX = 2,
@@ -100,6 +100,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_GRAB_TARGET = 41,
     PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER = 42,
     PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS = 43,
+    PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS = 44,
     PF_WEB_M4_VIEW_EVENT_SEQUENCE = 0,
     PF_WEB_M4_VIEW_EVENT_TICK = 1,
     PF_WEB_M4_VIEW_EVENT_TYPE = 2,
@@ -1208,7 +1209,7 @@ static int pf_web_m4_run_small_step_forward_smash_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE ||
         inspection.players[0].position_x_q16 != standing_x)
     {
         return 0;
@@ -1250,7 +1251,7 @@ static int pf_web_m4_run_small_step_forward_smash_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE ||
         inspection.players[0].position_x_q16 <= standing_x)
     {
         return 0;
@@ -1288,7 +1289,7 @@ static int pf_web_m4_run_small_step_forward_smash_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+            (uint8_t)PF_M4_ACTION_FORWARD_ATTACK)
     {
         return 0;
     }
@@ -5293,7 +5294,7 @@ static int pf_web_m4_run_jump_cancel_route(void)
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+            (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
         inspection.players[0].action_ticks != UINT16_C(1) ||
         inspection.players[0].grounded == UINT8_C(0) ||
         inspection.players[0].velocity_x_q16 <= INT32_C(0))
@@ -5323,7 +5324,7 @@ static int pf_web_m4_run_jump_cancel_route(void)
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+            (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
         inspection.players[0].grounded == UINT8_C(0))
     {
         return 0;
@@ -8281,6 +8282,7 @@ static int pf_web_m4_run_directional_attack_hit_case(
     const pf_m4_attack_data *attack,
     int16_t input_x,
     int16_t input_y,
+    uint64_t attack_button,
     pf_m4_action_state expected_action)
 {
     pf_m4_inspection inspection;
@@ -8293,7 +8295,7 @@ static int pf_web_m4_run_directional_attack_hit_case(
     if (!pf_web_m4_tick(
             input_x,
             input_y,
-            PF_INPUT_BUTTON_ATTACK,
+            attack_button,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -8336,9 +8338,9 @@ static int pf_web_m4_run_directional_attack_hit_case(
                event->detail == (uint16_t)expected_action &&
                event->value_q16 == attack->damage_q16 &&
                event->velocity_x_q16 > INT32_C(0) &&
-               (expected_action == PF_M4_ACTION_UP_ATTACK
-                    ? event->velocity_y_q16 < INT32_C(0)
-                    : event->velocity_y_q16 > INT32_C(0)) &&
+               (expected_action == PF_M4_ACTION_DOWN_ATTACK
+                    ? event->velocity_y_q16 > INT32_C(0)
+                    : event->velocity_y_q16 < INT32_C(0)) &&
                inspection.players[1].damage_q16 ==
                    attack->damage_q16 &&
                inspection.players[1].hitlag_ticks ==
@@ -8360,8 +8362,14 @@ static int pf_web_m4_run_directional_ground_attack_probe(void)
     int initialized;
     int up_passed;
     int down_passed;
+    int forward_passed;
+    int forward_strong_passed;
+    int up_strong_passed;
+    int down_strong_passed;
     int neutral_passed;
     int diagonal_passed;
+    int diagonal_release_passed;
+    int neutral_strong_passed;
     int passed;
     int restored;
 
@@ -8374,23 +8382,57 @@ static int pf_web_m4_run_directional_ground_attack_probe(void)
     up_passed = initialized &&
         pf_web_m4_run_directional_attack_hit_case(
             &pf_web_m4_content.fighter.up_attack,
-            (int16_t)(
-                pf_web_m4_content.fighter.dash_axis_threshold -
-                UINT16_C(1)),
-            INT16_C(-32767),
+            INT16_C(0),
+            (int16_t)-(
+                (int32_t)pf_web_m4_content.fighter
+                    .dash_axis_threshold -
+                INT32_C(1)),
+            PF_INPUT_BUTTON_ATTACK,
             PF_M4_ACTION_UP_ATTACK);
     down_passed = up_passed &&
         pf_web_m4_run_directional_attack_hit_case(
             &pf_web_m4_content.fighter.down_attack,
             INT16_C(0),
-            INT16_C(32767),
+            (int16_t)(
+                pf_web_m4_content.fighter.dash_axis_threshold -
+                UINT16_C(1)),
+            PF_INPUT_BUTTON_ATTACK,
             PF_M4_ACTION_DOWN_ATTACK);
-    neutral_passed = down_passed &&
+    forward_passed = down_passed &&
+        pf_web_m4_run_directional_attack_hit_case(
+            &pf_web_m4_content.fighter.forward_attack,
+            (int16_t)(
+                pf_web_m4_content.fighter.axis_dead_zone + UINT16_C(1)),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            PF_M4_ACTION_FORWARD_ATTACK);
+    forward_strong_passed = forward_passed &&
+        pf_web_m4_run_directional_attack_hit_case(
+            &pf_web_m4_content.fighter.forward_strong_attack,
+            INT16_C(32767),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            PF_M4_ACTION_FORWARD_STRONG_ATTACK);
+    up_strong_passed = forward_strong_passed &&
+        pf_web_m4_run_directional_attack_hit_case(
+            &pf_web_m4_content.fighter.up_strong_attack,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            PF_M4_ACTION_UP_STRONG_ATTACK);
+    down_strong_passed = up_strong_passed &&
+        pf_web_m4_run_directional_attack_hit_case(
+            &pf_web_m4_content.fighter.down_strong_attack,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            PF_M4_ACTION_DOWN_STRONG_ATTACK);
+    neutral_passed = down_strong_passed &&
         pf_web_m4_reset_internal() &&
         pf_web_m4_tick(
             INT16_C(0),
             (int16_t)(
-                pf_web_m4_content.fighter.dash_axis_threshold -
+                pf_web_m4_content.fighter.axis_dead_zone -
                 UINT16_C(1)),
             PF_INPUT_BUTTON_ATTACK,
             INT16_C(0),
@@ -8410,8 +8452,34 @@ static int pf_web_m4_run_directional_ground_attack_probe(void)
             UINT64_C(0),
             &inspection) &&
         inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE &&
+        inspection.players[0].smash_charge_ticks == UINT16_C(1);
+    diagonal_release_passed = diagonal_passed &&
+        pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK &&
+        inspection.players[0].action_ticks == UINT16_C(1) &&
+        inspection.players[0].smash_charge_ticks == UINT16_C(1);
+    neutral_strong_passed = diagonal_release_passed &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
             (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
-    passed = diagonal_passed;
+    passed = neutral_strong_passed;
 
     pf_web_m4_content = saved_content;
     restored = pf_web_m4_initialize_current_content();
@@ -11850,7 +11918,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(38);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(40);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12004,6 +12072,9 @@ static int pf_web_m4_render(void)
             (int32_t)player->grab_owner;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS] =
             (int32_t)player->charge_ticks;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS] =
+            (int32_t)player->smash_charge_ticks;
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
         (int32_t)pf_web_m4_last_result.event_count;

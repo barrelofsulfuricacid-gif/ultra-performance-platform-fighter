@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)554)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)562)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x30)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x32)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -603,6 +603,14 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(
+            writer,
+            world->smash_charge_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(
             writer,
             world->recovery_available[player_index]);
@@ -998,6 +1006,13 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->smash_charge_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->recovery_available[player_index] =
             pf_reader_u8(reader);
     }
@@ -1204,6 +1219,63 @@ static int pf_m4_snapshot_action_is_aerial_attack(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_DOWN_AERIAL;
 }
 
+static int pf_m4_snapshot_action_is_ground_attack(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_UP_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_FORWARD_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
+           action ==
+               (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_JAB_FINAL;
+}
+
+static int pf_m4_snapshot_action_is_smash_charge(uint8_t action)
+{
+    return action ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE ||
+           action == (uint8_t)PF_M4_ACTION_UP_STRONG_CHARGE ||
+           action ==
+               (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE;
+}
+
+static int pf_m4_snapshot_action_is_smash_release(uint8_t action)
+{
+    return action ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
+           action == (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
+           action ==
+               (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK;
+}
+
+static const pf_m4_attack_data *pf_m4_snapshot_ground_attack_data(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action)
+{
+    switch ((pf_m4_action_state)action)
+    {
+        case PF_M4_ACTION_UP_ATTACK:
+            return &fighter->up_attack;
+        case PF_M4_ACTION_DOWN_ATTACK:
+            return &fighter->down_attack;
+        case PF_M4_ACTION_FORWARD_ATTACK:
+            return &fighter->forward_attack;
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+            return &fighter->forward_strong_attack;
+        case PF_M4_ACTION_UP_STRONG_ATTACK:
+            return &fighter->up_strong_attack;
+        case PF_M4_ACTION_DOWN_STRONG_ATTACK:
+            return &fighter->down_strong_attack;
+        default:
+            return NULL;
+    }
+}
+
 static int pf_m4_snapshot_content_state_consistent(
     const pf_m4_content *content,
     const pf_world_state *world)
@@ -1245,9 +1317,35 @@ static int pf_m4_snapshot_content_state_consistent(
             (uint32_t)content->fighter.ledge_attack.startup_ticks +
             (uint32_t)content->fighter.ledge_attack.active_ticks +
             (uint32_t)content->fighter.ledge_attack.recovery_ticks;
+        const pf_m4_attack_data *ground_attack =
+            pf_m4_snapshot_ground_attack_data(
+                &content->fighter,
+                action);
+        const pf_m4_attack_data *ground_attack_resume =
+            pf_m4_snapshot_ground_attack_data(
+                &content->fighter,
+                resume_action);
+        const uint16_t smash_charge_ticks =
+            world->smash_charge_ticks[player_index];
+        const int smash_charge_action =
+            pf_m4_snapshot_action_is_smash_charge(action);
+        const int smash_release_action =
+            pf_m4_snapshot_action_is_smash_release(action);
+        const int smash_release_resume =
+            pf_m4_snapshot_action_is_smash_release(resume_action);
 
         if (world->charge_ticks[player_index] >
                 charge->max_charge_ticks ||
+            smash_charge_ticks >
+                content->fighter.smash_charge_max_ticks ||
+            (smash_charge_action &&
+             (smash_charge_ticks == UINT16_C(0) ||
+              smash_charge_ticks != action_ticks ||
+              smash_charge_ticks >=
+                  content->fighter.smash_charge_max_ticks)) ||
+            (smash_charge_ticks != UINT16_C(0) &&
+             !smash_charge_action && !smash_release_action &&
+             !smash_release_resume) ||
             (charge->enabled == UINT8_C(0) &&
              (world->charge_ticks[player_index] != UINT16_C(0) ||
               charge_action || release_resume)) ||
@@ -1284,10 +1382,21 @@ static int pf_m4_snapshot_content_state_consistent(
              action_ticks >= content->fighter.ledge_roll_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
              (uint32_t)action_ticks >= ledge_attack_ticks) ||
+            (ground_attack != NULL &&
+             (uint32_t)action_ticks >=
+                 (uint32_t)ground_attack->startup_ticks +
+                     (uint32_t)ground_attack->active_ticks +
+                     (uint32_t)ground_attack->recovery_ticks) ||
             (resume_action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
             (resume_action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
              (uint32_t)action_ticks >= ledge_attack_ticks) ||
+            (ground_attack_resume != NULL &&
+             (action_ticks <
+                  ground_attack_resume->startup_ticks + UINT16_C(1) ||
+              action_ticks >
+                  ground_attack_resume->startup_ticks +
+                      ground_attack_resume->active_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_PUMMEL &&
              action_ticks >= content->fighter.pummel_total_ticks) ||
             (recovery->enabled == UINT8_C(0) &&
@@ -1342,6 +1451,7 @@ static int pf_m4_player_state_consistent(
                    UINT16_C(0) &&
                world->grab_escape_ticks[player_index] == UINT16_C(0) &&
                world->charge_ticks[player_index] == UINT16_C(0) &&
+               world->smash_charge_ticks[player_index] == UINT16_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1) &&
                world->grab_target_slot[player_index] == UINT8_C(0) &&
                world->grab_owner_slot[player_index] == UINT8_C(0) &&
@@ -1648,7 +1758,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
+                action >
+                    (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1724,6 +1835,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 tech_direction > INT8_C(1) ||
                 world->grab_escape_ticks[player_index] > UINT16_C(600) ||
                 world->charge_ticks[player_index] > UINT16_C(600) ||
+                world->smash_charge_ticks[player_index] >
+                    UINT16_C(600) ||
                 world->grab_target_slot[player_index] >
                     world->player_count ||
                 world->grab_owner_slot[player_index] >
@@ -1768,18 +1881,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 ((action == (uint8_t)PF_M4_ACTION_HITLAG) !=
                  (hitlag > UINT16_C(0))) ||
                 (hitlag > UINT16_C(0) &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_UP_ATTACK &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_DOWN_ATTACK &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_STRONG_ATTACK &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_DASH_ATTACK &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_JAB_FINAL &&
+                 !pf_m4_snapshot_action_is_ground_attack(
+                     resume_action) &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
                  resume_action !=
@@ -1806,18 +1909,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK) ||
                 (hitlag == UINT16_C(0) &&
                  resume_action != UINT8_C(0)) ||
-                ((resume_action ==
-                      (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_UP_ATTACK ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
-                  resume_action ==
-                      (uint8_t)PF_M4_ACTION_JAB_FINAL ||
+                ((pf_m4_snapshot_action_is_ground_attack(
+                      resume_action) ||
                   pf_m4_snapshot_action_is_aerial_attack(
                       resume_action) ||
                   resume_action ==
@@ -2145,6 +2238,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       UINT16_C(0) ||
                   world->grab_escape_ticks[player_index] != UINT16_C(0) ||
                   world->charge_ticks[player_index] != UINT16_C(0) ||
+                  world->smash_charge_ticks[player_index] !=
+                      UINT16_C(0) ||
                   world->grab_target_slot[player_index] != UINT8_C(0) ||
                   world->grab_owner_slot[player_index] != UINT8_C(0) ||
                   world->stocks_remaining[player_index] != UINT8_C(0))
