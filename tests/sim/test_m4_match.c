@@ -172,6 +172,9 @@ static int make_match_content(
     out_content->stage.platform_half_width_q16 =
         INT32_C(1) * PF_Q16_ONE;
     out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->stage.upper_platform_center_x_q16 =
+        -INT32_C(5) * PF_Q16_ONE;
+    out_content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     out_content->stage.solid_left_q16 =
         -PF_Q16_ONE / INT32_C(10);
     out_content->stage.solid_right_q16 =

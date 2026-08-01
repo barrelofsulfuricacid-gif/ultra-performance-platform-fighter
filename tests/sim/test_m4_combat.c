@@ -2209,7 +2209,7 @@ static int run_smash_charge_snapshot_test(
             PF_STATUS_OK,
             "smash-charge-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE46", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE47", (size_t)8) != 0)
     {
         return fail("smash-charge-save-format");
     }
@@ -3042,7 +3042,7 @@ static int run_directional_aerial_snapshot_test(
             PF_STATUS_OK,
             "directional-aerial-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE46", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE47", (size_t)8) != 0)
     {
         return fail("directional-aerial-save-format");
     }
@@ -19919,7 +19919,7 @@ static int run_ledge_attack_snapshot_test(
             PF_STATUS_OK,
             "ledge-attack-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE46", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE47", (size_t)8) != 0)
     {
         return fail("ledge-attack-save-format");
     }

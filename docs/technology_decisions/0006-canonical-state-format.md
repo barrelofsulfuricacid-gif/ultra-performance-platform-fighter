@@ -56,6 +56,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 44 | 45 | 140 | 586 | 726 | One canonical signed x/y shield-tilt pair per player plus health/strength-derived shield geometry, collision priority over overlapping hurtbox, exposed-hurtbox pokes, and tilt lifecycle semantics |
 | 45 | 46 | 140 | 586 | 726 | No payload-layout change; moving revival-platform action/support IDs, exact stage-derived position, zero-motion lifecycle, input/timeout release, and post-drop invulnerability semantics fail closed |
 | 46 | 47 | 140 | 631 | 771 | Per-player attack-registration latch, stale-move count, and nine newest-first canonical move IDs plus one thrown-item registration latch; owner-local stale damage, successful-hurt registration, and reset/persistence semantics fail closed |
+| 47 | 48 | 140 | 631 | 771 | No payload-layout change; stationary upper pass-through support ID 5, ordinary grounded/airborne relationships, and immutable stage-derived geometry fail closed |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -64,8 +65,9 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
-`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, or `PFSAVE46`.
-The active M4 runtime emits and accepts format 46 with state schema 47. Earlier
+`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`, or
+`PFSAVE47`.
+The active M4 runtime emits and accepts format 47 with state schema 48. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

@@ -1914,6 +1914,34 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `04c6e3c6f475abc21bad130b2789da98fae0d8a66c8fb5d065ee7b3b9adfb14b`;
   the manifest records `perf` as unavailable because it is not installed.
 
+## Implemented in the stationary upper-platform slice
+
+- The default stage now adds a bounded stationary one-way deck from x = 16 to
+  x = 24 at y = 13 above the existing raised block. It has canonical support
+  ID 5. The moving center platform remains the only surface that carries a
+  grounded fighter horizontally.
+- Descending collision selects the first crossed eligible surface among the
+  solid top, moving platform, upper platform, and floor. Both one-way surfaces
+  share ordinary down drop-through, reduced-down shield drop, grounded support
+  bounds/teeter behavior, hitlag correction, and nearest eligible drop-cancel
+  handling. Upward motion continues through either deck.
+- Content validation rejects empty/out-of-floor bounds, invalid vertical
+  placement, same-height moving-platform overlap, revival-descent overlap, and
+  solid-block overlap. Center/y/half-width participate in the content hash.
+  Inspection and the browser collision overlay expose exact left/right/y
+  geometry; the default playtest renders the upper deck in pale pink.
+- Content schema 51/stage schema 4 and inspection schema 44 expose the new
+  immutable geometry. State schema 48/save format 47 retains the 631-byte
+  payload and 771-byte checkpoint under `PFSAVE47`; browser schema 45 appends
+  indices 496–498 for 499 values. Observation/RL layouts remain unchanged.
+  Opaque requirements are 2,464 state bytes and 1,080 scratch bytes within the
+  existing 4 KiB envelopes.
+- The movement executable now covers 349 mechanics invariants, including the
+  deck's authored defaults and invalid cases, landing, fixed support, exact
+  inspection, ordinary and shield drop-through, and equal save/load future
+  hashes. Existing non-geometry browser probes use explicit compact-stage
+  fixtures where necessary; no emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1926,6 +1954,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   contact must enter the authored normal wall jump without consuming the saved
   air jump, and either jump or aerial input must cancel its action window.
   Holding away too early must miss the wall and cannot manufacture the route.
+- The pale upper deck above the raised block must permit ascent from below,
+  catch a descending fighter on support 5 without horizontal carry, and accept
+  both ordinary down drop-through and reduced-down shield drop. The moving
+  center platform remains the carrying comparison.
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
@@ -2054,7 +2086,6 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Representative real-hardware confirmation for the temporary browser
   presentation's standard-gamepad mapping; two hot-plug-polled gamepad slots,
   two keyboard slots, and explicit analog walk/dash controls are implemented.
-- Additional stage geometry beyond the current raised-block test fixture.
 
 ## Remaining M4.2 and M4.3 work
 
@@ -2069,10 +2100,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## First-slice verification
 
-- Release workflow: 22/22 tests.
+- Windows MSVC and WSL GCC 13.3 Release workflows: 22/22 tests each.
 - Address/undefined-behavior sanitizer workflow: 22/22 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 334 movement invariants including Moonwalk timing,
+- Mechanical oracles: 349 movement invariants including upper-platform
+  geometry and drop-through behavior, Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
   958
@@ -2098,14 +2130,14 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,463
   bytes,
   replay SHA-256
-  `142117769ea04308848f89a8812ce97861c56a5342862dded8bf506096fc2809`,
+  `97df1b6238c1fd789ee0861bd6fc126ab21113d02d37e5d2f4347a296edca634`,
   final SHA-256
-  `931c3ccc547f92f6d9ae9dc1ea4c7428315a757b4c165565424b41a6f788ada4`,
+  `3c679aa1d7b1a4dc8c816c94e730adcbca50a0bb4634e5e407f18d3a6316b573`,
   and event-journal SHA-256
   `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
-  local native/WebAssembly output is byte-identical and CI repeats it.
-- Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
-  live-playtest DOM gate.
+  Windows, WSL, and pinned Emscripten 6.0.3 output is byte-identical.
+- The generated-Wasm canonical replay inspector and live playtest pass the
+  headless Microsoft Edge DOM gate.
 
 ## Browser-adapter verification
 

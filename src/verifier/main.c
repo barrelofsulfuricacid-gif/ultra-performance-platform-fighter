@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0x34648cdeb4e2d4e1)
+    UINT64_C(0x7723e97268932d86)
 
 typedef struct pf_verifier_storage
 {
@@ -359,6 +359,9 @@ static int make_m4_match_content(
     content->stage.platform_center_x_q16 = INT32_C(0);
     content->stage.platform_half_width_q16 = INT32_C(3) * PF_Q16_ONE;
     content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content->stage.upper_platform_center_x_q16 =
+        -INT32_C(6) * PF_Q16_ONE;
+    content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     content->stage.solid_left_q16 = INT32_C(5) * PF_Q16_ONE;
     content->stage.solid_right_q16 = INT32_C(6) * PF_Q16_ONE;
     content->stage.blast_left_q16 = -INT32_C(10) * PF_Q16_ONE;

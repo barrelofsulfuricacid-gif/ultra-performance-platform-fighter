@@ -591,6 +591,9 @@ static void pf_m4_hash_stage(
     pf_m4_hash_i32(hash, stage->revival_platform_half_width_q16);
     pf_m4_hash_u16(hash, stage->revival_platform_descent_ticks);
     pf_m4_hash_u16(hash, stage->revival_platform_hold_ticks);
+    pf_m4_hash_i32(hash, stage->upper_platform_center_x_q16);
+    pf_m4_hash_i32(hash, stage->upper_platform_y_q16);
+    pf_m4_hash_i32(hash, stage->upper_platform_half_width_q16);
 }
 
 static void pf_m4_hash_item(
@@ -1363,6 +1366,11 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         INT32_C(2) * PF_Q16_ONE;
     stage->revival_platform_descent_ticks = UINT16_C(30);
     stage->revival_platform_hold_ticks = UINT16_C(90);
+    stage->upper_platform_center_x_q16 =
+        INT32_C(20) * PF_Q16_ONE;
+    stage->upper_platform_y_q16 = INT32_C(13) * PF_Q16_ONE;
+    stage->upper_platform_half_width_q16 =
+        INT32_C(4) * PF_Q16_ONE;
 
     item = &out_content->item;
     item->struct_size = (uint32_t)sizeof(*item);
@@ -1491,6 +1499,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t spawn_right_extent;
     int64_t revival_left_extent;
     int64_t revival_right_extent;
+    int64_t upper_platform_left_extent;
+    int64_t upper_platform_right_extent;
     int64_t maximum_dash_attack_knockback_x;
     int64_t maximum_dash_attack_knockback_y;
     int64_t maximum_jab_knockback_x;
@@ -1514,6 +1524,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     uint32_t stale_index;
     uint32_t stale_reduction_total_q16 = UINT32_C(0);
     int solid_overlaps_platform;
+    int upper_overlaps_platform;
+    int upper_overlaps_revival;
+    int upper_overlaps_solid;
 
     if (content == NULL)
     {
@@ -2431,11 +2444,33 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     revival_right_extent =
         INT64_C(3) * (int64_t)stage->spawn_spacing_q16 +
         (int64_t)stage->revival_platform_half_width_q16;
+    upper_platform_left_extent =
+        (int64_t)stage->upper_platform_center_x_q16 -
+        (int64_t)stage->upper_platform_half_width_q16;
+    upper_platform_right_extent =
+        (int64_t)stage->upper_platform_center_x_q16 +
+        (int64_t)stage->upper_platform_half_width_q16;
     solid_overlaps_platform =
         stage->platform_y_q16 >= stage->solid_top_q16 &&
         stage->platform_y_q16 <= stage->solid_bottom_q16 &&
         platform_right_extent >= (int64_t)stage->solid_left_q16 &&
         platform_left_extent <= (int64_t)stage->solid_right_q16;
+    upper_overlaps_platform =
+        stage->upper_platform_y_q16 == stage->platform_y_q16 &&
+        upper_platform_right_extent >= platform_left_extent &&
+        upper_platform_left_extent <= platform_right_extent;
+    upper_overlaps_revival =
+        stage->upper_platform_y_q16 >=
+            stage->revival_platform_start_y_q16 &&
+        stage->upper_platform_y_q16 <=
+            stage->revival_platform_end_y_q16 &&
+        upper_platform_right_extent >= revival_left_extent &&
+        upper_platform_left_extent <= revival_right_extent;
+    upper_overlaps_solid =
+        stage->upper_platform_y_q16 >= stage->solid_top_q16 &&
+        stage->upper_platform_y_q16 <= stage->solid_bottom_q16 &&
+        upper_platform_right_extent >= (int64_t)stage->solid_left_q16 &&
+        upper_platform_left_extent <= (int64_t)stage->solid_right_q16;
     if (stage->floor_left_q16 >= stage->floor_right_q16 ||
         stage->blast_left_q16 >= stage->floor_left_q16 ||
         stage->blast_right_q16 <= stage->floor_right_q16 ||
@@ -2453,6 +2488,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         stage->platform_motion_amplitude_q16 < INT32_C(0) ||
         platform_left_extent < (int64_t)stage->floor_left_q16 ||
         platform_right_extent > (int64_t)stage->floor_right_q16 ||
+        stage->blast_top_q16 >= stage->upper_platform_y_q16 ||
+        stage->upper_platform_y_q16 >= stage->floor_y_q16 ||
+        stage->upper_platform_half_width_q16 <= INT32_C(0) ||
+        upper_platform_left_extent < (int64_t)stage->floor_left_q16 ||
+        upper_platform_right_extent > (int64_t)stage->floor_right_q16 ||
+        upper_overlaps_platform != 0 ||
+        upper_overlaps_revival != 0 ||
+        upper_overlaps_solid != 0 ||
         stage->spawn_spacing_q16 <= INT32_C(0) ||
         spawn_right_extent > (int64_t)stage->floor_right_q16 ||
         spawn_left_extent < (int64_t)stage->floor_left_q16 ||

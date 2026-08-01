@@ -124,9 +124,10 @@ pauses on the result banner; `Rematch` restarts the same configuration and
 `Change Setup` returns to the stock selector. This is the temporary M4.3 local
 loop, not the full M7 menu/navigation surface.
 
-The collision inspector starts enabled. Green/cyan/purple stage lines identify
-the exact floor, one-way platform, and solid-block collision surfaces; the pink
-dashed rectangle is the blast zone. Blue translucent rectangles are fighter
+The collision inspector starts enabled. Green, cyan, pale-pink, and purple
+stage lines identify the exact floor, moving one-way platform, stationary upper
+one-way platform, and solid-block collision surfaces; the pink dashed rectangle
+is the blast zone. Blue translucent rectangles are fighter
 hurtboxes, gold rectangles are active attack hitboxes, and cyan rectangles are
 active grabboxes. Relay Rod body/attack extents and the active Pulse Bolt
 hitbox use the same collision-space transform. An invulnerable fighter keeps a
@@ -152,7 +153,7 @@ are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 44 contains 496 signed values. Each of the four player
+Browser view schema 45 contains 499 signed values. Each of the four player
 blocks has a 53-value stride and appends shield-active, exact
 left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
 event count is at 236, event entries begin at 237, the item block begins at
@@ -161,12 +162,20 @@ and four append-only revival-platform values per fixed player occupy 431–446.
 Four 12-value stale-move records occupy 447–494: queue count, the selected
 move's Q16.16 multiplier, the per-attack registration latch, and nine canonical
 move IDs newest first. The thrown item's per-instance registration latch is at
-495. The state cards show raw shield strength, percentage, tilt, platform
+495. The stationary upper platform's exact left, right, and y values are
+append-only at 496–498. The state cards show raw shield strength, percentage, tilt, platform
 activity, the readable stale queue, selected-move scale, and registration.
 Bubble fill and
 stroke weight distinguish light from dense input, while the collision
 inspector draws the authoritative shield AABB and the regular presentation
 draws an ellipse inside those same bounds.
+
+For the additional stage-geometry check, climb onto the raised block, jump
+through the pale-pink deck from below, and fall back onto it. The fighter must
+stop on the deck without horizontal carry. Hold down to fall through; while
+shielding, use the reduced-down input to take the same shield-drop route. The
+cyan center platform remains the visibly moving comparison and continues to
+carry its grounded passenger.
 
 Unmodified horizontal keys emit full stick magnitude and can enter initial
 dash. Reversing them during the ten-tick initial-dash window performs a

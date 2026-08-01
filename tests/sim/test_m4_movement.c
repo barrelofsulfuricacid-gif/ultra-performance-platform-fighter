@@ -6444,6 +6444,307 @@ static int run_platform_test(const pf_m4_content *default_content)
     return 1;
 }
 
+static int prepare_upper_platform(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7570706572)),
+            PF_STATUS_OK,
+            "upper-platform-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded != UINT8_C(0) &&
+            out_inspection->players[0].support ==
+                (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM)
+        {
+            break;
+        }
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(20) &&
+         out_inspection->players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+         ++tick)
+    {
+        if (!step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return out_inspection->players[0].grounded != UINT8_C(0) &&
+           out_inspection->players[0].support ==
+               (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+}
+
+static int run_upper_platform_test(
+    const pf_m4_content *default_content)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_m4_content platform_content = *default_content;
+    pf_m4_content invalid_content;
+    pf_content_view platform_view;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    int32_t stationary_x;
+
+    if (default_content->stage.upper_platform_center_x_q16 !=
+            INT32_C(20) * PF_Q16_ONE ||
+        default_content->stage.upper_platform_y_q16 !=
+            INT32_C(13) * PF_Q16_ONE ||
+        default_content->stage.upper_platform_half_width_q16 !=
+            INT32_C(4) * PF_Q16_ONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=upper-platform-defaults\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.stage.upper_platform_half_width_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-empty-upper-platform"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.stage.upper_platform_y_q16 =
+        invalid_content.stage.blast_top_q16;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-high-upper-platform"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.stage.upper_platform_y_q16 =
+        invalid_content.stage.solid_top_q16;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-solid-overlap-upper-platform"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.stage.upper_platform_center_x_q16 =
+        invalid_content.stage.platform_center_x_q16;
+    invalid_content.stage.upper_platform_y_q16 =
+        invalid_content.stage.platform_y_q16;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-moving-overlap-upper-platform"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.stage.upper_platform_center_x_q16 =
+        invalid_content.stage.floor_right_q16;
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-outside-upper-platform"))
+    {
+        return 0;
+    }
+
+    platform_content.stage.platform_center_x_q16 =
+        -INT32_C(24) * PF_Q16_ONE;
+    platform_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    platform_content.stage.platform_half_width_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    platform_content.stage.upper_platform_center_x_q16 =
+        -INT32_C(4) * PF_Q16_ONE;
+    platform_content.stage.upper_platform_y_q16 =
+        INT32_C(25) * PF_Q16_ONE;
+    platform_content.stage.upper_platform_half_width_q16 =
+        INT32_C(6) * PF_Q16_ONE;
+    if (!expect_status(
+            pf_m4_make_content_view(&platform_content, &platform_view),
+            PF_STATUS_OK,
+            "upper-platform-content-view") ||
+        !initialize_sim(
+            &source_storage,
+            &platform_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            &platform_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !prepare_upper_platform(source, &source_inspection) ||
+        source_inspection.stage.upper_platform_left_q16 !=
+            -INT32_C(10) * PF_Q16_ONE ||
+        source_inspection.stage.upper_platform_right_q16 !=
+            INT32_C(2) * PF_Q16_ONE ||
+        source_inspection.stage.upper_platform_y_q16 !=
+            INT32_C(25) * PF_Q16_ONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=upper-platform-landing\n");
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "upper-platform-save") ||
+        destination.size != (size_t)771)
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "upper-platform-load"))
+    {
+        return 0;
+    }
+    stationary_x = source_inspection.players[0].position_x_q16;
+    if (!step_duel_trigger(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection) ||
+        !step_duel_trigger(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &loaded_inspection) ||
+        source_inspection.players[0].position_x_q16 != stationary_x ||
+        loaded_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "upper-platform-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "upper-platform-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=upper-platform-continuation\n");
+        return 0;
+    }
+
+    if (!step_duel_trigger(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !step_duel_trigger(
+            source,
+            INT16_C(0),
+            (int16_t)platform_content.fighter
+                .shield_drop_axis_threshold,
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        source_inspection.players[0].platform_drop_ticks == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=upper-platform-shield-drop\n");
+        return 0;
+    }
+
+    if (!prepare_upper_platform(source, &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        source_inspection.players[0].grounded != UINT8_C(0) ||
+        source_inspection.players[0].support !=
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        source_inspection.players[0].position_y_q16 <=
+            platform_content.stage.upper_platform_y_q16 -
+                platform_content.fighter.half_height_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=upper-platform-drop\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int prepare_shield_drop_platform(
     pf_sim *sim,
     pf_m4_inspection *out_inspection)
@@ -10214,6 +10515,7 @@ int main(void)
         !run_aerial_landing_test(&content, &view) ||
         !run_strong_aerial_landing_test(&content, &view) ||
         !run_platform_test(&content) ||
+        !run_upper_platform_test(&content) ||
         !run_shield_platform_drop_test(&content, &view) ||
         !run_solid_geometry_test(&content) ||
         !run_scar_jump_test(&content, &view) ||
@@ -10228,7 +10530,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=334 moonwalk=1 teeter_cancel=1 "
+        "movement_invariants=349 moonwalk=1 teeter_cancel=1 "
         "taunt_cancel=1 "
         "scar_jump=1 "
         "stage_humping=1 "

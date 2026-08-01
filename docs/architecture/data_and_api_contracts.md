@@ -369,6 +369,19 @@ append four packed four-value records at 86–101 for 102 values total. Browser 
 keeps indices 0–446 stable, appends the four 12-value player records at 447–494,
 and exposes the item latch at 495 for 496 values total. Opaque requirements are
 2,448 state bytes and 1,080 scratch bytes inside the unchanged 4 KiB envelopes.
+State schema 48 / save format 47 retains the 631-byte payload and 771-byte
+checkpoint under `PFSAVE47`; support ID 5 denotes the stationary upper
+pass-through platform and is validated through the same grounded/airborne state
+relationships as the existing ordinary supports. No stage coordinate is added
+to the payload because stage data remains immutable compatibility identity.
+Content schema 51/stage schema 4 append, validate, and hash the upper-platform
+center x, y, and half-width. Inspection schema 44 exposes derived left/right/y
+geometry. Browser schema 45 preserves indices 0–495 and appends those three
+values at 496–498 for 499 values total. Fighter schema 44, observation schema
+10, RL schema 12/transition schema 10, compact schema 11 with 102 values, save
+sizes, and the 1,080-byte scratch requirement remain unchanged. The larger
+copied immutable stage record raises the public state requirement from 2,448 to
+2,464 bytes, within the existing 4 KiB envelope.
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain

@@ -71,6 +71,14 @@ pf_require_source \
     'PF_WEB_M4_VIEW_SOLID_BOTTOM' \
     "$bridge"
 pf_require_source \
+    "upper platform inspection" \
+    'PF_WEB_M4_VIEW_UPPER_PLATFORM0' \
+    "$bridge"
+pf_require_source \
+    "upper platform rendering" \
+    'context.moveTo(sx(view[496]), sy(view[498]));' \
+    "$adapter"
+pf_require_source \
     "fighter hitbox inspection" \
     'PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM' \
     "$bridge"
@@ -80,10 +88,10 @@ pf_require_source \
     "$bridge"
 
 cat >"$output_dir/semantics.txt" <<'EOF'
-stage=floor,one-way-platform,solid-block,blast-zone
+stage=floor,moving-one-way-platform,upper-one-way-platform,solid-block,blast-zone
 fighter=hurtbox,attack-hitbox,grabbox,invulnerability
 object=item-body,item-hitbox,projectile-hitbox
 toggle=button,keyboard-I,pause-safe-redraw
 EOF
 
-echo "collision-hitbox-overlay=pass stage_surfaces=4 fighter_boxes=3 object_boxes=3 pause_safe=1"
+echo "collision-hitbox-overlay=pass stage_surfaces=5 fighter_boxes=3 object_boxes=3 pause_safe=1"

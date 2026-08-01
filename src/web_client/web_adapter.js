@@ -1590,6 +1590,8 @@ mergeInto(LibraryManager.library, {
       "the control. To stage-spike, fight below the raised block and launch the " +
       "opponent into its underside; a missed tech ceiling-bounces downward, " +
       "while a fresh trigger produces the ceiling-tech control. " +
+      "The pale upper deck above that block is a stationary second one-way " +
+      "surface: land from above, or hold down to pass through it. " +
        "The deterministic event feed below records hits, shield interactions, " +
       "grabs, throws, KOs, revival drops, sudden death, and results in canonical " +
       "sequence order. " +
@@ -2365,7 +2367,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 496) {
+    if (!state || viewCount !== 499) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2374,7 +2376,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 44) {
+    if (view[0] !== 45) {
       return;
     }
     var canvas = state.canvas;
@@ -2745,6 +2747,13 @@ mergeInto(LibraryManager.library, {
     context.lineTo(sx(view[6]), sy(view[7]));
     context.stroke();
 
+    context.strokeStyle = "#efb8ff";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(sx(view[496]), sy(view[498]));
+    context.lineTo(sx(view[497]), sy(view[498]));
+    context.stroke();
+
     [0, 1, 2, 3].forEach(function (playerIndex) {
       var revivalBase = 431 + playerIndex * 4;
       if (view[revivalBase] === 0) {
@@ -2836,6 +2845,12 @@ mergeInto(LibraryManager.library, {
       context.beginPath();
       context.moveTo(sx(view[5]), sy(view[7]));
       context.lineTo(sx(view[6]), sy(view[7]));
+      context.stroke();
+
+      context.strokeStyle = "#efb8ff";
+      context.beginPath();
+      context.moveTo(sx(view[496]), sy(view[498]));
+      context.lineTo(sx(view[497]), sy(view[498]));
       context.stroke();
 
       context.setLineDash([]);

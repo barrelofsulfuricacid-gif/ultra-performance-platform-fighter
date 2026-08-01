@@ -369,6 +369,63 @@ int32_t pf_m4_platform_center_x_q16(
         (int64_t)stage->platform_center_x_q16 + offset);
 }
 
+static int pf_m4_find_drop_cancel_platform(
+    const pf_m4_stage_data *stage,
+    const pf_m4_fighter_data *fighter,
+    uint64_t tick,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int32_t *out_surface_y_q16,
+    uint8_t *out_support)
+{
+    const int32_t platform_center =
+        pf_m4_platform_center_x_q16(stage, tick);
+    const int32_t platform_left =
+        platform_center - stage->platform_half_width_q16;
+    const int32_t platform_right =
+        platform_center + stage->platform_half_width_q16;
+    const int32_t upper_left =
+        stage->upper_platform_center_x_q16 -
+        stage->upper_platform_half_width_q16;
+    const int32_t upper_right =
+        stage->upper_platform_center_x_q16 +
+        stage->upper_platform_half_width_q16;
+    const int64_t body_bottom =
+        (int64_t)position_y_q16 + fighter->half_height_q16;
+    int64_t best_distance = INT64_MAX;
+
+    if (position_x_q16 >= platform_left &&
+        position_x_q16 <= platform_right)
+    {
+        const int64_t distance =
+            body_bottom - (int64_t)stage->platform_y_q16;
+
+        if (distance >= INT64_C(0) &&
+            distance <= fighter->drop_cancel_snap_distance_q16)
+        {
+            best_distance = distance;
+            *out_surface_y_q16 = stage->platform_y_q16;
+            *out_support = (uint8_t)PF_M4_SURFACE_PLATFORM;
+        }
+    }
+    if (position_x_q16 >= upper_left &&
+        position_x_q16 <= upper_right)
+    {
+        const int64_t distance =
+            body_bottom - (int64_t)stage->upper_platform_y_q16;
+
+        if (distance >= INT64_C(0) &&
+            distance <= fighter->drop_cancel_snap_distance_q16 &&
+            distance < best_distance)
+        {
+            best_distance = distance;
+            *out_surface_y_q16 = stage->upper_platform_y_q16;
+            *out_support = (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
+        }
+    }
+    return best_distance != INT64_MAX;
+}
+
 static int32_t pf_m4_surface_y_q16(
     const pf_m4_content *content,
     uint8_t support)
@@ -381,7 +438,17 @@ static int32_t pf_m4_surface_y_q16(
     {
         return content->stage.solid_top_q16;
     }
+    if (support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM)
+    {
+        return content->stage.upper_platform_y_q16;
+    }
     return content->stage.floor_y_q16;
+}
+
+static int pf_m4_surface_is_pass_through(uint8_t support)
+{
+    return support == (uint8_t)PF_M4_SURFACE_PLATFORM ||
+           support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
 }
 
 static void pf_m4_surface_bounds_q16(
@@ -402,6 +469,15 @@ static void pf_m4_surface_bounds_q16(
     {
         *out_left = content->stage.solid_left_q16;
         *out_right = content->stage.solid_right_q16;
+    }
+    else if (support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM)
+    {
+        *out_left =
+            content->stage.upper_platform_center_x_q16 -
+            content->stage.upper_platform_half_width_q16;
+        *out_right =
+            content->stage.upper_platform_center_x_q16 +
+            content->stage.upper_platform_half_width_q16;
     }
     else
     {
@@ -2279,8 +2355,8 @@ pf_status pf_m4_step_player(
     const int shield_platform_drop_requested =
         shield_held != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
-        world->support[player_index] ==
-            (uint8_t)PF_M4_SURFACE_PLATFORM &&
+        pf_m4_surface_is_pass_through(
+            world->support[player_index]) != 0 &&
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_SHIELD &&
         input->main_stick_y >=
@@ -2600,31 +2676,26 @@ pf_status pf_m4_step_player(
             platform_drop_ticks == UINT8_C(0) &&
             scratch->hitlag_ticks[player_index] == UINT16_C(1))
         {
-            const int32_t platform_center =
-                pf_m4_platform_center_x_q16(
-                    stage,
-                    world->tick + UINT64_C(1));
-            const int32_t platform_left =
-                platform_center - stage->platform_half_width_q16;
-            const int32_t platform_right =
-                platform_center + stage->platform_half_width_q16;
-            const int64_t drop_distance =
-                (int64_t)position_y + fighter->half_height_q16 -
-                stage->platform_y_q16;
+            int32_t drop_cancel_surface_y_q16 = INT32_C(0);
+            uint8_t drop_cancel_support =
+                (uint8_t)PF_M4_SURFACE_NONE;
 
-            if (position_x >= platform_left &&
-                position_x <= platform_right &&
-                drop_distance >= INT64_C(0) &&
-                drop_distance <=
-                    fighter->drop_cancel_snap_distance_q16)
+            if (pf_m4_find_drop_cancel_platform(
+                    stage,
+                    fighter,
+                    world->tick + UINT64_C(1),
+                    position_x,
+                    position_y,
+                    &drop_cancel_surface_y_q16,
+                    &drop_cancel_support))
             {
                 uint8_t landing_action =
                     scratch->hitlag_resume_action[player_index];
 
                 pf_m4_land_from_air(
                     fighter,
-                    stage->platform_y_q16,
-                    (uint8_t)PF_M4_SURFACE_PLATFORM,
+                    drop_cancel_surface_y_q16,
+                    drop_cancel_support,
                     input->main_stick_x,
                     scratch,
                     player_index,
@@ -4427,7 +4498,7 @@ pf_status pf_m4_step_player(
              input->main_stick_y >=
                  (int16_t)fighter->crouch_axis_threshold)
     {
-        if (support == (uint8_t)PF_M4_SURFACE_PLATFORM)
+        if (pf_m4_surface_is_pass_through(support) != 0)
         {
             grounded = UINT8_C(0);
             support = (uint8_t)PF_M4_SURFACE_NONE;
@@ -5440,9 +5511,23 @@ pf_status pf_m4_step_player(
                 platform_center - stage->platform_half_width_q16;
             const int32_t platform_right =
                 platform_center + stage->platform_half_width_q16;
+            const int32_t upper_platform_left =
+                stage->upper_platform_center_x_q16 -
+                stage->upper_platform_half_width_q16;
+            const int32_t upper_platform_right =
+                stage->upper_platform_center_x_q16 +
+                stage->upper_platform_half_width_q16;
             const int down_held =
                 input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
+            const int pass_through_allowed =
+                !down_held ||
+                action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
+            int32_t landing_y_q16 = INT32_MAX;
+            uint8_t landing_support =
+                (uint8_t)PF_M4_SURFACE_NONE;
 
             if (pf_m4_body_overlaps_horizontal_interval(
                     position_x,
@@ -5452,63 +5537,49 @@ pf_status pf_m4_step_player(
                 previous_bottom <= stage->solid_top_q16 &&
                 new_bottom >= stage->solid_top_q16)
             {
-                pf_m4_land_from_air(
-                    fighter,
-                    stage->solid_top_q16,
-                    (uint8_t)PF_M4_SURFACE_SOLID_TOP,
-                    input->main_stick_x,
-                    scratch,
-                    player_index,
-                    &position_y,
-                    &velocity_x,
-                    &velocity_y,
-                    &action_ticks,
-                    &grounded,
-                    &action_state,
-                    &support,
-                    &air_jumps_remaining,
-                    &short_hop_latched,
-                    &fast_fall,
-                    &dash_direction);
+                landing_y_q16 = stage->solid_top_q16;
+                landing_support =
+                    (uint8_t)PF_M4_SURFACE_SOLID_TOP;
             }
-            else if ((!down_held ||
-                action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
-                action_state ==
-                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK) &&
+            if (pass_through_allowed != 0 &&
                 platform_drop_ticks == UINT8_C(0) &&
                 position_x >= platform_left &&
                 position_x <= platform_right &&
                 previous_bottom <= stage->platform_y_q16 &&
-                new_bottom >= stage->platform_y_q16)
+                new_bottom >= stage->platform_y_q16 &&
+                stage->platform_y_q16 < landing_y_q16)
             {
-                pf_m4_land_from_air(
-                    fighter,
-                    stage->platform_y_q16,
-                    (uint8_t)PF_M4_SURFACE_PLATFORM,
-                    input->main_stick_x,
-                    scratch,
-                    player_index,
-                    &position_y,
-                    &velocity_x,
-                    &velocity_y,
-                    &action_ticks,
-                    &grounded,
-                    &action_state,
-                    &support,
-                    &air_jumps_remaining,
-                    &short_hop_latched,
-                    &fast_fall,
-                    &dash_direction);
+                landing_y_q16 = stage->platform_y_q16;
+                landing_support =
+                    (uint8_t)PF_M4_SURFACE_PLATFORM;
             }
-            else if (position_x >= stage->floor_left_q16 &&
-                     position_x <= stage->floor_right_q16 &&
-                     previous_bottom <= stage->floor_y_q16 &&
-                     new_bottom >= stage->floor_y_q16)
+            if (pass_through_allowed != 0 &&
+                platform_drop_ticks == UINT8_C(0) &&
+                position_x >= upper_platform_left &&
+                position_x <= upper_platform_right &&
+                previous_bottom <= stage->upper_platform_y_q16 &&
+                new_bottom >= stage->upper_platform_y_q16 &&
+                stage->upper_platform_y_q16 < landing_y_q16)
+            {
+                landing_y_q16 = stage->upper_platform_y_q16;
+                landing_support =
+                    (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
+            }
+            if (position_x >= stage->floor_left_q16 &&
+                position_x <= stage->floor_right_q16 &&
+                previous_bottom <= stage->floor_y_q16 &&
+                new_bottom >= stage->floor_y_q16 &&
+                stage->floor_y_q16 < landing_y_q16)
+            {
+                landing_y_q16 = stage->floor_y_q16;
+                landing_support = (uint8_t)PF_M4_SURFACE_FLOOR;
+            }
+            if (landing_support != (uint8_t)PF_M4_SURFACE_NONE)
             {
                 pf_m4_land_from_air(
                     fighter,
-                    stage->floor_y_q16,
-                    (uint8_t)PF_M4_SURFACE_FLOOR,
+                    landing_y_q16,
+                    landing_support,
                     input->main_stick_x,
                     scratch,
                     player_index,
@@ -5862,6 +5933,14 @@ pf_status pf_m4_inspect(
         stage->revival_platform_descent_ticks;
     out_inspection->stage.revival_platform_hold_ticks =
         stage->revival_platform_hold_ticks;
+    out_inspection->stage.upper_platform_left_q16 =
+        stage->upper_platform_center_x_q16 -
+        stage->upper_platform_half_width_q16;
+    out_inspection->stage.upper_platform_right_q16 =
+        stage->upper_platform_center_x_q16 +
+        stage->upper_platform_half_width_q16;
+    out_inspection->stage.upper_platform_y_q16 =
+        stage->upper_platform_y_q16;
     out_inspection->item.position_x_q16 =
         sim->world.item_position_x_q16;
     out_inspection->item.position_y_q16 =

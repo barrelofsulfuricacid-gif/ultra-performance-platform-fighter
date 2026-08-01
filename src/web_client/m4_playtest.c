@@ -31,7 +31,8 @@
 #define PF_WEB_M4_VIEW_STALE_MOVE0 447
 #define PF_WEB_M4_VIEW_STALE_MOVE_STRIDE 12
 #define PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED 495
-#define PF_WEB_M4_VIEW_COUNT 496
+#define PF_WEB_M4_VIEW_UPPER_PLATFORM0 496
+#define PF_WEB_M4_VIEW_COUNT 499
 
 enum pf_web_m4_view_field
 {
@@ -161,7 +162,10 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_STALE_MOVE_COUNT = 0,
     PF_WEB_M4_VIEW_STALE_MOVE_MULTIPLIER = 1,
     PF_WEB_M4_VIEW_STALE_MOVE_REGISTERED = 2,
-    PF_WEB_M4_VIEW_STALE_MOVE_IDS = 3
+    PF_WEB_M4_VIEW_STALE_MOVE_IDS = 3,
+    PF_WEB_M4_VIEW_UPPER_PLATFORM_LEFT = 0,
+    PF_WEB_M4_VIEW_UPPER_PLATFORM_RIGHT = 1,
+    PF_WEB_M4_VIEW_UPPER_PLATFORM_Y = 2
 };
 
 static uint32_t pf_web_m4_expected_repeated_move_damage_q16(
@@ -11244,6 +11248,10 @@ static int pf_web_m4_run_shine_spike_probe(void)
         pf_web_m4_content.stage.platform_half_width_q16 = PF_Q16_ONE;
         pf_web_m4_content.stage.platform_motion_amplitude_q16 =
             INT32_C(0);
+        pf_web_m4_content.stage.upper_platform_center_x_q16 =
+            INT32_C(0);
+        pf_web_m4_content.stage.upper_platform_half_width_q16 =
+            PF_Q16_ONE;
         pf_web_m4_content.stage.solid_left_q16 =
             INT32_C(2) * PF_Q16_ONE;
         pf_web_m4_content.stage.solid_right_q16 =
@@ -12195,7 +12203,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(44);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(45);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12564,6 +12572,18 @@ static int pf_web_m4_render(void)
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED] =
         (int32_t)inspection.item.stale_registered;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
+        PF_WEB_M4_VIEW_UPPER_PLATFORM_LEFT] =
+        inspection.stage.upper_platform_left_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
+        PF_WEB_M4_VIEW_UPPER_PLATFORM_RIGHT] =
+        inspection.stage.upper_platform_right_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_UPPER_PLATFORM0 +
+        PF_WEB_M4_VIEW_UPPER_PLATFORM_Y] =
+        inspection.stage.upper_platform_y_q16;
 
     pf_web_m4_playtest_render(
         pf_web_m4_view,

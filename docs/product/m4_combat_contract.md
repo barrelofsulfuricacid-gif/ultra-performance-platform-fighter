@@ -688,6 +688,32 @@ damage-flight path in the pinned Melee decomp:
 and
 [flight reflection](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_FlyReflect.c).
 
+## Upper pass-through stage deck
+
+The default stage also has a stationary upper one-way deck from x = 16 through
+x = 24 at y = 13, directly above the raised block. It is a distinct canonical
+support (`UPPER_PLATFORM`, ID 5), not another phase of the moving center
+platform. The center platform remains the only surface that carries a grounded
+fighter horizontally; the upper deck has fixed authored bounds.
+
+A descending fighter lands on the first eligible crossed surface among the
+solid top, moving one-way platform, upper one-way platform, and floor. Both
+one-way platforms permit upward travel, ignore ordinary landing while down is
+held, accept the grounded down drop-through, and accept the reduced-down shield
+platform-drop route. The shared support geometry also drives grounded clamping,
+teeter transitions, hitlag position correction, and the nearest eligible
+drop-cancel snap without introducing a stage-specific action.
+
+Stage validation rejects an empty or out-of-floor deck, a y coordinate outside
+the blast-top/floor interval, and intersections with the moving platform at the
+same height, the revival-platform descent volume, or the solid block. The
+authored center, height, and half-width participate in content identity.
+Inspection and the browser collision overlay expose exact left/right/y values.
+Support, save/load, clone, rollback, replay, and future hashes use the ordinary
+production state path. The focused movement oracle covers landing, stationary
+support, both drop-through inputs, inspection, and equal post-load continuation;
+no emergent-technique-only harness was added.
+
 ## Analog light shield, dense shield, shield stop, and release
 
 The stronger normalized analog trigger is the fighter's canonical shield
@@ -1638,6 +1664,18 @@ view schema 44 retains indices 0–446 and appends player stale records at
 447–494 plus the item latch at 495, producing 496 values. Opaque requirements
 are 2,448 state bytes and 1,080 scratch bytes within the existing 4 KiB caller
 envelopes.
+
+State schema 48 / save format 47 retains the 631-byte payload and 771-byte
+checkpoint under `PFSAVE47` while accepting support 5 and its ordinary grounded
+state relationships. The immutable stage record is not serialized; content
+schema 51/stage schema 4 append and hash the upper-deck center, y, and
+half-width. Inspection schema 44 appends exact upper-deck left/right/y geometry.
+Browser view schema 45 keeps indices 0–495 stable and appends those three values
+at 496–498, producing 499 values. Fighter schema 44, observation schema 10, RL
+schema 12/transition schema 10, compact schema 11 with 102 values, the payload,
+checkpoint, and 1,080-byte scratch requirement are unchanged. Copying the larger
+immutable stage record raises the opaque state requirement from 2,448 to 2,464
+bytes, still within the 4 KiB caller envelope.
 
 Browser view schema 40 previously expanded each player block from 44 to 45 values by
 appending smash-charge ticks, yielding 400 values total. Event count moves to

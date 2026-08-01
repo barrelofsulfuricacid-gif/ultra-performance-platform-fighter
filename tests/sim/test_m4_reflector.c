@@ -114,6 +114,8 @@ static int make_reflector_content(
     content->stage.platform_center_x_q16 = -INT32_C(4) * PF_Q16_ONE;
     content->stage.platform_half_width_q16 = INT32_C(1) * PF_Q16_ONE;
     content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content->stage.upper_platform_center_x_q16 = INT32_C(0);
+    content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     content->stage.solid_left_q16 = INT32_C(2) * PF_Q16_ONE;
     content->stage.solid_right_q16 = INT32_C(6) * PF_Q16_ONE;
     content->stage.blast_left_q16 = -INT32_C(12) * PF_Q16_ONE;

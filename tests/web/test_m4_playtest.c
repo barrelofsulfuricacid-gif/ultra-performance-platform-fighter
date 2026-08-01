@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 496
+#define TEST_VIEW_COUNT 499
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 53
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -55,6 +55,9 @@
 #define TEST_EVENT_TARGET 4
 #define TEST_EVENT_VALUE 5
 #define TEST_EVENT_DETAIL 9
+#define TEST_UPPER_PLATFORM_LEFT 496
+#define TEST_UPPER_PLATFORM_RIGHT 497
+#define TEST_UPPER_PLATFORM_Y 498
 #define TEST_ITEM_BASE 397
 #define TEST_ITEM_ENABLED 0
 #define TEST_ITEM_STATE 1
@@ -531,7 +534,7 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 44 ||
+        test_view[0] != 45 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -574,6 +577,9 @@ int main(void)
             TEST_PROJECTILE_BASE + TEST_PROJECTILE_HITBOX_ACTIVE] != 0 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_X] != 0 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_Y] != 0 ||
+        test_view[TEST_UPPER_PLATFORM_LEFT] != 16 * 65536 ||
+        test_view[TEST_UPPER_PLATFORM_RIGHT] != 24 * 65536 ||
+        test_view[TEST_UPPER_PLATFORM_Y] != 13 * 65536 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_VX] != 0 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_VY] != 0 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_LIFETIME] != 0 ||

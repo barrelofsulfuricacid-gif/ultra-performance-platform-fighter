@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x36)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x37)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -2007,7 +2007,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->stock_count != UINT8_C(0) &&
                  world->stocks_remaining[player_index] == UINT8_C(0)) ||
                 world->support[player_index] >
-                    (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
+                    (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
                 world->recovery_available[player_index] > UINT8_C(1) ||
                 world->short_hop_latched[player_index] > UINT8_C(1) ||
