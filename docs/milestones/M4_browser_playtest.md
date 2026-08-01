@@ -956,6 +956,9 @@ through:
   lockout exclusions;
 - standing and held-grounded-crouch jabs proving equal damage/hitlag, exact 2/3
   launch and hitstun, and a typed crouch-cancel flag in the reaction probe;
+- default and 2.0-weight target jabs proving exact two-axis launch halving,
+  recomputed lower hitstun, equal damage/hitlag, and default-content restoration
+  inside that same reaction probe;
 - reduced-stick walking to close, safe, and far attack bands, followed by a
   jab-first responder proving close jab contact, a safe jab-whiff-to-strong
   counter, a far double whiff, and a safe-tip shield block;

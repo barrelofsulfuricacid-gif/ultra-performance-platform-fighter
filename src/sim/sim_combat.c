@@ -77,6 +77,25 @@ static int32_t pf_m4_scale_velocity_q16(
         (int64_t)PF_Q16_ONE);
 }
 
+static int32_t pf_m4_apply_weight_q16(
+    int32_t velocity_q16,
+    int32_t weight_q16)
+{
+    int64_t weighted_velocity =
+        (int64_t)velocity_q16 * (int64_t)PF_Q16_ONE /
+        (int64_t)weight_q16;
+
+    if (weighted_velocity > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    {
+        return PF_SIM_MAX_MOTION_SPEED_Q16;
+    }
+    if (weighted_velocity < -(int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    {
+        return -PF_SIM_MAX_MOTION_SPEED_Q16;
+    }
+    return (int32_t)weighted_velocity;
+}
+
 static uint16_t pf_m4_scale_hitstun_ticks(
     uint16_t hitstun_ticks,
     int32_t scale_q16)
@@ -939,6 +958,13 @@ static pf_status pf_m4_apply_hit_reaction(
     uint32_t hit_sequence;
     uint16_t event_flags;
     uint16_t hitstun_ticks;
+
+    launch_velocity_x_q16 = pf_m4_apply_weight_q16(
+        launch_velocity_x_q16,
+        content->fighter.weight_q16);
+    launch_velocity_y_q16 = pf_m4_apply_weight_q16(
+        launch_velocity_y_q16,
+        content->fighter.weight_q16);
 
     if (previous_action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
         previous_action ==

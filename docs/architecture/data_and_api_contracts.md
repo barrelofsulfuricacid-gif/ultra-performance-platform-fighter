@@ -225,6 +225,11 @@ hash the post-hit damage ceiling plus independent launch/hitstun scales;
 inspection schema 34 versions the interpretation. Input schema 5, observation
 schema 6, RL schema 8, compact schema 7, and 66 compact values remain unchanged.
 Browser view schema 35 retains 396 values and labels the new typed flag.
+Content schema 40/fighter schema 35 add and hash the target-side Q16.16 victim
+weight used by the shared unblocked hit-reaction path. The default 1.0 value is
+an identity transform; the field changes no canonical, save, replay,
+inspection, observation, RL, or 396-value browser-view layout and therefore
+leaves their schema versions unchanged.
 The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do

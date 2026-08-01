@@ -14,7 +14,9 @@ regeneration, complete shield-break launch/down/stand/stun/recovery,
 physical powershielding, frame-2 powershield canceling into either supported
 standing ground attack, and the hitlag-assisted same-platform drop-cancel
 route, plus three-frame V-cancelling of eligible airborne launch and grounded
-low-percent crouch cancel.
+low-percent crouch cancel. The shared unblocked reaction path also applies the
+placeholder fighter's authored victim weight before hitstun and later reaction
+modifiers.
 The production dash attack and its three-frame grab-cancel window now compose
 with the standing grab to provide ordinary dash grab and boost grab through
 the same input, movement, collision, hit, and capture paths.
@@ -416,6 +418,33 @@ damage boundaries, invalid data and content hashes, and a 694-byte mid-hitlag
 save/load with equal future events and hashes. Browser readiness folds the same
 standing-versus-crouched comparison into its existing reaction probe.
 
+## Victim weight
+
+The fighter table authors a positive Q16.16 victim weight, 1.0 by default and
+validated inside the inclusive 0.5–2.0 M4 precursor range. Every unblocked
+damage-and-launch producer enters one shared target reaction path: fighter
+attacks, Relay Rod hits, Pulse Bolt hits, Prism Burst, Arc Reservoir releases,
+and all four throws therefore use the same weight rule. Shield blocks and the
+system-authored shield-break launch do not use victim knockback weight.
+
+After post-hit damage has selected the attack's authored launch vector, each
+component is divided by victim weight and clamped to the canonical motion-speed
+bound. Hitstun and the delayed-air-jump armor threshold are computed from that
+weighted vector; crouch cancel and V-cancel then apply their independently
+authored reaction modifiers, and DI remains the later hitlag-exit rotation.
+Weight does not alter damage, attribution, or hitlag. The typed damage event
+carries the final weighted/modifier-scaled vector.
+
+Content schema 40/fighter schema 35 hash and validate weight. Default weight
+1.0 preserves existing gameplay trajectories, while content identity and any
+aggregate digest that folds it intentionally change; no state, save, replay,
+inspection, observation, RL, or browser-view layout changes. The native oracle
+checks both accepted boundaries, first-invalid values, isolated content-hash
+identity, exact two-axis halving for a 2.0-weight defender, recomputed hitstun,
+and unchanged damage/hitlag. The existing browser reaction probe repeats the
+non-default 2.0-weight comparison in generated Wasm and restores default
+content before readiness.
+
 ## Double jump cancel counter
 
 The placeholder fighter authors a 20-tick maximum hitstun threshold for
@@ -449,8 +478,9 @@ adds 6%; the default strong attack adds 12%. Launch uses post-hit damage:
 
 - horizontal launch is facing-signed base X plus damage-scaled growth;
 - vertical launch is upward base Y plus half the damage-scaled growth; and
-- validation and runtime saturation keep both components inside the canonical
-  motion-speed bound.
+- both components are divided by victim weight before reaction modifiers;
+  validation and runtime saturation keep them inside the canonical motion-speed
+  bound.
 
 On impact, attacker and target enter the selected attack's data-defined hitlag
 (four ticks for light, six for strong). The target retains a pending launch

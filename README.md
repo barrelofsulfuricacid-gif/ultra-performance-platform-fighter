@@ -13,7 +13,8 @@ hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the
 first light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward and backward rolls, spot dodge,
-grounded low-percent crouch cancel, grab pummels, four directional throws, and a deterministic four-stock
+grounded low-percent crouch cancel, target-weighted hit reaction, grab pummels,
+four directional throws, and a deterministic four-stock
 KO/respawn/match-result loop in the live
 two-player browser playtest. M0 selected
 Q16.16 deterministic motion and geometry after benchmark,

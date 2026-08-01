@@ -9182,6 +9182,44 @@ static int pf_web_m4_run_crouch_cancel_probe(void)
            crouched.hitstun_ticks < ordinary.hitstun_ticks;
 }
 
+static int pf_web_m4_run_weight_probe(void)
+{
+    pf_web_m4_crouch_cancel_result ordinary;
+    pf_web_m4_crouch_cancel_result heavy;
+    int route_passed = 0;
+    int restored;
+
+    if (pf_web_m4_content.fighter.weight_q16 == PF_Q16_ONE &&
+        pf_web_m4_run_crouch_cancel_route(0, &ordinary))
+    {
+        pf_web_m4_content.fighter.weight_q16 =
+            INT32_C(2) * PF_Q16_ONE;
+        if (pf_web_m4_initialize_current_content() &&
+            pf_web_m4_run_crouch_cancel_route(0, &heavy))
+        {
+            route_passed =
+                (ordinary.event.flags &
+                 (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) ==
+                    UINT16_C(0) &&
+                (heavy.event.flags &
+                 (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) ==
+                    UINT16_C(0) &&
+                heavy.event.velocity_x_q16 ==
+                    ordinary.event.velocity_x_q16 / INT32_C(2) &&
+                heavy.event.velocity_y_q16 ==
+                    ordinary.event.velocity_y_q16 / INT32_C(2) &&
+                heavy.hitstun_ticks < ordinary.hitstun_ticks &&
+                heavy.damage_q16 == ordinary.damage_q16 &&
+                heavy.hitlag_ticks == ordinary.hitlag_ticks;
+        }
+    }
+
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return route_passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_run_reaction_probe(void)
 {
     pf_m4_inspection inspection;
@@ -9290,7 +9328,8 @@ static int pf_web_m4_run_reaction_probe(void)
     {
         return 0;
     }
-    return pf_web_m4_run_crouch_cancel_probe();
+    return pf_web_m4_run_crouch_cancel_probe() &&
+           pf_web_m4_run_weight_probe();
 }
 
 static int pf_web_m4_run_shield_probe(void)

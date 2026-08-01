@@ -21,6 +21,7 @@
 #define TEST_ALC_REPLAY_INPUT_COUNT 192U
 #define TEST_ALC_REPLAY_HASH_COUNT 97U
 #define TEST_ALC_REPLAY_CAPACITY 16384U
+#define TEST_MAX_HITSTUN_TICKS UINT16_C(600)
 
 typedef struct test_sim_storage
 {
@@ -1544,6 +1545,173 @@ static int run_one_way_hit_test(
         return fail("knockback-hitstun-and-single-hit");
     }
 
+    return 1;
+}
+
+typedef struct test_weight_reaction
+{
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint32_t damage_q16;
+    uint16_t hitstun_ticks;
+    uint16_t hitlag_ticks;
+} test_weight_reaction;
+
+static int run_weight_reaction_case(
+    const pf_content_view *view,
+    test_weight_reaction *out_reaction)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        const pf_sim_event *event;
+
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        event = find_last_tick_event(PF_SIM_EVENT_HIT);
+        if (event != NULL)
+        {
+            out_reaction->velocity_x_q16 = event->velocity_x_q16;
+            out_reaction->velocity_y_q16 = event->velocity_y_q16;
+            out_reaction->damage_q16 = event->value_q16;
+            out_reaction->hitstun_ticks =
+                inspection.players[1].hitstun_ticks;
+            out_reaction->hitlag_ticks =
+                inspection.players[1].hitlag_ticks;
+            return 1;
+        }
+    }
+    return fail("weight-reaction-hit-missing");
+}
+
+static uint16_t expected_weight_hitstun_ticks(
+    const pf_m4_fighter_data *fighter,
+    int32_t velocity_x_q16,
+    int32_t velocity_y_q16)
+{
+    const int64_t horizontal =
+        velocity_x_q16 < INT32_C(0)
+            ? -(int64_t)velocity_x_q16
+            : (int64_t)velocity_x_q16;
+    const int64_t vertical =
+        velocity_y_q16 < INT32_C(0)
+            ? -(int64_t)velocity_y_q16
+            : (int64_t)velocity_y_q16;
+    const int64_t divisor =
+        (int64_t)fighter->hitstun_velocity_per_tick_q16;
+    int64_t ticks =
+        (horizontal + vertical + divisor - INT64_C(1)) / divisor;
+
+    if (ticks < INT64_C(1))
+    {
+        ticks = INT64_C(1);
+    }
+    if (ticks > (int64_t)TEST_MAX_HITSTUN_TICKS)
+    {
+        ticks = (int64_t)TEST_MAX_HITSTUN_TICKS;
+    }
+    return (uint16_t)ticks;
+}
+
+static int run_weight_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    pf_m4_content minimum = *content;
+    pf_m4_content heavy = *content;
+    pf_m4_content below_minimum = *content;
+    pf_m4_content above_maximum = *content;
+    pf_content_view heavy_view;
+    test_weight_reaction ordinary_reaction;
+    test_weight_reaction heavy_reaction;
+
+    minimum.fighter.weight_q16 = PF_Q16_ONE / INT32_C(2);
+    heavy.fighter.weight_q16 = INT32_C(2) * PF_Q16_ONE;
+    below_minimum.fighter.weight_q16 =
+        PF_Q16_ONE / INT32_C(2) - INT32_C(1);
+    above_maximum.fighter.weight_q16 =
+        INT32_C(2) * PF_Q16_ONE + INT32_C(1);
+
+    if (content->fighter.weight_q16 != PF_Q16_ONE ||
+        !expect_status(
+            pf_m4_validate_content(&minimum),
+            PF_STATUS_OK,
+            "accept-minimum-weight") ||
+        !expect_status(
+            pf_m4_validate_content(&heavy),
+            PF_STATUS_OK,
+            "accept-maximum-weight") ||
+        !expect_status(
+            pf_m4_validate_content(&below_minimum),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-below-minimum-weight") ||
+        !expect_status(
+            pf_m4_validate_content(&above_maximum),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-above-maximum-weight") ||
+        !expect_status(
+            pf_m4_make_content_view(&heavy, &heavy_view),
+            PF_STATUS_OK,
+            "heavy-weight-content-view") ||
+        memcmp(
+            view->content_hash.bytes,
+            heavy_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0 ||
+        !run_weight_reaction_case(view, &ordinary_reaction) ||
+        !run_weight_reaction_case(&heavy_view, &heavy_reaction))
+    {
+        return fail("weight-data-and-content-hash");
+    }
+
+    if (heavy_reaction.velocity_x_q16 !=
+            ordinary_reaction.velocity_x_q16 / INT32_C(2) ||
+        heavy_reaction.velocity_y_q16 !=
+            ordinary_reaction.velocity_y_q16 / INT32_C(2) ||
+        ordinary_reaction.hitstun_ticks !=
+            expected_weight_hitstun_ticks(
+                &content->fighter,
+                ordinary_reaction.velocity_x_q16,
+                ordinary_reaction.velocity_y_q16) ||
+        heavy_reaction.hitstun_ticks !=
+            expected_weight_hitstun_ticks(
+                &heavy.fighter,
+                heavy_reaction.velocity_x_q16,
+                heavy_reaction.velocity_y_q16) ||
+        heavy_reaction.hitstun_ticks >=
+            ordinary_reaction.hitstun_ticks ||
+        ordinary_reaction.damage_q16 != content->fighter.jab_damage_q16 ||
+        heavy_reaction.damage_q16 != ordinary_reaction.damage_q16 ||
+        ordinary_reaction.hitlag_ticks !=
+            content->fighter.jab_hitlag_ticks ||
+        heavy_reaction.hitlag_ticks != ordinary_reaction.hitlag_ticks)
+    {
+        return fail("weight-scales-launch-and-hitstun-only");
+    }
     return 1;
 }
 
@@ -16633,6 +16801,7 @@ int main(void)
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-jab-reset-data") ||
         !run_one_way_hit_test(&content, &view) ||
+        !run_weight_test(&content, &view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
             &v_cancel_content,
@@ -16777,7 +16946,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=650 journal_invariants=50 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=666 journal_invariants=50 weight=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

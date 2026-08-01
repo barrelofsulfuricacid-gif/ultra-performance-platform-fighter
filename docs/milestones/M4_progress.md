@@ -14,7 +14,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, grounded
-  low-percent crouch cancel, and
+  low-percent crouch cancel, target-weighted shared hit reaction, and
   ordinary-input approach, spacing, mindgame, cross-up, juggling, ladder,
   kill-confirm, zero-to-death, platform-sharking, jump-canceled-grab, and
   pummel, directional-throw/chain-grab, and jab-reset routes, plus two-pad
@@ -158,8 +158,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - All eight reference duels finish through stock results rather than time-limit
   truncation. The reference corpus spans 1,001 ticks, 17 combat events, eight
   KOs, and four projectile events, with final digest
-  `5cfbadeb7afb86c9` over every per-tick state hash and terminal outcome under
-  state schema 38/content schema 39.
+  `2aa5a4874055edcc` over every per-tick state hash and terminal outcome under
+  state schema 38/content schema 40.
 - Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
   re-simulates the complete suffix against per-tick state hashes, encodes a
   format-1 replay, and verifies that replay to the exact terminal outcome.
@@ -532,6 +532,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   view schema to 35 for the grounded/resulting-damage qualification, two
   reaction scales, derived tumble, and typed event flag; those same payload,
   save, browser, input, observation, RL, and compact layouts remain unchanged.
+  The victim-weight slice advances content schema to 40 with fighter schema 35
+  for one hashed Q16.16 field. State schema 38/save format 37, inspection
+  schema 34, browser view schema 35, and every serialized layout remain
+  unchanged because default weight 1.0 is an identity target modifier.
   Config/identity schema 2 remains current. The canonical save is 694 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1576,6 +1580,25 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Browser readiness folds the same comparison into the existing reaction probe
   and the live/replay feeds label the flag `CROUCH CANCEL`.
 
+## Implemented in the victim-weight slice
+
+- The original fighter now authors Q16.16 victim weight, 1.0 by default with
+  an inclusive validated precursor range of 0.5–2.0. The shared unblocked
+  reaction path divides both post-damage launch components by target weight,
+  so fighter, item, projectile, reflector, charge-release, and throw hits cannot
+  drift into source-specific formulas.
+- Hitstun and delayed-air-jump armor qualification use the weighted vector;
+  crouch/V-cancel and DI retain their established later ordering. Damage,
+  attribution, hitlag, shield blocks, and shield-break launch are unchanged.
+- Content schema 40/fighter schema 35 hash the field. State schema 38/save
+  format 37, the 694-byte checkpoint, replay, inspection 34, browser view 35,
+  observation 6, RL 8, compact 7, and 66 compact values remain unchanged.
+- The combat oracle reaches 666 invariants, covering default and both accepted
+  boundaries, first-invalid bounds, hash identity, exact two-axis halving for a
+  2.0-weight defender, hitstun recomputation, and unchanged damage/hitlag. The
+  existing browser reaction probe repeats the non-default comparison in Wasm
+  and restores default content before readiness.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1722,7 +1745,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Remaining ground attacks, aerials, specials, broader recovery options, broader throw routes,
   analog light shield, shield size/tilt/pokes and shield SDI,
   expansion of the powershield-cancel router to each future ground action,
-  complete knockback/angle data, stale-move behavior,
+  broader per-action launch-angle data and stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
 - Repeated human matches.
@@ -1736,9 +1759,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 306 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 650
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 666
   attack/reaction/shield/floor/surface
-  invariants including data-defined pummels and crouch cancel plus 50
+  invariants including data-defined pummels, crouch cancel, and victim weight plus 50
   combat-journal invariants,
   24 stock/respawn/result
   invariants plus 44 match-journal invariants,
