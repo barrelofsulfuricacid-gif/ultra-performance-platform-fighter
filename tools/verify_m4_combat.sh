@@ -60,4 +60,4 @@ grep -Fqx \
 
 "$root/tools/verify_m4_technique_registry.sh"
 
-echo "m4-combat-verification=pass invariants=666 journal_invariants=50 deterministic_ticks=20000 weight=1 crouch_cancel=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1"
+echo "m4-combat-verification=pass invariants=708 journal_invariants=50 deterministic_ticks=20000 weight=1 directional_ground_attacks=1 crouch_cancel=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1"
