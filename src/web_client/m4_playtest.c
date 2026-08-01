@@ -16,6 +16,7 @@
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
+#define PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
 #define PF_WEB_M4_VIEW_PLAYER_STRIDE 44
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
@@ -200,6 +201,7 @@ extern void pf_web_m4_playtest_install(
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
     int short_hop_laser_probe_passed,
+    int camping_probe_passed,
     int shine_spike_probe_passed,
     int charge_storage_probe_passed,
     int aerial_landing_lag_ticks,
@@ -9543,6 +9545,139 @@ static int pf_web_m4_run_short_hop_laser_probe(void)
     return passed != 0 && restored != 0;
 }
 
+typedef struct pf_web_m4_camping_trace
+{
+    uint32_t projectile_fires;
+    uint32_t projectile_hits;
+    uint32_t approach_hits;
+    uint32_t camper_damage_q16;
+    uint32_t approacher_damage_q16;
+    int32_t minimum_separation_q16;
+    uint64_t completed_ticks;
+} pf_web_m4_camping_trace;
+
+static int pf_web_m4_run_camping_trace(
+    int fire_projectiles,
+    pf_web_m4_camping_trace *out_trace)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    int special_held_previous_tick = 0;
+
+    if (out_trace == NULL || !pf_web_m4_reset_internal() ||
+        pf_m4_inspect(pf_web_m4_sim, &inspection) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    (void)memset(out_trace, 0, sizeof(*out_trace));
+    out_trace->minimum_separation_q16 = INT32_MAX;
+    for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
+    {
+        const int32_t separation_q16 =
+            inspection.players[1].position_x_q16 -
+            inspection.players[0].position_x_q16;
+        const int approach_attack_requested =
+            separation_q16 <= INT32_C(2) * PF_Q16_ONE &&
+            (tick & UINT32_C(1)) == UINT32_C(0);
+        const int special_requested =
+            fire_projectiles != 0 &&
+            special_held_previous_tick == 0 &&
+            inspection.projectile.state ==
+                (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        const pf_sim_event *event;
+
+        if (separation_q16 < out_trace->minimum_separation_q16)
+        {
+            out_trace->minimum_separation_q16 = separation_q16;
+        }
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                special_requested != 0
+                    ? PF_INPUT_BUTTON_SPECIAL
+                    : UINT64_C(0),
+                INT16_MIN,
+                INT16_C(0),
+                approach_attack_requested != 0
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                &inspection) ||
+            pf_web_m4_last_result.terminated != UINT8_C(0) ||
+            pf_web_m4_last_result.truncated != UINT8_C(0))
+        {
+            return 0;
+        }
+        special_held_previous_tick = special_requested;
+        event = pf_web_m4_find_event(PF_SIM_EVENT_PROJECTILE_FIRE);
+        if (event != NULL && event->source_player == UINT8_C(0))
+        {
+            ++out_trace->projectile_fires;
+        }
+        event = pf_web_m4_find_event(PF_SIM_EVENT_PROJECTILE_HIT);
+        if (event != NULL && event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1))
+        {
+            ++out_trace->projectile_hits;
+        }
+        event = pf_web_m4_find_event(PF_SIM_EVENT_HIT);
+        if (event != NULL && event->source_player == UINT8_C(1) &&
+            event->target_player == UINT8_C(0))
+        {
+            ++out_trace->approach_hits;
+        }
+    }
+    out_trace->camper_damage_q16 = inspection.players[0].damage_q16;
+    out_trace->approacher_damage_q16 =
+        inspection.players[1].damage_q16;
+    out_trace->completed_ticks = inspection.tick;
+    return 1;
+}
+
+static int pf_web_m4_run_camping_probe(void)
+{
+    pf_web_m4_camping_trace camping;
+    pf_web_m4_camping_trace no_fire;
+    int passed = 0;
+    int restored;
+
+    if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK)
+    {
+        pf_web_m4_content.projectile.enabled = UINT8_C(1);
+        pf_web_m4_content.stage.spawn_spacing_q16 =
+            INT32_C(8) * PF_Q16_ONE;
+        pf_web_m4_content.stage.platform_motion_amplitude_q16 =
+            INT32_C(0);
+        if (pf_web_m4_initialize_current_content() &&
+            pf_web_m4_run_camping_trace(1, &camping) &&
+            pf_web_m4_run_camping_trace(0, &no_fire))
+        {
+            passed =
+                camping.completed_ticks == UINT64_C(180) &&
+                camping.projectile_fires == UINT32_C(7) &&
+                camping.projectile_hits == UINT32_C(6) &&
+                camping.approach_hits == UINT32_C(0) &&
+                camping.camper_damage_q16 == UINT32_C(0) &&
+                camping.approacher_damage_q16 >=
+                    UINT32_C(18) * UINT32_C(65536) &&
+                camping.minimum_separation_q16 ==
+                    PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_Q16 &&
+                no_fire.completed_ticks == UINT64_C(180) &&
+                no_fire.projectile_fires == UINT32_C(0) &&
+                no_fire.projectile_hits == UINT32_C(0) &&
+                no_fire.approach_hits == UINT32_C(3) &&
+                no_fire.camper_damage_q16 != UINT32_C(0) &&
+                no_fire.minimum_separation_q16 <
+                    camping.minimum_separation_q16;
+        }
+    }
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_run_shine_spike_case(
     int attack_enabled,
     int *out_reflector_hit,
@@ -10788,6 +10923,7 @@ int pf_web_m4_playtest_start(void)
     int aerial_l_cancel_probe_passed;
     int match_probe_passed;
     int short_hop_laser_probe_passed;
+    int camping_probe_passed;
     int shine_spike_probe_passed;
     int charge_storage_probe_passed;
 
@@ -10873,6 +11009,7 @@ int pf_web_m4_playtest_start(void)
         &jump_cancel_throw_probe_passed);
     short_hop_laser_probe_passed =
         pf_web_m4_run_short_hop_laser_probe();
+    camping_probe_passed = pf_web_m4_run_camping_probe();
     shine_spike_probe_passed = pf_web_m4_run_shine_spike_probe();
     charge_storage_probe_passed =
         pf_web_m4_run_charge_storage_probe();
@@ -10928,6 +11065,7 @@ int pf_web_m4_playtest_start(void)
         aerial_l_cancel_probe_passed == 0 ||
         match_probe_passed == 0 ||
         short_hop_laser_probe_passed == 0 ||
+        camping_probe_passed == 0 ||
         shine_spike_probe_passed == 0 ||
         charge_storage_probe_passed == 0 ||
         !pf_web_m4_initialize_live_item_lab())
@@ -10988,6 +11126,7 @@ int pf_web_m4_playtest_start(void)
         aerial_l_cancel_probe_passed,
         match_probe_passed,
         short_hop_laser_probe_passed,
+        camping_probe_passed,
         shine_spike_probe_passed,
         charge_storage_probe_passed,
         (int)pf_web_m4_content.fighter.aerial_landing_lag_ticks,

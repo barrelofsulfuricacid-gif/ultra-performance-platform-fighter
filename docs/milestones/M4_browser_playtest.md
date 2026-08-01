@@ -12,7 +12,8 @@ throws with a low-percent chain-grab route,
 one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
 plus bat-drop, glide-toss, and jump-cancel-throw routes,
 one fixed Pulse Bolt with grounded/aerial fire, hit, shield block, and
-powershield reflection plus the short-hop-laser route,
+powershield reflection plus short-hop-laser and bounded projectile-camping
+routes,
 one data-defined Prism Burst reflector with grounded/aerial physical hit and
 active-box projectile reflection plus the Shine-spike route,
 one data-defined Arc Reservoir with charge, storage cancel, exact resume, and
@@ -98,6 +99,14 @@ takeoff for short-hop laser. Only one bolt can occupy the canonical slot. An
 ordinary shield blocks and clears it; activate shield during the authored
 two-frame projectile window to reverse the bolt, transfer its owner, and take
 no damage. The event feed distinguishes fire, hit, and reflection.
+
+For projectile camping, keep the opponent across the stage and freshly press
+Special whenever the previous canonical Pulse Bolt has resolved. The automated
+recipe runs this legal one-slot loop for 180 simulation ticks while the
+opponent continuously approaches and jabs: seven fire actions produce six
+hits, keep at least 10.58 units of center separation, and leave the camper at
+0%. Its Reset control omits the bolts and requires the same opponent policy to
+close the distance and land three physical hits.
 
 Hold down and freshly press the same special control for Prism Burst. Neutral
 special continues to fire Pulse Bolt. Prism Burst has one startup tick, two
@@ -749,6 +758,10 @@ registry row can advance from `playable` to `verified`.
     early for the ordinary block, then reset and activate it as the bolt arrives
     during the two-frame window; confirm zero damage, reversed velocity, Player
     2 ownership, a typed reflection event, and the returned hit on Player 1.
+51. Keep Player 2 across the stage, fire a fresh Pulse Bolt whenever the prior
+    bolt resolves, and confirm the approaching Player 2 remains outside melee
+    range while taking repeated projectile hits. Reset, omit Special, and
+    confirm the same continuous approach reaches Player 1 and lands a jab.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -859,6 +872,9 @@ through:
 - an original Pulse Bolt fired from a deterministic short hop, producing the
   aerial fire action/event and returning through generic landing before the
   live item/projectile lab is installed;
+- a 180-tick one-slot Pulse Bolt camping loop producing seven legal fires and
+  six hits without melee contact, plus a no-fire trace in which the same
+  approach-and-jab policy reaches the camper three times;
 - an ordinary-input airborne Prism Burst connecting offstage with a downward
   typed hit and causing a stock loss, plus the same victim policy recovering
   when unchallenged before the live reflector lab is installed;
@@ -940,6 +956,7 @@ floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass
 air_dodge_probe=pass
 ground_dodge_probe=pass
 aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass
+camping_probe=pass
 shine_spike_probe=pass charge_storage_probe=pass gamepad_probe=pass
 gamepad_api=available controls=keyboard-gamepad-two-player` only after all checks
 pass.

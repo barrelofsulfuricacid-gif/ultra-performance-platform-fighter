@@ -127,6 +127,32 @@ without scripting positions or outcomes. Dash, aerial, wavedash, shield, and
 other independently playable approach primitives remain available for broader
 owner testing, but are not conflated with this focused evidence route.
 
+## Camping
+
+The playable [projectile-camping](https://www.ssbwiki.com/Camping) route is a
+bounded tactical composition, not a camping-only action or opponent script.
+Player 0 holds the safe side of the stage and requests a fresh Pulse Bolt only
+when the fixed canonical projectile slot is inactive and grounded fire
+recovery has returned to idle. Player 1 continuously supplies full movement
+toward the camper and freshly jabs whenever the center distance reaches two
+units.
+
+Across 180 production ticks, seven legal fire actions produce six projectile
+hits. Player 0 takes zero damage and the minimum center separation remains
+693,712 Q16.16 units (about 10.58 world units), so the tactic demonstrably
+keeps the active responder outside melee range. The anti-camp control resets
+the identical content and opponent policy but omits Special; Player 1 then
+closes the gap and lands three ordinary physical hits. Both traces reject an
+early match end.
+
+`tests/sim/test_m4_projectile.c` runs both fixed-input policies through
+`pf_sim_tick` and exposes their exact bounded counts. Browser startup
+independently repeats them in the WebAssembly-facing simulation and exports
+`camping_probe` before restoring default content. Existing projectile
+save/load, replay verification, structured observation, and compact RL
+coverage remain unchanged; broader stages, projectile choices, adaptive
+opponents, and owner execution remain before full verification.
+
 ## Cross-up
 
 A [cross-up](https://www.ssbwiki.com/Cross-up) times a moving attack so the

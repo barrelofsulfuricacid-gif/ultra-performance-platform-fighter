@@ -13,6 +13,7 @@
 #define TEST_MEMORY_BYTES 8192U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_REPLAY_TICKS UINT32_C(20)
+#define TEST_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
 
 typedef struct test_storage
 {
@@ -562,6 +563,203 @@ static int run_short_hop_contract(const pf_content_view *view)
     return 1;
 }
 
+typedef struct camping_trace
+{
+    uint32_t projectile_fires;
+    uint32_t projectile_hits;
+    uint32_t approach_hits;
+    uint32_t camper_damage_q16;
+    uint32_t approacher_damage_q16;
+    int32_t minimum_separation_q16;
+    uint64_t completed_ticks;
+} camping_trace;
+
+static int run_camping_trace(
+    const pf_content_view *view,
+    int fire_projectiles,
+    camping_trace *out_trace)
+{
+    test_storage storage;
+    pf_sim *sim = NULL;
+    pf_tick_result result;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    int special_held_previous_tick = 0;
+
+    if (out_trace == NULL ||
+        !initialize_sim(&storage, view, &sim) || !reset_sim(sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "camping-inspect-start"))
+    {
+        return 0;
+    }
+    (void)memset(out_trace, 0, sizeof(*out_trace));
+    out_trace->minimum_separation_q16 = INT32_MAX;
+    for (tick = UINT32_C(0); tick < UINT32_C(180); ++tick)
+    {
+        const int32_t separation_q16 =
+            inspection.players[1].position_x_q16 -
+            inspection.players[0].position_x_q16;
+        const int approach_attack_requested =
+            separation_q16 <= INT32_C(2) * PF_Q16_ONE &&
+            (tick & UINT32_C(1)) == UINT32_C(0);
+        const int special_requested =
+            fire_projectiles != 0 &&
+            special_held_previous_tick == 0 &&
+            inspection.projectile.state ==
+                (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        const test_command camper = {
+            INT16_C(0),
+            INT16_C(0),
+            special_requested != 0
+                ? PF_INPUT_BUTTON_SPECIAL
+                : UINT64_C(0),
+            UINT16_C(0)};
+        const test_command approacher = {
+            INT16_MIN,
+            INT16_C(0),
+            approach_attack_requested != 0
+                ? PF_INPUT_BUTTON_ATTACK
+                : UINT64_C(0),
+            UINT16_C(0)};
+        uint32_t event_index;
+
+        if (separation_q16 < out_trace->minimum_separation_q16)
+        {
+            out_trace->minimum_separation_q16 = separation_q16;
+        }
+        if (!step_sim(
+                sim,
+                camper,
+                approacher,
+                &result,
+                &inspection))
+        {
+            return 0;
+        }
+        special_held_previous_tick = special_requested;
+        for (event_index = UINT32_C(0);
+             event_index < (uint32_t)result.event_count;
+             ++event_index)
+        {
+            const pf_sim_event *event = &result.events[event_index];
+
+            if (event->type ==
+                    (uint16_t)PF_SIM_EVENT_PROJECTILE_FIRE &&
+                event->source_player == UINT8_C(0))
+            {
+                ++out_trace->projectile_fires;
+            }
+            else if (event->type ==
+                         (uint16_t)PF_SIM_EVENT_PROJECTILE_HIT &&
+                     event->source_player == UINT8_C(0) &&
+                     event->target_player == UINT8_C(1))
+            {
+                ++out_trace->projectile_hits;
+            }
+            else if (event->type == (uint16_t)PF_SIM_EVENT_HIT &&
+                     event->source_player == UINT8_C(1) &&
+                     event->target_player == UINT8_C(0))
+            {
+                ++out_trace->approach_hits;
+            }
+        }
+        if (result.terminated != UINT8_C(0) ||
+            result.truncated != UINT8_C(0))
+        {
+            return fail("camping-unexpected-match-end");
+        }
+    }
+    out_trace->camper_damage_q16 =
+        inspection.players[0].damage_q16;
+    out_trace->approacher_damage_q16 =
+        inspection.players[1].damage_q16;
+    out_trace->completed_ticks = inspection.tick;
+    return 1;
+}
+
+static int run_camping_contract(void)
+{
+    pf_m4_content content;
+    pf_content_view view;
+    camping_trace camping;
+    camping_trace no_fire;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "camping-default-content"))
+    {
+        return 0;
+    }
+    content.projectile.enabled = UINT8_C(1);
+    content.stage.spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
+    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "camping-content-view") ||
+        !run_camping_trace(&view, 1, &camping) ||
+        !run_camping_trace(&view, 0, &no_fire))
+    {
+        return 0;
+    }
+    if (camping.completed_ticks != UINT64_C(180) ||
+        camping.projectile_fires != UINT32_C(7) ||
+        camping.projectile_hits != UINT32_C(6) ||
+        camping.approach_hits != UINT32_C(0) ||
+        camping.camper_damage_q16 != UINT32_C(0) ||
+        camping.approacher_damage_q16 <
+            UINT32_C(18) * UINT32_C(65536) ||
+        camping.minimum_separation_q16 !=
+            TEST_CAMPING_MINIMUM_SEPARATION_Q16 ||
+        no_fire.completed_ticks != UINT64_C(180) ||
+        no_fire.projectile_fires != UINT32_C(0) ||
+        no_fire.projectile_hits != UINT32_C(0) ||
+        no_fire.approach_hits != UINT32_C(3) ||
+        no_fire.camper_damage_q16 == UINT32_C(0) ||
+        no_fire.minimum_separation_q16 >=
+            camping.minimum_separation_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-projectile=debug operation=camping"
+            " camping_fires=%" PRIu32
+            " camping_hits=%" PRIu32
+            " camping_counter_hits=%" PRIu32
+            " camping_damage=%" PRIu32
+            " camping_target_damage=%" PRIu32
+            " camping_min=%" PRId32
+            " control_hits=%" PRIu32
+            " control_damage=%" PRIu32
+            " control_min=%" PRId32 "\n",
+            camping.projectile_fires,
+            camping.projectile_hits,
+            camping.approach_hits,
+            camping.camper_damage_q16,
+            camping.approacher_damage_q16,
+            camping.minimum_separation_q16,
+            no_fire.approach_hits,
+            no_fire.camper_damage_q16,
+            no_fire.minimum_separation_q16);
+        return fail("camping-route");
+    }
+    (void)printf(
+        "m4-camping=pass ticks=180 fires=%" PRIu32
+        " projectile_hits=%" PRIu32
+        " minimum_separation_q16=%" PRId32
+        " no_fire_approach_hits=%" PRIu32 "\n",
+        camping.projectile_fires,
+        camping.projectile_hits,
+        camping.minimum_separation_q16,
+        no_fire.approach_hits);
+    return 1;
+}
+
 static int run_save_replay_rl_contract(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -819,6 +1017,10 @@ int main(void)
     {
         return fail("short-hop-suite");
     }
+    if (!run_camping_contract())
+    {
+        return fail("camping-suite");
+    }
     if (!run_save_replay_rl_contract(&content, &view))
     {
         return fail("save-replay-rl-suite");
@@ -826,8 +1028,8 @@ int main(void)
 
     (void)printf(
         "m4-projectile=pass content_schema=%u state_schema=%u "
-        "save_bytes=690 projectile_invariants=38 short_hop_laser=1 "
-        "powershield_reflect=1 replay=1 rl=1\n",
+        "save_bytes=690 projectile_invariants=46 short_hop_laser=1 "
+        "camping=1 powershield_reflect=1 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         (unsigned int)PF_SIM_STATE_SCHEMA_VERSION);
     return 0;

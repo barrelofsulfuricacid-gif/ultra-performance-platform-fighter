@@ -130,6 +130,7 @@ static int test_ground_dodge_probe;
 static int test_aerial_l_cancel_probe;
 static int test_match_probe;
 static int test_short_hop_laser_probe;
+static int test_camping_probe;
 static int test_shine_spike_probe;
 static int test_charge_storage_probe;
 static int test_aerial_landing_lag_ticks;
@@ -190,6 +191,7 @@ void pf_web_m4_playtest_install(
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
     int short_hop_laser_probe_passed,
+    int camping_probe_passed,
     int shine_spike_probe_passed,
     int charge_storage_probe_passed,
     int aerial_landing_lag_ticks,
@@ -253,6 +255,7 @@ void pf_web_m4_playtest_install(
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
     int short_hop_laser_probe_passed,
+    int camping_probe_passed,
     int shine_spike_probe_passed,
     int charge_storage_probe_passed,
     int aerial_landing_lag_ticks,
@@ -318,6 +321,7 @@ void pf_web_m4_playtest_install(
     test_aerial_l_cancel_probe = aerial_l_cancel_probe_passed;
     test_match_probe = match_probe_passed;
     test_short_hop_laser_probe = short_hop_laser_probe_passed;
+    test_camping_probe = camping_probe_passed;
     test_shine_spike_probe = shine_spike_probe_passed;
     test_charge_storage_probe = charge_storage_probe_passed;
     test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
@@ -475,6 +479,7 @@ int main(void)
         test_aerial_l_cancel_probe != 1 ||
         test_match_probe != 1 ||
         test_short_hop_laser_probe != 1 ||
+        test_camping_probe != 1 ||
         test_shine_spike_probe != 1 ||
         test_charge_storage_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
@@ -573,7 +578,8 @@ int main(void)
             "surface_tech_probe=%d "
             "air_dodge_probe=%d ground_dodge_probe=%d "
             "aerial_l_cancel_probe=%d match_probe=%d "
-            "short_hop_laser_probe=%d shine_spike_probe=%d "
+            "short_hop_laser_probe=%d camping_probe=%d "
+            "shine_spike_probe=%d "
             "charge_storage_probe=%d "
             "aerial_lag=%d strong_aerial_lag=%d "
             "schema=%d tick=%d\n",
@@ -632,6 +638,7 @@ int main(void)
             test_aerial_l_cancel_probe,
             test_match_probe,
             test_short_hop_laser_probe,
+            test_camping_probe,
             test_shine_spike_probe,
             test_charge_storage_probe,
             test_aerial_landing_lag_ticks,
@@ -1232,7 +1239,8 @@ int main(void)
         "surface_tech_probe=%d "
         "air_dodge_probe=%d ground_dodge_probe=%d "
         "aerial_l_cancel_probe=%d match_probe=%d "
-        "short_hop_laser_probe=%d shine_spike_probe=%d "
+        "short_hop_laser_probe=%d camping_probe=%d "
+        "shine_spike_probe=%d "
         "charge_storage_probe=%d "
         "event_journal_probe=%d renders=%d\n",
         test_walk_axis,
@@ -1289,6 +1297,7 @@ int main(void)
         test_aerial_l_cancel_probe,
         test_match_probe,
         test_short_hop_laser_probe,
+        test_camping_probe,
         test_shine_spike_probe,
         test_charge_storage_probe,
         test_combat_probe,

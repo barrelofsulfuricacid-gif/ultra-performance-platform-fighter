@@ -554,7 +554,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=34 state_schema=33 save_bytes=690 projectile_invariants=38 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1")
+                   "m4-projectile=pass content_schema=34 state_schema=33 save_bytes=690 projectile_invariants=46 short_hop_laser=1 camping=1 powershield_reflect=1 replay=1 rl=1")
 
     add_executable(
         m4_reflector_test
@@ -625,7 +625,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 moonwalk_probe=1 teeter_cancel_probe=1 stage_humping_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 shine_spike_probe=1 charge_storage_probe=1 event_journal_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 moonwalk_probe=1 teeter_cancel_probe=1 stage_humping_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 camping_probe=1 shine_spike_probe=1 charge_storage_probe=1 event_journal_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)

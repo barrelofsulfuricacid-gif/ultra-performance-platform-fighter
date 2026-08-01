@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -496,6 +496,7 @@ mergeInto(LibraryManager.library, {
     aerialLCancelProbePassed,
     matchProbePassed,
     shortHopLaserProbePassed,
+    campingProbePassed,
     shineSpikeProbePassed,
     chargeStorageProbePassed,
     aerialLandingLagTicks,
@@ -757,6 +758,7 @@ mergeInto(LibraryManager.library, {
       jumpCancelProbePassed ? "pass" : "fail";
     section.dataset.shortHopLaserProbe =
       shortHopLaserProbePassed ? "pass" : "fail";
+    section.dataset.campingProbe = campingProbePassed ? "pass" : "fail";
     section.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
     section.dataset.chargeStorageProbe =
       chargeStorageProbePassed ? "pass" : "fail";
@@ -833,6 +835,7 @@ mergeInto(LibraryManager.library, {
       aerialLCancelProbePassed &&
       matchProbePassed &&
       shortHopLaserProbePassed &&
+      campingProbePassed &&
       shineSpikeProbePassed &&
       chargeStorageProbePassed &&
       gamepadApiAvailable &&
@@ -1461,6 +1464,8 @@ mergeInto(LibraryManager.library, {
         (matchProbePassed ? "pass" : "fail") +
         " short_hop_laser_probe=" +
         (shortHopLaserProbePassed ? "pass" : "fail") +
+        " camping_probe=" +
+        (campingProbePassed ? "pass" : "fail") +
         " shine_spike_probe=" +
         (shineSpikeProbePassed ? "pass" : "fail") +
         " charge_storage_probe=" +
@@ -1565,6 +1570,7 @@ mergeInto(LibraryManager.library, {
       status.dataset.matchProbe = matchProbePassed ? "pass" : "fail";
       status.dataset.shortHopLaserProbe =
         shortHopLaserProbePassed ? "pass" : "fail";
+      status.dataset.campingProbe = campingProbePassed ? "pass" : "fail";
       status.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
       status.dataset.chargeStorageProbe =
         chargeStorageProbePassed ? "pass" : "fail";

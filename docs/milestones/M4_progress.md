@@ -1235,6 +1235,27 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 50, Stage humping, advances from `planned` to `playable`. Owner
   execution and complete cross-target evidence remain before `verified`.
 
+## Delivered in the projectile-camping slice
+
+- The existing one-slot Pulse Bolt, grounded fire recovery, ordinary run/jab
+  input, stage positions, and canonical tick clock now compose a bounded
+  projectile-camping route without adding mutable state or a technique-only
+  action.
+- The 180-tick positive policy fires only after the prior bolt resolves. Seven
+  legal fires produce six hits, keep at least 693,712 Q16.16 units (10.58
+  world units) of center separation, and leave the camper at 0% while the
+  responder continuously approaches and requests jabs.
+- A Reset control preserves the content and responder policy but omits every
+  projectile; the opponent closes the gap and lands three physical hits. Both
+  traces reject termination/truncation, making the bounded clock and failure
+  case explicit.
+- `tests/sim/test_m4_projectile.c` expands to 46 invariants and prints the
+  exact trace counts. Browser startup independently repeats both routes and
+  exports `camping_probe` before restoring default content.
+- Registry row 5, Camping, advances from `planned` to `playable`. Owner
+  execution, broader stages/projectiles, and complete cross-target evidence
+  remain before `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1336,7 +1357,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - The governing plan now pins and enumerates all 61 unique techniques marked
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
-  verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
+  verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
   charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, teeter cancel,
@@ -1350,7 +1371,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 51 playable, 3 primitive-ready, and 6 planned.
+  blocked: 1 verified, 52 playable, 3 primitive-ready, and 5 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1389,7 +1410,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
-  38 projectile invariants including short-hop laser and powershield reflection,
+  46 projectile invariants including short-hop laser, projectile camping, and
+  powershield reflection,
   32 reflector invariants including Shine spike and active-box projectile
   reflection, 28 charge invariants including storage cancel, exact resume,
   scaled release, interruption loss, and over-cap load rejection,
@@ -1417,7 +1439,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
-  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/Shine-spike/charge-storage/
+  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping/Shine-spike/charge-storage/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).
