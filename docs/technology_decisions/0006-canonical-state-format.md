@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–27 / state schemas 1–28
+- **Status:** Accepted for save formats 1–28 / state schemas 1–29
 - **Date:** 2026-07-31
 
 ## Decision
@@ -37,13 +37,14 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 25 | 26 | 140 | 522 | 662 | One fixed canonical item entity: position/velocity, lifetime/respawn/pickup-lockout timers, state, holder/source slots, hit mask, and throw direction; item-throw action IDs and typed item-event semantics |
 | 26 | 27 | 140 | 522 | 662 | Full-up plus fresh light/strong during jump squat selects grounded standing strong attack while retaining inherited momentum; no payload-layout change |
 | 27 | 28 | 140 | 542 | 682 | One fixed canonical projectile slot: position/velocity, lifetime, inactive/spawning/active state, owner slot, grounded/aerial fire action IDs, and typed fire/hit/reflect semantics |
+| 28 | 29 | 140 | 542 | 682 | Canonical grounded/aerial Prism Burst action IDs, hitlag-resume and landing semantics, downward physical launch, and active-box projectile reflection; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
-`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, or `PFSAVE27`. The active M4 runtime emits
-and accepts format 27 with state schema 28. Earlier
+`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, or `PFSAVE28`.
+The active M4 runtime emits and accepts format 28 with state schema 29. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -149,6 +150,14 @@ schema 28. The serialized owner uses the same zero-for-none and slot-plus-one
 encoding as other canonical links; load rejects invalid state, owner, action,
 position, velocity, lifetime, and enabled-content relationships before atomic
 replacement.
+Format 28 retains the same payload while making Prism Burst fail closed. Full
+down plus a fresh special edge may select the grounded or airborne reflector
+action from its legal movement states; the authored physical hit launches
+downward through the ordinary combat pipeline, and its active box may reverse
+projectile velocity and ownership without setting powershield. Loading rejects
+the new action IDs under earlier schemas and validates hitlag resume, grounded
+versus airborne action choice, action timing, landing, and existing projectile
+ownership relationships under schema 29.
 
 ## Why SHA-256
 

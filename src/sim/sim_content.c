@@ -508,6 +508,26 @@ static void pf_m4_hash_projectile(
     pf_m4_hash_u16(hash, projectile->powershield_reflect_window_ticks);
 }
 
+static void pf_m4_hash_reflector(
+    pf_sha256 *hash,
+    const pf_m4_reflector_data *reflector)
+{
+    pf_m4_hash_u16(hash, reflector->schema_version);
+    pf_m4_hash_u8(hash, reflector->enabled);
+    pf_m4_hash_i32(hash, reflector->hitbox_offset_x_q16);
+    pf_m4_hash_i32(hash, reflector->hitbox_offset_y_q16);
+    pf_m4_hash_i32(hash, reflector->hitbox_half_width_q16);
+    pf_m4_hash_i32(hash, reflector->hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, reflector->damage_q16);
+    pf_m4_hash_i32(hash, reflector->base_knockback_x_q16);
+    pf_m4_hash_i32(hash, reflector->base_knockback_y_q16);
+    pf_m4_hash_i32(hash, reflector->knockback_growth_q16);
+    pf_m4_hash_u16(hash, reflector->startup_ticks);
+    pf_m4_hash_u16(hash, reflector->active_ticks);
+    pf_m4_hash_u16(hash, reflector->recovery_ticks);
+    pf_m4_hash_u16(hash, reflector->hitlag_ticks);
+}
+
 static void pf_m4_content_hash(
     const pf_m4_content *content,
     uint8_t digest[32])
@@ -524,10 +544,12 @@ static void pf_m4_content_hash(
     pf_m4_hash_u8(&hash, content->stage_count);
     pf_m4_hash_u8(&hash, content->item_count);
     pf_m4_hash_u8(&hash, content->projectile_count);
+    pf_m4_hash_u8(&hash, content->reflector_count);
     pf_m4_hash_fighter(&hash, &content->fighter);
     pf_m4_hash_stage(&hash, &content->stage);
     pf_m4_hash_item(&hash, &content->item);
     pf_m4_hash_projectile(&hash, &content->projectile);
+    pf_m4_hash_reflector(&hash, &content->reflector);
     pf_sha256_finish(&hash, digest);
 }
 
@@ -553,6 +575,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     pf_m4_stage_data *stage;
     pf_m4_item_data *item;
     pf_m4_projectile_data *projectile;
+    pf_m4_reflector_data *reflector;
 
     if (out_content == NULL)
     {
@@ -566,6 +589,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     out_content->stage_count = PF_M4_TEST_STAGE_COUNT;
     out_content->item_count = PF_M4_TEST_ITEM_COUNT;
     out_content->projectile_count = PF_M4_TEST_PROJECTILE_COUNT;
+    out_content->reflector_count = PF_M4_TEST_REFLECTOR_COUNT;
 
     fighter = &out_content->fighter;
     fighter->struct_size = (uint32_t)sizeof(*fighter);
@@ -947,6 +971,23 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     projectile->hitlag_ticks = UINT16_C(3);
     projectile->powershield_reflect_window_ticks = UINT16_C(2);
 
+    reflector = &out_content->reflector;
+    reflector->struct_size = (uint32_t)sizeof(*reflector);
+    reflector->schema_version = PF_M4_REFLECTOR_SCHEMA_VERSION;
+    reflector->enabled = UINT8_C(0);
+    reflector->hitbox_offset_x_q16 = INT32_C(0);
+    reflector->hitbox_offset_y_q16 = INT32_C(0);
+    reflector->hitbox_half_width_q16 = PF_Q16_RATIO(7, 5);
+    reflector->hitbox_half_height_q16 = PF_Q16_RATIO(3, 2);
+    reflector->damage_q16 = UINT32_C(3) * UINT32_C(65536);
+    reflector->base_knockback_x_q16 = PF_Q16_RATIO(4, 5);
+    reflector->base_knockback_y_q16 = PF_Q16_RATIO(7, 20);
+    reflector->knockback_growth_q16 = PF_Q16_RATIO(1, 2048);
+    reflector->startup_ticks = UINT16_C(1);
+    reflector->active_ticks = UINT16_C(2);
+    reflector->recovery_ticks = UINT16_C(9);
+    reflector->hitlag_ticks = UINT16_C(3);
+
     return PF_STATUS_OK;
 }
 
@@ -956,6 +997,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     const pf_m4_stage_data *stage;
     const pf_m4_item_data *item;
     const pf_m4_projectile_data *projectile;
+    const pf_m4_reflector_data *reflector;
     const int32_t maximum_coordinate_q16 =
         INT32_C(4096) * PF_Q16_ONE;
     const int32_t maximum_fighter_extent_q16 =
@@ -980,6 +1022,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int64_t maximum_item_knockback_y;
     int64_t maximum_projectile_knockback_x;
     int64_t maximum_projectile_knockback_y;
+    int64_t maximum_reflector_knockback_x;
+    int64_t maximum_reflector_knockback_y;
     int solid_overlaps_platform;
 
     if (content == NULL)
@@ -1001,7 +1045,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->projectile.struct_size !=
             (uint32_t)sizeof(content->projectile) ||
         content->projectile.schema_version !=
-            PF_M4_PROJECTILE_SCHEMA_VERSION)
+            PF_M4_PROJECTILE_SCHEMA_VERSION ||
+        content->reflector.struct_size !=
+            (uint32_t)sizeof(content->reflector) ||
+        content->reflector.schema_version !=
+            PF_M4_REFLECTOR_SCHEMA_VERSION)
     {
         return PF_STATUS_UNSUPPORTED_VERSION;
     }
@@ -1009,14 +1057,15 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->stage_count != PF_M4_TEST_STAGE_COUNT ||
         content->item_count != PF_M4_TEST_ITEM_COUNT ||
         content->projectile_count != PF_M4_TEST_PROJECTILE_COUNT ||
-        content->reserved[0] != UINT8_C(0) ||
-        content->reserved[1] != UINT8_C(0) ||
+        content->reflector_count != PF_M4_TEST_REFLECTOR_COUNT ||
+        content->reserved != UINT8_C(0) ||
         content->fighter.reserved != UINT16_C(0) ||
         content->stage.reserved != UINT16_C(0) ||
         content->stage.reserved2 != UINT16_C(0) ||
         content->item.reserved != UINT8_C(0) ||
         content->item.reserved2 != UINT16_C(0) ||
-        content->projectile.reserved != UINT8_C(0))
+        content->projectile.reserved != UINT8_C(0) ||
+        content->reflector.reserved != UINT8_C(0))
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -1903,6 +1952,51 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         projectile->powershield_reflect_window_ticks == UINT16_C(0) ||
         projectile->powershield_reflect_window_ticks >
             fighter->powershield_window_ticks)
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
+
+    reflector = &content->reflector;
+    maximum_reflector_knockback_x =
+        (int64_t)reflector->base_knockback_x_q16 +
+        (((int64_t)reflector->knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    maximum_reflector_knockback_y =
+        (int64_t)reflector->base_knockback_y_q16 +
+        ((((int64_t)reflector->knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
+    if (reflector->enabled > UINT8_C(1) ||
+        reflector->hitbox_offset_x_q16 < -maximum_fighter_extent_q16 ||
+        reflector->hitbox_offset_x_q16 > maximum_fighter_extent_q16 ||
+        reflector->hitbox_offset_y_q16 < -maximum_fighter_extent_q16 ||
+        reflector->hitbox_offset_y_q16 > maximum_fighter_extent_q16 ||
+        reflector->hitbox_half_width_q16 <= INT32_C(0) ||
+        reflector->hitbox_half_width_q16 > maximum_fighter_extent_q16 ||
+        reflector->hitbox_half_height_q16 <= INT32_C(0) ||
+        reflector->hitbox_half_height_q16 > maximum_fighter_extent_q16 ||
+        reflector->damage_q16 == UINT32_C(0) ||
+        reflector->damage_q16 > UINT32_C(50) * UINT32_C(65536) ||
+        reflector->base_knockback_x_q16 <= INT32_C(0) ||
+        reflector->base_knockback_y_q16 < INT32_C(0) ||
+        reflector->knockback_growth_q16 < INT32_C(0) ||
+        maximum_reflector_knockback_x >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        maximum_reflector_knockback_y >
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        reflector->startup_ticks > UINT16_C(60) ||
+        reflector->active_ticks == UINT16_C(0) ||
+        reflector->active_ticks > UINT16_C(60) ||
+        reflector->recovery_ticks == UINT16_C(0) ||
+        reflector->recovery_ticks > UINT16_C(240) ||
+        (uint32_t)reflector->startup_ticks +
+                (uint32_t)reflector->active_ticks +
+                (uint32_t)reflector->recovery_ticks >
+            UINT32_C(600) ||
+        reflector->hitlag_ticks == UINT16_C(0) ||
+        reflector->hitlag_ticks > UINT16_C(120))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

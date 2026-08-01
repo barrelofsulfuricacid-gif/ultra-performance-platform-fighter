@@ -979,15 +979,51 @@ indices 290–301 without moving existing offsets, draws the cyan bolt and its
 owner, and exposes a live state card. Browser controls are `E` for Player 1,
 `;`/Numpad 3 for Player 2, and top face on a Standard Gamepad.
 
+## Prism Burst reflector contract
+
+The original Prism Burst is one immutable reflector definition, not a spawned
+entity. Default content keeps it disabled to preserve existing fixture
+isolation; the focused reflector fixture and live browser lab enable the same
+authored data. Down plus a fresh special edge selects
+`REFLECTOR_GROUND` or `REFLECTOR_AIR` from the legal ordinary movement states.
+Neutral special remains the Pulse Bolt route. Invalid down-special input is
+consumed, and holding special cannot retrigger either action.
+
+Prism Burst has one startup tick, two active ticks, and nine recovery ticks.
+Its centered 7/5-by-3/2-unit-half-extent box deals 3%, uses three hitlag ticks,
+and sends a physical victim downward through the same damage, hitlag, hitstun,
+DI/SDI, event, blast-zone, and stock pipeline as other attacks. The ground and
+air actions preserve their respective movement rules; landing the airborne
+action uses ordinary generic landing and clears its one-hit mask.
+
+The active box also participates in projectile collision. A Pulse Bolt
+overlapping it reverses horizontal velocity, transfers owner to the reflector
+user, remains active, emits `PROJECTILE_REFLECT` with the reflector action as
+detail, and does not set powershield. This is distinct from the existing
+two-frame shield reflection, which retains its powershield result.
+
+`tests/sim/test_m4_reflector.c` supplies 32 invariants covering data validation
+and hashing, grounded physical hit, same-tick projectile reflection and
+returned hit, an ordinary-input offstage downward hit-to-KO route, an
+unchallenged recovery control, save/load future equality, replay verification,
+and structured/compact RL visibility. Browser startup repeats both recovery
+outcomes before readiness; browser view schema 25 retains the 302-value layout
+while naming both actions and exporting the Shine-spike result.
+
 ## Canonical state and inspection
 
-State schema 28 / save format 27 expands the stream to 682 bytes (140-byte
-header plus 542-byte payload), changes the active magic to `PFSAVE27`, and adds
-the complete fixed projectile slot while making fire, collision, block,
-reflection, hit, ownership, action, and typed-event semantics fail closed.
-Structured observation schema 4 exposes the same slot. RL schema 6 and compact
-observation schema 5 append six projectile values at indices 56–61 without
-moving earlier indices. It follows state schema 27 / save format 26, which
+State schema 29 / save format 28 retains the 682-byte stream (140-byte header
+plus 542-byte payload), changes the active magic to `PFSAVE28`, and makes the
+two reflector action IDs, hitlag resume, landing, downward-launch, and
+active-box projectile-reflection semantics fail closed without adding mutable
+fields. Inspection schema 25 and browser view schema 25 expose the new action
+interpretation without changing their layouts. It follows state schema 28 /
+save format 27, which added the complete fixed projectile slot and made fire,
+collision, block, powershield reflection, hit, ownership, action, and
+typed-event semantics fail closed. Structured observation schema 4 exposes
+the same slot. RL schema 6 and compact observation schema 5 append six
+projectile values at indices 56–61 without moving earlier indices. State
+schema 28 / save format 27 follows state schema 27 / save format 26, which
 retains the 662-byte stream and makes the full-up jump-squat attack cancel,
 grounded standing-strong selection, inherited momentum, and
 neutral/shallow/late exclusions fail closed without adding mutable fields. It

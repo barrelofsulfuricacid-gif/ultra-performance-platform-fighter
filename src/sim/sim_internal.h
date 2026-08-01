@@ -213,6 +213,13 @@ typedef enum pf_m4_projectile_input_intent
     PF_M4_PROJECTILE_INPUT_FIRE = 1
 } pf_m4_projectile_input_intent;
 
+void pf_m4_prepare_reflector_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    const pf_input_frame *input,
+    uint32_t player_index,
+    pf_input_frame *effective_input);
+
 pf_status pf_sim_validate_config(const pf_sim_config *config);
 int pf_sim_is_valid(const pf_sim *sim);
 uint64_t pf_sim_rng_next(uint64_t *state);

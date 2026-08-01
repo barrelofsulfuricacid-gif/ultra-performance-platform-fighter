@@ -127,6 +127,7 @@ static int test_ground_dodge_probe;
 static int test_aerial_l_cancel_probe;
 static int test_match_probe;
 static int test_short_hop_laser_probe;
+static int test_shine_spike_probe;
 static int test_aerial_landing_lag_ticks;
 static int test_strong_aerial_landing_lag_ticks;
 static int32_t test_view[TEST_VIEW_COUNT];
@@ -182,6 +183,7 @@ void pf_web_m4_playtest_install(
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
     int short_hop_laser_probe_passed,
+    int shine_spike_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -240,6 +242,7 @@ void pf_web_m4_playtest_install(
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
     int short_hop_laser_probe_passed,
+    int shine_spike_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks)
 {
@@ -300,6 +303,7 @@ void pf_web_m4_playtest_install(
     test_aerial_l_cancel_probe = aerial_l_cancel_probe_passed;
     test_match_probe = match_probe_passed;
     test_short_hop_laser_probe = short_hop_laser_probe_passed;
+    test_shine_spike_probe = shine_spike_probe_passed;
     test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
     test_strong_aerial_landing_lag_ticks =
         strong_aerial_landing_lag_ticks;
@@ -452,9 +456,10 @@ int main(void)
         test_aerial_l_cancel_probe != 1 ||
         test_match_probe != 1 ||
         test_short_hop_laser_probe != 1 ||
+        test_shine_spike_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 24 ||
+        test_view[0] != 25 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -545,7 +550,7 @@ int main(void)
             "surface_tech_probe=%d "
             "air_dodge_probe=%d ground_dodge_probe=%d "
             "aerial_l_cancel_probe=%d match_probe=%d "
-            "short_hop_laser_probe=%d "
+            "short_hop_laser_probe=%d shine_spike_probe=%d "
             "aerial_lag=%d strong_aerial_lag=%d "
             "schema=%d tick=%d\n",
             test_install_count,
@@ -600,6 +605,7 @@ int main(void)
             test_aerial_l_cancel_probe,
             test_match_probe,
             test_short_hop_laser_probe,
+            test_shine_spike_probe,
             test_aerial_landing_lag_ticks,
             test_strong_aerial_landing_lag_ticks,
             (int)test_view[0],
@@ -636,6 +642,46 @@ int main(void)
         !pf_web_m4_playtest_reset())
     {
         return fail("live-projectile-special-route");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step_special(
+            0,
+            32767,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 66 ||
+        test_view[TEST_EVENT_COUNT] != 0 ||
+        test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_STATE] != 0 ||
+        !pf_web_m4_playtest_step_special(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_HITBOX_ACTIVE] != 1 ||
+        !pf_web_m4_playtest_reset())
+    {
+        return fail("live-reflector-down-special-route");
     }
 
     {
@@ -1155,7 +1201,7 @@ int main(void)
         "surface_tech_probe=%d "
         "air_dodge_probe=%d ground_dodge_probe=%d "
         "aerial_l_cancel_probe=%d match_probe=%d "
-        "short_hop_laser_probe=%d "
+        "short_hop_laser_probe=%d shine_spike_probe=%d "
         "event_journal_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
@@ -1208,6 +1254,7 @@ int main(void)
         test_aerial_l_cancel_probe,
         test_match_probe,
         test_short_hop_laser_probe,
+        test_shine_spike_probe,
         test_combat_probe,
         test_render_count);
     return 0;

@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output_dir=${1:-/tmp/pf-m4-projectile}
 compiler=${CC:-cc}
-expected='m4-projectile=pass content_schema=29 state_schema=28 save_bytes=682 projectile_invariants=38 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1'
+expected='m4-projectile=pass content_schema=30 state_schema=29 save_bytes=682 projectile_invariants=38 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1'
 
 mkdir -p "$output_dir"
 
@@ -23,6 +23,7 @@ mkdir -p "$output_dir"
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \

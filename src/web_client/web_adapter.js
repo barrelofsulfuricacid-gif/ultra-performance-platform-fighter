@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -493,6 +493,7 @@ mergeInto(LibraryManager.library, {
     aerialLCancelProbePassed,
     matchProbePassed,
     shortHopLaserProbePassed,
+    shineSpikeProbePassed,
     aerialLandingLagTicks,
     strongAerialLandingLagTicks
   ) {
@@ -752,6 +753,7 @@ mergeInto(LibraryManager.library, {
       jumpCancelProbePassed ? "pass" : "fail";
     section.dataset.shortHopLaserProbe =
       shortHopLaserProbePassed ? "pass" : "fail";
+    section.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -817,6 +819,7 @@ mergeInto(LibraryManager.library, {
       aerialLCancelProbePassed &&
       matchProbePassed &&
       shortHopLaserProbePassed &&
+      shineSpikeProbePassed &&
       gamepadApiAvailable &&
       gamepadProbePassed
         ? "ALL M4 INPUT + GAMEPAD + COMBAT PROBES PASSED"
@@ -873,13 +876,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt special · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face Pulse Bolt · any shoulder/trigger shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt, or Down + E Prism Burst reflector · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face special · down + top face reflector · any shoulder/trigger shield · light + shield grab/item"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt special · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt, or Down + special Prism Burst reflector · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -983,8 +986,11 @@ mergeInto(LibraryManager.library, {
        "and first-airborne-frame attacks keep their ordinary routes. " +
        "Press E or ; (top face on a Standard Gamepad) to fire the fixed-capacity " +
        "Pulse Bolt. Fire it during a short hop for the short-hop laser route; an " +
-       "ordinary shield blocks it, while a shield activated during the two-frame " +
-       "projectile window reflects ownership and velocity without taking damage. " +
+      "ordinary shield blocks it, while a shield activated during the two-frame " +
+      "projectile window reflects ownership and velocity without taking damage. " +
+      "Hold down with special for the Prism Burst reflector: its two active " +
+      "frames strike nearby fighters down and away, and reverse an overlapping " +
+      "Pulse Bolt without using the powershield result. " +
        "The deterministic event feed below records hits, shield interactions, " +
       "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
       "sequence order. " +
@@ -1431,6 +1437,8 @@ mergeInto(LibraryManager.library, {
         (matchProbePassed ? "pass" : "fail") +
         " short_hop_laser_probe=" +
         (shortHopLaserProbePassed ? "pass" : "fail") +
+        " shine_spike_probe=" +
+        (shineSpikeProbePassed ? "pass" : "fail") +
         " gamepad_probe=" +
         (gamepadProbePassed ? "pass" : "fail") +
         " gamepad_api=" +
@@ -1526,6 +1534,7 @@ mergeInto(LibraryManager.library, {
       status.dataset.matchProbe = matchProbePassed ? "pass" : "fail";
       status.dataset.shortHopLaserProbe =
         shortHopLaserProbePassed ? "pass" : "fail";
+      status.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
       status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
@@ -1546,7 +1555,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 24) {
+    if (view[0] !== 25) {
       return;
     }
     var canvas = state.canvas;
@@ -1627,6 +1636,8 @@ mergeInto(LibraryManager.library, {
       "DASH ITEM THROW",
       "PULSE BOLT GROUND",
       "PULSE BOLT AIR",
+      "PRISM BURST GROUND",
+      "PRISM BURST AIR",
     ];
 
     if (view[1] < previousTick) {

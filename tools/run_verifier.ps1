@@ -130,6 +130,7 @@ foreach ($check in @(
         "mechanical-oracle",
         "m4-item",
         "m4-projectile",
+        "m4-reflector",
         "m4-browser-adapter",
         "m3-regression-qualification",
         "sanitizer",

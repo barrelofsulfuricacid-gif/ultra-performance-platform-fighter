@@ -298,14 +298,21 @@ pf_status pf_sim_tick_impl(
          ++player_index)
     {
         const pf_input_frame *input = &inputs[player_index];
+        pf_input_frame reflector_input;
         pf_input_frame projectile_input;
         pf_input_frame effective_input;
+        pf_m4_prepare_reflector_input(
+            &sim->content,
+            world,
+            input,
+            player_index,
+            &reflector_input);
         const pf_m4_projectile_input_intent projectile_intent =
             pf_m4_prepare_projectile_input(
                 &sim->content,
                 world,
                 scratch,
-                input,
+                &reflector_input,
                 player_index,
                 &projectile_input);
         const pf_m4_item_input_intent item_intent =

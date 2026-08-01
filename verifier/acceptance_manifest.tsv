@@ -12,6 +12,7 @@ M3-RENDER-SEMANTIC	visual	active	render-semantic-reference
 M4-MECHANICS	mechanical	active	mechanical-oracle
 M4-COMBAT	mechanical	active	m4-combat
 M4-PROJECTILE	mechanical	active	m4-projectile
+M4-REFLECTOR	mechanical	active	m4-reflector
 M4-BROWSER	mechanical	active	m4-browser-adapter
 M4-COLLISION-OVERLAY	visual	planned:M4	collision-hitbox-overlay
 M7-MENU	menu	planned:M7	menu-navigation

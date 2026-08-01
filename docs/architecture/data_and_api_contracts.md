@@ -81,11 +81,14 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–26 remain historical checkpoints. The current M4
-movement/combat/item/projectile state uses save format 27: a fixed 682-byte
-checkpoint with state schema 28 and a 542-byte payload. It appends one
+Save formats 1–27 remain historical checkpoints. The current M4
+movement/combat/item/projectile/reflector state uses save format 28: a fixed
+682-byte checkpoint with state schema 29 and a 542-byte payload. It retains the
+format-27 byte layout while making grounded/aerial Prism Burst actions, hitlag
+resume, landing, downward physical launch, and active-box projectile
+reflection fail closed. State schema 28 / save format 27 appended one
 fixed-capacity projectile slot with position/velocity, lifetime, state, and
-owner, and makes grounded/aerial fire, shield block, powershield reflection,
+owner, and made grounded/aerial fire, shield block, powershield reflection,
 hit, and typed-event semantics fail closed. State schema 27 / save format 26
 retained the prior 522-byte payload while making the full-up plus fresh
 light/strong jump-squat cancel into standing strong attack fail closed. State
@@ -129,7 +132,11 @@ momentum, and neutral/shallow-up/first-airborne-frame exclusions fail closed.
 State schema 28 appends the projectile slot. Structured observation schema 4
 and RL schema 6 expose it; compact observation schema 5 appends six values at
 indices 56–61 without changing earlier indices. Input schema 4 adds the
-separate special button used to request the Pulse Bolt.
+separate special button used to request Pulse Bolt or, with full down, Prism
+Burst. State schema 29 adds no bytes: it versions the two reflector action IDs
+and their physical/projectile collision interpretation. Content schema 30 adds
+one reflector definition under reflector schema 1; inspection schema 25 and
+browser view schema 25 expose the action semantics without changing layouts.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.
@@ -158,6 +165,10 @@ The C ABI structure is not the replay/network byte encoding.
 Input schema 3 assigns bit 0 to jump, bit 1 to light attack, bit 2 to strong
 attack, and bit 63 to forfeit. Unknown bits fail before any player state is
 advanced.
+Input schema 4 additionally assigns bit 3 to special. Neutral special may
+request the fixed Pulse Bolt; full down plus a fresh special edge may request
+the grounded or airborne Prism Burst when its content and action state are
+legal.
 
 ## Deterministic state schema
 
@@ -184,8 +195,9 @@ Each event records the processed input tick, a match-monotonic sequence,
 type, flags, source and target slots, one Q16.16 value, one Q16.16 velocity
 pair, and a type-specific 16-bit detail. `255` denotes a system/no-player
 endpoint. The currently produced types are hit, shield block, powershield,
-shield break, grab, grab escape, throw, KO, respawn, sudden death, match result,
-forfeit, and time limit.
+shield break, grab, grab escape, throw, item pickup/drop/throw/hit/reset,
+projectile fire/hit/reflect, KO, respawn, sudden death, match result, forfeit,
+and time limit.
 
 The event array itself is same-tick output scratch, not rolling canonical
 history. Canonical state stores the next sequence authority. Loading a

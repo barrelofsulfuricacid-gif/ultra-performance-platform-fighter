@@ -611,7 +611,9 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state ==
                (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
            action_state ==
-               (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
+               (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -1219,6 +1221,27 @@ static void pf_m4_land_from_air(
                         : (uint8_t)PF_M4_ACTION_AERIAL_LANDING;
             }
         }
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        scratch->tech_direction[player_index] = INT8_C(0);
+        return;
+    }
+
+    if (*action_state == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
+    {
+        pf_m4_land(
+            fighter,
+            surface_y_q16,
+            surface,
+            position_y,
+            velocity_y,
+            action_ticks,
+            grounded,
+            action_state,
+            support,
+            air_jumps_remaining,
+            short_hop_latched,
+            fast_fall,
+            dash_direction);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         scratch->tech_direction[player_index] = INT8_C(0);
         return;
@@ -2285,10 +2308,19 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         special_pressed != 0)
     {
+        const int reflector_requested =
+            content->reflector.enabled != UINT8_C(0) &&
+            input->main_stick_y >=
+                (int16_t)fighter->crouch_axis_threshold;
+
         action_state =
             grounded != UINT8_C(0)
-                ? (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND
-                : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR;
+                ? (reflector_requested != 0
+                       ? (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND
+                       : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
+                : (reflector_requested != 0
+                       ? (uint8_t)PF_M4_ACTION_REFLECTOR_AIR
+                       : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR);
         action_ticks = UINT16_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         short_hop_latched = UINT8_C(0);
@@ -2832,6 +2864,28 @@ pf_status pf_m4_step_player(
                 action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);
             }
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND)
+    {
+        const uint32_t reflector_ticks =
+            (uint32_t)content->reflector.startup_ticks +
+            (uint32_t)content->reflector.active_ticks +
+            (uint32_t)content->reflector.recovery_ticks;
+
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if ((uint32_t)action_ticks >= reflector_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+            scratch->attack_hit_mask[player_index] = UINT8_C(0);
         }
     }
     else if (!ledge_motion_handled &&
@@ -3595,6 +3649,27 @@ pf_status pf_m4_step_player(
                 action_ticks < fighter->double_jump_cancel_ticks;
 
             if (action_state ==
+                (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
+            {
+                const uint32_t reflector_ticks =
+                    (uint32_t)content->reflector.startup_ticks +
+                    (uint32_t)content->reflector.active_ticks +
+                    (uint32_t)content->reflector.recovery_ticks;
+
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    air_target,
+                    fighter->air_acceleration_q16);
+                ++action_ticks;
+                if ((uint32_t)action_ticks >= reflector_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                    scratch->attack_hit_mask[player_index] = UINT8_C(0);
+                }
+            }
+            else if (action_state ==
                 (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR)
             {
                 velocity_x = pf_m4_approach(

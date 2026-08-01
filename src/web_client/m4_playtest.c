@@ -196,6 +196,7 @@ extern void pf_web_m4_playtest_install(
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
     int short_hop_laser_probe_passed,
+    int shine_spike_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -9072,6 +9073,7 @@ static int pf_web_m4_initialize_live_item_lab(void)
     pf_web_m4_content.item.enabled = UINT8_C(1);
     pf_web_m4_content.item.lifetime_ticks = UINT16_C(3600);
     pf_web_m4_content.projectile.enabled = UINT8_C(1);
+    pf_web_m4_content.reflector.enabled = UINT8_C(1);
     return pf_web_m4_initialize_current_content() &&
            pf_web_m4_reset_internal();
 }
@@ -9535,6 +9537,151 @@ static int pf_web_m4_run_short_hop_laser_probe(void)
     return passed != 0 && restored != 0;
 }
 
+static int pf_web_m4_run_shine_spike_case(
+    int attack_enabled,
+    int *out_reflector_hit,
+    int *out_recovered)
+{
+    pf_m4_inspection inspection;
+    uint32_t target_offstage_ticks = UINT32_C(0);
+    int target_left_stage = 0;
+    int reflector_used = 0;
+    int ko_seen = 0;
+    uint32_t tick;
+
+    if (out_reflector_hit == NULL || out_recovered == NULL ||
+        !pf_web_m4_reset_internal() ||
+        pf_m4_inspect(pf_web_m4_sim, &inspection) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    *out_reflector_hit = 0;
+    *out_recovered = 0;
+    for (tick = UINT32_C(0); tick < UINT32_C(260); ++tick)
+    {
+        int16_t player0_x = INT16_MAX;
+        int16_t player0_y = INT16_C(0);
+        uint64_t player0_buttons = UINT64_C(0);
+        int16_t player1_x = INT16_MAX;
+        uint64_t player1_buttons = UINT64_C(0);
+        const pf_sim_event *event;
+
+        if (inspection.players[1].respawn_count != UINT16_C(0))
+        {
+            return attack_enabled != 0 &&
+                   *out_reflector_hit != 0 && ko_seen != 0;
+        }
+        if (target_left_stage != 0 &&
+            inspection.players[1].grounded != UINT8_C(0))
+        {
+            *out_recovered = 1;
+            return attack_enabled == 0;
+        }
+        if (inspection.players[1].grounded == UINT8_C(0))
+        {
+            target_left_stage = 1;
+            ++target_offstage_ticks;
+            player1_x = INT16_MIN;
+            if (target_offstage_ticks == UINT32_C(9))
+            {
+                player1_buttons = PF_INPUT_BUTTON_JUMP;
+            }
+        }
+        if (attack_enabled == 0)
+        {
+            player0_x = INT16_C(0);
+        }
+        else if (reflector_used == 0 &&
+                 inspection.players[0].grounded == UINT8_C(0) &&
+                 target_left_stage != 0)
+        {
+            player0_y = INT16_MAX;
+            player0_buttons = PF_INPUT_BUTTON_SPECIAL;
+            reflector_used = 1;
+        }
+        if (!pf_web_m4_tick(
+                player0_x,
+                player0_y,
+                player0_buttons,
+                player1_x,
+                INT16_C(0),
+                player1_buttons,
+                &inspection))
+        {
+            return 0;
+        }
+        event = pf_web_m4_find_event(PF_SIM_EVENT_HIT);
+        if (event != NULL &&
+            event->detail == (uint16_t)PF_M4_ACTION_REFLECTOR_AIR &&
+            event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1) &&
+            event->velocity_y_q16 > INT32_C(0))
+        {
+            *out_reflector_hit = 1;
+        }
+        event = pf_web_m4_find_event(PF_SIM_EVENT_KO);
+        if (event != NULL && event->source_player == UINT8_C(0) &&
+            event->target_player == UINT8_C(1))
+        {
+            ko_seen = 1;
+        }
+    }
+    return 0;
+}
+
+static int pf_web_m4_run_shine_spike_probe(void)
+{
+    int reflector_hit = 0;
+    int recovered = 0;
+    int control_hit = 0;
+    int control_recovered = 0;
+    int passed = 0;
+    int restored;
+
+    if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK)
+    {
+        pf_web_m4_content.reflector.enabled = UINT8_C(1);
+        pf_web_m4_content.projectile.enabled = UINT8_C(1);
+        pf_web_m4_content.stage.floor_left_q16 =
+            -INT32_C(8) * PF_Q16_ONE;
+        pf_web_m4_content.stage.floor_right_q16 =
+            INT32_C(8) * PF_Q16_ONE;
+        pf_web_m4_content.stage.platform_center_x_q16 =
+            -INT32_C(4) * PF_Q16_ONE;
+        pf_web_m4_content.stage.platform_half_width_q16 = PF_Q16_ONE;
+        pf_web_m4_content.stage.platform_motion_amplitude_q16 =
+            INT32_C(0);
+        pf_web_m4_content.stage.solid_left_q16 =
+            INT32_C(2) * PF_Q16_ONE;
+        pf_web_m4_content.stage.solid_right_q16 =
+            INT32_C(6) * PF_Q16_ONE;
+        pf_web_m4_content.stage.blast_left_q16 =
+            -INT32_C(12) * PF_Q16_ONE;
+        pf_web_m4_content.stage.blast_right_q16 =
+            INT32_C(12) * PF_Q16_ONE;
+        pf_web_m4_content.stage.blast_bottom_q16 =
+            INT32_C(40) * PF_Q16_ONE;
+        pf_web_m4_content.stage.spawn_spacing_q16 = PF_Q16_ONE;
+        if (pf_web_m4_initialize_current_content() &&
+            pf_web_m4_run_shine_spike_case(
+                1,
+                &reflector_hit,
+                &recovered) &&
+            pf_web_m4_run_shine_spike_case(
+                0,
+                &control_hit,
+                &control_recovered))
+        {
+            passed = reflector_hit != 0 && recovered == 0 &&
+                     control_hit == 0 && control_recovered != 0;
+        }
+    }
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_render(void)
 {
     pf_m4_inspection inspection;
@@ -9548,7 +9695,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(24);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(25);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -9896,6 +10043,7 @@ int pf_web_m4_playtest_start(void)
     int aerial_l_cancel_probe_passed;
     int match_probe_passed;
     int short_hop_laser_probe_passed;
+    int shine_spike_probe_passed;
 
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
         !pf_web_m4_initialize_current_content())
@@ -9974,6 +10122,7 @@ int pf_web_m4_playtest_start(void)
         &jump_cancel_throw_probe_passed);
     short_hop_laser_probe_passed =
         pf_web_m4_run_short_hop_laser_probe();
+    shine_spike_probe_passed = pf_web_m4_run_shine_spike_probe();
     if (input_probe_passed == 0 ||
         air_facing_probe_passed == 0 ||
         instant_double_jump_probe_passed == 0 ||
@@ -10023,6 +10172,7 @@ int pf_web_m4_playtest_start(void)
         aerial_l_cancel_probe_passed == 0 ||
         match_probe_passed == 0 ||
         short_hop_laser_probe_passed == 0 ||
+        shine_spike_probe_passed == 0 ||
         !pf_web_m4_initialize_live_item_lab())
     {
         return 0;
@@ -10078,6 +10228,7 @@ int pf_web_m4_playtest_start(void)
         aerial_l_cancel_probe_passed,
         match_probe_passed,
         short_hop_laser_probe_passed,
+        shine_spike_probe_passed,
         (int)pf_web_m4_content.fighter.aerial_landing_lag_ticks,
         (int)pf_web_m4_content.fighter
             .strong_aerial_landing_lag_ticks);

@@ -13,6 +13,8 @@ one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
 plus bat-drop, glide-toss, and jump-cancel-throw routes,
 one fixed Pulse Bolt with grounded/aerial fire, hit, shield block, and
 powershield reflection plus the short-hop-laser route,
+one data-defined Prism Burst reflector with grounded/aerial physical hit and
+active-box projectile reflection plus the Shine-spike route,
 grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -34,7 +36,7 @@ headless execution.
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
-| Pulse Bolt special | `E` | `;` or Numpad `3` |
+| Pulse Bolt special; hold down for Prism Burst | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
@@ -55,7 +57,8 @@ assigned in browser index order. On each pad, the left stick supplies analog
 movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack or a directional forward
 smash, the right face button is a direct strong attack, the left face button
-jumps, the top face button fires Pulse Bolt, and any shoulder or trigger
+jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
+Burst, and any shoulder or trigger
     holds shield or supplies the tech/air-dodge/L-cancel trigger. Light plus a
     shoulder/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
@@ -84,6 +87,15 @@ takeoff for short-hop laser. Only one bolt can occupy the canonical slot. An
 ordinary shield blocks and clears it; activate shield during the authored
 two-frame projectile window to reverse the bolt, transfer its owner, and take
 no damage. The event feed distinguishes fire, hit, and reflection.
+
+Hold down and freshly press the same special control for Prism Burst. Neutral
+special continues to fire Pulse Bolt. Prism Burst has one startup tick, two
+active ticks, and nine recovery ticks; its physical box deals 3% and launches
+downward. If a Pulse Bolt overlaps the active box, it reverses horizontal
+velocity and changes owner without setting the powershield indicator. For the
+Shine-spike route, follow an offstage opponent and place `PRISM BURST AIR` into
+their recovery path; the readiness oracle also proves the same victim recovers
+when left unchallenged.
 
 For a fox-trot, tap and release one full direction, then repeat that same
 direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
@@ -802,6 +814,9 @@ through:
 - an original Pulse Bolt fired from a deterministic short hop, producing the
   aerial fire action/event and returning through generic landing before the
   live item/projectile lab is installed;
+- an ordinary-input airborne Prism Burst connecting offstage with a downward
+  typed hit and causing a stock loss, plus the same victim policy recovering
+  when unchallenged before the live reflector lab is installed;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -867,7 +882,8 @@ tumble_probe=pass
 floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass
 air_dodge_probe=pass
 ground_dodge_probe=pass
-aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass gamepad_probe=pass
+aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass
+shine_spike_probe=pass gamepad_probe=pass
 gamepad_api=available controls=keyboard-gamepad-two-player` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

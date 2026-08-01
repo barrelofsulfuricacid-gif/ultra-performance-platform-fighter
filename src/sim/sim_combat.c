@@ -188,19 +188,23 @@ typedef struct pf_m4_attack_runtime
     uint16_t active_end_tick;
     uint16_t hitlag_ticks;
     int8_t direction;
+    int8_t vertical_direction;
     uint8_t action_state;
 } pf_m4_attack_runtime;
 
 static int pf_m4_attack_for_action(
-    const pf_m4_fighter_data *fighter,
+    const pf_m4_content *content,
     uint8_t action_state,
     uint16_t action_ticks,
     pf_m4_attack_runtime *out_attack)
 {
-    if (fighter == NULL || out_attack == NULL)
+    const pf_m4_fighter_data *fighter;
+
+    if (content == NULL || out_attack == NULL)
     {
         return 0;
     }
+    fighter = &content->fighter;
 
     if (action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK)
     {
@@ -227,6 +231,7 @@ static int pf_m4_attack_for_action(
         out_attack->hitlag_ticks =
             fighter->dash_attack_hitlag_ticks;
         out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state =
             (uint8_t)PF_M4_ACTION_DASH_ATTACK;
         return 1;
@@ -255,6 +260,7 @@ static int pf_m4_attack_for_action(
             fighter->jab_final_active_ticks;
         out_attack->hitlag_ticks = fighter->jab_final_hitlag_ticks;
         out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state = (uint8_t)PF_M4_ACTION_JAB_FINAL;
         return 1;
     }
@@ -282,6 +288,7 @@ static int pf_m4_attack_for_action(
             fighter->jab_active_ticks;
         out_attack->hitlag_ticks = fighter->jab_hitlag_ticks;
         out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state =
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
         return 1;
@@ -312,6 +319,7 @@ static int pf_m4_attack_for_action(
             fighter->strong_active_ticks;
         out_attack->hitlag_ticks = fighter->strong_hitlag_ticks;
         out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state = action_state;
         return 1;
     }
@@ -341,8 +349,43 @@ static int pf_m4_attack_for_action(
                 UINT32_C(1));
         out_attack->hitlag_ticks = fighter->aerial_hitlag_ticks;
         out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state =
             (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+        return 1;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
+        action_state == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
+    {
+        const pf_m4_reflector_data *reflector = &content->reflector;
+
+        if (reflector->enabled == UINT8_C(0))
+        {
+            return 0;
+        }
+        out_attack->hitbox_offset_x_q16 =
+            reflector->hitbox_offset_x_q16;
+        out_attack->hitbox_offset_y_q16 =
+            reflector->hitbox_offset_y_q16;
+        out_attack->hitbox_half_width_q16 =
+            reflector->hitbox_half_width_q16;
+        out_attack->hitbox_half_height_q16 =
+            reflector->hitbox_half_height_q16;
+        out_attack->damage_q16 = reflector->damage_q16;
+        out_attack->base_knockback_x_q16 =
+            reflector->base_knockback_x_q16;
+        out_attack->base_knockback_y_q16 =
+            reflector->base_knockback_y_q16;
+        out_attack->knockback_growth_q16 =
+            reflector->knockback_growth_q16;
+        out_attack->active_begin_tick =
+            reflector->startup_ticks + UINT16_C(1);
+        out_attack->active_end_tick =
+            reflector->startup_ticks + reflector->active_ticks;
+        out_attack->hitlag_ticks = reflector->hitlag_ticks;
+        out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction = INT8_C(1);
+        out_attack->action_state = action_state;
         return 1;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ATTACK)
@@ -406,6 +449,7 @@ static int pf_m4_attack_for_action(
         out_attack->hitlag_ticks =
             fighter->getup_attack_hitlag_ticks;
         out_attack->direction = direction;
+        out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state =
             (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
         return 1;
@@ -507,7 +551,6 @@ int pf_m4_attack_hitbox(
     int32_t *out_top_q16,
     int32_t *out_bottom_q16)
 {
-    const pf_m4_fighter_data *fighter;
     pf_m4_attack_runtime attack;
     int64_t center_x;
     int64_t center_y;
@@ -521,9 +564,8 @@ int pf_m4_attack_hitbox(
         return 0;
     }
 
-    fighter = &content->fighter;
     if (!pf_m4_attack_for_action(
-            fighter,
+            content,
             action_state,
             action_ticks,
             &attack))
@@ -652,6 +694,22 @@ static int pf_m4_hitbox_overlaps_player(
            hitbox_right_q16 >= hurtbox_left &&
            hitbox_top_q16 <= hurtbox_bottom &&
            hitbox_bottom_q16 >= hurtbox_top;
+}
+
+static int pf_m4_boxes_overlap(
+    int32_t left_a_q16,
+    int32_t right_a_q16,
+    int32_t top_a_q16,
+    int32_t bottom_a_q16,
+    int32_t left_b_q16,
+    int32_t right_b_q16,
+    int32_t top_b_q16,
+    int32_t bottom_b_q16)
+{
+    return left_a_q16 <= right_b_q16 &&
+           right_a_q16 >= left_b_q16 &&
+           top_a_q16 <= bottom_b_q16 &&
+           bottom_a_q16 >= top_b_q16;
 }
 
 static int pf_m4_action_is_throw(uint8_t action_state)
@@ -1435,6 +1493,35 @@ static pf_status pf_m4_resolve_projectile_combat(
             scratch->projectile_velocity_x_q16 < INT32_C(0)
                 ? INT8_C(-1)
                 : INT8_C(1);
+        int32_t reflector_left;
+        int32_t reflector_right;
+        int32_t reflector_top;
+        int32_t reflector_bottom;
+        const int reflector_active =
+            (scratch->action_state[target_index] ==
+                 (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND ||
+             scratch->action_state[target_index] ==
+                 (uint8_t)PF_M4_ACTION_REFLECTOR_AIR) &&
+            pf_m4_attack_hitbox(
+                content,
+                scratch->position_x_q16[target_index],
+                scratch->position_y_q16[target_index],
+                scratch->facing[target_index],
+                scratch->action_state[target_index],
+                scratch->action_ticks[target_index],
+                &reflector_left,
+                &reflector_right,
+                &reflector_top,
+                &reflector_bottom) &&
+            pf_m4_boxes_overlap(
+                hitbox_left,
+                hitbox_right,
+                hitbox_top,
+                hitbox_bottom,
+                reflector_left,
+                reflector_right,
+                reflector_top,
+                reflector_bottom);
 
         if (target_index == owner_index ||
             scratch->active[target_index] == UINT8_C(0) ||
@@ -1449,16 +1536,45 @@ static pf_status pf_m4_resolve_projectile_combat(
                 scratch->action_ticks[target_index]) ||
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[owner_index] == world->team[target_index]) ||
-            !pf_m4_hitbox_overlaps_player(
-                &content->fighter,
-                scratch,
-                target_index,
-                hitbox_left,
-                hitbox_right,
-                hitbox_top,
-                hitbox_bottom))
+            (reflector_active == 0 &&
+             !pf_m4_hitbox_overlaps_player(
+                 &content->fighter,
+                 scratch,
+                 target_index,
+                 hitbox_left,
+                 hitbox_right,
+                 hitbox_top,
+                 hitbox_bottom)))
         {
             continue;
+        }
+
+        if (reflector_active != 0)
+        {
+            const int32_t reflected_velocity_x =
+                -scratch->projectile_velocity_x_q16;
+
+            scratch->projectile_velocity_x_q16 =
+                reflected_velocity_x;
+            scratch->projectile_owner_slot =
+                (uint8_t)(target_index + UINT32_C(1));
+            scratch->powershield[target_index] = UINT8_C(0);
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    PF_SIM_EVENT_PROJECTILE_REFLECT,
+                    (uint8_t)target_index,
+                    (uint8_t)owner_index,
+                    UINT32_C(0),
+                    reflected_velocity_x,
+                    scratch->projectile_velocity_y_q16,
+                    UINT16_C(0),
+                    (uint16_t)scratch->action_state[target_index],
+                    NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            return PF_STATUS_OK;
         }
 
         if (pf_m4_action_is_guarding(
@@ -1741,7 +1857,7 @@ pf_status pf_m4_resolve_combat(
             continue;
         }
         if (!pf_m4_attack_for_action(
-                &content->fighter,
+                content,
                 attacker_action[owner],
                 scratch->action_ticks[owner],
                 &attack))
@@ -1870,7 +1986,7 @@ pf_status pf_m4_resolve_combat(
                     attack.damage_q16,
                     (int32_t)scratch->facing[owner] *
                         (int32_t)attack.direction * knockback_x,
-                    -knockback_y,
+                    (int32_t)attack.vertical_direction * knockback_y,
                     attack.hitlag_ticks,
                     PF_SIM_EVENT_HIT,
                     (uint16_t)attacker_action[owner]) != PF_STATUS_OK)
@@ -1890,7 +2006,7 @@ pf_status pf_m4_resolve_combat(
             target_owner[attacker_index] == UINT8_MAX)
         {
             if (!pf_m4_attack_for_action(
-                    &content->fighter,
+                    content,
                     attacker_action[attacker_index],
                     scratch->action_ticks[attacker_index],
                     &attack))

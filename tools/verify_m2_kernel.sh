@@ -34,6 +34,7 @@ common_flags="
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -58,6 +59,7 @@ grep -Fqx \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -82,6 +84,7 @@ grep -Fqx \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -107,6 +110,7 @@ grep -Fqx \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -119,7 +123,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31374 corpus_sha256=54248329539dc0f00324c4f4fb7d69650791019f10ba156563dbb591ef8dbfe9 final_sha256=1cca83cc05e4bd49b2ec1ca1e04a2f8372c4e188d6dc91edbcd14dec4e85521c events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f' \
+    'sim-replay=pass ticks=180 players=4 bytes=31374 corpus_sha256=3115914e6972924b856ccb02f9e4457818483c661efee8a1981c873ac52ebe13 final_sha256=1985071d6a58c81c7842e378fe8f0ff229d9846c0fabd2ee341308f057d087e6 events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -161,6 +165,13 @@ grep -Fqx \
     -I"$root/src/sim" \
     -c "$root/src/sim/sim_projectile.c" \
     -o "$output_dir/sim_projectile.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_reflector.c" \
+    -o "$output_dir/sim_reflector.o"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
