@@ -9,8 +9,8 @@ light and strong production aerial routes, auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
 plus explicit first-airborne-frame instant double jump, double-jump-cancel,
 and double-jump-cancel-counter verification
-plus configurable stocks, delayed respawn, invulnerability, sudden death,
-results, rematch, the bounded rollback-safe typed event feed, and complete
+plus a local stock-select setup, delayed respawn, invulnerability, sudden death,
+results, rematch/return-to-setup, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
   forward-smash route, the hitlag-assisted same-platform drop cancel,
   reduced-down shield platform dropping, three-frame V-cancelling, and
@@ -83,6 +83,22 @@ results, rematch, the bounded rollback-safe typed event feed, and complete
 - This is a presentation/verifier slice over already inspected canonical data.
   Browser view schema 33 remains 396 values and no simulation, replay, save,
   observation, or RL format changes.
+
+## Delivered in the temporary M4.3 local-match flow
+
+- The browser now opens in an explicit local 1v1 setup state instead of
+  advancing the match behind the player. It identifies the fixed placeholder
+  fighter, test stage, 60 Hz simulation, and keyboard/standard-gamepad routes.
+- Stock choices 1–4 rebuild the production duel through
+  `pf_sim_config.stock_count`; invalid values fail closed and the selected
+  value is immediately visible in inspection and both player HUD records.
+- `Start Local Match` clears queued setup input and begins at tick zero. Match
+  controls are disabled during setup, then enabled for play; the existing
+  terminal result pauses the match and offers both Rematch and Change Setup.
+  Time-limit truncation now receives the same Rematch label as a stock result.
+- `m4-local-match-flow` is an active verifier acceptance check over setup,
+  playing, results, rematch, and return-to-setup states. This temporary M4.3
+  surface does not claim the broader M7 menu-navigation system.
 
 ## Delivered in the first M4.2 combat slice
 
@@ -1569,8 +1585,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
-- Local setup/menu flow, replay-file event visualization, and repeated
-  verifier/human matches.
+- Replay-file event visualization and repeated verifier/human matches.
 - Representative M4 performance/profile evidence and the mandatory owner
   combat playtest.
 

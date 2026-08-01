@@ -689,6 +689,22 @@ int main(void)
         return fail("pause-safe-refresh");
     }
 
+    if (pf_web_m4_playtest_configure_duel(0) != 0 ||
+        pf_web_m4_playtest_configure_duel(5) != 0 ||
+        !pf_web_m4_playtest_configure_duel(2) ||
+        test_view[TEST_STOCK_COUNT] != 2 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 2 ||
+        test_view[TEST_PLAYER1_BASE + TEST_PLAYER_STOCKS] != 2 ||
+        test_view[1] != 0 ||
+        !pf_web_m4_playtest_configure_duel(4) ||
+        test_view[TEST_STOCK_COUNT] != 4 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PLAYER1_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[1] != 0)
+    {
+        return fail("local-duel-configuration");
+    }
+
     if (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step_special(
             0,

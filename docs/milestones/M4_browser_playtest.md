@@ -71,6 +71,17 @@ execution.
 | Pause/resume | `P` or Pause button | Same |
 | One tick while paused | `N` or Step button | Same |
 | Toggle collision inspector | `I` or Collision Inspector button | Same |
+| Return to local match setup | Match Setup / Change Setup button | Same |
+
+The page opens in `Local 1v1 match setup` with the deterministic match paused
+at tick zero. Choose 1–4 stocks, confirm the fixed Vector-versus-Vector Test
+Stage pairing and input assignments, then press `Start Local Match`. Setup
+input is cleared before the production duel is rebuilt with the selected
+`pf_sim_config.stock_count`. Pause, step, reset, and the separate Team Wobble
+lab stay disabled until the duel begins. A terminal stock result or time limit
+pauses on the result banner; `Rematch` restarts the same configuration and
+`Change Setup` returns to the stock selector. This is the temporary M4.3 local
+loop, not the full M7 menu/navigation surface.
 
 The collision inspector starts enabled. Green/cyan/purple stage lines identify
 the exact floor, one-way platform, and solid-block collision surfaces; the pink

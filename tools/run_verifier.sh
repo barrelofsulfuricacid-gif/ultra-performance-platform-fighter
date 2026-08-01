@@ -150,6 +150,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_collision_overlay.sh" \
     "$pf_artifact_dir/m4_collision_overlay"
 pf_record \
+    m4-local-match-flow \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_match_flow.sh" \
+    "$pf_artifact_dir/m4_match_flow"
+pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"

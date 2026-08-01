@@ -210,6 +210,11 @@ dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do
 not change the 396-value layout or any canonical, replay, save, observation, or
 RL schema.
+The temporary M4.3 browser setup calls
+`pf_web_m4_playtest_configure_duel(stock_count)` for stock choices 1–4. The
+bridge validates the value, rebuilds a fresh production duel, and renders tick
+zero; it does not patch live canonical state. Result, rematch, and setup are
+presentation flow states and add no serialized format.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

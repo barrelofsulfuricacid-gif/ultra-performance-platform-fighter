@@ -245,7 +245,7 @@ function(pf_add_smoke_product target product_name render_probe)
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
-                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_set_team_lab"
+                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_configure_duel,_pf_web_m4_playtest_set_team_lab"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(

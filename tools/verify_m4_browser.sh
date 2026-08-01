@@ -243,10 +243,16 @@ grep -Fq \
     '_pf_web_m4_playtest_refresh' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    '_pf_web_m4_playtest_configure_duel' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     '_pf_web_m4_playtest_set_team_lab' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"Team Wobble Lab"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"Local 1v1 match setup"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'viewCount !== 396' \

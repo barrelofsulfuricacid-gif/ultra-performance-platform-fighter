@@ -720,6 +720,7 @@ mergeInto(LibraryManager.library, {
         "border:1px solid #385274;border-radius:9px;padding:8px 13px;" +
         "font:700 12px/1 system-ui;cursor:pointer}" +
         ".pf-m4-toolbar button:hover{background:#203654}" +
+        ".pf-m4-toolbar button:disabled{cursor:not-allowed;opacity:.45}" +
         ".pf-m4-toolbar button[aria-pressed=true]{background:#214d46;" +
         "border-color:#4ce0a8;color:#dcfff2}" +
         ".pf-m4-tick{color:#8edcff;font:12px/1 ui-monospace,monospace;" +
@@ -737,6 +738,21 @@ mergeInto(LibraryManager.library, {
         ".pf-m4-overlay-attack{border-color:#ffd089;background:#ffb34733}" +
         ".pf-m4-overlay-grab{border-color:#8cf3ff;background:#62e7ff22}" +
         ".pf-m4-overlay-blast{border-color:#ff6c8f}" +
+        ".pf-m4-setup{display:grid;grid-template-columns:1fr auto auto;" +
+        "gap:16px;align-items:center;margin:0 0 16px;padding:16px 18px;" +
+        "background:#0a1523;border:1px solid #355170;border-radius:13px}" +
+        ".pf-m4-setup[hidden]{display:none}.pf-m4-setup-copy strong{" +
+        "display:block;color:#f3f7ff;font-size:17px;margin-bottom:4px}" +
+        ".pf-m4-setup-copy span{color:#91a5bf;font-size:12px}" +
+        ".pf-m4-setup label{display:grid;gap:5px;color:#9fb0c7;" +
+        "font:700 11px/1 ui-monospace,monospace;text-transform:uppercase}" +
+        ".pf-m4-setup select{min-width:92px;background:#13243a;color:#edf5ff;" +
+        "border:1px solid #466587;border-radius:8px;padding:8px 10px;" +
+        "font:700 13px/1 system-ui}" +
+        ".pf-m4-setup button{background:#1f735f;color:#eafff7;border:1px solid #4ce0a8;" +
+        "border-radius:9px;padding:11px 16px;font:800 12px/1 system-ui;" +
+        "cursor:pointer;white-space:nowrap}" +
+        "#pf-m4-playtest[data-match-flow=setup] #pf-m4-canvas{opacity:.42}" +
         ".pf-m4-controls{display:grid;grid-template-columns:1fr 1fr;" +
         "gap:12px;margin:12px 0}" +
         ".pf-m4-control-card{background:#0b1320;border:1px solid #263b58;" +
@@ -762,7 +778,8 @@ mergeInto(LibraryManager.library, {
         "@media(max-width:680px){.pf-m4-heading{flex-direction:column}" +
         ".pf-m4-controls,.pf-m4-state-grid{grid-template-columns:1fr}" +
         ".pf-m4-tick{margin-left:0;width:100%}" +
-        "#pf-m4-playtest{padding:16px}}";
+        "#pf-m4-playtest{padding:16px}.pf-m4-setup{grid-template-columns:1fr;" +
+        "align-items:stretch}}";
       document.head.appendChild(style);
     }
 
@@ -774,6 +791,7 @@ mergeInto(LibraryManager.library, {
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
     section.dataset.teamLab = "inactive";
+    section.dataset.matchFlow = "setup";
     section.dataset.collisionOverlay = "visible";
     section.dataset.collisionOverlaySemantics =
       "stage-hurtbox-attack-grab-item-projectile-blast";
@@ -881,6 +899,41 @@ mergeInto(LibraryManager.library, {
     heading.appendChild(live);
     section.appendChild(heading);
 
+    var setupPanel = document.createElement("section");
+    setupPanel.className = "pf-m4-setup";
+    setupPanel.id = "pf-m4-match-setup";
+    setupPanel.setAttribute("aria-label", "Local one versus one match setup");
+    var setupCopy = document.createElement("div");
+    setupCopy.className = "pf-m4-setup-copy";
+    var setupTitle = document.createElement("strong");
+    setupTitle.textContent = "Local 1v1 match setup";
+    var setupSummary = document.createElement("span");
+    setupSummary.textContent =
+      "Vector vs Vector · Test Stage · 60 Hz · keyboard or Standard Gamepads";
+    setupCopy.appendChild(setupTitle);
+    setupCopy.appendChild(setupSummary);
+    var stockLabel = document.createElement("label");
+    stockLabel.textContent = "Stocks";
+    var stockSelect = document.createElement("select");
+    stockSelect.id = "pf-m4-stock-count";
+    stockSelect.setAttribute("aria-label", "Stock count");
+    [1, 2, 3, 4].forEach(function (stockCount) {
+      var option = document.createElement("option");
+      option.value = String(stockCount);
+      option.textContent = String(stockCount);
+      option.selected = stockCount === 4;
+      stockSelect.appendChild(option);
+    });
+    stockLabel.appendChild(stockSelect);
+    var startMatchButton = document.createElement("button");
+    startMatchButton.id = "pf-m4-start-match";
+    startMatchButton.type = "button";
+    startMatchButton.textContent = "Start Local Match";
+    setupPanel.appendChild(setupCopy);
+    setupPanel.appendChild(stockLabel);
+    setupPanel.appendChild(startMatchButton);
+    section.appendChild(setupPanel);
+
     var canvas = document.createElement("canvas");
     canvas.id = "pf-m4-canvas";
     canvas.width = 960;
@@ -900,6 +953,11 @@ mergeInto(LibraryManager.library, {
     var resetButton = document.createElement("button");
     resetButton.type = "button";
     resetButton.textContent = "Reset";
+    var setupButton = document.createElement("button");
+    setupButton.type = "button";
+    setupButton.textContent = "Match Setup";
+    setupButton.setAttribute("aria-pressed", "true");
+    setupButton.setAttribute("aria-controls", "pf-m4-match-setup");
     var teamLabButton = document.createElement("button");
     teamLabButton.type = "button";
     teamLabButton.textContent = "Team Wobble Lab";
@@ -921,6 +979,7 @@ mergeInto(LibraryManager.library, {
     toolbar.appendChild(pauseButton);
     toolbar.appendChild(stepButton);
     toolbar.appendChild(resetButton);
+    toolbar.appendChild(setupButton);
     toolbar.appendChild(teamLabButton);
     toolbar.appendChild(collisionOverlayButton);
     toolbar.appendChild(gamepadLabel);
@@ -1160,6 +1219,11 @@ mergeInto(LibraryManager.library, {
       pauseButton: pauseButton,
       playerStates: playerStates,
       resetButton: resetButton,
+      setupButton: setupButton,
+      setupPanel: setupPanel,
+      setMatchFlow: setMatchFlow,
+      startMatchButton: startMatchButton,
+      stockSelect: stockSelect,
       teamLabButton: teamLabButton,
       attackQueued: [false, false],
       strongAttackQueued: [false, false],
@@ -1169,7 +1233,7 @@ mergeInto(LibraryManager.library, {
       tauntQueued: [false, false],
       strongAerialLandingLagTicks: strongAerialLandingLagTicks,
       teamLabActive: false,
-      running: true,
+      running: false,
       tickLabel: tickLabel,
       walkAxis: walkAxis,
     };
@@ -1304,6 +1368,9 @@ mergeInto(LibraryManager.library, {
     }
 
     function setRunning(running) {
+      if (running && section.dataset.matchFlow !== "playing") {
+        return;
+      }
       state.running = running;
       state.pauseButton.textContent = running ? "Pause" : "Resume";
       state.pauseButton.setAttribute("aria-pressed", running ? "false" : "true");
@@ -1311,10 +1378,7 @@ mergeInto(LibraryManager.library, {
       state.lastTime = 0;
     }
 
-    function reset() {
-      var completed =
-        state.latest &&
-        (state.latest[22] !== 0 || state.latest[23] !== 0);
+    function clearQueuedInputs() {
       state.keys = Object.create(null);
       state.jumpQueued = [false, false];
       state.attackQueued = [false, false];
@@ -1323,8 +1387,72 @@ mergeInto(LibraryManager.library, {
       state.specialQueued = [false, false];
       state.tauntQueued = [false, false];
       state.accumulator = 0;
-      Module._pf_web_m4_playtest_reset();
+    }
+
+    function setMatchFlow(flow) {
+      var setup = flow === "setup";
+      var playing = flow === "playing";
+
+      section.dataset.matchFlow = flow;
+      state.setupPanel.hidden = !setup;
+      state.setupButton.textContent = flow === "results"
+        ? "Change Setup"
+        : "Match Setup";
+      state.setupButton.setAttribute("aria-pressed", setup ? "true" : "false");
+      state.pauseButton.disabled = !playing;
+      state.stepButton.disabled = !playing;
+      state.resetButton.disabled = setup;
+      state.teamLabButton.disabled = !playing;
+      if (setup) {
+        state.pauseButton.textContent = "Pause";
+        state.pauseButton.setAttribute("aria-pressed", "false");
+      }
+    }
+
+    function openSetup() {
+      clearQueuedInputs();
+      setRunning(false);
+      setMatchFlow("setup");
+    }
+
+    function startConfiguredDuel() {
+      var stockCount = Number(state.stockSelect.value);
+
+      clearQueuedInputs();
+      state.eventLog = [];
+      state.lastEventSequence = 0;
+      if (!Module._pf_web_m4_playtest_configure_duel(stockCount)) {
+        if (status) {
+          status.textContent += " match_setup_runtime=fail";
+          status.dataset.matchSetupRuntime = "fail";
+        }
+        return;
+      }
+      state.teamLabActive = false;
+      state.teamLabButton.textContent = "Team Wobble Lab";
+      state.teamLabButton.setAttribute("aria-pressed", "false");
+      section.dataset.teamLab = "inactive";
+      state.gamepadLabel.textContent = gamepadApiAvailable
+        ? "standard gamepads 0/2"
+        : "gamepad API unavailable";
+      setMatchFlow("playing");
+      setRunning(true);
+    }
+
+    function reset() {
+      var completed =
+        state.latest &&
+        (state.latest[22] !== 0 || state.latest[23] !== 0);
+      if (section.dataset.matchFlow === "setup") {
+        return;
+      }
+      clearQueuedInputs();
+      if (!Module._pf_web_m4_playtest_reset()) {
+        setRunning(false);
+        return;
+      }
       if (completed) {
+        setMatchFlow("playing");
         setRunning(true);
       }
     }
@@ -1332,13 +1460,10 @@ mergeInto(LibraryManager.library, {
     function toggleTeamLab() {
       var nextActive = !state.teamLabActive;
 
-      state.keys = Object.create(null);
-      state.jumpQueued = [false, false];
-      state.attackQueued = [false, false];
-      state.strongAttackQueued = [false, false];
-      state.shieldQueued = [false, false];
-      state.specialQueued = [false, false];
-      state.tauntQueued = [false, false];
+      if (section.dataset.matchFlow !== "playing") {
+        return;
+      }
+      clearQueuedInputs();
       state.eventLog = [];
       state.lastEventSequence = 0;
       state.teamLabActive = nextActive;
@@ -1416,6 +1541,8 @@ mergeInto(LibraryManager.library, {
       }
     });
     resetButton.addEventListener("click", reset);
+    setupButton.addEventListener("click", openSetup);
+    startMatchButton.addEventListener("click", startConfiguredDuel);
     teamLabButton.addEventListener("click", toggleTeamLab);
     collisionOverlayButton.addEventListener("click", toggleCollisionOverlay);
 
@@ -1493,11 +1620,21 @@ mergeInto(LibraryManager.library, {
         if (event.repeat) {
           return;
         }
-        if (event.code === "KeyR") {
+        if (
+          event.code === "KeyR" &&
+          section.dataset.matchFlow !== "setup"
+        ) {
           reset();
-        } else if (event.code === "KeyP") {
+        } else if (
+          event.code === "KeyP" &&
+          section.dataset.matchFlow === "playing"
+        ) {
           setRunning(!state.running);
-        } else if (event.code === "KeyN" && !state.running) {
+        } else if (
+          event.code === "KeyN" &&
+          section.dataset.matchFlow === "playing" &&
+          !state.running
+        ) {
           step();
         }
       },
@@ -1756,7 +1893,9 @@ mergeInto(LibraryManager.library, {
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
       status.dataset.controls = "keyboard-gamepad-two-controller-duel-team-lab";
+      status.dataset.matchFlow = "setup-duel-results-rematch";
     }
+    openSetup();
     requestAnimationFrame(frame);
   },
 
@@ -2890,11 +3029,13 @@ mergeInto(LibraryManager.library, {
       view[18] +
       "-stock " +
       (state.teamLabActive ? "Team Wobble lab" : "duel");
-    state.resetButton.textContent = view[22] !== 0 ? "Rematch" : "Reset";
+    state.resetButton.textContent =
+      view[22] !== 0 || view[23] !== 0 ? "Rematch" : "Reset";
     if (view[22] !== 0 || view[23] !== 0) {
       state.running = false;
       state.pauseButton.textContent = "Resume";
       state.pauseButton.setAttribute("aria-pressed", "true");
+      state.setMatchFlow("results");
     }
   },
 });

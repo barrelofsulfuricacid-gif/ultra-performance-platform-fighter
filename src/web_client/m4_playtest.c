@@ -13,6 +13,7 @@
 #define PF_WEB_M4_MEMORY_ALIGNMENT 64U
 #define PF_WEB_M4_DUEL_PLAYER_COUNT UINT8_C(2)
 #define PF_WEB_M4_TEAM_PLAYER_COUNT UINT8_C(4)
+#define PF_WEB_M4_MAX_SETUP_STOCKS UINT8_C(4)
 #define PF_WEB_M4_WALK_AXIS INT16_C(13500)
 #define PF_WEB_M4_DASH_AXIS INT16_C(32767)
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
@@ -224,6 +225,7 @@ static pf_tick_result pf_web_m4_last_result;
 static int32_t pf_web_m4_view[PF_WEB_M4_VIEW_COUNT];
 static uint8_t pf_web_m4_player_count = PF_WEB_M4_DUEL_PLAYER_COUNT;
 static uint8_t pf_web_m4_team_lab_active;
+static uint8_t pf_web_m4_stock_count = PF_SIM_DEFAULT_STOCK_COUNT;
 
 static const pf_sim_event *pf_web_m4_find_event(
     pf_sim_event_type event_type);
@@ -247,6 +249,7 @@ static int pf_web_m4_initialize_content(
         return 0;
     }
     config.max_ticks = PF_WEB_M4_MAX_TICKS;
+    config.stock_count = pf_web_m4_stock_count;
     if (pf_sim_query_memory(&config, &requirements) != PF_STATUS_OK ||
         requirements.state_bytes >
             sizeof(pf_web_m4_sim_storage.state) ||
@@ -11948,6 +11951,25 @@ int pf_web_m4_playtest_reset(void)
 
 int pf_web_m4_playtest_refresh(void)
 {
+    return pf_web_m4_render();
+}
+
+int pf_web_m4_playtest_configure_duel(int stock_count)
+{
+    const uint8_t previous_stock_count = pf_web_m4_stock_count;
+
+    if (stock_count < 1 ||
+        stock_count > (int)PF_WEB_M4_MAX_SETUP_STOCKS)
+    {
+        return 0;
+    }
+    pf_web_m4_stock_count = (uint8_t)stock_count;
+    if (!pf_web_m4_initialize_live_item_lab())
+    {
+        pf_web_m4_stock_count = previous_stock_count;
+        (void)pf_web_m4_initialize_live_item_lab();
+        return 0;
+    }
     return pf_web_m4_render();
 }
 

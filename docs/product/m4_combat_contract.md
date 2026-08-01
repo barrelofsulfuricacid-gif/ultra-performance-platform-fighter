@@ -739,6 +739,13 @@ the structured simulation, M4 inspection, RL compact, save/load, replay,
 native, and browser paths. They also enter the configuration hash, so snapshots
 and replays cannot load under different match rules.
 
+The temporary M4.3 browser setup exposes stock counts 1–4 for the fixed local
+duel. Starting a selection creates a fresh production simulation at tick zero;
+invalid or out-of-range values cannot mutate the active configuration. The
+presentation gates ticking during setup, pauses on either a terminal result or
+time limit, and offers both same-configuration rematch and return-to-setup.
+This narrow playable loop is separate from the complete M7 menu contract.
+
 ## Ledge regrab and planking
 
 An ordinary jump, down release, or outward release from `LEDGE_HANG` starts a

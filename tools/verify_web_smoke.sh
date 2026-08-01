@@ -125,6 +125,18 @@ pf_require_dom \
     "M4 collision inspector legend" \
     'id="pf-m4-collision-legend"'
 pf_require_dom \
+    "M4 local match setup state" \
+    'data-match-flow="setup"'
+pf_require_dom \
+    "M4 local match setup panel" \
+    'id="pf-m4-match-setup"'
+pf_require_dom \
+    "M4 stock selector" \
+    'id="pf-m4-stock-count"'
+pf_require_dom \
+    "M4 explicit match start" \
+    'id="pf-m4-start-match"'
+pf_require_dom \
     "M4 browser title" \
     'Platform Fighter M4 Browser Playtest'
 

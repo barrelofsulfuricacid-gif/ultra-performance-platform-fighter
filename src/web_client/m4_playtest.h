@@ -39,6 +39,8 @@ int pf_web_m4_playtest_reset(void);
 
 int pf_web_m4_playtest_refresh(void);
 
+int pf_web_m4_playtest_configure_duel(int stock_count);
+
 int pf_web_m4_playtest_set_team_lab(int enabled);
 
 #endif
