@@ -58,6 +58,71 @@ static void pf_m4_hash_throw(
     pf_m4_hash_u16(hash, throw_data->reserved);
 }
 
+static void pf_m4_hash_attack(
+    pf_sha256 *hash,
+    const pf_m4_attack_data *attack)
+{
+    pf_m4_hash_i32(hash, attack->hitbox_offset_x_q16);
+    pf_m4_hash_i32(hash, attack->hitbox_offset_y_q16);
+    pf_m4_hash_i32(hash, attack->hitbox_half_width_q16);
+    pf_m4_hash_i32(hash, attack->hitbox_half_height_q16);
+    pf_m4_hash_u32(hash, attack->damage_q16);
+    pf_m4_hash_i32(hash, attack->base_knockback_x_q16);
+    pf_m4_hash_i32(hash, attack->base_knockback_y_q16);
+    pf_m4_hash_i32(hash, attack->knockback_growth_q16);
+    pf_m4_hash_u16(hash, attack->startup_ticks);
+    pf_m4_hash_u16(hash, attack->active_ticks);
+    pf_m4_hash_u16(hash, attack->recovery_ticks);
+    pf_m4_hash_u16(hash, attack->hitlag_ticks);
+}
+
+static int pf_m4_attack_data_is_valid(
+    const pf_m4_attack_data *attack,
+    int32_t maximum_extent_q16)
+{
+    const int64_t maximum_knockback_x =
+        (int64_t)attack->base_knockback_x_q16 +
+        (((int64_t)attack->knockback_growth_q16 *
+          (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+         16U);
+    const int64_t maximum_knockback_y =
+        (int64_t)attack->base_knockback_y_q16 +
+        ((((int64_t)attack->knockback_growth_q16 *
+           (int64_t)PF_SIM_MAX_DAMAGE_Q16) >>
+          16U) /
+         INT64_C(2));
+
+    return attack->hitbox_offset_x_q16 >= -maximum_extent_q16 &&
+           attack->hitbox_offset_x_q16 <= maximum_extent_q16 &&
+           attack->hitbox_offset_y_q16 >= -maximum_extent_q16 &&
+           attack->hitbox_offset_y_q16 <= maximum_extent_q16 &&
+           attack->hitbox_half_width_q16 > INT32_C(0) &&
+           attack->hitbox_half_width_q16 <= maximum_extent_q16 &&
+           attack->hitbox_half_height_q16 > INT32_C(0) &&
+           attack->hitbox_half_height_q16 <= maximum_extent_q16 &&
+           attack->damage_q16 != UINT32_C(0) &&
+           attack->damage_q16 <= UINT32_C(50) * UINT32_C(65536) &&
+           attack->base_knockback_x_q16 > INT32_C(0) &&
+           attack->base_knockback_y_q16 > INT32_C(0) &&
+           attack->knockback_growth_q16 > INT32_C(0) &&
+           maximum_knockback_x <=
+               (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 &&
+           maximum_knockback_y <=
+               (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16 &&
+           attack->startup_ticks != UINT16_C(0) &&
+           attack->startup_ticks <= UINT16_C(120) &&
+           attack->active_ticks != UINT16_C(0) &&
+           attack->active_ticks <= UINT16_C(120) &&
+           attack->recovery_ticks != UINT16_C(0) &&
+           attack->recovery_ticks <= UINT16_C(240) &&
+           attack->hitlag_ticks != UINT16_C(0) &&
+           attack->hitlag_ticks <= UINT16_C(120) &&
+           (uint32_t)attack->startup_ticks +
+                   (uint32_t)attack->active_ticks +
+                   (uint32_t)attack->recovery_ticks <=
+               UINT32_C(600);
+}
+
 static int pf_m4_throw_data_is_valid(
     const pf_m4_throw_data *throw_data)
 {
@@ -176,6 +241,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
+    pf_m4_hash_attack(hash, &fighter->up_attack);
+    pf_m4_hash_attack(hash, &fighter->down_attack);
     pf_m4_hash_u32(hash, fighter->reset_max_damage_q16);
     pf_m4_hash_i32(hash, fighter->reset_bound_speed_q16);
     pf_m4_hash_i32(hash, fighter->strong_hitbox_offset_x_q16);
@@ -713,6 +780,30 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_final_base_knockback_x_q16 = PF_Q16_RATIO(1, 4);
     fighter->jab_final_base_knockback_y_q16 = PF_Q16_RATIO(3, 10);
     fighter->jab_final_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
+    fighter->up_attack.hitbox_offset_x_q16 = PF_Q16_RATIO(1, 4);
+    fighter->up_attack.hitbox_offset_y_q16 = -PF_Q16_RATIO(1, 2);
+    fighter->up_attack.hitbox_half_width_q16 = PF_Q16_RATIO(13, 20);
+    fighter->up_attack.hitbox_half_height_q16 = PF_Q16_RATIO(3, 4);
+    fighter->up_attack.damage_q16 = UINT32_C(9) * UINT32_C(65536);
+    fighter->up_attack.base_knockback_x_q16 = PF_Q16_RATIO(1, 10);
+    fighter->up_attack.base_knockback_y_q16 = PF_Q16_RATIO(21, 50);
+    fighter->up_attack.knockback_growth_q16 = PF_Q16_RATIO(1, 640);
+    fighter->up_attack.startup_ticks = UINT16_C(4);
+    fighter->up_attack.active_ticks = UINT16_C(3);
+    fighter->up_attack.recovery_ticks = UINT16_C(12);
+    fighter->up_attack.hitlag_ticks = UINT16_C(5);
+    fighter->down_attack.hitbox_offset_x_q16 = PF_Q16_RATIO(3, 5);
+    fighter->down_attack.hitbox_offset_y_q16 = PF_Q16_RATIO(9, 20);
+    fighter->down_attack.hitbox_half_width_q16 = PF_Q16_RATIO(3, 4);
+    fighter->down_attack.hitbox_half_height_q16 = PF_Q16_RATIO(7, 20);
+    fighter->down_attack.damage_q16 = UINT32_C(8) * UINT32_C(65536);
+    fighter->down_attack.base_knockback_x_q16 = PF_Q16_RATIO(1, 5);
+    fighter->down_attack.base_knockback_y_q16 = PF_Q16_RATIO(9, 50);
+    fighter->down_attack.knockback_growth_q16 = PF_Q16_RATIO(1, 768);
+    fighter->down_attack.startup_ticks = UINT16_C(5);
+    fighter->down_attack.active_ticks = UINT16_C(3);
+    fighter->down_attack.recovery_ticks = UINT16_C(11);
+    fighter->down_attack.hitlag_ticks = UINT16_C(4);
     fighter->reset_max_damage_q16 =
         UINT32_C(7) * UINT32_C(65536);
     fighter->reset_bound_speed_q16 = PF_Q16_RATIO(1, 10);
@@ -1197,7 +1288,13 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     if (!pf_m4_throw_data_is_valid(&fighter->forward_throw) ||
         !pf_m4_throw_data_is_valid(&fighter->back_throw) ||
         !pf_m4_throw_data_is_valid(&fighter->up_throw) ||
-        !pf_m4_throw_data_is_valid(&fighter->down_throw))
+        !pf_m4_throw_data_is_valid(&fighter->down_throw) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->up_attack,
+            maximum_fighter_extent_q16) ||
+        !pf_m4_attack_data_is_valid(
+            &fighter->down_attack,
+            maximum_fighter_extent_q16))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

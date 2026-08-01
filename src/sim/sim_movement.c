@@ -696,6 +696,8 @@ static int pf_m4_action_is_shield(uint8_t action_state)
 static int pf_m4_action_is_ground_attack(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_UP_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL;
@@ -1794,6 +1796,8 @@ pf_status pf_m4_step_player(
             (uint8_t)PF_M4_ACTION_SHIELD_STUN;
     const uint16_t horizontal_magnitude =
         pf_m4_axis_magnitude(input->main_stick_x);
+    const uint16_t vertical_magnitude =
+        pf_m4_axis_magnitude(input->main_stick_y);
     const int8_t horizontal_direction =
         pf_m4_axis_direction(
             input->main_stick_x,
@@ -1806,6 +1810,7 @@ pf_status pf_m4_step_player(
         grab_pressed == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
         strong_direction != INT8_C(0) &&
+        horizontal_magnitude >= vertical_magnitude &&
         ((world->action_state[player_index] ==
                   (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
           world->previous_strong_direction[player_index] ==
@@ -1822,6 +1827,13 @@ pf_status pf_m4_step_player(
     const int ground_strong_attack_pressed =
         grab_pressed == 0 &&
         (strong_attack_pressed != 0 || forward_smash_pressed != 0);
+    const uint8_t ground_light_attack_action =
+        vertical_magnitude >= fighter->dash_axis_threshold &&
+                vertical_magnitude > horizontal_magnitude
+            ? (input->main_stick_y < INT16_C(0)
+                   ? (uint8_t)PF_M4_ACTION_UP_ATTACK
+                   : (uint8_t)PF_M4_ACTION_DOWN_ATTACK)
+            : (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
     const int dash_attack_pressed =
         grab_pressed == 0 && light_attack_pressed != 0 &&
         world->action_state[player_index] ==
@@ -2660,7 +2672,7 @@ pf_status pf_m4_step_player(
                 ? (uint8_t)PF_M4_ACTION_DASH_ATTACK
                 : (ground_strong_attack_pressed != 0
                        ? (uint8_t)PF_M4_ACTION_STRONG_ATTACK
-                       : (uint8_t)PF_M4_ACTION_GROUND_ATTACK);
+                       : ground_light_attack_action);
         action_ticks = UINT16_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         short_hop_latched = UINT8_C(0);
@@ -2850,7 +2862,7 @@ pf_status pf_m4_step_player(
             action_state =
                 strong_attack_pressed
                     ? (uint8_t)PF_M4_ACTION_STRONG_ATTACK
-                    : (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+                    : ground_light_attack_action;
             action_ticks = UINT16_C(0);
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             short_hop_latched = UINT8_C(0);
@@ -3457,6 +3469,21 @@ pf_status pf_m4_step_player(
                 (uint32_t)fighter->strong_startup_ticks +
                 (uint32_t)fighter->strong_active_ticks +
                 (uint32_t)fighter->strong_recovery_ticks;
+        }
+        else if (action_state ==
+                     (uint8_t)PF_M4_ACTION_UP_ATTACK ||
+                 action_state ==
+                     (uint8_t)PF_M4_ACTION_DOWN_ATTACK)
+        {
+            const pf_m4_attack_data *attack =
+                action_state == (uint8_t)PF_M4_ACTION_UP_ATTACK
+                    ? &fighter->up_attack
+                    : &fighter->down_attack;
+
+            attack_ticks =
+                (uint32_t)attack->startup_ticks +
+                (uint32_t)attack->active_ticks +
+                (uint32_t)attack->recovery_ticks;
         }
         else
         {

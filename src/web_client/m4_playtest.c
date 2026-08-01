@@ -873,7 +873,7 @@ static int pf_web_m4_run_dash_cancel_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+            (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
         inspection.players[0].velocity_x_q16 <= INT32_C(0))
     {
         return 0;
@@ -8279,6 +8279,147 @@ static int pf_web_m4_run_air_dodge_probe(void)
            inspection.players[0].position_x_q16 > landing_x;
 }
 
+static int pf_web_m4_run_directional_attack_hit_case(
+    const pf_m4_attack_data *attack,
+    int16_t input_x,
+    int16_t input_y,
+    pf_m4_action_state expected_action)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    if (!pf_web_m4_tick(
+            input_x,
+            input_y,
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    if (inspection.players[0].action_state !=
+        (uint8_t)expected_action)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)attack->startup_ticks +
+                    (uint32_t)attack->active_ticks;
+         ++tick)
+    {
+        const pf_sim_event *event;
+
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        event = pf_web_m4_find_event(PF_SIM_EVENT_HIT);
+        if (event == NULL)
+        {
+            continue;
+        }
+        {
+            const int passed =
+               event->source_player == UINT8_C(0) &&
+               event->target_player == UINT8_C(1) &&
+               event->detail == (uint16_t)expected_action &&
+               event->value_q16 == attack->damage_q16 &&
+               event->velocity_x_q16 > INT32_C(0) &&
+               (expected_action == PF_M4_ACTION_UP_ATTACK
+                    ? event->velocity_y_q16 < INT32_C(0)
+                    : event->velocity_y_q16 > INT32_C(0)) &&
+               inspection.players[1].damage_q16 ==
+                   attack->damage_q16 &&
+               inspection.players[1].hitlag_ticks ==
+                   attack->hitlag_ticks;
+            if (!passed)
+            {
+                return 0;
+            }
+            return passed;
+        }
+    }
+    return 0;
+}
+
+static int pf_web_m4_run_directional_ground_attack_probe(void)
+{
+    const pf_m4_content saved_content = pf_web_m4_content;
+    pf_m4_inspection inspection;
+    int initialized;
+    int up_passed;
+    int down_passed;
+    int neutral_passed;
+    int diagonal_passed;
+    int passed;
+    int restored;
+
+    pf_web_m4_content.stage.spawn_spacing_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    pf_web_m4_content.stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    pf_web_m4_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    initialized = pf_web_m4_initialize_current_content();
+    up_passed = initialized &&
+        pf_web_m4_run_directional_attack_hit_case(
+            &pf_web_m4_content.fighter.up_attack,
+            (int16_t)(
+                pf_web_m4_content.fighter.dash_axis_threshold -
+                UINT16_C(1)),
+            INT16_C(-32767),
+            PF_M4_ACTION_UP_ATTACK);
+    down_passed = up_passed &&
+        pf_web_m4_run_directional_attack_hit_case(
+            &pf_web_m4_content.fighter.down_attack,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_M4_ACTION_DOWN_ATTACK);
+    neutral_passed = down_passed &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_C(0),
+            (int16_t)(
+                pf_web_m4_content.fighter.dash_axis_threshold -
+                UINT16_C(1)),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+    diagonal_passed = neutral_passed &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_C(32767),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
+    passed = diagonal_passed;
+
+    pf_web_m4_content = saved_content;
+    restored = pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_run_combat_probe(void)
 {
     pf_m4_inspection inspection;
@@ -8350,7 +8491,8 @@ static int pf_web_m4_run_combat_probe(void)
            pf_web_m4_last_result.events[0].target_player ==
                UINT8_C(1) &&
            pf_web_m4_last_result.events[0].sequence ==
-               inspection.players[1].last_hit_sequence;
+               inspection.players[1].last_hit_sequence &&
+           pf_web_m4_run_directional_ground_attack_probe();
 }
 
 static int pf_web_m4_run_tumble_probe(void)
@@ -9550,7 +9692,7 @@ static int pf_web_m4_run_shield_probe(void)
             UINT64_C(0),
             UINT16_C(0),
             INT16_C(0),
-            INT16_C(0),
+            INT16_C(-32767),
             PF_INPUT_BUTTON_ATTACK,
             UINT16_C(0),
             &inspection))
@@ -9558,7 +9700,7 @@ static int pf_web_m4_run_shield_probe(void)
         return 0;
     }
     return inspection.players[1].action_state ==
-               (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+               (uint8_t)PF_M4_ACTION_UP_ATTACK &&
            inspection.players[1].powershield == UINT8_C(0);
 }
 
@@ -11475,7 +11617,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(35);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(36);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =

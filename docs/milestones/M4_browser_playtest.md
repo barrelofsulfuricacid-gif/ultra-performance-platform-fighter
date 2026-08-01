@@ -1,7 +1,7 @@
 # M4 real-simulation browser playtest
 
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
-geometry, two standing ground attacks, ground/wall/ceiling tech and
+geometry, four standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
 wavedash/waveland, ledge-cancelling, bounded ledge regrabs/planking,
 jump-canceled standing grab with capture/mash escape, production dash attack
@@ -91,7 +91,7 @@ silently inferred from replay metadata.
 | Team Wobble Lab | Click `Team Wobble Lab`; physical Player 1 controls allied P1 | Physical Player 2 controls allied P3; P2 auto-mashes and P4 stays neutral |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
-| Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
+| Light ground/aerial attack; full vertical up/down grounded attack; full horizontal/equal-diagonal forward smash | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
 | Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir while grounded or Vector Ascent while airborne | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
@@ -361,6 +361,14 @@ Waiting four ticks or releasing the direction before light attack instead
 produces the ordinary non-smash ground attack. The dedicated strong key/button
 remains the direct strong-attack route.
 
+From standing, full up plus a fresh light press enters `UP ATTACK`; full down
+plus a fresh light press enters `DOWN ATTACK`. The stick must reach the full
+attack threshold and be strictly more vertical than horizontal. A reduced
+vertical tilt retains `GROUND ATTACK`, while an equal full diagonal retains
+the existing `STRONG ATTACK` forward-smash priority. The up attack's amber box
+and launch point upward; the lower, forward down-attack box launches shallowly
+downward. Horizontal geometry and launch still mirror with facing.
+
 Once `INITIAL DASH` has transitioned to `RUN`, a full opposite input enters
 `RUN TURNAROUND`, not another initial dash. The placeholder fighter uses a
 data-driven 12-tick turnaround. Holding at least 0.625 stick magnitude toward
@@ -580,7 +588,8 @@ shield health, shield stun, and a powershield indicator.
 
 After a physical powershield, release shield by the end of shield stun. Frame 1
 of `SHIELD RELEASE` cannot start a ground attack; a fresh attack press on frame
-2 cancels the remaining release animation into the current attack. An early
+2 cancels the remaining release animation into the selected neutral, up, down,
+or strong standing attack. An early
 attack is not buffered. Holding shield until stun ends consumes the opportunity,
 and an ordinary block retains the full 15-tick release.
 
@@ -631,9 +640,9 @@ invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
 This shield slice does not yet include analog light shield, general shield
-tilt/poke, or shield SDI.
-Future ground actions must join the same powershield-cancel router before that
-registry row can advance from `playable` to `verified`.
+tilt/poke, or shield SDI. All current standing ground actions share the same
+powershield-cancel selector; the registry row remains `playable` pending the
+mandatory owner playtest and broader acceptance evidence.
 
 ## Focused owner checks
 
@@ -705,7 +714,12 @@ registry row can advance from `playable` to `verified`.
 16. Move into range, press `F`, and confirm the amber hitbox appears only on the
    active frames. On contact, confirm the target gains 6%, both players visibly
    freeze, the target then launches in `HITSTUN`, and the event feed adds one
-   sequenced 6% `hit` entry naming both players.
+   sequenced 6% `hit` entry naming both players. Reset and repeat with full up
+   plus light for `UP ATTACK` and 9% upward launch, then full down plus light
+   for `DOWN ATTACK` and 8% shallow downward launch. Try reduced vertical plus
+   light for the neutral jab, equal full diagonal plus light for `STRONG
+   ATTACK`, and the dedicated strong key plus up for the same direct strong
+   action.
 17. Attack facing away and confirm the active hitbox whiffs. Reset, bring both
     players into range, and attack on the same tick to confirm a simultaneous
     trade.
@@ -772,8 +786,10 @@ registry row can advance from `playable` to `verified`.
     loses only its normal hold depletion, and pushback is larger.
 29. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
-    on frame 2 and confirm it enters `GROUND ATTACK`. Repeat after an ordinary
-    block and confirm the attack cannot skip the 15-tick release.
+    on frame 2 and confirm it enters `GROUND ATTACK`. Repeat with full up plus
+    light, full down plus light, and direct strong to confirm `UP ATTACK`,
+    `DOWN ATTACK`, and `STRONG ATTACK` use the same cancel. Repeat after an
+    ordinary block and confirm none can skip the 15-tick release.
 30. Hold shield until it reaches zero. Confirm upward `SHIELD BREAK`, forced
     landing, prone `SHIELD BREAK DOWN`, `SHIELD BREAK STAND`, then the
     vulnerable orbiting-star stun and `MASH · Nf` counter. Hold one mash key

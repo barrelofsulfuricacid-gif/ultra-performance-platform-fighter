@@ -11,8 +11,9 @@ missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
 shield stop, dashing shield, shield platform dropping,
 shield damage/stun/pushback, shield release and
 regeneration, complete shield-break launch/down/stand/stun/recovery,
-physical powershielding, frame-2 powershield canceling into either supported
-standing ground attack, and the hitlag-assisted same-platform drop-cancel
+physical powershielding, frame-2 powershield canceling into the neutral,
+vertical-directional, or strong standing ground attacks, and the
+hitlag-assisted same-platform drop-cancel
 route, plus three-frame V-cancelling of eligible airborne launch and grounded
 low-percent crouch cancel. The shared unblocked reaction path also applies the
 placeholder fighter's authored victim weight before hitstun and later reaction
@@ -46,22 +47,30 @@ simultaneous-final-stock sudden death are now part of the checkpoint.
 
 The light or strong ground attack is entered by a rising edge on its separate
 input-schema-3 button while the fighter is grounded and outside a locked
-action. If both edges occur on one tick, strong attack takes priority. Full
-direction plus the light-attack edge also enters the strong ground attack from
-idle, providing the standing forward-smash input. Delaying that light-attack
-edge for one through three same-direction `INITIAL_DASH` ticks produces the
-small-step forward smash: initial-dash travel and retained velocity extend the
-same authored hitbox. Frame 4 or a missing full direction produces the ordinary
-light ground attack, and an opposite-direction smash has only the one-tick
-pivot window. The separate strong button remains a direct strong-attack route. An
-airborne light-attack edge instead enters the original light aerial, while an
-airborne strong-attack edge enters `STRONG_AERIAL_ATTACK`. There is no
-universal input buffer. The default light jab defines two startup ticks, two
-active ticks, eight recovery ticks, and four hitlag ticks. The default strong
-attack defines five startup ticks, three active ticks, 18 recovery ticks, and
-six hitlag ticks. The aerial defines four startup ticks, five active ticks, 23
-recovery ticks, and five hitlag ticks while retaining aerial drift, gravity,
-and fast fall.
+action. If both edges occur on one tick, strong attack takes priority. A fresh
+light edge with full-threshold, strictly vertical-dominant stick input selects
+`UP_ATTACK` or `DOWN_ATTACK`. Sub-threshold vertical input retains the ordinary
+neutral light jab. Full horizontal input, including an equal-magnitude
+diagonal, retains forward-smash priority from idle; delaying that light edge
+for one through three same-direction `INITIAL_DASH` ticks produces the
+small-step forward smash, whose retained travel and velocity extend the same
+authored hitbox. Frame 4 or a missing full horizontal direction produces the
+selected light attack, and an opposite-direction smash has only the one-tick
+pivot window. The separate strong button remains a direct strong-attack route
+regardless of stick direction. A run light edge remains `DASH_ATTACK`.
+
+An airborne light-attack edge enters the original light aerial, while an
+airborne strong-attack edge enters `STRONG_AERIAL_ATTACK`; the new directional
+light actions are grounded only. There is no universal input buffer. The
+default neutral jab defines two startup ticks, two active ticks, eight recovery
+ticks, and four hitlag ticks. Default `UP_ATTACK` deals 9%, defines four startup,
+three active, 12 recovery, and five hitlag ticks, and authors a predominantly
+upward launch. Default `DOWN_ATTACK` deals 8%, defines five startup, three
+active, 11 recovery, and four hitlag ticks, and authors a shallow downward
+launch. The default strong attack defines five startup ticks, three active
+ticks, 18 recovery ticks, and six hitlag ticks. The aerial defines four startup
+ticks, five active ticks, 23 recovery ticks, and five hitlag ticks while
+retaining aerial drift, gravity, and fast fall.
 
 The strong aerial deliberately reuses the strong attack's five-startup,
 three-active, 18-recovery, 12%-damage, six-hitlag, launch, and mirrored-hitbox
@@ -81,6 +90,15 @@ grounded strong action.
 
 Collision resolves once after every active player completes movement for the
 tick, making ownership independent of player step order.
+
+The two new directional light definitions are embedded fixed-layout records in
+the parent fighter content. Each independently owns hitbox offset/extents,
+damage, positive horizontal and vertical base-knockback magnitudes, growth,
+startup, active, recovery, and hitlag. Facing signs horizontal geometry and
+launch; the action signs the vertical authored magnitude upward for
+`UP_ATTACK` and downward for `DOWN_ATTACK`. Both use the shared physical hit,
+shield, hitlag, weighted reaction, DI/SDI, event-journal, and once-per-target
+paths rather than action-specific collision code.
 
 The aerial adds 8% on hit and uses its independent base launch and growth data.
 Landing during action ticks 4–24 normally enters 12 ticks of
@@ -685,7 +703,8 @@ the one-tick delay and whether the fighter supports the technique.
 
 - Either attack on frame 1 of shield drop is rejected.
 - A fresh light- or strong-attack edge on frame 2 or later cancels directly
-  into the selected production action.
+  into the selected production action. The same selector preserves neutral
+  jab, vertical-dominant up/down light attacks, and the direct strong route.
 - An attack pressed too early is not buffered; it must be released and pressed
   again on a legal frame.
 - Holding shield through the end of shield stun consumes the opportunity.
@@ -697,9 +716,9 @@ the one-tick delay and whether the fighter supports the technique.
 This implements the Melee physical timing documented by
 [SmashWiki's powershield-cancel reference](https://www.ssbwiki.com/Powershield_canceling):
 ground attacks begin on frame 2 of shield drop, after one frame of delay.
-The registry remains conservative at `playable` until every future supported
-ground action routes through the same cancel and receives positive/negative
-coverage.
+The registry remains conservative at `playable` pending the mandatory owner
+playtest and broader acceptance evidence; all current standing ground actions
+route through this cancel selector.
 
 ## Shield break checkpoint boundary
 
@@ -1366,20 +1385,31 @@ physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
 
-Browser view schema 35 retains the 396-value presentation layout while
-versioning the crouch-cancel event-flag interpretation. Player blocks remain
-44 values each at base 25; event count remains at 201, the 16 ten-value event
-entries start at 202, the 18-value item block starts at 362, the 12-value
-projectile block starts at 380, and recovery availability remains at 392–395.
+Browser view schema 36 retains the 396-value presentation layout while
+versioning the `UP_ATTACK` and `DOWN_ATTACK` action labels and typed-hit
+interpretation. Player blocks remain 44 values each at base 25; event count
+remains at 201, the 16 ten-value event entries start at 202, the 18-value item
+block starts at 362, the 12-value projectile block starts at 380, and recovery
+availability remains at 392–395.
 
-State schema 38 / save format 37 retains the 694-byte stream (140-byte header
-plus 554-byte payload), changes the active magic to `PFSAVE37`, and makes the
-grounded action, resulting-damage boundary, eligible event kinds, two reaction
-scales, one-tick hitstun floor, derived tumble, and typed flag semantics fail
-closed. Content schema 39/fighter schema 34 add and hash the ceiling and both
-scales. Inspection schema 34 versions the action/event interpretation. Input
-schema 5, structured observation schema 6, RL schema 8, compact observation
-schema 7, and its 66-value vector remain unchanged.
+State schema 39 / save format 38 retains the 694-byte stream (140-byte header
+plus 554-byte payload), changes the active magic to `PFSAVE38`, and makes the
+two directional action IDs, input arbitration, attack timing, hitlag resume,
+launch signing, and powershield-cancel selection fail closed. Content schema
+41/fighter schema 36 append and hash the two embedded attack records.
+Inspection schema 35 versions the action/event interpretation. Input schema 5,
+structured observation schema 6, RL schema 8, compact observation schema 7,
+and its 66-value vector remain unchanged.
+
+It follows browser view schema 35 and state schema 38 / save format 37, which
+retained the same layouts, used `PFSAVE37`, and made the grounded
+crouch-cancel action, resulting-damage boundary, eligible event kinds, two
+reaction scales, one-tick hitstun floor, derived tumble, and typed flag
+semantics fail closed. Content schema 39/fighter schema 34 added and hashed the
+ceiling and both scales; content schema 40/fighter schema 35 then added the
+identity-default victim-weight field without changing state or presentation
+layouts. Inspection schema 34 versioned the crouch-cancel action/event
+interpretation.
 
 It follows browser view schema 34 and state schema 37 / save format 36, which
 retained the same layouts, used `PFSAVE36`, and made the
@@ -1638,13 +1668,17 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 650 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 708 focused
 mechanics invariants plus 50 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
   launch, hitstun, one-hit masks, simultaneous trades, and the default strong
   attack's direct tumble-to-knockdown route;
+- authored up/down light-attack defaults, validation and isolated content hash,
+  full-threshold vertical-dominance selection, sub-threshold neutral-jab and
+  equal-diagonal forward-smash controls, exact signed two-axis launches,
+  typed hit identity, hitlag, and mid-hitlag save/load future equality;
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
   records short hop, aerial, fast fall, eligible trigger, and L-cancel landing;
@@ -1660,6 +1694,9 @@ mechanics invariants plus 50 journal invariants, including:
   two-axis launch and hitstun scaling, derived tumble and typed flag, inclusive
   40%-ceiling semantics, first-over rejection, invalid/hash-sensitive data, and
   mid-hitlag save/load event/hash continuation;
+- default and boundary victim weight, isolated content identity, exact 2.0
+  two-axis knockback division and recomputed hitstun, with unchanged damage and
+  hitlag;
 - exact grab startup/active/recovery phases, shield bypass, spot-dodge and
   same-team rejection, lower-port collision priority, reciprocal capture
   links, percent scaling/cap, natural and fresh-input mash escape, jump-squat
@@ -1744,8 +1781,9 @@ mechanics invariants plus 50 journal invariants, including:
   zero powershield damage, larger powershield pushback, and result-flag
   clearing;
 - physical powershield opportunity preservation, frame-1 rejection, frame-2
-  attack cancel, ordinary-shield negative behavior, content validation, and a
-  focused encode/verify replay that performs the cancel;
+  neutral/up/down light and strong attack selection, ordinary-shield negative
+  behavior, content validation, and a focused encode/verify replay that
+  performs the cancel;
 - deterministic hit/depletion shield-break events, upward flight and gravity,
   forced landing, exact down/stand order, percent-scaled vulnerable stun,
   fresh-input mash reduction with a held-input negative case, early-phase hit
@@ -1777,7 +1815,8 @@ attack, planking, short-hop laser, Shine spike, charge storage, Vector Ascent,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,
-attack, reaction, shield, shield-break, tumble,
+attack including directional grounded light hits, reaction, shield,
+shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The Vector Ascent
 probe performs an ordinary jump, enters the recovery with full-up fresh
 Special, and requires the authored horizontal/upward velocities plus visible

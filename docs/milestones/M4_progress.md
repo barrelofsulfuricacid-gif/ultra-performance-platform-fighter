@@ -1,7 +1,7 @@
 # M4 combat vertical-slice progress
 
-**Status:** In progress; M4.1 movement/ledge core, light and strong M4.2 ground
-attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
+**Status:** In progress; M4.1 movement/ledge core, neutral, up, down, and strong
+M4.2 ground attacks, hit-reaction layers, missed-tech floor recovery, dense shield, and
 physical powershield cancel, solid stage geometry, and wall/ceiling tech
 plus directional air dodge, helpless fall, wavedash/waveland,
 ledge-cancelling, 29-tick ledge-regrab lockout and planking, the first
@@ -158,8 +158,8 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - All eight reference duels finish through stock results rather than time-limit
   truncation. The reference corpus spans 1,001 ticks, 17 combat events, eight
   KOs, and four projectile events, with final digest
-  `2aa5a4874055edcc` over every per-tick state hash and terminal outcome under
-  state schema 38/content schema 40.
+  `de76efc3ed438312` over every per-tick state hash and terminal outcome under
+  state schema 39/content schema 41.
 - Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
   re-simulates the complete suffix against per-tick state hashes, encodes a
   format-1 replay, and verifies that replay to the exact terminal outcome.
@@ -536,6 +536,13 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   for one hashed Q16.16 field. State schema 38/save format 37, inspection
   schema 34, browser view schema 35, and every serialized layout remain
   unchanged because default weight 1.0 is an identity target modifier.
+  The directional-ground-attack slice advances state schema to 39/save format
+  38, content schema to 41 with fighter schema 36, inspection schema to 35, and
+  browser view schema to 36 for `UP_ATTACK`/`DOWN_ATTACK`, vertical-dominant
+  light-input arbitration, two embedded attack definitions, signed two-axis
+  launch, hitlag resume, and powershield-cancel routing. The 554-byte payload,
+  694-byte save, 396-value browser view, input, observation, RL, compact, and
+  66-value compact layouts remain unchanged.
   Config/identity schema 2 remains current. The canonical save is 694 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1599,6 +1606,31 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   existing browser reaction probe repeats the non-default comparison in Wasm
   and restores default content before readiness.
 
+## Implemented in the directional-ground-attack slice
+
+- A fresh grounded light edge with full-threshold, strictly vertical-dominant
+  input now selects explicit `UP_ATTACK` or `DOWN_ATTACK`. Reduced vertical
+  input remains the neutral jab, while full horizontal and equal diagonals
+  retain forward-smash priority. Direct strong and run light retain their
+  existing strong and dash-attack routes.
+- Two embedded fighter attack records independently author and hash box
+  geometry, damage, horizontal/vertical base knockback, growth, startup,
+  active, recovery, and hitlag. The shared combat path signs horizontal launch
+  by facing and vertical launch by action, then applies ordinary shield,
+  weight, crouch/V-cancel, DI/SDI, event, and once-per-target semantics.
+- State schema 39/save format 38 and `PFSAVE38` retain the 554-byte payload and
+  694-byte checkpoint while failing closed on action IDs 79/80, arbitration,
+  timing, hitlag resume, and powershield routing. Content schema 41/fighter
+  schema 36, inspection schema 35, and browser view schema 36 version the new
+  data and action labels without changing observation or presentation counts.
+- The focused combat oracle reaches 708 invariants, covering defaults,
+  invalid/hash-sensitive data, exact up/down selection and launch, neutral and
+  equal-diagonal controls, direct-strong priority, typed events, hitlag, and
+  mid-hitlag save/load future equality. Existing powershield-cancel coverage
+  exercises neutral/up/down light and strong selection; browser readiness folds
+  the directional cases into its ordinary attack and shield probes. No
+  emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1742,9 +1774,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.2 and M4.3 work
 
-- Remaining ground attacks, aerials, specials, broader recovery options, broader throw routes,
+- Remaining ground-attack variants, aerials, specials, broader recovery options, broader throw routes,
   analog light shield, shield size/tilt/pokes and shield SDI,
-  expansion of the powershield-cancel router to each future ground action,
+  routing each future standing ground action through the shared
+  powershield-cancel selector,
   broader per-action launch-angle data and stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
@@ -1759,9 +1792,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 306 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 666
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 708
   attack/reaction/shield/floor/surface
-  invariants including data-defined pummels, crouch cancel, and victim weight plus 50
+  invariants including data-defined pummels, crouch cancel, victim weight, and
+  directional ground attacks plus 50
   combat-journal invariants,
   24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1777,11 +1811,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
   bytes,
   replay SHA-256
-  `50b9a3d4512cf9aab93bafbcffec23a1403c7848ae52f2eef939e4d4f077e382`,
+  `67ff1c3503bdda326906273ceffad8b175bcced103781dde448a5aeb1303ce7b`,
   final SHA-256
-  `ae74e310ab407546a1a5e4c2394d9b4fd7ba12d7ad3d1e414d3331c2b1fb7ddb`,
+  `b7a5fbfea9010aee916851a95bbd8c6daef01abcd59bc3ec51113da62334e64f`,
   and event-journal SHA-256
-  `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
+  `cea7f525bc5cb4009c69f8ca7c1daf85e6bdfebc12f1a9583d45dde34da4d10a`;
   local native/WebAssembly output is byte-identical and CI repeats it.
 - Clean Chrome CI remains the generated-Wasm, canonical replay-inspector, and
   live-playtest DOM gate.

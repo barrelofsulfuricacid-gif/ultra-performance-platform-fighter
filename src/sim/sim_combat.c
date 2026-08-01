@@ -331,6 +331,42 @@ static int pf_m4_attack_for_action(
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
         return 1;
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_UP_ATTACK ||
+        action_state == (uint8_t)PF_M4_ACTION_DOWN_ATTACK)
+    {
+        const pf_m4_attack_data *attack =
+            action_state == (uint8_t)PF_M4_ACTION_UP_ATTACK
+                ? &fighter->up_attack
+                : &fighter->down_attack;
+
+        out_attack->hitbox_offset_x_q16 =
+            attack->hitbox_offset_x_q16;
+        out_attack->hitbox_offset_y_q16 =
+            attack->hitbox_offset_y_q16;
+        out_attack->hitbox_half_width_q16 =
+            attack->hitbox_half_width_q16;
+        out_attack->hitbox_half_height_q16 =
+            attack->hitbox_half_height_q16;
+        out_attack->damage_q16 = attack->damage_q16;
+        out_attack->base_knockback_x_q16 =
+            attack->base_knockback_x_q16;
+        out_attack->base_knockback_y_q16 =
+            attack->base_knockback_y_q16;
+        out_attack->knockback_growth_q16 =
+            attack->knockback_growth_q16;
+        out_attack->active_begin_tick =
+            attack->startup_ticks + UINT16_C(1);
+        out_attack->active_end_tick =
+            attack->startup_ticks + attack->active_ticks;
+        out_attack->hitlag_ticks = attack->hitlag_ticks;
+        out_attack->direction = INT8_C(1);
+        out_attack->vertical_direction =
+            action_state == (uint8_t)PF_M4_ACTION_UP_ATTACK
+                ? INT8_C(-1)
+                : INT8_C(1);
+        out_attack->action_state = action_state;
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
         action_state ==
             (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK)

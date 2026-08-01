@@ -509,7 +509,7 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 35 ||
+        test_view[0] != 36 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -1133,7 +1133,7 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] <= 0 ||
         !pf_web_m4_playtest_step(
             0, test_dash_axis, 0, 1, 0, 0, 0, 0, 0, 0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 12 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 80 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] <= 0)
     {
         return fail("keyboard-dash-cancel-crouch-attack");

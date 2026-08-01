@@ -1715,6 +1715,443 @@ static int run_weight_test(
     return 1;
 }
 
+typedef struct test_directional_attack_reaction
+{
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint32_t damage_q16;
+    uint16_t hitstun_ticks;
+    uint16_t hitlag_ticks;
+} test_directional_attack_reaction;
+
+static int run_directional_attack_hit_case(
+    const pf_content_view *view,
+    const pf_m4_attack_data *attack,
+    int16_t input_x,
+    int16_t input_y,
+    pf_m4_action_state expected_action,
+    test_directional_attack_reaction *out_reaction)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_reaction_duel(
+            sim,
+            input_x,
+            input_y,
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)expected_action ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        return fail("directional-attack-input-route");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)attack->startup_ticks +
+                    (uint32_t)attack->active_ticks;
+         ++tick)
+    {
+        const pf_sim_event *event;
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        event = find_last_tick_event(PF_SIM_EVENT_HIT);
+        if (event == NULL)
+        {
+            continue;
+        }
+        if (event->source_player != UINT8_C(0) ||
+            event->target_player != UINT8_C(1) ||
+            event->detail != (uint16_t)expected_action ||
+            event->value_q16 != attack->damage_q16 ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG ||
+            inspection.players[1].action_state !=
+                (uint8_t)PF_M4_ACTION_HITLAG ||
+            inspection.players[1].damage_q16 != attack->damage_q16 ||
+            inspection.players[1].hitlag_ticks != attack->hitlag_ticks)
+        {
+            return fail("directional-attack-hit-event");
+        }
+        out_reaction->velocity_x_q16 = event->velocity_x_q16;
+        out_reaction->velocity_y_q16 = event->velocity_y_q16;
+        out_reaction->damage_q16 = event->value_q16;
+        out_reaction->hitstun_ticks =
+            inspection.players[1].hitstun_ticks;
+        out_reaction->hitlag_ticks =
+            inspection.players[1].hitlag_ticks;
+        return 1;
+    }
+    return fail("directional-attack-hit-missing");
+}
+
+static int run_directional_attack_snapshot_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+    int hit_found = 0;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &source_inspection))
+    {
+        return fail("directional-attack-snapshot-setup");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.up_attack.startup_ticks +
+                    (uint32_t)content->fighter.up_attack.active_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+        if (find_last_tick_event(PF_SIM_EVENT_HIT) != NULL)
+        {
+            hit_found = 1;
+            break;
+        }
+    }
+    if (hit_found == 0 ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "directional-attack-query-save-size") ||
+        save_size != (size_t)694)
+    {
+        return fail("directional-attack-hitlag-snapshot-boundary");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "directional-attack-save") ||
+        destination.size != save_size)
+    {
+        return 0;
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "directional-attack-load"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.up_attack.hitlag_ticks +
+                    UINT32_C(4);
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &source_inspection) ||
+            !step_reaction_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "directional-attack-source-future-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "directional-attack-loaded-future-hash") ||
+            !hash_equal(&source_hash, &loaded_hash))
+        {
+            return fail("directional-attack-snapshot-continuation");
+        }
+    }
+    return 1;
+}
+
+static int run_directional_ground_attack_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    pf_m4_content changed = *content;
+    pf_m4_content close = *content;
+    pf_m4_content invalid_extent = *content;
+    pf_m4_content invalid_timing = *content;
+    pf_content_view changed_view;
+    pf_content_view close_view;
+    test_directional_attack_reaction up_reaction;
+    test_directional_attack_reaction down_reaction;
+    test_sim_storage control_storage;
+    pf_sim *control = NULL;
+    pf_m4_inspection inspection;
+    int64_t up_growth;
+    int64_t down_growth;
+    int32_t expected_up_x;
+    int32_t expected_up_y;
+    int32_t expected_down_x;
+    int32_t expected_down_y;
+
+    changed.fighter.up_attack.damage_q16 += UINT32_C(1);
+    close.stage.spawn_spacing_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    close.stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    close.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    invalid_extent.fighter.down_attack.hitbox_half_height_q16 =
+        INT32_C(0);
+    invalid_timing.fighter.up_attack.startup_ticks = UINT16_C(0);
+    if (content->fighter.up_attack.damage_q16 !=
+            UINT32_C(9) * UINT32_C(65536) ||
+        content->fighter.up_attack.startup_ticks != UINT16_C(4) ||
+        content->fighter.up_attack.active_ticks != UINT16_C(3) ||
+        content->fighter.down_attack.damage_q16 !=
+            UINT32_C(8) * UINT32_C(65536) ||
+        content->fighter.down_attack.startup_ticks != UINT16_C(5) ||
+        content->fighter.down_attack.active_ticks != UINT16_C(3) ||
+        !expect_status(
+            pf_m4_make_content_view(&changed, &changed_view),
+            PF_STATUS_OK,
+            "directional-attack-changed-content-view") ||
+        !expect_status(
+            pf_m4_make_content_view(&close, &close_view),
+            PF_STATUS_OK,
+            "directional-attack-close-content-view") ||
+        memcmp(
+            view->content_hash.bytes,
+            changed_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0 ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_extent),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-directional-attack-invalid-extent") ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_timing),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-directional-attack-invalid-timing"))
+    {
+        return fail("directional-attack-data-and-hash");
+    }
+
+    if (!run_directional_attack_hit_case(
+            &close_view,
+            &content->fighter.up_attack,
+            (int16_t)(
+                content->fighter.dash_axis_threshold - UINT16_C(1)),
+            INT16_C(-32767),
+            PF_M4_ACTION_UP_ATTACK,
+            &up_reaction) ||
+        !run_directional_attack_hit_case(
+            &close_view,
+            &content->fighter.down_attack,
+            INT16_C(0),
+            INT16_C(32767),
+            PF_M4_ACTION_DOWN_ATTACK,
+            &down_reaction))
+    {
+        return 0;
+    }
+
+    up_growth =
+        ((int64_t)content->fighter.up_attack.knockback_growth_q16 *
+         (int64_t)content->fighter.up_attack.damage_q16) >>
+        16U;
+    down_growth =
+        ((int64_t)content->fighter.down_attack.knockback_growth_q16 *
+         (int64_t)content->fighter.down_attack.damage_q16) >>
+        16U;
+    expected_up_x =
+        content->fighter.up_attack.base_knockback_x_q16 +
+        (int32_t)up_growth;
+    expected_up_y =
+        -(content->fighter.up_attack.base_knockback_y_q16 +
+          (int32_t)(up_growth / INT64_C(2)));
+    expected_down_x =
+        content->fighter.down_attack.base_knockback_x_q16 +
+        (int32_t)down_growth;
+    expected_down_y =
+        content->fighter.down_attack.base_knockback_y_q16 +
+        (int32_t)(down_growth / INT64_C(2));
+    if (up_reaction.velocity_x_q16 != expected_up_x ||
+        up_reaction.velocity_y_q16 != expected_up_y ||
+        down_reaction.velocity_x_q16 != expected_down_x ||
+        down_reaction.velocity_y_q16 != expected_down_y ||
+        up_reaction.velocity_y_q16 >= INT32_C(0) ||
+        down_reaction.velocity_y_q16 <= INT32_C(0) ||
+        up_reaction.hitstun_ticks !=
+            expected_weight_hitstun_ticks(
+                &content->fighter,
+                up_reaction.velocity_x_q16,
+                up_reaction.velocity_y_q16) ||
+        down_reaction.hitstun_ticks !=
+            expected_weight_hitstun_ticks(
+                &content->fighter,
+                down_reaction.velocity_x_q16,
+                down_reaction.velocity_y_q16) ||
+        up_reaction.hitlag_ticks !=
+            content->fighter.up_attack.hitlag_ticks ||
+        down_reaction.hitlag_ticks !=
+            content->fighter.down_attack.hitlag_ticks)
+    {
+        return fail("directional-attack-exact-launch");
+    }
+
+    if (!initialize_sim(
+            &control_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &control))
+    {
+        return 0;
+    }
+    if (!step_reaction_duel(
+            control,
+            INT16_C(0),
+            (int16_t)(
+                content->fighter.dash_axis_threshold - UINT16_C(1)),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        !expect_status(
+            pf_sim_reset(control, UINT64_C(0x4449524154544143)),
+            PF_STATUS_OK,
+            "directional-attack-diagonal-reset") ||
+        !step_reaction_duel(
+            control,
+            INT16_C(32767),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
+        !expect_status(
+            pf_sim_reset(control, UINT64_C(0x4449525354524f4e)),
+            PF_STATUS_OK,
+            "directional-attack-strong-reset") ||
+        !step_reaction_duel(
+            control,
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK)
+    {
+        return fail("directional-attack-input-arbitration");
+    }
+
+    return run_directional_attack_snapshot_test(&close, &close_view);
+}
+
 static int run_v_cancel_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -7158,10 +7595,14 @@ static int run_powershield_cancel_test(
     test_sim_storage early_storage;
     test_sim_storage cancel_storage;
     test_sim_storage strong_cancel_storage;
+    test_sim_storage up_cancel_storage;
+    test_sim_storage down_cancel_storage;
     test_sim_storage normal_storage;
     pf_sim *early = NULL;
     pf_sim *cancel = NULL;
     pf_sim *strong_cancel = NULL;
+    pf_sim *up_cancel = NULL;
+    pf_sim *down_cancel = NULL;
     pf_sim *normal = NULL;
     pf_m4_inspection inspection;
 
@@ -7193,6 +7634,20 @@ static int run_powershield_cancel_test(
             PF_SIM_MODE_DUEL,
             1,
             &strong_cancel) ||
+        !initialize_sim(
+            &up_cancel_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &up_cancel) ||
+        !initialize_sim(
+            &down_cancel_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &down_cancel) ||
         !advance_block_to_release(
             content,
             early,
@@ -7293,6 +7748,76 @@ static int run_powershield_cancel_test(
         inspection.players[1].powershield != UINT8_C(0))
     {
         return fail("powershield-cancel-frame-two-strong-attack");
+    }
+
+    if (!advance_block_to_release(
+            content,
+            up_cancel,
+            1,
+            &inspection) ||
+        !step_reaction_duel(
+            up_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            up_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(-32767),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_UP_ATTACK ||
+        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("powershield-cancel-frame-two-up-attack");
+    }
+
+    if (!advance_block_to_release(
+            content,
+            down_cancel,
+            1,
+            &inspection) ||
+        !step_reaction_duel(
+            down_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            down_cancel,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(32767),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
+        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].powershield != UINT8_C(0))
+    {
+        return fail("powershield-cancel-frame-two-down-attack");
     }
 
     if (!advance_block_to_release(
@@ -16802,6 +17327,7 @@ int main(void)
             "reject-invalid-jab-reset-data") ||
         !run_one_way_hit_test(&content, &view) ||
         !run_weight_test(&content, &view) ||
+        !run_directional_ground_attack_test(&content, &view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
         !run_v_cancel_snapshot_test(
             &v_cancel_content,
@@ -16946,7 +17472,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=666 journal_invariants=50 weight=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=708 journal_invariants=50 weight=1 directional_ground_attacks=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

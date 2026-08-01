@@ -2327,7 +2327,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 35) {
+    if (view[0] !== 36) {
       return;
     }
     var canvas = state.canvas;
@@ -2421,6 +2421,8 @@ mergeInto(LibraryManager.library, {
       "WALL JUMP",
       "VECTOR ASCENT",
       "PUMMEL",
+      "UP ATTACK",
+      "DOWN ATTACK",
     ];
 
     if (view[1] < previousTick) {

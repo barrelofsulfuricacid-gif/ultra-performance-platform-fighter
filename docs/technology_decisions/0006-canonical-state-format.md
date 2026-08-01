@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–37 / state schemas 1–38
+- **Status:** Accepted for save formats 1–38 / state schemas 1–39
 - **Date:** 2026-08-01
 
 ## Decision
@@ -47,6 +47,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 35 | 36 | 140 | 554 | 694 | One recovery-availability byte per player plus canonical `VECTOR_ASCENT` action, once-per-airtime consumption, authored launch/steering/duration, special-fall completion, and landing/ledge/respawn restoration |
 | 36 | 37 | 140 | 554 | 694 | Canonical `PUMMEL` action, authored hit/total timing, reciprocal grab-link retention, non-launching damage and attribution, and typed pummel event; no payload-layout change |
 | 37 | 38 | 140 | 554 | 694 | Grounded low-percent crouch-cancel qualification, data-defined launch/hitstun scaling, derived tumble, and typed hit-event flag; no payload-layout change |
+| 38 | 39 | 140 | 554 | 694 | Canonical `UP_ATTACK` and `DOWN_ATTACK` action IDs, directional light-attack arbitration, authored two-axis launch, hitlag resume, and powershield-cancel routing; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -54,8 +55,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
-`PFSAVE35`, `PFSAVE36`, or `PFSAVE37`. The active M4 runtime emits and accepts
-format 37 with state schema 38. Earlier
+`PFSAVE35`, `PFSAVE36`, `PFSAVE37`, or `PFSAVE38`. The active M4 runtime emits
+and accepts format 38 with state schema 39. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -228,6 +229,16 @@ one-tick hitstun floor, tumble is derived afterward, and event flag bit 4 marks
 the reaction. Standing, airborne, throw, shield, armor/reset, and over-ceiling
 routes cannot set the flag. A format-36 reader therefore cannot silently
 reinterpret the same canonical action/timer state under the new reaction rule.
+Format 38 retains the same payload while making directional grounded light
+attacks fail closed under schema 39. A fresh light edge with a full-threshold,
+strictly vertical-dominant stick selects `UP_ATTACK` or `DOWN_ATTACK`; a full
+horizontal or equal diagonal retains forward-smash priority, and sub-threshold
+vertical input retains the neutral jab. The two new actions independently
+author box geometry, damage, signed horizontal/vertical base knockback, growth,
+startup, active, recovery, and hitlag data through their parent fighter
+schema. Loading rejects their action IDs under earlier schemas and validates
+their ground-attack timing, hitlag-resume, and reaction relationships. A
+format-37 reader therefore cannot silently reinterpret actions 79 or 80.
 
 ## Why SHA-256
 

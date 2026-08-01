@@ -200,7 +200,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 35' \
+    'view[0] !== 36' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DASH ATTACK"' \
@@ -378,6 +378,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"PUMMEL"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"UP ATTACK"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"DOWN ATTACK"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pummel for 3%' \

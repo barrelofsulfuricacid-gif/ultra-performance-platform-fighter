@@ -81,13 +81,17 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–36 remain historical checkpoints. The current M4
+Save formats 1–37 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
-taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel state uses save format 37: a
-fixed 694-byte checkpoint with state schema 38 and a 554-byte payload. It
-retains the layout while making the grounded action, resulting-damage ceiling,
-eligible physical event kinds, scaled launch/hitstun, derived tumble, and typed
-crouch-cancel flag fail closed. Save format 36/state schema 37 made the explicit
+taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack
+state uses save format 38: a fixed 694-byte checkpoint with state schema 39 and
+a 554-byte payload. It retains the layout while making the `UP_ATTACK` and
+`DOWN_ATTACK` action IDs, vertical-dominant light-input arbitration, authored
+two-axis launch, hitlag resume, and powershield-cancel routing fail closed. Save
+format 37/state schema 38 made the grounded crouch-cancel action,
+resulting-damage ceiling, eligible physical event kinds, scaled
+launch/hitstun, derived tumble, and typed flag fail closed. Save format
+36/state schema 37 made the explicit
 `PUMMEL` action ID, authored hit/total ticks, reciprocal-link requirements,
 non-launching damage, attribution, and typed event fail closed. Save format
 35/state schema 36 appended one
@@ -230,6 +234,16 @@ weight used by the shared unblocked hit-reaction path. The default 1.0 value is
 an identity transform; the field changes no canonical, save, replay,
 inspection, observation, RL, or 396-value browser-view layout and therefore
 leaves their schema versions unchanged.
+State schema 39 / save format 38 retains the 554-byte payload and 694-byte
+checkpoint under `PFSAVE38` while adding fail-closed `UP_ATTACK` and
+`DOWN_ATTACK` action semantics. Content schema 41/fighter schema 36 append and
+hash two embedded attack-data records under the parent fighter definition;
+each record owns box geometry, damage, two-axis base knockback, growth,
+startup, active, recovery, and hitlag values. Inspection schema 35 and browser
+view schema 36 version the new action/event interpretation while retaining the
+existing inspection and 396-value presentation layouts. Input schema 5,
+structured observation schema 6, RL schema 8, compact schema 7, and 66 compact
+values remain unchanged.
 The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do

@@ -4345,7 +4345,7 @@ static int run_dash_cancel_test(
             PF_INPUT_BUTTON_ATTACK,
             &loaded_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+            (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
         source_inspection.players[0].facing != INT8_C(1) ||
         source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         source_inspection.players[0].velocity_x_q16 >=
