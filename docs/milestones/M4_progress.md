@@ -1941,6 +1941,23 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   inspection, ordinary and shield drop-through, and equal save/load future
   hashes. Existing non-geometry browser probes use explicit compact-stage
   fixtures where necessary; no emergent-technique-only harness was added.
+- Exact clean commit `39bb0c4590b8d000f73b69996ecbde14f2b62892`
+  passes Windows MSVC Release 22/22, WSL GCC 13.3 Release 22/22, pinned
+  Emscripten 6.0.3, and the live Microsoft Edge DOM/Wasm smoke. Native Windows,
+  WSL, and WebAssembly emit the same 31,463-byte replay and all three published
+  digests. Windows and WSL verifier self-tests repeat the same
+  `7723e97268932d86` match-soak digest.
+- A qualified native-Windows comparison against exact clean pre-platform commit
+  `8eed68f4333248ae9a8abf584070bc0ca1ac653c` classifies every one of the 10
+  measurable scenarios as compatible. A second same-commit run repeats that
+  result; both current runs record zero invalid comparisons and zero suspected
+  or confirmed regressions. The largest raw median changes against the baseline
+  are +1.97% for empty tick and +1.70% for replay verification; all other
+  changes lie between -1.01% and +0.31%.
+- A clean Tracy 0.13.1 profile-only capture passes in WSL with the supported
+  timer fallback enabled. Its 11,776-byte local trace has SHA-256
+  `e7d561777aa10bce2d84c4288f293bb2367bb0828b9d9a669851818dce9d6be8`;
+  the manifest records `perf` as unavailable because it is not installed.
 
 ## Explicitly preserved playtest requirements
 
