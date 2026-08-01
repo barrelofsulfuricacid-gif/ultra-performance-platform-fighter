@@ -148,4 +148,4 @@ coverage_issue=$(
 )
 grep -Fq 'acceptance:M3-PERFORMANCE' "$coverage_issue"
 
-echo "m3-verifier-qualification=pass internal=3 seeded_defects=4 issue_lifecycle=1 acceptance_coverage=1"
+echo "m3-verifier-qualification=pass internal=4 seeded_defects=4 issue_lifecycle=1 acceptance_coverage=1"

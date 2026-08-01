@@ -691,6 +691,6 @@ if(BUILD_TESTING)
         set_tests_properties(
             verifier.self_test
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "verifier-self-test=pass checks=3 seeded_defects=4")
+                       "verifier-self-test=pass checks=4 seeded_defects=4")
     endif()
 endif()

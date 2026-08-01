@@ -148,6 +148,24 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   See the [M4 performance checkpoint](../../performance/reports/2026-08-01_m4_combat.md)
   and [profile analysis](../../performance/profiles/M4/analysis.md).
 
+## Delivered in the repeated verifier-match slice
+
+- The authored-C verifier now runs eight seeded, one-stock production M4 duels
+  through the public input and inspection APIs. The bots use ordinary movement,
+  attack, strong-attack, jump, shield-trigger, and special inputs; a late legal
+  movement policy prevents an inert match from being mistaken for coverage.
+- All eight reference duels finish through stock results rather than time-limit
+  truncation. The reference corpus spans 1,001 ticks, 17 combat events, eight
+  KOs, and four projectile events, with final digest
+  `af6bce6fcd16328c` over every per-tick state hash and terminal outcome.
+- Every duel advances a lockstep twin, saves a 24-tick checkpoint, reloads and
+  re-simulates the complete suffix against per-tick state hashes, encodes a
+  format-1 replay, and verifies that replay to the exact terminal outcome.
+  `M4-VERIFIER-MATCHES` is an active acceptance row backed by this internal
+  production-path check.
+- This match soak covers the playable loop and constituent mechanics. It does
+  not add tactic-specific harnesses for emergent techniques.
+
 ## Delivered in the first M4.2 combat slice
 
 - Input-schema-3 light- and strong-attack buttons for native, replay, RL, and
@@ -1633,7 +1651,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
-- Repeated verifier/human matches.
+- Repeated human matches.
 - The mandatory owner combat playtest.
 
 ## First-slice verification
