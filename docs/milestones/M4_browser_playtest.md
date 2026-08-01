@@ -44,6 +44,7 @@ headless execution.
 | Moonwalk | Dash, hold `Shift` plus the opposite direction for two ticks, then release `Shift` while keeping the direction | Same with Left / Right |
 | Teeter cancel | Dash toward an edge, release the direction just before crossing, then Attack or press full opposite direction | Same with Left / Right |
 | Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
+| Taunt / Taunt cancel | `T`; while dashing toward an edge, release horizontal and press `T` just before crossing | `,`; use the same edge timing |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
@@ -70,7 +71,7 @@ movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack or a directional forward
 smash, the right face button is a direct strong attack, the left face button
 jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
-Burst, up plus top face starts or resumes Arc Reservoir, and any shoulder or trigger
+Burst, up plus top face starts or resumes Arc Reservoir, Back/View taunts, and any shoulder or trigger
     holds shield or supplies the tech/air-dodge/L-cancel trigger. Light plus a
     shoulder/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
@@ -156,6 +157,15 @@ For Stage humping, tap diagonal down-forward or down-back from standing or
 the keys and repeat to chain the microsteps. Holding the diagonal produces
 only the first step; neutral down remains a stationary crouch, and horizontal
 alone remains an ordinary dash.
+
+For a Taunt cancel, dash toward the floor edge, release the horizontal key,
+and freshly press Taunt just before retained momentum crosses the support
+bound. The inspector briefly routes the authored action through the canonical
+edge check and ends that tick in `TEETER`, far earlier than the normal
+90-tick taunt recovery. Reset and press Taunt near center stage to compare the
+full duration; attack, jump, and direction inputs remain locked, and holding
+Taunt cannot retrigger it without a release. On a standard gamepad, Back/View
+is Taunt.
 
 For a pivot, begin an initial dash, tap the opposite full direction for one
 tick, then return to neutral and immediately press the attack key. The attack
@@ -894,6 +904,8 @@ through:
   and early-release negatives;
 - eight release-gated diagonal-down crouch steps with exact displacement, plus
   held-diagonal, neutral-down, and horizontal-only negative routes;
+- a 90-tick grounded Taunt retaining dash momentum and rejecting held
+  retriggering, plus support-edge cancellation into `TEETER`;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -944,7 +956,7 @@ bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
 jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass moonwalk_probe=pass teeter_cancel_probe=pass
-stage_humping_probe=pass
+stage_humping_probe=pass taunt_cancel_probe=pass
 pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass

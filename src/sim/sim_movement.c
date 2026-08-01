@@ -619,7 +619,8 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state ==
                (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
            action_state ==
-               (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND;
+               (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
+           action_state == (uint8_t)PF_M4_ACTION_TAUNT;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -674,7 +675,8 @@ static int pf_m4_action_can_enter_teeter(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
-           action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
+           action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+           action_state == (uint8_t)PF_M4_ACTION_TAUNT;
 }
 
 static int pf_m4_action_is_aerial_landing(uint8_t action_state)
@@ -1335,6 +1337,18 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
 }
 
+static int pf_m4_action_can_start_taunt(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+           action_state == (uint8_t)PF_M4_ACTION_WALK ||
+           action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+           action_state == (uint8_t)PF_M4_ACTION_TEETER;
+}
+
 static int pf_m4_drop_cancel_hitlag_is_eligible(
     const pf_m4_fighter_data *fighter,
     uint16_t action_ticks,
@@ -1664,6 +1678,9 @@ pf_status pf_m4_step_player(
     const int special_pressed =
         (input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_SPECIAL) == UINT64_C(0);
+    const int taunt_pressed =
+        (input->buttons & PF_INPUT_BUTTON_TAUNT) != UINT64_C(0) &&
+        (previous_buttons & PF_INPUT_BUTTON_TAUNT) == UINT64_C(0);
     const int shield_held =
         input->left_trigger >= fighter->digital_trigger_threshold ||
         input->right_trigger >= fighter->digital_trigger_threshold;
@@ -2545,6 +2562,19 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
+        taunt_pressed != 0 &&
+        pf_m4_action_can_start_taunt(action_state))
+    {
+        action_state = (uint8_t)PF_M4_ACTION_TAUNT;
+        action_ticks = UINT16_C(0);
+        short_hop_latched = UINT8_C(0);
+        dash_direction = INT8_C(0);
+        scratch->powershield[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_SHIELD)
     {
@@ -3044,6 +3074,21 @@ pf_status pf_m4_step_player(
             fighter->traction_q16);
         ++action_ticks;
         if (action_ticks >= recovery_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_TAUNT)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if (action_ticks >= fighter->taunt_ticks)
         {
             action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
             action_ticks = UINT16_C(0);

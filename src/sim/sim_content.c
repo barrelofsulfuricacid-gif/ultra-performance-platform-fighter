@@ -273,6 +273,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->moonwalk_setup_ticks);
     pf_m4_hash_u16(hash, fighter->teeter_ticks);
     pf_m4_hash_u16(hash, fighter->crouch_step_ticks);
+    pf_m4_hash_u16(hash, fighter->taunt_ticks);
     pf_m4_hash_u16(
         hash,
         fighter->forward_smash_input_window_ticks);
@@ -822,6 +823,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->moonwalk_setup_ticks = UINT16_C(2);
     fighter->teeter_ticks = UINT16_C(30);
     fighter->crouch_step_ticks = UINT16_C(1);
+    fighter->taunt_ticks = UINT16_C(90);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
     fighter->landing_ticks = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(9);
@@ -1539,6 +1541,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->teeter_ticks > UINT16_C(120) ||
         fighter->crouch_step_ticks == UINT16_C(0) ||
         fighter->crouch_step_ticks > UINT16_C(30) ||
+        fighter->taunt_ticks == UINT16_C(0) ||
+        fighter->taunt_ticks > UINT16_C(600) ||
         fighter->forward_smash_input_window_ticks == UINT16_C(0) ||
         fighter->forward_smash_input_window_ticks >
             fighter->initial_dash_ticks ||

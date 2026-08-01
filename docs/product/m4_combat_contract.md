@@ -1164,16 +1164,46 @@ held-diagonal non-repetition, neutral-down and horizontal-only controls, and a
 the positive route and all controls and exports an independent
 `stage_humping_probe` before readiness.
 
+## Taunt-cancel contract
+
+Input schema 5 assigns bit 4 to a dedicated Taunt button. The original fighter
+authors `taunt_ticks=90`. A fresh grounded Taunt edge from ordinary idle, walk,
+initial dash, run, crouch, run turnaround/brake, or teeter enters explicit
+`TAUNT`; inherited horizontal velocity decelerates under ordinary traction,
+while attack, jump, shield, dodge, grab, movement, and held-Taunt retriggering
+remain locked until the exact recovery boundary.
+
+Following the researched
+[taunt-cancel route](https://www.ssbwiki.com/Taunt_canceling), releasing the
+horizontal input and pressing Taunt while retained dash momentum crosses the
+facing support edge lets the existing support-edge transition take priority.
+It clamps the fighter at the support bound and replaces `TAUNT` with `TEETER`
+well before tick 90. Starting farther from the edge instead completes all 90
+ticks and returns to `GROUND_IDLE`.
+
+`tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
+dash-momentum entry, exact recovery and input lock, held-button non-repetition,
+edge cancellation, and a 690-byte mid-taunt save/load with equal future
+hashes. Browser startup repeats the full-duration and cancel routes and exports
+an independent `taunt_cancel_probe` before readiness.
+
 ## Canonical state and inspection
 
-State schema 33 / save format 32 retains the 690-byte stream (140-byte header
-plus 550-byte payload), changes the active magic to `PFSAVE32`, and makes the
-crouch-step action ID, grounding, authored tick range, fresh diagonal-down
-entry, and ordinary-crouch transition fail closed. Inspection schema 29 and
-browser view schema 29 version the action interpretation without changing the
-304-value browser layout. Content schema 34/fighter schema 30 add and hash the
-authored step speed and duration. Structured observation schema 5, RL schema
-7, compact observation schema 6, and its 66 values remain unchanged.
+State schema 34 / save format 33 retains the 690-byte stream (140-byte header
+plus 550-byte payload), changes the active magic to `PFSAVE33`, and makes the
+Taunt action ID, grounding, authored tick range, locked recovery, inherited
+momentum, held-input non-repetition, and support-edge cancellation fail closed.
+Inspection schema 30 and browser view schema 30 version the action
+interpretation without changing the 304-value browser layout. Content schema
+35/fighter schema 31 add and hash the authored duration, while input schema 5
+adds the dedicated bit-4 Taunt control. Structured observation schema 5, RL
+schema 7, compact observation schema 6, and its 66 values remain unchanged.
+
+It follows state schema 33 / save format 32, which retained the 690-byte
+stream, used `PFSAVE32`, and made the crouch-step action ID, grounding,
+authored tick range, fresh diagonal-down entry, and ordinary-crouch transition
+fail closed. Inspection/browser view schema 29 and content schema 34/fighter
+schema 30 versioned and hashed that interpretation.
 
 It follows state schema 32 / save format 31, which retained the 690-byte
 stream, used `PFSAVE31`, and made the Teeter action ID, grounding, zero

@@ -387,7 +387,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   The Stage-humping slice advances state schema to 33/save format 32, content
   schema to 34 with fighter schema 30, and inspection/browser view schema to
   29 for explicit one-tick crouch-step timing and release-gated repetition;
-  those same layout counts remain unchanged.
+  those same layout counts remain unchanged. The Taunt-cancel slice advances
+  state schema to 34/save format 33, content schema to 35 with fighter schema
+  31, input schema to 5, and inspection/browser view schema to 30 for the
+  authored grounded action, locked recovery, retained dash momentum, and
+  support-edge cancellation; those layout counts again remain unchanged.
   Config/identity schema 2 remains current. The canonical save is 690 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1280,11 +1284,37 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 20, Infinite, advances from `planned` to `playable`. A longer
   repeated-state trace and owner execution remain before `verified`.
 
+## Implemented in the Taunt-cancel slice
+
+- Input schema 5 assigns a dedicated bit-4 Taunt control. The original fighter
+  authors a 90-tick grounded `TAUNT`; entry retains dash velocity, ordinary
+  traction decelerates it, action routers remain locked, and a held button
+  cannot retrigger without release.
+- Releasing horizontal input and pressing Taunt just before retained momentum
+  crosses the facing support edge lets the existing edge transition replace
+  `TAUNT` with `TEETER`. Starting near center stage instead proves the complete
+  90-tick recovery and exact return to idle.
+- State schema 34/save format 33 and `PFSAVE33` retain the 550-byte payload and
+  690-byte checkpoint while failing closed on the new action and tick range.
+  Content schema 35/fighter schema 31 hash the authored duration; inspection
+  and browser view schema 30 version the same 304-value interpretation.
+- The focused native movement oracle reaches 285 invariants, including
+  invalid/default content, isolated hashing, retained momentum, exact recovery,
+  input lock, held non-repetition, edge cancellation, and mid-action save/load
+  future equality. Browser startup repeats both outcomes and exposes
+  `taunt_cancel_probe`; live keyboard/gamepad routes use `T`/`,` or Back/View.
+- Registry row 53, Taunt cancelling, advances from `planned` to `playable`.
+  Owner execution and broader fighter/stage authored variations remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
   full magnitude for dash/dash-dance. They must also emit reduced vertical
   magnitude so shield platform drop remains distinct from full-down spot dodge.
+- A fresh grounded Taunt edge must enter the authored locked recovery while
+  preserving dash momentum. At a facing support edge, the existing teeter
+  transition must cancel it; away from the edge, all 90 ticks must complete.
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
@@ -1384,7 +1414,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, teeter cancel,
+  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, teeter cancel,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1395,7 +1425,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 54 playable, 3 primitive-ready, and 3 planned.
+  blocked: 1 verified, 55 playable, 3 primitive-ready, and 2 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1428,8 +1458,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 276 movement invariants including Moonwalk timing,
-  Teeter-cancel and Stage-humping routes and controls, and mid-action
+- Mechanical oracles: 285 movement invariants including Moonwalk timing,
+  Teeter-cancel, Taunt-cancel, and Stage-humping routes and controls, and mid-action
   save/load; 584
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
@@ -1446,9 +1476,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,382
   bytes,
   replay SHA-256
-  `600861ee11745db2f881fd759dd552fd245f18217fae0797c66dd3b9235f5821`,
+  `e04c09a50c2de94b589c64c58e86d248ed31f46d96caad1042197008ef4111b0`,
   final SHA-256
-  `e3cfdf7cecb9f7ce0152ad3892fb20d4c961ee7d30dfbbb15aff7f253e2e36f9`,
+  `82fcbafc2aa277aa614cb1f2fc5a026a3984667f3c089f0e3b689c8fbbf2ab18`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1459,7 +1489,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Stage-humping/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Taunt-cancel/Stage-humping/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

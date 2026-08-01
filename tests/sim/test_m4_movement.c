@@ -1680,11 +1680,13 @@ static int run_content_contract_test(
     pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
     pf_m4_content crouch_step_tuned_content = *default_content;
+    pf_m4_content taunt_tuned_content = *default_content;
     pf_m4_content tuned_content = *default_content;
     pf_content_view damaged_view = *default_view;
     pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
     pf_content_view crouch_step_tuned_view;
+    pf_content_view taunt_tuned_view;
     pf_content_view tuned_view;
     pf_sim_config config;
     pf_sim *rejected = NULL;
@@ -1841,6 +1843,44 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-step-content-hash\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.taunt_ticks = UINT16_C(0);
+    if (default_content->fighter.taunt_ticks != UINT16_C(90) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-taunt-duration"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.taunt_ticks = UINT16_C(601);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-long-taunt-duration"))
+    {
+        return 0;
+    }
+
+    taunt_tuned_content.fighter.taunt_ticks = UINT16_C(91);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &taunt_tuned_content,
+                &taunt_tuned_view),
+            PF_STATUS_OK,
+            "taunt-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            taunt_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=taunt-content-hash\n");
         return 0;
     }
 
@@ -2858,6 +2898,7 @@ static int run_moonwalk_test(
 static int enter_right_teeter(
     pf_sim *sim,
     const pf_m4_content *content,
+    uint64_t edge_buttons,
     pf_m4_inspection *out_inspection)
 {
     uint32_t tick;
@@ -2943,7 +2984,7 @@ static int enter_right_teeter(
                     sim,
                     INT16_C(0),
                     INT16_C(0),
-                    UINT64_C(0),
+                    edge_buttons,
                     out_inspection))
             {
                 return 0;
@@ -3087,7 +3128,11 @@ static int run_teeter_cancel_test(
             pf_sim_reset(source, UINT64_C(0x7ee7e2)),
             PF_STATUS_OK,
             "teeter-reset") ||
-        !enter_right_teeter(source, content, &source_inspection) ||
+        !enter_right_teeter(
+            source,
+            content,
+            UINT64_C(0),
+            &source_inspection) ||
         !step_duel(
             source,
             INT16_C(0),
@@ -3206,7 +3251,11 @@ static int run_teeter_cancel_test(
             pf_sim_reset(source, UINT64_C(0x7ee7e3)),
             PF_STATUS_OK,
             "teeter-dash-reset") ||
-        !enter_right_teeter(source, content, &source_inspection) ||
+        !enter_right_teeter(
+            source,
+            content,
+            UINT64_C(0),
+            &source_inspection) ||
         !step_duel(
             source,
             INT16_MIN,
@@ -3322,7 +3371,11 @@ static int run_teeter_cancel_test(
             pf_sim_reset(source, UINT64_C(0x7ee7e6)),
             PF_STATUS_OK,
             "teeter-expiry-reset") ||
-        !enter_right_teeter(source, content, &source_inspection))
+        !enter_right_teeter(
+            source,
+            content,
+            UINT64_C(0),
+            &source_inspection))
     {
         return 0;
     }
@@ -3357,6 +3410,204 @@ static int run_teeter_cancel_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=teeter-expiry\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_taunt_cancel_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    int32_t dash_position_q16;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x7a017ca)),
+            PF_STATUS_OK,
+            "taunt-reset") ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection))
+    {
+        return 0;
+    }
+    dash_position_q16 = source_inspection.players[0].position_x_q16;
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].position_x_q16 <= dash_position_q16 ||
+        source_inspection.players[0].velocity_x_q16 !=
+            content->fighter.initial_dash_speed_q16 -
+                content->fighter.traction_q16 ||
+        source_inspection.players[0].dash_direction != INT8_C(0) ||
+        source_inspection.players[0].grounded == UINT8_C(0) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "taunt-query-save-size") ||
+        save_size != (size_t)690)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=taunt-dash-entry"
+            " action=%u ticks=%u velocity=%" PRId32 "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            source_inspection.players[0].velocity_x_q16);
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "taunt-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "taunt-load"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.taunt_ticks;
+         ++tick)
+    {
+        const uint64_t buttons =
+            PF_INPUT_BUTTON_TAUNT |
+            (tick == UINT32_C(1)
+                 ? PF_INPUT_BUTTON_ATTACK | PF_INPUT_BUTTON_JUMP
+                 : UINT64_C(0));
+
+        if (!step_duel(
+                source,
+                INT16_MIN,
+                INT16_C(0),
+                buttons,
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_MIN,
+                INT16_C(0),
+                buttons,
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "taunt-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "taunt-loaded-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=taunt-snapshot"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+        if (tick + UINT32_C(1) <
+                (uint32_t)content->fighter.taunt_ticks &&
+            (source_inspection.players[0].action_state !=
+                 (uint8_t)PF_M4_ACTION_TAUNT ||
+             source_inspection.players[0].action_ticks !=
+                 (uint16_t)(tick + UINT32_C(1))))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=taunt-lock"
+                " tick=%" PRIu32 "\n",
+                tick);
+            return 0;
+        }
+    }
+    if (source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=taunt-exact-end-or-held-repeat\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(source, UINT64_C(0x7a017cb)),
+            PF_STATUS_OK,
+            "taunt-cancel-reset") ||
+        !enter_right_teeter(
+            source,
+            content,
+            PF_INPUT_BUTTON_TAUNT,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TEETER ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+        source_inspection.players[0].position_x_q16 !=
+            content->stage.floor_right_q16 ||
+        source_inspection.players[0].grounded == UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=taunt-edge-cancel\n");
         return 0;
     }
     return 1;
@@ -9028,6 +9279,7 @@ int main(void)
         !run_fox_trot_test(&content, &view) ||
         !run_moonwalk_test(&content, &view) ||
         !run_teeter_cancel_test(&content, &view) ||
+        !run_taunt_cancel_test(&content, &view) ||
         !run_stage_humping_test(&content, &view) ||
         !run_pivot_test(&content, &view) ||
         !run_dash_cancel_test(&content, &view) ||
@@ -9053,7 +9305,8 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=276 moonwalk=1 teeter_cancel=1 "
+        "movement_invariants=285 moonwalk=1 teeter_cancel=1 "
+        "taunt_cancel=1 "
         "stage_humping=1 "
         "double_jump_cancel=1 "
         "ledge_cancel=1 planking=1\n",

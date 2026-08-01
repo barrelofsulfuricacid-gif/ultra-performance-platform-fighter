@@ -81,13 +81,13 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–31 remain historical checkpoints. The current M4
-movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step
-state uses save format 32: a fixed 690-byte checkpoint with state schema 33 and
-a 550-byte payload. It retains the format-31 byte layout while making the
-explicit `CROUCH_STEP` action ID, grounding, authored tick range, fresh
-diagonal-down entry, release-gated repetition, and ordinary crouch transition
-fail closed. State
+Save formats 1–32 remain historical checkpoints. The current M4
+movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
+taunt state uses save format 33: a fixed 690-byte checkpoint with state schema
+34 and a 550-byte payload. It retains the format-32 byte layout while making
+the explicit grounded `TAUNT` action ID, authored 90-tick recovery, inherited
+dash momentum, locked controls, held-input non-repetition, and support-edge
+cancellation fail closed. State
 schema 31 / save format 30 retained the same layout while making the two
 Moonwalk action IDs, authored two-tick shallow-back setup, full-back
 activation, facing-preserving backward velocity, and mistimed dashback
@@ -170,6 +170,11 @@ State schema 33 likewise retains the 550-byte payload while adding explicit
 hash the data-defined speed and duration. Inspection and browser view schema
 29 version that interpretation without changing the 304-value layout;
 observation and RL schemas remain unchanged.
+State schema 34 retains that layout while adding explicit grounded `TAUNT`
+semantics. Content schema 35/fighter schema 31 add and hash the authored
+duration. Input schema 5 assigns bit 4 to Taunt. Inspection and browser view
+schema 30 version the new action interpretation without changing the
+304-value layout; observation and RL schemas remain unchanged.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.
@@ -203,6 +208,9 @@ request the fixed Pulse Bolt; full down plus a fresh special edge may request
 the grounded or airborne Prism Burst, and grounded full up plus a fresh
 special edge may start or resume Arc Reservoir when its content and action
 state are legal.
+Input schema 5 additionally assigns bit 4 to Taunt. A fresh grounded edge may
+enter the authored `TAUNT` action from ordinary standing, dash, run, crouch,
+turnaround/brake, or teeter states; held input does not retrigger it.
 
 ## Deterministic state schema
 

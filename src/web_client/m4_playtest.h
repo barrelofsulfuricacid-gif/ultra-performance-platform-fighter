@@ -31,7 +31,9 @@ int pf_web_m4_playtest_step_special(
     int player1_strong_attack,
     int player1_shield,
     int player0_special,
-    int player1_special);
+    int player1_special,
+    int player0_taunt,
+    int player1_taunt);
 
 int pf_web_m4_playtest_reset(void);
 

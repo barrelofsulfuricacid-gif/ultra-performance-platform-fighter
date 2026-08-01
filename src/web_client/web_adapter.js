@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -460,6 +460,7 @@ mergeInto(LibraryManager.library, {
     moonwalkProbePassed,
     teeterCancelProbePassed,
     stageHumpingProbePassed,
+    tauntCancelProbePassed,
     pivotProbePassed,
     dashCancelProbePassed,
     dashingShieldProbePassed,
@@ -510,6 +511,7 @@ mergeInto(LibraryManager.library, {
         attack: false,
         strongAttack: false,
         special: false,
+        taunt: false,
         shield: false,
       };
     }
@@ -567,6 +569,7 @@ mergeInto(LibraryManager.library, {
       input.strongAttack = gamepadButtonPressed(gamepad, 1);
       input.jump = gamepadButtonPressed(gamepad, 2);
       input.special = gamepadButtonPressed(gamepad, 3);
+      input.taunt = gamepadButtonPressed(gamepad, 8);
       input.shield =
         gamepadButtonPressed(gamepad, 4) ||
         gamepadButtonPressed(gamepad, 5) ||
@@ -624,6 +627,7 @@ mergeInto(LibraryManager.library, {
       analogButtons[0] = { pressed: true, value: 1 };
       analogButtons[2] = { pressed: true, value: 1 };
       analogButtons[6] = { pressed: false, value: 0.75 };
+      analogButtons[8] = { pressed: true, value: 1 };
       var analog = {
         connected: true,
         mapping: "standard",
@@ -664,6 +668,7 @@ mergeInto(LibraryManager.library, {
         !result.inputs[0].strongAttack &&
         result.inputs[0].jump &&
         !result.inputs[0].special &&
+        result.inputs[0].taunt &&
         result.inputs[0].shield &&
         result.inputs[1].horizontal === dashAxis &&
         result.inputs[1].vertical === -dashAxis &&
@@ -671,6 +676,7 @@ mergeInto(LibraryManager.library, {
         result.inputs[1].strongAttack &&
         !result.inputs[1].jump &&
         result.inputs[1].special &&
+        !result.inputs[1].taunt &&
         !result.inputs[1].shield
       );
     }
@@ -767,6 +773,8 @@ mergeInto(LibraryManager.library, {
       teeterCancelProbePassed ? "pass" : "fail";
     section.dataset.stageHumpingProbe =
       stageHumpingProbePassed ? "pass" : "fail";
+    section.dataset.tauntCancelProbe =
+      tauntCancelProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -800,6 +808,7 @@ mergeInto(LibraryManager.library, {
       moonwalkProbePassed &&
       teeterCancelProbePassed &&
       stageHumpingProbePassed &&
+      tauntCancelProbePassed &&
       pivotProbePassed &&
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
@@ -894,13 +903,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face special · down + top face reflector · up + top face charge · any shoulder/trigger shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge · T taunt · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face special · down + top face reflector · up + top face charge · Back/View taunt · any shoulder/trigger shield · light + shield grab/item"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -1088,6 +1097,7 @@ mergeInto(LibraryManager.library, {
       jumpQueued: [false, false],
       shieldQueued: [false, false],
       specialQueued: [false, false],
+      tauntQueued: [false, false],
       strongAerialLandingLagTicks: strongAerialLandingLagTicks,
       running: true,
       tickLabel: tickLabel,
@@ -1162,6 +1172,10 @@ mergeInto(LibraryManager.library, {
         held("Numpad3") ||
         state.specialQueued[1] ||
         player1Gamepad.special;
+      var player0Taunt =
+        held("KeyT") || state.tauntQueued[0] || player0Gamepad.taunt;
+      var player1Taunt =
+        held("Comma") || state.tauntQueued[1] || player1Gamepad.taunt;
       var player0Shield =
         held("KeyG") || state.shieldQueued[0] || player0Gamepad.shield;
       var player1Shield =
@@ -1192,7 +1206,9 @@ mergeInto(LibraryManager.library, {
         player1StrongAttack ? 1 : 0,
         player1Shield ? 1 : 0,
         player0Special ? 1 : 0,
-        player1Special ? 1 : 0
+        player1Special ? 1 : 0,
+        player0Taunt ? 1 : 0,
+        player1Taunt ? 1 : 0
       );
       state.jumpQueued[0] = false;
       state.jumpQueued[1] = false;
@@ -1204,6 +1220,8 @@ mergeInto(LibraryManager.library, {
       state.shieldQueued[1] = false;
       state.specialQueued[0] = false;
       state.specialQueued[1] = false;
+      state.tauntQueued[0] = false;
+      state.tauntQueued[1] = false;
       if (!passed) {
         state.running = false;
         state.pauseButton.textContent = "Resume";
@@ -1233,6 +1251,7 @@ mergeInto(LibraryManager.library, {
       state.strongAttackQueued = [false, false];
       state.shieldQueued = [false, false];
       state.specialQueued = [false, false];
+      state.tauntQueued = [false, false];
       state.accumulator = 0;
       Module._pf_web_m4_playtest_reset();
       if (completed) {
@@ -1282,6 +1301,7 @@ mergeInto(LibraryManager.library, {
           event.code === "Numpad1" ||
           event.code === "Semicolon" ||
           event.code === "Numpad3" ||
+          event.code === "Comma" ||
           event.code.indexOf("Arrow") === 0
         ) {
           event.preventDefault();
@@ -1329,6 +1349,12 @@ mergeInto(LibraryManager.library, {
         ) {
           state.specialQueued[1] = true;
         }
+        if (!wasHeld && event.code === "KeyT") {
+          state.tauntQueued[0] = true;
+        }
+        if (!wasHeld && event.code === "Comma") {
+          state.tauntQueued[1] = true;
+        }
         if (event.repeat) {
           return;
         }
@@ -1352,6 +1378,7 @@ mergeInto(LibraryManager.library, {
       state.strongAttackQueued = [false, false];
       state.shieldQueued = [false, false];
       state.specialQueued = [false, false];
+      state.tauntQueued = [false, false];
     });
 
     if (status) {
@@ -1388,6 +1415,8 @@ mergeInto(LibraryManager.library, {
         (teeterCancelProbePassed ? "pass" : "fail") +
         " stage_humping_probe=" +
         (stageHumpingProbePassed ? "pass" : "fail") +
+        " taunt_cancel_probe=" +
+        (tauntCancelProbePassed ? "pass" : "fail") +
         " pivot_probe=" +
         (pivotProbePassed ? "pass" : "fail") +
         " dash_cancel_probe=" +
@@ -1500,6 +1529,8 @@ mergeInto(LibraryManager.library, {
         teeterCancelProbePassed ? "pass" : "fail";
       status.dataset.stageHumpingProbe =
         stageHumpingProbePassed ? "pass" : "fail";
+      status.dataset.tauntCancelProbe =
+        tauntCancelProbePassed ? "pass" : "fail";
       status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
       status.dataset.dashCancelProbe =
         dashCancelProbePassed ? "pass" : "fail";
@@ -1594,7 +1625,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 29) {
+    if (view[0] !== 30) {
       return;
     }
     var canvas = state.canvas;
@@ -1684,6 +1715,7 @@ mergeInto(LibraryManager.library, {
       "MOONWALK",
       "TEETER",
       "CROUCH STEP",
+      "TAUNT",
     ];
 
     if (view[1] < previousTick) {
