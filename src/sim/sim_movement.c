@@ -1053,6 +1053,7 @@ void pf_m4_reset_player(
         (uint8_t)PF_M4_SURFACE_FLOOR;
     sim->world.air_jumps_remaining[player_index] =
         fighter->air_jump_count;
+    sim->world.recovery_available[player_index] = UINT8_C(1);
     sim->world.short_hop_latched[player_index] = UINT8_C(0);
     sim->world.platform_drop_ticks[player_index] = UINT8_C(0);
     sim->world.fast_fall[player_index] = UINT8_C(0);
@@ -1208,7 +1209,8 @@ static void pf_m4_land_from_air(
     }
 
     if (*action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
-        *action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL)
+        *action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+        *action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
     {
         *position_y = surface_y_q16 - fighter->half_height_q16;
         *velocity_y = INT32_C(0);
@@ -1505,6 +1507,7 @@ static void pf_m4_write_scratch(
     uint8_t action_state,
     uint8_t support,
     uint8_t air_jumps_remaining,
+    uint8_t recovery_available,
     uint8_t short_hop_latched,
     uint8_t platform_drop_ticks,
     uint8_t fast_fall,
@@ -1525,6 +1528,10 @@ static void pf_m4_write_scratch(
     scratch->support[player_index] = support;
     scratch->air_jumps_remaining[player_index] =
         air_jumps_remaining;
+    scratch->recovery_available[player_index] =
+        grounded != UINT8_C(0)
+            ? UINT8_C(1)
+            : recovery_available;
     scratch->short_hop_latched[player_index] = short_hop_latched;
     scratch->platform_drop_ticks[player_index] =
         platform_drop_ticks;
@@ -1707,6 +1714,14 @@ static void pf_m4_enter_wall_jump(
     *facing = away_direction;
 }
 
+static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+           action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL;
+}
+
 pf_status pf_m4_step_player(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -1853,6 +1868,8 @@ pf_status pf_m4_step_player(
     uint8_t support = world->support[player_index];
     uint8_t air_jumps_remaining =
         world->air_jumps_remaining[player_index];
+    uint8_t recovery_available =
+        world->recovery_available[player_index];
     uint8_t short_hop_latched =
         world->short_hop_latched[player_index];
     uint8_t platform_drop_ticks =
@@ -1980,6 +1997,7 @@ pf_status pf_m4_step_player(
             action_state,
             support,
             air_jumps_remaining,
+            recovery_available,
             short_hop_latched,
             platform_drop_ticks,
             fast_fall,
@@ -2226,6 +2244,7 @@ pf_status pf_m4_step_player(
             action_state,
             support,
             air_jumps_remaining,
+            recovery_available,
             short_hop_latched,
             platform_drop_ticks,
             fast_fall,
@@ -2439,6 +2458,10 @@ pf_status pf_m4_step_player(
         action_state != (uint8_t)PF_M4_ACTION_WALL_JUMP &&
         special_pressed != 0)
     {
+        const int aerial_up_special_requested =
+            grounded == UINT8_C(0) &&
+            input->main_stick_y <=
+                -(int16_t)fighter->dash_axis_threshold;
         const int charge_requested =
             content->charge.enabled != UINT8_C(0) &&
             grounded != UINT8_C(0) &&
@@ -2449,21 +2472,47 @@ pf_status pf_m4_step_player(
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
 
-        action_state =
-            charge_requested != 0
-                ? (uint8_t)PF_M4_ACTION_CHARGE_GROUND
-                : grounded != UINT8_C(0)
-                ? (reflector_requested != 0
-                       ? (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND
-                       : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
-                : (reflector_requested != 0
-                       ? (uint8_t)PF_M4_ACTION_REFLECTOR_AIR
-                       : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR);
-        action_ticks = UINT16_C(0);
-        scratch->attack_hit_mask[player_index] = UINT8_C(0);
-        short_hop_latched = UINT8_C(0);
-        dash_direction = INT8_C(0);
-        scratch->powershield[player_index] = UINT8_C(0);
+        if (aerial_up_special_requested != 0)
+        {
+            if (content->recovery.enabled != UINT8_C(0) &&
+                recovery_available != UINT8_C(0) &&
+                pf_m4_action_can_start_vector_ascent(action_state))
+            {
+                velocity_x = pf_m4_scale_axis_q16(
+                    input->main_stick_x,
+                    content->recovery.horizontal_speed_q16);
+                velocity_y = -content->recovery.vertical_speed_q16;
+                action_state =
+                    (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
+                action_ticks = UINT16_C(0);
+                recovery_available = UINT8_C(0);
+                fast_fall = UINT8_C(0);
+                scratch->tumble[player_index] = UINT8_C(0);
+                launched_this_tick = 1;
+            }
+        }
+        else
+        {
+            action_state =
+                charge_requested != 0
+                    ? (uint8_t)PF_M4_ACTION_CHARGE_GROUND
+                    : grounded != UINT8_C(0)
+                    ? (reflector_requested != 0
+                           ? (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND
+                           : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
+                    : (reflector_requested != 0
+                           ? (uint8_t)PF_M4_ACTION_REFLECTOR_AIR
+                           : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR);
+                action_ticks = UINT16_C(0);
+        }
+        if (aerial_up_special_requested == 0 ||
+            action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
+        {
+            scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            short_hop_latched = UINT8_C(0);
+            dash_direction = INT8_C(0);
+            scratch->powershield[player_index] = UINT8_C(0);
+        }
     }
 
     if (!ledge_motion_handled &&
@@ -4030,6 +4079,25 @@ pf_status pf_m4_step_player(
                     fighter->air_dodge_decay_q16);
             }
         }
+        else if (action_state ==
+                 (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
+        {
+            const int32_t ascent_target = pf_m4_scale_axis_q16(
+                input->main_stick_x,
+                content->recovery.horizontal_speed_q16);
+
+            velocity_x = pf_m4_approach(
+                velocity_x,
+                ascent_target,
+                fighter->air_acceleration_q16);
+            ++action_ticks;
+            if (action_ticks >= content->recovery.ascent_ticks)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_FALL_SPECIAL;
+                action_ticks = UINT16_C(0);
+            }
+        }
         else if (
             action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL)
         {
@@ -4479,6 +4547,8 @@ pf_status pf_m4_step_player(
             !dropped_platform_this_tick &&
             action_state !=
                 (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
+            action_state !=
+                (uint8_t)PF_M4_ACTION_VECTOR_ASCENT &&
             !pf_m4_action_is_surface_tech(action_state) &&
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold &&
@@ -4679,7 +4749,8 @@ pf_status pf_m4_step_player(
         (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
          action_state ==
              (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
-         action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL) &&
+         action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+         action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT) &&
         platform_drop_ticks == UINT8_C(0))
     {
         if (pf_m4_try_grab_ledge(
@@ -4705,6 +4776,7 @@ pf_status pf_m4_step_player(
         {
             scratch->tumble[player_index] = UINT8_C(0);
             scratch->tech_direction[player_index] = INT8_C(0);
+            recovery_available = UINT8_C(1);
         }
     }
 
@@ -4747,6 +4819,7 @@ pf_status pf_m4_step_player(
             &dash_direction,
             &previous_strong_direction,
             &previous_dodge_down);
+        recovery_available = UINT8_C(1);
         if (respawn_count != UINT16_MAX)
         {
             ++respawn_count;
@@ -4823,6 +4896,7 @@ pf_status pf_m4_step_player(
         action_state,
         support,
         air_jumps_remaining,
+        recovery_available,
         short_hop_latched,
         platform_drop_ticks,
         fast_fall,
@@ -5098,6 +5172,8 @@ pf_status pf_m4_inspect(
                 : PF_SIM_EVENT_NO_PLAYER;
         player->stocks_remaining =
             sim->world.stocks_remaining[player_index];
+        player->recovery_available =
+            sim->world.recovery_available[player_index];
         player->hitbox_active = (uint8_t)pf_m4_attack_hitbox(
             &sim->content,
             player->position_x_q16,

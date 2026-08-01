@@ -395,8 +395,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   35/save format 34, content schema to 36 with fighter schema 32, and
   inspection/browser view schema to 31 for the authored normal-wall-jump
   launch, action window, brief invulnerability, and preserved air jump; those
-  layout counts again remain unchanged.
-  Config/identity schema 2 remains current. The canonical save is 690 bytes.
+  layout counts again remain unchanged. The Vector-Ascent slice advances state
+  schema to 36/save format 35, content schema to 37 with recovery schema 1,
+  inspection schema to 32, observation schema to 6, RL schema to 8, compact
+  observation schema to 7, and browser view schema to 33 for the new action,
+  once-per-airtime byte, and visible recovery resource.
+  Config/identity schema 2 remains current. The canonical save is 694 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -1372,6 +1376,31 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   owner execution and complete cross-target/replay evidence remain before
   `verified`.
 
+## Implemented in the Vector-Ascent recovery slice
+
+- The original recovery definition authors a 1/4-unit horizontal speed,
+  4/5-unit upward launch, and 18-tick `VECTOR_ASCENT`. Full-up plus fresh
+  Special selects it only while airborne and ready; the same grounded input
+  remains Arc Reservoir.
+- Entry spends one canonical recovery byte, clears fast fall/tumble, steers
+  under ordinary gravity, and finishes in `FALL_SPECIAL`. A second attempt is
+  ignored until landing, ledge grab, stock loss/respawn, or reset restores the
+  byte; interruption does not refund it.
+- State schema 36/save format 35 and `PFSAVE35` append four bytes for a
+  554-byte payload and 694-byte checkpoint. Content schema 37/recovery schema
+  1 hash the authored definition. Inspection schema 32 and observation schema
+  6 expose availability; RL schema 8/compact schema 7 pack it into player flag
+  bit 18 while keeping 66 values.
+- Nine focused movement invariants cover data validation/hash identity, entry,
+  velocity, consumption, mid-action save/load future equality, blocked reuse,
+  landing restoration, second-airtime reuse, and structured/compact RL
+  visibility. Browser readiness exports `vector_ascent_probe`; view schema 33
+  appends four READY/SPENT flags at indices 392–395 for 396 values.
+- Registry rows 19 (Gimp) and 51 (Stage spike) advance from `primitive-ready`
+  to `playable` by composing this independently checked recovery with existing
+  edgeguard hit/KO and surface-bounce/tech/stock mechanics. In accordance with
+  the emergent-technique policy, no duplicate tactic-only harness is added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1474,6 +1503,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   hitlag or hitstun from first contact through the typed KO, and show that the
   declared outward-DI policy breaks the sequence into an actionable escape
   before the finisher while a later active attack whiffs.
+- Full-up plus fresh Special while airborne must enter the original
+  `VECTOR_ASCENT` recovery once per airtime, apply the authored launch and
+  steering under ordinary gravity, then enter `FALL_SPECIAL`. A second attempt
+  before landing or ledge grab must fail; landing, ledge grab, respawn, and
+  reset restore the resource. The recovery byte must survive save/load and be
+  visible through inspection plus structured and compact RL observations.
 
 ## New binding M4.4 scope
 
@@ -1481,20 +1516,19 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   available for SSBM in the referenced advanced-technique table.
 - This incremental slice does not claim full technique parity. Dash-dancing is
   verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
-  hopping, fox-trotting, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
+  hopping, fox-trotting, gimp, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, moonwalk, planking, Scar Jump, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, Team wobble, teeter cancel,
+  charge storage canceling, mindgame, moonwalk, planking, Scar Jump, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, Stage spike, stalling, taunt cancelling, Team wobble, teeter cancel,
   sharking, spacing, tech-chasing, turtling, V-cancelling, jump-cancelling, and wavedash are
-  now playable, as is the zero-to-death combo; other rows
-  remain lower evidence states until their full
-  movement, combat, item, team, or fighter-content dependencies are present.
+  now playable, as is the zero-to-death combo. No row remains below playable;
+  full M4 acceptance still requires every row to advance to `verified`.
 - A versioned row-by-row registry, deterministic evidence links, and browser
   playtest recipes are required for all 61 rows before M4 can be accepted; none
   may be deferred to a later milestone.
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 58 playable, 2 primitive-ready, and 0 planned.
+  blocked: 1 verified, 60 playable, 0 primitive-ready, and 0 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1510,7 +1544,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## Remaining M4.2 and M4.3 work
 
-- Remaining ground attacks, aerials, specials, recovery, broader throw routes,
+- Remaining ground attacks, aerials, specials, broader recovery options, broader throw routes,
   pummels, analog
   light shield, shield size/tilt/pokes and shield SDI,
   expansion of the powershield-cancel router to each future ground action,
@@ -1527,9 +1561,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 297 movement invariants including Moonwalk timing,
+- Mechanical oracles: 306 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load; 596
+  save/load, plus Vector Ascent data, consumption, restoration, and RL routes; 596
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1542,12 +1576,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,382
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,386
   bytes,
   replay SHA-256
-  `f7c2eb48ad185a362a69854a95189e6aa165a3b8f58baaf4994aad05a5fc5d4e`,
+  `ac2d636c9b529c6fb1cda8bc1b225f79f5bf5c7c402b06ac1d1035b24dce8e28`,
   final SHA-256
-  `29ace098d559ef2ebfe6789191ed978b95c9d210a42ed2d0f9125332695241fd`,
+  `e4e13bede51559acd3dabed736b1cd961a0f97294ab772309fe7f0d1e0c0e535`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1562,7 +1596,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
-  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping-and-turtling/Shine-spike/charge-storage/
+  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/projectile-camping-and-turtling/Shine-spike/charge-storage/Vector-Ascent/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).

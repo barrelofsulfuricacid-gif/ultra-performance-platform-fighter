@@ -1030,7 +1030,7 @@ can return through the normal hit path. Typed events 19–21 are
 `tests/sim/test_m4_projectile.c` supplies 38 focused invariants covering
 content validation/hash, simultaneous arbitration, grounded hit, ordinary
 block, exact reflect timing and returned hit, short-hop fire and generic
-landing, 690-byte save/load future equality, replay verification, and RL
+landing, 694-byte save/load future equality, replay verification, and RL
 visibility. Strict verifier and browser startup oracles repeat the original
 short-hop-laser route. Browser view schema 24 appends 12 projectile values at
 indices 290–301 without moving existing offsets, draws the cyan bolt and its
@@ -1095,11 +1095,43 @@ it before normal reaction processing.
 and invalid data, accumulation and clamping, early store cancel with a
 same-tick ordinary attack, the held-shield negative, exact resume, low/full
 release damage, interruption loss, over-cap checksum-valid load rejection,
-690-byte mid-store save/load future equality, replay verification, and
+694-byte mid-store save/load future equality, replay verification, and
 structured/compact RL visibility. Browser
 startup repeats charge, store cancel, resume, and release before readiness;
 browser view schema 26 appends one charge-tick value to each player, shifting
 the event/item/projectile blocks by two values and producing a 304-value view.
+
+## Vector Ascent recovery contract
+
+The original Vector Ascent is one immutable recovery definition. Default
+content keeps it disabled so focused historical fixtures retain their prior
+input routing; the recovery fixture and live browser lab enable the same
+authored data. While airborne, full up plus a fresh Special edge selects
+`VECTOR_ASCENT` from `AIRBORNE`, `DELAYED_AIR_JUMP`, or `FALL_SPECIAL` only
+when the once-per-airtime recovery resource is ready. Grounded full-up Special
+remains Arc Reservoir, down Special remains Prism Burst, and neutral Special
+remains Pulse Bolt. An unavailable aerial up-special is consumed without
+falling through to another special.
+
+Entry spends the resource, clears fast fall and tumble, applies the authored
+4/5-unit upward velocity, and derives horizontal velocity from stick input up
+to 1/4 unit per tick. Horizontal steering continues during the authored
+18-tick action while ordinary gravity changes the vertical trajectory;
+fast-fall activation is excluded. Completion enters `FALL_SPECIAL`. Being hit
+or otherwise interrupted does not refund the independent resource. Landing,
+ledge grab, stock loss/respawn, and reset restore it, so rollback and replay
+cannot manufacture an extra recovery.
+
+`tests/sim/test_m4_movement.c` supplies nine focused recovery invariants:
+default and invalid data, isolated content hashing, ordinary jump-to-recovery
+entry, authored velocity and consumption, structured and compact observation,
+694-byte mid-action save/load with equal future hashes, blocked second use,
+landing restoration, and second-airtime reuse. Browser startup repeats the
+ordinary input entry and exposes `vector_ascent_probe`; live view schema 33
+appends one READY/SPENT value per player. Gimp and Stage spike are emergent
+compositions of this independently checked recovery with existing aerial or
+Prism Burst interruption, solid-surface bounce/tech, and stock/KO mechanics;
+they intentionally do not add technique-only state or duplicate harnesses.
 
 ## Moonwalk contract
 
@@ -1121,7 +1153,7 @@ timing through save/load, rollback, replay, and hash.
 `tests/sim/test_m4_movement.c` supplies 12 focused invariants covering default
 and invalid authored timing, isolated content hashing, the exact two setup
 ticks, entry/hold/release velocity and facing, both dashback controls, and a
-690-byte mid-setup save/load with equal future hashes. Browser startup repeats
+694-byte mid-setup save/load with equal future hashes. Browser startup repeats
 all three timing outcomes and exports an independent `moonwalk_probe` before
 readiness. Browser controls use Shift plus the opposite horizontal key for two
 ticks, then the unmodified opposite key.
@@ -1146,7 +1178,7 @@ technique-only input or mutable history field.
 
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 exact entry state, duration, attack and reverse-dash cancels, held-outward and
-early-release negatives, and a 690-byte mid-teeter save/load with equal future
+early-release negatives, and a 694-byte mid-teeter save/load with equal future
 hashes. Browser startup repeats both cancels and both negatives and exports an
 independent `teeter_cancel_probe` before readiness.
 
@@ -1169,7 +1201,7 @@ input is introduced.
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 exact positive and negative displacement, eight release/reset repetitions,
 held-diagonal non-repetition, neutral-down and horizontal-only controls, and a
-690-byte mid-step save/load with equal future hashes. Browser startup repeats
+694-byte mid-step save/load with equal future hashes. Browser startup repeats
 the positive route and all controls and exports an independent
 `stage_humping_probe` before readiness.
 
@@ -1192,7 +1224,7 @@ ticks and returns to `GROUND_IDLE`.
 
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 dash-momentum entry, exact recovery and input lock, held-button non-repetition,
-edge cancellation, and a 690-byte mid-taunt save/load with equal future
+edge cancellation, and a 694-byte mid-taunt save/load with equal future
 hashes. Browser startup repeats the full-duration and cancel routes and exports
 an independent `taunt_cancel_probe` before readiness.
 
@@ -1219,7 +1251,7 @@ primitive while keeping the midair jump for a deeper recovery or edgeguard.
 `tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
 production ledge/block geometry, exact launch, preserved air jump, the four-
 tick invulnerability and 24-tick action windows, aerial and saved-jump cancels,
-the early-away negative, and a 690-byte mid-action save/load with equal future
+the early-away negative, and a 694-byte mid-action save/load with equal future
 hashes. Browser startup repeats the positive and negative routes and exports an
 independent `scar_jump_probe` before readiness.
 
@@ -1249,22 +1281,36 @@ physical controller to simulation slot 2 rather than the scripted victim.
 
 ## Canonical state and inspection
 
-Browser view schema 32 expands the presentation-only view from 304 to 392
-values so all four existing inspection records can be rendered. Player blocks
-remain 44 values each at base 25; event count moves to 201, the 16 ten-value
-event entries start at 202, the 18-value item block starts at 362, and the
-12-value projectile block starts at 380. No canonical state, save, content,
-input, inspection, observation, or RL schema changes.
+Browser view schema 33 expands the presentation-only view from 392 to 396
+values by appending one recovery-availability value per possible player at
+indices 392–395. Player blocks remain 44 values each at base 25; event count
+remains at 201, the 16 ten-value event entries start at 202, the 18-value item
+block starts at 362, and the 12-value projectile block starts at 380.
 
-State schema 35 / save format 34 retains the 690-byte stream (140-byte header
-plus 550-byte payload), changes the active magic to `PFSAVE34`, and makes the
-Wall-Jump action ID, airborne state, authored tick range, brief
-invulnerability, preserved air jump, wall-contact entry, and legal jump/aerial
-cancels fail closed. Inspection schema 31 and browser view schema 31 versioned
-the action interpretation without changing the former 304-value browser layout.
-Content schema 36/fighter schema 32 add and hash the authored speeds, duration,
-invulnerability, and enable flag. Input schema 5, structured observation schema
-5, RL schema 7, compact observation schema 6, and its 66 values remain
+State schema 36 / save format 35 expands the stream to 694 bytes (140-byte
+header plus 554-byte payload), changes the active magic to `PFSAVE35`, appends
+one canonical recovery-availability byte per player, and makes the
+`VECTOR_ASCENT` action, legal source actions, authored tick range, consumption,
+blocked reuse, special-fall completion, and restoration paths fail closed.
+Inspection schema 32 and structured observation schema 6 expose the byte.
+RL schema 8 / compact observation schema 7 packs it into player flag bit 18
+without changing the 66-value vector. Content schema 37 adds one recovery
+definition under recovery schema 1; fighter schema 32 and input schema 5 remain
+unchanged.
+
+Browser view schema 32 previously expanded the presentation-only view from 304
+to 392 values so all four inspection records could be rendered, with no
+canonical state or API schema change.
+
+It follows state schema 35 / save format 34, which retained the 690-byte stream
+(140-byte header plus 550-byte payload), used `PFSAVE34`, and made the Wall-Jump
+action ID, airborne state, authored tick range, brief invulnerability,
+preserved air jump, wall-contact entry, and legal jump/aerial cancels fail
+closed. Inspection schema 31 and browser view schema 31 versioned the action
+interpretation without changing the former 304-value browser layout. Content
+schema 36/fighter schema 32 added and hashed the authored speeds, duration,
+invulnerability, and enable flag. Input schema 5, structured observation
+schema 5, RL schema 7, compact observation schema 6, and its 66 values remained
 unchanged.
 
 It follows state schema 34 / save format 33, which retained the 690-byte stream,
@@ -1605,18 +1651,21 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,382-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,386-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
 drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, jump-cancel
-attack, planking, short-hop laser, Shine spike, charge storage,
+attack, planking, short-hop laser, Shine spike, charge storage, Vector Ascent,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,
 attack, reaction, shield, shield-break, tumble,
-floor-recovery, tech-chase, and surface-tech probes pass. The tech-chase probe
+floor-recovery, tech-chase, and surface-tech probes pass. The Vector Ascent
+probe performs an ordinary jump, enters the recovery with full-up fresh
+Special, and requires the authored horizontal/upward velocities plus visible
+resource consumption. The tech-chase probe
 strong-launches the target, follows its airborne path, reacts separately to
 tech in place and a right tech roll, jabs after invulnerability, and requires a
 same-timed non-following jab to miss the roll. The

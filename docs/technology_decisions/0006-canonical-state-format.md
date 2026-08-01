@@ -1,7 +1,7 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–34 / state schemas 1–35
-- **Date:** 2026-07-31
+- **Status:** Accepted for save formats 1–35 / state schemas 1–36
+- **Date:** 2026-08-01
 
 ## Decision
 
@@ -44,14 +44,16 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 32 | 33 | 140 | 550 | 690 | Canonical `CROUCH_STEP` action ID, authored speed and one-tick duration, fresh diagonal-down entry, release-gated repetition, and ordinary crouch transition; no payload-layout change |
 | 33 | 34 | 140 | 550 | 690 | Canonical grounded `TAUNT` action ID, authored duration, inherited dash momentum and traction, locked recovery, held-input non-repetition, and support-edge cancellation into `TEETER`; no payload-layout change |
 | 34 | 35 | 140 | 550 | 690 | Canonical `WALL_JUMP` action ID, authored speed, duration, and brief invulnerability, preserved air jump, fresh-away wall contact, and jump/aerial cancel; no payload-layout change |
+| 35 | 36 | 140 | 554 | 694 | One recovery-availability byte per player plus canonical `VECTOR_ASCENT` action, once-per-airtime consumption, authored launch/steering/duration, special-fall completion, and landing/ledge/respawn restoration |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
-`PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, or `PFSAVE34`. The active M4 runtime emits
-and accepts format 34 with state schema 35. Earlier
+`PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`, or
+`PFSAVE35`. The active M4 runtime emits and accepts format 35 with state schema
+36. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -194,6 +196,19 @@ out-of-range ticks, an airborne or reaction-incompatible step, and action
 values unknown to schema 33. The bump prevents a format-31 reader from
 silently treating action 74 and its release-gated transition as ordinary
 grounded movement.
+Format 33 retains the same payload while making grounded `TAUNT` action/timer,
+locked-control, inherited-momentum, fresh-input, and support-edge-cancel
+semantics fail closed under schema 34. Format 34 likewise retains the payload
+while making `WALL_JUMP`, exact wall contact, authored velocity/timing,
+invulnerability, preserved air jump, and jump/aerial cancel semantics fail
+closed under schema 35.
+Format 35 appends one byte for each of the four fixed player slots. Loading
+requires every recovery-availability value to be zero or one, rejects
+`VECTOR_ASCENT` when recovery content is disabled or action/grounding/timing
+relationships are invalid, and preserves a spent value through interruption
+and `FALL_SPECIAL`. Landing, ledge grab, stock loss/respawn, and reset are the
+only restoration paths. A format-34 reader therefore cannot silently grant an
+extra recovery or reinterpret action 77.
 
 ## Why SHA-256
 
@@ -284,6 +299,10 @@ service-envelope responsibility.
 - Mid-Moonwalk-setup save/load plus exact setup/activation timing, preserved
   facing, reverse velocity, traction exit, two mistimed dashback controls, and
   equal future hashes in `tests/sim/test_m4_movement.c`.
+- Mid-Vector-Ascent save/load plus equal future hashes, exact resource
+  consumption, blocked same-airtime reuse, landing restoration, second-airtime
+  reuse, and structured/compact RL visibility in
+  `tests/sim/test_m4_movement.c`.
 
 `tools/verify_m2_kernel.sh` compiles and runs this conformance test directly
 under the strict C17 warning policy, and includes serialization/hash objects in

@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)550)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)554)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x34)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x35)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -603,6 +603,14 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u8(
+            writer,
+            world->recovery_available[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->grab_target_slot[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -990,6 +998,13 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->recovery_available[player_index] =
+            pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->grab_target_slot[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1184,6 +1199,7 @@ static int pf_m4_snapshot_content_state_consistent(
     const pf_world_state *world)
 {
     const pf_m4_charge_data *charge;
+    const pf_m4_recovery_data *recovery;
     uint32_t player_index;
 
     if (content == NULL || world == NULL)
@@ -1191,6 +1207,7 @@ static int pf_m4_snapshot_content_state_consistent(
         return 0;
     }
     charge = &content->charge;
+    recovery = &content->recovery;
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
@@ -1212,6 +1229,8 @@ static int pf_m4_snapshot_content_state_consistent(
             (uint32_t)charge->release_startup_ticks +
             (uint32_t)charge->release_active_ticks +
             (uint32_t)charge->release_recovery_ticks;
+        const int recovery_action =
+            action == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
 
         if (world->charge_ticks[player_index] >
                 charge->max_charge_ticks ||
@@ -1248,7 +1267,14 @@ static int pf_m4_snapshot_content_state_consistent(
             (action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
             (resume_action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
-             action_ticks >= content->fighter.wall_jump_ticks))
+             action_ticks >= content->fighter.wall_jump_ticks) ||
+            (recovery->enabled == UINT8_C(0) &&
+             (recovery_action ||
+              (player_index < (uint32_t)world->player_count &&
+               world->recovery_available[player_index] != UINT8_C(1)))) ||
+            (recovery_action &&
+             (world->recovery_available[player_index] != UINT8_C(0) ||
+              action_ticks >= recovery->ascent_ticks)))
         {
             return 0;
         }
@@ -1294,6 +1320,7 @@ static int pf_m4_player_state_consistent(
                    UINT16_C(0) &&
                world->grab_escape_ticks[player_index] == UINT16_C(0) &&
                world->charge_ticks[player_index] == UINT16_C(0) &&
+               world->recovery_available[player_index] == UINT8_C(1) &&
                world->grab_target_slot[player_index] == UINT8_C(0) &&
                world->grab_owner_slot[player_index] == UINT8_C(0) &&
                ((waiting &&
@@ -1312,6 +1339,7 @@ static int pf_m4_player_state_consistent(
                action !=
                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
                action != (uint8_t)PF_M4_ACTION_WALL_JUMP &&
+               action != (uint8_t)PF_M4_ACTION_VECTOR_ASCENT &&
                action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                action != (uint8_t)PF_M4_ACTION_AIR_DODGE &&
                action != (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
@@ -1324,7 +1352,8 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
-               world->fast_fall[player_index] == UINT8_C(0);
+               world->fast_fall[player_index] == UINT8_C(0) &&
+               world->recovery_available[player_index] == UINT8_C(1);
     }
     if (support != (uint8_t)PF_M4_SURFACE_NONE)
     {
@@ -1333,6 +1362,7 @@ static int pf_m4_player_state_consistent(
     if (action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         action == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         action == (uint8_t)PF_M4_ACTION_WALL_JUMP ||
+        action == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
         action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
@@ -1355,7 +1385,8 @@ static int pf_m4_player_state_consistent(
             action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB) &&
            world->velocity_x_q16[player_index] == INT32_C(0) &&
            world->velocity_y_q16[player_index] == INT32_C(0) &&
-           world->fast_fall[player_index] == UINT8_C(0);
+           world->fast_fall[player_index] == UINT8_C(0) &&
+           world->recovery_available[player_index] == UINT8_C(1);
 }
 
 pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
@@ -1594,7 +1625,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_WALL_JUMP ||
+                action > (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1621,6 +1652,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->support[player_index] >
                     (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
+                world->recovery_available[player_index] > UINT8_C(1) ||
                 world->short_hop_latched[player_index] > UINT8_C(1) ||
                 world->platform_drop_ticks[player_index] > UINT8_C(120) ||
                 world->fast_fall[player_index] > UINT8_C(1) ||
@@ -1956,6 +1988,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                    action == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
                    action == (uint8_t)PF_M4_ACTION_TAUNT ||
                    action == (uint8_t)PF_M4_ACTION_WALL_JUMP ||
+                   action == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
@@ -2018,6 +2051,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->action_state[player_index] != UINT8_C(0) ||
                  world->support[player_index] != UINT8_C(0) ||
                  world->air_jumps_remaining[player_index] != UINT8_C(0) ||
+                 world->recovery_available[player_index] != UINT8_C(0) ||
                  world->short_hop_latched[player_index] != UINT8_C(0) ||
                  world->platform_drop_ticks[player_index] != UINT8_C(0) ||
                  world->fast_fall[player_index] != UINT8_C(0) ||

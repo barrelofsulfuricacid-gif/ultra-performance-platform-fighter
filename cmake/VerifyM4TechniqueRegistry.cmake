@@ -55,18 +55,20 @@ foreach(status planned primitive-ready playable verified)
     list(LENGTH "${status}_rows" "${status}_count")
 endforeach()
 
+set(primitive_ready_count "${primitive-ready_count}")
+
 if(NOT planned_count EQUAL 0 OR
-   NOT primitive-ready_count EQUAL 2 OR
-   NOT playable_count EQUAL 58 OR
+   NOT primitive_ready_count EQUAL 0 OR
+   NOT playable_count EQUAL 60 OR
    NOT verified_count EQUAL 1)
     message(
         FATAL_ERROR
         "M4 technique status counts changed: planned=${planned_count} "
-        "primitive_ready=${primitive-ready_count} playable=${playable_count} "
+        "primitive_ready=${primitive_ready_count} playable=${playable_count} "
         "verified=${verified_count}")
 endif()
 
 message(
     STATUS
-    "m4-technique-registry=pass rows=61 verified=1 playable=58 "
-    "primitive_ready=2 planned=0 acceptance=blocked")
+    "m4-technique-registry=pass rows=61 verified=1 playable=60 "
+    "primitive_ready=0 planned=0 acceptance=blocked")

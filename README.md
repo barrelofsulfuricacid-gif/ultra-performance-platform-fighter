@@ -6,8 +6,8 @@ native, web, rollback, headless, and reinforcement-learning targets.
 The project has completed **M0: product contract and measured architecture
 decisions** and **M1: reproducible foundation**. The M2 deterministic
 simulation is complete, and its reinforcement-learning contract has been
-accepted by the owner; its current schema-3 observation includes M4 stock and
-respawn state. M4 is in progress with production-path movement, two ground
+accepted by the owner; its current schema-6 observation includes M4 stock,
+respawn, charge, projectile, item, and recovery state. M4 is in progress with production-path movement, two ground
 attacks,
 hit reaction, ground/wall/ceiling teching, missed-tech recovery, dense shield,
 physical powershield canceling, ledges, directional air dodge/wavedash, the

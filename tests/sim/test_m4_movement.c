@@ -1,4 +1,5 @@
 #include "pf/m4.h"
+#include "pf/rl.h"
 #include "pf/sim.h"
 
 #include <inttypes.h>
@@ -279,7 +280,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)690)
+        required_bytes != (size_t)694)
     {
         return 0;
     }
@@ -831,7 +832,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)690)
+        required_bytes != (size_t)694)
     {
         return 0;
     }
@@ -1096,7 +1097,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)690)
+        required_bytes != (size_t)694)
     {
         return 0;
     }
@@ -2355,7 +2356,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -2631,7 +2632,7 @@ static int run_moonwalk_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "moonwalk-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -3146,7 +3147,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         return 0;
     }
@@ -3481,7 +3482,7 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -3678,7 +3679,7 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -3986,7 +3987,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -4299,7 +4300,7 @@ static int run_dash_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "dash-cancel-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -4938,7 +4939,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         return 0;
     }
@@ -5274,7 +5275,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         return 0;
     }
@@ -5947,7 +5948,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)690)
+        required_bytes != (size_t)694)
     {
         return 0;
     }
@@ -6628,7 +6629,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         return 0;
     }
@@ -7895,7 +7896,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         return 0;
     }
@@ -8121,7 +8122,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         return 0;
     }
@@ -8402,7 +8403,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -8892,7 +8893,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)690)
+        save_size != (size_t)694)
     {
         (void)fprintf(
             stderr,
@@ -9461,6 +9462,356 @@ static int run_blast_zone_test(const pf_content_view *content)
     return 0;
 }
 
+static int run_vector_ascent_test(const pf_m4_content *base_content)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage rl_storage;
+    pf_m4_content content = *base_content;
+    pf_m4_content invalid;
+    pf_content_view disabled_view;
+    pf_content_view view;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *rl_sim = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_sim_observation observation;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    pf_mut_bytes destination;
+    pf_bytes save;
+    pf_rl_transition transition;
+    pf_rl_action actions[2];
+    uint8_t save_bytes[1024];
+    size_t save_size = (size_t)0;
+    uint32_t player_bits;
+    uint32_t guard;
+
+    if (content.recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
+        content.recovery.schema_version != PF_M4_RECOVERY_SCHEMA_VERSION ||
+        content.recovery.enabled != UINT8_C(0) ||
+        content.recovery.horizontal_speed_q16 !=
+            PF_Q16_ONE / INT32_C(4) ||
+        content.recovery.vertical_speed_q16 !=
+            INT32_C(4) * PF_Q16_ONE / INT32_C(5) ||
+        content.recovery.ascent_ticks != UINT16_C(18) ||
+        !expect_status(
+            pf_m4_make_content_view(&content, &disabled_view),
+            PF_STATUS_OK,
+            "vector-ascent-disabled-view"))
+    {
+        return 0;
+    }
+
+    invalid = content;
+    invalid.recovery.enabled = UINT8_C(2);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "vector-ascent-invalid-enabled"))
+    {
+        return 0;
+    }
+    invalid = content;
+    invalid.recovery.ascent_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid),
+            PF_STATUS_INVALID_CONFIG,
+            "vector-ascent-invalid-duration"))
+    {
+        return 0;
+    }
+
+    content.recovery.enabled = UINT8_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "vector-ascent-view") ||
+        memcmp(
+            disabled_view.content_hash.bytes,
+            view.content_hash.bytes,
+            sizeof(view.content_hash.bytes)) == 0 ||
+        !initialize_sim(
+            &source_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x564543544f524153)),
+            PF_STATUS_OK,
+            "vector-ascent-reset-source") ||
+        !expect_status(
+            pf_sim_reset(loaded, UINT64_C(0x564543544f524153)),
+            PF_STATUS_OK,
+            "vector-ascent-reset-loaded") ||
+        !expect_status(
+            pf_m4_inspect(source, &source_inspection),
+            PF_STATUS_OK,
+            "vector-ascent-inspect-reset") ||
+        source_inspection.players[0].recovery_available != UINT8_C(1) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection))
+    {
+        return 0;
+    }
+
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(8) &&
+         source_inspection.players[0].grounded != UINT8_C(0);
+         ++guard)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (source_inspection.players[0].grounded != UINT8_C(0) ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_MIN,
+            PF_INPUT_BUTTON_SPECIAL,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].recovery_available != UINT8_C(0) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        source_inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
+        !expect_status(
+            pf_sim_observe(source, &observation),
+            PF_STATUS_OK,
+            "vector-ascent-observe") ||
+        observation.schema_version != PF_SIM_OBSERVATION_SCHEMA_VERSION ||
+        observation.players[0].recovery_available != UINT8_C(0) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "vector-ascent-save-size") ||
+        save_size != (size_t)694)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "vector-ascent-save") ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "vector-ascent-load"))
+    {
+        return 0;
+    }
+
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(24) &&
+         source_inspection.players[0].action_state ==
+             (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
+         ++guard)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection) ||
+            !step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection) ||
+            !expect_status(
+                pf_sim_hash(source, &source_hash),
+                PF_STATUS_OK,
+                "vector-ascent-source-hash") ||
+            !expect_status(
+                pf_sim_hash(loaded, &loaded_hash),
+                PF_STATUS_OK,
+                "vector-ascent-loaded-hash") ||
+            memcmp(
+                source_hash.bytes,
+                loaded_hash.bytes,
+                sizeof(source_hash.bytes)) != 0)
+        {
+            return 0;
+        }
+    }
+    if (guard == UINT32_C(24) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+        source_inspection.players[0].recovery_available != UINT8_C(0) ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_SPECIAL,
+            &source_inspection) ||
+        source_inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+        source_inspection.players[0].recovery_available != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(240) &&
+         source_inspection.players[0].grounded == UINT8_C(0);
+         ++guard)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (guard == UINT32_C(240) ||
+        source_inspection.players[0].recovery_available != UINT8_C(1))
+    {
+        return 0;
+    }
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(24) &&
+         source_inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+         ++guard)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &source_inspection))
+    {
+        return 0;
+    }
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(8) &&
+         source_inspection.players[0].grounded != UINT8_C(0);
+         ++guard)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &source_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_SPECIAL,
+            &source_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+        source_inspection.players[0].recovery_available != UINT8_C(0))
+    {
+        return 0;
+    }
+
+    if (!initialize_sim(
+            &rl_storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &rl_sim) ||
+        !expect_status(
+            pf_rl_reset(
+                rl_sim,
+                UINT64_C(0x564543544f52524c),
+                &transition),
+            PF_STATUS_OK,
+            "vector-ascent-rl-reset"))
+    {
+        return 0;
+    }
+    (void)memset(actions, 0, sizeof(actions));
+    actions[0].schema_version = PF_RL_ACTION_SCHEMA_VERSION;
+    actions[1].schema_version = PF_RL_ACTION_SCHEMA_VERSION;
+    actions[0].buttons = PF_INPUT_BUTTON_JUMP;
+    if (!expect_status(
+            pf_rl_step(rl_sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "vector-ascent-rl-jump"))
+    {
+        return 0;
+    }
+    actions[0].buttons = UINT64_C(0);
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(8) &&
+         transition.structured_observation.players[0].grounded !=
+             UINT8_C(0);
+         ++guard)
+    {
+        if (!expect_status(
+                pf_rl_step(rl_sim, actions, (size_t)2, &transition),
+                PF_STATUS_OK,
+                "vector-ascent-rl-airborne"))
+        {
+            return 0;
+        }
+    }
+    actions[0].main_stick_y = INT16_MIN;
+    actions[0].buttons = PF_INPUT_BUTTON_SPECIAL;
+    if (!expect_status(
+            pf_rl_step(rl_sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "vector-ascent-rl-special") ||
+        transition.structured_observation.players[0].recovery_available !=
+            UINT8_C(0))
+    {
+        return 0;
+    }
+    (void)memcpy(
+        &player_bits,
+        &transition.compact_observation.values[
+            PF_RL_COMPACT_PLAYER_BASE(0) + UINT16_C(6)],
+        sizeof(player_bits));
+    return ((player_bits >> 18U) & UINT32_C(1)) == UINT32_C(0);
+}
+
 static int run_team_hash_trace(const pf_content_view *content)
 {
     test_sim_storage storage;
@@ -9611,6 +9962,7 @@ int main(void)
         !run_shield_platform_drop_test(&content, &view) ||
         !run_solid_geometry_test(&content) ||
         !run_scar_jump_test(&content, &view) ||
+        !run_vector_ascent_test(&content) ||
         !run_ledge_test(&content, &view) ||
         !run_edge_dash_test(&content, &view) ||
         !run_blast_zone_test(&view) ||
@@ -9621,11 +9973,11 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=297 moonwalk=1 teeter_cancel=1 "
+        "movement_invariants=306 moonwalk=1 teeter_cancel=1 "
         "taunt_cancel=1 "
         "scar_jump=1 "
         "stage_humping=1 "
-        "double_jump_cancel=1 "
+        "double_jump_cancel=1 vector_ascent=1 "
         "ledge_cancel=1 planking=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION);
     return 0;

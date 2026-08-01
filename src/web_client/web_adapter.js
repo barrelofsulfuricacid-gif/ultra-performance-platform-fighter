@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -502,6 +502,7 @@ mergeInto(LibraryManager.library, {
     campingProbePassed,
     shineSpikeProbePassed,
     chargeStorageProbePassed,
+    vectorAscentProbePassed,
     aerialLandingLagTicks,
     strongAerialLandingLagTicks
   ) {
@@ -916,13 +917,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge · T taunt · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face special · down + top face reflector · up + top face charge · Back/View taunt · any shoulder/trigger shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face special · down + top face reflector · up + top face charge/recovery · Back/View taunt · any shoulder/trigger shield · light + shield grab/item"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge on the ground / Vector Ascent recovery in the air · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -1040,6 +1041,14 @@ mergeInto(LibraryManager.library, {
       "Hold down with special for the Prism Burst reflector: its two active " +
       "frames strike nearby fighters down and away, and reverse an overlapping " +
       "Pulse Bolt without using the powershield result. " +
+      "While airborne, hold up and freshly press special to spend the once-per-" +
+      "airtime Vector Ascent; steer horizontally during its 18-tick rise, then " +
+      "land or grab a ledge to restore it. The fighter card shows READY or " +
+      "SPENT. To gimp, intercept an opponent's ascent with an aerial or Prism " +
+      "Burst so they miss the stage; leave the same recovery unchallenged for " +
+      "the control. To stage-spike, fight below the raised block and launch the " +
+      "opponent into its underside; a missed tech ceiling-bounces downward, " +
+      "while a fresh trigger produces the ceiling-tech control. " +
        "The deterministic event feed below records hits, shield interactions, " +
       "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
       "sequence order. " +
@@ -1563,6 +1572,8 @@ mergeInto(LibraryManager.library, {
         (shineSpikeProbePassed ? "pass" : "fail") +
         " charge_storage_probe=" +
         (chargeStorageProbePassed ? "pass" : "fail") +
+        " vector_ascent_probe=" +
+        (vectorAscentProbePassed ? "pass" : "fail") +
         " gamepad_probe=" +
         (gamepadProbePassed ? "pass" : "fail") +
         " gamepad_api=" +
@@ -1673,6 +1684,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
       status.dataset.chargeStorageProbe =
         chargeStorageProbePassed ? "pass" : "fail";
+      status.dataset.vectorAscentProbe =
+        vectorAscentProbePassed ? "pass" : "fail";
       status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
@@ -1684,7 +1697,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 392) {
+    if (!state || viewCount !== 396) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -1693,7 +1706,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 32) {
+    if (view[0] !== 33) {
       return;
     }
     var canvas = state.canvas;
@@ -1785,6 +1798,7 @@ mergeInto(LibraryManager.library, {
       "CROUCH STEP",
       "TAUNT",
       "WALL JUMP",
+      "VECTOR ASCENT",
     ];
 
     if (view[1] < previousTick) {
@@ -2578,7 +2592,9 @@ mergeInto(LibraryManager.library, {
         view[base + 40] +
         "f · Arc Reservoir " +
         view[base + 43] +
-        " / 120f";
+        " / 120f" +
+        " · Vector Ascent " +
+        (view[392 + playerIndex] !== 0 ? "READY" : "SPENT");
     });
 
     var itemStateNames = [

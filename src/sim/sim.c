@@ -462,6 +462,8 @@ pf_status pf_sim_observe(
         player->active = sim->world.active[player_index];
         player->stocks_remaining =
             sim->world.stocks_remaining[player_index];
+        player->recovery_available =
+            sim->world.recovery_available[player_index];
         player->respawn_ticks =
             sim->world.respawn_ticks[player_index];
         player->respawn_invulnerability_ticks =

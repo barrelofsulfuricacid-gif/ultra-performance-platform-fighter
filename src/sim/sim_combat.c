@@ -83,6 +83,7 @@ static int pf_m4_action_is_v_cancel_eligible(uint8_t action_state)
            action_state ==
                (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
            action_state == (uint8_t)PF_M4_ACTION_WALL_JUMP ||
+           action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
            action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
            action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE;
 }

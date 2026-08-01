@@ -59,6 +59,7 @@ typedef struct pf_world_state
     uint8_t action_state[PF_SIM_MAX_PLAYERS];
     uint8_t support[PF_SIM_MAX_PLAYERS];
     uint8_t air_jumps_remaining[PF_SIM_MAX_PLAYERS];
+    uint8_t recovery_available[PF_SIM_MAX_PLAYERS];
     uint8_t short_hop_latched[PF_SIM_MAX_PLAYERS];
     uint8_t platform_drop_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t fast_fall[PF_SIM_MAX_PLAYERS];
@@ -134,6 +135,7 @@ typedef struct pf_sim_scratch
     uint8_t action_state[PF_SIM_MAX_PLAYERS];
     uint8_t support[PF_SIM_MAX_PLAYERS];
     uint8_t air_jumps_remaining[PF_SIM_MAX_PLAYERS];
+    uint8_t recovery_available[PF_SIM_MAX_PLAYERS];
     uint8_t short_hop_latched[PF_SIM_MAX_PLAYERS];
     uint8_t platform_drop_ticks[PF_SIM_MAX_PLAYERS];
     uint8_t fast_fall[PF_SIM_MAX_PLAYERS];

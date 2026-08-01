@@ -1,7 +1,7 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner; current implementation is RL schema 4
-- **Date:** 2026-07-27
+- **Status:** Accepted by owner; current implementation is RL schema 8
+- **Date:** 2026-08-01
 
 ## Scope
 
@@ -13,7 +13,10 @@ the interface expensive to change. RL schema 3 preserved those decisions and
 added the M4 stock, respawn, invulnerability, and sudden-death observations.
 RL schema/transition schema 4 retain the same action, observation, reward, and
 batch semantics while embedding the ABI-4 per-tick event journal in every
-transition result.
+transition result. Later compatible revisions expose the fixed item slot,
+projectile slot, per-player charge, and per-player recovery availability. The
+current contract is RL schema 8, action schema 1, transition schema 6,
+structured observation schema 6, and compact observation schema 7.
 
 ## Actions
 
@@ -42,7 +45,7 @@ Every RL transition contains both:
 
 - A structured `pf_sim_observation`, preserving named fields for bindings and
   schema review.
-- A flat 48-element signed-32-bit observation for low-overhead contiguous
+- A flat 66-element signed-32-bit observation for low-overhead contiguous
   transfer.
 
 Both normal RL views redact the reset seed. The structured seed field is zero,
@@ -61,10 +64,13 @@ The compact layout is:
 | 4–5 | Maximum ticks, low/high 32-bit words |
 | 6 | Deterministic fault flags |
 | 7 | Packed player count (bits 0–7), mode (8–15), termination (16), truncation (17), sudden death (18), configured stock count (19–25), and winner mask (26–29) |
-| 8–17 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
+| 8–17 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active/recovery-ready flags, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
 | 18–27 | Player 1 fields |
 | 28–37 | Player 2 fields |
 | 38–47 | Player 3 fields |
+| 48–55 | Fixed item position/velocity, packed lifecycle/ownership fields, and timers |
+| 56–61 | Fixed projectile position/velocity and packed lifecycle/owner fields |
+| 62–65 | Per-player Arc Reservoir charge ticks |
 
 Bit patterns are copied rather than implementation-defined signed casts.
 Inactive slots remain canonical zero except for their implicit packed slot.
@@ -128,6 +134,9 @@ not suppress valid independent environments.
 - Schema/spec metadata and compact/structured correspondence.
 - Stock, respawn, invulnerability, sudden-death, and winner-bit
   compact/structured correspondence.
+- Item, projectile, charge, and Vector Ascent recovery availability in the
+  structured/compact contract; recovery uses player flag bit 18 without
+  changing the 66-value vector.
 - Seed redaction in both normal RL observation forms.
 - Reset, approach/separation shaping, and legal masks.
 - Atomic invalid-action rejection.

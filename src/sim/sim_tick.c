@@ -454,6 +454,8 @@ pf_status pf_sim_tick_impl(
             scratch->support[player_index];
         world->air_jumps_remaining[player_index] =
             scratch->air_jumps_remaining[player_index];
+        world->recovery_available[player_index] =
+            scratch->recovery_available[player_index];
         world->short_hop_latched[player_index] =
             scratch->short_hop_latched[player_index];
         world->platform_drop_ticks[player_index] =

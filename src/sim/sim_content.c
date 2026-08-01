@@ -562,6 +562,17 @@ static void pf_m4_hash_charge(
     pf_m4_hash_u16(hash, charge->release_hitlag_ticks);
 }
 
+static void pf_m4_hash_recovery(
+    pf_sha256 *hash,
+    const pf_m4_recovery_data *recovery)
+{
+    pf_m4_hash_u16(hash, recovery->schema_version);
+    pf_m4_hash_u8(hash, recovery->enabled);
+    pf_m4_hash_i32(hash, recovery->horizontal_speed_q16);
+    pf_m4_hash_i32(hash, recovery->vertical_speed_q16);
+    pf_m4_hash_u16(hash, recovery->ascent_ticks);
+}
+
 static void pf_m4_content_hash(
     const pf_m4_content *content,
     uint8_t digest[32])
@@ -580,12 +591,14 @@ static void pf_m4_content_hash(
     pf_m4_hash_u8(&hash, content->projectile_count);
     pf_m4_hash_u8(&hash, content->reflector_count);
     pf_m4_hash_u8(&hash, content->charge_count);
+    pf_m4_hash_u8(&hash, content->recovery_count);
     pf_m4_hash_fighter(&hash, &content->fighter);
     pf_m4_hash_stage(&hash, &content->stage);
     pf_m4_hash_item(&hash, &content->item);
     pf_m4_hash_projectile(&hash, &content->projectile);
     pf_m4_hash_reflector(&hash, &content->reflector);
     pf_m4_hash_charge(&hash, &content->charge);
+    pf_m4_hash_recovery(&hash, &content->recovery);
     pf_sha256_finish(&hash, digest);
 }
 
@@ -613,6 +626,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     pf_m4_projectile_data *projectile;
     pf_m4_reflector_data *reflector;
     pf_m4_charge_data *charge;
+    pf_m4_recovery_data *recovery;
 
     if (out_content == NULL)
     {
@@ -628,6 +642,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     out_content->projectile_count = PF_M4_TEST_PROJECTILE_COUNT;
     out_content->reflector_count = PF_M4_TEST_REFLECTOR_COUNT;
     out_content->charge_count = PF_M4_TEST_CHARGE_COUNT;
+    out_content->recovery_count = PF_M4_TEST_RECOVERY_COUNT;
 
     fighter = &out_content->fighter;
     fighter->struct_size = (uint32_t)sizeof(*fighter);
@@ -1057,6 +1072,14 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     charge->release_recovery_ticks = UINT16_C(14);
     charge->release_hitlag_ticks = UINT16_C(5);
 
+    recovery = &out_content->recovery;
+    recovery->struct_size = (uint32_t)sizeof(*recovery);
+    recovery->schema_version = PF_M4_RECOVERY_SCHEMA_VERSION;
+    recovery->enabled = UINT8_C(0);
+    recovery->horizontal_speed_q16 = PF_Q16_RATIO(1, 4);
+    recovery->vertical_speed_q16 = PF_Q16_RATIO(4, 5);
+    recovery->ascent_ticks = UINT16_C(18);
+
     return PF_STATUS_OK;
 }
 
@@ -1068,6 +1091,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     const pf_m4_projectile_data *projectile;
     const pf_m4_reflector_data *reflector;
     const pf_m4_charge_data *charge;
+    const pf_m4_recovery_data *recovery;
     const int32_t maximum_coordinate_q16 =
         INT32_C(4096) * PF_Q16_ONE;
     const int32_t maximum_fighter_extent_q16 =
@@ -1125,7 +1149,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->charge.struct_size !=
             (uint32_t)sizeof(content->charge) ||
         content->charge.schema_version !=
-            PF_M4_CHARGE_SCHEMA_VERSION)
+            PF_M4_CHARGE_SCHEMA_VERSION ||
+        content->recovery.struct_size !=
+            (uint32_t)sizeof(content->recovery) ||
+        content->recovery.schema_version !=
+            PF_M4_RECOVERY_SCHEMA_VERSION)
     {
         return PF_STATUS_UNSUPPORTED_VERSION;
     }
@@ -1135,7 +1163,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->projectile_count != PF_M4_TEST_PROJECTILE_COUNT ||
         content->reflector_count != PF_M4_TEST_REFLECTOR_COUNT ||
         content->charge_count != PF_M4_TEST_CHARGE_COUNT ||
-        content->reserved != UINT8_C(0) ||
+        content->recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
         content->fighter.reserved != UINT16_C(0) ||
         content->stage.reserved != UINT16_C(0) ||
         content->stage.reserved2 != UINT16_C(0) ||
@@ -1143,7 +1171,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->item.reserved2 != UINT16_C(0) ||
         content->projectile.reserved != UINT8_C(0) ||
         content->reflector.reserved != UINT8_C(0) ||
-        content->charge.reserved != UINT8_C(0))
+        content->charge.reserved != UINT8_C(0) ||
+        content->recovery.reserved != UINT8_C(0) ||
+        content->recovery.reserved2 != UINT16_C(0))
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -2158,6 +2188,20 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             UINT32_C(600) ||
         charge->release_hitlag_ticks == UINT16_C(0) ||
         charge->release_hitlag_ticks > UINT16_C(120))
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
+
+    recovery = &content->recovery;
+    if (recovery->enabled > UINT8_C(1) ||
+        recovery->horizontal_speed_q16 <= INT32_C(0) ||
+        recovery->horizontal_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        recovery->vertical_speed_q16 <= fighter->gravity_q16 ||
+        recovery->vertical_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        recovery->ascent_ticks == UINT16_C(0) ||
+        recovery->ascent_ticks > UINT16_C(120))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

@@ -36,7 +36,8 @@ void pf_m4_prepare_charge_input(
         (input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
         input->main_stick_y <=
             -(int16_t)content->fighter.dash_axis_threshold;
-    if (up_special == 0)
+    if (up_special == 0 ||
+        world->grounded[player_index] == UINT8_C(0))
     {
         return;
     }

@@ -14,12 +14,12 @@ extern "C"
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(5)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(35)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(5)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(36)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(6)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(34)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(35)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
@@ -256,7 +256,7 @@ typedef struct pf_player_observation
     uint8_t grounded;
     uint8_t active;
     uint8_t stocks_remaining;
-    uint8_t reserved;
+    uint8_t recovery_available;
     uint16_t respawn_ticks;
     uint16_t respawn_invulnerability_ticks;
     uint16_t charge_ticks;

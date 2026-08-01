@@ -81,13 +81,17 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–33 remain historical checkpoints. The current M4
+Save formats 1–34 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
-taunt/wall-jump state uses save format 34: a fixed 690-byte checkpoint with
-state schema 35 and a 550-byte payload. It retains the format-33 byte layout
-while making the explicit `WALL_JUMP` action ID, authored speeds, 24-tick
-recovery, four-tick invulnerability, preserved air jump, exact wall contact,
-and legal jump/aerial cancels fail closed. Save format 33/state schema 34 made
+taunt/wall-jump/Vector-Ascent state uses save format 35: a fixed 694-byte
+checkpoint with state schema 36 and a 554-byte payload. It appends one
+recovery-availability byte per player and makes the explicit `VECTOR_ASCENT`
+action ID, once-per-airtime consumption, authored launch/steering/duration,
+special-fall completion, interruption persistence, and landing/ledge/respawn
+restoration fail closed. Save format 34/state schema 35 retained the prior
+690-byte layout while making the explicit `WALL_JUMP` action ID, authored
+speeds, 24-tick recovery, four-tick invulnerability, preserved air jump, exact
+wall contact, and legal jump/aerial cancels fail closed. Save format 33/state schema 34 made
 the grounded `TAUNT` action ID, authored 90-tick recovery, inherited dash
 momentum, locked controls, held-input non-repetition, and support-edge
 cancellation fail closed. State
@@ -192,6 +196,15 @@ and the 12-value projectile record begins at 380. Canonical state schema 35,
 save format 34, content schema 36, input schema 5, inspection schema 31,
 observation schema 5, RL schema 7, compact schema 6, and 66 compact values are
 unchanged.
+State schema 36 / save format 35 appends four recovery-availability bytes for
+a 554-byte payload and 694-byte checkpoint under `PFSAVE35`. Content schema 37
+adds and hashes recovery schema 1 with enable, horizontal/vertical speed, and
+18-tick duration fields; fighter schema 32 and input schema 5 remain unchanged.
+Inspection schema 32 and structured observation schema 6 expose the resource.
+RL schema 8 / compact schema 7 packs it into player flag bit 18 while retaining
+66 compact values. Browser view schema 33 appends the four visible values at
+indices 392–395 for a 396-value presentation view without moving any existing
+offset.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

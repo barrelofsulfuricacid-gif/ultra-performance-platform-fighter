@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 392
+#define TEST_VIEW_COUNT 396
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 44
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -17,6 +17,7 @@
 #define TEST_SOLID_BOTTOM 17
 #define TEST_PLAYER_ACTION 4
 #define TEST_PLAYER_VX 2
+#define TEST_PLAYER_VY 3
 #define TEST_PLAYER_FACING 5
 #define TEST_PLAYER_GROUNDED 6
 #define TEST_PLAYER_HITBOX_ACTIVE 14
@@ -77,6 +78,7 @@
 #define TEST_PROJECTILE_HALF_WIDTH 9
 #define TEST_PROJECTILE_HALF_HEIGHT 10
 #define TEST_PROJECTILE_REFLECT_WINDOW 11
+#define TEST_RECOVERY_BASE 392
 
 static int test_install_count;
 static int test_render_count;
@@ -139,6 +141,7 @@ static int test_short_hop_laser_probe;
 static int test_camping_probe;
 static int test_shine_spike_probe;
 static int test_charge_storage_probe;
+static int test_vector_ascent_probe;
 static int test_aerial_landing_lag_ticks;
 static int test_strong_aerial_landing_lag_ticks;
 static int32_t test_view[TEST_VIEW_COUNT];
@@ -203,6 +206,7 @@ void pf_web_m4_playtest_install(
     int camping_probe_passed,
     int shine_spike_probe_passed,
     int charge_storage_probe_passed,
+    int vector_ascent_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -270,6 +274,7 @@ void pf_web_m4_playtest_install(
     int camping_probe_passed,
     int shine_spike_probe_passed,
     int charge_storage_probe_passed,
+    int vector_ascent_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks)
 {
@@ -339,6 +344,7 @@ void pf_web_m4_playtest_install(
     test_camping_probe = camping_probe_passed;
     test_shine_spike_probe = shine_spike_probe_passed;
     test_charge_storage_probe = charge_storage_probe_passed;
+    test_vector_ascent_probe = vector_ascent_probe_passed;
     test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
     test_strong_aerial_landing_lag_ticks =
         strong_aerial_landing_lag_ticks;
@@ -500,9 +506,10 @@ int main(void)
         test_camping_probe != 1 ||
         test_shine_spike_probe != 1 ||
         test_charge_storage_probe != 1 ||
+        test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 32 ||
+        test_view[0] != 33 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -550,6 +557,8 @@ int main(void)
             65536 / 5 ||
         test_view[
             TEST_PROJECTILE_BASE + TEST_PROJECTILE_REFLECT_WINDOW] != 2 ||
+        test_view[TEST_RECOVERY_BASE] != 1 ||
+        test_view[TEST_RECOVERY_BASE + 1] != 1 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||
@@ -602,6 +611,7 @@ int main(void)
             "short_hop_laser_probe=%d camping_probe=%d "
             "shine_spike_probe=%d "
             "charge_storage_probe=%d "
+            "vector_ascent_probe=%d "
             "aerial_lag=%d strong_aerial_lag=%d "
             "schema=%d tick=%d\n",
             test_install_count,
@@ -665,6 +675,7 @@ int main(void)
             test_camping_probe,
             test_shine_spike_probe,
             test_charge_storage_probe,
+            test_vector_ascent_probe,
             test_aerial_landing_lag_ticks,
             test_strong_aerial_landing_lag_ticks,
             (int)test_view[0],
@@ -772,6 +783,87 @@ int main(void)
         !pf_web_m4_playtest_reset())
     {
         return fail("live-taunt-route");
+    }
+
+    {
+        uint32_t tick;
+
+        if (!pf_web_m4_playtest_reset() ||
+            test_view[TEST_RECOVERY_BASE] != 1 ||
+            !pf_web_m4_playtest_step_special(
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0))
+        {
+            return fail("live-vector-ascent-jump");
+        }
+        for (tick = UINT32_C(0);
+             tick < UINT32_C(8) &&
+             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GROUNDED] != 0;
+             ++tick)
+        {
+            if (!pf_web_m4_playtest_step_special(
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0))
+            {
+                return fail("live-vector-ascent-airborne");
+            }
+        }
+        if (tick == UINT32_C(8) ||
+            !pf_web_m4_playtest_step_special(
+                32767,
+                -32768,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0) ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 77 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 1 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] <= 0 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VY] >= 0 ||
+            test_view[TEST_RECOVERY_BASE] != 0 ||
+            !pf_web_m4_playtest_reset() ||
+            test_view[TEST_RECOVERY_BASE] != 1)
+        {
+            return fail("live-vector-ascent-route");
+        }
     }
 
     {
@@ -1325,6 +1417,7 @@ int main(void)
         "short_hop_laser_probe=%d camping_probe=%d "
         "shine_spike_probe=%d "
         "charge_storage_probe=%d "
+        "vector_ascent_probe=%d "
         "event_journal_probe=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
@@ -1386,6 +1479,7 @@ int main(void)
         test_camping_probe,
         test_shine_spike_probe,
         test_charge_storage_probe,
+        test_vector_ascent_probe,
         test_combat_probe,
         test_render_count);
     return 0;

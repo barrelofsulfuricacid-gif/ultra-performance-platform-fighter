@@ -20,6 +20,8 @@ one data-defined Prism Burst reflector with grounded/aerial physical hit and
 active-box projectile reflection plus the Shine-spike route,
 one data-defined Arc Reservoir with charge, storage cancel, exact resume, and
 scaled grounded release,
+one data-defined once-per-airtime Vector Ascent with horizontal steering,
+ordinary gravity, spent-resource fall special, and landing/ledge restoration,
 an authored two-tick shallow-back Moonwalk setup with facing-preserving reverse
 slide and immediate/one-tick dashback controls,
 an authored support-edge Teeter with neutral duration, standing-attack and
@@ -54,7 +56,7 @@ execution.
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
-| Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir | `E` | `;` or Numpad `3` |
+| Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir while grounded or Vector Ascent while airborne | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
@@ -76,7 +78,8 @@ movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack or a directional forward
 smash, the right face button is a direct strong attack, the left face button
 jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
-Burst, up plus top face starts or resumes Arc Reservoir, Back/View taunts, and any shoulder or trigger
+Burst, and up plus top face starts/resumes Arc Reservoir while grounded or
+Vector Ascent while airborne. Back/View taunts, and any shoulder or trigger
     holds shield or supplies the tech/air-dodge/L-cancel trigger. Light plus a
     shoulder/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
@@ -134,6 +137,26 @@ Enter again with up plus fresh special to resume at the exact stored value,
 then press light to use `ARC RESERVOIR RELEASE`; its damage scales from 4% to
 20%. Holding shield through all four store ticks enters ordinary shield, while
 being hit during charge/store clears the meter.
+
+While airborne, hold full up and freshly press the same special control to
+enter `VECTOR ASCENT`. The fighter receives the authored upward launch, may
+steer horizontally during the 18-tick ascent under ordinary gravity, then
+enters `FALL SPECIAL`. The player card changes Vector Ascent from `READY` to
+`SPENT`; another up-special is ignored until landing, ledge grab, respawn, or
+Reset restores it.
+
+For the emergent gimp route, knock the opponent offstage, let them begin an
+inward-steered Vector Ascent, then intercept it with the light aerial or
+`PRISM BURST AIR`. Confirm the spent recovery cannot be repeated and compare
+with an unchallenged reset where the opponent reaches the ledge or stage. For
+the stage-spike route, build damage and meet the recovering opponent beside
+the raised block's outer wall. Send them into that wall with an aerial; omit
+the trigger for an outward `WALL BOUNCE`, then reset and freshly press the
+trigger before impact for the `WALL TECH` survival control. The underside of
+the block provides the corresponding `CEILING BOUNCE` / `CEILING TECH`
+comparison. These emergent routes reuse the independently checked recovery,
+hit, surface-impact, and stock mechanics rather than separate technique-only
+startup scripts.
 
 For a fox-trot, tap and release one full direction, then repeat that same
 direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
@@ -931,6 +954,10 @@ through:
 - an Arc Reservoir charge entering store, early shield release into a
   same-tick ordinary attack, exact stored-charge resume, and scaled release
   before the live charge lab is installed;
+- an ordinary jump followed by full-up fresh Special entering
+  `VECTOR_ASCENT`, consuming the visible once-per-airtime recovery flag, and
+  producing the authored positive horizontal and upward velocities before the
+  live recovery lab is installed;
 - a two-tick reduced-back Moonwalk setup entering a facing-preserving backward
   slide, plus immediate full-back and one-tick-setup dashback negatives;
 - a support-edge Teeter entering only after near-edge input release, cancelling
@@ -1013,7 +1040,8 @@ air_dodge_probe=pass
 ground_dodge_probe=pass
 aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass
 camping_probe=pass
-shine_spike_probe=pass charge_storage_probe=pass gamepad_probe=pass
+shine_spike_probe=pass charge_storage_probe=pass vector_ascent_probe=pass
+gamepad_probe=pass
 gamepad_api=available
 controls=keyboard-gamepad-two-controller-duel-team-lab` only after all checks
 pass.
