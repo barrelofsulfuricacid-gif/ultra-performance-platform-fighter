@@ -28,6 +28,10 @@ option(
     ON)
 option(PF_ENABLE_SANITIZERS "Enable the supported address/UB sanitizers" OFF)
 option(PF_ENABLE_PROFILING "Preserve frame pointers and profiling seams" OFF)
+option(
+    PF_TRACY_TIMER_FALLBACK
+    "Use Tracy's lower-resolution timer on hosts without invariant TSC"
+    OFF)
 option(PF_ENABLE_SDL_CLIENT "Build the native client against locked SDL3" OFF)
 option(
     PF_SDL_UNIX_CONSOLE_BUILD
@@ -60,6 +64,12 @@ if(PF_ENABLE_PROFILING)
     set(TRACY_STATIC ON CACHE BOOL "Build static Tracy client" FORCE)
     set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy profiling" FORCE)
     set(TRACY_NO_BROADCAST ON CACHE BOOL "Disable Tracy LAN broadcast" FORCE)
+    set(
+        TRACY_TIMER_FALLBACK
+        "${PF_TRACY_TIMER_FALLBACK}"
+        CACHE BOOL
+        "Use Tracy's lower-resolution timer"
+        FORCE)
     set(
         TRACY_NO_VSYNC_CAPTURE
         ON
