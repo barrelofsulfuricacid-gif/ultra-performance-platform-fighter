@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(45)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(40)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(46)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(41)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(39)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(40)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -435,6 +435,7 @@ typedef struct pf_m4_fighter_data
     uint32_t shield_health_q16;
     uint32_t shield_reset_health_q16;
     uint32_t shield_hold_depletion_q16;
+    uint32_t light_shield_hold_depletion_q16;
     uint32_t shield_regeneration_q16;
     uint32_t shield_damage_multiplier_q16;
     int32_t shield_stun_damage_multiplier_q16;
@@ -442,6 +443,7 @@ typedef struct pf_m4_fighter_data
     int32_t shield_defender_pushback_damage_q16;
     int32_t shield_defender_pushback_base_q16;
     int32_t shield_defender_pushback_scale_q16;
+    int32_t light_shield_defender_pushback_scale_q16;
     int32_t shield_attacker_pushback_damage_q16;
     int32_t shield_attacker_pushback_base_q16;
     int32_t grabbox_offset_x_q16;
@@ -523,6 +525,7 @@ typedef struct pf_m4_fighter_data
     uint16_t l_cancel_divisor;
     uint16_t v_cancel_window_ticks;
     uint16_t sdi_axis_threshold;
+    uint16_t light_shield_trigger_threshold;
     uint16_t digital_trigger_threshold;
     uint16_t tumble_hitstun_threshold_ticks;
     uint16_t tech_window_ticks;
@@ -687,6 +690,7 @@ typedef struct pf_m4_player_inspection
     uint8_t grab_owner;
     uint8_t stocks_remaining;
     uint8_t recovery_available;
+    uint16_t shield_strength;
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection

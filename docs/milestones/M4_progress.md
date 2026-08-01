@@ -550,8 +550,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   694-byte save, 396-value browser view, input, observation, RL, compact, and
   66-value compact layouts remain unchanged.
   Config/identity schema 2 remains current. At that slice, the canonical save
-  was 694 bytes; the later grounded-normal/smash-charge slice below supersedes
-  it with the current 702-byte format.
+  was 694 bytes; the later grounded-normal/smash-charge and analog-light-shield
+  slices below supersede it with the current 710-byte format.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -1733,6 +1733,39 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   readiness reuses its ordinary directional
   attack probe; no tactical or emergent-only harness was added.
 
+## Implemented in the analog light-shield slice
+
+- The stronger raw trigger value now enters shield at the authored 8,192 light
+  threshold; input below it remains actionable, 8,192–32,767 is light, and the
+  established 32,768 digital threshold begins dense shield. Keyboard keys and
+  gamepad bumpers remain full-density inputs, while Standard Gamepad analog
+  triggers preserve their browser-reported pressure.
+- Light hold depletion interpolates from the authored 0.07 HP per tick to the
+  dense 0.28 HP per tick. Ordinary block damage and shield stun are unchanged;
+  defender pushback uses an additional authored multiplier that interpolates
+  from 1.25 at the light threshold to 1 at dense. Light shield cannot
+  powershield physical attacks or projectiles. Roll, spot dodge, grab, platform
+  drop, release, and jump-cancel routes continue through the shared shield
+  primitive.
+- A block freezes the qualifying collision strength through hitlag and shield
+  stun, then adopts current held pressure when ordinary shield resumes. This
+  keeps dense powershield provenance load-valid while permitting subsequent
+  analog adjustment.
+- State schema 44/save format 43 appends four raw strength values for a 570-byte
+  payload and 710-byte checkpoint under `PFSAVE43`, with fail-closed action,
+  threshold, powershield, hitlag-resume, and inactive-slot relationships.
+  Content schema 46/fighter schema 41, inspection schema 40, observation schema
+  8, RL schema 10/transition schema 8, compact schema 9 with 74 values, and
+  browser view schema 41 with 404 values expose the contract. Opaque requirements
+  are 2,320 state bytes and 1,024 scratch bytes, within the existing 4 KiB
+  envelopes.
+- The combat oracle reaches 829 mechanics invariants and covers entry
+  boundaries, exact/midpoint/dense depletion, inspection/observation, save/load,
+  deterministic future hashes, light-versus-dense block pushback, and
+  dense-only powershielding. RL and browser adapters independently exercise the
+  primitive. Tactical rows continue to reuse constituent primitive evidence;
+  no emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1879,7 +1912,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Character-specific move breadth, additional specials, broader recovery
   options, broader throw routes,
-  analog light shield, shield size/tilt/pokes and shield SDI,
+  shield size/tilt/pokes and shield SDI,
   broader per-action launch-angle data and stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
@@ -1895,7 +1928,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Mechanical oracles: 334 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
-  815
+  829
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
   complete directional ground normals, canonical smash charge, the
@@ -1913,12 +1946,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,394
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,402
   bytes,
   replay SHA-256
-  `15cbb7c4dc51788fd97b5e211af6fe89212af524a6598160237a01f06f8520e9`,
+  `7c88b63efe32f0aee0ea95ff29c48eaaa9cb83c7f8b16f854fc047fe73ca7baf`,
   final SHA-256
-  `54b719dce63e11db5fc700a51da8dac2895ed810c85ef41fb6fd8f1d1149848d`,
+  `c08fe7518639715fd1d88a2dc2cc8e763e8a11a484ecbff71b8790c85afdbb88`,
   and event-journal SHA-256
   `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
   local native/WebAssembly output is byte-identical and CI repeats it.

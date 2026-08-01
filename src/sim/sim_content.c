@@ -330,6 +330,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u32(hash, fighter->shield_health_q16);
     pf_m4_hash_u32(hash, fighter->shield_reset_health_q16);
     pf_m4_hash_u32(hash, fighter->shield_hold_depletion_q16);
+    pf_m4_hash_u32(
+        hash,
+        fighter->light_shield_hold_depletion_q16);
     pf_m4_hash_u32(hash, fighter->shield_regeneration_q16);
     pf_m4_hash_u32(hash, fighter->shield_damage_multiplier_q16);
     pf_m4_hash_i32(
@@ -345,6 +348,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(
         hash,
         fighter->shield_defender_pushback_scale_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->light_shield_defender_pushback_scale_q16);
     pf_m4_hash_i32(
         hash,
         fighter->shield_attacker_pushback_damage_q16);
@@ -448,6 +454,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->l_cancel_divisor);
     pf_m4_hash_u16(hash, fighter->v_cancel_window_ticks);
     pf_m4_hash_u16(hash, fighter->sdi_axis_threshold);
+    pf_m4_hash_u16(
+        hash,
+        fighter->light_shield_trigger_threshold);
     pf_m4_hash_u16(hash, fighter->digital_trigger_threshold);
     pf_m4_hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
     pf_m4_hash_u16(hash, fighter->tech_window_ticks);
@@ -1077,6 +1086,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         UINT32_C(30) * UINT32_C(65536);
     fighter->shield_hold_depletion_q16 =
         (uint32_t)PF_Q16_RATIO(7, 25);
+    fighter->light_shield_hold_depletion_q16 =
+        (uint32_t)PF_Q16_RATIO(7, 100);
     fighter->shield_regeneration_q16 =
         (uint32_t)PF_Q16_RATIO(7, 100);
     fighter->shield_damage_multiplier_q16 =
@@ -1090,6 +1101,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         PF_Q16_RATIO(2, 5);
     fighter->shield_defender_pushback_scale_q16 =
         PF_Q16_RATIO(3, 5);
+    fighter->light_shield_defender_pushback_scale_q16 =
+        PF_Q16_RATIO(5, 4);
     fighter->shield_attacker_pushback_damage_q16 =
         PF_Q16_RATIO(7, 100);
     fighter->shield_attacker_pushback_base_q16 =
@@ -1218,6 +1231,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->l_cancel_divisor = UINT16_C(2);
     fighter->v_cancel_window_ticks = UINT16_C(3);
     fighter->sdi_axis_threshold = UINT16_C(16384);
+    fighter->light_shield_trigger_threshold = UINT16_C(8192);
     fighter->digital_trigger_threshold = UINT16_C(32768);
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
     fighter->tech_window_ticks = UINT16_C(20);
@@ -1850,6 +1864,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->shield_hold_depletion_q16 == UINT32_C(0) ||
         fighter->shield_hold_depletion_q16 >
             fighter->shield_health_q16 ||
+        fighter->light_shield_hold_depletion_q16 ==
+            UINT32_C(0) ||
+        fighter->light_shield_hold_depletion_q16 >
+            fighter->shield_hold_depletion_q16 ||
         fighter->shield_regeneration_q16 == UINT32_C(0) ||
         fighter->shield_regeneration_q16 >
             fighter->shield_health_q16 ||
@@ -1874,6 +1892,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             INT32_C(0) ||
         fighter->shield_defender_pushback_scale_q16 >
             PF_Q16_ONE ||
+        fighter->light_shield_defender_pushback_scale_q16 <
+            PF_Q16_ONE ||
+        fighter->light_shield_defender_pushback_scale_q16 >
+            INT32_C(2) * PF_Q16_ONE ||
         fighter->shield_attacker_pushback_damage_q16 <=
             INT32_C(0) ||
         fighter->shield_attacker_pushback_damage_q16 >
@@ -2117,6 +2139,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->tech_lockout_ticks ||
         fighter->sdi_axis_threshold <= fighter->axis_dead_zone ||
         fighter->sdi_axis_threshold > UINT16_C(32767) ||
+        fighter->light_shield_trigger_threshold == UINT16_C(0) ||
+        fighter->light_shield_trigger_threshold >=
+            fighter->digital_trigger_threshold ||
         fighter->digital_trigger_threshold == UINT16_C(0) ||
         fighter->tumble_hitstun_threshold_ticks == UINT16_C(0) ||
         fighter->tumble_hitstun_threshold_ticks >

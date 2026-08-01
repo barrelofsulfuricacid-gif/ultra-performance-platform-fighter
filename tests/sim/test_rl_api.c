@@ -11,6 +11,7 @@
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_BATCH_ENVIRONMENTS 6U
+#define TEST_LIGHT_SHIELD_TRIGGER UINT16_C(8192)
 
 typedef struct test_sim_storage
 {
@@ -187,7 +188,11 @@ static int verify_transition_contract(
             transition->compact_observation.values[
                 PF_RL_COMPACT_SMASH_CHARGE_BASE +
                 (uint16_t)player_index] !=
-                (int32_t)player->smash_charge_ticks)
+                (int32_t)player->smash_charge_ticks ||
+            transition->compact_observation.values[
+                PF_RL_COMPACT_SHIELD_STRENGTH_BASE +
+                (uint16_t)player_index] !=
+                (int32_t)player->shield_strength)
         {
             (void)fprintf(
                 stderr,
@@ -274,6 +279,36 @@ static int run_duel_test(const pf_content_view *content)
             "duel-diagnostic-observe") ||
         diagnostic_observation.seed !=
             UINT64_C(0xabcdef0123456789))
+    {
+        return 0;
+    }
+
+    initialize_actions(actions);
+    actions[0].left_trigger = TEST_LIGHT_SHIELD_TRIGGER;
+    if (!expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "duel-light-shield-step") ||
+        !verify_transition_contract(
+            &transition,
+            UINT8_C(2),
+            UINT64_C(1)) ||
+        transition.structured_observation.players[0]
+                .shield_strength != TEST_LIGHT_SHIELD_TRIGGER ||
+        transition.compact_observation.values[
+            PF_RL_COMPACT_SHIELD_STRENGTH_BASE] !=
+            (int32_t)TEST_LIGHT_SHIELD_TRIGGER ||
+        !expect_status(
+            pf_rl_reset(
+                sim,
+                UINT64_C(0xabcdef0123456789),
+                &transition),
+            PF_STATUS_OK,
+            "duel-post-light-shield-reset") ||
+        !verify_transition_contract(
+            &transition,
+            UINT8_C(2),
+            UINT64_C(0)))
     {
         return 0;
     }

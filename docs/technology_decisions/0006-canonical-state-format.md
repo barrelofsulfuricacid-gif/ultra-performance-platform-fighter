@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–42 / state schemas 1–43
+- **Status:** Accepted for save formats 1–43 / state schemas 1–44
 - **Date:** 2026-08-01
 
 ## Decision
@@ -52,6 +52,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 40 | 41 | 140 | 554 | 694 | Canonical `LEDGE_ROLL` and `LEDGE_ATTACK` action IDs, fresh-input arbitration from actionable hang, authored roll motion and invulnerability, authored attack timing/hitlag resume, and shared physical-hit semantics; no payload-layout change |
 | 41 | 42 | 140 | 554 | 694 | Canonical forward tilt and forward/up/down directional strong action IDs, input arbitration, authored attack data, and hitlag-resume semantics; no payload-layout change |
 | 42 | 43 | 140 | 562 | 702 | One canonical smash-charge tick value per player plus forward/up/down charge actions, early and automatic release, scaled damage, hitlag retention, and interruption clearing |
+| 43 | 44 | 140 | 570 | 710 | One canonical raw shield-strength value per player plus analog light-shield entry, interpolated hold depletion and defender pushback, dense-only powershield eligibility, and strength lifecycle semantics |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -60,8 +61,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
-`PFSAVE41`, or `PFSAVE42`.
-The active M4 runtime emits and accepts format 42 with state schema 43. Earlier
+`PFSAVE41`, `PFSAVE42`, or `PFSAVE43`.
+The active M4 runtime emits and accepts format 43 with state schema 44. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -280,6 +281,20 @@ hitlag resume, and requires inactive slots to remain zero. Completion, stock
 loss, and interruption clear the timer, so a format-41 reader cannot silently
 drop future-affecting charge state.
 
+Format 43 appends one little-endian `uint16_t` raw shield-strength value for
+each fixed player slot. The larger normalized trigger value below the authored
+8,192 light threshold canonicalizes to zero; values from that threshold through
+32,767 are light shield and values at or above the authored 32,768 digital
+threshold are dense shield. Loading permits nonzero strength only for
+`SHIELD`, `SHIELD_STUN`, or hitlag that resumes into shield stun, requires a
+powershield result to have dense strength, and requires inactive slots to remain
+zero. A block freezes the qualifying collision strength through hitlag and
+shield stun; held current input is adopted when ordinary shield resumes.
+Release after the minimum hold, break, hit, grab, stock loss, respawn, and reset
+clear the value. Retaining the exact strength makes interpolated hold depletion
+and defender pushback deterministic across rollback; a format-42 reader cannot
+silently substitute dense behavior.
+
 ## Why SHA-256
 
 SHA-256 has a stable public specification in
@@ -338,6 +353,9 @@ service-envelope responsibility.
   retention, slot-independent simultaneous charged trades, completion clearing,
   and invalid timer/action rejection in
   `tests/sim/test_m4_combat.c`.
+- Mid-light-shield save/load plus exact raw strength, equal future hashes,
+  interpolated hold depletion, light-versus-dense block pushback, and
+  dense-only powershield eligibility in `tests/sim/test_m4_combat.c`.
 - Mid-spot-dodge save/load plus equal fresh-down history, action,
   invulnerability derivation, and future hashes; validation enforces grounded
   roll/spot-dodge reaction-state rules and inactive-slot fresh-down history.

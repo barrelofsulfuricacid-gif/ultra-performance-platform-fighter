@@ -81,14 +81,17 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–41 remain historical checkpoints. The current M4
+Save formats 1–42 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
 taunt/wall-jump/Vector-Ascent/pummel/crouch-cancel/directional-ground-attack/
-directional-aerial/ledge-option/smash-charge state uses save format 42: a fixed
-702-byte checkpoint with state schema 43 and a 562-byte payload. It appends one
-little-endian smash-charge tick value per fixed player slot and makes charge,
-early/automatic release, charged damage, interruption, and hitlag-resume state
-fail closed. Save format 41/state schema 42 retained the prior layout while
+directional-aerial/ledge-option/smash-charge/analog-light-shield state uses save
+format 43: a fixed 710-byte checkpoint with state schema 44 and a 570-byte
+payload. It appends one little-endian raw shield-strength value per fixed player
+slot and makes light/dense entry, held depletion, blocking, powershield
+eligibility, release, interruption, and hitlag-resume state fail closed. Save
+format 42/state schema 43 introduced the smash-charge values and their charge,
+early/automatic release, charged damage, interruption, and hitlag-resume
+relationships. Save format 41/state schema 42 retained the prior layout while
 adding forward tilt plus forward/up/down directional strong actions and their
 timing, grounding, hitlag-resume, and input-arbitration semantics. Save format
 40/state schema 41 made the two ledge-option action IDs, grounding, ledge
@@ -300,10 +303,23 @@ compact schema 8 append four values at indices 66–69, for 70 total. Browser
 view schema 40 expands each player record from 44 to 45 values and the whole
 view from 396 to 400 values. The public memory-requirements query reports 2,304
 state bytes and 1,016 scratch bytes; the 4 KiB caller envelopes remain valid.
+State schema 44 / save format 43 appends one little-endian `uint16_t` raw shield
+strength for each fixed player slot, producing a 570-byte payload and 710-byte
+checkpoint under `PFSAVE43`. Loading accepts the value only for `SHIELD`,
+`SHIELD_STUN`, or hitlag that resumes into shield stun; it validates the light
+and digital thresholds, dense-only powershield state, and inactive-slot zero
+state. Content schema 46/fighter schema 41 add and hash the light hold-depletion
+and defender-pushback values plus the light trigger threshold. Inspection
+schema 40 and structured observation schema 8 expose raw shield strength. RL
+schema 10/transition schema 8 and compact schema 9 append four values at indices
+70–73, for 74 total. Browser view schema 41 expands each player record from 45
+to 46 values and the whole view from 400 to 404 values. The public
+memory-requirements query reports 2,320 state bytes and 1,024 scratch bytes; the
+4 KiB caller envelopes remain valid.
 The M4 collision inspector consumes existing schema-35 stage geometry, fighter
 dimensions and active box bounds, and item/projectile extents. Its default-on
 toggle, legend, and pause-safe redraw are presentation semantics only; they do
-not add fields beyond the current 400-value layout or change any canonical,
+not add fields beyond the current 404-value layout or change any canonical,
 replay, save, observation, or RL schema.
 The temporary M4.3 browser setup calls
 `pf_web_m4_playtest_configure_duel(stock_count)` for stock choices 1–4. The

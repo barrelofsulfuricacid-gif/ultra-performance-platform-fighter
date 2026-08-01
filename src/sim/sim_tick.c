@@ -350,9 +350,11 @@ pf_status pf_sim_tick_impl(
         scratch->previous_buttons[player_index] = input->buttons;
         scratch->shield_held[player_index] =
             input->left_trigger >=
-                        sim->content.fighter.digital_trigger_threshold ||
+                        sim->content.fighter
+                            .light_shield_trigger_threshold ||
                     input->right_trigger >=
-                        sim->content.fighter.digital_trigger_threshold
+                        sim->content.fighter
+                            .light_shield_trigger_threshold
                 ? UINT8_C(1)
                 : UINT8_C(0);
         if (projectile_intent != PF_M4_PROJECTILE_INPUT_NONE)
@@ -438,6 +440,8 @@ pf_status pf_sim_tick_impl(
             scratch->charge_ticks[player_index];
         world->smash_charge_ticks[player_index] =
             scratch->smash_charge_ticks[player_index];
+        world->shield_strength[player_index] =
+            scratch->shield_strength[player_index];
         world->grab_target_slot[player_index] =
             scratch->grab_target_slot[player_index];
         world->grab_owner_slot[player_index] =

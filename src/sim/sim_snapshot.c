@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)562)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)570)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x32)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x33)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -611,6 +611,12 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(writer, world->shield_strength[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(
             writer,
             world->recovery_available[player_index]);
@@ -1013,6 +1019,12 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->shield_strength[player_index] = pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->recovery_available[player_index] =
             pf_reader_u8(reader);
     }
@@ -1333,6 +1345,14 @@ static int pf_m4_snapshot_content_state_consistent(
             pf_m4_snapshot_action_is_smash_release(action);
         const int smash_release_resume =
             pf_m4_snapshot_action_is_smash_release(resume_action);
+        const uint16_t shield_strength =
+            world->shield_strength[player_index];
+        const int shield_strength_action =
+            action == (uint8_t)PF_M4_ACTION_SHIELD ||
+            action == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+            (action == (uint8_t)PF_M4_ACTION_HITLAG &&
+             resume_action ==
+                 (uint8_t)PF_M4_ACTION_SHIELD_STUN);
 
         if (world->charge_ticks[player_index] >
                 charge->max_charge_ticks ||
@@ -1346,6 +1366,15 @@ static int pf_m4_snapshot_content_state_consistent(
             (smash_charge_ticks != UINT16_C(0) &&
              !smash_charge_action && !smash_release_action &&
              !smash_release_resume) ||
+            (shield_strength != UINT16_C(0) &&
+             shield_strength <
+                 content->fighter.light_shield_trigger_threshold) ||
+            ((shield_strength != UINT16_C(0)) !=
+             (shield_strength_action != 0)) ||
+            (world->powershield[player_index] != UINT8_C(0) &&
+             shield_strength_action != 0 &&
+             shield_strength <
+                 content->fighter.digital_trigger_threshold) ||
             (charge->enabled == UINT8_C(0) &&
              (world->charge_ticks[player_index] != UINT16_C(0) ||
               charge_action || release_resume)) ||
@@ -1452,6 +1481,7 @@ static int pf_m4_player_state_consistent(
                world->grab_escape_ticks[player_index] == UINT16_C(0) &&
                world->charge_ticks[player_index] == UINT16_C(0) &&
                world->smash_charge_ticks[player_index] == UINT16_C(0) &&
+               world->shield_strength[player_index] == UINT16_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1) &&
                world->grab_target_slot[player_index] == UINT8_C(0) &&
                world->grab_owner_slot[player_index] == UINT8_C(0) &&
@@ -2240,6 +2270,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   world->charge_ticks[player_index] != UINT16_C(0) ||
                   world->smash_charge_ticks[player_index] !=
                       UINT16_C(0) ||
+                  world->shield_strength[player_index] != UINT16_C(0) ||
                   world->grab_target_slot[player_index] != UINT8_C(0) ||
                   world->grab_owner_slot[player_index] != UINT8_C(0) ||
                   world->stocks_remaining[player_index] != UINT8_C(0))

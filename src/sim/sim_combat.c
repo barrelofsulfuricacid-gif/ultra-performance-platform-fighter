@@ -764,7 +764,8 @@ static uint16_t pf_m4_shield_stun_ticks(
 static int32_t pf_m4_shield_defender_pushback_q16(
     const pf_m4_fighter_data *fighter,
     uint32_t attack_damage_q16,
-    int powershield)
+    int powershield,
+    uint16_t shield_strength)
 {
     int64_t pushback =
         ((int64_t)attack_damage_q16 *
@@ -775,10 +776,34 @@ static int32_t pf_m4_shield_defender_pushback_q16(
         (int64_t)fighter->shield_defender_pushback_base_q16;
     if (powershield == 0)
     {
+        int64_t light_scale_q16 =
+            fighter->light_shield_defender_pushback_scale_q16;
+
         pushback =
             pushback *
             (int64_t)fighter->shield_defender_pushback_scale_q16 /
             (int64_t)PF_Q16_ONE;
+        if (shield_strength >= fighter->digital_trigger_threshold)
+        {
+            light_scale_q16 = (int64_t)PF_Q16_ONE;
+        }
+        else if (shield_strength >
+                 fighter->light_shield_trigger_threshold)
+        {
+            light_scale_q16 -=
+                ((int64_t)(
+                     fighter
+                         ->light_shield_defender_pushback_scale_q16 -
+                     PF_Q16_ONE) *
+                 (int64_t)(
+                     shield_strength -
+                     fighter->light_shield_trigger_threshold)) /
+                (int64_t)(
+                    fighter->digital_trigger_threshold -
+                    fighter->light_shield_trigger_threshold);
+        }
+        pushback =
+            pushback * light_scale_q16 / (int64_t)PF_Q16_ONE;
     }
     if (pushback > INT64_C(2) * (int64_t)PF_Q16_ONE)
     {
@@ -1246,6 +1271,7 @@ static pf_status pf_m4_apply_hit_reaction(
             : UINT8_C(0);
     scratch->shield_stun_ticks[target_index] = UINT16_C(0);
     scratch->powershield[target_index] = UINT8_C(0);
+    scratch->shield_strength[target_index] = UINT16_C(0);
     scratch->hitlag_ticks[target_index] = hitlag_ticks;
     scratch->hitlag_resume_action[target_index] =
         armored != 0
@@ -1562,6 +1588,7 @@ static pf_status pf_m4_resolve_grabs(
             scratch->hitlag_ticks[target_index] = UINT16_C(0);
             scratch->hitstun_ticks[target_index] = UINT16_C(0);
             scratch->shield_stun_ticks[target_index] = UINT16_C(0);
+            scratch->shield_strength[target_index] = UINT16_C(0);
             scratch->grounded[target_index] =
                 scratch->grounded[attacker_index];
             scratch->support[target_index] =
@@ -1682,7 +1709,9 @@ static pf_status pf_m4_resolve_item_combat(
                 scratch->action_state[target_index] ==
                         (uint8_t)PF_M4_ACTION_SHIELD &&
                 scratch->action_ticks[target_index] <=
-                    content->fighter.powershield_window_ticks;
+                    content->fighter.powershield_window_ticks &&
+                scratch->shield_strength[target_index] >=
+                    content->fighter.digital_trigger_threshold;
             const uint32_t shield_damage =
                 pf_m4_shield_damage_q16(
                     &content->fighter,
@@ -1691,7 +1720,8 @@ static pf_status pf_m4_resolve_item_combat(
                 pf_m4_shield_defender_pushback_q16(
                     &content->fighter,
                     item->damage_q16,
-                    powershield);
+                    powershield,
+                    scratch->shield_strength[target_index]);
 
             if (!powershield)
             {
@@ -1721,6 +1751,7 @@ static pf_status pf_m4_resolve_item_combat(
                 scratch->hitlag_resume_action[target_index] =
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
                 scratch->action_ticks[target_index] = UINT16_C(0);
+                scratch->shield_strength[target_index] = UINT16_C(0);
             }
             else
             {
@@ -1936,7 +1967,9 @@ static pf_status pf_m4_resolve_projectile_combat(
             scratch->action_state[target_index] ==
                 (uint8_t)PF_M4_ACTION_SHIELD &&
             scratch->action_ticks[target_index] <=
-                projectile->powershield_reflect_window_ticks)
+                projectile->powershield_reflect_window_ticks &&
+            scratch->shield_strength[target_index] >=
+                content->fighter.digital_trigger_threshold)
         {
             const int32_t reflected_velocity_x =
                 -scratch->projectile_velocity_x_q16;
@@ -1982,7 +2015,8 @@ static pf_status pf_m4_resolve_projectile_combat(
                 pf_m4_shield_defender_pushback_q16(
                     &content->fighter,
                     projectile->damage_q16,
-                    0);
+                    0,
+                    scratch->shield_strength[target_index]);
             pf_sim_event_type event_type;
 
             scratch->shield_health_q16[target_index] =
@@ -2009,6 +2043,7 @@ static pf_status pf_m4_resolve_projectile_combat(
                 scratch->hitlag_resume_action[target_index] =
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
                 scratch->action_ticks[target_index] = UINT16_C(0);
+                scratch->shield_strength[target_index] = UINT16_C(0);
                 event_type = PF_SIM_EVENT_SHIELD_BREAK;
             }
             else
@@ -2199,7 +2234,10 @@ pf_status pf_m4_resolve_combat(
                         (uint8_t)PF_M4_ACTION_SHIELD &&
                     scratch->action_ticks[target_index] <=
                         content->fighter
-                            .powershield_window_ticks)
+                            .powershield_window_ticks &&
+                    scratch->shield_strength[target_index] >=
+                        content->fighter
+                            .digital_trigger_threshold)
                 {
                     target_powershield[target_index] =
                         UINT8_C(1);
@@ -2245,7 +2283,8 @@ pf_status pf_m4_resolve_combat(
                 pf_m4_shield_defender_pushback_q16(
                     &content->fighter,
                     attack.damage_q16,
-                    powershield);
+                    powershield,
+                    scratch->shield_strength[target_index]);
 
             if (!powershield)
             {
@@ -2286,6 +2325,7 @@ pf_status pf_m4_resolve_combat(
                     (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
                 scratch->action_ticks[target_index] =
                     UINT16_C(0);
+                scratch->shield_strength[target_index] = UINT16_C(0);
             }
             else
             {

@@ -1950,7 +1950,7 @@ static int run_directional_attack_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "directional-attack-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("directional-attack-hitlag-snapshot-boundary");
     }
@@ -2110,7 +2110,7 @@ static int run_smash_charge_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "smash-charge-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("smash-charge-save-size");
     }
@@ -2122,7 +2122,7 @@ static int run_smash_charge_snapshot_test(
             PF_STATUS_OK,
             "smash-charge-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE42", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE43", (size_t)8) != 0)
     {
         return fail("smash-charge-save-format");
     }
@@ -2942,7 +2942,7 @@ static int run_directional_aerial_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "directional-aerial-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("directional-aerial-hitlag-snapshot-boundary");
     }
@@ -2955,7 +2955,7 @@ static int run_directional_aerial_snapshot_test(
             PF_STATUS_OK,
             "directional-aerial-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE42", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE43", (size_t)8) != 0)
     {
         return fail("directional-aerial-save-format");
     }
@@ -3509,7 +3509,7 @@ static int run_v_cancel_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-v-cancel-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("v-cancel-snapshot-setup");
     }
@@ -3914,7 +3914,7 @@ static int run_crouch_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-crouch-cancel-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("crouch-cancel-snapshot-setup");
     }
@@ -4381,7 +4381,7 @@ static int run_double_jump_cancel_counter_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-counter-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("double-jump-cancel-counter-save-size-contract");
     }
@@ -5286,7 +5286,7 @@ static int run_small_step_forward_smash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "small-step-forward-smash-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("small-step-forward-smash-window-boundary");
     }
@@ -5658,7 +5658,7 @@ static int run_drop_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "drop-cancel-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("drop-cancel-first-airborne-frame");
     }
@@ -6204,7 +6204,7 @@ static int run_sharking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "sharking-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("sharking-hit-setup");
     }
@@ -6609,7 +6609,7 @@ static int run_cross_up_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "cross-up-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("cross-up-setup");
     }
@@ -6916,7 +6916,7 @@ static int run_juggling_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "juggling-query-save-size") ||
-            save_size != (size_t)702 ||
+            save_size != (size_t)710 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -7338,7 +7338,7 @@ static int run_kill_confirm_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "kill-confirm-query-save-size") ||
-            save_size != (size_t)702 ||
+            save_size != (size_t)710 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -7639,7 +7639,7 @@ static int run_zero_to_death_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "zero-to-death-query-save-size") ||
-                save_size != (size_t)702 ||
+                save_size != (size_t)710 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -7945,7 +7945,7 @@ static int run_ladder_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "ladder-query-save-size") ||
-                save_size != (size_t)702 ||
+                save_size != (size_t)710 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -8486,8 +8486,9 @@ static int run_whiff_and_trade_test(
     return 1;
 }
 
-static int start_normal_shield_block(
+static int start_held_shield_block(
     pf_sim *sim,
+    uint16_t shield_strength,
     pf_m4_inspection *out_inspection)
 {
     uint32_t tick;
@@ -8503,7 +8504,7 @@ static int start_normal_shield_block(
                 INT16_C(0),
                 INT16_C(0),
                 UINT64_C(0),
-                UINT16_MAX,
+                shield_strength,
                 out_inspection))
         {
             return 0;
@@ -8518,7 +8519,7 @@ static int start_normal_shield_block(
                INT16_C(0),
                INT16_C(0),
                UINT64_C(0),
-               UINT16_MAX,
+               shield_strength,
                out_inspection) &&
            step_reaction_duel(
                sim,
@@ -8529,7 +8530,7 @@ static int start_normal_shield_block(
                INT16_C(0),
                INT16_C(0),
                UINT64_C(0),
-               UINT16_MAX,
+               shield_strength,
                out_inspection) &&
            step_reaction_duel(
                sim,
@@ -8540,12 +8541,23 @@ static int start_normal_shield_block(
                INT16_C(0),
                INT16_C(0),
                UINT64_C(0),
-               UINT16_MAX,
+               shield_strength,
                out_inspection);
 }
 
-static int start_powershield_block(
+static int start_normal_shield_block(
     pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    return start_held_shield_block(
+        sim,
+        UINT16_MAX,
+        out_inspection);
+}
+
+static int start_window_shield_block(
+    pf_sim *sim,
+    uint16_t shield_strength,
     pf_m4_inspection *out_inspection)
 {
     return step_reaction_duel(
@@ -8579,8 +8591,18 @@ static int start_powershield_block(
                INT16_C(0),
                INT16_C(0),
                UINT64_C(0),
-               UINT16_MAX,
+               shield_strength,
                out_inspection);
+}
+
+static int start_powershield_block(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    return start_window_shield_block(
+        sim,
+        UINT16_MAX,
+        out_inspection);
 }
 
 static int advance_block_to_release(
@@ -9489,6 +9511,253 @@ static int run_shield_state_test(
     return 1;
 }
 
+static uint32_t expected_shield_depletion_q16(
+    const pf_m4_fighter_data *fighter,
+    uint16_t shield_strength)
+{
+    if (shield_strength <= fighter->light_shield_trigger_threshold)
+    {
+        return fighter->light_shield_hold_depletion_q16;
+    }
+    if (shield_strength >= fighter->digital_trigger_threshold)
+    {
+        return fighter->shield_hold_depletion_q16;
+    }
+    return fighter->light_shield_hold_depletion_q16 +
+           (uint32_t)(
+               ((uint64_t)(
+                    fighter->shield_hold_depletion_q16 -
+                    fighter->light_shield_hold_depletion_q16) *
+                (uint64_t)(
+                    shield_strength -
+                    fighter->light_shield_trigger_threshold)) /
+               (uint64_t)(
+                    fighter->digital_trigger_threshold -
+                    fighter->light_shield_trigger_threshold));
+}
+
+static int run_light_shield_state_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage midpoint_storage;
+    test_sim_storage dense_storage;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *midpoint = NULL;
+    pf_sim *dense = NULL;
+    pf_m4_inspection inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_sim_observation observation;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
+    size_t save_size = (size_t)0;
+    const uint16_t light =
+        content->fighter.light_shield_trigger_threshold;
+    const uint16_t dense_threshold =
+        content->fighter.digital_trigger_threshold;
+    const uint16_t middle =
+        (uint16_t)(
+            (uint32_t)light +
+            ((uint32_t)dense_threshold - (uint32_t)light) /
+                UINT32_C(2));
+    const uint32_t middle_depletion =
+        expected_shield_depletion_q16(&content->fighter, middle);
+
+    if (!initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            &loaded) ||
+        !initialize_sim(
+            &midpoint_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &midpoint) ||
+        !initialize_sim(
+            &dense_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &dense))
+    {
+        return fail("light-shield-init");
+    }
+
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint16_t)(light - UINT16_C(1)),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].shield_strength != UINT16_C(0) ||
+        inspection.players[0].shield_health_q16 !=
+            content->fighter.shield_health_q16 ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x4d34434f4d424154)),
+            PF_STATUS_OK,
+            "light-shield-reset"))
+    {
+        return fail("light-shield-threshold-negative");
+    }
+
+    if (!step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            light,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].shield_strength != light ||
+        inspection.players[0].shield_health_q16 !=
+            content->fighter.shield_health_q16 -
+                content->fighter.light_shield_hold_depletion_q16 ||
+        !expect_status(
+            pf_sim_observe(source, &observation),
+            PF_STATUS_OK,
+            "light-shield-observe") ||
+        observation.players[0].shield_strength != light ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "light-shield-query-save") ||
+        save_size != (size_t)710)
+    {
+        return fail("light-shield-minimum-depletion");
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    save.bytes = save_bytes;
+    save.size = save_size;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "light-shield-save") ||
+        destination.size != save_size ||
+        !expect_status(
+            pf_sim_load(loaded, save),
+            PF_STATUS_OK,
+            "light-shield-load") ||
+        !expect_status(
+            pf_m4_inspect(loaded, &loaded_inspection),
+            PF_STATUS_OK,
+            "light-shield-loaded-inspect") ||
+        loaded_inspection.players[0].shield_strength != light ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "light-shield-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "light-shield-loaded-hash") ||
+        !hash_equal(&source_hash, &loaded_hash) ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            light,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            light,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &loaded_inspection) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "light-shield-future-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "light-shield-future-loaded-hash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("light-shield-snapshot-continuation");
+    }
+
+    if (!step_reaction_duel(
+            midpoint,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            middle,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].shield_strength != middle ||
+        inspection.players[0].shield_health_q16 !=
+            content->fighter.shield_health_q16 - middle_depletion ||
+        middle_depletion <=
+            content->fighter.light_shield_hold_depletion_q16 ||
+        middle_depletion >=
+            content->fighter.shield_hold_depletion_q16 ||
+        !step_reaction_duel(
+            dense,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            dense_threshold,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].shield_strength != dense_threshold ||
+        inspection.players[0].shield_health_q16 !=
+            content->fighter.shield_health_q16 -
+                content->fighter.shield_hold_depletion_q16)
+    {
+        return fail("light-shield-interpolation");
+    }
+    return 1;
+}
+
 static int run_dashing_shield_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -9625,7 +9894,7 @@ static int run_dashing_shield_test(
             pf_sim_query_save_size(tap, &save_size),
             PF_STATUS_OK,
             "dashing-shield-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("dashing-shield-entry");
     }
@@ -9932,7 +10201,7 @@ static int run_spacing_counter_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "spacing-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("spacing-safe-tip-setup");
     }
@@ -10379,6 +10648,9 @@ static int run_shield_block_test(
     pf_sim *power = NULL;
     pf_m4_inspection normal_inspection;
     pf_m4_inspection power_inspection;
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination;
+    pf_bytes save;
     const uint32_t shield_damage =
         (uint32_t)(((uint64_t)content->fighter.jab_damage_q16 *
                     (uint64_t)content->fighter
@@ -10518,7 +10790,52 @@ static int run_shield_block_test(
     {
         return fail("powershield-window-and-zero-damage");
     }
-    for (tick = UINT32_C(0);
+    if (!step_reaction_duel(
+            power,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            content->fighter.light_shield_trigger_threshold,
+            &power_inspection) ||
+        power_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        power_inspection.players[1].powershield != UINT8_C(1) ||
+        power_inspection.players[1].shield_strength !=
+            UINT16_MAX)
+    {
+        return fail("powershield-strength-frozen-during-hitlag");
+    }
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(power, &destination),
+            PF_STATUS_OK,
+            "powershield-strength-save"))
+    {
+        return 0;
+    }
+    save.bytes = save_bytes;
+    save.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(normal, save),
+            PF_STATUS_OK,
+            "powershield-strength-load") ||
+        !expect_status(
+            pf_m4_inspect(normal, &normal_inspection),
+            PF_STATUS_OK,
+            "powershield-strength-loaded-inspect") ||
+        normal_inspection.players[1].powershield != UINT8_C(1) ||
+        normal_inspection.players[1].shield_strength !=
+            UINT16_MAX)
+    {
+        return fail("powershield-strength-snapshot");
+    }
+    for (tick = UINT32_C(1);
          tick < (uint32_t)content->fighter.jab_hitlag_ticks;
          ++tick)
     {
@@ -10568,6 +10885,133 @@ static int run_shield_block_test(
     return 1;
 }
 
+static int run_light_shield_block_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage light_storage;
+    test_sim_storage dense_storage;
+    test_sim_storage window_storage;
+    pf_sim *light = NULL;
+    pf_sim *dense = NULL;
+    pf_sim *window = NULL;
+    pf_m4_inspection light_inspection;
+    pf_m4_inspection dense_inspection;
+    pf_m4_inspection window_inspection;
+    const uint16_t light_strength =
+        content->fighter.light_shield_trigger_threshold;
+    const uint16_t dense_strength =
+        content->fighter.digital_trigger_threshold;
+    const uint32_t shield_damage =
+        (uint32_t)(
+            ((uint64_t)content->fighter.jab_damage_q16 *
+             (uint64_t)content->fighter
+                 .shield_damage_multiplier_q16) >>
+            16U);
+    const uint32_t light_expected_health =
+        content->fighter.shield_health_q16 -
+        UINT32_C(8) *
+            content->fighter.light_shield_hold_depletion_q16 -
+        shield_damage;
+    const uint32_t dense_expected_health =
+        content->fighter.shield_health_q16 -
+        UINT32_C(8) * content->fighter.shield_hold_depletion_q16 -
+        shield_damage;
+    const uint32_t window_expected_health =
+        content->fighter.shield_health_q16 -
+        content->fighter.light_shield_hold_depletion_q16 -
+        shield_damage;
+    int32_t light_pushback;
+    uint16_t light_stun;
+
+    if (!initialize_sim(
+            &light_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &light) ||
+        !initialize_sim(
+            &dense_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &dense) ||
+        !initialize_sim(
+            &window_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &window))
+    {
+        return fail("light-shield-block-init");
+    }
+
+    if (!start_held_shield_block(
+            light,
+            light_strength,
+            &light_inspection) ||
+        light_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        light_inspection.players[1].shield_strength != light_strength ||
+        light_inspection.players[1].powershield != UINT8_C(0) ||
+        light_inspection.players[1].shield_health_q16 !=
+            light_expected_health ||
+        light_inspection.players[1].shield_stun_ticks == UINT16_C(0) ||
+        light_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
+        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
+        test_last_result.events[0].value_q16 != shield_damage)
+    {
+        return fail("light-shield-held-block");
+    }
+    light_pushback =
+        light_inspection.players[1].velocity_x_q16;
+    light_stun = light_inspection.players[1].shield_stun_ticks;
+
+    if (!start_held_shield_block(
+            dense,
+            dense_strength,
+            &dense_inspection) ||
+        dense_inspection.players[1].shield_strength != dense_strength ||
+        dense_inspection.players[1].powershield != UINT8_C(0) ||
+        dense_inspection.players[1].shield_health_q16 !=
+            dense_expected_health ||
+        dense_inspection.players[1].shield_stun_ticks != light_stun ||
+        dense_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
+        dense_inspection.players[1].velocity_x_q16 >= light_pushback ||
+        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
+        test_last_result.events[0].value_q16 != shield_damage)
+    {
+        return fail("light-shield-pushback-interpolation");
+    }
+
+    if (!start_window_shield_block(
+            window,
+            light_strength,
+            &window_inspection) ||
+        window_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        window_inspection.players[1].shield_strength != light_strength ||
+        window_inspection.players[1].powershield != UINT8_C(0) ||
+        window_inspection.players[1].shield_health_q16 !=
+            window_expected_health ||
+        window_inspection.players[1].shield_stun_ticks != light_stun ||
+        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.events[0].type !=
+            (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
+        test_last_result.events[0].value_q16 != shield_damage)
+    {
+        return fail("light-shield-powershield-gate");
+    }
+    return 1;
+}
+
 static int make_shield_break_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -10587,6 +11031,8 @@ static int make_shield_break_content(
         UINT32_C(2) * UINT32_C(65536);
     out_content->fighter.shield_hold_depletion_q16 =
         UINT32_C(655);
+    out_content->fighter.light_shield_hold_depletion_q16 =
+        UINT32_C(164);
     out_content->fighter.shield_attacker_pushback_damage_q16 =
         INT32_C(1);
     out_content->fighter.shield_attacker_pushback_base_q16 =
@@ -10836,7 +11282,7 @@ static int run_shield_break_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-break-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("shield-break-snapshot-setup");
     }
@@ -11891,7 +12337,7 @@ static int run_tech_chase_test(
             pf_sim_query_save_size(roll, &save_size),
             PF_STATUS_OK,
             "tech-chase-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("tech-chase-roll-snapshot-boundary");
     }
@@ -12586,7 +13032,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -13324,7 +13770,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -13433,7 +13879,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("mid-shield-hitlag-save-setup");
     }
@@ -14252,7 +14698,7 @@ static int run_jab_reset_test(
                     pf_sim_query_save_size(sdi, &save_size),
                     PF_STATUS_OK,
                     "jab-reset-hitlag-query-save-size") ||
-                save_size != (size_t)702)
+                save_size != (size_t)710)
             {
                 return fail("jab-reset-hitlag-snapshot-setup");
             }
@@ -14394,7 +14840,7 @@ static int run_jab_reset_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jab-reset-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("jab-reset-snapshot-boundary");
     }
@@ -14800,7 +15246,7 @@ static int run_jab_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jab-cancel-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("jab-cancel-snapshot-boundary");
     }
@@ -15390,7 +15836,7 @@ static int run_boost_grab_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "boost-grab-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("boost-grab-snapshot-boundary");
     }
@@ -15578,7 +16024,7 @@ static int run_jump_cancelled_grab_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "grab-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("grab-shield-capture");
     }
@@ -16342,7 +16788,7 @@ static int run_jump_cancelling_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jump-cancel-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("jump-cancel-save-setup");
     }
@@ -17334,7 +17780,7 @@ static int run_pummel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pummel-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("pummel-entry");
     }
@@ -17741,7 +18187,7 @@ static int run_chain_grab_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "chain-grab-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("chain-grab-snapshot-setup");
     }
@@ -18162,7 +18608,7 @@ static int run_ledge_attack_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "ledge-attack-query-save-size") ||
-        save_size != (size_t)702)
+        save_size != (size_t)710)
     {
         return fail("ledge-attack-snapshot-size");
     }
@@ -18174,7 +18620,7 @@ static int run_ledge_attack_snapshot_test(
             PF_STATUS_OK,
             "ledge-attack-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE42", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE43", (size_t)8) != 0)
     {
         return fail("ledge-attack-save-format");
     }
@@ -18490,6 +18936,9 @@ int main(void)
     pf_m4_content invalid_tech_content;
     pf_m4_content invalid_getup_content;
     pf_m4_content invalid_shield_content;
+    pf_m4_content invalid_light_shield_depletion_content;
+    pf_m4_content invalid_light_shield_pushback_content;
+    pf_m4_content invalid_light_shield_threshold_content;
     pf_m4_content invalid_shield_break_content;
     pf_m4_content invalid_cancel_content;
     pf_m4_content invalid_surface_content;
@@ -18534,6 +18983,7 @@ int main(void)
     pf_m4_content jab_reset_exact_content;
     pf_m4_content jab_reset_over_damage_content;
     pf_m4_content jab_reset_over_hitstun_content;
+    pf_m4_content light_shield_hash_content;
     pf_content_view view;
     pf_content_view ledge_attack_view;
     pf_content_view reaction_view;
@@ -18567,6 +19017,7 @@ int main(void)
     pf_content_view jab_reset_exact_view;
     pf_content_view jab_reset_over_damage_view;
     pf_content_view jab_reset_over_hitstun_view;
+    pf_content_view light_shield_hash_view;
 
     if (!make_combat_content(&content, &view) ||
         !make_ledge_attack_content(
@@ -18704,6 +19155,22 @@ int main(void)
     {
         return 1;
     }
+    light_shield_hash_content = content;
+    ++light_shield_hash_content.fighter
+          .light_shield_hold_depletion_q16;
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &light_shield_hash_content,
+                &light_shield_hash_view),
+            PF_STATUS_OK,
+            "light-shield-hash-content-view") ||
+        memcmp(
+            view.content_hash.bytes,
+            light_shield_hash_view.content_hash.bytes,
+            sizeof(view.content_hash.bytes)) == 0)
+    {
+        return fail("light-shield-content-hash");
+    }
     invalid_content = content;
     invalid_content.fighter.jab_knockback_growth_q16 =
         INT32_C(4) * PF_Q16_ONE;
@@ -18723,6 +19190,21 @@ int main(void)
     invalid_shield_content = content;
     invalid_shield_content.fighter.shield_release_ticks =
         UINT16_C(0);
+    invalid_light_shield_depletion_content = content;
+    invalid_light_shield_depletion_content.fighter
+        .light_shield_hold_depletion_q16 =
+        invalid_light_shield_depletion_content.fighter
+            .shield_hold_depletion_q16 +
+        UINT32_C(1);
+    invalid_light_shield_pushback_content = content;
+    invalid_light_shield_pushback_content.fighter
+        .light_shield_defender_pushback_scale_q16 =
+        PF_Q16_ONE - INT32_C(1);
+    invalid_light_shield_threshold_content = content;
+    invalid_light_shield_threshold_content.fighter
+        .light_shield_trigger_threshold =
+        invalid_light_shield_threshold_content.fighter
+            .digital_trigger_threshold;
     invalid_shield_break_content = content;
     invalid_shield_break_content.fighter
         .shield_break_launch_speed_q16 =
@@ -18793,6 +19275,21 @@ int main(void)
             pf_m4_validate_content(&invalid_shield_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-shield-data") ||
+        !expect_status(
+            pf_m4_validate_content(
+                &invalid_light_shield_depletion_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-light-shield-depletion") ||
+        !expect_status(
+            pf_m4_validate_content(
+                &invalid_light_shield_pushback_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-light-shield-pushback") ||
+        !expect_status(
+            pf_m4_validate_content(
+                &invalid_light_shield_threshold_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-invalid-light-shield-threshold") ||
         !expect_status(
             pf_m4_validate_content(&invalid_shield_break_content),
             PF_STATUS_INVALID_CONFIG,
@@ -18912,8 +19409,10 @@ int main(void)
             &spacing_safe_content,
             &spacing_safe_view) ||
         !run_shield_state_test(&content, &view) ||
+        !run_light_shield_state_test(&content, &view) ||
         !run_dashing_shield_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
+        !run_light_shield_block_test(&content, &view) ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||
@@ -18998,7 +19497,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=815 journal_invariants=51 weight=1 directional_ground_attacks=1 smash_charge=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=829 journal_invariants=51 weight=1 directional_ground_attacks=1 smash_charge=1 light_shield=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

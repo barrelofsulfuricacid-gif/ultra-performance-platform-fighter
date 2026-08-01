@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 400
+#define TEST_VIEW_COUNT 404
 #define TEST_PLAYER0_BASE 25
-#define TEST_PLAYER_STRIDE 45
+#define TEST_PLAYER_STRIDE 46
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
 #define TEST_PLAYER2_BASE (TEST_PLAYER1_BASE + TEST_PLAYER_STRIDE)
 #define TEST_PLAYER3_BASE (TEST_PLAYER2_BASE + TEST_PLAYER_STRIDE)
@@ -38,8 +38,9 @@
 #define TEST_PLAYER_GRAB_TARGET 41
 #define TEST_PLAYER_GRAB_OWNER 42
 #define TEST_PLAYER_SMASH_CHARGE_TICKS 44
-#define TEST_EVENT_COUNT 205
-#define TEST_EVENT0 206
+#define TEST_PLAYER_SHIELD_STRENGTH 45
+#define TEST_EVENT_COUNT 209
+#define TEST_EVENT0 210
 #define TEST_EVENT_SEQUENCE 0
 #define TEST_EVENT_TICK 1
 #define TEST_EVENT_TYPE 2
@@ -47,7 +48,7 @@
 #define TEST_EVENT_TARGET 4
 #define TEST_EVENT_VALUE 5
 #define TEST_EVENT_DETAIL 9
-#define TEST_ITEM_BASE 366
+#define TEST_ITEM_BASE 370
 #define TEST_ITEM_ENABLED 0
 #define TEST_ITEM_STATE 1
 #define TEST_ITEM_HOLDER 2
@@ -66,7 +67,7 @@
 #define TEST_ITEM_HALF_HEIGHT 15
 #define TEST_ITEM_HITBOX_HALF_WIDTH 16
 #define TEST_ITEM_HITBOX_HALF_HEIGHT 17
-#define TEST_PROJECTILE_BASE 384
+#define TEST_PROJECTILE_BASE 388
 #define TEST_PROJECTILE_ENABLED 0
 #define TEST_PROJECTILE_STATE 1
 #define TEST_PROJECTILE_OWNER 2
@@ -79,7 +80,7 @@
 #define TEST_PROJECTILE_HALF_WIDTH 9
 #define TEST_PROJECTILE_HALF_HEIGHT 10
 #define TEST_PROJECTILE_REFLECT_WINDOW 11
-#define TEST_RECOVERY_BASE 396
+#define TEST_RECOVERY_BASE 400
 
 static int test_install_count;
 static int test_render_count;
@@ -510,7 +511,7 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 40 ||
+        test_view[0] != 41 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -522,6 +523,8 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_OWNER] != 255 ||
         test_view[
             TEST_PLAYER0_BASE + TEST_PLAYER_SMASH_CHARGE_TICKS] != 0 ||
+        test_view[
+            TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STRENGTH] != 0 ||
         test_view[TEST_EVENT_COUNT] != 0 ||
         test_view[TEST_ITEM_BASE + TEST_ITEM_ENABLED] != 1 ||
         test_view[TEST_ITEM_BASE + TEST_ITEM_STATE] != 1 ||
@@ -1309,12 +1312,36 @@ int main(void)
             60 * 65536 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STUN] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_POWERSHIELD] != 0 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STRENGTH] !=
+            65535 ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 1, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_WINDOW] != 19 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_LOCKOUT] != 39)
     {
         return fail("keyboard-tech-trigger-edge");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step_special(
+            0, 0, 0, 0, 0, 8191,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 0 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STRENGTH] != 0 ||
+        !pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step_special(
+            0, 0, 0, 0, 0, 8192,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STRENGTH] !=
+            8192 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_HEALTH] !=
+            60 * 65536 - 7 * 65536 / 100 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_POWERSHIELD] != 0)
+    {
+        return fail("analog-light-shield-adapter");
     }
 
     {

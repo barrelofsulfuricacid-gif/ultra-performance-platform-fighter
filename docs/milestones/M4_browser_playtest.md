@@ -142,13 +142,21 @@ magnitude, the bottom face button is light attack, directional tilt, or charged
 smash, the right face button is an immediate uncharged directional strong, the left face button
 jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
 Burst, and up plus top face starts/resumes Arc Reservoir while grounded or
-Vector Ascent while airborne. Back/View taunts, and any shoulder or trigger
-    holds shield or supplies the tech/air-dodge/L-cancel trigger. Light plus a
-    shoulder/trigger grabs. Keyboard and
+Vector Ascent while airborne. Back/View taunts, either bumper supplies a full
+shield value, and the two analog triggers preserve their Standard Gamepad
+button values as 16-bit shield strength for shield/tech/air-dodge/L-cancel
+input. Light plus a bumper/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
 are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
+
+Browser view schema 41 contains 404 signed values. Each of the four player
+blocks has a 46-value stride and appends raw shield strength; event count is at
+209, event entries begin at 210, the item block begins at 370, the projectile
+block begins at 388, and recovery availability begins at 400. The state card
+shows both the raw value and percentage, while bubble fill and stroke weight
+distinguish light input from dense input without altering simulation.
 
 Unmodified horizontal keys emit full stick magnitude and can enter initial
 dash. Reversing them during the ten-tick initial-dash window performs a
@@ -571,16 +579,21 @@ component produces one SDI pulse. Holding that component does not repeat it.
 The final hitlag input also supplies ASDI and trajectory DI, with full
 perpendicular input reaching the configured 18-degree maximum.
 
-`G`, `.`, and Numpad `1` drive one normalized analog trigger. Hold the key from
-idle, walk, crouch, or run to raise the full-density shield; initial dash
-cannot shield until it reaches run. A run-to-shield transition keeps momentum
-and slides under traction as a shield stop. The translucent player-color
-bubble shrinks with the inspected 60-point shield health.
+`G`, `.`, and Numpad `1` drive one normalized full trigger. On a Standard
+Gamepad, bumpers are likewise full, while analog trigger buttons 6 and 7 retain
+their browser-reported pressure. Hold from idle, walk, crouch, or run to raise
+a shield; initial dash cannot shield until it reaches run. Input below 8,192
+does not shield, 8,192–32,767 is light, and 32,768 or higher is dense. A
+run-to-shield transition keeps momentum and slides under traction as a shield
+stop. The translucent player-color bubble shrinks with the inspected 60-point
+shield health; its opacity/stroke and the state-card strength percentage/raw value
+show the current analog strength.
 
-Holding shield drains 0.28 health per tick. Releasing before eight ticks keeps
-the shield active until that minimum completes, then starts the 15-tick
-`SHIELD RELEASE`; jumping cancels an already active shield or release. Shield
-health regenerates by 0.07 per non-shield tick.
+At the light threshold, holding shield drains 0.07 health per tick; depletion
+interpolates to 0.28 at the dense threshold. Releasing before eight ticks keeps
+the shield active at its last strength until that minimum completes, then starts
+the 15-tick `SHIELD RELEASE`; jumping cancels an already active shield or
+release. Shield health regenerates by 0.07 per non-shield tick.
 
 From an otherwise actionable grounded state, press a fresh full horizontal
 direction with the trigger to roll. Direction is interpreted relative to the
@@ -594,10 +607,12 @@ negative case because the direction is no longer fresh.
 
 Blocking the current physical attack prevents percent and launch, freezes both
 players in hitlag, applies damage-scaled pushback, and resumes the defender in
-`SHIELD STUN`. Raising shield within four ticks of contact powershields the
-attack: the defender takes no shield damage but keeps ordinary physical
-hitlag/stun and receives the larger Melee-style pushback. The state card shows
-shield health, shield stun, and a powershield indicator.
+`SHIELD STUN`. Light shield keeps the same block damage/stun but receives more
+defender pushback as pressure approaches the light threshold. Raising a dense
+shield within four ticks of contact powershields the attack: the defender takes
+no shield damage but keeps ordinary physical hitlag/stun and receives the larger
+Melee-style pushback. Light shield cannot powershield. The state card shows
+shield health, raw strength, shield stun, and a powershield indicator.
 
 After a physical powershield, release shield by the end of shield stun. Frame 1
 of `SHIELD RELEASE` cannot start a ground attack; a fresh attack press on frame
@@ -652,8 +667,8 @@ Successful surface techs clear hitstun/tumble and show the gold
 invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
-This shield slice does not yet include analog light shield, general shield
-tilt/poke, or shield SDI. All current standing ground actions share the same
+This shield slice does not yet include general shield size/tilt/poke behavior or
+shield SDI. All current standing ground actions share the same
 powershield-cancel selector; the registry row remains `playable` pending the
 mandatory owner playtest and broader acceptance evidence.
 
@@ -792,9 +807,13 @@ mandatory owner playtest and broader acceptance evidence.
     trigger plus fresh down for `SPOT DODGE`, confirm no horizontal movement,
     the ring only on ticks 3–15, and idle after 25 ticks. Hold down before
     pressing trigger and confirm ordinary `SHIELD` instead.
-26. From idle, hold the shield key. Confirm the bubble appears on frame 1,
-    health drains, an early key release waits for the eight-tick minimum, and
-    `SHIELD RELEASE` lasts 15 ticks. Press jump during shield/release and
+26. From idle, hold the shield key. Confirm the full-density bubble appears on
+    frame 1, health drains, an early key release waits for the eight-tick
+    minimum, and `SHIELD RELEASE` lasts 15 ticks. With a Standard Gamepad,
+    compare a trigger just below the 12.5% light threshold, exactly at/above it,
+    midway toward the 50% dense threshold, and fully pressed; confirm the state
+    card preserves raw strength and the lighter shields drain more slowly.
+    Press jump during shield/release and
     confirm `JUMP SQUAT`.
 27. Reach `RUN`, tap shield for one tick, and release. Confirm `SHIELD`
     replaces `RUN`, the fighter slides forward under traction, enters
@@ -1131,6 +1150,9 @@ through:
   `WALL_TECH_JUMP` with cleared hitstun/tumble and active invulnerability;
 - a normal physical shield block producing zero percent, shield damage,
   shield stun, hitlag, and ordinary pushback;
+- a raw trigger immediately below the light threshold remaining idle, followed
+  by exact-threshold light-shield entry with the expected strength and hold
+  depletion;
 - a physical attack inside the four-tick powershield window producing zero
   shield damage and the powershield result;
 - release after that physical powershield preserving the cancel opportunity,

@@ -19,14 +19,14 @@
 #define PF_WEB_M4_MAX_TICKS UINT64_C(1728000)
 #define PF_WEB_M4_RESET_SEED UINT64_C(0x4d34504c41595445)
 #define PF_WEB_M4_CAMPING_MINIMUM_SEPARATION_Q16 INT32_C(693712)
-#define PF_WEB_M4_VIEW_PLAYER_STRIDE 45
+#define PF_WEB_M4_VIEW_PLAYER_STRIDE 46
 #define PF_WEB_M4_VIEW_PLAYER0 25
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
-#define PF_WEB_M4_VIEW_EVENT0 206
-#define PF_WEB_M4_VIEW_ITEM0 366
-#define PF_WEB_M4_VIEW_PROJECTILE0 384
-#define PF_WEB_M4_VIEW_RECOVERY0 396
-#define PF_WEB_M4_VIEW_COUNT 400
+#define PF_WEB_M4_VIEW_EVENT0 210
+#define PF_WEB_M4_VIEW_ITEM0 370
+#define PF_WEB_M4_VIEW_PROJECTILE0 388
+#define PF_WEB_M4_VIEW_RECOVERY0 400
+#define PF_WEB_M4_VIEW_COUNT 404
 
 enum pf_web_m4_view_field
 {
@@ -55,7 +55,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_TERMINATED = 22,
     PF_WEB_M4_VIEW_TRUNCATED = 23,
     PF_WEB_M4_VIEW_WINNER_MASK = 24,
-    PF_WEB_M4_VIEW_EVENT_COUNT = 205,
+    PF_WEB_M4_VIEW_EVENT_COUNT = 209,
     PF_WEB_M4_VIEW_PLAYER_X = 0,
     PF_WEB_M4_VIEW_PLAYER_Y = 1,
     PF_WEB_M4_VIEW_PLAYER_VX = 2,
@@ -101,6 +101,7 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_PLAYER_GRAB_OWNER = 42,
     PF_WEB_M4_VIEW_PLAYER_CHARGE_TICKS = 43,
     PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS = 44,
+    PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH = 45,
     PF_WEB_M4_VIEW_EVENT_SEQUENCE = 0,
     PF_WEB_M4_VIEW_EVENT_TICK = 1,
     PF_WEB_M4_VIEW_EVENT_TYPE = 2,
@@ -9780,6 +9781,49 @@ static int pf_web_m4_run_shield_probe(void)
     pf_m4_inspection inspection;
     uint32_t tick;
 
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint16_t)(
+                pf_web_m4_content.fighter
+                    .light_shield_trigger_threshold -
+                UINT16_C(1)),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].shield_strength != UINT16_C(0) ||
+        !pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            pf_web_m4_content.fighter
+                .light_shield_trigger_threshold,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[0].shield_strength !=
+            pf_web_m4_content.fighter
+                .light_shield_trigger_threshold ||
+        inspection.players[0].shield_health_q16 !=
+            pf_web_m4_content.fighter.shield_health_q16 -
+                pf_web_m4_content.fighter
+                    .light_shield_hold_depletion_q16 ||
+        inspection.players[0].powershield != UINT8_C(0))
+    {
+        return 0;
+    }
+
     if (!pf_web_m4_reset_internal())
     {
         return 0;
@@ -11918,7 +11962,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(40);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(41);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12075,6 +12119,9 @@ static int pf_web_m4_render(void)
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_SMASH_CHARGE_TICKS] =
             (int32_t)player->smash_charge_ticks;
+        pf_web_m4_view[
+            base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STRENGTH] =
+            (int32_t)player->shield_strength;
     }
     pf_web_m4_view[PF_WEB_M4_VIEW_EVENT_COUNT] =
         (int32_t)pf_web_m4_last_result.event_count;
@@ -12549,14 +12596,14 @@ int pf_web_m4_playtest_step_special(
         (player0_attack != 0 && player0_attack != 1) ||
         (player0_strong_attack != 0 &&
          player0_strong_attack != 1) ||
-        (player0_shield != 0 && player0_shield != 1) ||
+        player0_shield < 0 || player0_shield > (int)UINT16_MAX ||
         (player0_special != 0 && player0_special != 1) ||
         (player0_taunt != 0 && player0_taunt != 1) ||
         (player1_jump != 0 && player1_jump != 1) ||
         (player1_attack != 0 && player1_attack != 1) ||
         (player1_strong_attack != 0 &&
          player1_strong_attack != 1) ||
-        (player1_shield != 0 && player1_shield != 1) ||
+        player1_shield < 0 || player1_shield > (int)UINT16_MAX ||
         (player1_special != 0 && player1_special != 1) ||
         (player1_taunt != 0 && player1_taunt != 1))
     {
@@ -12606,11 +12653,15 @@ int pf_web_m4_playtest_step_special(
             (int16_t)player0_x,
             (int16_t)player0_y,
             player0_buttons,
-            player0_shield != 0 ? UINT16_MAX : UINT16_C(0),
+            player0_shield == 1
+                ? UINT16_MAX
+                : (uint16_t)player0_shield,
             (int16_t)player1_x,
             (int16_t)player1_y,
             player1_buttons,
-            player1_shield != 0 ? UINT16_MAX : UINT16_C(0),
+            player1_shield == 1
+                ? UINT16_MAX
+                : (uint16_t)player1_shield,
             &inspection))
     {
         return 0;

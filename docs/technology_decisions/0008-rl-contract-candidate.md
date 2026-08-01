@@ -1,6 +1,6 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner; current implementation is RL schema 9
+- **Status:** Accepted by owner; current implementation is RL schema 10
 - **Date:** 2026-08-01
 
 ## Scope
@@ -15,9 +15,9 @@ RL schema/transition schema 4 retain the same action, observation, reward, and
 batch semantics while embedding the ABI-4 per-tick event journal in every
 transition result. Later compatible revisions expose the fixed item slot,
 projectile slot, per-player special charge, per-player recovery availability,
-and per-player smash charge. The current contract is RL schema 9, action schema
-1, transition schema 7, structured observation schema 7, and compact
-observation schema 8.
+per-player smash charge, and per-player raw shield strength. The current
+contract is RL schema 10, action schema 1, transition schema 8, structured
+observation schema 8, and compact observation schema 9.
 
 ## Actions
 
@@ -46,7 +46,7 @@ Every RL transition contains both:
 
 - A structured `pf_sim_observation`, preserving named fields for bindings and
   schema review.
-- A flat 70-element signed-32-bit observation for low-overhead contiguous
+- A flat 74-element signed-32-bit observation for low-overhead contiguous
   transfer.
 
 Both normal RL views redact the reset seed. The structured seed field is zero,
@@ -73,6 +73,7 @@ The compact layout is:
 | 56–61 | Fixed projectile position/velocity and packed lifecycle/owner fields |
 | 62–65 | Per-player Arc Reservoir charge ticks |
 | 66–69 | Per-player smash-charge ticks |
+| 70–73 | Per-player raw shield strength; zero outside shield, shield stun, or hitlag resuming into shield stun |
 
 Bit patterns are copied rather than implementation-defined signed casts.
 Inactive slots remain canonical zero except for their implicit packed slot.
@@ -136,9 +137,11 @@ not suppress valid independent environments.
 - Schema/spec metadata and compact/structured correspondence.
 - Stock, respawn, invulnerability, sudden-death, and winner-bit
   compact/structured correspondence.
-- Item, projectile, charge, and Vector Ascent recovery availability in the
-  structured/compact contract; recovery uses player flag bit 18 without
-  changing the 66-value vector.
+- Item, projectile, Arc Reservoir charge, smash charge, raw shield strength, and
+  Vector Ascent recovery availability in the structured/compact contract;
+  recovery remains player flag bit 18.
+- Light-threshold RL input enters shield, preserves exact strength in both
+  observation forms, and uses the same production tick path as native input.
 - Seed redaction in both normal RL observation forms.
 - Reset, approach/separation shaping, and legal masks.
 - Atomic invalid-action rejection.

@@ -198,8 +198,10 @@ pf_m4_item_input_intent pf_m4_prepare_item_input(
         (input->buttons & PF_INPUT_BUTTON_STRONG_ATTACK) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_STRONG_ATTACK) == UINT64_C(0);
     const int shield_held =
-        input->left_trigger >= content->fighter.digital_trigger_threshold ||
-        input->right_trigger >= content->fighter.digital_trigger_threshold;
+        input->left_trigger >=
+            content->fighter.light_shield_trigger_threshold ||
+        input->right_trigger >=
+            content->fighter.light_shield_trigger_threshold;
     const uint8_t player_slot =
         (uint8_t)(player_index + UINT32_C(1));
     const uint8_t action_state =

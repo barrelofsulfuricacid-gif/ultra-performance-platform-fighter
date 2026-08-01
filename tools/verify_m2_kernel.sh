@@ -73,7 +73,7 @@ grep -Fqx \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=702 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=710 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
@@ -99,7 +99,7 @@ grep -Fqx \
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=70 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=9' \
+    'rl-api=pass compact_values=74 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=10' \
     "$output_dir/rl_api.txt"
 
 # shellcheck disable=SC2086
@@ -127,7 +127,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31394 corpus_sha256=15cbb7c4dc51788fd97b5e211af6fe89212af524a6598160237a01f06f8520e9 final_sha256=54b719dce63e11db5fc700a51da8dac2895ed810c85ef41fb6fd8f1d1149848d events_sha256=7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f' \
+    'sim-replay=pass ticks=180 players=4 bytes=31402 corpus_sha256=7c88b63efe32f0aee0ea95ff29c48eaaa9cb83c7f8b16f854fc047fe73ca7baf final_sha256=c08fe7518639715fd1d88a2dc2cc8e763e8a11a484ecbff71b8790c85afdbb88 events_sha256=7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086

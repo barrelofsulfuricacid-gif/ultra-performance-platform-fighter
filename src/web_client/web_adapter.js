@@ -844,7 +844,23 @@ mergeInto(LibraryManager.library, {
         special: false,
         taunt: false,
         shield: false,
+        shieldStrength: 0,
       };
+    }
+
+    function gamepadButtonValue(gamepad, index) {
+      var button =
+        gamepad && gamepad.buttons && index < gamepad.buttons.length
+          ? gamepad.buttons[index]
+          : null;
+      if (button === null || button === undefined) {
+        return 0;
+      }
+      var value = Number(button.value);
+      if (!Number.isFinite(value)) {
+        value = button.pressed === true ? 1 : 0;
+      }
+      return Math.max(0, Math.min(1, value));
     }
 
     function gamepadButtonPressed(gamepad, index) {
@@ -901,11 +917,17 @@ mergeInto(LibraryManager.library, {
       input.jump = gamepadButtonPressed(gamepad, 2);
       input.special = gamepadButtonPressed(gamepad, 3);
       input.taunt = gamepadButtonPressed(gamepad, 8);
-      input.shield =
+      input.shieldStrength =
         gamepadButtonPressed(gamepad, 4) ||
-        gamepadButtonPressed(gamepad, 5) ||
-        gamepadButtonPressed(gamepad, 6) ||
-        gamepadButtonPressed(gamepad, 7);
+        gamepadButtonPressed(gamepad, 5)
+          ? 65535
+          : Math.round(
+              Math.max(
+                gamepadButtonValue(gamepad, 6),
+                gamepadButtonValue(gamepad, 7)
+              ) * 65535
+            );
+      input.shield = input.shieldStrength !== 0;
       return input;
     }
 
@@ -1001,6 +1023,7 @@ mergeInto(LibraryManager.library, {
         !result.inputs[0].special &&
         result.inputs[0].taunt &&
         result.inputs[0].shield &&
+        result.inputs[0].shieldStrength === Math.round(0.75 * 65535) &&
         result.inputs[1].horizontal === dashAxis &&
         result.inputs[1].vertical === -dashAxis &&
         !result.inputs[1].attack &&
@@ -1008,7 +1031,8 @@ mergeInto(LibraryManager.library, {
         !result.inputs[1].jump &&
         result.inputs[1].special &&
         !result.inputs[1].taunt &&
-        !result.inputs[1].shield
+        !result.inputs[1].shield &&
+        result.inputs[1].shieldStrength === 0
       );
     }
 
@@ -1406,7 +1430,7 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · down + top face reflector · up + top face charge/recovery · Back/View taunt · any shoulder/trigger shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · down + top face reflector · up + top face charge/recovery · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item"
       )
     );
     controls.appendChild(
@@ -1492,8 +1516,10 @@ mergeInto(LibraryManager.library, {
       "invulnerability. The HUD shows stocks and both timers; final-stock KOs " +
       "show a result banner and turn Reset into Rematch. Simultaneous final-stock " +
       "KOs enter the deterministic 300% sudden-death fixture. " +
-      "Hold G or . on the ground for a real draining shield; fresh shields " +
-      "powershield during their four-tick window, while releases have 15 ticks " +
+      "Hold G or . on the ground for a full draining shield; Standard Gamepad " +
+      "analog triggers provide light shield from 12.5% pressure and become dense " +
+      "at 50%. Only fresh dense shields powershield during their four-tick window, " +
+      "while releases have 15 ticks " +
       "of lag. Press a fresh full horizontal direction with the trigger for a " +
       "forward or backward roll relative to facing; press fresh down with the " +
       "trigger for a spot dodge. These grounded dodges have fixed movement, " +
@@ -1733,13 +1759,14 @@ mergeInto(LibraryManager.library, {
         held("KeyT") || state.tauntQueued[0] || player0Gamepad.taunt;
       var player1Taunt =
         held("Comma") || state.tauntQueued[1] || player1Gamepad.taunt;
-      var player0Shield =
-        held("KeyG") || state.shieldQueued[0] || player0Gamepad.shield;
-      var player1Shield =
-        held("Period") ||
-        held("Numpad1") ||
-        state.shieldQueued[1] ||
-        player1Gamepad.shield;
+      var player0ShieldStrength =
+        held("KeyG") || state.shieldQueued[0]
+          ? 1
+          : player0Gamepad.shieldStrength;
+      var player1ShieldStrength =
+        held("Period") || held("Numpad1") || state.shieldQueued[1]
+          ? 1
+          : player1Gamepad.shieldStrength;
       var passed = Module._pf_web_m4_playtest_step_special(
         mergeAxis(
           horizontal("KeyA", "KeyD"),
@@ -1749,7 +1776,7 @@ mergeInto(LibraryManager.library, {
         player0Jump ? 1 : 0,
         player0Attack ? 1 : 0,
         player0StrongAttack ? 1 : 0,
-        player0Shield ? 1 : 0,
+        player0ShieldStrength,
         mergeAxis(
           horizontal("ArrowLeft", "ArrowRight"),
           player1Gamepad.horizontal
@@ -1761,7 +1788,7 @@ mergeInto(LibraryManager.library, {
         player1Jump ? 1 : 0,
         player1Attack ? 1 : 0,
         player1StrongAttack ? 1 : 0,
-        player1Shield ? 1 : 0,
+        player1ShieldStrength,
         player0Special ? 1 : 0,
         player1Special ? 1 : 0,
         player0Taunt ? 1 : 0,
@@ -2328,7 +2355,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 400) {
+    if (!state || viewCount !== 404) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2337,7 +2364,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 40) {
+    if (view[0] !== 41) {
       return;
     }
     var canvas = state.canvas;
@@ -2627,10 +2654,10 @@ mergeInto(LibraryManager.library, {
       });
     }
 
-    var eventCount = Math.max(0, Math.min(16, view[205]));
+    var eventCount = Math.max(0, Math.min(16, view[209]));
     var eventIndex;
     for (eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
-      var eventBase = 206 + eventIndex * 10;
+      var eventBase = 210 + eventIndex * 10;
       var sequence = view[eventBase];
       if (sequence <= state.lastEventSequence) {
         continue;
@@ -2773,13 +2800,13 @@ mergeInto(LibraryManager.library, {
       "P1 STOCKS " +
         view[25 + 32] +
         "  ·  P2 STOCKS " +
-        view[25 + 45 + 32],
+        view[25 + 46 + 32],
       canvas.width / 2,
       25
     );
     context.restore();
 
-    var itemBase = 366;
+    var itemBase = 370;
     var itemStateCode = view[itemBase + 1];
     if (view[itemBase] !== 0 && itemStateCode > 0 && itemStateCode < 4) {
       var itemWorldX = view[itemBase + 6];
@@ -2868,7 +2895,7 @@ mergeInto(LibraryManager.library, {
       context.fillText("RELAY ROD", itemX, itemY - Math.max(10, itemHeight) / 2 - 8);
     }
 
-    var projectileBase = 384;
+    var projectileBase = 388;
     var projectileStateCode = view[projectileBase + 1];
     if (
       view[projectileBase] !== 0 &&
@@ -2951,7 +2978,7 @@ mergeInto(LibraryManager.library, {
       if (playerIndex >= livePlayerCount) {
         return;
       }
-      var base = 25 + playerIndex * 45;
+      var base = 25 + playerIndex * 46;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
       var halfWidth =
@@ -3070,13 +3097,20 @@ mergeInto(LibraryManager.library, {
           0,
           Math.min(1, view[base + 25] / (60 * q16))
         );
+        var shieldInputFraction = Math.max(
+          0,
+          Math.min(1, view[base + 45] / 65535)
+        );
         var shieldRadius =
           Math.max(width, height) * (0.72 + shieldFraction * 0.2);
         context.fillStyle =
-          view[base + 27] !== 0 ? "#f7fbff55" : colors[playerIndex] + "33";
+          view[base + 27] !== 0
+            ? "#f7fbff55"
+            : colors[playerIndex] + (shieldInputFraction < 0.5 ? "20" : "33");
         context.strokeStyle =
           view[base + 27] !== 0 ? "#ffffff" : colors[playerIndex];
-        context.lineWidth = view[base + 27] !== 0 ? 4 : 2;
+        context.lineWidth =
+          view[base + 27] !== 0 ? 4 : 1.5 + shieldInputFraction * 1.5;
         context.beginPath();
         context.arc(x, y, shieldRadius, 0, Math.PI * 2);
         context.fill();
@@ -3323,6 +3357,11 @@ mergeInto(LibraryManager.library, {
         (view[base + 25] / q16).toFixed(2) +
         " / 60 · shield stun " +
         view[base + 26] +
+        " · strength " +
+        Math.round((view[base + 45] / 65535) * 100) +
+        "% (" +
+        view[base + 45] +
+        ")" +
         " · powershield " +
         view[base + 27] +
         " · invulnerable " +
@@ -3345,7 +3384,7 @@ mergeInto(LibraryManager.library, {
         view[base + 44] +
         " / 60f" +
         " · Vector Ascent " +
-        (view[396 + playerIndex] !== 0 ? "READY" : "SPENT");
+        (view[400 + playerIndex] !== 0 ? "READY" : "SPENT");
     });
 
     var itemStateNames = [

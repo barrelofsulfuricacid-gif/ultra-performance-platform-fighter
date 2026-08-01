@@ -63,6 +63,75 @@ static uint32_t pf_m4_shield_health_subtract(
                : health_q16 - amount_q16;
 }
 
+static uint16_t pf_m4_input_shield_strength(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input)
+{
+    const uint16_t strength =
+        input->left_trigger >= input->right_trigger
+            ? input->left_trigger
+            : input->right_trigger;
+
+    return strength >= fighter->light_shield_trigger_threshold
+               ? strength
+               : UINT16_C(0);
+}
+
+static uint32_t pf_m4_lerp_u32(
+    uint32_t low,
+    uint32_t high,
+    uint16_t value,
+    uint16_t low_value,
+    uint16_t high_value)
+{
+    if (value <= low_value || high <= low)
+    {
+        return low;
+    }
+    if (value >= high_value)
+    {
+        return high;
+    }
+    return low +
+           (uint32_t)(
+               ((uint64_t)(high - low) *
+                (uint64_t)(value - low_value)) /
+               (uint64_t)(high_value - low_value));
+}
+
+static uint32_t pf_m4_shield_hold_depletion_q16(
+    const pf_m4_fighter_data *fighter,
+    uint16_t shield_strength)
+{
+    return pf_m4_lerp_u32(
+        fighter->light_shield_hold_depletion_q16,
+        fighter->shield_hold_depletion_q16,
+        shield_strength,
+        fighter->light_shield_trigger_threshold,
+        fighter->digital_trigger_threshold);
+}
+
+static int pf_m4_action_retains_shield_strength(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
+           action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+           (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+            hitlag_resume_action ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN);
+}
+
+static int pf_m4_action_freezes_shield_strength(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+           (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+            hitlag_resume_action ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN);
+}
+
 static uint16_t pf_m4_shield_break_stun_ticks(
     const pf_m4_fighter_data *fighter,
     uint32_t damage_q16)
@@ -1265,6 +1334,7 @@ void pf_m4_reset_player(
     sim->world.grab_escape_ticks[player_index] = UINT16_C(0);
     sim->world.charge_ticks[player_index] = UINT16_C(0);
     sim->world.smash_charge_ticks[player_index] = UINT16_C(0);
+    sim->world.shield_strength[player_index] = UINT16_C(0);
     sim->world.grab_target_slot[player_index] = UINT8_C(0);
     sim->world.grab_owner_slot[player_index] = UINT8_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
@@ -1364,6 +1434,7 @@ static void pf_m4_enter_shield_break_launch(
     *dash_direction = INT8_C(0);
     scratch->shield_stun_ticks[player_index] = UINT16_C(0);
     scratch->powershield[player_index] = UINT8_C(0);
+    scratch->shield_strength[player_index] = UINT16_C(0);
     scratch->tech_window_ticks[player_index] = UINT16_C(0);
     scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
@@ -1791,6 +1862,8 @@ static void pf_m4_copy_combat_scratch(
         world->charge_ticks[player_index];
     scratch->smash_charge_ticks[player_index] =
         world->smash_charge_ticks[player_index];
+    scratch->shield_strength[player_index] =
+        world->shield_strength[player_index];
     scratch->grab_target_slot[player_index] =
         world->grab_target_slot[player_index];
     scratch->grab_owner_slot[player_index] =
@@ -1918,6 +1991,7 @@ static void pf_m4_prepare_spawn(
     scratch->grab_escape_ticks[player_index] = UINT16_C(0);
     scratch->charge_ticks[player_index] = UINT16_C(0);
     scratch->smash_charge_ticks[player_index] = UINT16_C(0);
+    scratch->shield_strength[player_index] = UINT16_C(0);
     scratch->grab_target_slot[player_index] = UINT8_C(0);
     scratch->grab_owner_slot[player_index] = UINT8_C(0);
 }
@@ -1979,9 +2053,10 @@ pf_status pf_m4_step_player(
     const int taunt_pressed =
         (input->buttons & PF_INPUT_BUTTON_TAUNT) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_TAUNT) == UINT64_C(0);
+    const uint16_t input_shield_strength =
+        pf_m4_input_shield_strength(fighter, input);
     const int shield_held =
-        input->left_trigger >= fighter->digital_trigger_threshold ||
-        input->right_trigger >= fighter->digital_trigger_threshold;
+        input_shield_strength != UINT16_C(0);
     const int shield_pressed =
         shield_held != 0 &&
         world->shield_held[player_index] == UINT8_C(0);
@@ -2265,6 +2340,14 @@ pf_status pf_m4_step_player(
             previous_dodge_down);
         return PF_STATUS_OK;
     }
+    if (shield_held != 0 &&
+        !pf_m4_action_freezes_shield_strength(
+            action_state,
+            scratch->hitlag_resume_action[player_index]))
+    {
+        scratch->shield_strength[player_index] =
+            input_shield_strength;
+    }
     if (scratch->respawn_invulnerability_ticks[player_index] >
         UINT16_C(0))
     {
@@ -2488,6 +2571,12 @@ pf_status pf_m4_step_player(
         position_y = scratch->position_y_q16[player_index];
         grounded = scratch->grounded[player_index];
         support = scratch->support[player_index];
+        if (!pf_m4_action_retains_shield_strength(
+                action_state,
+                scratch->hitlag_resume_action[player_index]))
+        {
+            scratch->shield_strength[player_index] = UINT16_C(0);
+        }
         pf_m4_write_scratch(
             scratch,
             player_index,
@@ -3104,13 +3193,17 @@ pf_status pf_m4_step_player(
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_SHIELD)
     {
+        const uint32_t shield_hold_depletion_q16 =
+            pf_m4_shield_hold_depletion_q16(
+                fighter,
+                scratch->shield_strength[player_index]);
         const uint32_t shield_health_before_depletion =
             scratch->shield_health_q16[player_index];
         const uint32_t depleted_shield_health =
-            fighter->shield_hold_depletion_q16 >=
+            shield_hold_depletion_q16 >=
                     shield_health_before_depletion
                 ? shield_health_before_depletion
-                : fighter->shield_hold_depletion_q16;
+                : shield_hold_depletion_q16;
 
         velocity_x = pf_m4_approach(
             velocity_x,
@@ -3119,7 +3212,7 @@ pf_status pf_m4_step_player(
         scratch->shield_health_q16[player_index] =
             pf_m4_shield_health_subtract(
                 scratch->shield_health_q16[player_index],
-                fighter->shield_hold_depletion_q16);
+                shield_hold_depletion_q16);
         if (scratch->shield_health_q16[player_index] ==
             UINT32_C(0))
         {
@@ -3214,6 +3307,8 @@ pf_status pf_m4_step_player(
             if (shield_held != 0)
             {
                 scratch->powershield[player_index] = UINT8_C(0);
+                scratch->shield_strength[player_index] =
+                    input_shield_strength;
                 action_state = (uint8_t)PF_M4_ACTION_SHIELD;
                 action_ticks =
                     fighter->shield_minimum_hold_ticks;
@@ -5363,6 +5458,13 @@ pf_status pf_m4_step_player(
         scratch->smash_charge_ticks[player_index] = UINT16_C(0);
     }
 
+    if (!pf_m4_action_retains_shield_strength(
+            action_state,
+            scratch->hitlag_resume_action[player_index]))
+    {
+        scratch->shield_strength[player_index] = UINT16_C(0);
+    }
+
     pf_m4_write_scratch(
         scratch,
         player_index,
@@ -5642,6 +5744,8 @@ pf_status pf_m4_inspect(
             sim->world.charge_ticks[player_index];
         player->smash_charge_ticks =
             sim->world.smash_charge_ticks[player_index];
+        player->shield_strength =
+            sim->world.shield_strength[player_index];
         player->grab_target =
             sim->world.grab_target_slot[player_index] != UINT8_C(0)
                 ? (uint8_t)(
