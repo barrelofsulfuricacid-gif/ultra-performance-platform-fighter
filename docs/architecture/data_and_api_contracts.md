@@ -81,12 +81,15 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–32 remain historical checkpoints. The current M4
+Save formats 1–33 remain historical checkpoints. The current M4
 movement/combat/item/projectile/reflector/charge/Moonwalk/Teeter/crouch-step/
-taunt state uses save format 33: a fixed 690-byte checkpoint with state schema
-34 and a 550-byte payload. It retains the format-32 byte layout while making
-the explicit grounded `TAUNT` action ID, authored 90-tick recovery, inherited
-dash momentum, locked controls, held-input non-repetition, and support-edge
+taunt/wall-jump state uses save format 34: a fixed 690-byte checkpoint with
+state schema 35 and a 550-byte payload. It retains the format-33 byte layout
+while making the explicit `WALL_JUMP` action ID, authored speeds, 24-tick
+recovery, four-tick invulnerability, preserved air jump, exact wall contact,
+and legal jump/aerial cancels fail closed. Save format 33/state schema 34 made
+the grounded `TAUNT` action ID, authored 90-tick recovery, inherited dash
+momentum, locked controls, held-input non-repetition, and support-edge
 cancellation fail closed. State
 schema 31 / save format 30 retained the same layout while making the two
 Moonwalk action IDs, authored two-tick shallow-back setup, full-back
@@ -175,6 +178,12 @@ semantics. Content schema 35/fighter schema 31 add and hash the authored
 duration. Input schema 5 assigns bit 4 to Taunt. Inspection and browser view
 schema 30 version the new action interpretation without changing the
 304-value layout; observation and RL schemas remain unchanged.
+State schema 35 retains that layout while adding explicit `WALL_JUMP`
+semantics. Content schema 36/fighter schema 32 add and hash the authored
+horizontal and vertical speeds, action duration, brief invulnerability, and
+enable flag. Inspection and browser view schema 31 version the new action
+interpretation without changing the 304-value layout; input, observation, and
+RL schemas remain unchanged.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

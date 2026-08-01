@@ -7740,6 +7740,321 @@ static int run_ledge_hit_rejection_test(
     return 1;
 }
 
+static int reach_scar_jump_wall(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    const int32_t contact_x =
+        content->stage.solid_right_q16 +
+        content->fighter.half_width_q16;
+    uint32_t tick;
+
+    if (!grab_player0_right_ledge(sim, out_inspection) ||
+        !make_player0_ledge_actionable(
+            sim,
+            content,
+            out_inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            out_inspection))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(64); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MIN,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].position_x_q16 == contact_x &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+        {
+            return out_inspection->players[0].action_state ==
+                       (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                   out_inspection->players[0].air_jumps_remaining ==
+                       content->fighter.air_jump_count;
+        }
+    }
+
+    (void)fprintf(
+        stderr,
+        "m4-movement=fail operation=scar-jump-wall-contact"
+        " action=%u position=(%" PRId32 ",%" PRId32 ")"
+        " velocity=(%" PRId32 ",%" PRId32 ")\n",
+        (unsigned int)out_inspection->players[0].action_state,
+        out_inspection->players[0].position_x_q16,
+        out_inspection->players[0].position_y_q16,
+        out_inspection->players[0].velocity_x_q16,
+        out_inspection->players[0].velocity_y_q16);
+    return 0;
+}
+
+static int enter_scar_jump(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    return reach_scar_jump_wall(sim, content, out_inspection) &&
+           step_duel(
+               sim,
+               INT16_MAX,
+               INT16_C(0),
+               UINT64_C(0),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_WALL_JUMP &&
+           out_inspection->players[0].action_ticks == UINT16_C(1) &&
+           out_inspection->players[0].velocity_x_q16 ==
+               content->fighter.wall_jump_speed_x_q16 &&
+           out_inspection->players[0].velocity_y_q16 ==
+               -content->fighter.wall_jump_speed_y_q16 +
+                   content->fighter.gravity_q16 &&
+           out_inspection->players[0].facing == INT8_C(1) &&
+           out_inspection->players[0].air_jumps_remaining ==
+               content->fighter.air_jump_count &&
+           out_inspection->players[0].invulnerable == UINT8_C(1);
+}
+
+static int run_scar_jump_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage source_storage;
+    test_sim_storage loaded_storage;
+    test_sim_storage jump_storage;
+    test_sim_storage lock_storage;
+    test_sim_storage missed_storage;
+    pf_m4_content invalid_content = *content;
+    pf_sim *source = NULL;
+    pf_sim *loaded = NULL;
+    pf_sim *jump_sim = NULL;
+    pf_sim *lock_sim = NULL;
+    pf_sim *missed_sim = NULL;
+    pf_m4_inspection source_inspection;
+    pf_m4_inspection loaded_inspection;
+    pf_m4_inspection inspection;
+    pf_state_hash source_hash;
+    pf_state_hash loaded_hash;
+    uint8_t save_bytes[1024];
+    pf_mut_bytes destination;
+    pf_bytes source_bytes;
+    size_t save_size = (size_t)0;
+    uint32_t tick;
+
+    invalid_content.fighter.wall_jump_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "scar-jump-invalid-content") ||
+        !initialize_sim(
+            &source_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &source) ||
+        !initialize_sim(
+            &loaded_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &loaded) ||
+        !initialize_sim(
+            &jump_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &jump_sim) ||
+        !initialize_sim(
+            &lock_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &lock_sim) ||
+        !initialize_sim(
+            &missed_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &missed_sim) ||
+        !expect_status(
+            pf_sim_reset(source, UINT64_C(0x5ca47a)),
+            PF_STATUS_OK,
+            "scar-jump-reset") ||
+        !enter_scar_jump(source, content, &source_inspection) ||
+        !expect_status(
+            pf_sim_query_save_size(source, &save_size),
+            PF_STATUS_OK,
+            "scar-jump-save-size") ||
+        save_size != (size_t)690)
+    {
+        return 0;
+    }
+
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "scar-jump-save"))
+    {
+        return 0;
+    }
+    source_bytes.bytes = save_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_OK,
+            "scar-jump-load") ||
+        !step_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+        source_inspection.players[0].air_jumps_remaining !=
+            content->fighter.air_jump_count ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "scar-jump-source-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "scar-jump-loaded-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=scar-jump-aerial-cancel\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(jump_sim, UINT64_C(0x5ca47b)),
+            PF_STATUS_OK,
+            "scar-jump-jump-reset") ||
+        !enter_scar_jump(jump_sim, content, &inspection) ||
+        !step_duel(
+            jump_sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        inspection.players[0].air_jumps_remaining != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=scar-jump-jump-cancel\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(lock_sim, UINT64_C(0x5ca47c)),
+            PF_STATUS_OK,
+            "scar-jump-lock-reset") ||
+        !enter_scar_jump(lock_sim, content, &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.wall_jump_ticks;
+         ++tick)
+    {
+        const uint8_t expected_invulnerable =
+            tick + UINT32_C(1) <
+                    (uint32_t)content->fighter
+                        .wall_jump_invulnerability_ticks
+                ? UINT8_C(1)
+                : UINT8_C(0);
+
+        if (!step_duel(
+                lock_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            (tick + UINT32_C(1) <
+                     (uint32_t)content->fighter.wall_jump_ticks &&
+             (inspection.players[0].action_state !=
+                  (uint8_t)PF_M4_ACTION_WALL_JUMP ||
+              inspection.players[0].invulnerable !=
+                  expected_invulnerable)))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].air_jumps_remaining !=
+            content->fighter.air_jump_count)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=scar-jump-lock-duration\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(missed_sim, UINT64_C(0x5ca47d)),
+            PF_STATUS_OK,
+            "scar-jump-missed-reset") ||
+        !grab_player0_right_ledge(missed_sim, &inspection) ||
+        !make_player0_ledge_actionable(
+            missed_sim,
+            content,
+            &inspection) ||
+        !step_duel(
+            missed_sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (!step_duel(
+                missed_sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_WALL_JUMP)
+        {
+            return 0;
+        }
+    }
+    return inspection.players[0].air_jumps_remaining ==
+           content->fighter.air_jump_count;
+}
+
 static int run_edge_hop_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -9295,6 +9610,7 @@ int main(void)
         !run_platform_test(&content) ||
         !run_shield_platform_drop_test(&content, &view) ||
         !run_solid_geometry_test(&content) ||
+        !run_scar_jump_test(&content, &view) ||
         !run_ledge_test(&content, &view) ||
         !run_edge_dash_test(&content, &view) ||
         !run_blast_zone_test(&view) ||
@@ -9305,8 +9621,9 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=285 moonwalk=1 teeter_cancel=1 "
+        "movement_invariants=297 moonwalk=1 teeter_cancel=1 "
         "taunt_cancel=1 "
+        "scar_jump=1 "
         "stage_humping=1 "
         "double_jump_cancel=1 "
         "ledge_cancel=1 planking=1\n",

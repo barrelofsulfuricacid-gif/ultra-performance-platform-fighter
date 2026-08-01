@@ -45,6 +45,7 @@ headless execution.
 | Teeter cancel | Dash toward an edge, release the direction just before crossing, then Attack or press full opposite direction | Same with Left / Right |
 | Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
 | Taunt / Taunt cancel | `T`; while dashing toward an edge, release horizontal and press `T` just before crossing | `,`; use the same edge timing |
+| Scar Jump | From the right ledge, jump inward with `W`/Space, then freshly press full `D` at the raised-block wall; cancel with Jump or Attack | From the right ledge, jump inward with Up, then freshly press full Right at the wall; cancel with Jump or Attack |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
@@ -377,6 +378,14 @@ To grab a ledge, fall beside it while facing inward. After the seven-tick catch
 window, press toward the stage to climb, press down or away to release, or press
 jump for a ledge jump. A claimed ledge rejects another fighter until its current
 occupant releases or completes the climb.
+
+For a Scar Jump, catch the right ledge and wait for `LEDGE HANG`, then press
+Jump and hold left/inward so the ledge jump travels into the raised block.
+Freshly press full right/away when the fighter touches its wall. `WALL JUMP`
+launches outward and upward without spending the air jump; press Jump to spend
+that saved jump or Attack to cancel into an aerial. Holding right immediately
+after the ledge jump is the negative route: it changes the approach before wall
+contact and never enters `WALL JUMP`.
 
 For an edge hop, wait until `LEDGE HANG`, tap down to release, then release down
 and press jump while holding toward the stage on the next tick. The fresh jump
@@ -906,6 +915,9 @@ through:
   held-diagonal, neutral-down, and horizontal-only negative routes;
 - a 90-tick grounded Taunt retaining dash momentum and rejecting held
   retriggering, plus support-edge cancellation into `TEETER`;
+- an ordinary right-ledge jump reaching the raised-block wall, fresh-away
+  entry into `WALL JUMP` with the saved air jump intact, jump/aerial cancels,
+  exact authored lock and invulnerability windows, plus an early-away miss;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -956,7 +968,7 @@ bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass
 jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass moonwalk_probe=pass teeter_cancel_probe=pass
-stage_humping_probe=pass taunt_cancel_probe=pass
+stage_humping_probe=pass taunt_cancel_probe=pass scar_jump_probe=pass
 pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass

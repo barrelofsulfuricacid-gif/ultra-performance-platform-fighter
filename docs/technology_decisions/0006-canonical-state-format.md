@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–32 / state schemas 1–33
+- **Status:** Accepted for save formats 1–34 / state schemas 1–35
 - **Date:** 2026-07-31
 
 ## Decision
@@ -43,14 +43,15 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 31 | 32 | 140 | 550 | 690 | Canonical `TEETER` action ID, authored support-edge snap distance and duration, neutral persistence, zero-velocity grounding, standing-attack/reverse-dash cancels, held-outward run-off, and early-release semantics; no payload-layout change |
 | 32 | 33 | 140 | 550 | 690 | Canonical `CROUCH_STEP` action ID, authored speed and one-tick duration, fresh diagonal-down entry, release-gated repetition, and ordinary crouch transition; no payload-layout change |
 | 33 | 34 | 140 | 550 | 690 | Canonical grounded `TAUNT` action ID, authored duration, inherited dash momentum and traction, locked recovery, held-input non-repetition, and support-edge cancellation into `TEETER`; no payload-layout change |
+| 34 | 35 | 140 | 550 | 690 | Canonical `WALL_JUMP` action ID, authored speed, duration, and brief invulnerability, preserved air jump, fresh-away wall contact, and jump/aerial cancel; no payload-layout change |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
-`PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, or `PFSAVE33`. The active M4 runtime emits
-and accepts format 33 with state schema 34. Earlier
+`PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, or `PFSAVE34`. The active M4 runtime emits
+and accepts format 34 with state schema 35. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

@@ -202,6 +202,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->wall_tech_speed_q16);
     pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_x_q16);
     pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_y_q16);
+    pf_m4_hash_i32(hash, fighter->wall_jump_speed_x_q16);
+    pf_m4_hash_i32(hash, fighter->wall_jump_speed_y_q16);
     pf_m4_hash_i32(hash, fighter->ceiling_tech_speed_q16);
     pf_m4_hash_i32(hash, fighter->surface_bounce_multiplier_q16);
     pf_m4_hash_i32(hash, fighter->getup_roll_speed_q16);
@@ -352,6 +354,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->tech_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->wall_tech_stall_ticks);
     pf_m4_hash_u16(hash, fighter->wall_tech_ticks);
+    pf_m4_hash_u16(hash, fighter->wall_jump_ticks);
+    pf_m4_hash_u16(hash, fighter->wall_jump_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->ceiling_tech_ticks);
     pf_m4_hash_u16(hash, fighter->knockdown_ticks);
     pf_m4_hash_u16(hash, fighter->down_wait_ticks);
@@ -423,6 +427,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u8(
         hash,
         fighter->powershield_cancel_enabled);
+    pf_m4_hash_u8(hash, fighter->wall_jump_enabled);
 }
 
 static void pf_m4_hash_stage(
@@ -713,6 +718,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->wall_tech_speed_q16 = PF_Q16_RATIO(3, 20);
     fighter->wall_tech_jump_speed_x_q16 = PF_Q16_RATIO(3, 10);
     fighter->wall_tech_jump_speed_y_q16 = PF_Q16_RATIO(1, 2);
+    fighter->wall_jump_speed_x_q16 = PF_Q16_RATIO(3, 10);
+    fighter->wall_jump_speed_y_q16 = PF_Q16_RATIO(1, 2);
     fighter->ceiling_tech_speed_q16 = PF_Q16_RATIO(4, 25);
     fighter->surface_bounce_multiplier_q16 = PF_Q16_RATIO(4, 5);
     fighter->getup_roll_speed_q16 = PF_Q16_RATIO(1, 5);
@@ -886,6 +893,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->tech_invulnerability_ticks = UINT16_C(20);
     fighter->wall_tech_stall_ticks = UINT16_C(3);
     fighter->wall_tech_ticks = UINT16_C(24);
+    fighter->wall_jump_ticks = UINT16_C(24);
+    fighter->wall_jump_invulnerability_ticks = UINT16_C(4);
     fighter->ceiling_tech_ticks = UINT16_C(30);
     fighter->knockdown_ticks = UINT16_C(26);
     fighter->down_wait_ticks = UINT16_C(180);
@@ -927,6 +936,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->grab_release_ticks = UINT16_C(8);
     fighter->air_jump_count = UINT8_C(1);
     fighter->powershield_cancel_enabled = UINT8_C(1);
+    fighter->wall_jump_enabled = UINT8_C(1);
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -1406,6 +1416,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->wall_tech_jump_speed_y_q16 <= fighter->gravity_q16 ||
         fighter->wall_tech_jump_speed_y_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->wall_jump_speed_x_q16 <= INT32_C(0) ||
+        fighter->wall_jump_speed_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->wall_jump_speed_y_q16 <= fighter->gravity_q16 ||
+        fighter->wall_jump_speed_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->ceiling_tech_speed_q16 <= INT32_C(0) ||
         fighter->ceiling_tech_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
@@ -1695,6 +1711,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->wall_tech_stall_ticks == UINT16_C(0) ||
         fighter->wall_tech_stall_ticks >= fighter->wall_tech_ticks ||
         fighter->wall_tech_ticks > UINT16_C(240) ||
+        fighter->wall_jump_ticks == UINT16_C(0) ||
+        fighter->wall_jump_ticks > UINT16_C(240) ||
+        fighter->wall_jump_invulnerability_ticks == UINT16_C(0) ||
+        fighter->wall_jump_invulnerability_ticks >
+            fighter->wall_jump_ticks ||
         fighter->ceiling_tech_ticks == UINT16_C(0) ||
         fighter->ceiling_tech_ticks > UINT16_C(240) ||
         fighter->tech_invulnerability_ticks >
@@ -1827,7 +1848,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->grab_release_ticks == UINT16_C(0) ||
         fighter->grab_release_ticks > UINT16_C(120) ||
         fighter->air_jump_count > UINT8_C(8) ||
-        fighter->powershield_cancel_enabled > UINT8_C(1))
+        fighter->powershield_cancel_enabled > UINT8_C(1) ||
+        fighter->wall_jump_enabled > UINT8_C(1))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

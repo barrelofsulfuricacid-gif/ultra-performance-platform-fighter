@@ -1187,17 +1187,52 @@ edge cancellation, and a 690-byte mid-taunt save/load with equal future
 hashes. Browser startup repeats the full-duration and cancel routes and exports
 an independent `taunt_cancel_probe` before readiness.
 
+## Scar-Jump and normal-wall-jump contract
+
+The original fighter authors `wall_jump_speed_x_q16=0.3`,
+`wall_jump_speed_y_q16=-0.5`, `wall_jump_ticks=24`,
+`wall_jump_invulnerability_ticks=4`, and `wall_jump_enabled=1`. A fresh full
+direction away from an exact solid-wall contact enters explicit `WALL_JUMP`,
+launches away and upward, and preserves the fighter's remaining air jump.
+Ordinary airborne gravity continues during the action. Attack can cancel the
+action into either authored aerial, while a fresh jump spends the saved air
+jump; otherwise movement and special routing stay locked through the exact
+24-tick boundary.
+
+The production route starts with the ordinary right-ledge jump, travels inward
+to the raised block, and applies the fresh away direction only at wall contact.
+The first four action ticks are invulnerable. Holding away before reaching the
+wall changes the trajectory and never creates a wall jump, providing the
+negative timing control. This is the original-stage equivalent of the
+[Scar Jump](https://www.ssbwiki.com/Scar_Jump): it uses the normal wall-jump
+primitive while keeping the midair jump for a deeper recovery or edgeguard.
+
+`tests/sim/test_m4_movement.c` covers authored-data validation and hashing,
+production ledge/block geometry, exact launch, preserved air jump, the four-
+tick invulnerability and 24-tick action windows, aerial and saved-jump cancels,
+the early-away negative, and a 690-byte mid-action save/load with equal future
+hashes. Browser startup repeats the positive and negative routes and exports an
+independent `scar_jump_probe` before readiness.
+
 ## Canonical state and inspection
 
-State schema 34 / save format 33 retains the 690-byte stream (140-byte header
-plus 550-byte payload), changes the active magic to `PFSAVE33`, and makes the
-Taunt action ID, grounding, authored tick range, locked recovery, inherited
-momentum, held-input non-repetition, and support-edge cancellation fail closed.
-Inspection schema 30 and browser view schema 30 version the action
-interpretation without changing the 304-value browser layout. Content schema
-35/fighter schema 31 add and hash the authored duration, while input schema 5
-adds the dedicated bit-4 Taunt control. Structured observation schema 5, RL
-schema 7, compact observation schema 6, and its 66 values remain unchanged.
+State schema 35 / save format 34 retains the 690-byte stream (140-byte header
+plus 550-byte payload), changes the active magic to `PFSAVE34`, and makes the
+Wall-Jump action ID, airborne state, authored tick range, brief
+invulnerability, preserved air jump, wall-contact entry, and legal jump/aerial
+cancels fail closed. Inspection schema 31 and browser view schema 31 version
+the action interpretation without changing the 304-value browser layout.
+Content schema 36/fighter schema 32 add and hash the authored speeds, duration,
+invulnerability, and enable flag. Input schema 5, structured observation schema
+5, RL schema 7, compact observation schema 6, and its 66 values remain
+unchanged.
+
+It follows state schema 34 / save format 33, which retained the 690-byte stream,
+used `PFSAVE33`, and made the Taunt action ID, grounding, authored tick range,
+locked recovery, inherited momentum, held-input non-repetition, and
+support-edge cancellation fail closed. Inspection/browser view schema 30 and
+content schema 35/fighter schema 31 versioned and hashed that interpretation;
+input schema 5 added the dedicated bit-4 Taunt control.
 
 It follows state schema 33 / save format 32, which retained the 690-byte
 stream, used `PFSAVE32`, and made the crouch-step action ID, grounding,

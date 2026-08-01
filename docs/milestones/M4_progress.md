@@ -391,7 +391,11 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   state schema to 34/save format 33, content schema to 35 with fighter schema
   31, input schema to 5, and inspection/browser view schema to 30 for the
   authored grounded action, locked recovery, retained dash momentum, and
-  support-edge cancellation; those layout counts again remain unchanged.
+  support-edge cancellation. The Scar-Jump slice advances state schema to
+  35/save format 34, content schema to 36 with fighter schema 32, and
+  inspection/browser view schema to 31 for the authored normal-wall-jump
+  launch, action window, brief invulnerability, and preserved air jump; those
+  layout counts again remain unchanged.
   Config/identity schema 2 remains current. The canonical save is 690 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
@@ -1307,6 +1311,28 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Owner execution and broader fighter/stage authored variations remain before
   `verified`.
 
+## Implemented in the Scar-Jump slice
+
+- The original fighter now authors a normal wall jump at 0.3 horizontal and
+  -0.5 vertical unit per tick, with a 24-tick `WALL_JUMP` action and four
+  initial invulnerability ticks.
+- An ordinary jump from the right ledge reaches the raised block wall. A fresh
+  full-away input at contact starts the wall jump without consuming the saved
+  air jump; either an aerial or that saved jump can cancel the action. An
+  early-away route misses the wall and remains the negative control.
+- State schema 35/save format 34 and `PFSAVE34` retain the 550-byte payload and
+  690-byte checkpoint while failing closed on the new action and tick range.
+  Content schema 36/fighter schema 32 hash the authored speeds, duration,
+  invulnerability, and enable flag. Inspection and browser view schema 31
+  version the unchanged 304-value layout.
+- The focused native movement oracle reaches 297 invariants, including the
+  production geometry, exact launch, preserved air jump, action lock and
+  cancels, negative timing control, and mid-action save/load future equality.
+  Browser startup repeats the route and exports `scar_jump_probe`.
+- Registry row 38, Scar Jump, advances from `planned` to `playable`. Owner
+  execution and broader fighter/stage authored variations remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1315,6 +1341,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - A fresh grounded Taunt edge must enter the authored locked recovery while
   preserving dash momentum. At a facing support edge, the existing teeter
   transition must cancel it; away from the edge, all 90 ticks must complete.
+- A right-ledge jump must reach the raised block wall. Fresh full-away input at
+  contact must enter the authored normal wall jump without consuming the saved
+  air jump, and either jump or aerial input must cancel its action window.
+  Holding away too early must miss the wall and cannot manufacture the route.
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
@@ -1414,7 +1444,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, moonwalk, planking, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, teeter cancel,
+  charge storage canceling, mindgame, moonwalk, planking, Scar Jump, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, teeter cancel,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1425,7 +1455,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 55 playable, 3 primitive-ready, and 2 planned.
+  blocked: 1 verified, 56 playable, 3 primitive-ready, and 1 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1458,8 +1488,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Release workflow: 22/22 tests.
 - Address/undefined-behavior sanitizer workflow: 21/21 tests; leak discovery
   disabled only for the restricted workspace.
-- Mechanical oracles: 285 movement invariants including Moonwalk timing,
-  Teeter-cancel, Taunt-cancel, and Stage-humping routes and controls, and mid-action
+- Mechanical oracles: 297 movement invariants including Moonwalk timing,
+  Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load; 584
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
@@ -1476,9 +1506,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,382
   bytes,
   replay SHA-256
-  `e04c09a50c2de94b589c64c58e86d248ed31f46d96caad1042197008ef4111b0`,
+  `f7c2eb48ad185a362a69854a95189e6aa165a3b8f58baaf4994aad05a5fc5d4e`,
   final SHA-256
-  `82fcbafc2aa277aa614cb1f2fc5a026a3984667f3c089f0e3b689c8fbbf2ab18`,
+  `29ace098d559ef2ebfe6789191ed978b95c9d210a42ed2d0f9125332695241fd`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1489,7 +1519,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Taunt-cancel/Stage-humping/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Taunt-cancel/Stage-humping/Scar-Jump/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

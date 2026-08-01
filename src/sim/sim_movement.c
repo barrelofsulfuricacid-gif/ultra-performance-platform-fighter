@@ -326,6 +326,38 @@ static int pf_m4_body_overlaps_solid(
            top < (int64_t)stage->solid_bottom_q16;
 }
 
+static int8_t pf_m4_wall_contact_away_direction(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16)
+{
+    const pf_m4_fighter_data *fighter = &content->fighter;
+    const pf_m4_stage_data *stage = &content->stage;
+    const int64_t body_top =
+        (int64_t)position_y_q16 - fighter->half_height_q16;
+    const int64_t body_bottom =
+        (int64_t)position_y_q16 + fighter->half_height_q16;
+    const int vertical_overlap =
+        body_bottom > (int64_t)stage->solid_top_q16 &&
+        body_top < (int64_t)stage->solid_bottom_q16;
+
+    if (!vertical_overlap)
+    {
+        return INT8_C(0);
+    }
+    if ((int64_t)position_x_q16 + fighter->half_width_q16 ==
+        (int64_t)stage->solid_left_q16)
+    {
+        return INT8_C(-1);
+    }
+    if ((int64_t)position_x_q16 - fighter->half_width_q16 ==
+        (int64_t)stage->solid_right_q16)
+    {
+        return INT8_C(1);
+    }
+    return INT8_C(0);
+}
+
 static pf_status pf_m4_apply_hitlag_shift(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -708,6 +740,11 @@ static int pf_m4_action_is_recovery_invulnerable(
                    fighter->air_dodge_invulnerability_begin_tick &&
                action_ticks <
                    fighter->air_dodge_invulnerability_end_tick;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_WALL_JUMP)
+    {
+        return action_ticks <
+               fighter->wall_jump_invulnerability_ticks;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
         action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD)
@@ -1651,6 +1688,25 @@ static void pf_m4_prepare_spawn(
     scratch->grab_owner_slot[player_index] = UINT8_C(0);
 }
 
+static void pf_m4_enter_wall_jump(
+    const pf_m4_fighter_data *fighter,
+    int8_t away_direction,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint16_t *action_ticks,
+    uint8_t *action_state,
+    uint8_t *fast_fall,
+    int8_t *facing)
+{
+    *velocity_x =
+        (int32_t)away_direction * fighter->wall_jump_speed_x_q16;
+    *velocity_y = -fighter->wall_jump_speed_y_q16;
+    *action_ticks = UINT16_C(0);
+    *action_state = (uint8_t)PF_M4_ACTION_WALL_JUMP;
+    *fast_fall = UINT8_C(0);
+    *facing = away_direction;
+}
+
 pf_status pf_m4_step_player(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -2345,6 +2401,30 @@ pf_status pf_m4_step_player(
 
     if (!ledge_motion_handled &&
         !hitstun_locked &&
+        grounded == UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+        fighter->wall_jump_enabled != UINT8_C(0) &&
+        strong_direction != INT8_C(0) &&
+        strong_direction != previous_strong_direction &&
+        strong_direction == pf_m4_wall_contact_away_direction(
+                                content,
+                                position_x,
+                                position_y))
+    {
+        pf_m4_enter_wall_jump(
+            fighter,
+            strong_direction,
+            &velocity_x,
+            &velocity_y,
+            &action_ticks,
+            &action_state,
+            &fast_fall,
+            &facing);
+        launched_this_tick = 1;
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
         action_state ==
             (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND &&
         shield_held == 0 &&
@@ -2356,6 +2436,7 @@ pf_status pf_m4_step_player(
 
     if (!ledge_motion_handled &&
         !hitstun_locked &&
+        action_state != (uint8_t)PF_M4_ACTION_WALL_JUMP &&
         special_pressed != 0)
     {
         const int charge_requested =
@@ -3962,6 +4043,50 @@ pf_status pf_m4_step_player(
                 air_target,
                 fighter->air_acceleration_q16);
         }
+        else if (action_state == (uint8_t)PF_M4_ACTION_WALL_JUMP)
+        {
+            if (strong_attack_pressed != 0)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK;
+                action_ticks = UINT16_C(0);
+                scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            }
+            else if (light_attack_pressed != 0)
+            {
+                action_state =
+                    (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+                action_ticks = UINT16_C(0);
+                scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            }
+            else if (jump_pressed != 0 &&
+                     air_jumps_remaining > UINT8_C(0))
+            {
+                velocity_y = -fighter->double_jump_speed_q16;
+                --air_jumps_remaining;
+                fast_fall = UINT8_C(0);
+                if (fighter->double_jump_cancel_ticks > UINT16_C(0))
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP;
+                    action_ticks = UINT16_C(0);
+                }
+                else
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                }
+            }
+            else
+            {
+                ++action_ticks;
+                if (action_ticks >= fighter->wall_jump_ticks)
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                }
+            }
+        }
         else
         {
             const int32_t air_target = pf_m4_scale_axis_q16(
@@ -4230,7 +4355,30 @@ pf_status pf_m4_step_player(
             }
             else
             {
-                velocity_x = INT32_C(0);
+                const int wall_jump_requested =
+                    grounded == UINT8_C(0) &&
+                    fighter->wall_jump_enabled != UINT8_C(0) &&
+                    action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                    strong_direction == away_direction &&
+                    strong_direction != previous_strong_direction;
+
+                if (wall_jump_requested != 0)
+                {
+                    pf_m4_enter_wall_jump(
+                        fighter,
+                        away_direction,
+                        &velocity_x,
+                        &velocity_y,
+                        &action_ticks,
+                        &action_state,
+                        &fast_fall,
+                        &facing);
+                    launched_this_tick = 1;
+                }
+                else
+                {
+                    velocity_x = INT32_C(0);
+                }
             }
         }
     }

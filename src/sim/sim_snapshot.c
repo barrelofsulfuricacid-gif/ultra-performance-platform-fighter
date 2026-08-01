@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x33)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x33), UINT8_C(0x34)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -1244,7 +1244,11 @@ static int pf_m4_snapshot_content_state_consistent(
             (action == (uint8_t)PF_M4_ACTION_CROUCH_STEP &&
              action_ticks >= content->fighter.crouch_step_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_TAUNT &&
-             action_ticks >= content->fighter.taunt_ticks))
+             action_ticks >= content->fighter.taunt_ticks) ||
+            (action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
+             action_ticks >= content->fighter.wall_jump_ticks) ||
+            (resume_action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
+             action_ticks >= content->fighter.wall_jump_ticks))
         {
             return 0;
         }
@@ -1307,6 +1311,7 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
                action !=
                    (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
+               action != (uint8_t)PF_M4_ACTION_WALL_JUMP &&
                action != (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                action != (uint8_t)PF_M4_ACTION_AIR_DODGE &&
                action != (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
@@ -1327,6 +1332,7 @@ static int pf_m4_player_state_consistent(
     }
     if (action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         action == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        action == (uint8_t)PF_M4_ACTION_WALL_JUMP ||
         action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
         action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
@@ -1588,7 +1594,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_TAUNT ||
+                action > (uint8_t)PF_M4_ACTION_WALL_JUMP ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1717,8 +1723,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_JAB_FINAL &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_RESET_BOUND &&
-                 resume_action !=
-                     (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
+                  resume_action !=
+                      (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
+                  resume_action !=
+                      (uint8_t)PF_M4_ACTION_WALL_JUMP &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
                  resume_action !=
@@ -1786,6 +1794,15 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   tumble != UINT8_C(0) ||
                   world->grounded[player_index] != UINT8_C(0) ||
                   world->action_ticks[player_index] >= UINT16_C(120) ||
+                  world->pending_velocity_x_q16[player_index] !=
+                      INT32_C(0) ||
+                   world->pending_velocity_y_q16[player_index] !=
+                       INT32_C(0))) ||
+                (resume_action ==
+                     (uint8_t)PF_M4_ACTION_WALL_JUMP &&
+                 (hitstun != UINT16_C(0) ||
+                  tumble != UINT8_C(0) ||
+                  world->grounded[player_index] != UINT8_C(0) ||
                   world->pending_velocity_x_q16[player_index] !=
                       INT32_C(0) ||
                   world->pending_velocity_y_q16[player_index] !=
@@ -1938,6 +1955,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                    action == (uint8_t)PF_M4_ACTION_TEETER ||
                    action == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
                    action == (uint8_t)PF_M4_ACTION_TAUNT ||
+                   action == (uint8_t)PF_M4_ACTION_WALL_JUMP ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||
