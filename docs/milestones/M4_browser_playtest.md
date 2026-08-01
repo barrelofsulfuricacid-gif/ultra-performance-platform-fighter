@@ -9,6 +9,8 @@ with ordinary/boost-grab routes, a production two-hit jab with shield cancel
 and a weak-hit jab-reset route,
 and four directional
 throws with a low-percent chain-grab route,
+an optional four-player Team Wobble Lab with alternating allied down-throw and
+fresh-grab handoffs against a legally mashing victim,
 one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
 plus bat-drop, glide-toss, and jump-cancel-throw routes,
 one fixed Pulse Bolt with grounded/aerial fire, hit, shield block, and
@@ -31,9 +33,10 @@ hit-reaction, and dense-shield
 primitives plus a four-stock KO, respawn, invulnerability, sudden-death, and
 result/rematch loop and a deterministic combat-event feed in
 WebAssembly. It is no longer the
-disposable M0 float32/Q16.16 comparison. Both visible players use the same
-validated M4 fighter and stage content used by native, replay, rollback, and
-headless execution.
+disposable M0 float32/Q16.16 comparison. The default duel's two visible
+players, and all four fighters in the optional team lab, use the same validated
+M4 fighter and stage content used by native, replay, rollback, and headless
+execution.
 
 ## Controls
 
@@ -46,6 +49,7 @@ headless execution.
 | Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
 | Taunt / Taunt cancel | `T`; while dashing toward an edge, release horizontal and press `T` just before crossing | `,`; use the same edge timing |
 | Scar Jump | From the right ledge, jump inward with `W`/Space, then freshly press full `D` at the raised-block wall; cancel with Jump or Attack | From the right ledge, jump inward with Up, then freshly press full Right at the wall; cancel with Jump or Attack |
+| Team Wobble Lab | Click `Team Wobble Lab`; physical Player 1 controls allied P1 | Physical Player 2 controls allied P3; P2 auto-mashes and P4 stays neutral |
 | Jump | `W` or `Space` | Up |
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
@@ -77,6 +81,8 @@ Burst, up plus top face starts or resumes Arc Reservoir, Back/View taunts, and a
     shoulder/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
 are ignored rather than guessed.
+In Team Wobble Lab, the two physical controller assignments deliberately map
+to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
 Unmodified horizontal keys emit full stick magnitude and can enter initial
 dash. Reversing them during the ten-tick initial-dash window performs a
@@ -386,6 +392,15 @@ launches outward and upward without spending the air jump; press Jump to spend
 that saved jump or Attack to cancel into an aerial. Holding right immediately
 after the ledge jump is the negative route: it changes the approach before wall
 contact and never enters `WALL JUMP`.
+
+For a Team Wobble handoff, click `Team Wobble Lab`. P1 and P3 are allied and
+stand on opposite sides of P2; P2 emits ordinary alternating mash edges only
+while captured, and P4 stays neutral. Capture P2 with one ally, then hold down
+and freshly press Attack with that holder while the opposite ally freshly
+presses light plus shield. The low throw releases P2 into the waiting grab.
+Repeat from the opposite side. For the negative route, start the waiting grab
+during the initial capture and confirm its active window expires before release
+so P2 escapes. Click `Return to Duel Lab` to restore the ordinary item match.
 
 For an edge hop, wait until `LEDGE HANG`, tap down to release, then release down
 and press jump while holding toward the stage on the next tick. The fresh jump
@@ -785,6 +800,10 @@ registry row can advance from `playable` to `verified`.
     bolt resolves, and confirm the approaching Player 2 remains outside melee
     range while taking repeated projectile hits. Reset, omit Special, and
     confirm the same continuous approach reaches Player 1 and lands a jab.
+52. Click `Team Wobble Lab`. Use P1 to grab P2, then start P1's down throw and
+    P3's fresh light-plus-shield grab together. Repeat with P3 throwing and P1
+    waiting; confirm the reciprocal grab owner alternates. Reset the lab, spend
+    P3's grab during P1's initial capture, then throw and confirm P2 escapes.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -875,6 +894,10 @@ through:
 - all four full-direction throws with exact typed release events, a neutral
   attack remaining in `GRAB HOLD`, and a three-down-throw/two-regrab chain
   before default content is restored;
+- two alternating four-player team handoffs using the production low down
+  throw and fresh allied grab while the victim legally mashes, plus an early
+  waiting-grab control; the live lab separately verifies that physical Player
+  2 maps to allied simulation slot P3;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows without changing facing;
@@ -969,6 +992,7 @@ jump_cancel_probe=pass
 edge_hop_probe=pass edge_dash_probe=pass
 fox_trot_probe=pass moonwalk_probe=pass teeter_cancel_probe=pass
 stage_humping_probe=pass taunt_cancel_probe=pass scar_jump_probe=pass
+team_wobble_probe=pass
 pivot_probe=pass dash_cancel_probe=pass
 dashing_shield_probe=pass shield_platform_drop_probe=pass
 small_step_forward_smash_probe=pass
@@ -988,6 +1012,7 @@ ground_dodge_probe=pass
 aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass
 camping_probe=pass
 shine_spike_probe=pass charge_storage_probe=pass gamepad_probe=pass
-gamepad_api=available controls=keyboard-gamepad-two-player` only after all checks
+gamepad_api=available
+controls=keyboard-gamepad-two-controller-duel-team-lab` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

@@ -1333,6 +1333,30 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   execution and broader fighter/stage authored variations remain before
   `verified`.
 
+## Implemented in the Team-Wobble slice
+
+- No new combat action or canonical state was added. Four-player team mode,
+  reciprocal grab links, same-team rejection, the existing low down throw,
+  hitlag, grab recovery, and ordinary fresh light-plus-shield input compose the
+  alternating handoff.
+- A narrow 0.4-unit-spacing team lab assigns allied P1 and P3 to the two
+  physical controller slots, gives captured P2 ordinary alternating mash
+  edges, and leaves P4 neutral. The live browser button switches between this
+  fixture and the default item duel without presentation-owned simulation.
+- The focused combat oracle reaches 596 invariants and performs two typed
+  down-throw/fresh-grab handoffs with reciprocal owner/target links and exact
+  accumulated damage. Its early-waiting-grab control spends the active window
+  before release and lets the victim escape.
+- Canonical state schema 35, save format 34, content schema 36, input schema 5,
+  and inspection schema 31 remain unchanged. Browser view schema 32 expands
+  the view from 304 to 392 values by exposing the existing P3/P4 inspection
+  records before the shifted event, item, and projectile blocks.
+- Browser startup exports `team_wobble_probe`; the live adapter renders four
+  fighter cards, maps the second controller to simulation slot 2, and exposes
+  the handoff recipe. Registry row 54 advances from `planned` to `playable`;
+  owner execution and complete cross-target/replay evidence remain before
+  `verified`.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1444,7 +1468,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, camping, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, infinite, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  charge storage canceling, mindgame, moonwalk, planking, Scar Jump, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, teeter cancel,
+  charge storage canceling, mindgame, moonwalk, planking, Scar Jump, shield platform dropping, Shine spike, short hop air dodge, short hop laser, small step forward smash, Stage humping, stalling, taunt cancelling, Team wobble, teeter cancel,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1455,7 +1479,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 56 playable, 3 primitive-ready, and 1 planned.
+  blocked: 1 verified, 57 playable, 3 primitive-ready, and 0 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1490,7 +1514,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   disabled only for the restricted workspace.
 - Mechanical oracles: 297 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
-  save/load; 584
+  save/load; 596
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
@@ -1519,7 +1543,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Strict-warning native adapter contract: pass
   (`walk_axis=13500`, `dash_axis=32767`,
-  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Taunt-cancel/Stage-humping/Scar-Jump/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
+  movement/instant-double-jump/double-jump-cancel/double-jump-cancel-counter/bat-drop/glide-toss/jump-cancel-throw/jump-cancel/fox-trot/moonwalk/teeter-cancel/Taunt-cancel/Stage-humping/Scar-Jump/Team-Wobble/pivot-dash-cancel/dashing-shield/small-step-forward-smash/drop-cancel/V-cancel/approach/spacing/sharking/cross-up/mindgame/juggling/ladder/kill-confirm/zero-to-death/ledge-cancel/planking-and-stalling/jump-canceled-grab/boost-grab/jab-cancel/jab-reset/directional-throw-and-chain-grab/
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/

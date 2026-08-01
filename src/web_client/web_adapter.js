@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -462,6 +462,7 @@ mergeInto(LibraryManager.library, {
     stageHumpingProbePassed,
     tauntCancelProbePassed,
     scarJumpProbePassed,
+    teamWobbleProbePassed,
     pivotProbePassed,
     dashCancelProbePassed,
     dashingShieldProbePassed,
@@ -757,6 +758,7 @@ mergeInto(LibraryManager.library, {
     section.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
+    section.dataset.teamLab = "inactive";
     section.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
     section.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
     section.dataset.jumpCancelThrowProbe =
@@ -777,6 +779,8 @@ mergeInto(LibraryManager.library, {
     section.dataset.tauntCancelProbe =
       tauntCancelProbePassed ? "pass" : "fail";
     section.dataset.scarJumpProbe = scarJumpProbePassed ? "pass" : "fail";
+    section.dataset.teamWobbleProbe =
+      teamWobbleProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -812,6 +816,7 @@ mergeInto(LibraryManager.library, {
       stageHumpingProbePassed &&
       tauntCancelProbePassed &&
       scarJumpProbePassed &&
+      teamWobbleProbePassed &&
       pivotProbePassed &&
       dashCancelProbePassed &&
       dashingShieldProbePassed &&
@@ -877,6 +882,10 @@ mergeInto(LibraryManager.library, {
     var resetButton = document.createElement("button");
     resetButton.type = "button";
     resetButton.textContent = "Reset";
+    var teamLabButton = document.createElement("button");
+    teamLabButton.type = "button";
+    teamLabButton.textContent = "Team Wobble Lab";
+    teamLabButton.setAttribute("aria-pressed", "false");
     var tickLabel = document.createElement("span");
     tickLabel.className = "pf-m4-tick";
     tickLabel.textContent = "tick 0 · fixed 60 Hz";
@@ -888,6 +897,7 @@ mergeInto(LibraryManager.library, {
     toolbar.appendChild(pauseButton);
     toolbar.appendChild(stepButton);
     toolbar.appendChild(resetButton);
+    toolbar.appendChild(teamLabButton);
     toolbar.appendChild(gamepadLabel);
     toolbar.appendChild(tickLabel);
     section.appendChild(toolbar);
@@ -1008,6 +1018,12 @@ mergeInto(LibraryManager.library, {
       "to facing, while up/down select the vertical throws. Low-percent down " +
       "throws can lead to another grab; accumulated percent and outward DI move " +
       "the defender beyond the regrab window. " +
+      "Use Team Wobble Lab for the four-fighter team fixture: Player 1 controls " +
+      "P1, Player 2 controls allied P3, P2 automatically performs legal mash " +
+      "inputs, and P4 stays neutral. After either ally grabs P2, press down + " +
+      "attack with the holder while the other ally freshly presses light + " +
+      "shield; repeat from the opposite side. Starting the waiting grab early " +
+      "spends its active window and lets P2 escape. " +
       "The gold Relay Rod starts left of Player 1. Near it, light plus shield " +
       "picks it up; while holding it, light or strong plus a direction throws, " +
       "and light plus shield drops it, including an aerial bat drop. Start a " +
@@ -1034,11 +1050,12 @@ mergeInto(LibraryManager.library, {
     var stateGrid = document.createElement("div");
     stateGrid.className = "pf-m4-state-grid";
     var playerStates = [];
-    [0, 1].forEach(function (player) {
+    [0, 1, 2, 3].forEach(function (player) {
       var card = document.createElement("div");
       card.className = "pf-m4-state";
       card.id = "pf-m4-player-" + player;
       card.textContent = "P" + (player + 1) + " waiting for first state";
+      card.hidden = player > 1;
       stateGrid.appendChild(card);
       playerStates.push(card);
     });
@@ -1095,6 +1112,7 @@ mergeInto(LibraryManager.library, {
       pauseButton: pauseButton,
       playerStates: playerStates,
       resetButton: resetButton,
+      teamLabButton: teamLabButton,
       attackQueued: [false, false],
       strongAttackQueued: [false, false],
       jumpQueued: [false, false],
@@ -1102,6 +1120,7 @@ mergeInto(LibraryManager.library, {
       specialQueued: [false, false],
       tauntQueued: [false, false],
       strongAerialLandingLagTicks: strongAerialLandingLagTicks,
+      teamLabActive: false,
       running: true,
       tickLabel: tickLabel,
       walkAxis: walkAxis,
@@ -1262,6 +1281,43 @@ mergeInto(LibraryManager.library, {
       }
     }
 
+    function toggleTeamLab() {
+      var nextActive = !state.teamLabActive;
+
+      state.keys = Object.create(null);
+      state.jumpQueued = [false, false];
+      state.attackQueued = [false, false];
+      state.strongAttackQueued = [false, false];
+      state.shieldQueued = [false, false];
+      state.specialQueued = [false, false];
+      state.tauntQueued = [false, false];
+      state.eventLog = [];
+      state.lastEventSequence = 0;
+      state.teamLabActive = nextActive;
+      if (!Module._pf_web_m4_playtest_set_team_lab(nextActive ? 1 : 0)) {
+        state.teamLabActive = !nextActive;
+        if (status) {
+          status.textContent += " team_lab_runtime=fail";
+          status.dataset.teamLabRuntime = "fail";
+        }
+        return;
+      }
+      state.teamLabButton.textContent = nextActive
+        ? "Return to Duel Lab"
+        : "Team Wobble Lab";
+      state.teamLabButton.setAttribute(
+        "aria-pressed",
+        nextActive ? "true" : "false"
+      );
+      section.dataset.teamLab = nextActive ? "active" : "inactive";
+      state.gamepadLabel.textContent = nextActive
+        ? "team lab: controls P1/P3 · P2 auto-mashes"
+        : gamepadApiAvailable
+          ? "standard gamepads 0/2"
+          : "gamepad API unavailable";
+      setRunning(true);
+    }
+
     function frame(time) {
       if (state.running) {
         if (!state.lastTime) {
@@ -1289,6 +1345,7 @@ mergeInto(LibraryManager.library, {
       }
     });
     resetButton.addEventListener("click", reset);
+    teamLabButton.addEventListener("click", toggleTeamLab);
 
     window.addEventListener(
       "keydown",
@@ -1422,6 +1479,8 @@ mergeInto(LibraryManager.library, {
         (tauntCancelProbePassed ? "pass" : "fail") +
         " scar_jump_probe=" +
         (scarJumpProbePassed ? "pass" : "fail") +
+        " team_wobble_probe=" +
+        (teamWobbleProbePassed ? "pass" : "fail") +
         " pivot_probe=" +
         (pivotProbePassed ? "pass" : "fail") +
         " dash_cancel_probe=" +
@@ -1508,7 +1567,7 @@ mergeInto(LibraryManager.library, {
         (gamepadProbePassed ? "pass" : "fail") +
         " gamepad_api=" +
         (gamepadApiAvailable ? "available" : "unavailable") +
-        " controls=keyboard-gamepad-two-player";
+        " controls=keyboard-gamepad-two-controller-duel-team-lab";
       status.dataset.playtest =
         gamepadApiAvailable && gamepadProbePassed ? "ready" : "fail";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
@@ -1538,6 +1597,8 @@ mergeInto(LibraryManager.library, {
         tauntCancelProbePassed ? "pass" : "fail";
       status.dataset.scarJumpProbe =
         scarJumpProbePassed ? "pass" : "fail";
+      status.dataset.teamWobbleProbe =
+        teamWobbleProbePassed ? "pass" : "fail";
       status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
       status.dataset.dashCancelProbe =
         dashCancelProbePassed ? "pass" : "fail";
@@ -1615,7 +1676,7 @@ mergeInto(LibraryManager.library, {
       status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
-      status.dataset.controls = "keyboard-gamepad-two-player";
+      status.dataset.controls = "keyboard-gamepad-two-controller-duel-team-lab";
     }
     requestAnimationFrame(frame);
   },
@@ -1623,7 +1684,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 304) {
+    if (!state || viewCount !== 392) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -1632,7 +1693,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 31) {
+    if (view[0] !== 32) {
       return;
     }
     var canvas = state.canvas;
@@ -1645,7 +1706,7 @@ mergeInto(LibraryManager.library, {
     var padding = 34;
     var usableWidth = canvas.width - padding * 2;
     var usableHeight = canvas.height - padding * 2;
-    var colors = ["#55e6d0", "#ff7695"];
+    var colors = ["#55e6d0", "#ff7695", "#8ee28d", "#ffd166"];
     var actionNames = [
       "IDLE",
       "WALK",
@@ -1902,10 +1963,10 @@ mergeInto(LibraryManager.library, {
       });
     }
 
-    var eventCount = Math.max(0, Math.min(16, view[113]));
+    var eventCount = Math.max(0, Math.min(16, view[201]));
     var eventIndex;
     for (eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
-      var eventBase = 114 + eventIndex * 10;
+      var eventBase = 202 + eventIndex * 10;
       var sequence = view[eventBase];
       if (sequence <= state.lastEventSequence) {
         continue;
@@ -2018,7 +2079,7 @@ mergeInto(LibraryManager.library, {
     );
     context.restore();
 
-    var itemBase = 274;
+    var itemBase = 362;
     var itemStateCode = view[itemBase + 1];
     if (view[itemBase] !== 0 && itemStateCode > 0 && itemStateCode < 4) {
       var itemWorldX = view[itemBase + 6];
@@ -2093,7 +2154,7 @@ mergeInto(LibraryManager.library, {
       context.fillText("RELAY ROD", itemX, itemY - Math.max(10, itemHeight) / 2 - 8);
     }
 
-    var projectileBase = 292;
+    var projectileBase = 380;
     var projectileStateCode = view[projectileBase + 1];
     if (
       view[projectileBase] !== 0 &&
@@ -2149,7 +2210,14 @@ mergeInto(LibraryManager.library, {
       context.restore();
     }
 
-    [0, 1].forEach(function (playerIndex) {
+    var livePlayerCount = state.teamLabActive ? 4 : 2;
+    state.playerStates.forEach(function (card, playerIndex) {
+      card.hidden = playerIndex >= livePlayerCount;
+    });
+    [0, 1, 2, 3].forEach(function (playerIndex) {
+      if (playerIndex >= livePlayerCount) {
+        return;
+      }
       var base = 25 + playerIndex * 44;
       var x = sx(view[base]);
       var y = sy(view[base + 1]);
@@ -2583,7 +2651,21 @@ mergeInto(LibraryManager.library, {
       var resultColor;
 
       if (view[22] !== 0) {
-        if ((view[24] & 1) !== 0 && (view[24] & 2) === 0) {
+        if (
+          state.teamLabActive &&
+          (view[24] & 5) !== 0 &&
+          (view[24] & 10) === 0
+        ) {
+          resultLabel = "TEAM P1/P3 WINS";
+          resultColor = colors[0];
+        } else if (
+          state.teamLabActive &&
+          (view[24] & 10) !== 0 &&
+          (view[24] & 5) === 0
+        ) {
+          resultLabel = "TEAM P2/P4 WINS";
+          resultColor = colors[1];
+        } else if ((view[24] & 1) !== 0 && (view[24] & 2) === 0) {
           resultLabel = "PLAYER 1 WINS";
           resultColor = colors[0];
         } else if ((view[24] & 2) !== 0 && (view[24] & 1) === 0) {
@@ -2627,7 +2709,8 @@ mergeInto(LibraryManager.library, {
       view[1] +
       " · fixed 60 Hz · " +
       view[18] +
-      "-stock match";
+      "-stock " +
+      (state.teamLabActive ? "Team Wobble lab" : "duel");
     state.resetButton.textContent = view[22] !== 0 ? "Rematch" : "Reset";
     if (view[22] !== 0 || view[23] !== 0) {
       state.running = false;

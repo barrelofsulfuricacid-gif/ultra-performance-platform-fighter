@@ -184,6 +184,14 @@ horizontal and vertical speeds, action duration, brief invulnerability, and
 enable flag. Inspection and browser view schema 31 version the new action
 interpretation without changing the 304-value layout; input, observation, and
 RL schemas remain unchanged.
+Browser view schema 32 is presentation-only and expands that layout to 392
+values by exposing all four already-canonical player inspection records. Each
+player keeps the 44-value layout at base 25; event count is at 201, 16
+ten-value event records begin at 202, the 18-value item record begins at 362,
+and the 12-value projectile record begins at 380. Canonical state schema 35,
+save format 34, content schema 36, input schema 5, inspection schema 31,
+observation schema 5, RL schema 7, compact schema 6, and 66 compact values are
+unchanged.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

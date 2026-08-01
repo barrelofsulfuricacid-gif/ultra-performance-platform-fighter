@@ -1214,14 +1214,45 @@ the early-away negative, and a 690-byte mid-action save/load with equal future
 hashes. Browser startup repeats the positive and negative routes and exports an
 independent `scar_jump_probe` before readiness.
 
+## Team-Wobble handoff contract
+
+The optional four-player browser lab uses production `PF_SIM_MODE_TEAMS` with
+P1/P3 allied against P2/P4. The stage uses 0.4-unit spawn spacing and moves the
+pass-through platform outside the handoff lane; it changes no fighter or throw
+data. P1 and P3 remain ordinary player-controlled fighters, captured P2 emits
+alternating legal mash edges, and P4 stays neutral.
+
+Once one ally holds P2, that holder starts the existing low down throw while
+the opposite ally makes a fresh light-plus-shield grab request. The throw
+clears the first reciprocal link, applies its ordinary hitlag and damage, and
+the waiting active grabbox creates the next reciprocal link after release.
+Repeating from the opposite side produces two alternating typed throw and grab
+events. Starting the waiting grab during the initial capture spends its active
+window before the throw releases, so P2 escapes instead. This is the original
+fixture for the researched [Team wobble](https://www.ssbwiki.com/Team_wobble)
+pattern and adds no technique-only combat branch.
+
+`tests/sim/test_m4_combat.c` covers both handoffs, exact event attribution,
+links, damage, legal victim mash, same-team rejection, and the early-grab
+control. Browser startup independently repeats the positive and negative route
+and exports `team_wobble_probe`; the live Team Wobble Lab maps the second
+physical controller to simulation slot 2 rather than the scripted victim.
+
 ## Canonical state and inspection
+
+Browser view schema 32 expands the presentation-only view from 304 to 392
+values so all four existing inspection records can be rendered. Player blocks
+remain 44 values each at base 25; event count moves to 201, the 16 ten-value
+event entries start at 202, the 18-value item block starts at 362, and the
+12-value projectile block starts at 380. No canonical state, save, content,
+input, inspection, observation, or RL schema changes.
 
 State schema 35 / save format 34 retains the 690-byte stream (140-byte header
 plus 550-byte payload), changes the active magic to `PFSAVE34`, and makes the
 Wall-Jump action ID, airborne state, authored tick range, brief
 invulnerability, preserved air jump, wall-contact entry, and legal jump/aerial
-cancels fail closed. Inspection schema 31 and browser view schema 31 version
-the action interpretation without changing the 304-value browser layout.
+cancels fail closed. Inspection schema 31 and browser view schema 31 versioned
+the action interpretation without changing the former 304-value browser layout.
 Content schema 36/fighter schema 32 add and hash the authored speeds, duration,
 invulnerability, and enable flag. Input schema 5, structured observation schema
 5, RL schema 7, compact observation schema 6, and its 66 values remain

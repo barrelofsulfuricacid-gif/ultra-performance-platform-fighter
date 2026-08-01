@@ -245,7 +245,7 @@ function(pf_add_smoke_product target product_name render_probe)
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
-                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset"
+                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_set_team_lab"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(
@@ -524,7 +524,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=36 deterministic_ticks=20000 combat_invariants=584 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1")
+                   "m4-combat=pass content_schema=36 deterministic_ticks=20000 combat_invariants=596 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1 team_wobble=1")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)
@@ -625,7 +625,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 moonwalk_probe=1 teeter_cancel_probe=1 stage_humping_probe=1 taunt_cancel_probe=1 scar_jump_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 camping_probe=1 shine_spike_probe=1 charge_storage_probe=1 event_journal_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 moonwalk_probe=1 teeter_cancel_probe=1 stage_humping_probe=1 taunt_cancel_probe=1 scar_jump_probe=1 team_wobble_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 camping_probe=1 shine_spike_probe=1 charge_storage_probe=1 event_journal_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)

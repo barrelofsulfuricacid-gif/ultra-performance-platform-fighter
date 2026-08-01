@@ -100,6 +100,29 @@ static int make_grab_content(
         "grab-content-view");
 }
 
+static int make_team_wobble_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "team-wobble-default-content"))
+    {
+        return 0;
+    }
+
+    out_content->stage.spawn_spacing_q16 =
+        (INT32_C(2) * PF_Q16_ONE) / INT32_C(5);
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "team-wobble-content-view");
+}
+
 static int make_boost_grab_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -14388,6 +14411,342 @@ static int run_grab_damage_escape_test(
     return 1;
 }
 
+static int step_team_handoff(
+    pf_sim *sim,
+    int16_t player0_y,
+    uint64_t player0_buttons,
+    uint16_t player0_trigger,
+    uint64_t victim_buttons,
+    int16_t player2_y,
+    uint64_t player2_buttons,
+    uint16_t player2_trigger,
+    pf_m4_inspection *out_inspection)
+{
+    const int16_t axes_x[PF_SIM_MAX_PLAYERS] = {
+        INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0)};
+    int16_t axes_y[PF_SIM_MAX_PLAYERS] = {
+        INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0)};
+    uint64_t buttons[PF_SIM_MAX_PLAYERS] = {
+        UINT64_C(0), UINT64_C(0), UINT64_C(0), UINT64_C(0)};
+    uint16_t triggers[PF_SIM_MAX_PLAYERS] = {
+        UINT16_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(0)};
+
+    axes_y[0] = player0_y;
+    axes_y[2] = player2_y;
+    buttons[0] = player0_buttons;
+    buttons[1] = victim_buttons;
+    buttons[2] = player2_buttons;
+    triggers[0] = player0_trigger;
+    triggers[2] = player2_trigger;
+    return step_players_with_triggers(
+        sim,
+        UINT8_C(4),
+        axes_x,
+        axes_y,
+        buttons,
+        triggers,
+        out_inspection);
+}
+
+static int run_team_handoff_route(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage route_storage;
+    test_sim_storage missed_storage;
+    pf_sim *route = NULL;
+    pf_sim *missed = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+    uint32_t throw_events = UINT32_C(0);
+    uint32_t handoff_events = UINT32_C(0);
+    int initial_capture = 0;
+
+    if (!initialize_sim(
+            &route_storage,
+            view,
+            UINT8_C(4),
+            PF_SIM_MODE_TEAMS,
+            1,
+            &route) ||
+        !step_team_handoff(
+            route,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        const pf_sim_event *grab_event =
+            find_last_tick_event(PF_SIM_EVENT_GRAB);
+
+        if (grab_event != NULL)
+        {
+            initial_capture =
+                grab_event->source_player == UINT8_C(0) &&
+                grab_event->target_player == UINT8_C(1);
+            break;
+        }
+        if (!step_team_handoff(
+                route,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (initial_capture == 0 ||
+        inspection.players[0].grab_target != UINT8_C(1) ||
+        inspection.players[1].grab_owner != UINT8_C(0))
+    {
+        return fail("team-handoff-initial-capture");
+    }
+
+    if (!step_team_handoff(
+            route,
+            INT16_MAX,
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        const pf_sim_event *throw_event =
+            find_last_tick_event(PF_SIM_EVENT_THROW);
+        const pf_sim_event *grab_event =
+            find_last_tick_event(PF_SIM_EVENT_GRAB);
+
+        if (throw_event != NULL &&
+            throw_event->source_player == UINT8_C(0) &&
+            throw_event->target_player == UINT8_C(1))
+        {
+            ++throw_events;
+        }
+        if (grab_event != NULL &&
+            grab_event->source_player == UINT8_C(2) &&
+            grab_event->target_player == UINT8_C(1))
+        {
+            ++handoff_events;
+            break;
+        }
+        if (!step_team_handoff(
+                route,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                (tick & UINT32_C(1)) == UINT32_C(0)
+                    ? UINT64_C(0)
+                    : PF_INPUT_BUTTON_JUMP,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (throw_events != UINT32_C(1) ||
+        handoff_events != UINT32_C(1) ||
+        inspection.players[2].grab_target != UINT8_C(1) ||
+        inspection.players[1].grab_owner != UINT8_C(2))
+    {
+        return fail("team-handoff-player2-capture");
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+        if (!step_team_handoff(
+                route,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                (tick & UINT32_C(1)) == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(32) ||
+        !step_team_handoff(
+            route,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            PF_INPUT_BUTTON_JUMP,
+            INT16_MAX,
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("team-handoff-player0-ready");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
+    {
+        const pf_sim_event *throw_event =
+            find_last_tick_event(PF_SIM_EVENT_THROW);
+        const pf_sim_event *grab_event =
+            find_last_tick_event(PF_SIM_EVENT_GRAB);
+
+        if (throw_event != NULL &&
+            throw_event->source_player == UINT8_C(2) &&
+            throw_event->target_player == UINT8_C(1))
+        {
+            ++throw_events;
+        }
+        if (grab_event != NULL &&
+            grab_event->source_player == UINT8_C(0) &&
+            grab_event->target_player == UINT8_C(1))
+        {
+            ++handoff_events;
+            break;
+        }
+        if (!step_team_handoff(
+                route,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                (tick & UINT32_C(1)) == UINT32_C(0)
+                    ? UINT64_C(0)
+                    : PF_INPUT_BUTTON_ATTACK,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (throw_events != UINT32_C(2) ||
+        handoff_events != UINT32_C(2) ||
+        inspection.players[0].grab_target != UINT8_C(1) ||
+        inspection.players[1].grab_owner != UINT8_C(0) ||
+        inspection.players[1].damage_q16 !=
+            UINT32_C(2) * content->fighter.down_throw.damage_q16)
+    {
+        return fail("team-handoff-player0-recapture");
+    }
+
+    if (!initialize_sim(
+            &missed_storage,
+            view,
+            UINT8_C(4),
+            PF_SIM_MODE_TEAMS,
+            1,
+            &missed) ||
+        !step_team_handoff(
+            missed,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            UINT64_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        if (inspection.players[0].grab_target == UINT8_C(1) &&
+            inspection.players[2].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+        if (!step_team_handoff(
+                missed,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(20) ||
+        !step_team_handoff(
+            missed,
+            INT16_MAX,
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("team-handoff-missed-setup");
+    }
+    initial_capture = 0;
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
+    {
+        const pf_sim_event *grab_event =
+            find_last_tick_event(PF_SIM_EVENT_GRAB);
+
+        if (grab_event != NULL &&
+            grab_event->source_player == UINT8_C(2) &&
+            grab_event->target_player == UINT8_C(1))
+        {
+            initial_capture = 1;
+        }
+        if (!step_team_handoff(
+                missed,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                (tick & UINT32_C(1)) == UINT32_C(0)
+                    ? UINT64_C(0)
+                    : PF_INPUT_BUTTON_JUMP,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (initial_capture != 0 ||
+        inspection.players[1].grab_owner != PF_SIM_EVENT_NO_PLAYER)
+    {
+        return fail("team-handoff-early-grab-negative");
+    }
+    return 1;
+}
+
 static int run_grab_team_resolution_test(
     const pf_content_view *view)
 {
@@ -15339,6 +15698,7 @@ int main(void)
     pf_m4_content grab_close_content;
     pf_m4_content grab_far_content;
     pf_m4_content grab_damage_content;
+    pf_m4_content team_wobble_content;
     pf_m4_content chain_grab_escape_content;
     pf_m4_content boost_grab_content;
     pf_m4_content jab_cancel_close_content;
@@ -15370,6 +15730,7 @@ int main(void)
     pf_content_view grab_close_view;
     pf_content_view grab_far_view;
     pf_content_view grab_damage_view;
+    pf_content_view team_wobble_view;
     pf_content_view chain_grab_escape_view;
     pf_content_view boost_grab_view;
     pf_content_view jab_cancel_close_view;
@@ -15456,6 +15817,9 @@ int main(void)
         !make_grab_damage_content(
             &grab_damage_content,
             &grab_damage_view) ||
+        !make_team_wobble_content(
+            &team_wobble_content,
+            &team_wobble_view) ||
         !make_chain_grab_escape_content(
             &chain_grab_escape_content,
             &chain_grab_escape_view) ||
@@ -15780,7 +16144,10 @@ int main(void)
             &chain_grab_escape_content,
             &chain_grab_escape_view) ||
         !run_grab_damage_escape_test(&grab_damage_view) ||
-        !run_grab_team_resolution_test(&grab_close_view) ||
+        !run_grab_team_resolution_test(&team_wobble_view) ||
+        !run_team_handoff_route(
+            &team_wobble_content,
+            &team_wobble_view) ||
         !run_hitlag_snapshot_test(&view) ||
         !run_shield_hitlag_snapshot_test(&view) ||
         !run_deterministic_trace(&view))
@@ -15790,7 +16157,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=584 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1\n",
+        " combat_invariants=596 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

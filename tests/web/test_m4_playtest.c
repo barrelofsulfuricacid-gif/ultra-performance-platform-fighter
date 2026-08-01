@@ -4,10 +4,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 304
+#define TEST_VIEW_COUNT 392
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 44
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
+#define TEST_PLAYER2_BASE (TEST_PLAYER1_BASE + TEST_PLAYER_STRIDE)
+#define TEST_PLAYER3_BASE (TEST_PLAYER2_BASE + TEST_PLAYER_STRIDE)
+#define TEST_ACTION_GRAB 49
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
 #define TEST_SOLID_TOP 16
@@ -33,8 +36,8 @@
 #define TEST_PLAYER_GRAB_ESCAPE_TICKS 40
 #define TEST_PLAYER_GRAB_TARGET 41
 #define TEST_PLAYER_GRAB_OWNER 42
-#define TEST_EVENT_COUNT 113
-#define TEST_EVENT0 114
+#define TEST_EVENT_COUNT 201
+#define TEST_EVENT0 202
 #define TEST_EVENT_SEQUENCE 0
 #define TEST_EVENT_TICK 1
 #define TEST_EVENT_TYPE 2
@@ -42,7 +45,7 @@
 #define TEST_EVENT_TARGET 4
 #define TEST_EVENT_VALUE 5
 #define TEST_EVENT_DETAIL 9
-#define TEST_ITEM_BASE 274
+#define TEST_ITEM_BASE 362
 #define TEST_ITEM_ENABLED 0
 #define TEST_ITEM_STATE 1
 #define TEST_ITEM_HOLDER 2
@@ -61,7 +64,7 @@
 #define TEST_ITEM_HALF_HEIGHT 15
 #define TEST_ITEM_HITBOX_HALF_WIDTH 16
 #define TEST_ITEM_HITBOX_HALF_HEIGHT 17
-#define TEST_PROJECTILE_BASE 292
+#define TEST_PROJECTILE_BASE 380
 #define TEST_PROJECTILE_ENABLED 0
 #define TEST_PROJECTILE_STATE 1
 #define TEST_PROJECTILE_OWNER 2
@@ -96,6 +99,7 @@ static int test_teeter_cancel_probe;
 static int test_stage_humping_probe;
 static int test_taunt_cancel_probe;
 static int test_scar_jump_probe;
+static int test_team_wobble_probe;
 static int test_pivot_probe;
 static int test_dash_cancel_probe;
 static int test_dashing_shield_probe;
@@ -159,6 +163,7 @@ void pf_web_m4_playtest_install(
     int stage_humping_probe_passed,
     int taunt_cancel_probe_passed,
     int scar_jump_probe_passed,
+    int team_wobble_probe_passed,
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
@@ -225,6 +230,7 @@ void pf_web_m4_playtest_install(
     int stage_humping_probe_passed,
     int taunt_cancel_probe_passed,
     int scar_jump_probe_passed,
+    int team_wobble_probe_passed,
     int pivot_probe_passed,
     int dash_cancel_probe_passed,
     int dashing_shield_probe_passed,
@@ -290,6 +296,7 @@ void pf_web_m4_playtest_install(
     test_stage_humping_probe = stage_humping_probe_passed;
     test_taunt_cancel_probe = taunt_cancel_probe_passed;
     test_scar_jump_probe = scar_jump_probe_passed;
+    test_team_wobble_probe = team_wobble_probe_passed;
     test_pivot_probe = pivot_probe_passed;
     test_dash_cancel_probe = dash_cancel_probe_passed;
     test_dashing_shield_probe = dashing_shield_probe_passed;
@@ -453,6 +460,7 @@ int main(void)
         test_stage_humping_probe != 1 ||
         test_taunt_cancel_probe != 1 ||
         test_scar_jump_probe != 1 ||
+        test_team_wobble_probe != 1 ||
         test_pivot_probe != 1 ||
         test_dash_cancel_probe != 1 ||
         test_dashing_shield_probe != 1 ||
@@ -494,7 +502,7 @@ int main(void)
         test_charge_storage_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 31 ||
+        test_view[0] != 32 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -561,6 +569,7 @@ int main(void)
             "stage_humping_probe=%d "
             "taunt_cancel_probe=%d "
             "scar_jump_probe=%d "
+            "team_wobble_probe=%d "
             "pivot_probe=%d "
             "dash_cancel_probe=%d dashing_shield_probe=%d "
             "shield_platform_drop_probe=%d "
@@ -616,6 +625,7 @@ int main(void)
             test_stage_humping_probe,
             test_taunt_cancel_probe,
             test_scar_jump_probe,
+            test_team_wobble_probe,
             test_pivot_probe,
             test_dash_cancel_probe,
             test_dashing_shield_probe,
@@ -1243,6 +1253,31 @@ int main(void)
         }
     }
 
+    if (pf_web_m4_playtest_set_team_lab(2) != 0 ||
+        !pf_web_m4_playtest_set_team_lab(1) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PLAYER1_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PLAYER2_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PLAYER3_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PLAYER2_BASE] <= test_view[TEST_PLAYER1_BASE] ||
+        test_view[TEST_PLAYER3_BASE] <= test_view[TEST_PLAYER2_BASE] ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_ENABLED] != 0 ||
+        !pf_web_m4_playtest_step_special(
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 1,
+            0, 0, 0, 0) ||
+        test_view[TEST_PLAYER2_BASE + TEST_PLAYER_ACTION] !=
+            TEST_ACTION_GRAB ||
+        test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION] ==
+            TEST_ACTION_GRAB ||
+        !pf_web_m4_playtest_set_team_lab(0) ||
+        test_view[TEST_PLAYER2_BASE + TEST_PLAYER_STOCKS] != 0 ||
+        test_view[TEST_PLAYER3_BASE + TEST_PLAYER_STOCKS] != 0 ||
+        test_view[TEST_ITEM_BASE + TEST_ITEM_ENABLED] != 1)
+    {
+        return fail("team-lab-four-player-input-mapping");
+    }
+
     (void)printf(
         "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
         "input_probe=%d air_facing_probe=%d "
@@ -1257,6 +1292,7 @@ int main(void)
         "stage_humping_probe=%d "
         "taunt_cancel_probe=%d "
         "scar_jump_probe=%d "
+        "team_wobble_probe=%d "
         "pivot_probe=%d "
         "dash_cancel_probe=%d dashing_shield_probe=%d "
         "shield_platform_drop_probe=%d "
@@ -1309,6 +1345,7 @@ int main(void)
         test_stage_humping_probe,
         test_taunt_cancel_probe,
         test_scar_jump_probe,
+        test_team_wobble_probe,
         test_pivot_probe,
         test_dash_cancel_probe,
         test_dashing_shield_probe,
