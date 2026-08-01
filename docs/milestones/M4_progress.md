@@ -135,6 +135,18 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   the former pre-M4 movement trace. Ten of the thirteen canonical scenarios
   are now measurable; hazards, workbook import, and client-frame timing retain
   their later-milestone availability reasons.
+- Two clean 15-repetition, 100-ms-target milestone runs on both WSL GCC 13.3
+  and native Windows MSVC 19.44 qualified all ten available scenarios with no
+  invalid comparison, suspected regression, or confirmed regression. The
+  production 1v1 workload varied by +1.92% on WSL and -2.03% on Windows; the
+  maximum-combat-entities workload varied by +0.70% and +1.11% respectively,
+  all within their same-target non-regression envelopes.
+- A clean Tracy 0.13.1 profile-only capture at `1df6923` records all thirteen
+  workload slots, ten measured scenarios, frame marks, and canonical zones.
+  WSL uses the recorded timer fallback; the raw trace remains local and the
+  platform-profiler claim remains unavailable because `perf` was not installed.
+  See the [M4 performance checkpoint](../../performance/reports/2026-08-01_m4_combat.md)
+  and [profile analysis](../../performance/profiles/M4/analysis.md).
 
 ## Delivered in the first M4.2 combat slice
 
@@ -1622,8 +1634,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
 - Repeated verifier/human matches.
-- Representative M4 performance/profile evidence and the mandatory owner
-  combat playtest.
+- The mandatory owner combat playtest.
 
 ## First-slice verification
 
