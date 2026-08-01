@@ -34,6 +34,7 @@ common_flags="
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -46,7 +47,7 @@ common_flags="
 
 "$output_dir/m4_web_playtest_test" >"$output_dir/m4_web_playtest.txt"
 grep -Fq \
-    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 event_journal_probe=1' \
+    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 event_journal_probe=1' \
     "$output_dir/m4_web_playtest.txt"
 
 command -v node >/dev/null 2>&1 ||
@@ -153,7 +154,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 23' \
+    'view[0] !== 24' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DASH ATTACK"' \
@@ -174,7 +175,13 @@ grep -Fq \
     '"ITEM THROW"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    '"PULSE BOLT AIR"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'case 18:' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'case 21:' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"DOWN THROW"' \
@@ -204,7 +211,13 @@ grep -Fq \
     'shieldQueued: [false, false]' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 290' \
+    'specialQueued: [false, false]' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '_pf_web_m4_playtest_step_special' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'viewCount !== 302' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MASH OUT · "' \
@@ -249,6 +262,9 @@ grep -Fq \
     '" match_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    '" short_hop_laser_probe="' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     '"MISSED STRONG L-CANCEL"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
@@ -267,4 +283,4 @@ grep -Fq \
     'controls=keyboard-gamepad-two-player' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 gamepad_polling=1 standard_mapping=1"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 event_journal_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 gamepad_polling=1 standard_mapping=1"

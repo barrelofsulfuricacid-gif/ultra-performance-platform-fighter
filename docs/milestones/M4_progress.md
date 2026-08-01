@@ -358,9 +358,13 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   actions, events, and readiness evidence. The jump-cancelling slice advances
   state schema to 27/save format 26 and browser view schema to 23 for the
   fail-closed full-up jump-squat attack route and readiness evidence, without
-  changing the content, inspection, observation, RL, or payload layouts.
-  Config/identity schema 2 remains current; observation schema 3 and RL schema
-  5 expose the item. The canonical save is 662 bytes.
+  changing the content, inspection, observation, RL, or payload layouts. The
+  Pulse Bolt slice advances state schema to 28/save format 27, content schema
+  to 29 with projectile schema 1, inspection schema to 24, browser view schema
+  to 24, input schema to 4, observation schema to 4, RL schema to 6, and compact
+  observation schema to 5 for the fixed projectile, actions, events,
+  powershield reflection, short-hop-laser readiness, and cross-surface state.
+  Config/identity schema 2 remains current. The canonical save is 682 bytes.
 - A 24-invariant match oracle covers configuration bounds, stock loss,
   respawn/invulnerability boundaries, hit rejection and expiry, mid-respawn
   save/load continuation, final-stock result, sudden death, and 2v2 team
@@ -1043,6 +1047,34 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry row 27, Jump-cancelling, advances from `planned` to `playable`;
   owner execution and complete cross-target evidence remain before `verified`.
 
+## Delivered in the Pulse Bolt projectile slice
+
+- One original fixed-capacity Pulse Bolt now supplies deterministic
+  controller-slot arbitration, grounded and airborne special actions, a
+  collision-deferred spawning phase, straight active motion, authored
+  lifetime/blast despawn, ordinary hit reaction, shield block, and exact
+  two-frame powershield reflection without allocation or dynamic entities.
+- `tests/sim/test_m4_projectile.c` adds 38 focused invariants covering content
+  validation/hash, simultaneous requests, ground fire/hit, ordinary shield
+  block, exact reflection and returned hit, short-hop fire and generic landing,
+  save/load future equality, replay verification, and structured/compact RL
+  visibility. `tools/verify_m4_projectile.sh` is an independent strict-warning
+  verifier check.
+- State schema 28/save format 27 and `PFSAVE27` append the 20-byte projectile
+  slot, producing a 542-byte payload and 682-byte checkpoint. Input schema 4,
+  structured observation schema 4, RL schema 6, and compact observation schema
+  5 expose the production special route and six new compact values, for 62
+  values total.
+- Browser startup must short hop, fire the aerial Pulse Bolt, and land before
+  readiness. View schema 24 appends 12 values at indices 290–301, renders the
+  cyan projectile and owner, shows its live state, and adds Player 1 `E`, Player
+  2 `;`/Numpad 3, and Standard Gamepad top-face controls through the exported
+  special-input entry point.
+- Registry row 44, Short hop laser, advances from `planned` to `playable`.
+  Owner execution and complete native/WebAssembly/browser evidence remain
+  before `verified`; projectile powershield reflection also closes the missing
+  projectile dependency in row 34.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1051,6 +1083,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Jump release during jump squat selects one short-hop speed; holding through
   jump squat selects one full-hop speed. Hold duration after launch does not
   change either height.
+- A fresh special edge fires at most one Pulse Bolt from the lowest requesting
+  controller slot. Short-hop fire must recover into ordinary air movement and
+  generic landing; a fresh two-frame shield reflects it, while an earlier
+  shield uses the ordinary block path.
 - Airborne horizontal input changes drift velocity but never changes facing;
   an opposite-direction air jump likewise preserves the takeoff-facing
   direction.
@@ -1134,7 +1170,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   verified; approach, auto-canceling, cross-up, dash canceling, dashing shield, drop cancel, edge dashing, edge
   hopping, fox-trotting, instant double jump, double jump cancel, double jump cancel counter, L-cancelling, pivoting, SHFFL,
   boost grab, chain grab, jab cancel, juggling, jump-canceled grab, kill confirm, ladder, ledge-cancelling,
-  mindgame, planking, shield platform dropping, short hop air dodge, small step forward smash,
+  mindgame, planking, shield platform dropping, short hop air dodge, short hop laser, small step forward smash,
   sharking, spacing, tech-chasing, V-cancelling, jump-cancelling, and wavedash are
   now playable, as is the zero-to-death combo; other rows
   remain lower evidence states until their full
@@ -1145,7 +1181,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Registry schema 1 now exists at
   [`m4_advanced_technique_registry.md`](../product/m4_advanced_technique_registry.md)
   and is mechanically checked for all 61 ordered rows. Its current gate is
-  blocked: 1 verified, 45 playable, 3 primitive-ready, and 12 planned.
+  blocked: 1 verified, 46 playable, 3 primitive-ready, and 11 planned.
 - M4 must include narrow production-path item, team, projectile, charge,
   reflector-like, shield, grab/throw, aerial, and ledge fixtures wherever the
   non-character-specific registry needs them.
@@ -1164,7 +1200,6 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Remaining ground attacks, aerials, specials, recovery, broader throw routes,
   pummels, analog
   light shield, shield size/tilt/pokes and shield SDI,
-  projectile powershield/reflection,
   expansion of the powershield-cancel router to each future ground action,
   complete knockback/angle data, stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
@@ -1176,23 +1211,24 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## First-slice verification
 
-- Release workflow: 19/19 tests.
-- Address/undefined-behavior sanitizer workflow: 19/19 tests; leak discovery
+- Release workflow: 20/20 tests.
+- Address/undefined-behavior sanitizer workflow: 20/20 tests; leak discovery
   disabled only for the restricted workspace.
 - Mechanical oracles: 243 movement invariants, 584
   attack/reaction/shield/floor/surface
   invariants plus 50 combat-journal invariants, 24 stock/respawn/result
   invariants plus 44 match-journal invariants,
+  38 projectile invariants including short-hop laser and powershield reflection,
   and separate 20,000-tick deterministic four-player traces.
 - M2 kernel compatibility: movement, snapshot, RL, replay, and forbidden-symbol
   checks passed after the state-schema migration.
 - Native replay corpus: exact 180-tick
-  attack/reaction/shield/ground-dodge/air-dodge trace at 31,354
+  attack/reaction/shield/ground-dodge/air-dodge trace at 31,374
   bytes,
   replay SHA-256
-  `a981462f29b8b7ebb291d856e19021b41fa8cdf7868f29a55bc4054502cf4dc6`,
+  `54248329539dc0f00324c4f4fb7d69650791019f10ba156563dbb591ef8dbfe9`,
   final SHA-256
-  `0415bd3c886e4e1157791a4a29f51697707ae220371a16a77c2b67cff8cb4fe8`,
+  `1cca83cc05e4bd49b2ec1ca1e04a2f8372c4e188d6dc91edbcd14dec4e85521c`,
   and event-journal SHA-256
   `32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f`;
   local native/WebAssembly output is byte-identical and CI repeats it.
@@ -1207,7 +1243,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   edge-hop-and-dash/
   ground-dodge-and-roll/air-facing/
   air-dodge-and-wavedash/
-  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/
+  aerial-auto-cancel-and-L-cancel/strong-aerial-30-vs-15-landing/short-hop-laser/
   combat-and-event-journal/reaction/shield-PSC-and-shield-break/default-tumble/
   floor-recovery/tech-chase/surface-tech
   /stock-respawn probes and live rendering).

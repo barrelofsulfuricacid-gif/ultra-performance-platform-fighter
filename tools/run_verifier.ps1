@@ -129,6 +129,7 @@ foreach ($check in @(
         "m2-replay",
         "mechanical-oracle",
         "m4-item",
+        "m4-projectile",
         "m4-browser-adapter",
         "m3-regression-qualification",
         "sanitizer",

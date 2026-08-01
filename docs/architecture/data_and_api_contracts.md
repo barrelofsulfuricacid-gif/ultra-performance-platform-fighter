@@ -81,14 +81,18 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–25 remain historical checkpoints. The current M4
-movement/combat/item state uses save format 26: a fixed 662-byte checkpoint
-with state schema 27. Its 522-byte payload is unchanged from format 25, but the
-new version makes the full-up plus fresh light/strong jump-squat cancel into
-standing strong attack fail closed. State schema 26 / save format 25 added one
-fixed canonical item entity with position/velocity, lifecycle timers, state,
-holder/source slots, hit mask, and throw direction; load validates all
-state/ownership/timer relationships before atomic replacement. The preceding
+Save formats 1–26 remain historical checkpoints. The current M4
+movement/combat/item/projectile state uses save format 27: a fixed 682-byte
+checkpoint with state schema 28 and a 542-byte payload. It appends one
+fixed-capacity projectile slot with position/velocity, lifetime, state, and
+owner, and makes grounded/aerial fire, shield block, powershield reflection,
+hit, and typed-event semantics fail closed. State schema 27 / save format 26
+retained the prior 522-byte payload while making the full-up plus fresh
+light/strong jump-squat cancel into standing strong attack fail closed. State
+schema 26 / save format 25 added one fixed canonical item entity with
+position/velocity, lifecycle timers, state, holder/source slots, hit mask, and
+throw direction; load validates all state/ownership/timer relationships before
+atomic replacement. The preceding
 state schema 25 and save format 24 define canonical solid-surface tech/bounce,
 air-dodge/special-fall/special-landing, and
 aerial/normal-landing/L-cancel-landing semantics plus trigger age, grounded
@@ -122,6 +126,10 @@ observation schema 4 appends eight values without changing existing indices.
 State schema 27 retains that layout while making the full-up threshold,
 fresh-attack edge, grounded standing-strong selection, retained inherited
 momentum, and neutral/shallow-up/first-airborne-frame exclusions fail closed.
+State schema 28 appends the projectile slot. Structured observation schema 4
+and RL schema 6 expose it; compact observation schema 5 appends six values at
+indices 56–61 without changing earlier indices. Input schema 4 adds the
+separate special button used to request the Pulse Bolt.
 Format 14 changed the
 public tick-result semantics without adding journal payloads to canonical
 state.

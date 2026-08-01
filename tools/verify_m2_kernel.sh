@@ -33,6 +33,7 @@ common_flags="
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -56,6 +57,7 @@ grep -Fqx \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -67,7 +69,7 @@ grep -Fqx \
 
 "$output_dir/sim_snapshot_test" >"$output_dir/sim_snapshot.txt"
 grep -Fqx \
-    'sim-snapshot=pass bytes=662 hash_algorithm=sha256' \
+    'sim-snapshot=pass bytes=682 hash_algorithm=sha256' \
     "$output_dir/sim_snapshot.txt"
 
 # shellcheck disable=SC2086
@@ -79,6 +81,7 @@ grep -Fqx \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -90,7 +93,7 @@ grep -Fqx \
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=56 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=5' \
+    'rl-api=pass compact_values=62 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=6' \
     "$output_dir/rl_api.txt"
 
 # shellcheck disable=SC2086
@@ -103,6 +106,7 @@ grep -Fqx \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
@@ -115,7 +119,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31354 corpus_sha256=a981462f29b8b7ebb291d856e19021b41fa8cdf7868f29a55bc4054502cf4dc6 final_sha256=0415bd3c886e4e1157791a4a29f51697707ae220371a16a77c2b67cff8cb4fe8 events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f' \
+    'sim-replay=pass ticks=180 players=4 bytes=31374 corpus_sha256=54248329539dc0f00324c4f4fb7d69650791019f10ba156563dbb591ef8dbfe9 final_sha256=1cca83cc05e4bd49b2ec1ca1e04a2f8372c4e188d6dc91edbcd14dec4e85521c events_sha256=32df182c93ce9143357b6472615d90c9cc01e622488400d4eec54d7c89cab35f' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -151,6 +155,12 @@ grep -Fqx \
     -I"$root/src/sim" \
     -c "$root/src/sim/sim_item.c" \
     -o "$output_dir/sim_item.o"
+
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_projectile.c" \
+    -o "$output_dir/sim_projectile.o"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \

@@ -21,7 +21,8 @@
 #define PF_WEB_M4_VIEW_EVENT_STRIDE 10
 #define PF_WEB_M4_VIEW_EVENT0 112
 #define PF_WEB_M4_VIEW_ITEM0 272
-#define PF_WEB_M4_VIEW_COUNT 290
+#define PF_WEB_M4_VIEW_PROJECTILE0 290
+#define PF_WEB_M4_VIEW_COUNT 302
 
 enum pf_web_m4_view_field
 {
@@ -121,7 +122,19 @@ enum pf_web_m4_view_field
     PF_WEB_M4_VIEW_ITEM_HALF_WIDTH = 14,
     PF_WEB_M4_VIEW_ITEM_HALF_HEIGHT = 15,
     PF_WEB_M4_VIEW_ITEM_HITBOX_HALF_WIDTH = 16,
-    PF_WEB_M4_VIEW_ITEM_HITBOX_HALF_HEIGHT = 17
+    PF_WEB_M4_VIEW_ITEM_HITBOX_HALF_HEIGHT = 17,
+    PF_WEB_M4_VIEW_PROJECTILE_ENABLED = 0,
+    PF_WEB_M4_VIEW_PROJECTILE_STATE = 1,
+    PF_WEB_M4_VIEW_PROJECTILE_OWNER = 2,
+    PF_WEB_M4_VIEW_PROJECTILE_HITBOX_ACTIVE = 3,
+    PF_WEB_M4_VIEW_PROJECTILE_X = 4,
+    PF_WEB_M4_VIEW_PROJECTILE_Y = 5,
+    PF_WEB_M4_VIEW_PROJECTILE_VX = 6,
+    PF_WEB_M4_VIEW_PROJECTILE_VY = 7,
+    PF_WEB_M4_VIEW_PROJECTILE_LIFETIME = 8,
+    PF_WEB_M4_VIEW_PROJECTILE_HALF_WIDTH = 9,
+    PF_WEB_M4_VIEW_PROJECTILE_HALF_HEIGHT = 10,
+    PF_WEB_M4_VIEW_PROJECTILE_REFLECT_WINDOW = 11
 };
 
 typedef struct pf_web_m4_storage
@@ -182,6 +195,7 @@ extern void pf_web_m4_playtest_install(
     int ground_dodge_probe_passed,
     int aerial_l_cancel_probe_passed,
     int match_probe_passed,
+    int short_hop_laser_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
 
@@ -9057,6 +9071,7 @@ static int pf_web_m4_initialize_live_item_lab(void)
     }
     pf_web_m4_content.item.enabled = UINT8_C(1);
     pf_web_m4_content.item.lifetime_ticks = UINT16_C(3600);
+    pf_web_m4_content.projectile.enabled = UINT8_C(1);
     return pf_web_m4_initialize_current_content() &&
            pf_web_m4_reset_internal();
 }
@@ -9416,6 +9431,110 @@ static int pf_web_m4_run_item_probes(
     return restored;
 }
 
+static int pf_web_m4_run_short_hop_laser_probe(void)
+{
+    pf_m4_inspection inspection;
+    const pf_sim_event *event = NULL;
+    uint32_t guard;
+    int fired = 0;
+    int passed = 0;
+    int restored;
+
+    if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    pf_web_m4_content.stage.spawn_spacing_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    pf_web_m4_content.stage.platform_center_x_q16 =
+        -INT32_C(20) * PF_Q16_ONE;
+    pf_web_m4_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    pf_web_m4_content.projectile.enabled = UINT8_C(1);
+
+    if (pf_web_m4_initialize_current_content() &&
+        pf_web_m4_reset_internal() &&
+        pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        for (guard = UINT32_C(0);
+             guard < UINT32_C(12) &&
+             inspection.players[0].grounded != UINT8_C(0);
+             ++guard)
+        {
+            if (!pf_web_m4_tick(
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    &inspection))
+            {
+                break;
+            }
+        }
+        if (guard < UINT32_C(12) &&
+            inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_AIRBORNE &&
+            pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_SPECIAL,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            event = pf_web_m4_find_event(PF_SIM_EVENT_PROJECTILE_FIRE);
+            fired =
+                event != NULL && event->source_player == UINT8_C(0) &&
+                event->detail ==
+                    (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
+                inspection.projectile.state ==
+                    (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE;
+        }
+        if (fired != 0)
+        {
+            for (guard = UINT32_C(0);
+                 guard < UINT32_C(180) &&
+                 inspection.players[0].grounded == UINT8_C(0);
+                 ++guard)
+            {
+                if (!pf_web_m4_tick(
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection))
+                {
+                    break;
+                }
+            }
+            passed =
+                guard < UINT32_C(180) &&
+                inspection.players[0].grounded != UINT8_C(0) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_LANDING;
+        }
+    }
+
+    restored =
+        pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
+        pf_web_m4_initialize_current_content();
+    return passed != 0 && restored != 0;
+}
+
 static int pf_web_m4_render(void)
 {
     pf_m4_inspection inspection;
@@ -9429,7 +9548,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(23);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(24);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -9674,6 +9793,52 @@ static int pf_web_m4_render(void)
         PF_WEB_M4_VIEW_ITEM0 + PF_WEB_M4_VIEW_ITEM_HITBOX_HALF_HEIGHT] =
         pf_web_m4_content.item.hitbox_half_height_q16;
 
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_ENABLED] =
+        (int32_t)inspection.projectile.enabled;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_STATE] =
+        (int32_t)inspection.projectile.state;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_OWNER] =
+        (int32_t)inspection.projectile.owner;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_HITBOX_ACTIVE] =
+        (int32_t)inspection.projectile.hitbox_active;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_X] =
+        inspection.projectile.position_x_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_Y] =
+        inspection.projectile.position_y_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_VX] =
+        inspection.projectile.velocity_x_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 + PF_WEB_M4_VIEW_PROJECTILE_VY] =
+        inspection.projectile.velocity_y_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_LIFETIME] =
+        (int32_t)inspection.projectile.lifetime_ticks;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_HALF_WIDTH] =
+        pf_web_m4_content.projectile.half_width_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_HALF_HEIGHT] =
+        pf_web_m4_content.projectile.half_height_q16;
+    pf_web_m4_view[
+        PF_WEB_M4_VIEW_PROJECTILE0 +
+        PF_WEB_M4_VIEW_PROJECTILE_REFLECT_WINDOW] =
+        (int32_t)pf_web_m4_content.projectile
+            .powershield_reflect_window_ticks;
+
     pf_web_m4_playtest_render(
         pf_web_m4_view,
         PF_WEB_M4_VIEW_COUNT);
@@ -9730,6 +9895,7 @@ int pf_web_m4_playtest_start(void)
     int ground_dodge_probe_passed;
     int aerial_l_cancel_probe_passed;
     int match_probe_passed;
+    int short_hop_laser_probe_passed;
 
     if (pf_m4_default_content(&pf_web_m4_content) != PF_STATUS_OK ||
         !pf_web_m4_initialize_current_content())
@@ -9806,6 +9972,8 @@ int pf_web_m4_playtest_start(void)
         &bat_drop_probe_passed,
         &glide_toss_probe_passed,
         &jump_cancel_throw_probe_passed);
+    short_hop_laser_probe_passed =
+        pf_web_m4_run_short_hop_laser_probe();
     if (input_probe_passed == 0 ||
         air_facing_probe_passed == 0 ||
         instant_double_jump_probe_passed == 0 ||
@@ -9854,6 +10022,7 @@ int pf_web_m4_playtest_start(void)
         ground_dodge_probe_passed == 0 ||
         aerial_l_cancel_probe_passed == 0 ||
         match_probe_passed == 0 ||
+        short_hop_laser_probe_passed == 0 ||
         !pf_web_m4_initialize_live_item_lab())
     {
         return 0;
@@ -9908,13 +10077,14 @@ int pf_web_m4_playtest_start(void)
         ground_dodge_probe_passed,
         aerial_l_cancel_probe_passed,
         match_probe_passed,
+        short_hop_laser_probe_passed,
         (int)pf_web_m4_content.fighter.aerial_landing_lag_ticks,
         (int)pf_web_m4_content.fighter
             .strong_aerial_landing_lag_ticks);
     return pf_web_m4_render();
 }
 
-int pf_web_m4_playtest_step(
+int pf_web_m4_playtest_step_special(
     int player0_x,
     int player0_y,
     int player0_jump,
@@ -9926,7 +10096,9 @@ int pf_web_m4_playtest_step(
     int player1_jump,
     int player1_attack,
     int player1_strong_attack,
-    int player1_shield)
+    int player1_shield,
+    int player0_special,
+    int player1_special)
 {
     pf_m4_inspection inspection;
     uint64_t player0_buttons = UINT64_C(0);
@@ -9949,11 +10121,13 @@ int pf_web_m4_playtest_step(
         (player0_strong_attack != 0 &&
          player0_strong_attack != 1) ||
         (player0_shield != 0 && player0_shield != 1) ||
+        (player0_special != 0 && player0_special != 1) ||
         (player1_jump != 0 && player1_jump != 1) ||
         (player1_attack != 0 && player1_attack != 1) ||
         (player1_strong_attack != 0 &&
          player1_strong_attack != 1) ||
-        (player1_shield != 0 && player1_shield != 1))
+        (player1_shield != 0 && player1_shield != 1) ||
+        (player1_special != 0 && player1_special != 1))
     {
         return 0;
     }
@@ -9969,6 +10143,10 @@ int pf_web_m4_playtest_step(
     {
         player0_buttons |= PF_INPUT_BUTTON_STRONG_ATTACK;
     }
+    if (player0_special != 0)
+    {
+        player0_buttons |= PF_INPUT_BUTTON_SPECIAL;
+    }
     if (player1_jump != 0)
     {
         player1_buttons |= PF_INPUT_BUTTON_JUMP;
@@ -9980,6 +10158,10 @@ int pf_web_m4_playtest_step(
     if (player1_strong_attack != 0)
     {
         player1_buttons |= PF_INPUT_BUTTON_STRONG_ATTACK;
+    }
+    if (player1_special != 0)
+    {
+        player1_buttons |= PF_INPUT_BUTTON_SPECIAL;
     }
     if (!pf_web_m4_tick_with_triggers(
             (int16_t)player0_x,
@@ -9995,6 +10177,37 @@ int pf_web_m4_playtest_step(
         return 0;
     }
     return pf_web_m4_render();
+}
+
+int pf_web_m4_playtest_step(
+    int player0_x,
+    int player0_y,
+    int player0_jump,
+    int player0_attack,
+    int player0_strong_attack,
+    int player0_shield,
+    int player1_x,
+    int player1_y,
+    int player1_jump,
+    int player1_attack,
+    int player1_strong_attack,
+    int player1_shield)
+{
+    return pf_web_m4_playtest_step_special(
+        player0_x,
+        player0_y,
+        player0_jump,
+        player0_attack,
+        player0_strong_attack,
+        player0_shield,
+        player1_x,
+        player1_y,
+        player1_jump,
+        player1_attack,
+        player1_strong_attack,
+        player1_shield,
+        0,
+        0);
 }
 
 int pf_web_m4_playtest_reset(void)

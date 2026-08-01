@@ -100,6 +100,13 @@ typedef struct pf_world_state
     uint8_t item_source_slot;
     uint8_t item_hit_mask;
     uint8_t item_throw_direction;
+    int32_t projectile_position_x_q16;
+    int32_t projectile_position_y_q16;
+    int32_t projectile_velocity_x_q16;
+    int32_t projectile_velocity_y_q16;
+    uint16_t projectile_lifetime_ticks;
+    uint8_t projectile_state;
+    uint8_t projectile_owner_slot;
     uint32_t combat_event_sequence;
 } pf_world_state;
 
@@ -167,6 +174,13 @@ typedef struct pf_sim_scratch
     uint8_t item_source_slot;
     uint8_t item_hit_mask;
     uint8_t item_throw_direction;
+    int32_t projectile_position_x_q16;
+    int32_t projectile_position_y_q16;
+    int32_t projectile_velocity_x_q16;
+    int32_t projectile_velocity_y_q16;
+    uint16_t projectile_lifetime_ticks;
+    uint8_t projectile_state;
+    uint8_t projectile_owner_slot;
     uint32_t combat_event_sequence;
     uint8_t combat_event_count;
     pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
@@ -192,6 +206,12 @@ typedef enum pf_m4_item_input_intent
     PF_M4_ITEM_INPUT_JUMP_CANCEL_THROW = 5,
     PF_M4_ITEM_INPUT_DASH_THROW = 6
 } pf_m4_item_input_intent;
+
+typedef enum pf_m4_projectile_input_intent
+{
+    PF_M4_PROJECTILE_INPUT_NONE = 0,
+    PF_M4_PROJECTILE_INPUT_FIRE = 1
+} pf_m4_projectile_input_intent;
 
 pf_status pf_sim_validate_config(const pf_sim_config *config);
 int pf_sim_is_valid(const pf_sim *sim);
@@ -219,6 +239,7 @@ void pf_m4_reset_player(
     uint32_t player_index,
     int count_respawn);
 void pf_m4_reset_item(pf_sim *sim);
+void pf_m4_reset_projectile(pf_sim *sim);
 void pf_m4_begin_item_tick(
     const pf_world_state *world,
     pf_sim_scratch *scratch);
@@ -239,6 +260,25 @@ pf_status pf_m4_apply_item_input(
 pf_status pf_m4_step_item(
     const pf_m4_content *content,
     const pf_world_state *world,
+    pf_sim_scratch *scratch);
+void pf_m4_begin_projectile_tick(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch);
+pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    const pf_sim_scratch *scratch,
+    const pf_input_frame *input,
+    uint32_t player_index,
+    pf_input_frame *effective_input);
+pf_status pf_m4_apply_projectile_input(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    pf_m4_projectile_input_intent intent);
+pf_status pf_m4_step_projectile(
+    const pf_m4_content *content,
     pf_sim_scratch *scratch);
 pf_status pf_m4_step_player(
     const pf_m4_content *content,

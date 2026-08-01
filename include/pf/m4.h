@@ -10,14 +10,16 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(28)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(29)
 #define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(27)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(2)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(23)
+#define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(24)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
+#define PF_M4_TEST_PROJECTILE_COUNT UINT8_C(1)
 
 typedef enum pf_m4_action_state
 {
@@ -84,8 +86,38 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_FORCED_GETUP = 60,
     PF_M4_ACTION_DELAYED_AIR_JUMP = 61,
     PF_M4_ACTION_ITEM_THROW = 62,
-    PF_M4_ACTION_ITEM_DASH_THROW = 63
+    PF_M4_ACTION_ITEM_DASH_THROW = 63,
+    PF_M4_ACTION_PROJECTILE_FIRE_GROUND = 64,
+    PF_M4_ACTION_PROJECTILE_FIRE_AIR = 65
 } pf_m4_action_state;
+
+typedef enum pf_m4_projectile_state
+{
+    PF_M4_PROJECTILE_STATE_INACTIVE = 0,
+    PF_M4_PROJECTILE_STATE_SPAWNING = 1,
+    PF_M4_PROJECTILE_STATE_ACTIVE = 2
+} pf_m4_projectile_state;
+
+typedef struct pf_m4_projectile_data
+{
+    uint32_t struct_size;
+    uint16_t schema_version;
+    uint8_t enabled;
+    uint8_t reserved;
+    int32_t half_width_q16;
+    int32_t half_height_q16;
+    int32_t spawn_offset_x_q16;
+    int32_t spawn_offset_y_q16;
+    int32_t speed_q16;
+    uint32_t damage_q16;
+    int32_t base_knockback_x_q16;
+    int32_t base_knockback_y_q16;
+    int32_t knockback_growth_q16;
+    uint16_t lifetime_ticks;
+    uint16_t fire_recovery_ticks;
+    uint16_t hitlag_ticks;
+    uint16_t powershield_reflect_window_ticks;
+} pf_m4_projectile_data;
 
 typedef struct pf_m4_throw_data
 {
@@ -436,10 +468,12 @@ typedef struct pf_m4_content
     uint8_t fighter_count;
     uint8_t stage_count;
     uint8_t item_count;
-    uint8_t reserved[3];
+    uint8_t projectile_count;
+    uint8_t reserved[2];
     pf_m4_fighter_data fighter;
     pf_m4_stage_data stage;
     pf_m4_item_data item;
+    pf_m4_projectile_data projectile;
 } pf_m4_content;
 
 typedef struct pf_m4_player_inspection
@@ -546,6 +580,23 @@ typedef struct pf_m4_item_inspection
     uint8_t reserved;
 } pf_m4_item_inspection;
 
+typedef struct pf_m4_projectile_inspection
+{
+    int32_t position_x_q16;
+    int32_t position_y_q16;
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    int32_t hitbox_left_q16;
+    int32_t hitbox_right_q16;
+    int32_t hitbox_top_q16;
+    int32_t hitbox_bottom_q16;
+    uint16_t lifetime_ticks;
+    uint8_t enabled;
+    uint8_t state;
+    uint8_t owner;
+    uint8_t hitbox_active;
+} pf_m4_projectile_inspection;
+
 typedef struct pf_m4_inspection
 {
     uint32_t struct_size;
@@ -561,6 +612,7 @@ typedef struct pf_m4_inspection
     uint8_t winner_mask;
     pf_m4_stage_inspection stage;
     pf_m4_item_inspection item;
+    pf_m4_projectile_inspection projectile;
     pf_m4_player_inspection players[PF_SIM_MAX_PLAYERS];
 } pf_m4_inspection;
 

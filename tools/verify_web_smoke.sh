@@ -105,13 +105,13 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=0415bd3c886e4e1157791a4a29f51697707ae220371a16a77c2b67cff8cb4fe8'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=1cca83cc05e4bd49b2ec1ca1e04a2f8372c4e188d6dc91edbcd14dec4e85521c'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
 pf_require_dom \
     "M4 input/IDJ/ground-dodge/air-facing/air-dodge/combat/event-journal/reaction/shield/tumble/floor/tech-chase/surface-tech probe status" \
-    'playtest=ready input_probe=pass air_facing_probe=pass instant_double_jump_probe=pass edge_hop_probe=pass edge_dash_probe=pass fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass dashing_shield_probe=pass shield_platform_drop_probe=pass small_step_forward_smash_probe=pass drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass spacing_probe=pass sharking_probe=pass cross_up_probe=pass mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass zero_to_death_probe=pass ledge_cancel_probe=pass combat_probe=pass event_journal_probe=pass reaction_probe=pass shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass air_dodge_probe=pass ground_dodge_probe=pass aerial_l_cancel_probe=pass match_probe=pass gamepad_probe=pass gamepad_api=available controls=keyboard-gamepad-two-player'
+    'playtest=ready input_probe=pass air_facing_probe=pass instant_double_jump_probe=pass double_jump_cancel_probe=pass double_jump_cancel_counter_probe=pass bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass jump_cancel_probe=pass edge_hop_probe=pass edge_dash_probe=pass fox_trot_probe=pass pivot_probe=pass dash_cancel_probe=pass dashing_shield_probe=pass shield_platform_drop_probe=pass small_step_forward_smash_probe=pass drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass spacing_probe=pass sharking_probe=pass cross_up_probe=pass mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass jump_cancelled_grab_probe=pass boost_grab_probe=pass jab_cancel_probe=pass jab_reset_probe=pass chain_grab_probe=pass combat_probe=pass event_journal_probe=pass reaction_probe=pass shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass air_dodge_probe=pass ground_dodge_probe=pass aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass gamepad_probe=pass gamepad_api=available controls=keyboard-gamepad-two-player'
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'

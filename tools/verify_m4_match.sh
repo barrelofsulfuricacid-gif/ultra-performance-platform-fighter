@@ -33,6 +33,7 @@ common_flags="
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
     "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \

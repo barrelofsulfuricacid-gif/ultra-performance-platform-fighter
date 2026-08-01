@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–26 / state schemas 1–27
+- **Status:** Accepted for save formats 1–27 / state schemas 1–28
 - **Date:** 2026-07-31
 
 ## Decision
@@ -36,13 +36,14 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 24 | 25 | 140 | 495 | 635 | Knockback-based delayed-air-jump armor, zero-launch hit events, preserved action timing/trajectory, and delayed-action hitlag resume semantics; no payload-layout change |
 | 25 | 26 | 140 | 522 | 662 | One fixed canonical item entity: position/velocity, lifetime/respawn/pickup-lockout timers, state, holder/source slots, hit mask, and throw direction; item-throw action IDs and typed item-event semantics |
 | 26 | 27 | 140 | 522 | 662 | Full-up plus fresh light/strong during jump squat selects grounded standing strong attack while retaining inherited momentum; no payload-layout change |
+| 27 | 28 | 140 | 542 | 682 | One fixed canonical projectile slot: position/velocity, lifetime, inactive/spawning/active state, owner slot, grounded/aerial fire action IDs, and typed fire/hit/reflect semantics |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
 `PFSAVE11`, `PFSAVE12`, `PFSAVE13`, `PFSAVE14`, `PFSAVE15`, `PFSAVE16`, or
 `PFSAVE17`, `PFSAVE18`, `PFSAVE19`, `PFSAVE20`, `PFSAVE21`, `PFSAVE22`, or
-`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, or `PFSAVE26`. The active M4 runtime emits
-and accepts format 26 with state schema 27. Earlier
+`PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, or `PFSAVE27`. The active M4 runtime emits
+and accepts format 27 with state schema 28. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -139,6 +140,15 @@ router fail closed: only full up plus a fresh light or strong edge during jump
 squat selects grounded standing strong attack and retains inherited momentum;
 neutral or shallow up continues jump squat, and the first airborne frame uses
 the ordinary aerial route. Loading validates those semantics under schema 27.
+Format 27 expands the payload by 20 bytes for one fixed canonical Pulse Bolt
+slot and makes its deterministic controller-slot arbitration, one-tick
+spawning phase, straight active motion, lifetime/blast despawn, ownership,
+grounded/aerial fire actions, shield block, two-frame powershield reflection,
+ordinary hit reaction, and typed fire/hit/reflect events fail closed under
+schema 28. The serialized owner uses the same zero-for-none and slot-plus-one
+encoding as other canonical links; load rejects invalid state, owner, action,
+position, velocity, lifetime, and enabled-content relationships before atomic
+replacement.
 
 ## Why SHA-256
 

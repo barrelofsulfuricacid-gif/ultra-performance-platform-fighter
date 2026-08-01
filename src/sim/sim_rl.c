@@ -11,8 +11,9 @@ _Static_assert(
     PF_RL_COMPACT_VALUE_COUNT ==
         PF_RL_COMPACT_GLOBAL_VALUES +
             PF_SIM_MAX_PLAYERS * PF_RL_COMPACT_PLAYER_STRIDE +
-            PF_RL_COMPACT_ITEM_VALUES,
-    "compact RL observation dimensions must cover players and item state");
+            PF_RL_COMPACT_ITEM_VALUES +
+            PF_RL_COMPACT_PROJECTILE_VALUES,
+    "compact RL observation dimensions must cover canonical entity state");
 _Static_assert(
     (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
         PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16,
@@ -276,6 +277,33 @@ static void pf_rl_fill_compact(
             PF_RL_COMPACT_ITEM_BASE +
             PF_RL_COMPACT_ITEM_LOCKOUT_OFFSET] =
             (int32_t)item->pickup_lockout_ticks;
+    }
+    {
+        const pf_projectile_observation *projectile =
+            &observation->projectile;
+        const uint32_t projectile_bits =
+            (uint32_t)projectile->state |
+            ((uint32_t)projectile->owner_slot << 2U);
+
+        compact->values[PF_RL_COMPACT_PROJECTILE_BASE] =
+            projectile->position_x_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(1)] =
+            projectile->position_y_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(2)] =
+            projectile->velocity_x_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(3)] =
+            projectile->velocity_y_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE +
+            PF_RL_COMPACT_PROJECTILE_STATE_BITS_OFFSET] =
+            pf_rl_u32_bits(projectile_bits);
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE +
+            PF_RL_COMPACT_PROJECTILE_LIFETIME_OFFSET] =
+            (int32_t)projectile->lifetime_ticks;
     }
 }
 

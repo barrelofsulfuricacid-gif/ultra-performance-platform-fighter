@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)522)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)542)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x36)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x32), UINT8_C(0x37)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -617,6 +617,13 @@ static void pf_write_payload(
     pf_writer_u8(writer, world->item_source_slot);
     pf_writer_u8(writer, world->item_hit_mask);
     pf_writer_u8(writer, world->item_throw_direction);
+    pf_writer_i32(writer, world->projectile_position_x_q16);
+    pf_writer_i32(writer, world->projectile_position_y_q16);
+    pf_writer_i32(writer, world->projectile_velocity_x_q16);
+    pf_writer_i32(writer, world->projectile_velocity_y_q16);
+    pf_writer_u16(writer, world->projectile_lifetime_ticks);
+    pf_writer_u8(writer, world->projectile_state);
+    pf_writer_u8(writer, world->projectile_owner_slot);
 }
 
 static void pf_read_payload(
@@ -991,6 +998,13 @@ static void pf_read_payload(
     world->item_source_slot = pf_reader_u8(reader);
     world->item_hit_mask = pf_reader_u8(reader);
     world->item_throw_direction = pf_reader_u8(reader);
+    world->projectile_position_x_q16 = pf_reader_i32(reader);
+    world->projectile_position_y_q16 = pf_reader_i32(reader);
+    world->projectile_velocity_x_q16 = pf_reader_i32(reader);
+    world->projectile_velocity_y_q16 = pf_reader_i32(reader);
+    world->projectile_lifetime_ticks = pf_reader_u16(reader);
+    world->projectile_state = pf_reader_u8(reader);
+    world->projectile_owner_slot = pf_reader_u8(reader);
 }
 
 static void pf_hash_payload(
@@ -1213,6 +1227,8 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
                action !=
                    (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK &&
+               action !=
+                   (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
@@ -1228,7 +1244,8 @@ static int pf_m4_player_state_consistent(
         action == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
         action == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
-        action == (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK)
+        action == (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK ||
+        action == (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR)
     {
         return 1;
     }
@@ -1395,6 +1412,42 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         return PF_STATUS_INVALID_STATE;
     }
 
+    if (world->projectile_position_x_q16 <
+            -world->arena_half_width_q16 ||
+        world->projectile_position_x_q16 >
+            world->arena_half_width_q16 ||
+        world->projectile_position_y_q16 < INT32_C(0) ||
+        world->projectile_position_y_q16 > world->arena_ceiling_q16 ||
+        world->projectile_velocity_x_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->projectile_velocity_x_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->projectile_velocity_y_q16 <
+            -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->projectile_velocity_y_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        world->projectile_lifetime_ticks > UINT16_C(3600) ||
+        world->projectile_state >
+            (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE ||
+        world->projectile_owner_slot > world->player_count ||
+        (world->projectile_state ==
+             (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE &&
+         (world->projectile_position_x_q16 != INT32_C(0) ||
+          world->projectile_position_y_q16 != INT32_C(0) ||
+          world->projectile_velocity_x_q16 != INT32_C(0) ||
+          world->projectile_velocity_y_q16 != INT32_C(0) ||
+          world->projectile_lifetime_ticks != UINT16_C(0) ||
+          world->projectile_owner_slot != UINT8_C(0))) ||
+        (world->projectile_state !=
+             (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE &&
+         (world->projectile_velocity_x_q16 == INT32_C(0) ||
+          world->projectile_velocity_y_q16 != INT32_C(0) ||
+          world->projectile_lifetime_ticks == UINT16_C(0) ||
+          world->projectile_owner_slot == UINT8_C(0))))
+    {
+        return PF_STATUS_INVALID_STATE;
+    }
+
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
@@ -1448,7 +1501,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
+                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -1749,9 +1802,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   action == (uint8_t)PF_M4_ACTION_GRABBED ||
                   action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
                   pf_m4_snapshot_action_is_throw(action) ||
-                  action == (uint8_t)PF_M4_ACTION_ITEM_THROW ||
-                  action ==
-                      (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
+                   action == (uint8_t)PF_M4_ACTION_ITEM_THROW ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
+                   action ==
+                       (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND ||
                   pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
                   hitstun != UINT16_C(0) ||

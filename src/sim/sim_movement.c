@@ -609,7 +609,9 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            pf_m4_action_is_throw(action_state) ||
            action_state == (uint8_t)PF_M4_ACTION_ITEM_THROW ||
            action_state ==
-               (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW;
+               (uint8_t)PF_M4_ACTION_ITEM_DASH_THROW ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -1614,6 +1616,9 @@ pf_status pf_m4_step_player(
             UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_STRONG_ATTACK) ==
             UINT64_C(0);
+    const int special_pressed =
+        (input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
+        (previous_buttons & PF_INPUT_BUTTON_SPECIAL) == UINT64_C(0);
     const int shield_held =
         input->left_trigger >= fighter->digital_trigger_threshold ||
         input->right_trigger >= fighter->digital_trigger_threshold;
@@ -2278,6 +2283,22 @@ pf_status pf_m4_step_player(
 
     if (!ledge_motion_handled &&
         !hitstun_locked &&
+        special_pressed != 0)
+    {
+        action_state =
+            grounded != UINT8_C(0)
+                ? (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND
+                : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR;
+        action_ticks = UINT16_C(0);
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        short_hop_latched = UINT8_C(0);
+        dash_direction = INT8_C(0);
+        scratch->powershield[player_index] = UINT8_C(0);
+    }
+
+    if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        special_pressed == 0 &&
         jump_cancel_attack_pressed != 0)
     {
         action_state = (uint8_t)PF_M4_ACTION_STRONG_ATTACK;
@@ -2811,6 +2832,22 @@ pf_status pf_m4_step_player(
                 action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);
             }
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if (action_ticks >= content->projectile.fire_recovery_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
         }
     }
     else if (!ledge_motion_handled &&
@@ -3558,6 +3595,22 @@ pf_status pf_m4_step_player(
                 action_ticks < fighter->double_jump_cancel_ticks;
 
             if (action_state ==
+                (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR)
+            {
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    air_target,
+                    fighter->air_acceleration_q16);
+                ++action_ticks;
+                if (action_ticks >=
+                    content->projectile.fire_recovery_ticks)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                }
+            }
+            else if (action_state ==
                 (uint8_t)PF_M4_ACTION_AERIAL_ATTACK)
             {
                 velocity_x = pf_m4_approach(
@@ -4298,6 +4351,42 @@ pf_status pf_m4_inspect(
             sim->world.item_source_slot != UINT8_C(0)
         ? UINT8_C(1)
         : UINT8_C(0);
+    out_inspection->projectile.position_x_q16 =
+        sim->world.projectile_position_x_q16;
+    out_inspection->projectile.position_y_q16 =
+        sim->world.projectile_position_y_q16;
+    out_inspection->projectile.velocity_x_q16 =
+        sim->world.projectile_velocity_x_q16;
+    out_inspection->projectile.velocity_y_q16 =
+        sim->world.projectile_velocity_y_q16;
+    out_inspection->projectile.hitbox_left_q16 =
+        sim->world.projectile_position_x_q16 -
+        sim->content.projectile.half_width_q16;
+    out_inspection->projectile.hitbox_right_q16 =
+        sim->world.projectile_position_x_q16 +
+        sim->content.projectile.half_width_q16;
+    out_inspection->projectile.hitbox_top_q16 =
+        sim->world.projectile_position_y_q16 -
+        sim->content.projectile.half_height_q16;
+    out_inspection->projectile.hitbox_bottom_q16 =
+        sim->world.projectile_position_y_q16 +
+        sim->content.projectile.half_height_q16;
+    out_inspection->projectile.lifetime_ticks =
+        sim->world.projectile_lifetime_ticks;
+    out_inspection->projectile.enabled =
+        sim->content.projectile.enabled;
+    out_inspection->projectile.state =
+        sim->world.projectile_state;
+    out_inspection->projectile.owner =
+        sim->world.projectile_owner_slot != UINT8_C(0)
+            ? (uint8_t)(
+                  sim->world.projectile_owner_slot - UINT8_C(1))
+            : PF_SIM_EVENT_NO_PLAYER;
+    out_inspection->projectile.hitbox_active =
+        sim->world.projectile_state ==
+            (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE
+            ? UINT8_C(1)
+            : UINT8_C(0);
 
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;

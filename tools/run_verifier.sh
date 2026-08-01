@@ -130,6 +130,10 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_item.sh" \
     "$pf_artifact_dir/m4_item"
 pf_record \
+    m4-projectile \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_projectile.sh" \
+    "$pf_artifact_dir/m4_projectile"
+pf_record \
     m4-browser-adapter \
     "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
     "$pf_artifact_dir/m4_browser"

@@ -79,6 +79,7 @@ set(
     src/sim/sim_content.c
     src/sim/sim_event.c
     src/sim/sim_item.c
+    src/sim/sim_projectile.c
     src/sim/sim_internal.h
     src/sim/sim_movement.c
     src/sim/sim_sha256.c
@@ -242,7 +243,7 @@ function(pf_add_smoke_product target product_name render_probe)
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
-                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_reset"
+                "-sEXPORTED_FUNCTIONS=_main,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(
@@ -495,7 +496,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=662 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=682 hash_algorithm=sha256")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -508,7 +509,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=28 deterministic_ticks=20000 movement_invariants=243 double_jump_cancel=1 ledge_cancel=1 planking=1")
+                   "m4-movement=pass content_schema=29 deterministic_ticks=20000 movement_invariants=243 double_jump_cancel=1 ledge_cancel=1 planking=1")
 
     add_executable(m4_combat_test tests/sim/test_m4_combat.c)
     target_link_libraries(m4_combat_test PRIVATE sim)
@@ -521,7 +522,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=28 deterministic_ticks=20000 combat_invariants=584 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1")
+                   "m4-combat=pass content_schema=29 deterministic_ticks=20000 combat_invariants=584 journal_invariants=50 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 directional_throws=1 chain_grab=1")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)
@@ -534,7 +535,24 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=28 state_schema=27 save_bytes=662 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=29 state_schema=28 save_bytes=682 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+
+    add_executable(
+        m4_projectile_test
+        tests/sim/test_m4_projectile.c)
+    target_link_libraries(m4_projectile_test PRIVATE sim)
+    target_compile_features(m4_projectile_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_projectile_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_projectile_test)
+    pf_apply_build_mode(m4_projectile_test)
+
+    add_test(NAME sim.m4_projectile COMMAND m4_projectile_test)
+    set_tests_properties(
+        sim.m4_projectile
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-projectile=pass content_schema=29 state_schema=28 save_bytes=682 projectile_invariants=38 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1")
 
     add_executable(m4_match_test tests/sim/test_m4_match.c)
     target_link_libraries(m4_match_test PRIVATE sim)
@@ -568,7 +586,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         web.m4_playtest
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 event_journal_probe=1")
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1 air_facing_probe=1 instant_double_jump_probe=1 double_jump_cancel_probe=1 double_jump_cancel_counter_probe=1 bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1 jump_cancel_probe=1 edge_hop_probe=1 edge_dash_probe=1 fox_trot_probe=1 pivot_probe=1 dash_cancel_probe=1 dashing_shield_probe=1 shield_platform_drop_probe=1 small_step_forward_smash_probe=1 drop_cancel_probe=1 v_cancel_probe=1 approach_probe=1 spacing_probe=1 sharking_probe=1 cross_up_probe=1 mindgame_probe=1 juggling_probe=1 ladder_probe=1 kill_confirm_probe=1 zero_to_death_probe=1 ledge_cancel_probe=1 planking_probe=1 jump_cancelled_grab_probe=1 boost_grab_probe=1 jab_cancel_probe=1 jab_reset_probe=1 chain_grab_probe=1 combat_probe=1 reaction_probe=1 shield_probe=1 shield_break_probe=1 powershield_cancel_probe=1 tumble_probe=1 floor_recovery_probe=1 tech_chase_probe=1 surface_tech_probe=1 air_dodge_probe=1 ground_dodge_probe=1 aerial_l_cancel_probe=1 match_probe=1 short_hop_laser_probe=1 event_journal_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -581,14 +599,14 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.rl_api
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "rl-api=pass compact_values=56 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=5")
+                   "rl-api=pass compact_values=62 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=6")
 
     if(PF_BUILD_DETERMINISM_CORPUS)
         add_test(NAME sim.replay_corpus COMMAND replay_corpus)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=31354")
+                       "sim-replay=pass ticks=180 players=4 bytes=31374")
     endif()
 
     if(PF_BUILD_HEADLESS)

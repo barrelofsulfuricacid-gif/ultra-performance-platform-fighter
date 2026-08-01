@@ -6,11 +6,12 @@
 /*
  * One player can emit one movement event, one combat event, and one forfeit
  * event in a tick. A match can additionally emit one resolution event, while
- * the canonical item can emit one input/reset event and one collision event.
+ * the canonical item can emit one input/reset event and one collision event,
+ * and the bounded projectile slot can emit one fire/collision event.
  */
 _Static_assert(
     PF_SIM_MAX_EVENTS_PER_TICK >=
-        UINT8_C(3) * PF_SIM_MAX_PLAYERS + UINT8_C(3),
+        UINT8_C(3) * PF_SIM_MAX_PLAYERS + UINT8_C(4),
     "the per-tick journal must hold every current production event");
 _Static_assert(
     sizeof(pf_sim_event) == (size_t)32,
@@ -33,7 +34,7 @@ pf_status pf_sim_push_event(
 
     if (scratch == NULL ||
         type <= PF_SIM_EVENT_NONE ||
-        type > PF_SIM_EVENT_ITEM_RESET ||
+        type > PF_SIM_EVENT_PROJECTILE_REFLECT ||
         (source_player != PF_SIM_EVENT_NO_PLAYER &&
          source_player >= PF_SIM_MAX_PLAYERS) ||
         (target_player != PF_SIM_EVENT_NO_PLAYER &&

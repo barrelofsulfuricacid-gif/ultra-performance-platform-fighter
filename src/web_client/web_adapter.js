@@ -441,7 +441,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
@@ -492,6 +492,7 @@ mergeInto(LibraryManager.library, {
     groundDodgeProbePassed,
     aerialLCancelProbePassed,
     matchProbePassed,
+    shortHopLaserProbePassed,
     aerialLandingLagTicks,
     strongAerialLandingLagTicks
   ) {
@@ -502,6 +503,7 @@ mergeInto(LibraryManager.library, {
         jump: false,
         attack: false,
         strongAttack: false,
+        special: false,
         shield: false,
       };
     }
@@ -557,9 +559,8 @@ mergeInto(LibraryManager.library, {
       }
       input.attack = gamepadButtonPressed(gamepad, 0);
       input.strongAttack = gamepadButtonPressed(gamepad, 1);
-      input.jump =
-        gamepadButtonPressed(gamepad, 2) ||
-        gamepadButtonPressed(gamepad, 3);
+      input.jump = gamepadButtonPressed(gamepad, 2);
+      input.special = gamepadButtonPressed(gamepad, 3);
       input.shield =
         gamepadButtonPressed(gamepad, 4) ||
         gamepadButtonPressed(gamepad, 5) ||
@@ -625,6 +626,7 @@ mergeInto(LibraryManager.library, {
       };
       var dpadButtons = buttons();
       dpadButtons[1] = { pressed: true, value: 1 };
+      dpadButtons[3] = { pressed: true, value: 1 };
       dpadButtons[12] = { pressed: true, value: 1 };
       dpadButtons[15] = { pressed: true, value: 1 };
       var dpad = {
@@ -655,12 +657,14 @@ mergeInto(LibraryManager.library, {
         result.inputs[0].attack &&
         !result.inputs[0].strongAttack &&
         result.inputs[0].jump &&
+        !result.inputs[0].special &&
         result.inputs[0].shield &&
         result.inputs[1].horizontal === dashAxis &&
         result.inputs[1].vertical === -dashAxis &&
         !result.inputs[1].attack &&
         result.inputs[1].strongAttack &&
         !result.inputs[1].jump &&
+        result.inputs[1].special &&
         !result.inputs[1].shield
       );
     }
@@ -717,7 +721,7 @@ mergeInto(LibraryManager.library, {
         ".pf-m4-state{background:#0a111d;border:1px solid #263851;" +
         "border-radius:10px;padding:10px 12px;font:12px/1.5 ui-monospace,monospace;" +
         "color:#9fb0c7}.pf-m4-state strong{color:#edf5ff}" +
-        ".pf-m4-item-state{grid-column:1/-1}" +
+        ".pf-m4-item-state,.pf-m4-projectile-state{grid-column:1/-1}" +
         ".pf-m4-event-panel{grid-column:1/-1}.pf-m4-event-help{" +
         "color:#7287a4;margin:3px 0 8px}.pf-m4-event-feed{" +
         "list-style:none;padding:0;margin:0;display:grid;gap:5px}" +
@@ -746,6 +750,8 @@ mergeInto(LibraryManager.library, {
       jumpCancelThrowProbePassed ? "pass" : "fail";
     section.dataset.jumpCancelProbe =
       jumpCancelProbePassed ? "pass" : "fail";
+    section.dataset.shortHopLaserProbe =
+      shortHopLaserProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -810,6 +816,7 @@ mergeInto(LibraryManager.library, {
       groundDodgeProbePassed &&
       aerialLCancelProbePassed &&
       matchProbePassed &&
+      shortHopLaserProbePassed &&
       gamepadApiAvailable &&
       gamepadProbePassed
         ? "ALL M4 INPUT + GAMEPAD + COMBAT PROBES PASSED"
@@ -866,13 +873,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left/top face jump · any shoulder/trigger shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional forward smash · H direct strong · E Pulse Bolt special · G shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional forward smash · right face direct strong · left face jump · top face Pulse Bolt · any shoulder/trigger shield · light + shield grab/item"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional forward smash · ' or Numpad 2 direct strong · ; or Numpad 3 Pulse Bolt special · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -972,9 +979,13 @@ mergeInto(LibraryManager.library, {
       "Dash, jump, then press light during jump squat for a jump-cancel throw; " +
       "waiting until airborne produces an ordinary aerial item throw instead. " +
       "Without an item, hold full up and freshly press light or strong during " +
-      "jump squat to cancel into the standing strong attack; neutral, shallow-up, " +
-      "and first-airborne-frame attacks keep their ordinary routes. " +
-      "The deterministic event feed below records hits, shield interactions, " +
+       "jump squat to cancel into the standing strong attack; neutral, shallow-up, " +
+       "and first-airborne-frame attacks keep their ordinary routes. " +
+       "Press E or ; (top face on a Standard Gamepad) to fire the fixed-capacity " +
+       "Pulse Bolt. Fire it during a short hop for the short-hop laser route; an " +
+       "ordinary shield blocks it, while a shield activated during the two-frame " +
+       "projectile window reflects ownership and velocity without taking damage. " +
+       "The deterministic event feed below records hits, shield interactions, " +
       "grabs, throws, KOs, respawns, sudden death, and results in canonical " +
       "sequence order. " +
       "R resets, P " +
@@ -997,6 +1008,11 @@ mergeInto(LibraryManager.library, {
     itemState.id = "pf-m4-item";
     itemState.textContent = "Relay Rod waiting for first state";
     stateGrid.appendChild(itemState);
+    var projectileState = document.createElement("div");
+    projectileState.className = "pf-m4-state pf-m4-projectile-state";
+    projectileState.id = "pf-m4-projectile";
+    projectileState.textContent = "Pulse Bolt waiting for first state";
+    stateGrid.appendChild(projectileState);
     var eventPanel = document.createElement("div");
     eventPanel.className = "pf-m4-state pf-m4-event-panel";
     var eventTitle = document.createElement("strong");
@@ -1033,6 +1049,7 @@ mergeInto(LibraryManager.library, {
       gamepadLabel: gamepadLabel,
       keys: Object.create(null),
       itemState: itemState,
+      projectileState: projectileState,
       lastEventSequence: 0,
       lastTime: 0,
       latest: null,
@@ -1043,6 +1060,7 @@ mergeInto(LibraryManager.library, {
       strongAttackQueued: [false, false],
       jumpQueued: [false, false],
       shieldQueued: [false, false],
+      specialQueued: [false, false],
       strongAerialLandingLagTicks: strongAerialLandingLagTicks,
       running: true,
       tickLabel: tickLabel,
@@ -1110,6 +1128,13 @@ mergeInto(LibraryManager.library, {
         held("Numpad2") ||
         state.strongAttackQueued[1] ||
         player1Gamepad.strongAttack;
+      var player0Special =
+        held("KeyE") || state.specialQueued[0] || player0Gamepad.special;
+      var player1Special =
+        held("Semicolon") ||
+        held("Numpad3") ||
+        state.specialQueued[1] ||
+        player1Gamepad.special;
       var player0Shield =
         held("KeyG") || state.shieldQueued[0] || player0Gamepad.shield;
       var player1Shield =
@@ -1117,7 +1142,7 @@ mergeInto(LibraryManager.library, {
         held("Numpad1") ||
         state.shieldQueued[1] ||
         player1Gamepad.shield;
-      var passed = Module._pf_web_m4_playtest_step(
+      var passed = Module._pf_web_m4_playtest_step_special(
         mergeAxis(
           horizontal("KeyA", "KeyD"),
           player0Gamepad.horizontal
@@ -1138,7 +1163,9 @@ mergeInto(LibraryManager.library, {
         player1Jump ? 1 : 0,
         player1Attack ? 1 : 0,
         player1StrongAttack ? 1 : 0,
-        player1Shield ? 1 : 0
+        player1Shield ? 1 : 0,
+        player0Special ? 1 : 0,
+        player1Special ? 1 : 0
       );
       state.jumpQueued[0] = false;
       state.jumpQueued[1] = false;
@@ -1148,6 +1175,8 @@ mergeInto(LibraryManager.library, {
       state.strongAttackQueued[1] = false;
       state.shieldQueued[0] = false;
       state.shieldQueued[1] = false;
+      state.specialQueued[0] = false;
+      state.specialQueued[1] = false;
       if (!passed) {
         state.running = false;
         state.pauseButton.textContent = "Resume";
@@ -1176,6 +1205,7 @@ mergeInto(LibraryManager.library, {
       state.attackQueued = [false, false];
       state.strongAttackQueued = [false, false];
       state.shieldQueued = [false, false];
+      state.specialQueued = [false, false];
       state.accumulator = 0;
       Module._pf_web_m4_playtest_reset();
       if (completed) {
@@ -1223,6 +1253,8 @@ mergeInto(LibraryManager.library, {
           event.code === "Numpad2" ||
           event.code === "Period" ||
           event.code === "Numpad1" ||
+          event.code === "Semicolon" ||
+          event.code === "Numpad3" ||
           event.code.indexOf("Arrow") === 0
         ) {
           event.preventDefault();
@@ -1261,6 +1293,15 @@ mergeInto(LibraryManager.library, {
         ) {
           state.shieldQueued[1] = true;
         }
+        if (!wasHeld && event.code === "KeyE") {
+          state.specialQueued[0] = true;
+        }
+        if (
+          !wasHeld &&
+          (event.code === "Semicolon" || event.code === "Numpad3")
+        ) {
+          state.specialQueued[1] = true;
+        }
         if (event.repeat) {
           return;
         }
@@ -1283,6 +1324,7 @@ mergeInto(LibraryManager.library, {
       state.attackQueued = [false, false];
       state.strongAttackQueued = [false, false];
       state.shieldQueued = [false, false];
+      state.specialQueued = [false, false];
     });
 
     if (status) {
@@ -1387,6 +1429,8 @@ mergeInto(LibraryManager.library, {
         (aerialLCancelProbePassed ? "pass" : "fail") +
         " match_probe=" +
         (matchProbePassed ? "pass" : "fail") +
+        " short_hop_laser_probe=" +
+        (shortHopLaserProbePassed ? "pass" : "fail") +
         " gamepad_probe=" +
         (gamepadProbePassed ? "pass" : "fail") +
         " gamepad_api=" +
@@ -1480,6 +1524,8 @@ mergeInto(LibraryManager.library, {
       status.dataset.aerialLCancelProbe =
         aerialLCancelProbePassed ? "pass" : "fail";
       status.dataset.matchProbe = matchProbePassed ? "pass" : "fail";
+      status.dataset.shortHopLaserProbe =
+        shortHopLaserProbePassed ? "pass" : "fail";
       status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
@@ -1491,7 +1537,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 290) {
+    if (!state || viewCount !== 302) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -1500,7 +1546,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 23) {
+    if (view[0] !== 24) {
       return;
     }
     var canvas = state.canvas;
@@ -1579,6 +1625,8 @@ mergeInto(LibraryManager.library, {
       "DELAYED AIR JUMP",
       "ITEM THROW",
       "DASH ITEM THROW",
+      "PULSE BOLT GROUND",
+      "PULSE BOLT AIR",
     ];
 
     if (view[1] < previousTick) {
@@ -1705,6 +1753,32 @@ mergeInto(LibraryManager.library, {
           );
         case 18:
           return "Relay Rod reset to its authored spawn";
+        case 19:
+          return (
+            source +
+            " fired a Pulse Bolt · " +
+            (actionNames[event.detail] || "ACTION " + event.detail) +
+            " · velocity " +
+            velocity
+          );
+        case 20:
+          return (
+            source +
+            " hit " +
+            target +
+            " with a Pulse Bolt for " +
+            value +
+            "% · launch " +
+            velocity
+          );
+        case 21:
+          return (
+            source +
+            " reflected " +
+            target +
+            "'s Pulse Bolt · velocity " +
+            velocity
+          );
         default:
           return "unknown event type " + event.type;
       }
@@ -1920,6 +1994,62 @@ mergeInto(LibraryManager.library, {
       context.font = "bold 10px ui-monospace, monospace";
       context.textAlign = "center";
       context.fillText("RELAY ROD", itemX, itemY - Math.max(10, itemHeight) / 2 - 8);
+    }
+
+    var projectileBase = 290;
+    var projectileStateCode = view[projectileBase + 1];
+    if (
+      view[projectileBase] !== 0 &&
+      projectileStateCode > 0 &&
+      projectileStateCode < 3
+    ) {
+      var projectileWorldX = view[projectileBase + 4];
+      var projectileWorldY = view[projectileBase + 5];
+      var projectileX = sx(projectileWorldX);
+      var projectileY = sy(projectileWorldY);
+      var projectileWidth = Math.max(
+        7,
+        sx(projectileWorldX + view[projectileBase + 9]) -
+          sx(projectileWorldX - view[projectileBase + 9])
+      );
+      var projectileHeight = Math.max(
+        7,
+        sy(projectileWorldY + view[projectileBase + 10]) -
+          sy(projectileWorldY - view[projectileBase + 10])
+      );
+      var projectileOwner = view[projectileBase + 2];
+
+      context.save();
+      context.shadowColor =
+        projectileOwner >= 0 && projectileOwner < colors.length
+          ? colors[projectileOwner]
+          : "#7deeff";
+      context.shadowBlur = 18;
+      context.fillStyle = "#d8fbff";
+      context.strokeStyle = "#61e8ff";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.ellipse(
+        projectileX,
+        projectileY,
+        projectileWidth / 2,
+        projectileHeight / 2,
+        0,
+        0,
+        Math.PI * 2
+      );
+      context.fill();
+      context.stroke();
+      context.shadowBlur = 0;
+      context.fillStyle = "#bff8ff";
+      context.font = "bold 9px ui-monospace, monospace";
+      context.textAlign = "center";
+      context.fillText(
+        "PULSE BOLT",
+        projectileX,
+        projectileY - projectileHeight / 2 - 7
+      );
+      context.restore();
     }
 
     [0, 1].forEach(function (playerIndex) {
@@ -2323,6 +2453,31 @@ mergeInto(LibraryManager.library, {
       view[itemBase + 12] +
       "f · hit mask " +
       view[itemBase + 13];
+
+    var projectileStateNames = ["INACTIVE", "SPAWNING", "ACTIVE"];
+    state.projectileState.innerHTML =
+      "<strong>Pulse Bolt · " +
+      (projectileStateNames[projectileStateCode] ||
+        "STATE " + projectileStateCode) +
+      "</strong><br>x " +
+      (view[projectileBase + 4] / q16).toFixed(3) +
+      " · y " +
+      (view[projectileBase + 5] / q16).toFixed(3) +
+      " · vx " +
+      (view[projectileBase + 6] / q16).toFixed(3) +
+      " · vy " +
+      (view[projectileBase + 7] / q16).toFixed(3) +
+      "<br>owner " +
+      (view[projectileBase + 2] === 255
+        ? "none"
+        : "P" + (view[projectileBase + 2] + 1)) +
+      " · hitbox " +
+      view[projectileBase + 3] +
+      " · lifetime " +
+      view[projectileBase + 8] +
+      "f · powershield reflect window " +
+      view[projectileBase + 11] +
+      "f";
 
     if (view[21] !== 0 || view[22] !== 0 || view[23] !== 0) {
       var resultLabel;

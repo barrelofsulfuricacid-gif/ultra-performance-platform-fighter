@@ -361,6 +361,7 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
         pf_m4_reset_player(sim, player_index, 0);
     }
     pf_m4_reset_item(sim);
+    pf_m4_reset_projectile(sim);
 
     (void)memset(sim->scratch, 0, sizeof(*sim->scratch));
     sim->has_reset = UINT8_C(1);
@@ -424,6 +425,20 @@ pf_status pf_sim_observe(
     out_observation->item.throw_direction =
         sim->world.item_throw_direction;
     out_observation->item.hit_mask = sim->world.item_hit_mask;
+    out_observation->projectile.position_x_q16 =
+        sim->world.projectile_position_x_q16;
+    out_observation->projectile.position_y_q16 =
+        sim->world.projectile_position_y_q16;
+    out_observation->projectile.velocity_x_q16 =
+        sim->world.projectile_velocity_x_q16;
+    out_observation->projectile.velocity_y_q16 =
+        sim->world.projectile_velocity_y_q16;
+    out_observation->projectile.lifetime_ticks =
+        sim->world.projectile_lifetime_ticks;
+    out_observation->projectile.state =
+        sim->world.projectile_state;
+    out_observation->projectile.owner_slot =
+        sim->world.projectile_owner_slot;
 
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;

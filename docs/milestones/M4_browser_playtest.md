@@ -11,6 +11,8 @@ and four directional
 throws with a low-percent chain-grab route,
 one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
 plus bat-drop, glide-toss, and jump-cancel-throw routes,
+one fixed Pulse Bolt with grounded/aerial fire, hit, shield block, and
+powershield reflection plus the short-hop-laser route,
 grounded jump-cancel attack with threshold and late-input controls,
 light and strong production aerial routes with auto-cancel/L-cancel landing,
 grounded forward/backward rolls, spot dodge, shield platform drop,
@@ -32,6 +34,7 @@ headless execution.
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light ground/aerial attack; full-direction forward smash | `F` | `/` or Numpad `0` |
 | Direct strong ground/aerial attack | `H` | `'` or Numpad `2` |
+| Pulse Bolt special | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Directional throw while holding a victim | Full direction + fresh `F` or `H` | Full direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
@@ -51,8 +54,8 @@ Up to two gamepads using the
 assigned in browser index order. On each pad, the left stick supplies analog
 movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack or a directional forward
-smash, the right face button is a direct strong attack, either left/top face
-button jumps, and any shoulder or trigger
+smash, the right face button is a direct strong attack, the left face button
+jumps, the top face button fires Pulse Bolt, and any shoulder or trigger
     holds shield or supplies the tech/air-dodge/L-cancel trigger. Light plus a
     shoulder/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player. Non-standard browser mappings
@@ -74,6 +77,13 @@ roll and item. For jump-cancel throw, dash, press jump, then press light during
 `JUMP SQUAT`; waiting until `AIRBORNE` keeps the jump and performs an ordinary
 aerial item throw. The gold collision overlay appears only while the item
 hitbox is active.
+
+The cyan Pulse Bolt has its own live state card. Press `E` or `;`/Numpad `3`
+to fire from the ground, or tap jump, release during jump squat, and fire after
+takeoff for short-hop laser. Only one bolt can occupy the canonical slot. An
+ordinary shield blocks and clears it; activate shield during the authored
+two-frame projectile window to reverse the bolt, transfer its owner, and take
+no damage. The event feed distinguishes fire, hit, and reflection.
 
 For a fox-trot, tap and release one full direction, then repeat that same
 direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
@@ -418,8 +428,7 @@ invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
 This shield slice does not yet include analog light shield, general shield
-tilt/poke, shield SDI, grab, projectile
-reflection.
+tilt/poke, or shield SDI.
 Future ground actions must join the same powershield-cancel router before that
 registry row can advance from `playable` to `verified`.
 
@@ -677,6 +686,12 @@ registry row can advance from `playable` to `verified`.
     on Player 1. Repeat after waiting until Player 2 returns to `AIRBORNE`, then
     repeat against Player 1's strong aerial; confirm the late light and strong
     hits both launch Player 2 normally.
+50. Tap and release jump, then press `E` after takeoff. Confirm `PULSE BOLT
+    AIR`, a cyan bolt, one typed fire event, and ordinary `LANDING`. Reset and
+    fire from the ground to confirm `PULSE BOLT GROUND`. Hold Player 2's shield
+    early for the ordinary block, then reset and activate it as the bolt arrives
+    during the two-frame window; confirm zero damage, reversed velocity, Player
+    2 ownership, a typed reflection event, and the returned hit on Player 1.
 
 Record any mismatch with the control used, the visible tick/action state, and
 whether it repeats after Reset.
@@ -784,6 +799,9 @@ through:
   spacing miss, grounded glide toss on the final legal roll frame plus the
   first-late rejection, and dash-to-jump-squat cancel throw plus the
   first-airborne-frame ordinary throw before the live item lab is installed;
+- an original Pulse Bolt fired from a deterministic short hop, producing the
+  aerial fire action/event and returning through generic landing before the
+  live item/projectile lab is installed;
 - opposite-direction aerial drift and an opposite-direction air jump changing
   velocity without changing takeoff facing;
 - a full-hop directional air dodge reaching its exact invulnerability window
@@ -849,7 +867,7 @@ tumble_probe=pass
 floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass
 air_dodge_probe=pass
 ground_dodge_probe=pass
-aerial_l_cancel_probe=pass match_probe=pass gamepad_probe=pass
+aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass gamepad_probe=pass
 gamepad_api=available controls=keyboard-gamepad-two-player` only after all checks
 pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.

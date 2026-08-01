@@ -32,7 +32,7 @@ reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint. It
 does not claim the remaining
 attacks, analog light shields, general shield tilt/size/pokes, shield SDI,
-pummels and broader throw routes, projectile powershields, complete
+pummels and broader throw routes, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
@@ -943,13 +943,55 @@ despawn/reset. Browser startup repeats both timing/spacing outcomes for the
 three registry techniques before readiness, and the live adapter test performs
 an ordinary pickup and throw.
 
+## Pulse Bolt projectile contract
+
+The original Pulse Bolt is one fixed-capacity canonical projectile slot.
+Default content keeps it disabled to isolate existing fixtures; the focused
+projectile fixture and live browser lab enable the same authored data. Input
+schema 4 adds a separate special-button edge. The lowest legal controller slot
+wins simultaneous requests, and any request while the slot is occupied is
+ignored without creating another entity or event.
+
+A legal grounded or airborne request enters `PROJECTILE_FIRE_GROUND` or
+`PROJECTILE_FIRE_AIR`, preserves ordinary aerial drift/gravity where relevant,
+and recovers after eight ticks. The bolt spawns 4/5 unit in front of the
+fighter, has 1/5-unit half extents, travels straight at 3/5 unit per tick, deals
+6%, uses three hitlag ticks, and expires after 120 ticks or on a blast boundary.
+The transient `SPAWNING` phase makes the bolt ineligible for collision on its
+fire tick; it is exposed as `ACTIVE` after that tick and may hit at most one
+legal opponent before the slot clears.
+
+An ordinary shield contact applies the normal projectile shield damage,
+pushback, hitlag, stun or break path, then clears the bolt. A shield activated
+within the authored two-frame projectile window instead reverses horizontal
+velocity, transfers ownership to the defender, sets the visible powershield
+result, applies no percent or shield damage, and leaves the bolt active so it
+can return through the normal hit path. Typed events 19–21 are
+`PROJECTILE_FIRE`, `PROJECTILE_HIT`, and `PROJECTILE_REFLECT`.
+
+`tests/sim/test_m4_projectile.c` supplies 38 focused invariants covering
+content validation/hash, simultaneous arbitration, grounded hit, ordinary
+block, exact reflect timing and returned hit, short-hop fire and generic
+landing, 682-byte save/load future equality, replay verification, and RL
+visibility. Strict verifier and browser startup oracles repeat the original
+short-hop-laser route. Browser view schema 24 appends 12 projectile values at
+indices 290–301 without moving existing offsets, draws the cyan bolt and its
+owner, and exposes a live state card. Browser controls are `E` for Player 1,
+`;`/Numpad 3 for Player 2, and top face on a Standard Gamepad.
+
 ## Canonical state and inspection
 
-State schema 27 / save format 26 retains the 662-byte stream (140-byte header
-plus 522-byte payload), changes the active magic to `PFSAVE26`, and makes the
-full-up jump-squat attack cancel, grounded standing-strong selection, inherited
-momentum, and neutral/shallow/late exclusions fail closed without adding
-mutable fields. It follows state schema 26 / save format 25, which expanded the
+State schema 28 / save format 27 expands the stream to 682 bytes (140-byte
+header plus 542-byte payload), changes the active magic to `PFSAVE27`, and adds
+the complete fixed projectile slot while making fire, collision, block,
+reflection, hit, ownership, action, and typed-event semantics fail closed.
+Structured observation schema 4 exposes the same slot. RL schema 6 and compact
+observation schema 5 append six projectile values at indices 56–61 without
+moving earlier indices. It follows state schema 27 / save format 26, which
+retains the 662-byte stream and makes the full-up jump-squat attack cancel,
+grounded standing-strong selection, inherited momentum, and
+neutral/shallow/late exclusions fail closed without adding mutable fields. It
+follows state schema 26 / save format 25, which expanded the
 stream to 662 bytes and added the fixed item entity, timers,
 ownership/attribution, hit mask, throw direction,
 `ITEM_THROW`/`ITEM_DASH_THROW` action semantics, and typed item events. It
@@ -1237,13 +1279,14 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,354-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,374-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
 The browser startup refuses readiness unless independent movement,
 drop-cancel, V-cancel, bat-drop, glide-toss, jump-cancel-throw, jump-cancel
 attack, planking,
+short-hop laser,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,

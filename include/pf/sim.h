@@ -13,13 +13,13 @@ extern "C"
 #define PF_SIM_TICK_RATE_HZ UINT32_C(60)
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
-#define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(3)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(27)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(3)
+#define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(4)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(28)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(4)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(26)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(27)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
@@ -36,10 +36,12 @@ extern "C"
 #define PF_INPUT_BUTTON_JUMP (UINT64_C(1) << 0U)
 #define PF_INPUT_BUTTON_ATTACK (UINT64_C(1) << 1U)
 #define PF_INPUT_BUTTON_STRONG_ATTACK (UINT64_C(1) << 2U)
+#define PF_INPUT_BUTTON_SPECIAL (UINT64_C(1) << 3U)
 #define PF_INPUT_BUTTON_FORFEIT (UINT64_C(1) << 63U)
 #define PF_INPUT_KNOWN_BUTTONS                                             \
     (PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_ATTACK |                       \
-     PF_INPUT_BUTTON_STRONG_ATTACK | PF_INPUT_BUTTON_FORFEIT)
+     PF_INPUT_BUTTON_STRONG_ATTACK | PF_INPUT_BUTTON_SPECIAL |             \
+     PF_INPUT_BUTTON_FORFEIT)
 
 typedef enum pf_status
 {
@@ -92,7 +94,10 @@ typedef enum pf_sim_event_type
     PF_SIM_EVENT_ITEM_DROP = 15,
     PF_SIM_EVENT_ITEM_THROW = 16,
     PF_SIM_EVENT_ITEM_HIT = 17,
-    PF_SIM_EVENT_ITEM_RESET = 18
+    PF_SIM_EVENT_ITEM_RESET = 18,
+    PF_SIM_EVENT_PROJECTILE_FIRE = 19,
+    PF_SIM_EVENT_PROJECTILE_HIT = 20,
+    PF_SIM_EVENT_PROJECTILE_REFLECT = 21
 } pf_sim_event_type;
 
 typedef enum pf_sim_event_flag
@@ -273,6 +278,17 @@ typedef struct pf_item_observation
     uint8_t reserved[3];
 } pf_item_observation;
 
+typedef struct pf_projectile_observation
+{
+    int32_t position_x_q16;
+    int32_t position_y_q16;
+    int32_t velocity_x_q16;
+    int32_t velocity_y_q16;
+    uint16_t lifetime_ticks;
+    uint8_t state;
+    uint8_t owner_slot;
+} pf_projectile_observation;
+
 typedef struct pf_sim_observation
 {
     uint64_t tick;
@@ -288,6 +304,7 @@ typedef struct pf_sim_observation
     uint8_t stock_count;
     uint8_t reserved;
     pf_item_observation item;
+    pf_projectile_observation projectile;
     pf_player_observation players[PF_SIM_MAX_PLAYERS];
 } pf_sim_observation;
 

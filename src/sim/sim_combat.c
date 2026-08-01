@@ -562,7 +562,8 @@ int pf_m4_attack_hitbox(
 static int pf_m4_event_is_physical_hit(pf_sim_event_type event_type)
 {
     return event_type == PF_SIM_EVENT_HIT ||
-           event_type == PF_SIM_EVENT_ITEM_HIT;
+           event_type == PF_SIM_EVENT_ITEM_HIT ||
+           event_type == PF_SIM_EVENT_PROJECTILE_HIT;
 }
 
 int pf_m4_grabbox(
@@ -1379,6 +1380,235 @@ static pf_status pf_m4_resolve_item_combat(
     return PF_STATUS_OK;
 }
 
+static void pf_m4_clear_projectile_combat(pf_sim_scratch *scratch)
+{
+    scratch->projectile_position_x_q16 = INT32_C(0);
+    scratch->projectile_position_y_q16 = INT32_C(0);
+    scratch->projectile_velocity_x_q16 = INT32_C(0);
+    scratch->projectile_velocity_y_q16 = INT32_C(0);
+    scratch->projectile_lifetime_ticks = UINT16_C(0);
+    scratch->projectile_state =
+        (uint8_t)PF_M4_PROJECTILE_STATE_INACTIVE;
+    scratch->projectile_owner_slot = UINT8_C(0);
+}
+
+static pf_status pf_m4_resolve_projectile_combat(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch)
+{
+    const pf_m4_projectile_data *projectile = &content->projectile;
+    const uint8_t owner_slot = scratch->projectile_owner_slot;
+    const uint32_t owner_index =
+        (uint32_t)owner_slot - UINT32_C(1);
+    const int32_t hitbox_left =
+        scratch->projectile_position_x_q16 -
+        projectile->half_width_q16;
+    const int32_t hitbox_right =
+        scratch->projectile_position_x_q16 +
+        projectile->half_width_q16;
+    const int32_t hitbox_top =
+        scratch->projectile_position_y_q16 -
+        projectile->half_height_q16;
+    const int32_t hitbox_bottom =
+        scratch->projectile_position_y_q16 +
+        projectile->half_height_q16;
+    uint32_t target_index;
+
+    if (projectile->enabled == UINT8_C(0) ||
+        scratch->projectile_state !=
+            (uint8_t)PF_M4_PROJECTILE_STATE_ACTIVE)
+    {
+        return PF_STATUS_OK;
+    }
+    if (owner_slot == UINT8_C(0) ||
+        owner_index >= (uint32_t)world->player_count)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    for (target_index = UINT32_C(0);
+         target_index < (uint32_t)world->player_count;
+         ++target_index)
+    {
+        const int8_t launch_direction =
+            scratch->projectile_velocity_x_q16 < INT32_C(0)
+                ? INT8_C(-1)
+                : INT8_C(1);
+
+        if (target_index == owner_index ||
+            scratch->active[target_index] == UINT8_C(0) ||
+            scratch->respawn_invulnerability_ticks[target_index] !=
+                UINT16_C(0) ||
+            scratch->ledge_invulnerability_ticks[target_index] !=
+                UINT16_C(0) ||
+            scratch->hitlag_ticks[target_index] != UINT16_C(0) ||
+            pf_m4_action_is_recovery_invulnerable(
+                &content->fighter,
+                scratch->action_state[target_index],
+                scratch->action_ticks[target_index]) ||
+            (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
+             world->team[owner_index] == world->team[target_index]) ||
+            !pf_m4_hitbox_overlaps_player(
+                &content->fighter,
+                scratch,
+                target_index,
+                hitbox_left,
+                hitbox_right,
+                hitbox_top,
+                hitbox_bottom))
+        {
+            continue;
+        }
+
+        if (pf_m4_action_is_guarding(
+                scratch->action_state[target_index]) &&
+            scratch->action_state[target_index] ==
+                (uint8_t)PF_M4_ACTION_SHIELD &&
+            scratch->action_ticks[target_index] <=
+                projectile->powershield_reflect_window_ticks)
+        {
+            const int32_t reflected_velocity_x =
+                -scratch->projectile_velocity_x_q16;
+
+            scratch->projectile_velocity_x_q16 =
+                reflected_velocity_x;
+            scratch->projectile_owner_slot =
+                (uint8_t)(target_index + UINT32_C(1));
+            scratch->powershield[target_index] = UINT8_C(1);
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    PF_SIM_EVENT_PROJECTILE_REFLECT,
+                    (uint8_t)target_index,
+                    (uint8_t)owner_index,
+                    UINT32_C(0),
+                    reflected_velocity_x,
+                    scratch->projectile_velocity_y_q16,
+                    UINT16_C(0),
+                    (uint16_t)PF_M4_ACTION_SHIELD,
+                    NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            return PF_STATUS_OK;
+        }
+
+        if (pf_m4_break_player_grab_links(
+                world,
+                scratch,
+                target_index) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (pf_m4_action_is_guarding(
+                scratch->action_state[target_index]))
+        {
+            const uint32_t shield_damage =
+                pf_m4_shield_damage_q16(
+                    &content->fighter,
+                    projectile->damage_q16);
+            const int32_t defender_pushback =
+                pf_m4_shield_defender_pushback_q16(
+                    &content->fighter,
+                    projectile->damage_q16,
+                    0);
+            pf_sim_event_type event_type;
+
+            scratch->shield_health_q16[target_index] =
+                shield_damage >=
+                        scratch->shield_health_q16[target_index]
+                    ? UINT32_C(0)
+                    : scratch->shield_health_q16[target_index] -
+                          shield_damage;
+            scratch->velocity_x_q16[target_index] =
+                (int32_t)launch_direction * defender_pushback;
+            scratch->velocity_y_q16[target_index] = INT32_C(0);
+            scratch->powershield[target_index] = UINT8_C(0);
+            scratch->hitlag_ticks[target_index] =
+                projectile->hitlag_ticks;
+            scratch->action_state[target_index] =
+                (uint8_t)PF_M4_ACTION_HITLAG;
+            scratch->dash_direction[target_index] = INT8_C(0);
+            scratch->short_hop_latched[target_index] = UINT8_C(0);
+            scratch->fast_fall[target_index] = UINT8_C(0);
+            if (scratch->shield_health_q16[target_index] ==
+                UINT32_C(0))
+            {
+                scratch->shield_stun_ticks[target_index] = UINT16_C(0);
+                scratch->hitlag_resume_action[target_index] =
+                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
+                scratch->action_ticks[target_index] = UINT16_C(0);
+                event_type = PF_SIM_EVENT_SHIELD_BREAK;
+            }
+            else
+            {
+                scratch->shield_stun_ticks[target_index] =
+                    pf_m4_shield_stun_ticks(
+                        &content->fighter,
+                        projectile->damage_q16);
+                scratch->hitlag_resume_action[target_index] =
+                    (uint8_t)PF_M4_ACTION_SHIELD_STUN;
+                event_type = PF_SIM_EVENT_SHIELD_BLOCK;
+            }
+            if (pf_sim_push_event(
+                    scratch,
+                    world->tick,
+                    event_type,
+                    (uint8_t)owner_index,
+                    (uint8_t)target_index,
+                    shield_damage,
+                    scratch->velocity_x_q16[target_index],
+                    scratch->velocity_y_q16[target_index],
+                    UINT16_C(0),
+                    (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND,
+                    NULL) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            pf_m4_clear_projectile_combat(scratch);
+            return PF_STATUS_OK;
+        }
+
+        {
+            const uint32_t resulting_damage =
+                pf_m4_saturating_damage(
+                    scratch->damage_q16[target_index],
+                    projectile->damage_q16);
+            const int32_t knockback_x = pf_m4_scaled_knockback(
+                projectile->base_knockback_x_q16,
+                projectile->knockback_growth_q16,
+                resulting_damage,
+                0);
+            const int32_t knockback_y = pf_m4_scaled_knockback(
+                projectile->base_knockback_y_q16,
+                projectile->knockback_growth_q16,
+                resulting_damage,
+                1);
+
+            if (pf_m4_apply_hit_reaction(
+                    content,
+                    world,
+                    scratch,
+                    (uint8_t)owner_index,
+                    target_index,
+                    projectile->damage_q16,
+                    (int32_t)launch_direction * knockback_x,
+                    -knockback_y,
+                    projectile->hitlag_ticks,
+                    PF_SIM_EVENT_PROJECTILE_HIT,
+                    (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND) !=
+                PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+        }
+        pf_m4_clear_projectile_combat(scratch);
+        return PF_STATUS_OK;
+    }
+    return PF_STATUS_OK;
+}
+
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -1685,5 +1915,12 @@ pf_status pf_m4_resolve_combat(
         }
     }
 
+    if (pf_m4_resolve_projectile_combat(
+            content,
+            world,
+            scratch) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
     return pf_m4_resolve_item_combat(content, world, scratch);
 }
