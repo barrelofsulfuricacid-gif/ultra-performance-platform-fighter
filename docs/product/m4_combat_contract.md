@@ -1561,7 +1561,7 @@ scales, and maximum x/y tilt. Inspection schema 41 exposes exact live bounds
 and tilt; structured observation schema 9 exposes health and tilt alongside
 strength. RL schema 11/transition schema 9 and compact schema 10 retain
 strength at 70–73, append health at 74–77 and x/y tilt at 78–85, and therefore
-contain 86 values. Opaque requirements are 2,360 state bytes and 1,040 scratch
+contain 86 values. Opaque requirements are 2,368 state bytes and 1,040 scratch
 bytes inside the unchanged 4 KiB caller envelopes.
 
 Content schema 48/fighter schema 43 append and hash the authored
@@ -1583,7 +1583,7 @@ appends four values per fixed player at 431–446, producing 447 values total.
 Structured observation schema 9, RL schema 11/transition schema 9, compact
 schema 10 with 86 values, and the 1,040-byte scratch requirement are unchanged.
 Copying the larger immutable stage record into the opaque simulation raises
-the state requirement from 2,360 to 2,376 bytes, still inside the 4 KiB caller
+the state requirement from 2,368 to 2,384 bytes, still inside the 4 KiB caller
 envelope.
 
 Browser view schema 40 previously expanded each player block from 44 to 45 values by

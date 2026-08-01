@@ -302,7 +302,7 @@ maximum charge and Q16.16 damage bonus. Inspection schema 39 and structured
 observation schema 7 expose the timer; RL schema 9/transition schema 7 and
 compact schema 8 append four values at indices 66–69, for 70 total. Browser
 view schema 40 expands each player record from 44 to 45 values and the whole
-view from 396 to 400 values. The public memory-requirements query reports 2,304
+view from 396 to 400 values. The public memory-requirements query reports 2,312
 state bytes and 1,016 scratch bytes; the 4 KiB caller envelopes remain valid.
 State schema 44 / save format 43 appends one little-endian `uint16_t` raw shield
 strength for each fixed player slot, producing a 570-byte payload and 710-byte
@@ -315,7 +315,7 @@ schema 40 and structured observation schema 8 expose raw shield strength. RL
 schema 10/transition schema 8 and compact schema 9 append four values at indices
 70–73, for 74 total. Browser view schema 41 expands each player record from 45
 to 46 values and the whole view from 400 to 404 values. The public
-memory-requirements query reports 2,320 state bytes and 1,024 scratch bytes; the
+memory-requirements query reports 2,328 state bytes and 1,024 scratch bytes; the
 4 KiB caller envelopes remain valid.
 State schema 45 / save format 44 appends little-endian signed 16-bit x/y shield
 tilt for every fixed player slot, producing a 586-byte payload and 726-byte
@@ -329,7 +329,7 @@ adds shield health and tilt. RL schema 11/transition schema 9 and compact schema
 10 retain strength at 70–73, append health at 74–77 and two tilt values per
 player at 78–85, for 86 total. Browser view schema 42 expands each player
 record from 46 to 53 values and the whole view from 404 to 431 values. The
-public memory-requirements query reports 2,360 state bytes and 1,040 scratch
+public memory-requirements query reports 2,368 state bytes and 1,040 scratch
 bytes; the 4 KiB caller envelopes remain valid.
 Content schema 48/fighter schema 43 append, validate, and hash the immutable
 `shield_sdi_scale_q16`, exactly 33/50 by default. The field scales grounded
@@ -349,7 +349,7 @@ appends four values per fixed player at 431–446, growing the view from 431 to
 447 values. Fighter schema 43, observation schema 9, RL schema 11/transition
 schema 9, compact schema 10 with 86 values, checkpoint size, and public memory
 scratch requirement remain unchanged. The larger copied immutable stage record
-raises the opaque state requirement from 2,360 to 2,376 bytes; the 4 KiB caller
+raises the opaque state requirement from 2,368 to 2,384 bytes; the 4 KiB caller
 envelope remains valid.
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile

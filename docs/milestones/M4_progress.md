@@ -1728,7 +1728,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   closed. Content schema 45/fighter schema 40, inspection schema 39,
   observation schema 7, RL schema 9/transition schema 7, compact schema 8 with
   70 values, and browser view schema 40 with 400 values expose the final
-  contract. Opaque requirements are 2,304 state bytes and 1,016 scratch bytes,
+  contract. Opaque requirements are 2,312 state bytes and 1,016 scratch bytes,
   within the existing 4 KiB envelopes.
 - The existing 815-mechanic/51-journal combat oracle now covers authored
   forward/up/down light and strong data, selection, shields, hitlag, partial and
@@ -1761,7 +1761,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Content schema 46/fighter schema 41, inspection schema 40, observation schema
   8, RL schema 10/transition schema 8, compact schema 9 with 74 values, and
   browser view schema 41 with 404 values expose the contract. Opaque requirements
-  are 2,320 state bytes and 1,024 scratch bytes, within the existing 4 KiB
+  are 2,328 state bytes and 1,024 scratch bytes, within the existing 4 KiB
   envelopes.
 - The combat oracle reaches 829 mechanics invariants and covers entry
   boundaries, exact/midpoint/dense depletion, inspection/observation, save/load,
@@ -1792,7 +1792,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Content schema 47/fighter schema 42, inspection schema 41, observation schema
   9, RL schema 11/transition schema 9, compact schema 10 with 86 values, and
   browser view schema 42 with 431 values expose the contract. Opaque
-  requirements are 2,360 state bytes and 1,040 scratch bytes within the
+  requirements are 2,368 state bytes and 1,040 scratch bytes within the
   unchanged 4 KiB envelopes.
 - The existing combat executable now covers 884 mechanics invariants, including
   exact formula/bounds, light-versus-dense size, signed tilt, observation/RL
@@ -1814,7 +1814,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   hitlag-displacement path while clamping to the current support edge.
 - Content schema 48/fighter schema 43 append, validate, and hash the scale.
   State schema 45/save format 44, inspection/observation/RL/browser layouts,
-  the 726-byte checkpoint, 2,360-byte state, and 1,040-byte scratch requirement
+  the 726-byte checkpoint, 2,368-byte state, and 1,040-byte scratch requirement
   remain unchanged.
 - The existing combat executable now covers 921 mechanics invariants, including
   exact horizontal pulse/ASDI displacement, held/vertical negative routes,
@@ -1844,13 +1844,25 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   derived-position lifecycle rules fail closed. Inspection schema 42 and
   browser view schema 43 with 447 values expose the slice; fighter,
   observation, and RL/compact layouts are unchanged. The immutable stage copy
-  raises opaque state storage from 2,360 to 2,376 bytes; scratch remains 1,040
+  raises opaque state storage from 2,368 to 2,384 bytes; scratch remains 1,040
   bytes and both stay inside the existing 4 KiB envelopes.
 - The existing match suite adds 24 revival invariants, including invalid/hash
   content cases, exact interpolation, ignored early input, a mid-platform
   save/load continuation, input/automatic release events, and post-drop
   invulnerability. The existing browser match probe covers the ordinary input
   path; no emergent-technique-only harness was added.
+- Exact commit `fecd6ac9c03f05145fc00dd2ed873dad602c3d60` passes Windows
+  MSVC Release 22/22, WSL GCC 13.3 Release 22/22, WSL ASan/UBSan 22/22, the
+  strict M2/M4 source gates, pinned Emscripten 6.0.3, native/WebAssembly replay
+  equality, and the live Microsoft Edge DOM/Wasm smoke. Two repeated verifier
+  soaks produce the same `97cb2b4ca946b2ed` digest.
+- Two clean unsampled Windows milestone benchmark runs classify all 10
+  measurable scenarios as compatible, with zero suspected or confirmed
+  regressions. The benchmark database confirms 2,384 public state bytes and a
+  726-byte checkpoint. A separate Tracy 0.13.1 profile-only capture passes in
+  WSL with the supported timer fallback enabled; its 11,791-byte trace has
+  SHA-256
+  `79c40233d75676750bba213579d6cb679dbb347c414b7ace8805af3565d4aa74`.
 
 ## Explicitly preserved playtest requirements
 
