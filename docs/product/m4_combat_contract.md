@@ -3,8 +3,9 @@
 ## Scope
 
 This checkpoint extends the first production-path M4.2 ground attacks with
-deterministic hit reaction and dense- plus analog-light-shield primitives: trajectory
-DI, SDI, ASDI, tumble, missed-tech knockdown/down-wait, tech in place,
+deterministic hit reaction and dense- plus analog-light-shield primitives:
+trajectory DI, ordinary target SDI/ASDI, grounded horizontal shield SDI/ASDI,
+tumble, missed-tech knockdown/down-wait, tech in place,
 directional ground tech, reaction-driven tech chasing, wall tech,
 wall-tech jump, ceiling tech,
 missed wall/ceiling bounce, neutral getup, getup roll, two-sided floor attack,
@@ -37,8 +38,7 @@ seven-frame L-cancel timing, and short-hop-fast-fall-L-cancel. The strong
 button also works airborne,
 reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint.
-It does not claim character-specific move breadth, shield SDI,
-broader throw routes, complete
+It does not claim character-specific move breadth, broader throw routes, complete
 prone-orientation-specific
 getup-roll asymmetry, a moving revival platform, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
@@ -564,12 +564,17 @@ collision continue.
 
 The hit target can affect its reaction through the normalized main stick:
 
-- SDI reads each hitlag tick. Crossing the 0.5-axis threshold into a new
+- Ordinary target SDI reads each hitlag tick. Crossing the 0.5-axis threshold into a new
   horizontal or vertical component applies a 0.3-unit normalized positional
   shift. Holding the same direction does not repeat a pulse; adding the second
   component of a diagonal does.
-- ASDI applies one 0.15-unit normalized positional shift from the final hitlag
-  input.
+- Grounded shield SDI applies only during hitlag that resumes into
+  `SHIELD_STUN`. Crossing the same horizontal threshold applies one shift at
+  the authored shield scale, 0.66 of ordinary SDI by default. Holding the
+  horizontal component does not repeat it, and vertical input is ignored.
+- Ordinary target ASDI applies one 0.15-unit normalized positional shift from
+  the final hitlag input. Shield ASDI instead applies one horizontal-only shift
+  at the same authored 0.66 scale when hitlag resumes into `SHIELD_STUN`.
 - Trajectory DI reads the final hitlag input and rotates pending launch toward
   the stick's perpendicular component. Full perpendicular input reaches the
   data-defined 18-degree maximum. Parallel input produces no rotation.
@@ -577,8 +582,9 @@ The hit target can affect its reaction through the normalized main stick:
   renormalizes the rotated vector to preserve launch speed within integer
   truncation.
 - A hitlag shift cannot pass downward through a floor or pass-through
-  platform. A grounded shift can move upward or beyond a support edge and
-  become airborne.
+  platform. An ordinary target shift can move upward or beyond a support edge
+  and become airborne; shield SDI/ASDI stays grounded and clamps horizontally
+  to the current support edge.
 
 The attacker does not receive target SDI/ASDI/DI behavior from attacker-only
 hitlag.
@@ -1543,6 +1549,12 @@ strength at 70–73, append health at 74–77 and x/y tilt at 78–85, and there
 contain 86 values. Opaque requirements are 2,360 state bytes and 1,040 scratch
 bytes inside the unchanged 4 KiB caller envelopes.
 
+Content schema 48/fighter schema 43 append and hash the authored
+`shield_sdi_scale_q16`; its default is exactly 33/50 and validation accepts only
+the range `(0, 1]`. This is immutable design data, so state schema 45/save
+format 44, inspection/observation/RL/browser layouts, the 726-byte checkpoint,
+and the state/scratch requirements remain unchanged.
+
 Browser view schema 40 previously expanded each player block from 44 to 45 values by
 appending smash-charge ticks, yielding 400 values total. Event count moves to
 205, the 16 ten-value event entries begin at 206, the item block begins at 366,
@@ -1863,7 +1875,7 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 884 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 921 focused
 mechanics invariants plus 51 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -1955,6 +1967,11 @@ mechanics invariants plus 51 journal invariants, including:
 - first-component SDI, held-direction rejection, diagonal second-component
   SDI, ASDI/DI launch application, approximate speed preservation, and
   deterministic direction;
+- exact default and hash-sensitive shield-SDI scale, invalid zero/over-one
+  scale rejection, grounded horizontal shield-SDI displacement, held-input
+  non-repetition, ignored vertical additions and vertical-only input, opposite
+  horizontal re-entry, support-edge clamping, and one horizontal-only
+  shield-ASDI displacement on entry to `SHIELD_STUN`;
 - missed tech, 26-tick in-place tech, 40-tick directional tech roll, 20-tick
   input window/lockout behavior, exact 20-tick hit rejection, vulnerability
   restoration, and held-trigger edge behavior;
@@ -1999,7 +2016,8 @@ mechanics invariants plus 51 journal invariants, including:
   fresh-input mash reduction with a held-input negative case, early-phase hit
   rejection, stun interruption, 30-HP reset, invalid content rejection, and
   mid-stun save/load with equal future hashes;
-- mid-hitlag and mid-shield-hitlag save/load with equal future hashes; and
+- mid-hitlag and post-pulse mid-shield-hitlag save/load with equal future
+  hashes; and
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
 `tests/sim/test_m4_match.c` and `tools/verify_m4_match.sh` add 24 match
@@ -2014,7 +2032,7 @@ The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
 special-landing state before
 encoding. Native
-and WebAssembly runs must agree on all 181 state hashes, the 31,402-byte
+and WebAssembly runs must agree on all 181 state hashes, the 31,418-byte
 replay, its final digest, and the complete typed event stream digest under the
 `PFEVT001` domain.
 
@@ -2025,7 +2043,8 @@ attack, planking, short-hop laser, Shine spike, charge storage, Vector Ascent,
 jump-canceled-grab, boost-grab, jab-cancel,
 chain-grab,
 ground-dodge, air-dodge,
-attack including directional grounded light hits, reaction, shield,
+attack including directional grounded light hits, reaction, shield including
+horizontal shield SDI/ASDI,
 shield-break, tumble,
 floor-recovery, tech-chase, and surface-tech probes pass. The Vector Ascent
 probe performs an ordinary jump, enters the recovery with full-up fresh

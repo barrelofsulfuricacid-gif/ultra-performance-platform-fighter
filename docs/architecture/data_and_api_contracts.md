@@ -331,6 +331,11 @@ player at 78–85, for 86 total. Browser view schema 42 expands each player
 record from 46 to 53 values and the whole view from 404 to 431 values. The
 public memory-requirements query reports 2,360 state bytes and 1,040 scratch
 bytes; the 4 KiB caller envelopes remain valid.
+Content schema 48/fighter schema 43 append, validate, and hash the immutable
+`shield_sdi_scale_q16`, exactly 33/50 by default. The field scales grounded
+horizontal shield SDI and shield ASDI without adding canonical state: state
+schema 45/save format 44, inspection/observation/RL/browser layouts, checkpoint
+size, and memory requirements remain unchanged.
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain

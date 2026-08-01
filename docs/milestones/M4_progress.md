@@ -1799,6 +1799,28 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   collision inspector draws the exact shield AABB and retains the 61-row owner
   checklist; no emergent-technique-only harness was added.
 
+## Implemented in the shield-SDI and shield-ASDI slice
+
+- Grounded hitlag that resumes into `SHIELD_STUN` now accepts horizontal
+  component-edge SDI at an authored scale of ordinary target SDI, exactly
+  33/50 by default. A held horizontal component does not repeat, vertical
+  additions and vertical-only input are ignored, and opposite-direction
+  re-entry produces a new pulse.
+- The final shield-hitlag input applies one horizontal-only ASDI displacement
+  at the same authored scale before shield stun begins. Shield reaction never
+  applies trajectory DI, and every shift uses the existing collision-safe
+  hitlag-displacement path while clamping to the current support edge.
+- Content schema 48/fighter schema 43 append, validate, and hash the scale.
+  State schema 45/save format 44, inspection/observation/RL/browser layouts,
+  the 726-byte checkpoint, 2,360-byte state, and 1,040-byte scratch requirement
+  remain unchanged.
+- The existing combat executable now covers 921 mechanics invariants, including
+  exact horizontal pulse/ASDI displacement, held/vertical negative routes,
+  opposite-direction re-entry, support-edge clamping, content
+  validation/identity, and post-pulse mid-shield-hitlag save/load continuation.
+  The existing browser shield startup probe exercises the same production
+  route; no emergent-technique-only harness was added.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -1945,7 +1967,6 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 - Character-specific move breadth, additional specials, broader recovery
   options, broader throw routes,
-  shield SDI,
   broader per-action launch-angle data and stale-move behavior,
   prone-orientation-specific getup-roll timing, a moving revival platform,
   and journal producers for every remaining action.
@@ -1961,11 +1982,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Mechanical oracles: 334 movement invariants including Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
-  884
+  921
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
   complete directional ground normals, canonical smash charge, the
   five-direction light-aerial vocabulary, exact shield size/tilt/poke geometry,
+  horizontal shield SDI/ASDI,
   ledge attack, and ledge-roll invulnerability plus 51
   combat-journal invariants,
   24 stock/respawn/result

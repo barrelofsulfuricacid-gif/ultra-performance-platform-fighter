@@ -471,7 +471,8 @@ static pf_status pf_m4_apply_hitlag_shift(
     uint32_t player_index,
     int16_t stick_x,
     int16_t stick_y,
-    int32_t distance_q16)
+    int32_t distance_q16,
+    int preserve_ground_support)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
     const pf_m4_stage_data *stage = &content->stage;
@@ -535,9 +536,21 @@ static pf_status pf_m4_apply_hitlag_shift(
             world->tick,
             &surface_left,
             &surface_right);
-        if (next_y < standing_y ||
-            next_x < surface_left ||
-            next_x > surface_right)
+        if (preserve_ground_support != 0)
+        {
+            if (next_x < surface_left)
+            {
+                next_x = surface_left;
+            }
+            else if (next_x > surface_right)
+            {
+                next_x = surface_right;
+            }
+            next_y = standing_y;
+        }
+        else if (next_y < standing_y ||
+                 next_x < surface_left ||
+                 next_x > surface_right)
         {
             scratch->grounded[player_index] = UINT8_C(0);
             scratch->support[player_index] =
@@ -2506,16 +2519,23 @@ pf_status pf_m4_step_player(
         if (scratch->hitlag_resume_action[player_index] ==
                 (uint8_t)PF_M4_ACTION_HITSTUN ||
             scratch->hitlag_resume_action[player_index] ==
-                (uint8_t)PF_M4_ACTION_RESET_BOUND)
+                (uint8_t)PF_M4_ACTION_RESET_BOUND ||
+            scratch->hitlag_resume_action[player_index] ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN)
         {
+            const int shield_sdi =
+                scratch->hitlag_resume_action[player_index] ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN;
             const int8_t sdi_x =
                 pf_m4_sdi_direction(
                     input->main_stick_x,
                     fighter->sdi_axis_threshold);
             const int8_t sdi_y =
-                pf_m4_sdi_direction(
-                    input->main_stick_y,
-                    fighter->sdi_axis_threshold);
+                shield_sdi != 0
+                    ? INT8_C(0)
+                    : pf_m4_sdi_direction(
+                          input->main_stick_y,
+                          fighter->sdi_axis_threshold);
             const int new_sdi_component =
                 (sdi_x != INT8_C(0) &&
                  sdi_x !=
@@ -2532,8 +2552,15 @@ pf_status pf_m4_step_player(
                     scratch,
                     player_index,
                     input->main_stick_x,
-                    input->main_stick_y,
-                    fighter->sdi_distance_q16);
+                    shield_sdi != 0
+                        ? INT16_C(0)
+                        : input->main_stick_y,
+                    shield_sdi != 0
+                        ? pf_m4_multiply_q16(
+                              fighter->sdi_distance_q16,
+                              fighter->shield_sdi_scale_q16)
+                        : fighter->sdi_distance_q16,
+                    shield_sdi);
                 if (status != PF_STATUS_OK)
                 {
                     return status;
@@ -2565,7 +2592,8 @@ pf_status pf_m4_step_player(
                     player_index,
                     input->main_stick_x,
                     input->main_stick_y,
-                    fighter->asdi_distance_q16);
+                    fighter->asdi_distance_q16,
+                    0);
                 if (status != PF_STATUS_OK)
                 {
                     return status;
@@ -2597,6 +2625,26 @@ pf_status pf_m4_step_player(
                     (uint8_t)PF_M4_SURFACE_NONE;
                 fast_fall = UINT8_C(0);
                 dash_direction = INT8_C(0);
+            }
+            else if (
+                action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN)
+            {
+                status = pf_m4_apply_hitlag_shift(
+                    content,
+                    world,
+                    scratch,
+                    player_index,
+                    input->main_stick_x,
+                    INT16_C(0),
+                    pf_m4_multiply_q16(
+                        fighter->asdi_distance_q16,
+                        fighter->shield_sdi_scale_q16),
+                    1);
+                if (status != PF_STATUS_OK)
+                {
+                    return status;
+                }
             }
             else if (
                 action_state ==

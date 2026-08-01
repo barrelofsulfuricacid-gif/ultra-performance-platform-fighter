@@ -294,6 +294,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->di_max_tangent_q16);
     pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
     pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
+    pf_m4_hash_i32(hash, fighter->shield_sdi_scale_q16);
     pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
     pf_m4_hash_i32(hash, fighter->wall_tech_speed_q16);
     pf_m4_hash_i32(hash, fighter->wall_tech_jump_speed_x_q16);
@@ -1063,6 +1064,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->di_max_tangent_q16 = INT32_C(21294);
     fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
     fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
+    fighter->shield_sdi_scale_q16 = PF_Q16_RATIO(33, 50);
     fighter->tech_roll_speed_q16 = PF_Q16_RATIO(1, 5);
     fighter->wall_tech_speed_q16 = PF_Q16_RATIO(3, 20);
     fighter->wall_tech_jump_speed_x_q16 = PF_Q16_RATIO(3, 10);
@@ -1850,6 +1852,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->asdi_distance_q16 <= INT32_C(0) ||
         fighter->asdi_distance_q16 >
             fighter->sdi_distance_q16 ||
+        fighter->shield_sdi_scale_q16 <= INT32_C(0) ||
+        fighter->shield_sdi_scale_q16 > PF_Q16_ONE ||
         fighter->tech_roll_speed_q16 <= INT32_C(0) ||
         fighter->tech_roll_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||

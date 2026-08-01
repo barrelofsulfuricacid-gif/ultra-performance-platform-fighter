@@ -9788,6 +9788,20 @@ static int pf_web_m4_run_reaction_probe(void)
 static int pf_web_m4_run_shield_probe(void)
 {
     pf_m4_inspection inspection;
+    const int32_t shield_sdi_distance_q16 =
+        (int32_t)(
+            ((int64_t)pf_web_m4_content.fighter.sdi_distance_q16 *
+             (int64_t)pf_web_m4_content.fighter
+                 .shield_sdi_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    const int32_t shield_asdi_distance_q16 =
+        (int32_t)(
+            ((int64_t)pf_web_m4_content.fighter.asdi_distance_q16 *
+             (int64_t)pf_web_m4_content.fighter
+                 .shield_sdi_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    int32_t shield_sdi_start_x;
+    int32_t shield_sdi_start_y;
     uint32_t tick;
 
     if (!pf_web_m4_reset_internal() ||
@@ -9914,6 +9928,44 @@ static int pf_web_m4_run_shield_probe(void)
         inspection.players[1].shield_health_q16 >=
             pf_web_m4_content.fighter.shield_health_q16 ||
         inspection.players[1].powershield != UINT8_C(0))
+    {
+        return 0;
+    }
+    shield_sdi_start_x = inspection.players[1].position_x_q16;
+    shield_sdi_start_y = inspection.players[1].position_y_q16;
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)pf_web_m4_content.fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick_with_triggers(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                PF_WEB_M4_DASH_AXIS,
+                tick >= UINT32_C(2) ? INT16_MIN : INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection) ||
+            inspection.players[1].sdi_pulse_count != UINT8_C(1) ||
+            inspection.players[1].position_y_q16 != shield_sdi_start_y)
+        {
+            return 0;
+        }
+        if (tick + UINT32_C(1) <
+                (uint32_t)pf_web_m4_content.fighter
+                    .jab_hitlag_ticks &&
+            inspection.players[1].position_x_q16 !=
+                shield_sdi_start_x + shield_sdi_distance_q16)
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        inspection.players[1].position_x_q16 !=
+            shield_sdi_start_x + shield_sdi_distance_q16 +
+                shield_asdi_distance_q16)
     {
         return 0;
     }

@@ -11047,6 +11047,381 @@ static int run_shield_block_test(
     return 1;
 }
 
+static int run_shield_sdi_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage horizontal_storage;
+    test_sim_storage vertical_storage;
+    test_sim_storage reentry_storage;
+    test_sim_storage edge_storage;
+    pf_sim *horizontal = NULL;
+    pf_sim *vertical = NULL;
+    pf_sim *reentry = NULL;
+    pf_sim *edge = NULL;
+    pf_m4_inspection horizontal_inspection;
+    pf_m4_inspection vertical_inspection;
+    pf_m4_inspection reentry_inspection;
+    pf_m4_inspection edge_inspection;
+    pf_m4_content changed = *content;
+    pf_m4_content edge_content = *content;
+    pf_content_view changed_view;
+    pf_content_view edge_view;
+    pf_content_view invalid_view;
+    const int32_t shield_sdi_distance_q16 =
+        (int32_t)(
+            ((int64_t)content->fighter.sdi_distance_q16 *
+             (int64_t)content->fighter.shield_sdi_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    const int32_t shield_asdi_distance_q16 =
+        (int32_t)(
+            ((int64_t)content->fighter.asdi_distance_q16 *
+             (int64_t)content->fighter.shield_sdi_scale_q16) /
+            (int64_t)PF_Q16_ONE);
+    int32_t horizontal_start_x;
+    int32_t horizontal_start_y;
+    int32_t first_pulse_x;
+    int32_t vertical_start_x;
+    int32_t vertical_start_y;
+    int32_t reentry_start_x;
+    int32_t reentry_start_y;
+    int32_t edge_start_y;
+    uint32_t tick;
+
+    if (content->fighter.shield_sdi_scale_q16 !=
+            (INT32_C(33) * PF_Q16_ONE) / INT32_C(50) ||
+        shield_sdi_distance_q16 <= INT32_C(0) ||
+        shield_asdi_distance_q16 <= INT32_C(0))
+    {
+        return fail("shield-sdi-default-data");
+    }
+
+    changed.fighter.shield_sdi_scale_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&changed, &invalid_view),
+            PF_STATUS_INVALID_CONFIG,
+            "shield-sdi-zero-scale"))
+    {
+        return 0;
+    }
+    changed.fighter.shield_sdi_scale_q16 = PF_Q16_ONE + INT32_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(&changed, &invalid_view),
+            PF_STATUS_INVALID_CONFIG,
+            "shield-sdi-over-scale"))
+    {
+        return 0;
+    }
+    changed.fighter.shield_sdi_scale_q16 = PF_Q16_ONE / INT32_C(2);
+    if (!expect_status(
+            pf_m4_make_content_view(&changed, &changed_view),
+            PF_STATUS_OK,
+            "shield-sdi-changed-scale") ||
+        memcmp(
+            view->content_hash.bytes,
+            changed_view.content_hash.bytes,
+            sizeof(view->content_hash.bytes)) == 0)
+    {
+        return fail("shield-sdi-content-hash");
+    }
+
+    edge_content.fighter.sdi_distance_q16 =
+        INT32_C(4) * PF_Q16_ONE;
+    if (!expect_status(
+            pf_m4_make_content_view(&edge_content, &edge_view),
+            PF_STATUS_OK,
+            "shield-sdi-edge-content"))
+    {
+        return 0;
+    }
+
+    if (!initialize_sim(
+            &horizontal_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &horizontal) ||
+        !initialize_sim(
+            &vertical_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &vertical) ||
+        !initialize_sim(
+            &reentry_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &reentry) ||
+        !initialize_sim(
+            &edge_storage,
+            &edge_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &edge) ||
+        !start_normal_shield_block(
+            horizontal,
+            &horizontal_inspection) ||
+        !start_normal_shield_block(vertical, &vertical_inspection) ||
+        !start_normal_shield_block(reentry, &reentry_inspection))
+    {
+        return fail("shield-sdi-setup");
+    }
+
+    horizontal_start_x =
+        horizontal_inspection.players[1].position_x_q16;
+    horizontal_start_y =
+        horizontal_inspection.players[1].position_y_q16;
+    if (!step_reaction_duel(
+            horizontal,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &horizontal_inspection) ||
+        horizontal_inspection.players[1].sdi_pulse_count !=
+            UINT8_C(1) ||
+        horizontal_inspection.players[1].position_x_q16 !=
+            horizontal_start_x + shield_sdi_distance_q16 ||
+        horizontal_inspection.players[1].position_y_q16 !=
+            horizontal_start_y)
+    {
+        return fail("shield-sdi-horizontal-pulse");
+    }
+    first_pulse_x =
+        horizontal_inspection.players[1].position_x_q16;
+
+    if (!step_reaction_duel(
+            horizontal,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &horizontal_inspection) ||
+        horizontal_inspection.players[1].sdi_pulse_count !=
+            UINT8_C(1) ||
+        horizontal_inspection.players[1].position_x_q16 !=
+            first_pulse_x)
+    {
+        return fail("shield-sdi-held-horizontal");
+    }
+
+    if (!step_reaction_duel(
+            horizontal,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_MIN,
+            UINT64_C(0),
+            UINT16_MAX,
+            &horizontal_inspection) ||
+        horizontal_inspection.players[1].sdi_pulse_count !=
+            UINT8_C(1) ||
+        horizontal_inspection.players[1].position_x_q16 !=
+            first_pulse_x ||
+        horizontal_inspection.players[1].position_y_q16 !=
+            horizontal_start_y)
+    {
+        return fail("shield-sdi-vertical-component-ignored");
+    }
+
+    if (!step_reaction_duel(
+            horizontal,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_MIN,
+            UINT64_C(0),
+            UINT16_MAX,
+            &horizontal_inspection) ||
+        horizontal_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        horizontal_inspection.players[1].sdi_pulse_count !=
+            UINT8_C(1) ||
+        horizontal_inspection.players[1].position_x_q16 !=
+            first_pulse_x + shield_asdi_distance_q16 ||
+        horizontal_inspection.players[1].position_y_q16 !=
+            horizontal_start_y)
+    {
+        return fail("shield-asdi-horizontal-only");
+    }
+
+    vertical_start_x = vertical_inspection.players[1].position_x_q16;
+    vertical_start_y = vertical_inspection.players[1].position_y_q16;
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                vertical,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_MIN,
+                UINT64_C(0),
+                UINT16_MAX,
+                &vertical_inspection))
+        {
+            return fail("shield-sdi-vertical-step");
+        }
+    }
+    if (vertical_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        vertical_inspection.players[1].sdi_pulse_count != UINT8_C(0) ||
+        vertical_inspection.players[1].position_x_q16 !=
+            vertical_start_x ||
+        vertical_inspection.players[1].position_y_q16 !=
+            vertical_start_y)
+    {
+        return fail("shield-sdi-vertical-negative");
+    }
+
+    reentry_start_x = reentry_inspection.players[1].position_x_q16;
+    reentry_start_y = reentry_inspection.players[1].position_y_q16;
+    if (!step_reaction_duel(
+            reentry,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &reentry_inspection) ||
+        !step_reaction_duel(
+            reentry,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &reentry_inspection) ||
+        !step_reaction_duel(
+            reentry,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &reentry_inspection) ||
+        !step_reaction_duel(
+            reentry,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(-32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &reentry_inspection) ||
+        reentry_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        reentry_inspection.players[1].sdi_pulse_count != UINT8_C(2) ||
+        reentry_inspection.players[1].position_x_q16 !=
+            reentry_start_x - shield_asdi_distance_q16 ||
+        reentry_inspection.players[1].position_y_q16 != reentry_start_y)
+    {
+        return fail("shield-sdi-horizontal-reentry");
+    }
+
+    if (!expect_status(
+            pf_m4_inspect(edge, &edge_inspection),
+            PF_STATUS_OK,
+            "shield-sdi-edge-inspect"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(200) &&
+         edge_inspection.players[1].position_x_q16 <
+             edge_content.stage.floor_right_q16 -
+                 INT32_C(2) * PF_Q16_ONE;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                edge,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &edge_inspection))
+        {
+            return fail("shield-sdi-edge-approach");
+        }
+    }
+    if (tick == UINT32_C(200) ||
+        edge_inspection.players[1].grounded == UINT8_C(0) ||
+        edge_inspection.players[1].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        !start_normal_shield_block(edge, &edge_inspection))
+    {
+        return fail("shield-sdi-edge-setup");
+    }
+    edge_start_y = edge_inspection.players[1].position_y_q16;
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)edge_content.fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                edge,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &edge_inspection))
+        {
+            return fail("shield-sdi-edge-step");
+        }
+    }
+    if (edge_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
+        edge_inspection.players[1].grounded == UINT8_C(0) ||
+        edge_inspection.players[1].support !=
+            (uint8_t)PF_M4_SURFACE_FLOOR ||
+        edge_inspection.players[1].position_x_q16 !=
+            edge_content.stage.floor_right_q16 ||
+        edge_inspection.players[1].position_y_q16 != edge_start_y ||
+        edge_inspection.players[1].sdi_pulse_count != UINT8_C(1))
+    {
+        return fail("shield-sdi-edge-clamp");
+    }
+    return 1;
+}
+
 static int run_light_shield_block_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -14255,8 +14630,20 @@ static int run_shield_hitlag_snapshot_test(
             0,
             &loaded) ||
         !start_normal_shield_block(source, &source_inspection) ||
+        !step_reaction_duel(
+            source,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(32767),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &source_inspection) ||
         source_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
+        source_inspection.players[1].sdi_pulse_count != UINT8_C(1) ||
         source_inspection.players[1].shield_stun_ticks ==
             UINT16_C(0) ||
         !expect_status(
@@ -19837,6 +20224,7 @@ int main(void)
         !run_light_shield_state_test(&content, &view) ||
         !run_dashing_shield_test(&content, &view) ||
         !run_shield_block_test(&content, &view) ||
+        !run_shield_sdi_test(&content, &view) ||
         !run_light_shield_block_test(&content, &view) ||
         !run_shield_geometry_and_poke_test(
             &shield_poke_content,
@@ -19925,7 +20313,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=884 journal_invariants=51 weight=1 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=921 journal_invariants=51 weight=1 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

@@ -2137,7 +2137,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   (resume_action !=
                        (uint8_t)PF_M4_ACTION_HITSTUN &&
                    resume_action !=
-                       (uint8_t)PF_M4_ACTION_RESET_BOUND))) ||
+                       (uint8_t)PF_M4_ACTION_RESET_BOUND &&
+                   resume_action !=
+                       (uint8_t)PF_M4_ACTION_SHIELD_STUN))) ||
+                (action == (uint8_t)PF_M4_ACTION_HITLAG &&
+                 resume_action ==
+                     (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+                 world->sdi_direction_y[player_index] != INT8_C(0)) ||
                 (((action == (uint8_t)PF_M4_ACTION_TECH_ROLL ||
                    action == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
                    action == (uint8_t)PF_M4_ACTION_WALL_TECH ||

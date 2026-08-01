@@ -47,7 +47,7 @@ common_flags="
 
 "$output_dir/m4_item_test" >"$output_dir/m4_item.txt"
 grep -Fqx \
-    'm4-item=pass content_schema=47 state_schema=45 save_bytes=726 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1' \
+    'm4-item=pass content_schema=48 state_schema=45 save_bytes=726 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1' \
     "$output_dir/m4_item.txt"
 
 "$root/tools/verify_m4_technique_registry.sh"

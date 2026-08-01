@@ -577,7 +577,7 @@ forfeits, and time limits. The simulation returns at most 16 records for the cur
 browser keeps only the newest ten as non-authoritative presentation history
 and clears them on Reset or any observed rewind.
 
-During target hitlag, crossing into a new horizontal or vertical stick
+During ordinary target hitlag, crossing into a new horizontal or vertical stick
 component produces one SDI pulse. Holding that component does not repeat it.
 The final hitlag input also supplies ASDI and trajectory DI, with full
 perpendicular input reaching the configured 18-degree maximum.
@@ -626,6 +626,13 @@ with the blue hurtbox. An attack touching the shield blocks even outside the
 body; an attack touching only exposed blue hurtbox is an ordinary shield poke.
 Tilt and raw strength freeze through shield hitlag/stun and remain visible in
 the state card.
+
+During grounded shield hitlag, crossing the horizontal stick threshold produces
+one shield-SDI pulse at 0.66 of the ordinary SDI distance. Holding the same
+horizontal component does not repeat it, and vertical additions or vertical-only
+input are ignored. The final horizontal hitlag input produces one smaller
+shield-ASDI shift at 0.66 of ordinary ASDI when `SHIELD STUN` begins; shield
+reaction never applies trajectory DI.
 
 After a physical powershield, release shield by the end of shield stun. Frame 1
 of `SHIELD RELEASE` cannot start a ground attack; a fresh attack press on frame
@@ -680,10 +687,9 @@ Successful surface techs clear hitstun/tumble and show the gold
 invulnerability ring. Missing the input produces `WALL BOUNCE` or `CEILING
 BOUNCE`, reflects and scales the launch, and keeps tumble/hitstun active.
 
-This shield slice does not yet include shield SDI. All current standing ground
-actions share the same
-powershield-cancel selector; the registry row remains `playable` pending the
-mandatory owner playtest and broader acceptance evidence.
+All current standing ground actions share the same powershield-cancel selector.
+The SDI registry row remains `playable` pending the mandatory owner playtest and
+broader acceptance evidence.
 
 ## Focused owner checks
 
@@ -840,9 +846,14 @@ mandatory owner playtest and broader acceptance evidence.
     fighter does not shield until run.
 28. Hold shield for more than four ticks and block an attack. Confirm no
     percent is added, shield health drops, both fighters freeze, and the
-    defender resumes in `SHIELD STUN`. Repeat by raising shield immediately
-    before contact; confirm the powershield indicator appears, shield health
-    loses only its normal hold depletion, and pushback is larger.
+    defender resumes in `SHIELD STUN`. Pause before contact and step the freeze:
+    cross the defender's horizontal threshold once and confirm `SDI pulses`
+    becomes 1 with a horizontal shift; hold it, then add vertical input, and
+    confirm the count stays 1 with no vertical shift. Keep horizontal held on
+    the final hitlag tick and confirm a second, smaller horizontal ASDI shift as
+    `SHIELD STUN` begins. Repeat by raising shield immediately before contact;
+    confirm the powershield indicator appears, shield health loses only its
+    normal hold depletion, and pushback is larger.
 29. After that powershield, release shield before `SHIELD STUN` ends. Leave the
     first `SHIELD RELEASE` tick neutral, then press the defender's attack key
     on frame 2 and confirm it enters `GROUND ATTACK`. Repeat with reduced
@@ -1166,6 +1177,9 @@ through:
   `WALL_TECH_JUMP` with cleared hitstun/tumble and active invulnerability;
 - a normal physical shield block producing zero percent, shield damage,
   shield stun, hitlag, and ordinary pushback;
+- that shield block crossing one horizontal component for exact 0.66-scaled
+  shield SDI, rejecting held and added-vertical repetition, then applying one
+  horizontal-only 0.66-scaled shield ASDI shift at shield-stun entry;
 - a raw trigger immediately below the light threshold remaining idle, followed
   by exact-threshold light-shield entry with the expected strength and hold
   depletion;

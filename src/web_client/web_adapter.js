@@ -1494,7 +1494,7 @@ mergeInto(LibraryManager.library, {
       "attack in the air that " +
       "immediately launches the default fighter into tumble. Translucent boxes " +
       "show active frames, and tumbling " +
-      "fighters visibly rotate after hitlag. During hitlag, " +
+      "fighters visibly rotate after hitlag. During ordinary target hitlag, " +
       "change stick direction for SDI and hold a launch direction for DI. Press " +
       "and hold down until CROUCH before a low-percent hit to crouch cancel; " +
       "damage and hitlag stay ordinary, launch and hitstun become two-thirds, " +
@@ -1522,8 +1522,11 @@ mergeInto(LibraryManager.library, {
       "Hold G or . on the ground for a full draining shield; Standard Gamepad " +
       "analog triggers provide light shield from 12.5% pressure and become dense " +
       "at 50%. Only fresh dense shields powershield during their four-tick window, " +
-      "while releases have 15 ticks " +
-      "of lag. Press a fresh full horizontal direction with the trigger for a " +
+      "while releases have 15 ticks of lag. During shield hitlag, cross the " +
+      "horizontal threshold once for 0.66-scaled shield SDI; holding it or adding " +
+      "vertical does not repeat, and the final horizontal input supplies one " +
+      "0.66-scaled shield ASDI shift. Press a fresh full horizontal direction " +
+      "with the trigger for a " +
       "forward or backward roll relative to facing; press fresh down with the " +
       "trigger for a spot dodge. These grounded dodges have fixed movement, " +
       "recovery, and invulnerability windows and never flip facing. Tap the " +
