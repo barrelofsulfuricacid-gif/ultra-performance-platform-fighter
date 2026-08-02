@@ -34,7 +34,7 @@ fi
     exit 1
 }
 
-grep -Fq 'invalid_comparisons=9' "$manifest" || {
+grep -Fq 'invalid_comparisons=10' "$manifest" || {
     echo "M3 performance verification failed: incompatible metadata was not detected" >&2
     exit 1
 }
@@ -53,11 +53,11 @@ svg_count=$(
     exit 1
 }
 
-grep -Fq 'suspected=9 confirmed=9 invalid=9' "$log_file" || {
+grep -Fq 'suspected=10 confirmed=10 invalid=10' "$log_file" || {
     echo "M3 performance verification failed: regression qualification changed" >&2
     exit 1
 }
-grep -Fq 'same_commit=9' "$log_file" || {
+grep -Fq 'same_commit=10' "$log_file" || {
     echo "M3 performance verification failed: unchanged baseline comparison changed" >&2
     exit 1
 }
