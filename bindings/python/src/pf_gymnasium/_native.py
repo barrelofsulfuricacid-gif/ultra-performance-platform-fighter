@@ -13,13 +13,16 @@ import numpy as np
 PF_STATUS_OK = 0
 PF_SIM_ABI_VERSION = 4
 PF_SIM_CONTENT_SCHEMA_VERSION = 1
-PF_RL_SCHEMA_VERSION = 4
+PF_RL_SCHEMA_VERSION = 13
 PF_RL_ACTION_SCHEMA_VERSION = 1
-PF_RL_TRANSITION_SCHEMA_VERSION = 4
-PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 3
+PF_RL_TRANSITION_SCHEMA_VERSION = 11
+PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION = 12
 PF_SIM_MAX_PLAYERS = 4
 PF_SIM_MAX_EVENTS_PER_TICK = 16
-PF_RL_COMPACT_VALUE_COUNT = 48
+PF_RL_COMPACT_VALUE_COUNT = 102
+PF_RL_BUTTON_BITS = (0, 1, 2, 3, 4, 63)
+PF_RL_BUTTON_COUNT = len(PF_RL_BUTTON_BITS)
+PF_INPUT_KNOWN_BUTTONS = sum(1 << bit for bit in PF_RL_BUTTON_BITS)
 PF_Q16_ONE = 65_536
 PF_RL_REWARD_COMPONENT_TERMINAL = 1 << 0
 PF_RL_REWARD_COMPONENT_ENGAGEMENT = 1 << 1
@@ -120,10 +123,50 @@ class _PlayerObservation(ct.Structure):
         ("grounded", ct.c_uint8),
         ("active", ct.c_uint8),
         ("stocks_remaining", ct.c_uint8),
-        ("reserved", ct.c_uint8),
+        ("recovery_available", ct.c_uint8),
         ("respawn_ticks", ct.c_uint16),
         ("respawn_invulnerability_ticks", ct.c_uint16),
-        ("reserved2", ct.c_uint16),
+        ("charge_ticks", ct.c_uint16),
+        ("smash_charge_ticks", ct.c_uint16),
+        ("shield_strength", ct.c_uint16),
+        ("shield_tilt_x", ct.c_int16),
+        ("shield_tilt_y", ct.c_int16),
+        ("shield_health_q16", ct.c_uint32),
+        ("stale_move_multiplier_q16", ct.c_uint32),
+        ("stale_move_count", ct.c_uint8),
+        ("stale_move_ids", ct.c_uint8 * 9),
+        ("prone_orientation", ct.c_uint8),
+        ("reserved2", ct.c_uint8),
+    ]
+
+
+class _ItemObservation(ct.Structure):
+    _fields_ = [
+        ("position_x_q16", ct.c_int32),
+        ("position_y_q16", ct.c_int32),
+        ("velocity_x_q16", ct.c_int32),
+        ("velocity_y_q16", ct.c_int32),
+        ("lifetime_ticks", ct.c_uint16),
+        ("respawn_ticks", ct.c_uint16),
+        ("pickup_lockout_ticks", ct.c_uint16),
+        ("state", ct.c_uint8),
+        ("holder_slot", ct.c_uint8),
+        ("source_slot", ct.c_uint8),
+        ("throw_direction", ct.c_uint8),
+        ("hit_mask", ct.c_uint8),
+        ("reserved", ct.c_uint8 * 3),
+    ]
+
+
+class _ProjectileObservation(ct.Structure):
+    _fields_ = [
+        ("position_x_q16", ct.c_int32),
+        ("position_y_q16", ct.c_int32),
+        ("velocity_x_q16", ct.c_int32),
+        ("velocity_y_q16", ct.c_int32),
+        ("lifetime_ticks", ct.c_uint16),
+        ("state", ct.c_uint8),
+        ("owner_slot", ct.c_uint8),
     ]
 
 
@@ -141,6 +184,8 @@ class _SimObservation(ct.Structure):
         ("sudden_death", ct.c_uint8),
         ("stock_count", ct.c_uint8),
         ("reserved", ct.c_uint8),
+        ("item", _ItemObservation),
+        ("projectile", _ProjectileObservation),
         ("players", _PlayerObservation * PF_SIM_MAX_PLAYERS),
     ]
 
@@ -242,12 +287,14 @@ def _assert_layouts() -> None:
         "_MemoryRequirements": (_MemoryRequirements, 32),
         "_SimEvent": (_SimEvent, 32),
         "_TickResult": (_TickResult, 536),
-        "_PlayerObservation": (_PlayerObservation, 40),
-        "_SimObservation": (_SimObservation, 192),
+        "_PlayerObservation": (_PlayerObservation, 64),
+        "_ItemObservation": (_ItemObservation, 32),
+        "_ProjectileObservation": (_ProjectileObservation, 20),
+        "_SimObservation": (_SimObservation, 344),
         "_RlAction": (_RlAction, 24),
         "_RlSpec": (_RlSpec, 48),
-        "_RlCompactObservation": (_RlCompactObservation, 200),
-        "_RlTransition": (_RlTransition, 992),
+        "_RlCompactObservation": (_RlCompactObservation, 416),
+        "_RlTransition": (_RlTransition, 1360),
     }
     mismatches = [
         f"{name}={ct.sizeof(struct_type)} expected={size}"
@@ -356,6 +403,11 @@ class NativeBatch:
             or self.spec.compact_value_count != PF_RL_COMPACT_VALUE_COUNT
             or self.spec.action_stride != PF_SIM_MAX_PLAYERS
             or self.spec.max_players != PF_SIM_MAX_PLAYERS
+            or self.spec.known_buttons != PF_INPUT_KNOWN_BUTTONS
+            or self.spec.axis_minimum != -(1 << 15)
+            or self.spec.axis_maximum != (1 << 15) - 1
+            or self.spec.trigger_minimum != 0
+            or self.spec.trigger_maximum != (1 << 16) - 1
             or self.spec.reward_component_flags
             != (
                 PF_RL_REWARD_COMPONENT_TERMINAL
@@ -655,6 +707,8 @@ __all__ = [
     "NativeBatch",
     "NativeCallError",
     "PF_Q16_ONE",
+    "PF_RL_BUTTON_BITS",
+    "PF_RL_BUTTON_COUNT",
     "PF_RL_COMPACT_VALUE_COUNT",
     "PF_SIM_MAX_PLAYERS",
 ]

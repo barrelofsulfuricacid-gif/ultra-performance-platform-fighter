@@ -15,11 +15,14 @@ from ._native import (
     NativeBatch,
     NativeCallError,
     PF_Q16_ONE,
+    PF_RL_BUTTON_BITS,
+    PF_RL_BUTTON_COUNT,
     PF_RL_COMPACT_VALUE_COUNT,
     PF_SIM_MAX_PLAYERS,
 )
 
 _UINT64_MASK = (1 << 64) - 1
+_BUTTON_SHIFTS = np.asarray(PF_RL_BUTTON_BITS, dtype=np.uint64)
 
 
 class PlatformFighterError(RuntimeError):
@@ -82,7 +85,7 @@ class PlatformFighterVectorEnv(VectorEnv):
         self.single_action_space = gym.spaces.Dict(
             {
                 "buttons": gym.spaces.MultiBinary(
-                    (PF_SIM_MAX_PLAYERS, 2)
+                    (PF_SIM_MAX_PLAYERS, PF_RL_BUTTON_COUNT)
                 ),
                 "main_stick": gym.spaces.Box(
                     low=np.iinfo(np.int16).min,
@@ -308,9 +311,9 @@ class PlatformFighterVectorEnv(VectorEnv):
         triggers = np.asarray(actions["triggers"], dtype=np.uint16)
 
         action_view = self._native.action_view
-        action_view["buttons"][:, :] = (
-            buttons[:, :, 0].astype(np.uint64)
-            | (buttons[:, :, 1].astype(np.uint64) << np.uint64(63))
+        action_view["buttons"][:, :] = np.bitwise_or.reduce(
+            buttons.astype(np.uint64) << _BUTTON_SHIFTS,
+            axis=2,
         )
         action_view["main_stick_x"][:, :] = main_stick[:, :, 0]
         action_view["main_stick_y"][:, :] = main_stick[:, :, 1]

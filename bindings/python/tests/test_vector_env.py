@@ -14,7 +14,7 @@ from pf_gymnasium import PlatformFighterVectorEnv
 def _zero_actions(environment: PlatformFighterVectorEnv) -> dict[str, np.ndarray]:
     return {
         "buttons": np.zeros(
-            (environment.num_envs, 4, 2), dtype=np.int8
+            (environment.num_envs, 4, 6), dtype=np.int8
         ),
         "main_stick": np.zeros(
             (environment.num_envs, 4, 2), dtype=np.int16
@@ -52,7 +52,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         self.assertTrue(
             np.array_equal(first_observation, second_observation)
         )
-        self.assertEqual(first_observation.shape, (6, 48))
+        self.assertEqual(first_observation.shape, (6, 102))
         self.assertEqual(first_observation.dtype, np.int32)
         self.assertTrue(np.all(first_observation[:, 2:4] == 0))
         self.assertTrue(
@@ -60,6 +60,10 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         )
         self.assertTrue(np.all(first_observation[:, [15, 25]] == 4))
         self.assertTrue(np.all(first_observation[:, [16, 17, 26, 27]] == 0))
+        self.assertTrue(np.all(first_observation[:, 62:74] == 0))
+        self.assertTrue(
+            np.all(first_observation[:, [86, 90, 94, 98]] == 65536)
+        )
         self.assertTrue(np.all(first_info["_legal_buttons"]))
         self.assertTrue(
             np.array_equal(
@@ -94,7 +98,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         environment.reset(seed=99)
 
         actions = _zero_actions(environment)
-        actions["buttons"][0, 0, 1] = 1
+        actions["buttons"][0, 0, 5] = 1
         _, rewards, terminated, truncated, info = environment.step(actions)
         self.assertTrue(terminated[0])
         self.assertFalse(truncated[0])
@@ -125,7 +129,7 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         self.addCleanup(environment.close)
         environment.reset(seed=7)
         actions = _zero_actions(environment)
-        actions["buttons"][:, 1, 1] = 1
+        actions["buttons"][:, 1, 5] = 1
         _, rewards, terminated, _, info = environment.step(actions)
         np.testing.assert_array_equal(
             rewards, np.asarray([1.0, 1.0], dtype=np.float64)
@@ -185,6 +189,25 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
         environment.close()
         with self.assertRaises(RuntimeError):
             environment.step(_zero_actions(environment))
+
+    def test_current_native_button_mapping(self) -> None:
+        environment = PlatformFighterVectorEnv(
+            1, library_path=self.library_path, player_count=2
+        )
+        self.addCleanup(environment.close)
+        environment.reset(seed=17)
+
+        actions = _zero_actions(environment)
+        actions["buttons"][0, 0, :5] = 1
+        observation, _, terminated, _, _ = environment.step(actions)
+        self.assertFalse(terminated[0])
+        self.assertEqual(int(observation[0, 8]), 0x1F)
+        self.assertEqual(int(observation[0, 9]), 0)
+
+        actions = _zero_actions(environment)
+        actions["buttons"][0, 0, 5] = 1
+        _, _, terminated, _, _ = environment.step(actions)
+        self.assertTrue(terminated[0])
 
 
 if __name__ == "__main__":
