@@ -153,7 +153,9 @@ are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 46 contains 503 signed values. Each of the four player
+Browser view schema 47 contains the same 503 signed values as schema 46 while
+making packed action-transition and coalesced-forfeit event meanings fail
+closed. Each of the four player
 blocks has a 53-value stride and appends shield-active, exact
 left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
 event count is at 236, event entries begin at 237, the item block begins at
@@ -591,10 +593,12 @@ also show percent, hitstun, SDI pulse count, tech window/lockout, tech
 direction, and the last combat-event sequence.
 
 The event panel is driven by the ABI-4 per-tick journal rather than inferred
-from the rendered state. It shows canonical sequence/tick labels for hits and
-their tumble/crouch-cancel flags,
+from the rendered state. It shows canonical sequence/tick labels for packed
+per-player action transitions, hits and their tumble/crouch-cancel flags,
 shield interactions, grabs, pummels, escapes, throws, KOs, respawns, revival
-drops, sudden death, results, forfeits, and time limits. The simulation returns
+drops, sudden death, results, coalesced multi-player forfeits, and time limits.
+Action rows decode the previous and final action name for every bit in the
+changed-player mask. The simulation returns
 at most 16 records for the current tick; the
 browser keeps only the newest ten as non-authoritative presentation history
 and clears them on Reset or any observed rewind.

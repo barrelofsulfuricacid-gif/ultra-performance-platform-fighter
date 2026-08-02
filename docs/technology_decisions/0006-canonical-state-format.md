@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–48 / state schemas 1–49
+- **Status:** Accepted for save formats 1–49 / state schemas 1–50
 - **Date:** 2026-08-01
 
 ## Decision
@@ -58,6 +58,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 46 | 47 | 140 | 631 | 771 | Per-player attack-registration latch, stale-move count, and nine newest-first canonical move IDs plus one thrown-item registration latch; owner-local stale damage, successful-hurt registration, and reset/persistence semantics fail closed |
 | 47 | 48 | 140 | 631 | 771 | No payload-layout change; stationary upper pass-through support ID 5, ordinary grounded/airborne relationships, and immutable stage-derived geometry fail closed |
 | 48 | 49 | 140 | 631 | 771 | Each former signed tech-direction byte packs canonical direction and prone orientation; exact orientation-specific getup-roll movement/invulnerability schedules and reserved-bit rejection fail closed |
+| 49 | 50 | 140 | 631 | 771 | No payload-layout change; event type 24 packs every final per-player action transition and simultaneous forfeits coalesce into one canonical player-mask event |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -67,8 +68,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
-`PFSAVE47`, or `PFSAVE48`.
-The active M4 runtime emits and accepts format 48 with state schema 49. Earlier
+`PFSAVE47`, `PFSAVE48`, or `PFSAVE49`.
+The active M4 runtime emits and accepts format 49 with state schema 50. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -90,11 +91,25 @@ or any nonzero high nibble is noncanonical. The packing adds orientation
 without growing the 631-byte payload, and load verifies the payload checksum
 before rejecting malformed packed state atomically.
 
+Format 49 retains that exact 631-byte payload and 771-byte checkpoint while
+making the complete action-transition journal contract fail closed under
+state schema 50. Event type 24 uses system endpoints, packs each active
+player's previous action byte into `velocity_x_q16`, packs the final action
+bytes into `value_q16`, and uses `detail` as the nonzero changed-player mask;
+unused player bytes are zero. Simultaneous forfeits likewise use one system
+event whose `detail` is the nonzero forfeiting-player mask. These records
+remain transient output, but their meaning affects deterministic replay and
+rollback consumers, so an earlier reader must not silently accept the new
+state/event interpretation. Inspection schema 46 and browser view schema 47
+carry the corresponding interpretation bump without changing their value
+layouts.
+
 The per-tick event array is transient output and is deliberately absent from
 the save payload. The existing canonical event sequence remains serialized.
 After load, identical subsequent inputs must therefore reproduce the same
-typed events and sequence IDs. The format/state bump makes that new semantic
-contract fail closed even though the 463-byte payload layout is unchanged.
+typed events and sequence IDs. Format 14's format/state bump makes that
+original journal semantic contract fail closed even though its 463-byte
+payload layout is unchanged.
 Format 15 applies the same fail-closed rule to the new shield-break action IDs
 and action-timer semantics: no new mutable field is needed, but a format-14
 reader must not silently reinterpret down/stand elapsed ticks or stun

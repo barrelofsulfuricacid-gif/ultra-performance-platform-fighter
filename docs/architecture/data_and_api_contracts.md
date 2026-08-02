@@ -81,11 +81,14 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–47 remain historical checkpoints. The current M4 state uses
-save format 48: a fixed 771-byte checkpoint with state schema 49 and a 631-byte
-payload. It packs each player's signed tech direction and prone orientation
-into one canonical byte; reserved codes and bits fail closed. Save format
-47/state schema 48 retained the preceding byte layout while adding stationary
+Save formats 1–48 remain historical checkpoints. The current M4 state uses
+save format 49: a fixed 771-byte checkpoint with state schema 50 and a 631-byte
+payload. The byte layout is unchanged from format 48; the bump makes complete
+packed action-transition events and coalesced forfeit masks fail closed for
+deterministic replay consumers. Save format 48/state schema 49 packed each
+player's signed tech direction and prone orientation into one canonical byte;
+reserved codes and bits fail closed. Save format 47/state schema 48 retained
+the preceding byte layout while adding stationary
 upper-platform support semantics. Save format 46/state schema 47 appended one
 attack-registration latch, one queue count, and nine newest-first canonical
 stale-move IDs per fixed player slot plus one thrown-item registration latch.
@@ -398,6 +401,17 @@ observation schema 11 expose prone orientation. RL schema 13/transition schema
 orientation values at 499–502 for 503 total. Opaque requirements are 2,472
 state bytes and 1,088 scratch bytes inside the unchanged 4 KiB envelopes.
 
+State schema 50 / save format 49 retains the same 631-byte payload, 771-byte
+checkpoint, 2,472-byte state requirement, and 1,088-byte scratch requirement.
+The semantic bump assigns event type 24 to one system action-transition record
+per changing tick: `value_q16` packs four final action bytes,
+`velocity_x_q16` packs the four previous action bytes, and `detail` is the
+nonzero changed-player mask. Simultaneous forfeits coalesce into one system
+event whose `detail` is the nonzero forfeiting-player mask. Inspection schema
+46 and browser schema 47 make these meanings fail closed without changing the
+inspection layout or the 503-value browser layout. Content, fighter,
+observation, RL, transition, and compact schemas are unchanged.
+
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain
@@ -467,12 +481,14 @@ not duplicated per match.
 
 ABI 4 exposes up to 16 caller-owned, fixed-size events in every tick result.
 Each event records the processed input tick, a match-monotonic sequence,
-type, flags, source and target slots, one Q16.16 value, one Q16.16 velocity
-pair, and a type-specific 16-bit detail. `255` denotes a system/no-player
+type, flags, source and target slots, one 32-bit value, one signed 32-bit
+velocity pair, and a type-specific 16-bit detail. Combat records normally use
+Q16.16 numeric semantics; action-transition records pack raw action bytes.
+`255` denotes a system/no-player
 endpoint. The currently produced types are hit, shield block, powershield,
 shield break, grab, grab escape, throw, item pickup/drop/throw/hit/reset,
 projectile fire/hit/reflect, KO, respawn, revival drop, sudden death, match
-result, forfeit, and time limit.
+result, forfeit, time limit, and packed action transitions.
 
 The event array itself is same-tick output scratch, not rolling canonical
 history. Canonical state stores the next sequence authority. Loading a
@@ -481,9 +497,12 @@ same event records and sequence IDs without making rollback memory grow with
 match length. Presentation clients may retain a bounded recent history and
 must discard/reconcile it when the simulation tick rewinds.
 
-The current production path has a statically proven upper bound of 13 events
-per tick: at most one movement, one combat, and one forfeit event per player,
-plus one match-resolution event. Capacity is 16. Sequence exhaustion or
+The current production path has a statically proven upper bound of 14 events
+per tick: at most one movement and one combat event per player, plus one packed
+action-transition event, one coalesced forfeit event, one match-resolution
+event, two item events, and one projectile event. Capacity is 16. The action
+record follows movement/item/combat/projectile resolution and precedes any
+forfeit/result record; match resolution remains last. Sequence exhaustion or
 capacity overflow faults before the tick mutates canonical state; events are
 never silently dropped.
 

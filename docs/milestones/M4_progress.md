@@ -2006,6 +2006,53 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `5a720f86d7ece6c609d71a7864322a418456c60c544f5af2dc289cbcc6cebe4f`,
   while `perf` remains unavailable because it is not installed.
 
+## Implemented in the complete action-transition journal slice
+
+- ABI-4 event type 24 now journals every final current-player action change in
+  one system record. `value_q16` packs the four final action bytes,
+  `velocity_x_q16` packs the four tick-start action bytes, and `detail` is the
+  nonzero changed-player mask. Multiple changes within one tick collapse to
+  the tick boundary, and returning to the starting action emits no false row.
+- Simultaneous forfeits now coalesce into one system event whose detail is the
+  forfeiting-player mask, followed by one match-result event. The statically
+  proven production maximum is 14 records against the unchanged capacity of
+  16; action transitions follow movement/item/combat/projectile resolution and
+  match resolution remains last.
+- State schema 50/save format 49, inspection schema 46, and browser schema 47
+  make the new event meanings fail closed while preserving the 631-byte
+  payload, 771-byte checkpoint, 503-value browser view, 2,472-byte opaque
+  state requirement, and 1,088-byte scratch requirement. Content, fighter,
+  observation, RL, transition, and compact schemas remain unchanged.
+- The hot path maintains a scratch-only changed-player mask while existing
+  movement/item/combat code writes actions, so an unchanged tick performs no
+  separate action-array scan and emits no event. This recovered the measured
+  action-journal regression without changing canonical or replay bytes beyond
+  the intended schema/event interpretation.
+- The combat oracle remains at 982 mechanics invariants and rises to 74
+  journal invariants. The match oracle retains 24 mechanics plus 24 revival
+  invariants and rises to 62 journal invariants, including exact simultaneous
+  transitions, neutral no-event behavior, canonical packed fields, every
+  production action ID, and a four-player team forfeit mask/result pair.
+- The 31,463-byte replay now has corpus SHA-256
+  `08955dbf44be5e54f229796b42342904ba6933b4ad5779e61c515b71fe1a62fa`,
+  final-state SHA-256
+  `17bfd5133e5926221fd71d526f2bbb62359a8a36b8c44949d92954137e25a5e2`,
+  and event-journal SHA-256
+  `ad1be8cd1b341cef74f23b39edd511124fb7515cafb36c81bee6ac87ff8e6a28`.
+  Windows and WSL verifier self-tests repeat match-soak digest
+  `192e1b210a16982e`.
+- Exact clean commit `58d9e5487c062242add32a3330d85f5b540d3e9d`
+  passes Windows MSVC and WSL GCC 13.3 Release 22/22, every strict M2/M4 source
+  gate, pinned Emscripten 6.0.3, byte-identical native/WebAssembly replay
+  output, and the live generated-Wasm Microsoft Edge DOM smoke.
+- Two clean native-Windows milestone runs compare the final commit first to the
+  latest exact `91d69f5` pre-journal repeat and then to itself. All 10
+  measurable scenarios are compatible in both runs with zero invalid,
+  suspected, or confirmed regressions. A clean WSL Tracy 0.13.1 capture passes
+  with timer fallback enabled; its 11,808-byte trace has SHA-256
+  `a5a8879cc6d299eb16dd99dfa2a4b178250ab053290f5145cfd8a3e801c772d3`,
+  while `perf` remains unavailable because it is not installed.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -2154,17 +2201,20 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Remaining M4.2 and M4.3 work
 
 - Character-specific move breadth, additional specials, broader recovery
-  options, broader throw routes, broader per-action launch-angle data, and
-  journal producers for every remaining action.
+  options, broader throw routes, and broader per-action launch-angle data.
 - Repeated human matches.
 - The mandatory owner combat playtest; the generated browser worksheet is
   ready, but only the owner can supply and approve its evidence.
 
 ## First-slice verification
 
-- Windows MSVC and WSL GCC 13.3 Release workflows: 22/22 tests each.
-- Address/undefined-behavior sanitizer workflow: 22/22 tests; leak discovery
-  disabled only for the restricted workspace.
+- Exact action-journal commit `58d9e54`: Windows MSVC and WSL GCC 13.3 Release
+  workflows pass 22/22 tests each.
+- Earlier address/undefined-behavior sanitizer workflow: 22/22 tests at
+  `fecd6ac`, with leak discovery disabled only for the restricted workspace.
+  The current action-journal sanitizer compile remains pending two test-local
+  `-Wconversion` declaration cleanups; production and strict Release builds
+  are warning-clean.
 - Mechanical oracles: 349 movement invariants including upper-platform
   geometry and drop-through behavior, Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
@@ -2176,10 +2226,10 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   complete directional ground normals, canonical smash charge, the
   five-direction light-aerial vocabulary, exact shield size/tilt/poke geometry,
   horizontal shield SDI/ASDI,
-  ledge attack, and ledge-roll invulnerability plus 51
+  ledge attack, and ledge-roll invulnerability plus 74
   combat-journal invariants,
   24 stock/respawn/result
-  invariants plus 44 match-journal and 24 moving-revival invariants,
+  invariants plus 62 match-journal and 24 moving-revival invariants,
   46 projectile invariants including short-hop laser, projectile camping, and
   powershield reflection,
   32 reflector invariants including Shine spike and active-box projectile
@@ -2192,12 +2242,14 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,463
   bytes,
   replay SHA-256
-  `3c7130d92683b83e6b6260e74907c6719f0e511d043fdbb1185e1d70403b50e1`,
+  `08955dbf44be5e54f229796b42342904ba6933b4ad5779e61c515b71fe1a62fa`,
   final SHA-256
-  `6fa0766f63c3582bfd61edbd231ee455c59ae4ca2729e80b3d10b0cd981ea405`,
+  `17bfd5133e5926221fd71d526f2bbb62359a8a36b8c44949d92954137e25a5e2`,
   and event-journal SHA-256
-  `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
+  `ad1be8cd1b341cef74f23b39edd511124fb7515cafb36c81bee6ac87ff8e6a28`;
   Windows, WSL, and pinned Emscripten 6.0.3 output is byte-identical.
+- Windows and WSL verifier self-tests repeat match-soak digest
+  `192e1b210a16982e`.
 - The generated-Wasm canonical replay inspector and live playtest pass the
   headless Microsoft Edge DOM gate.
 

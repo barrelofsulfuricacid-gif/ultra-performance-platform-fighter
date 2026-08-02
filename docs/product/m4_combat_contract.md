@@ -1703,6 +1703,15 @@ orientations at 499–502 for 503 values. The compact timing records raise the
 opaque state requirement to 2,472 bytes and scratch to 1,088 bytes, within the
 existing 4 KiB envelopes.
 
+State schema 50 / save format 49 retains the 631-byte payload and 771-byte
+checkpoint under `PFSAVE49`. It makes event type 24's packed final action
+transitions and event type 9's coalesced forfeit mask fail closed without
+adding canonical bytes. Inspection schema 46 and browser schema 47 version the
+new event interpretation while preserving the inspection layout and all 503
+browser values. Content schema 52/fighter schema 45, observation schema 11,
+RL schema 13/transition schema 11/compact schema 12, the 2,472-byte opaque
+state requirement, and the 1,088-byte scratch requirement are unchanged.
+
 Browser view schema 40 previously expanded each player block from 44 to 45 values by
 appending smash-charge ticks, yielding 400 values total. Event count moves to
 205, the 16 ten-value event entries begin at 206, the item block begins at 366,
@@ -1979,14 +1988,20 @@ renders the down phase prone, and gives vulnerable stun an orbiting-star
 Every successful ABI-4 tick returns a zero-initialized fixed-capacity journal
 of up to 16 typed events. Current combat and match producers emit:
 
-- hit, shield block, powershield, shield break, grab, grab escape, and throw;
+- hit, shield block, powershield, shield break, grab, grab escape, pummel, and
+  throw;
+- item pickup, drop, throw, hit, and reset;
+- projectile fire, hit, and reflect;
 - KO and respawn, including remaining-stock, elimination, and sudden-death
-  flags;
-- sudden-death setup, match result, forfeit, and time limit.
+  flags, plus revival-platform drop;
+- one packed record for every final per-player action transition; and
+- sudden-death setup, match result, coalesced forfeit, and time limit.
 
 Each fixed 32-byte record contains the processed input tick, match-monotonic
-sequence, source/target slots, Q16.16 value and velocity fields, flags, and a
-type-specific detail. Player `255` means system/no player. Target resolution
+sequence, source/target slots, 32-bit value and signed velocity fields, flags,
+and a type-specific detail. Combat records normally interpret those numeric
+fields as Q16.16; action transitions use their raw packed-byte representation.
+Player `255` means system/no player. Target resolution
 and event order follow stable slot order, with match resolution last.
 
 | Event | Value / velocity | Detail |
@@ -1996,13 +2011,24 @@ and event order follow stable slot order, with match resolution last.
 | Hold-depletion shield break | Actual depleted shield health / upward launch | Zero |
 | Grab | Victim percent / zero | Grab action |
 | Grab escape | Victim percent / zero | Zero |
+| Pummel | Applied damage / zero | Pummel action |
 | Throw | Applied damage / authored launch before DI | Throw action |
+| Item pickup | Zero / zero | Zero |
+| Item drop | Zero / released item velocity | Resulting item state |
+| Item throw | Zero / authored item velocity | Throw direction |
+| Item hit | Applied damage / pending launch | Throw direction |
+| Item reset | Zero / zero | Zero |
+| Projectile fire | Zero / authored projectile velocity | Firing action |
+| Projectile hit | Applied damage / pending launch | Projectile move action |
+| Projectile reflect | Zero / reflected projectile velocity | Reflecting action |
 | KO | Pre-reset percent / blast-crossing velocity | Stocks remaining |
 | Respawn | Respawn percent / spawn velocity | Invulnerability ticks |
+| Revival drop | Zero / drop velocity | Input `0`, automatic timeout `1` |
 | Sudden death | `300%` / zero | Player count |
 | Match result | Zero | Winner mask |
-| Forfeit | Zero | Zero |
+| Forfeit | Zero | Nonzero forfeiting-player mask |
 | Time limit | Zero | Zero |
+| Action transitions | Four final action bytes / four previous action bytes in `velocity_x_q16`; `velocity_y_q16` zero | Nonzero changed-player mask |
 
 The tumble flag annotates a hit; eliminated/last-stock annotate a KO; and
 sudden-death annotates setup, respawn, KO, and result events where applicable.
@@ -2012,7 +2038,16 @@ history. The canonical save stores the sequence authority. A mid-match save,
 load, and identical continuation must return byte-identical journals, which
 prevents duplicated or renumbered rollback effects without making state size
 depend on match length. Capacity 16 exceeds the statically proven current
-maximum of 13; overflow or sequence exhaustion is a deterministic fault.
+maximum of 14; overflow or sequence exhaustion is a deterministic fault.
+
+Action-transition records use system endpoints and coalesce every changing
+active slot into one event after movement, item, combat, and projectile
+resolution. Player 1 occupies the least-significant byte; unused player bytes
+are zero. If a player changes action more than once during a tick, the packed
+record reports the tick-start action and final action only; returning to the
+tick-start action emits no false transition. Simultaneous forfeits likewise
+produce one system event before the final match-result event rather than one
+event per input slot.
 
 Replay observer schema 1 publishes checkpoint zero and every later checkpoint
 only after its stored state hash matches re-simulation. The callback receives
@@ -2024,7 +2059,12 @@ files, and swaps the visible trace only after the final result also verifies.
 ## Verification
 
 `tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 982 focused
-mechanics invariants plus 51 journal invariants, including:
+mechanics invariants plus 74 journal invariants, including:
+
+- exact packed previous/final action bytes and changed-player masks for
+  simultaneous fighter transitions, neutral no-event behavior, canonical
+  system fields, replay validation, and transition coverage across every
+  production action ID;
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
   freeze,
@@ -2042,11 +2082,11 @@ mechanics invariants plus 51 journal invariants, including:
   full-direction, equal-diagonal, immediate-strong, charge/release, and
   60-tick auto-release arbitration; exact signed two-axis launches, partial
   and maximum charged damage, typed hit identity, hitlag, mid-hitlag equality,
-  and mid-charge `PFSAVE48` continuation with equal future hashes/events;
+  and mid-charge `PFSAVE49` continuation with equal future hashes/events;
 - authored forward/back/up/down aerial defaults, validation and isolated
   content hash; neutral, vertical-dominant, horizontal-dominant, equal-diagonal,
   facing-relative, and direct-strong arbitration; exact signed two-axis launch,
-  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE48`
+  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE49`
   continuation with equal future hashes;
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
@@ -2061,7 +2101,7 @@ mechanics invariants plus 51 journal invariants, including:
   mid-route save/load event/hash continuation;
 - exact light/dense health-and-density size calculation, signed dead-zone
   tilt translation, derived bounds, observation/RL/browser exposure,
-  `PFSAVE48` tilt continuation, centered-shield block priority, and an
+  `PFSAVE49` tilt continuation, centered-shield block priority, and an
   otherwise identical exposed-hurtbox poke that takes the ordinary hit path;
 - standing versus held-crouch contact with unchanged damage/hitlag, exact 2/3
   two-axis launch and hitstun scaling, derived tumble and typed flag, inclusive
@@ -2178,13 +2218,14 @@ mechanics invariants plus 51 journal invariants, including:
 - a 20,000-tick four-player team trace with a canonical hash after every tick.
 
 `tests/sim/test_m4_match.c` and `tools/verify_m4_match.sh` retain 24 match
-invariants plus 44 journal invariants and add 24 revival invariants: authored
+invariants plus 62 journal invariants and 24 revival invariants: authored
 defaults, invalid geometry/timing, content-hash participation, stock loss,
 exact inactive wait, platform spawn/geometry/interpolation, pre-end input
 rejection, collision invulnerability, mid-platform save/load continuation,
 input and automatic drop events, post-drop invulnerability, final-stock result,
-300% simultaneous-KO sudden death, deterministic repeated-tie resolution, and
-2v2 team winner masks.
+300% simultaneous-KO sudden death, deterministic repeated-tie resolution, 2v2
+team winner masks, and a four-player simultaneous-forfeit case proving one
+mask event followed by one result event.
 
 The 180-tick replay corpus includes vertical stick and trigger inputs and
 requires observed grounded-roll, spot-dodge, SDI, tech-window, air-dodge, and
