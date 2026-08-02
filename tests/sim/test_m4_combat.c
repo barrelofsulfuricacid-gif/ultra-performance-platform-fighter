@@ -1100,11 +1100,11 @@ static uint32_t expected_repeated_move_damage_q16(
                 ? hit
                 : (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
         const uint16_t matching_slots =
-            occupied_slots == UINT32_C(0)
-                ? UINT16_C(0)
-                : (uint16_t)(
-                      (UINT16_C(1) << occupied_slots) -
-                      UINT16_C(1));
+            (uint16_t)(
+                occupied_slots == UINT32_C(0)
+                    ? UINT32_C(0)
+                    : (UINT32_C(1) << occupied_slots) -
+                          UINT32_C(1));
 
         total_q16 += expected_stale_damage_q16(
             fighter,
@@ -7397,11 +7397,11 @@ static int run_stale_move_test(
                 ? hit + UINT32_C(1)
                 : (uint32_t)PF_SIM_STALE_MOVE_QUEUE_CAPACITY;
         const uint16_t prior_mask =
-            prior_count == UINT32_C(0)
-                ? UINT16_C(0)
-                : (uint16_t)(
-                      (UINT16_C(1) << prior_count) -
-                      UINT16_C(1));
+            (uint16_t)(
+                prior_count == UINT32_C(0)
+                    ? UINT32_C(0)
+                    : (UINT32_C(1) << prior_count) -
+                          UINT32_C(1));
         const uint16_t resulting_mask =
             (uint16_t)(
                 (UINT16_C(1) << resulting_count) -
@@ -20865,10 +20865,10 @@ int main(void)
     invalid_getup_roll_content = content;
     invalid_getup_roll_content.fighter
         .getup_roll_back_backward.invulnerability_begin_tick =
-        (uint16_t)(
+        (uint8_t)(
             invalid_getup_roll_content.fighter
                 .getup_roll_back_backward.invulnerability_end_tick +
-            UINT16_C(1));
+            UINT8_C(1));
     invalid_shield_content = content;
     invalid_shield_content.fighter.shield_release_ticks =
         UINT16_C(0);
