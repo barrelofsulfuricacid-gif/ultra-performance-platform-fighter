@@ -246,6 +246,14 @@ static pf_status pf_m4_emit_action_transitions(
         PF_M4_ACTION_REVIVAL_PLATFORM < 128,
         "packed action-transition values must remain nonnegative int32 values");
 
+    if (memcmp(
+            world->action_state,
+            scratch->action_state,
+            (size_t)world->player_count) == 0)
+    {
+        return PF_STATUS_OK;
+    }
+
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
          ++player_index)
