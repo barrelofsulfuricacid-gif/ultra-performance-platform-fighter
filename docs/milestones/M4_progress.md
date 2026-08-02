@@ -2208,13 +2208,17 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 
 ## First-slice verification
 
-- Exact action-journal commit `58d9e54`: Windows MSVC and WSL GCC 13.3 Release
-  workflows pass 22/22 tests each.
-- Earlier address/undefined-behavior sanitizer workflow: 22/22 tests at
-  `fecd6ac`, with leak discovery disabled only for the restricted workspace.
-  The current action-journal sanitizer compile remains pending two test-local
-  `-Wconversion` declaration cleanups; production and strict Release builds
-  are warning-clean.
+- Current compatibility checkpoint `fb5d6be`: Windows MSVC Release passes
+  22/22 tests, WSL GCC 13.3 address/undefined-behavior sanitizers pass 22/22,
+  and the headless shared-library workflow passes 17/17.
+- The current Gymnasium 1.3 adapter passes all six API/determinism tests against
+  RL schema 13, transition schema 11, and the 102-value compact schema 12. The
+  batched boundary is 6.0566 times faster than repeated single-environment
+  calls in the local WSL qualification.
+- Setup, benchmark-history, verifier-lifecycle, and Tracy qualification pass at
+  the same checkpoint. Synthetic benchmark history now contains ten comparison
+  records in every qualified category, and Tracy 0.13.1 captures through the
+  supported WSL timer fallback.
 - Mechanical oracles: 349 movement invariants including upper-platform
   geometry and drop-through behavior, Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
