@@ -14,12 +14,12 @@ extern "C"
 #define PF_SIM_CONFIG_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_CONTENT_SCHEMA_VERSION UINT16_C(1)
 #define PF_SIM_INPUT_SCHEMA_VERSION UINT16_C(5)
-#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(48)
-#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(10)
+#define PF_SIM_STATE_SCHEMA_VERSION UINT16_C(49)
+#define PF_SIM_OBSERVATION_SCHEMA_VERSION UINT16_C(11)
 #define PF_SIM_IDENTITY_SCHEMA_VERSION UINT16_C(2)
 #define PF_SIM_ARITHMETIC_VERSION UINT16_C(1)
 #define PF_SIM_RNG_VERSION UINT16_C(1)
-#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(47)
+#define PF_SIM_SAVE_FORMAT_VERSION UINT16_C(48)
 #define PF_SIM_STATE_HASH_ALGORITHM_SHA256 UINT16_C(1)
 #define PF_SIM_STATE_HASH_ALGORITHM_VERSION UINT16_C(1)
 #define PF_SIM_STATE_HASH_BYTES UINT16_C(32)
@@ -272,7 +272,8 @@ typedef struct pf_player_observation
     uint32_t stale_move_multiplier_q16;
     uint8_t stale_move_count;
     uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
-    uint8_t reserved2[2];
+    uint8_t prone_orientation;
+    uint8_t reserved2;
 } pf_player_observation;
 
 typedef struct pf_item_observation

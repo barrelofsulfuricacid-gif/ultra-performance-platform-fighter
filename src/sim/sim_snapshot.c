@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)631)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)635)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x37)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x38)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -623,6 +623,12 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u8(writer, world->prone_orientation[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u16(writer, world->grab_escape_ticks[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -1056,6 +1062,13 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->prone_orientation[player_index] =
+            pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->grab_escape_ticks[player_index] =
             pf_reader_u16(reader);
     }
@@ -1417,6 +1430,8 @@ static int pf_m4_snapshot_content_state_consistent(
             world->hitlag_resume_action[player_index];
         const uint16_t action_ticks =
             world->action_ticks[player_index];
+        const uint8_t prone_orientation =
+            world->prone_orientation[player_index];
         const int charge_action =
             action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
             action == (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
@@ -1550,7 +1565,14 @@ static int pf_m4_snapshot_content_state_consistent(
                   ground_attack_resume->startup_ticks +
                       ground_attack_resume->active_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_PUMMEL &&
-             action_ticks >= content->fighter.pummel_total_ticks) ||
+              action_ticks >= content->fighter.pummel_total_ticks) ||
+            (action == (uint8_t)PF_M4_ACTION_GETUP_ROLL &&
+             (action_ticks >= content->fighter.getup_roll_ticks ||
+              pf_m4_getup_roll_timing_for(
+                  &content->fighter,
+                  prone_orientation,
+                  world->tech_direction[player_index],
+                  world->facing[player_index]) == NULL)) ||
             (revival_action &&
              ((uint32_t)action_ticks > revival_ticks ||
               world->position_x_q16[player_index] != revival_x ||
@@ -1960,6 +1982,17 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
             const uint8_t tumble = world->tumble[player_index];
             const int8_t tech_direction =
                 world->tech_direction[player_index];
+            const uint8_t prone_orientation =
+                world->prone_orientation[player_index];
+            const int prone_action =
+                action == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+                action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
+                action == (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL ||
+                action == (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+                action == (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
+                (action == (uint8_t)PF_M4_ACTION_HITLAG &&
+                 resume_action ==
+                     (uint8_t)PF_M4_ACTION_GETUP_ATTACK);
             if (world->active[player_index] > UINT8_C(1) ||
                 world->team[player_index] != expected_team ||
                 world->grounded[player_index] > UINT8_C(1) ||
@@ -2056,6 +2089,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->sdi_direction_y[player_index] > INT8_C(1) ||
                 tech_direction < INT8_C(-1) ||
                 tech_direction > INT8_C(1) ||
+                prone_orientation >
+                    (uint8_t)PF_M4_PRONE_STOMACH ||
+                (prone_action != 0 &&
+                 prone_orientation ==
+                     (uint8_t)PF_M4_PRONE_NONE) ||
                 world->grab_escape_ticks[player_index] > UINT16_C(600) ||
                 world->charge_ticks[player_index] > UINT16_C(600) ||
                 world->smash_charge_ticks[player_index] >
@@ -2464,6 +2502,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->sdi_direction_x[player_index] != INT8_C(0) ||
                  world->sdi_direction_y[player_index] != INT8_C(0) ||
                  world->tech_direction[player_index] != INT8_C(0) ||
+                 world->prone_orientation[player_index] !=
+                     (uint8_t)PF_M4_PRONE_NONE ||
                  world->respawn_ticks[player_index] != UINT16_C(0) ||
                  world->respawn_invulnerability_ticks[player_index] !=
                      UINT16_C(0) ||

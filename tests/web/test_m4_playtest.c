@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 499
+#define TEST_VIEW_COUNT 503
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 53
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -58,6 +58,7 @@
 #define TEST_UPPER_PLATFORM_LEFT 496
 #define TEST_UPPER_PLATFORM_RIGHT 497
 #define TEST_UPPER_PLATFORM_Y 498
+#define TEST_PRONE_ORIENTATION0 499
 #define TEST_ITEM_BASE 397
 #define TEST_ITEM_ENABLED 0
 #define TEST_ITEM_STATE 1
@@ -534,12 +535,13 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 45 ||
+        test_view[0] != 46 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
         test_view[TEST_RESPAWN_INVULNERABILITY] != 120 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_STOCKS] != 4 ||
+        test_view[TEST_PRONE_ORIENTATION0] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRABBOX_ACTIVE] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_ESCAPE_TICKS] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET] != 255 ||

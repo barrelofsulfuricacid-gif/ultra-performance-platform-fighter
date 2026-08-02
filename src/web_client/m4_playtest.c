@@ -32,7 +32,8 @@
 #define PF_WEB_M4_VIEW_STALE_MOVE_STRIDE 12
 #define PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED 495
 #define PF_WEB_M4_VIEW_UPPER_PLATFORM0 496
-#define PF_WEB_M4_VIEW_COUNT 499
+#define PF_WEB_M4_VIEW_PRONE_ORIENTATION0 499
+#define PF_WEB_M4_VIEW_COUNT 503
 
 enum pf_web_m4_view_field
 {
@@ -9175,6 +9176,8 @@ static int pf_web_m4_reach_down_wait(
         {
             return out_inspection->players[1].action_ticks ==
                        UINT16_C(0) &&
+                   out_inspection->players[1].prone_orientation ==
+                       (uint8_t)PF_M4_PRONE_BACK &&
                    knockdown_steps ==
                        pf_web_m4_content.fighter.knockdown_ticks;
         }
@@ -9196,6 +9199,8 @@ static int pf_web_m4_reach_down_wait(
 static int pf_web_m4_run_floor_recovery_probe(void)
 {
     pf_m4_inspection inspection;
+    const pf_m4_getup_roll_timing *back_backward =
+        &pf_web_m4_content.fighter.getup_roll_back_backward;
     uint32_t tick;
 
     if (!pf_web_m4_reach_down_wait(&inspection) ||
@@ -9287,6 +9292,31 @@ static int pf_web_m4_run_floor_recovery_probe(void)
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
         inspection.players[1].tech_direction != INT8_C(1) ||
+        inspection.players[1].prone_orientation !=
+            (uint8_t)PF_M4_PRONE_BACK ||
+        inspection.players[1].velocity_x_q16 != INT32_C(0) ||
+        inspection.players[1].invulnerable != UINT8_C(0))
+    {
+        return 0;
+    }
+    while ((uint32_t)inspection.players[1].action_ticks + UINT32_C(1) <
+           (uint32_t)back_backward->movement_begin_tick)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_GETUP_ROLL ||
+        inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
         inspection.players[1].invulnerable != UINT8_C(1) ||
         !pf_web_m4_reach_down_wait(&inspection) ||
         !pf_web_m4_tick(
@@ -12203,7 +12233,7 @@ static int pf_web_m4_render(void)
     }
 
     (void)memset(pf_web_m4_view, 0, sizeof(pf_web_m4_view));
-    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(45);
+    pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(46);
     pf_web_m4_view[PF_WEB_M4_VIEW_TICK] =
         (int32_t)inspection.tick;
     pf_web_m4_view[PF_WEB_M4_VIEW_FLOOR_LEFT] =
@@ -12315,6 +12345,9 @@ static int pf_web_m4_render(void)
             (int32_t)player->sdi_pulse_count;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_TECH_DIRECTION] =
             (int32_t)player->tech_direction;
+        pf_web_m4_view[
+            PF_WEB_M4_VIEW_PRONE_ORIENTATION0 + (int)player_index] =
+            (int32_t)player->prone_orientation;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_HEALTH] =
             (int32_t)player->shield_health_q16;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_SHIELD_STUN] =

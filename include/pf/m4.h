@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(51)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(44)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(52)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(45)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(44)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(45)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -320,6 +320,21 @@ typedef enum pf_m4_ledge
     PF_M4_LEDGE_RIGHT = 2
 } pf_m4_ledge;
 
+typedef enum pf_m4_prone_orientation
+{
+    PF_M4_PRONE_NONE = 0,
+    PF_M4_PRONE_BACK = 1,
+    PF_M4_PRONE_STOMACH = 2
+} pf_m4_prone_orientation;
+
+typedef struct pf_m4_getup_roll_timing
+{
+    uint16_t movement_begin_tick;
+    uint16_t invulnerability_begin_tick;
+    uint16_t invulnerability_end_tick;
+    uint16_t reserved;
+} pf_m4_getup_roll_timing;
+
 typedef struct pf_m4_fighter_data
 {
     uint32_t struct_size;
@@ -553,7 +568,10 @@ typedef struct pf_m4_fighter_data
     uint16_t getup_neutral_ticks;
     uint16_t getup_neutral_invulnerability_ticks;
     uint16_t getup_roll_ticks;
-    uint16_t getup_roll_invulnerability_ticks;
+    pf_m4_getup_roll_timing getup_roll_back_forward;
+    pf_m4_getup_roll_timing getup_roll_back_backward;
+    pf_m4_getup_roll_timing getup_roll_stomach_forward;
+    pf_m4_getup_roll_timing getup_roll_stomach_backward;
     uint16_t getup_attack_ticks;
     uint16_t getup_attack_invulnerability_ticks;
     uint16_t getup_attack_front_active_begin_tick;
@@ -728,7 +746,7 @@ typedef struct pf_m4_player_inspection
     uint8_t stale_move_count;
     uint8_t attack_stale_registered;
     uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
-    uint8_t reserved3;
+    uint8_t prone_orientation;
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection

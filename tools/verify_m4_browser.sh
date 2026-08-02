@@ -26,6 +26,8 @@ grep -Fq '#define PF_WEB_M4_VIEW_STALE_MOVE0 447' \
     "$root/src/web_client/m4_playtest.c"
 grep -Fq '#define PF_WEB_M4_VIEW_UPPER_PLATFORM0 496' \
     "$root/src/web_client/m4_playtest.c"
+grep -Fq '#define PF_WEB_M4_VIEW_PRONE_ORIENTATION0 499' \
+    "$root/src/web_client/m4_playtest.c"
 grep -Fq 'pf_web_m4_run_ledge_option_probe' \
     "$root/src/web_client/m4_playtest.c"
 
@@ -222,7 +224,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 45' \
+    'view[0] !== 46' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pf_web_m4_run_directional_aerial_probe' \
@@ -315,7 +317,7 @@ grep -Fq \
     '"Local 1v1 match setup"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 499' \
+    'viewCount !== 503' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'stale queue newest first' \

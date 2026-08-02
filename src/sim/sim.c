@@ -481,6 +481,8 @@ pf_status pf_sim_observe(
             sim->world.shield_tilt_y[player_index];
         player->shield_health_q16 =
             sim->world.shield_health_q16[player_index];
+        player->prone_orientation =
+            sim->world.prone_orientation[player_index];
         player->stale_move_count =
             sim->world.stale_move_count[player_index];
         if (player->stale_move_count == UINT8_C(0))

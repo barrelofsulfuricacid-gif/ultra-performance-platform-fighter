@@ -98,6 +98,7 @@ typedef struct pf_world_state
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
+    uint8_t prone_orientation[PF_SIM_MAX_PLAYERS];
     int32_t item_position_x_q16;
     int32_t item_position_y_q16;
     int32_t item_velocity_x_q16;
@@ -183,6 +184,7 @@ typedef struct pf_sim_scratch
     int8_t sdi_direction_x[PF_SIM_MAX_PLAYERS];
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
+    uint8_t prone_orientation[PF_SIM_MAX_PLAYERS];
     int32_t item_position_x_q16;
     int32_t item_position_y_q16;
     int32_t item_velocity_x_q16;
@@ -333,6 +335,11 @@ uint32_t pf_m4_stale_move_multiplier_q16(
     const uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY],
     uint8_t stale_move_count,
     uint8_t move_id);
+const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
+    const pf_m4_fighter_data *fighter,
+    uint8_t prone_orientation,
+    int8_t roll_direction,
+    int8_t facing);
 int pf_m4_attack_hitbox(
     const pf_m4_content *content,
     int32_t position_x_q16,

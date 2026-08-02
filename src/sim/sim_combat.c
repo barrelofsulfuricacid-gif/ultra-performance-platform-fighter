@@ -293,7 +293,10 @@ static int pf_m4_action_has_shield_volume(
 static int pf_m4_action_is_recovery_invulnerable(
     const pf_m4_fighter_data *fighter,
     uint8_t action_state,
-    uint16_t action_ticks)
+    uint16_t action_ticks,
+    uint8_t prone_orientation,
+    int8_t tech_direction,
+    int8_t facing)
 {
     if (action_state == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM)
     {
@@ -357,8 +360,20 @@ static int pf_m4_action_is_recovery_invulnerable(
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL)
     {
-        return action_ticks <
-               fighter->getup_roll_invulnerability_ticks;
+        const pf_m4_getup_roll_timing *timing =
+            pf_m4_getup_roll_timing_for(
+                fighter,
+                prone_orientation,
+                tech_direction,
+                facing);
+        const uint16_t action_frame =
+            action_ticks != UINT16_MAX
+                ? (uint16_t)(action_ticks + UINT16_C(1))
+                : UINT16_MAX;
+
+        return timing != NULL &&
+               action_frame >= timing->invulnerability_begin_tick &&
+               action_frame <= timing->invulnerability_end_tick;
     }
     return action_state ==
                (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
@@ -1618,6 +1633,8 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->sdi_direction_x[target_index] = INT8_C(0);
     scratch->sdi_direction_y[target_index] = INT8_C(0);
     scratch->tech_direction[target_index] = INT8_C(0);
+    scratch->prone_orientation[target_index] =
+        (uint8_t)PF_M4_PRONE_NONE;
 
     event_flags = UINT16_C(0);
     if (scratch->tumble[target_index] != UINT8_C(0))
@@ -1905,7 +1922,10 @@ static pf_status pf_m4_resolve_grabs(
                 pf_m4_action_is_recovery_invulnerable(
                     &content->fighter,
                     scratch->action_state[target_index],
-                    scratch->action_ticks[target_index]) ||
+                    scratch->action_ticks[target_index],
+                    scratch->prone_orientation[target_index],
+                    scratch->tech_direction[target_index],
+                    scratch->facing[target_index]) ||
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[attacker_index] ==
                      world->team[target_index]) ||
@@ -2051,7 +2071,10 @@ static pf_status pf_m4_resolve_item_combat(
             pf_m4_action_is_recovery_invulnerable(
                 &content->fighter,
                 scratch->action_state[target_index],
-                scratch->action_ticks[target_index]) ||
+                scratch->action_ticks[target_index],
+                scratch->prone_orientation[target_index],
+                scratch->tech_direction[target_index],
+                scratch->facing[target_index]) ||
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[source_index] == world->team[target_index]) ||
             !pf_m4_hitbox_overlaps_player_or_shield(
@@ -2323,7 +2346,10 @@ static pf_status pf_m4_resolve_projectile_combat(
             pf_m4_action_is_recovery_invulnerable(
                 &content->fighter,
                 scratch->action_state[target_index],
-                scratch->action_ticks[target_index]) ||
+                scratch->action_ticks[target_index],
+                scratch->prone_orientation[target_index],
+                scratch->tech_direction[target_index],
+                scratch->facing[target_index]) ||
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[owner_index] == world->team[target_index]) ||
             (reflector_active == 0 &&
@@ -2652,7 +2678,10 @@ pf_status pf_m4_resolve_combat(
                 pf_m4_action_is_recovery_invulnerable(
                     &content->fighter,
                     scratch->action_state[target_index],
-                    scratch->action_ticks[target_index]) ||
+                    scratch->action_ticks[target_index],
+                    scratch->prone_orientation[target_index],
+                    scratch->tech_direction[target_index],
+                    scratch->facing[target_index]) ||
                 (scratch->attack_hit_mask[attacker_index] &
                  target_bit) != UINT8_C(0) ||
                 scratch->hitlag_ticks[target_index] != UINT16_C(0) ||

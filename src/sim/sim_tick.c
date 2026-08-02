@@ -542,6 +542,8 @@ pf_status pf_sim_tick_impl(
             scratch->sdi_direction_y[player_index];
         world->tech_direction[player_index] =
             scratch->tech_direction[player_index];
+        world->prone_orientation[player_index] =
+            scratch->prone_orientation[player_index];
     }
     if (scratch->stale_move_dirty_mask != UINT8_C(0))
     {

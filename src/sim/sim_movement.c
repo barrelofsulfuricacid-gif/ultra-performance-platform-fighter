@@ -1124,7 +1124,10 @@ static int pf_m4_action_is_aerial_landing(uint8_t action_state)
 static int pf_m4_action_is_recovery_invulnerable(
     const pf_m4_fighter_data *fighter,
     uint8_t action_state,
-    uint16_t action_ticks)
+    uint16_t action_ticks,
+    uint8_t prone_orientation,
+    int8_t tech_direction,
+    int8_t facing)
 {
     if (action_state == (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM)
     {
@@ -1195,8 +1198,20 @@ static int pf_m4_action_is_recovery_invulnerable(
     }
     if (action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL)
     {
-        return action_ticks <
-               fighter->getup_roll_invulnerability_ticks;
+        const pf_m4_getup_roll_timing *timing =
+            pf_m4_getup_roll_timing_for(
+                fighter,
+                prone_orientation,
+                tech_direction,
+                facing);
+        const uint16_t action_frame =
+            action_ticks != UINT16_MAX
+                ? (uint16_t)(action_ticks + UINT16_C(1))
+                : UINT16_MAX;
+
+        return timing != NULL &&
+               action_frame >= timing->invulnerability_begin_tick &&
+               action_frame <= timing->invulnerability_end_tick;
     }
     return action_state ==
                (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
@@ -1520,6 +1535,8 @@ void pf_m4_reset_player(
     sim->world.sdi_direction_x[player_index] = INT8_C(0);
     sim->world.sdi_direction_y[player_index] = INT8_C(0);
     sim->world.tech_direction[player_index] = INT8_C(0);
+    sim->world.prone_orientation[player_index] =
+        (uint8_t)PF_M4_PRONE_NONE;
 }
 
 static void pf_m4_land(
@@ -1590,6 +1607,7 @@ static void pf_m4_land_from_air(
     int32_t surface_y_q16,
     uint8_t surface,
     int16_t horizontal_input,
+    int8_t facing,
     pf_sim_scratch *scratch,
     uint32_t player_index,
     int32_t *position_y,
@@ -1608,6 +1626,10 @@ static void pf_m4_land_from_air(
         pf_m4_axis_direction(
             horizontal_input,
             fighter->axis_dead_zone);
+    const int32_t incoming_velocity_x = *velocity_x;
+
+    scratch->prone_orientation[player_index] =
+        (uint8_t)PF_M4_PRONE_NONE;
 
     if (*action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
     {
@@ -1801,6 +1823,12 @@ static void pf_m4_land_from_air(
         *velocity_x = INT32_C(0);
         *action_state = (uint8_t)PF_M4_ACTION_KNOCKDOWN;
         scratch->tech_direction[player_index] = INT8_C(0);
+        scratch->prone_orientation[player_index] =
+            incoming_velocity_x != INT32_C(0) &&
+                    ((incoming_velocity_x > INT32_C(0)) ==
+                     (facing > INT8_C(0)))
+                ? (uint8_t)PF_M4_PRONE_STOMACH
+                : (uint8_t)PF_M4_PRONE_BACK;
     }
 }
 
@@ -2065,6 +2093,8 @@ static void pf_m4_copy_combat_scratch(
         world->sdi_direction_y[player_index];
     scratch->tech_direction[player_index] =
         world->tech_direction[player_index];
+    scratch->prone_orientation[player_index] =
+        world->prone_orientation[player_index];
 }
 
 static int32_t pf_m4_revival_platform_y(
@@ -2697,6 +2727,7 @@ pf_status pf_m4_step_player(
                     drop_cancel_surface_y_q16,
                     drop_cancel_support,
                     input->main_stick_x,
+                    facing,
                     scratch,
                     player_index,
                     &position_y,
@@ -4091,6 +4122,8 @@ pf_status pf_m4_step_player(
             {
                 action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);
+                scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
             }
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
@@ -4122,14 +4155,24 @@ pf_status pf_m4_step_player(
             }
             else if (horizontal_direction != INT8_C(0))
             {
+                const pf_m4_getup_roll_timing *timing;
+
                 action_state =
                     (uint8_t)PF_M4_ACTION_GETUP_ROLL;
                 action_ticks = UINT16_C(0);
                 scratch->tech_direction[player_index] =
                     horizontal_direction;
-                velocity_x =
-                    (int32_t)horizontal_direction *
-                    fighter->getup_roll_speed_q16;
+                timing = pf_m4_getup_roll_timing_for(
+                    fighter,
+                    scratch->prone_orientation[player_index],
+                    horizontal_direction,
+                    facing);
+                velocity_x = timing != NULL &&
+                                     timing->movement_begin_tick ==
+                                         UINT16_C(1)
+                                 ? (int32_t)horizontal_direction *
+                                       fighter->getup_roll_speed_q16
+                                 : INT32_C(0);
             }
             else if (up_held || shield_pressed)
             {
@@ -4175,6 +4218,8 @@ pf_status pf_m4_step_player(
                 action_state =
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);
+                scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
             }
         }
         else if (
@@ -4186,14 +4231,20 @@ pf_status pf_m4_step_player(
                 action_state =
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);
+                scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
             }
         }
         else if (
             action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL)
         {
-            velocity_x =
-                (int32_t)scratch->tech_direction[player_index] *
-                fighter->getup_roll_speed_q16;
+            const pf_m4_getup_roll_timing *timing =
+                pf_m4_getup_roll_timing_for(
+                    fighter,
+                    scratch->prone_orientation[player_index],
+                    scratch->tech_direction[player_index],
+                    facing);
+
             ++action_ticks;
             if (action_ticks >= fighter->getup_roll_ticks)
             {
@@ -4203,6 +4254,20 @@ pf_status pf_m4_step_player(
                 velocity_x = INT32_C(0);
                 scratch->tech_direction[player_index] =
                     INT8_C(0);
+                scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
+            }
+            else if (timing != NULL &&
+                     (uint16_t)(action_ticks + UINT16_C(1)) >=
+                         timing->movement_begin_tick)
+            {
+                velocity_x =
+                    (int32_t)scratch->tech_direction[player_index] *
+                    fighter->getup_roll_speed_q16;
+            }
+            else
+            {
+                velocity_x = INT32_C(0);
             }
         }
         else if (
@@ -4260,6 +4325,8 @@ pf_status pf_m4_step_player(
                     UINT8_C(0);
                 scratch->attack_stale_registered[player_index] =
                     UINT8_C(0);
+                scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
             }
         }
     }
@@ -5581,6 +5648,7 @@ pf_status pf_m4_step_player(
                     landing_y_q16,
                     landing_support,
                     input->main_stick_x,
+                    facing,
                     scratch,
                     player_index,
                     &position_y,
@@ -6100,7 +6168,10 @@ pf_status pf_m4_inspect(
                 pf_m4_action_is_recovery_invulnerable(
                     &sim->content.fighter,
                     player->action_state,
-                    player->action_ticks)
+                    player->action_ticks,
+                    sim->world.prone_orientation[player_index],
+                    sim->world.tech_direction[player_index],
+                    player->facing)
                 ? UINT8_C(1)
                 : UINT8_C(0);
         player->sdi_pulse_count =
@@ -6111,6 +6182,8 @@ pf_status pf_m4_inspect(
             sim->world.sdi_direction_y[player_index];
         player->tech_direction =
             sim->world.tech_direction[player_index];
+        player->prone_orientation =
+            sim->world.prone_orientation[player_index];
         player->shield_health_q16 =
             sim->world.shield_health_q16[player_index];
         player->respawn_ticks =

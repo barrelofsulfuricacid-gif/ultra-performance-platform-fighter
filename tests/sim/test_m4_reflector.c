@@ -558,7 +558,7 @@ static int run_state_interfaces_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "reflector-save-size") ||
-        save_size != (size_t)771)
+        save_size != (size_t)775)
     {
         return fail("reflector-save-setup");
     }
@@ -770,7 +770,7 @@ int main(void)
     }
     (void)printf(
         "m4-reflector=pass content_schema=%u state_schema=%u "
-        "save_bytes=771 reflector_invariants=32 shine_spike=1 "
+        "save_bytes=775 reflector_invariants=32 shine_spike=1 "
         "projectile_reflect=1 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         (unsigned int)PF_SIM_STATE_SCHEMA_VERSION);

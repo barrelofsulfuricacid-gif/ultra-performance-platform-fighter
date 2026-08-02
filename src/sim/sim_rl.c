@@ -248,7 +248,8 @@ static void pf_rl_fill_compact(
             ((uint32_t)player->team << 8U) |
             ((uint32_t)player->grounded << 16U) |
             ((uint32_t)player->active << 17U) |
-            ((uint32_t)player->recovery_available << 18U);
+            ((uint32_t)player->recovery_available << 18U) |
+            ((uint32_t)player->prone_orientation << 19U);
 
         compact->values[base] =
             pf_rl_u64_low(player->previous_buttons);

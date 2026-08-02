@@ -2367,7 +2367,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 499) {
+    if (!state || viewCount !== 503) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -2376,7 +2376,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 45) {
+    if (view[0] !== 46) {
       return;
     }
     var canvas = state.canvas;
@@ -3070,6 +3070,7 @@ mergeInto(LibraryManager.library, {
       var height = Math.max(28, halfHeight * 2);
       var facing = view[base + 5];
       var actionState = view[base + 4];
+      var proneOrientation = view[499 + playerIndex];
       var respawning = actionState === 44;
       var onRevival = actionState === 94;
       var eliminated = actionState === 45;
@@ -3247,6 +3248,15 @@ mergeInto(LibraryManager.library, {
       context.fillStyle =
         actionState === 13 ? "#ffffff" : colors[playerIndex];
       context.fillRect(-width / 2, -height / 2, width, height);
+      if (prone && proneOrientation !== 0) {
+        context.fillStyle = proneOrientation === 1 ? "#e9fbff" : "#ffbe78";
+        context.fillRect(
+          -width * 0.34,
+          proneOrientation === 1 ? -height / 2 + 2 : height / 2 - 4,
+          width * 0.68,
+          2
+        );
+      }
       context.shadowBlur = 0;
       context.fillStyle = "#07111c";
       context.beginPath();
@@ -3424,6 +3434,7 @@ mergeInto(LibraryManager.library, {
 
       var action =
         actionNames[actionState] || "STATE " + actionState;
+      var proneOrientationNames = ["none", "back", "stomach"];
       if (view[base + 22] !== 0) {
         action = "TUMBLE · " + action;
       }
@@ -3488,6 +3499,9 @@ mergeInto(LibraryManager.library, {
         view[base + 21] +
         " · tech direction " +
         view[base + 24] +
+        " · prone " +
+        (proneOrientationNames[proneOrientation] ||
+          "orientation " + proneOrientation) +
         "<br>shield " +
         (view[base + 25] / q16).toFixed(2) +
         " / 60 · shield stun " +

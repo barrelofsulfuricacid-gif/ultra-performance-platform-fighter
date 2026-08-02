@@ -43,6 +43,29 @@ static void pf_m4_hash_i32(pf_sha256 *hash, int32_t value)
     pf_m4_hash_u32(hash, (uint32_t)value);
 }
 
+static void pf_m4_hash_getup_roll_timing(
+    pf_sha256 *hash,
+    const pf_m4_getup_roll_timing *timing)
+{
+    pf_m4_hash_u16(hash, timing->movement_begin_tick);
+    pf_m4_hash_u16(hash, timing->invulnerability_begin_tick);
+    pf_m4_hash_u16(hash, timing->invulnerability_end_tick);
+    pf_m4_hash_u16(hash, timing->reserved);
+}
+
+static int pf_m4_getup_roll_timing_is_valid(
+    const pf_m4_getup_roll_timing *timing,
+    uint16_t total_ticks)
+{
+    return timing->movement_begin_tick != UINT16_C(0) &&
+           timing->movement_begin_tick <= total_ticks &&
+           timing->invulnerability_begin_tick != UINT16_C(0) &&
+           timing->invulnerability_begin_tick <=
+               timing->invulnerability_end_tick &&
+           timing->invulnerability_end_tick <= total_ticks &&
+           timing->reserved == UINT16_C(0);
+}
+
 static void pf_m4_hash_throw(
     pf_sha256 *hash,
     const pf_m4_throw_data *throw_data)
@@ -489,9 +512,18 @@ static void pf_m4_hash_fighter(
         hash,
         fighter->getup_neutral_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->getup_roll_ticks);
-    pf_m4_hash_u16(
+    pf_m4_hash_getup_roll_timing(
         hash,
-        fighter->getup_roll_invulnerability_ticks);
+        &fighter->getup_roll_back_forward);
+    pf_m4_hash_getup_roll_timing(
+        hash,
+        &fighter->getup_roll_back_backward);
+    pf_m4_hash_getup_roll_timing(
+        hash,
+        &fighter->getup_roll_stomach_forward);
+    pf_m4_hash_getup_roll_timing(
+        hash,
+        &fighter->getup_roll_stomach_backward);
     pf_m4_hash_u16(hash, fighter->getup_attack_ticks);
     pf_m4_hash_u16(
         hash,
@@ -758,6 +790,35 @@ static int pf_m4_hash_equal(
         difference |= (uint8_t)(left[byte_index] ^ right[byte_index]);
     }
     return difference == UINT8_C(0);
+}
+
+const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
+    const pf_m4_fighter_data *fighter,
+    uint8_t prone_orientation,
+    int8_t roll_direction,
+    int8_t facing)
+{
+    const int is_forward = roll_direction == facing;
+
+    if (fighter == NULL ||
+        (roll_direction != INT8_C(-1) &&
+         roll_direction != INT8_C(1)) ||
+        (facing != INT8_C(-1) && facing != INT8_C(1)))
+    {
+        return NULL;
+    }
+
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_BACK)
+    {
+        return is_forward ? &fighter->getup_roll_back_forward
+                          : &fighter->getup_roll_back_backward;
+    }
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_STOMACH)
+    {
+        return is_forward ? &fighter->getup_roll_stomach_forward
+                          : &fighter->getup_roll_stomach_backward;
+    }
+    return NULL;
 }
 
 pf_status pf_m4_default_content(pf_m4_content *out_content)
@@ -1288,7 +1349,26 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->getup_neutral_ticks = UINT16_C(30);
     fighter->getup_neutral_invulnerability_ticks = UINT16_C(23);
     fighter->getup_roll_ticks = UINT16_C(35);
-    fighter->getup_roll_invulnerability_ticks = UINT16_C(19);
+    fighter->getup_roll_back_forward.movement_begin_tick = UINT16_C(6);
+    fighter->getup_roll_back_forward.invulnerability_begin_tick =
+        UINT16_C(1);
+    fighter->getup_roll_back_forward.invulnerability_end_tick =
+        UINT16_C(19);
+    fighter->getup_roll_back_backward.movement_begin_tick = UINT16_C(12);
+    fighter->getup_roll_back_backward.invulnerability_begin_tick =
+        UINT16_C(12);
+    fighter->getup_roll_back_backward.invulnerability_end_tick =
+        UINT16_C(29);
+    fighter->getup_roll_stomach_forward.movement_begin_tick = UINT16_C(8);
+    fighter->getup_roll_stomach_forward.invulnerability_begin_tick =
+        UINT16_C(1);
+    fighter->getup_roll_stomach_forward.invulnerability_end_tick =
+        UINT16_C(19);
+    fighter->getup_roll_stomach_backward.movement_begin_tick = UINT16_C(5);
+    fighter->getup_roll_stomach_backward.invulnerability_begin_tick =
+        UINT16_C(1);
+    fighter->getup_roll_stomach_backward.invulnerability_end_tick =
+        UINT16_C(24);
     fighter->getup_attack_ticks = UINT16_C(49);
     fighter->getup_attack_invulnerability_ticks = UINT16_C(26);
     fighter->getup_attack_front_active_begin_tick = UINT16_C(17);
@@ -2297,10 +2377,18 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->getup_neutral_ticks ||
         fighter->getup_roll_ticks == UINT16_C(0) ||
         fighter->getup_roll_ticks > UINT16_C(240) ||
-        fighter->getup_roll_invulnerability_ticks ==
-            UINT16_C(0) ||
-        fighter->getup_roll_invulnerability_ticks >
-            fighter->getup_roll_ticks ||
+        !pf_m4_getup_roll_timing_is_valid(
+            &fighter->getup_roll_back_forward,
+            fighter->getup_roll_ticks) ||
+        !pf_m4_getup_roll_timing_is_valid(
+            &fighter->getup_roll_back_backward,
+            fighter->getup_roll_ticks) ||
+        !pf_m4_getup_roll_timing_is_valid(
+            &fighter->getup_roll_stomach_forward,
+            fighter->getup_roll_ticks) ||
+        !pf_m4_getup_roll_timing_is_valid(
+            &fighter->getup_roll_stomach_backward,
+            fighter->getup_roll_ticks) ||
         fighter->getup_attack_ticks == UINT16_C(0) ||
         fighter->getup_attack_ticks > UINT16_C(240) ||
         fighter->getup_attack_invulnerability_ticks ==
