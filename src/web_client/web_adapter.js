@@ -466,6 +466,7 @@ mergeInto(LibraryManager.library, {
       "PROJECTILE REFLECT",
       "PUMMEL",
       "REVIVAL DROP",
+      "ACTION TRANSITIONS",
     ];
     var replayEventTicks = [];
     for (eventTick = 0; eventTick < checkpointCount; ++eventTick) {
@@ -476,6 +477,18 @@ mergeInto(LibraryManager.library, {
 
     function replayEventPlayer(slot) {
       return slot === 255 ? "system" : "P" + (slot + 1);
+    }
+
+    function replayEventMaskPlayers(mask) {
+      var players = [];
+      var slot;
+
+      for (slot = 0; slot < 4; ++slot) {
+        if ((mask & (1 << slot)) !== 0) {
+          players.push("P" + (slot + 1));
+        }
+      }
+      return players.join(" + ");
     }
 
     function replayEventsAtTick(tick) {
@@ -512,6 +525,30 @@ mergeInto(LibraryManager.library, {
         ", " +
         (event.velocityY / 65536).toFixed(2) +
         ")";
+
+      if (event.type === 9) {
+        return "FORFEIT · " + replayEventMaskPlayers(event.detail);
+      }
+      if (event.type === 24) {
+        var previousActions = event.velocityX >>> 0;
+        var nextActions = event.value >>> 0;
+        var transitions = [];
+        var slot;
+
+        for (slot = 0; slot < 4; ++slot) {
+          if ((event.detail & (1 << slot)) !== 0) {
+            transitions.push(
+              "P" +
+                (slot + 1) +
+                " action " +
+                ((previousActions >>> (slot * 8)) & 255) +
+                " → " +
+                ((nextActions >>> (slot * 8)) & 255)
+            );
+          }
+        }
+        return label + " · " + transitions.join(" · ");
+      }
 
       return (
         label +
@@ -2376,7 +2413,7 @@ mergeInto(LibraryManager.library, {
     );
 
     var view = state.latest;
-    if (view[0] !== 46) {
+    if (view[0] !== 47) {
       return;
     }
     var canvas = state.canvas;
@@ -2508,6 +2545,18 @@ mergeInto(LibraryManager.library, {
       return winners.length ? winners.join(" + ") : "draw";
     }
 
+    function eventMaskPlayers(mask) {
+      var players = [];
+      var slot;
+
+      for (slot = 0; slot < 4; ++slot) {
+        if ((mask & (1 << slot)) !== 0) {
+          players.push("P" + (slot + 1));
+        }
+      }
+      return players.join(" + ");
+    }
+
     function eventDescription(event) {
       var source = eventPlayer(event.source);
       var target = eventPlayer(event.target);
@@ -2567,7 +2616,7 @@ mergeInto(LibraryManager.library, {
         case 8:
           return "MATCH RESULT · " + eventWinners(event.detail) + " win";
         case 9:
-          return target + " forfeited";
+          return eventMaskPlayers(event.detail) + " forfeited";
         case 10:
           return "TIME LIMIT";
         case 11:
@@ -2647,6 +2696,29 @@ mergeInto(LibraryManager.library, {
             " left the revival platform · " +
             (event.detail === 1 ? "automatic timeout" : "player input")
           );
+        case 24:
+          var previousActions = event.velocityX >>> 0;
+          var nextActions = event.value >>> 0;
+          var transitions = [];
+          var slot;
+
+          for (slot = 0; slot < 4; ++slot) {
+            if ((event.detail & (1 << slot)) !== 0) {
+              var previousAction =
+                (previousActions >>> (slot * 8)) & 255;
+              var nextAction = (nextActions >>> (slot * 8)) & 255;
+              transitions.push(
+                "P" +
+                  (slot + 1) +
+                  " " +
+                  (actionNames[previousAction] ||
+                    "ACTION " + previousAction) +
+                  " → " +
+                  (actionNames[nextAction] || "ACTION " + nextAction)
+              );
+            }
+          }
+          return "ACTION · " + transitions.join(" · ");
         default:
           return "unknown event type " + event.type;
       }

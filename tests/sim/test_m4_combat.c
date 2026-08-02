@@ -1587,13 +1587,13 @@ static int run_one_way_hit_test(
             content->fighter.jab_damage_q16 ||
         inspection.players[1].last_hit_valid != UINT8_C(1) ||
         inspection.players[1].last_hit_attacker != UINT8_C(0) ||
-        inspection.players[1].last_hit_sequence != UINT32_C(1) ||
+        inspection.players[1].last_hit_sequence != UINT32_C(2) ||
         inspection.players[1].last_hit_damage_q16 !=
             content->fighter.jab_damage_q16 ||
         inspection.players[1].tumble != UINT8_C(0) ||
         inspection.players[1].last_hit_tick + UINT64_C(1) !=
             inspection.tick ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_HIT ||
         test_last_result.events[0].sequence !=
@@ -1609,6 +1609,17 @@ static int run_one_way_hit_test(
         test_last_result.events[0].flags != UINT16_C(0) ||
         test_last_result.events[0].detail !=
             (uint16_t)PF_M4_ACTION_GROUND_ATTACK ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
+        test_last_result.events[1].source_player !=
+            PF_SIM_EVENT_NO_PLAYER ||
+        test_last_result.events[1].target_player !=
+            PF_SIM_EVENT_NO_PLAYER ||
+        test_last_result.events[1].value_q16 != UINT32_C(0x00000d0d) ||
+        test_last_result.events[1].velocity_x_q16 != INT32_C(0x0000000c) ||
+        test_last_result.events[1].velocity_y_q16 != INT32_C(0) ||
+        test_last_result.events[1].flags != UINT16_C(0) ||
+        test_last_result.events[1].detail != UINT16_C(3) ||
         (inspection.players[0].attack_hit_mask & UINT8_C(2)) ==
             UINT8_C(0))
     {
@@ -2210,7 +2221,7 @@ static int run_smash_charge_snapshot_test(
             PF_STATUS_OK,
             "smash-charge-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE48", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE49", (size_t)8) != 0)
     {
         return fail("smash-charge-save-format");
     }
@@ -3043,7 +3054,7 @@ static int run_directional_aerial_snapshot_test(
             PF_STATUS_OK,
             "directional-aerial-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE48", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE49", (size_t)8) != 0)
     {
         return fail("directional-aerial-save-format");
     }
@@ -3677,7 +3688,7 @@ static int run_v_cancel_snapshot_test(
                  (uint8_t)PF_M4_ACTION_HITLAG ||
              source_inspection.players[1].trigger_input_age !=
                  UINT8_C(2) ||
-             source_result.event_count != UINT8_C(1) ||
+             source_result.event_count != UINT8_C(2) ||
              source_result.events[0].type !=
                  (uint16_t)PF_SIM_EVENT_HIT))
         {
@@ -5149,7 +5160,7 @@ static int run_default_strong_tumble_test(
         inspection.players[1].hitstun_ticks <
             content->fighter.tumble_hitstun_threshold_ticks ||
         inspection.players[1].tumble != UINT8_C(1) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_HIT ||
         (test_last_result.events[0].flags &
@@ -6472,7 +6483,7 @@ static int run_sharking_test(
             shield_inspection.players[1].shield_health_q16 <
                 content->fighter.shield_health_q16 &&
             shield_inspection.players[1].powershield == UINT8_C(0) &&
-            test_last_result.event_count == UINT8_C(1) &&
+            test_last_result.event_count == UINT8_C(2) &&
             test_last_result.events[0].type ==
                 (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK) ||
            fail("sharking-shield-pressure");
@@ -6772,9 +6783,7 @@ static int run_cross_up_test(
         {
             saw_cross_hitbox = 1;
         }
-        if (test_last_result.event_count == UINT8_C(1) &&
-            test_last_result.events[0].type ==
-                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK)
+        if (find_last_tick_event(PF_SIM_EVENT_SHIELD_BLOCK) != NULL)
         {
             saw_cross_block = 1;
         }
@@ -6828,7 +6837,7 @@ static int run_cross_up_test(
         {
             saw_early_hitbox = 1;
         }
-        if (test_last_result.event_count != UINT8_C(0))
+        if (find_last_tick_event(PF_SIM_EVENT_SHIELD_BLOCK) != NULL)
         {
             saw_early_block = 1;
         }
@@ -6874,9 +6883,7 @@ static int run_cross_up_test(
         {
             saw_front_hitbox = 1;
         }
-        if (test_last_result.event_count == UINT8_C(1) &&
-            test_last_result.events[0].type ==
-                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK)
+        if (find_last_tick_event(PF_SIM_EVENT_SHIELD_BLOCK) != NULL)
         {
             saw_front_block = 1;
         }
@@ -7520,11 +7527,14 @@ static int run_stale_move_test(
                     .shield_damage_multiplier_q16 >>
                 16U);
 
-        if (test_last_result.event_count != UINT8_C(1) ||
+        if (test_last_result.event_count != UINT8_C(2) ||
             test_last_result.events[0].type !=
                 (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
             test_last_result.events[0].value_q16 !=
                 expected_shield_damage_q16 ||
+            test_last_result.events[1].type !=
+                (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
+            test_last_result.events[1].detail != UINT16_C(3) ||
             shield_inspection.players[0].stale_move_count !=
                 UINT8_C(1) ||
             shield_inspection.players[0].stale_move_ids[0] !=
@@ -7907,11 +7917,14 @@ static int run_kill_confirm_route(
         if (inspection.players[1].respawn_count != UINT16_C(0))
         {
             if (expect_ko == 0 || finisher_hit == 0 ||
-                source_result.event_count != UINT8_C(1) ||
+                source_result.event_count != UINT8_C(2) ||
                 source_result.events[0].type !=
                     (uint16_t)PF_SIM_EVENT_KO ||
                 source_result.events[0].source_player != UINT8_C(0) ||
                 source_result.events[0].target_player != UINT8_C(1) ||
+                source_result.events[1].type !=
+                    (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
+                source_result.events[1].detail != UINT16_C(2) ||
                 source_result.events[0].value_q16 !=
                     expected_repeated_move_damage_q16(
                         &content->fighter,
@@ -8196,11 +8209,14 @@ static int run_zero_to_death_route(
             if (expect_ko == 0 || strong_started == 0 ||
                 hit_count != UINT32_C(22) || saved == 0 ||
                 inspection.players[1].damage_q16 != UINT32_C(0) ||
-                source_result.event_count != UINT8_C(1) ||
+                source_result.event_count != UINT8_C(2) ||
                 source_result.events[0].type !=
                     (uint16_t)PF_SIM_EVENT_KO ||
                 source_result.events[0].source_player != UINT8_C(0) ||
                 source_result.events[0].target_player != UINT8_C(1) ||
+                source_result.events[1].type !=
+                    (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
+                source_result.events[1].detail != UINT16_C(2) ||
                 source_result.events[0].value_q16 !=
                     expected_repeated_move_damage_q16(
                         &content->fighter,
@@ -8509,7 +8525,7 @@ static int run_ladder_route(
                 saw_above_platform == 0 ||
                 saw_vertical_carry == 0 ||
                 inspection.players[1].damage_q16 != UINT32_C(0) ||
-                source_result.event_count != UINT8_C(1) ||
+                source_result.event_count != UINT8_C(2) ||
                 source_result.events[0].type !=
                     (uint16_t)PF_SIM_EVENT_KO ||
                 source_result.events[0].source_player != UINT8_C(0) ||
@@ -11105,9 +11121,11 @@ static int run_spacing_shield_control_test(
             inspection.players[1].shield_health_q16 <
                 content->fighter.shield_health_q16 &&
             inspection.players[1].powershield == UINT8_C(0) &&
-            test_last_result.event_count == UINT8_C(1) &&
+            test_last_result.event_count == UINT8_C(2) &&
             test_last_result.events[0].type ==
-                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK) ||
+                (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK &&
+            test_last_result.events[1].type ==
+                (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS) ||
            fail("spacing-tip-shield-block");
 }
 
@@ -11349,14 +11367,16 @@ static int run_shield_block_test(
             normal_expected_health ||
         normal_inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
         normal_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
         test_last_result.events[0].source_player != UINT8_C(0) ||
         test_last_result.events[0].target_player != UINT8_C(1) ||
         test_last_result.events[0].value_q16 != shield_damage ||
         test_last_result.events[0].detail !=
-            (uint16_t)PF_M4_ACTION_GROUND_ATTACK)
+            (uint16_t)PF_M4_ACTION_GROUND_ATTACK ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS)
     {
         return fail("normal-shield-damage-stun-pushback");
     }
@@ -11431,12 +11451,14 @@ static int run_shield_block_test(
             normal_shield_stun ||
         power_inspection.players[1].velocity_x_q16 <=
             normal_pushback ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_POWERSHIELD ||
         test_last_result.events[0].source_player != UINT8_C(0) ||
         test_last_result.events[0].target_player != UINT8_C(1) ||
-        test_last_result.events[0].value_q16 != UINT32_C(0))
+        test_last_result.events[0].value_q16 != UINT32_C(0) ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS)
     {
         return fail("powershield-window-and-zero-damage");
     }
@@ -11986,7 +12008,7 @@ static int run_light_shield_block_test(
             light_expected_health ||
         light_inspection.players[1].shield_stun_ticks == UINT16_C(0) ||
         light_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
         test_last_result.events[0].value_q16 != shield_damage)
@@ -12008,7 +12030,7 @@ static int run_light_shield_block_test(
         dense_inspection.players[1].shield_stun_ticks != light_stun ||
         dense_inspection.players[1].velocity_x_q16 <= INT32_C(0) ||
         dense_inspection.players[1].velocity_x_q16 >= light_pushback ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
         test_last_result.events[0].value_q16 != shield_damage)
@@ -12027,10 +12049,12 @@ static int run_light_shield_block_test(
         window_inspection.players[1].shield_health_q16 !=
             window_expected_health ||
         window_inspection.players[1].shield_stun_ticks != light_stun ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
-        test_last_result.events[0].value_q16 != shield_damage)
+        test_last_result.events[0].value_q16 != shield_damage ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS)
     {
         return fail("light-shield-powershield-gate");
     }
@@ -12192,7 +12216,7 @@ static int run_shield_geometry_and_poke_test(
         {
             return fail("shield-geometry-control-step");
         }
-        if (test_last_result.event_count != UINT8_C(0))
+        if (find_last_tick_event(PF_SIM_EVENT_SHIELD_BLOCK) != NULL)
         {
             break;
         }
@@ -12201,9 +12225,11 @@ static int run_shield_geometry_and_poke_test(
             (uint32_t)content->fighter.jab_startup_ticks +
                 (uint32_t)content->fighter.jab_active_ticks +
                 UINT32_C(2) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BLOCK ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
         control_inspection.players[1].damage_q16 != UINT32_C(0) ||
         control_inspection.players[1].shield_health_q16 >=
             control_health_before ||
@@ -12234,7 +12260,7 @@ static int run_shield_geometry_and_poke_test(
         {
             return fail("shield-poke-step");
         }
-        if (test_last_result.event_count != UINT8_C(0))
+        if (find_last_tick_event(PF_SIM_EVENT_HIT) != NULL)
         {
             break;
         }
@@ -12243,9 +12269,11 @@ static int run_shield_geometry_and_poke_test(
             (uint32_t)content->fighter.jab_startup_ticks +
                 (uint32_t)content->fighter.jab_active_ticks +
                 UINT32_C(2) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_HIT ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
         poke_inspection.players[1].damage_q16 !=
             content->fighter.jab_damage_q16 ||
         poke_inspection.players[1].last_hit_attacker != UINT8_C(0) ||
@@ -12320,11 +12348,13 @@ static int advance_shield_break_to_stun(
         out_inspection->players[1].shield_health_q16 !=
             UINT32_C(0) ||
         out_inspection->players[1].powershield != UINT8_C(0) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
             (uint16_t)PF_SIM_EVENT_SHIELD_BREAK ||
         test_last_result.events[0].source_player != UINT8_C(0) ||
-        test_last_result.events[0].target_player != UINT8_C(1))
+        test_last_result.events[0].target_player != UINT8_C(1) ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS)
     {
         return fail("shield-break-hit-setup");
     }
@@ -12769,9 +12799,11 @@ static int run_shield_break_test(
             content->fighter.jab_damage_q16 ||
         punish_inspection.players[1].shield_health_q16 !=
             content->fighter.shield_reset_health_q16 ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
-            (uint16_t)PF_SIM_EVENT_HIT)
+            (uint16_t)PF_SIM_EVENT_HIT ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS)
     {
         return fail("shield-break-vulnerable-stun-punish");
     }
@@ -13696,6 +13728,7 @@ static int run_tech_chase_test(
     pf_bytes save;
     size_t save_size = (size_t)0;
     uint32_t initial_damage;
+    uint32_t initial_hit_sequence;
     uint32_t tick;
     uint16_t attack_action_tick = UINT16_MAX;
     int attack_sent = 0;
@@ -13811,9 +13844,11 @@ static int run_tech_chase_test(
             (uint8_t)PF_M4_ACTION_HITLAG ||
         in_place_inspection.players[1].last_hit_attacker !=
             UINT8_C(0) ||
-        test_last_result.event_count != UINT8_C(1) ||
+        test_last_result.event_count != UINT8_C(2) ||
         test_last_result.events[0].type !=
-            (uint16_t)PF_SIM_EVENT_HIT)
+            (uint16_t)PF_SIM_EVENT_HIT ||
+        test_last_result.events[1].type !=
+            (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS)
     {
         return fail("tech-chase-in-place-punish");
     }
@@ -13949,6 +13984,8 @@ static int run_tech_chase_test(
     }
 
     initial_damage = miss_inspection.players[1].damage_q16;
+    initial_hit_sequence =
+        miss_inspection.players[1].last_hit_sequence;
     attack_sent = 0;
     for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
     {
@@ -13982,7 +14019,8 @@ static int run_tech_chase_test(
     }
     if (attack_sent == 0 ||
         miss_inspection.players[1].damage_q16 != initial_damage ||
-        miss_inspection.players[1].last_hit_sequence != UINT32_C(1))
+        miss_inspection.players[1].last_hit_sequence !=
+            initial_hit_sequence)
     {
         return fail("tech-chase-static-negative-result");
     }
@@ -20193,7 +20231,7 @@ static int run_ledge_attack_snapshot_test(
             PF_STATUS_OK,
             "ledge-attack-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE48", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE49", (size_t)8) != 0)
     {
         return fail("ledge-attack-save-format");
     }
@@ -21198,7 +21236,7 @@ int main(void)
 
     (void)printf(
         "m4-combat=pass content_schema=%u deterministic_ticks=%" PRIu64
-        " combat_invariants=982 journal_invariants=51 weight=1 stale_move=1 prone_getup_roll=4 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
+        " combat_invariants=982 journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=4 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 sharking=1 cross_up=1 mindgame=1 juggling=1 ladder=1 kill_confirm=1 zero_to_death=1 jab_reset=1 jab_cancel=1 boost_grab=1 jump_cancelled_grab=1 jump_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_wobble=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         TEST_DETERMINISTIC_TICKS);
     return 0;

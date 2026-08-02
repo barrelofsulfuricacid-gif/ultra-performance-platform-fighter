@@ -465,6 +465,81 @@ static int pf_replay_result_equal(
            left->reserved == right->reserved;
 }
 
+static int pf_replay_player_mask_valid(
+    uint16_t mask,
+    uint8_t player_count)
+{
+    const uint16_t player_mask =
+        (uint16_t)((UINT16_C(1) << player_count) - UINT16_C(1));
+
+    return mask != UINT16_C(0) &&
+           (mask & (uint16_t)~player_mask) == UINT16_C(0);
+}
+
+static int pf_replay_forfeit_event_valid(
+    const pf_sim_event *event,
+    uint8_t player_count)
+{
+    return event->source_player == PF_SIM_EVENT_NO_PLAYER &&
+           event->target_player == PF_SIM_EVENT_NO_PLAYER &&
+           event->value_q16 == UINT32_C(0) &&
+           event->velocity_x_q16 == INT32_C(0) &&
+           event->velocity_y_q16 == INT32_C(0) &&
+           event->flags == UINT16_C(0) &&
+           pf_replay_player_mask_valid(event->detail, player_count);
+}
+
+static int pf_replay_action_transition_event_valid(
+    const pf_sim_event *event,
+    uint8_t player_count)
+{
+    const uint32_t previous_actions =
+        (uint32_t)event->velocity_x_q16;
+    uint32_t player_index;
+
+    if (event->source_player != PF_SIM_EVENT_NO_PLAYER ||
+        event->target_player != PF_SIM_EVENT_NO_PLAYER ||
+        event->velocity_y_q16 != INT32_C(0) ||
+        event->flags != UINT16_C(0) ||
+        !pf_replay_player_mask_valid(event->detail, player_count))
+    {
+        return 0;
+    }
+
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const uint32_t shift = player_index * UINT32_C(8);
+        const uint8_t previous_action =
+            (uint8_t)(previous_actions >> shift);
+        const uint8_t next_action =
+            (uint8_t)(event->value_q16 >> shift);
+        const int changed = previous_action != next_action;
+
+        if (player_index < (uint32_t)player_count)
+        {
+            if (previous_action >
+                    (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+                next_action >
+                    (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+                changed !=
+                    ((event->detail &
+                      (uint16_t)(UINT16_C(1) << player_index)) !=
+                     UINT16_C(0)))
+            {
+                return 0;
+            }
+        }
+        else if (previous_action != UINT8_C(0) ||
+                 next_action != UINT8_C(0))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int pf_replay_tick_events_valid(
     const pf_tick_result *result,
     uint8_t player_count)
@@ -498,12 +573,19 @@ static int pf_replay_tick_events_valid(
              event->sequence != previous_sequence + UINT32_C(1)) ||
             event->type <= (uint16_t)PF_SIM_EVENT_NONE ||
             event->type >
-                (uint16_t)PF_SIM_EVENT_REVIVAL_DROP ||
+                (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS ||
             (event->flags & (uint16_t)~known_flags) != UINT16_C(0) ||
             (event->source_player != PF_SIM_EVENT_NO_PLAYER &&
              event->source_player >= player_count) ||
             (event->target_player != PF_SIM_EVENT_NO_PLAYER &&
-             event->target_player >= player_count))
+             event->target_player >= player_count) ||
+            (event->type == (uint16_t)PF_SIM_EVENT_FORFEIT &&
+             !pf_replay_forfeit_event_valid(event, player_count)) ||
+            (event->type ==
+                 (uint16_t)PF_SIM_EVENT_ACTION_TRANSITIONS &&
+             !pf_replay_action_transition_event_valid(
+                 event,
+                 player_count)))
         {
             return 0;
         }

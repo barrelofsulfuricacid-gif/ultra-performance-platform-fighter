@@ -535,7 +535,7 @@ int main(void)
         test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 12 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
-        test_view[0] != 46 ||
+        test_view[0] != 47 ||
         test_view[1] != 0 ||
         test_view[TEST_STOCK_COUNT] != 4 ||
         test_view[TEST_RESPAWN_DELAY] != 60 ||
@@ -777,7 +777,7 @@ int main(void)
             0,
             0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 64 ||
-        test_view[TEST_EVENT_COUNT] != 1 ||
+        test_view[TEST_EVENT_COUNT] != 2 ||
         test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 19 ||
         test_view[TEST_EVENT0 + TEST_EVENT_SOURCE] != 0 ||
         test_view[TEST_EVENT0 + TEST_EVENT_DETAIL] != 64 ||
@@ -810,7 +810,8 @@ int main(void)
             0,
             0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 66 ||
-        test_view[TEST_EVENT_COUNT] != 0 ||
+        test_view[TEST_EVENT_COUNT] != 1 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 24 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_STATE] != 0 ||
         !pf_web_m4_playtest_step_special(
             0,
@@ -976,7 +977,7 @@ int main(void)
         }
         for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
         {
-            if (test_view[TEST_EVENT_COUNT] == 1 &&
+            if (test_view[TEST_EVENT_COUNT] == 2 &&
                 test_view[TEST_EVENT0 + TEST_EVENT_TYPE] == 11)
             {
                 grab_seen = 1;
@@ -1023,7 +1024,8 @@ int main(void)
         if (!pf_web_m4_playtest_step(
                 0, test_dash_axis, 0, 1, 0, 0, 0, 0, 0, 0) ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 56 ||
-            test_view[TEST_EVENT_COUNT] != 0)
+            test_view[TEST_EVENT_COUNT] != 1 ||
+            test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 24)
         {
             return fail("browser-down-throw-input-view");
         }
@@ -1034,7 +1036,7 @@ int main(void)
             {
                 return fail("browser-down-throw-release-step");
             }
-            if (test_view[TEST_EVENT_COUNT] == 1 &&
+            if (test_view[TEST_EVENT_COUNT] == 2 &&
                 test_view[TEST_EVENT0 + TEST_EVENT_TYPE] == 13)
             {
                 throw_seen = 1;
@@ -1297,7 +1299,7 @@ int main(void)
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
-        test_view[TEST_EVENT_COUNT] != 1 ||
+        test_view[TEST_EVENT_COUNT] != 2 ||
         test_view[TEST_EVENT0 + TEST_EVENT_SEQUENCE] <= 0 ||
         test_view[TEST_EVENT0 + TEST_EVENT_TICK] != test_view[1] - 1 ||
         test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 1 ||
@@ -1474,7 +1476,7 @@ int main(void)
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
             !pf_web_m4_playtest_step(
                 0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
-            test_view[TEST_EVENT_COUNT] != 1 ||
+            test_view[TEST_EVENT_COUNT] != 2 ||
             test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 16 ||
             test_view[TEST_ITEM_BASE + TEST_ITEM_STATE] != 3 ||
             test_view[TEST_ITEM_BASE + TEST_ITEM_SOURCE] != 0 ||

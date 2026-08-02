@@ -232,6 +232,57 @@ static pf_status pf_m4_resolve_stock_result(
     return PF_STATUS_OK;
 }
 
+static pf_status pf_m4_emit_action_transitions(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint64_t event_tick)
+{
+    uint32_t previous_actions = UINT32_C(0);
+    uint32_t next_actions = UINT32_C(0);
+    uint16_t changed_mask = UINT16_C(0);
+    uint32_t player_index;
+
+    _Static_assert(
+        PF_M4_ACTION_REVIVAL_PLATFORM < 128,
+        "packed action-transition values must remain nonnegative int32 values");
+
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
+        const uint32_t shift = player_index * UINT32_C(8);
+        const uint8_t previous_action =
+            world->action_state[player_index];
+        const uint8_t next_action =
+            scratch->action_state[player_index];
+
+        previous_actions |= (uint32_t)previous_action << shift;
+        next_actions |= (uint32_t)next_action << shift;
+        if (previous_action != next_action)
+        {
+            changed_mask |=
+                (uint16_t)(UINT16_C(1) << player_index);
+        }
+    }
+
+    if (changed_mask == UINT16_C(0))
+    {
+        return PF_STATUS_OK;
+    }
+    return pf_sim_push_event(
+        scratch,
+        event_tick,
+        PF_SIM_EVENT_ACTION_TRANSITIONS,
+        PF_SIM_EVENT_NO_PLAYER,
+        PF_SIM_EVENT_NO_PLAYER,
+        next_actions,
+        (int32_t)previous_actions,
+        INT32_C(0),
+        UINT16_C(0),
+        changed_mask,
+        NULL);
+}
+
 pf_status pf_sim_tick_impl(
     pf_sim *sim,
     const pf_input_frame *inputs,
@@ -278,8 +329,8 @@ pf_status pf_sim_tick_impl(
     }
     if (world->combat_event_sequence >
         UINT32_MAX -
-            (UINT32_C(3) * (uint32_t)world->player_count +
-             UINT32_C(4)))
+            (UINT32_C(2) * (uint32_t)world->player_count +
+             UINT32_C(6)))
     {
         world->fault_flags |= (uint32_t)PF_SIM_FAULT_CAPACITY;
         pf_write_result(world, NULL, out_result);
@@ -417,6 +468,16 @@ pf_status pf_sim_tick_impl(
     }
 
     status = pf_m4_step_projectile(&sim->content, scratch);
+    if (status != PF_STATUS_OK)
+    {
+        pf_write_result(world, NULL, out_result);
+        return status;
+    }
+
+    status = pf_m4_emit_action_transitions(
+        world,
+        scratch,
+        world->tick);
     if (status != PF_STATUS_OK)
     {
         pf_write_result(world, NULL, out_result);
@@ -638,27 +699,20 @@ pf_status pf_sim_tick_impl(
                 }
             }
         }
-        for (player_index = UINT32_C(0);
-             player_index < (uint32_t)world->player_count;
-             ++player_index)
+        if (pf_sim_push_event(
+                scratch,
+                world->tick - UINT64_C(1),
+                PF_SIM_EVENT_FORFEIT,
+                PF_SIM_EVENT_NO_PLAYER,
+                PF_SIM_EVENT_NO_PLAYER,
+                UINT32_C(0),
+                INT32_C(0),
+                INT32_C(0),
+                UINT16_C(0),
+                (uint16_t)forfeit_mask,
+                NULL) != PF_STATUS_OK)
         {
-            if ((forfeit_mask &
-                 (UINT64_C(1) << player_index)) != UINT64_C(0) &&
-                pf_sim_push_event(
-                    scratch,
-                    world->tick - UINT64_C(1),
-                    PF_SIM_EVENT_FORFEIT,
-                    PF_SIM_EVENT_NO_PLAYER,
-                    (uint8_t)player_index,
-                    UINT32_C(0),
-                    INT32_C(0),
-                    INT32_C(0),
-                    UINT16_C(0),
-                    UINT16_C(0),
-                    NULL) != PF_STATUS_OK)
-            {
-                return PF_STATUS_DETERMINISTIC_FAULT;
-            }
+            return PF_STATUS_DETERMINISTIC_FAULT;
         }
         if (pf_sim_push_event(
                 scratch,

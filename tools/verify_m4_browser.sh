@@ -20,6 +20,9 @@ grep -Fq 'PF_M4_ACTION_REVIVAL_PLATFORM = 94' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_SURFACE_REVIVAL_PLATFORM = 4' "$root/include/pf/m4.h"
 grep -Fq 'PF_M4_SURFACE_UPPER_PLATFORM = 5' "$root/include/pf/m4.h"
 grep -Fq 'PF_SIM_EVENT_REVIVAL_DROP = 23' "$root/include/pf/sim.h"
+grep -Fq 'PF_SIM_EVENT_ACTION_TRANSITIONS = 24' "$root/include/pf/sim.h"
+grep -Fq 'pf_web_m4_view[PF_WEB_M4_VIEW_SCHEMA] = INT32_C(47);' \
+    "$root/src/web_client/m4_playtest.c"
 grep -Fq '#define PF_WEB_M4_VIEW_REVIVAL0 431' \
     "$root/src/web_client/m4_playtest.c"
 grep -Fq '#define PF_WEB_M4_VIEW_STALE_MOVE0 447' \
@@ -224,7 +227,7 @@ grep -Fq \
     '" chain_grab_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'view[0] !== 46' \
+    'view[0] !== 47' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'pf_web_m4_run_directional_aerial_probe' \
@@ -261,6 +264,12 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'case 23:' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'case 24:' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'eventMaskPlayers(event.detail) + " forfeited"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"REVIVAL PLATFORM"' \
