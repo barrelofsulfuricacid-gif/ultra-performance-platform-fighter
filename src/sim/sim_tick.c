@@ -239,20 +239,18 @@ static pf_status pf_m4_emit_action_transitions(
 {
     uint32_t previous_actions = UINT32_C(0);
     uint32_t next_actions = UINT32_C(0);
-    uint16_t changed_mask = UINT16_C(0);
+    uint16_t changed_mask;
     uint32_t player_index;
 
     _Static_assert(
         PF_M4_ACTION_REVIVAL_PLATFORM < 128,
         "packed action-transition values must remain nonnegative int32 values");
 
-    if (memcmp(
-            world->action_state,
-            scratch->action_state,
-            (size_t)world->player_count) == 0)
+    if (scratch->action_transition_mask == UINT8_C(0))
     {
         return PF_STATUS_OK;
     }
+    changed_mask = (uint16_t)scratch->action_transition_mask;
 
     for (player_index = UINT32_C(0);
          player_index < (uint32_t)world->player_count;
@@ -266,16 +264,6 @@ static pf_status pf_m4_emit_action_transitions(
 
         previous_actions |= (uint32_t)previous_action << shift;
         next_actions |= (uint32_t)next_action << shift;
-        if (previous_action != next_action)
-        {
-            changed_mask |=
-                (uint16_t)(UINT16_C(1) << player_index);
-        }
-    }
-
-    if (changed_mask == UINT16_C(0))
-    {
-        return PF_STATUS_OK;
     }
     return pf_sim_push_event(
         scratch,
@@ -364,6 +352,7 @@ pf_status pf_sim_tick_impl(
     }
     scratch->stale_move_sync_valid = UINT8_C(0);
     scratch->stale_move_dirty_mask = UINT8_C(0);
+    scratch->action_transition_mask = UINT8_C(0);
     pf_m4_begin_item_tick(world, scratch);
     pf_m4_begin_projectile_tick(world, scratch);
     for (player_index = UINT32_C(0);
@@ -459,6 +448,7 @@ pf_status pf_sim_tick_impl(
                 return status;
             }
         }
+        pf_m4_track_action_transition(world, scratch, player_index);
     }
 
     status = pf_m4_step_item(&sim->content, world, scratch);

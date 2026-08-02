@@ -209,8 +209,42 @@ typedef struct pf_sim_scratch
     uint8_t combat_event_count;
     uint8_t stale_move_sync_valid;
     uint8_t stale_move_dirty_mask;
+    uint8_t action_transition_mask;
     pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
 } pf_sim_scratch;
+
+static inline void pf_m4_track_action_transition(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t player_index)
+{
+    const uint8_t player_mask =
+        (uint8_t)(UINT32_C(1) << player_index);
+
+    if (scratch->action_state[player_index] !=
+        world->action_state[player_index])
+    {
+        scratch->action_transition_mask =
+            (uint8_t)(scratch->action_transition_mask | player_mask);
+    }
+    else
+    {
+        scratch->action_transition_mask =
+            (uint8_t)(
+                scratch->action_transition_mask &
+                (uint8_t)(~player_mask));
+    }
+}
+
+static inline void pf_m4_set_action_state(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t player_index,
+    uint8_t action_state)
+{
+    scratch->action_state[player_index] = action_state;
+    pf_m4_track_action_transition(world, scratch, player_index);
+}
 
 struct pf_sim
 {
