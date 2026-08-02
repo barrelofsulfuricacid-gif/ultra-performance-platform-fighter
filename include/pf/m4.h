@@ -329,10 +329,10 @@ typedef enum pf_m4_prone_orientation
 
 typedef struct pf_m4_getup_roll_timing
 {
-    uint16_t movement_begin_tick;
-    uint16_t invulnerability_begin_tick;
-    uint16_t invulnerability_end_tick;
-    uint16_t reserved;
+    uint8_t movement_begin_tick;
+    uint8_t invulnerability_begin_tick;
+    uint8_t invulnerability_end_tick;
+    uint8_t reserved;
 } pf_m4_getup_roll_timing;
 
 typedef struct pf_m4_fighter_data

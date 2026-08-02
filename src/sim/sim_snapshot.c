@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)635)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)631)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -617,13 +617,20 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i8(writer, world->tech_direction[player_index]);
-    }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
-        pf_writer_u8(writer, world->prone_orientation[player_index]);
+        const int8_t tech_direction =
+            world->tech_direction[player_index];
+        const uint8_t tech_code =
+            tech_direction < INT8_C(0)
+                ? UINT8_C(1)
+                : (tech_direction > INT8_C(0)
+                       ? UINT8_C(2)
+                       : UINT8_C(0));
+
+        pf_writer_u8(
+            writer,
+            (uint8_t)(tech_code |
+                      (uint8_t)(world->prone_orientation[player_index]
+                                << 2U)));
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1055,15 +1062,25 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        const uint8_t packed = pf_reader_u8(reader);
+        const uint8_t tech_code = packed & UINT8_C(0x03);
+        const uint8_t prone_orientation =
+            (packed >> 2U) & UINT8_C(0x03);
+
+        if ((packed & UINT8_C(0xf0)) != UINT8_C(0) ||
+            tech_code == UINT8_C(3) ||
+            prone_orientation > (uint8_t)PF_M4_PRONE_STOMACH)
+        {
+            reader->failed = 1;
+        }
         world->tech_direction[player_index] =
-            pf_reader_i8(reader);
-    }
-    for (player_index = UINT32_C(0);
-         player_index < PF_SIM_MAX_PLAYERS;
-         ++player_index)
-    {
+            tech_code == UINT8_C(1)
+                ? INT8_C(-1)
+                : (tech_code == UINT8_C(2)
+                       ? INT8_C(1)
+                       : INT8_C(0));
         world->prone_orientation[player_index] =
-            pf_reader_u8(reader);
+            prone_orientation;
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
