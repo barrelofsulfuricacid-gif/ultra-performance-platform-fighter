@@ -153,7 +153,7 @@ are ignored rather than guessed.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
-Browser view schema 45 contains 499 signed values. Each of the four player
+Browser view schema 46 contains 503 signed values. Each of the four player
 blocks has a 53-value stride and appends shield-active, exact
 left/right/top/bottom bounds, and signed x/y tilt after raw shield strength;
 event count is at 236, event entries begin at 237, the item block begins at
@@ -163,8 +163,10 @@ Four 12-value stale-move records occupy 447–494: queue count, the selected
 move's Q16.16 multiplier, the per-attack registration latch, and nine canonical
 move IDs newest first. The thrown item's per-instance registration latch is at
 495. The stationary upper platform's exact left, right, and y values are
-append-only at 496–498. The state cards show raw shield strength, percentage, tilt, platform
-activity, the readable stale queue, selected-move scale, and registration.
+append-only at 496–498. Four append-only prone-orientation values occupy
+499–502. The state cards show raw shield strength, percentage, tilt, platform
+activity, the readable stale queue, selected-move scale, registration, and
+`prone none/back/stomach`.
 Bubble fill and
 stroke weight distinguish light from dense input, while the collision
 inspector draws the authoritative shield AABB and the regular presentation
@@ -691,8 +693,11 @@ miss.
 
 From `DOWN WAIT`, press up or make a fresh shield press for `NEUTRAL GETUP`,
 press left/right for `GETUP ROLL`, or press either attack key for `FLOOR
-ATTACK`. Neutral getup lasts 30 ticks with 23 invulnerable; getup roll lasts 35
-ticks with 19 invulnerable; floor attack lasts 49 ticks with 26 invulnerable.
+ATTACK`. Neutral getup lasts 30 ticks with 23 invulnerable; every getup roll
+lasts 35 ticks, but its movement start and inclusive invulnerability are
+back/forward 6 and 1–19, back/backward 12 and 12–29, stomach/forward 8 and
+1–19, or stomach/backward 5 and 1–24. Floor attack lasts 49 ticks with 26
+invulnerable.
 The floor attack deals 6% and attacks in front on frames 17–19, then behind on
 frames 24–26. Prone states render as a flattened fighter, both attack phases
 draw their inspected purple hitbox, and the same dashed gold ring shows the
@@ -825,7 +830,10 @@ broader acceptance evidence.
     while each tech action continues.
 22. Let the missed tech finish into `DOWN WAIT`. Try up and a fresh shield
     press for `NEUTRAL GETUP`, left and right for both `GETUP ROLL`
-    directions, and either attack key for `FLOOR ATTACK`. Pause and step
+    directions, and either attack key for `FLOOR ATTACK`. Use the state card to
+    record whether the landing is `prone back` or `prone stomach`, then repeat
+    both roll directions for each orientation. Confirm the four movement and
+    gold-ring boundaries in the route table above. Pause and step
     through the floor attack: confirm purple hitboxes in front on frames
     17–19 and behind on frames 24–26, with no hitbox in between. Confirm the
     gold ring clears at each option's documented invulnerability boundary.
@@ -1188,9 +1196,11 @@ through:
   identity, and typed ABI-4 hit event; and
 - a default strong attack producing 12%, six hitlag ticks, at least 32 hitstun
   ticks, and canonical tumble state;
-- an exact 26-tick missed-tech animation entering `DOWN WAIT`, all three
-  floor-recovery input routes, their initial invulnerability, and both active
-  phases of the floor attack;
+- an exact 26-tick missed-tech animation entering back-oriented `DOWN WAIT`,
+  all three floor-recovery input routes, delayed movement and delayed
+  invulnerability for the back/backward roll, and both active phases of the
+  floor attack; the native combat oracle covers all four orientation/direction
+  schedules;
 - airborne following into observed tech-in-place and right-tech-roll outcomes,
   a jab during each vulnerable recovery tail, and a same-action-tick
   non-following jab that misses the roll;

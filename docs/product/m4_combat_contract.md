@@ -41,8 +41,7 @@ button also works airborne,
 reusing the production strong hit data and adding a deliberately conspicuous
 30/15-tick landing-lag practice route. This is still an incremental checkpoint.
 It does not claim character-specific move breadth, broader throw routes, complete
-prone-orientation-specific
-getup-roll asymmetry, or completion of the 61-row
+special/recovery breadth, or completion of the 61-row
 non-character-specific advanced-technique gate. Configurable stocks, delayed
 respawn, a moving revival platform, post-drop respawn invulnerability,
 elimination, team results, rematch, and simultaneous-final-stock sudden death
@@ -618,8 +617,8 @@ recovery:
 
 - up or a fresh shield edge enters a 30-tick `GETUP_NEUTRAL`, invulnerable for
   its first 23 ticks;
-- left or right enters a 35-tick `GETUP_ROLL` in that direction, invulnerable
-  for its first 19 ticks;
+- left or right enters a 35-tick `GETUP_ROLL` in that direction and uses the
+  orientation/relative-direction schedule below;
 - either attack edge enters a 49-tick `GETUP_ATTACK`, invulnerable for its
   first 26 ticks; its 6% hitbox attacks in front on frames 17–19 and behind on
   frames 24–26; and
@@ -627,9 +626,22 @@ recovery:
   timeout is original placeholder content rather than a claim of one
   universal Melee character value.
 
-The current one-fighter placeholder has one getup-roll timing table.
-Orientation-specific backward-roll differences remain explicit fighter-data
-work. The timing contract follows the
+Missed-tech landing derives and preserves one canonical prone orientation.
+Nonzero incoming horizontal velocity pointing with the fighter's facing enters
+`STOMACH`; zero or opposite horizontal velocity enters `BACK`. Direction is
+then classified relative to facing, and the default fighter uses inclusive,
+one-based action frames:
+
+| Prone orientation | Roll direction | Movement begins | Invulnerable frames |
+|---|---|---:|---:|
+| Back | Forward | 6 | 1–19 |
+| Back | Backward | 12 | 12–29 |
+| Stomach | Forward | 8 | 1–19 |
+| Stomach | Backward | 5 | 1–24 |
+
+All four routes retain the shared 35-tick duration and authored roll speed.
+Orientation remains inspectable through the recovery and clears on return to
+ordinary grounded state. The timing contract follows the
 [Melee tech frame-data summary](https://www.reddit.com/r/smashbros/comments/1svuas/when_is_it_possible_to_hit_an_opponent_who_missed/)
 alongside the 20-frame input window and 40-frame lockout described by
 [SmashWiki](https://www.ssbwiki.com/Tech). Floor input choices and the
@@ -1677,6 +1689,20 @@ checkpoint, and 1,080-byte scratch requirement are unchanged. Copying the larger
 immutable stage record raises the opaque state requirement from 2,448 to 2,464
 bytes, still within the 4 KiB caller envelope.
 
+State schema 49 / save format 48 retains the 631-byte payload and 771-byte
+checkpoint under `PFSAVE48`. Each player's former signed tech-direction byte is
+now canonical packed state: bits 0–1 encode none/negative/positive as 0/1/2,
+bits 2–3 encode prone none/back/stomach as 0/1/2, and all other values or high
+bits fail closed. Content schema 52/fighter schema 45 append, validate, and
+hash the four byte-sized getup-roll schedules above. Inspection schema 45 and
+structured observation schema 11 expose orientation directly. RL schema 13,
+transition schema 11, and compact schema 12 retain 102 values by placing the
+two orientation bits at 19–20 in each existing packed player-flags word.
+Browser schema 46 preserves indices 0–498 and appends the four player
+orientations at 499–502 for 503 values. The compact timing records raise the
+opaque state requirement to 2,472 bytes and scratch to 1,088 bytes, within the
+existing 4 KiB envelopes.
+
 Browser view schema 40 previously expanded each player block from 44 to 45 values by
 appending smash-charge ticks, yielding 400 values total. Event count moves to
 205, the 16 ten-value event entries begin at 206, the item block begins at 366,
@@ -1997,7 +2023,7 @@ files, and swaps the visible trace only after the final result also verifies.
 
 ## Verification
 
-`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 958 focused
+`tests/sim/test_m4_combat.c` and `tools/verify_m4_combat.sh` cover 982 focused
 mechanics invariants plus 51 journal invariants, including:
 
 - light, strong, and aerial attack schedules, facing, whiff, damage, ownership,
@@ -2016,11 +2042,11 @@ mechanics invariants plus 51 journal invariants, including:
   full-direction, equal-diagonal, immediate-strong, charge/release, and
   60-tick auto-release arbitration; exact signed two-axis launches, partial
   and maximum charged damage, typed hit identity, hitlag, mid-hitlag equality,
-  and mid-charge `PFSAVE46` continuation with equal future hashes/events;
+  and mid-charge `PFSAVE48` continuation with equal future hashes/events;
 - authored forward/back/up/down aerial defaults, validation and isolated
   content hash; neutral, vertical-dominant, horizontal-dominant, equal-diagonal,
   facing-relative, and direct-strong arbitration; exact signed two-axis launch,
-  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE46`
+  damage, hitstun, hitlag, typed hit identity, and mid-hitlag `PFSAVE48`
   continuation with equal future hashes;
 - aerial hitlag freezing both airborne fighters, resuming the attacker in its
   aerial, one-hit-per-target behavior, and a focused per-tick-hash replay that
@@ -2035,7 +2061,7 @@ mechanics invariants plus 51 journal invariants, including:
   mid-route save/load event/hash continuation;
 - exact light/dense health-and-density size calculation, signed dead-zone
   tilt translation, derived bounds, observation/RL/browser exposure,
-  `PFSAVE46` tilt continuation, centered-shield block priority, and an
+  `PFSAVE48` tilt continuation, centered-shield block priority, and an
   otherwise identical exposed-hurtbox poke that takes the ordinary hit path;
 - standing versus held-crouch contact with unchanged damage/hitlag, exact 2/3
   two-axis launch and hitstun scaling, derived tumble and typed flag, inclusive
@@ -2105,9 +2131,11 @@ mechanics invariants plus 51 journal invariants, including:
   input window/lockout behavior, exact 20-tick hit rejection, vulnerability
   restoration, and held-trigger edge behavior;
 - exact 26-tick missed-tech animation, persistent/automatic down-wait,
-  up/shield neutral getup, bidirectional getup roll, all three recovery
-  durations and invulnerability cutoffs, front/back floor-attack hits with
-  negative timing checks, and mid-roll save/load continuation;
+  back/stomach orientation derivation, all four forward/backward getup-roll
+  movement and inclusive invulnerability schedules, up/shield neutral getup,
+  all three recovery durations, front/back floor-attack hits with negative
+  timing checks, structured/compact observation exposure, and mid-roll
+  save/load continuation;
 - airborne following into observed tech-in-place and right-tech-roll outcomes,
   jabs during both vulnerable recovery tails, a same-action-tick static jab
   that misses the roll, and mid-roll save/load future-hash equality through

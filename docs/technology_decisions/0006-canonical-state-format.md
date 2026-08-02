@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–46 / state schemas 1–47
+- **Status:** Accepted for save formats 1–48 / state schemas 1–49
 - **Date:** 2026-08-01
 
 ## Decision
@@ -57,6 +57,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 45 | 46 | 140 | 586 | 726 | No payload-layout change; moving revival-platform action/support IDs, exact stage-derived position, zero-motion lifecycle, input/timeout release, and post-drop invulnerability semantics fail closed |
 | 46 | 47 | 140 | 631 | 771 | Per-player attack-registration latch, stale-move count, and nine newest-first canonical move IDs plus one thrown-item registration latch; owner-local stale damage, successful-hurt registration, and reset/persistence semantics fail closed |
 | 47 | 48 | 140 | 631 | 771 | No payload-layout change; stationary upper pass-through support ID 5, ordinary grounded/airborne relationships, and immutable stage-derived geometry fail closed |
+| 48 | 49 | 140 | 631 | 771 | Each former signed tech-direction byte packs canonical direction and prone orientation; exact orientation-specific getup-roll movement/invulnerability schedules and reserved-bit rejection fail closed |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -65,9 +66,9 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE23`, `PFSAVE24`, `PFSAVE25`, `PFSAVE26`, `PFSAVE27`, `PFSAVE28`,
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
-`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`, or
-`PFSAVE47`.
-The active M4 runtime emits and accepts format 47 with state schema 48. Earlier
+`PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
+`PFSAVE47`, or `PFSAVE48`.
+The active M4 runtime emits and accepts format 48 with state schema 49. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -81,6 +82,13 @@ flags, player slots, teams, numeric ranges, and inactive-slot invariants, and
 only then replaces live state. A failed load therefore leaves the destination
 unchanged. Clone applies the same content/configuration compatibility gate and
 copies state without serialization.
+
+Format 48 replaces each player's signed `-1/0/+1` tech-direction byte with one
+packed byte. Bits 0–1 encode none/negative/positive as 0/1/2 and bits 2–3
+encode prone none/back/stomach as 0/1/2. Direction code 3, orientation code 3,
+or any nonzero high nibble is noncanonical. The packing adds orientation
+without growing the 631-byte payload, and load verifies the payload checksum
+before rejecting malformed packed state atomically.
 
 The per-tick event array is transient output and is deliberately absent from
 the save payload. The existing canonical event sequence remains serialized.

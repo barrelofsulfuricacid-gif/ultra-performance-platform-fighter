@@ -1,6 +1,6 @@
 # TDR-0008: Reinforcement-learning contract
 
-- **Status:** Accepted by owner; current implementation is RL schema 12
+- **Status:** Accepted by owner; current implementation is RL schema 13
 - **Date:** 2026-08-01
 
 ## Scope
@@ -16,8 +16,8 @@ batch semantics while embedding the ABI-4 per-tick event journal in every
 transition result. Later compatible revisions expose the fixed item slot,
 projectile slot, per-player special charge, per-player recovery availability,
 per-player smash charge, raw shield strength, shield health, and shield tilt.
-The current contract is RL schema 12, action schema 1, transition schema 10,
-structured observation schema 10, and compact observation schema 11.
+The current contract is RL schema 13, action schema 1, transition schema 11,
+structured observation schema 11, and compact observation schema 12.
 
 ## Actions
 
@@ -65,7 +65,7 @@ The compact layout is:
 | 4–5 | Maximum ticks, low/high 32-bit words |
 | 6 | Deterministic fault flags |
 | 7 | Packed player count (bits 0–7), mode (8–15), termination (16), truncation (17), sudden death (18), configured stock count (19–25), and winner mask (26–29) |
-| 8–17 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active/recovery-ready flags, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
+| 8–17 | Player 0 previous-button words, position x/y, velocity x/y, packed slot/team/grounded/active/recovery-ready/prone-orientation flags, stocks remaining, respawn ticks, and respawn-invulnerability ticks |
 | 18–27 | Player 1 fields |
 | 28–37 | Player 2 fields |
 | 38–47 | Player 3 fields |
@@ -82,6 +82,9 @@ The stale multiplier describes the player's current attack, or the attack that
 will resume after hitlag; it is exactly one for a state without a stale-capable
 move. Queue entries beyond the advertised count are zero. The per-instance
 registration latches remain inspection/debug state and are not policy inputs.
+Prone orientation uses bits 19–20 of each packed player-flags word: 0 is none,
+1 is back, and 2 is stomach. The structured player record exposes the same
+enum directly; compact vector length remains 102.
 
 Bit patterns are copied rather than implementation-defined signed casts.
 Inactive slots remain canonical zero except for their implicit packed slot.
@@ -145,6 +148,7 @@ not suppress valid independent environments.
 - Schema/spec metadata and compact/structured correspondence.
 - Stock, respawn, invulnerability, sudden-death, and winner-bit
   compact/structured correspondence.
+- Prone none/back/stomach structured state and player-flags bits 19–20.
 - Item, projectile, Arc Reservoir charge, smash charge, raw shield strength, and
   Vector Ascent recovery availability in the structured/compact contract;
   recovery remains player flag bit 18.

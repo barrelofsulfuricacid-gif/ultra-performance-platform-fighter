@@ -1959,6 +1959,53 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   `e7d561777aa10bce2d84c4288f293bb2367bb0828b9d9a669851818dce9d6be8`;
   the manifest records `perf` as unavailable because it is not installed.
 
+## Implemented in the prone-orientation getup-roll slice
+
+- Missed-tech landing now records `BACK` or `STOMACH` from incoming horizontal
+  motion relative to facing. The orientation survives knockdown, down wait,
+  and floor recovery, then clears when ordinary grounded state resumes.
+- Fighter-authored, hash-participating getup-roll schedules now distinguish all
+  four orientation/relative-direction routes. Back/forward begins movement on
+  frame 6 and is invulnerable on frames 1–19; back/backward uses frame 12 and
+  frames 12–29; stomach/forward uses frame 8 and frames 1–19; and
+  stomach/backward uses frame 5 and frames 1–24. Every route lasts 35 ticks.
+- Content schema 52/fighter schema 45, inspection schema 45, state schema 49,
+  observation schema 11, RL schema 13/transition schema 11/compact schema 12,
+  and browser schema 46 make the interpretation fail closed. The 102-value RL
+  vector reuses player-flags bits 19–20; browser values 499–502 produce a
+  503-value view and readable `prone none/back/stomach` state cards.
+- Save format 48 keeps the stream at 771 bytes by packing direction and
+  orientation into one byte per fighter. Canonical decoding rejects reserved
+  direction/orientation codes and high bits even under a recomputed checksum.
+  Byte-sized timing records keep opaque requirements to 2,472 state bytes and
+  1,088 scratch bytes. This removes the provisional 775-byte stream's extra
+  SHA-256 compression block and its measured checkpoint-path regressions.
+- Exact clean commit `91d69f5f03a3a6205011af61f99c3d23c6d88f6d`
+  passes Windows MSVC Release 22/22, WSL GCC 13.3 Release 22/22, strict
+  `-Wconversion -Werror` combat/kernel checks, pinned Emscripten 6.0.3, and a
+  byte-identical native/WebAssembly replay comparison. The live generated-Wasm
+  page reports `playtest=ready`, replay and floor-recovery probes passing,
+  exactly 61 owner recipes, and readable prone-orientation cards. The combat
+  oracle now covers 982 mechanics invariants plus 51 journal invariants,
+  including all four schedules, observation exposure, content validation, and
+  mid-roll continuation.
+- The 31,463-byte replay has corpus SHA-256
+  `3c7130d92683b83e6b6260e74907c6719f0e511d043fdbb1185e1d70403b50e1`,
+  final-state SHA-256
+  `6fa0766f63c3582bfd61edbd231ee455c59ae4ca2729e80b3d10b0cd981ea405`,
+  and unchanged event digest
+  `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`.
+  Windows and WSL verifier self-tests repeat match-soak digest
+  `aa70215a3998a1f3`.
+- Three clean native-Windows milestone runs compare exact pre-orientation
+  commit `5ba2eadb9250eeb340751691b06103fee00ed6f6` with the final commit and
+  repeat the final commit. All 10 measurable scenarios are compatible in both
+  comparisons, with zero invalid, suspected, or confirmed regressions. A clean
+  WSL Tracy 0.13.1 capture passes with timer fallback enabled; its 11,814-byte
+  trace has SHA-256
+  `5a720f86d7ece6c609d71a7864322a418456c60c544f5af2dc289cbcc6cebe4f`,
+  while `perf` remains unavailable because it is not installed.
+
 ## Explicitly preserved playtest requirements
 
 - Keyboard clients must emit reduced horizontal magnitude for slow walk and
@@ -2107,10 +2154,8 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 ## Remaining M4.2 and M4.3 work
 
 - Character-specific move breadth, additional specials, broader recovery
-  options, broader throw routes,
-  broader per-action launch-angle data,
-  prone-orientation-specific getup-roll timing, and journal producers for every
-  remaining action.
+  options, broader throw routes, broader per-action launch-angle data, and
+  journal producers for every remaining action.
 - Repeated human matches.
 - The mandatory owner combat playtest; the generated browser worksheet is
   ready, but only the owner can supply and approve its evidence.
@@ -2124,7 +2169,7 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   geometry and drop-through behavior, Moonwalk timing,
   Teeter-cancel, Taunt-cancel, Stage-humping, and Scar-Jump routes and controls, and mid-action
   save/load, plus Vector Ascent data, consumption, restoration, and RL routes;
-  958
+  982
   attack/reaction/shield/floor/surface
   invariants including data-defined pummels, crouch cancel, victim weight, and
   stale-move queue scaling/registration,
@@ -2147,9 +2192,9 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   attack/reaction/shield/ground-dodge/air-dodge trace at 31,463
   bytes,
   replay SHA-256
-  `97df1b6238c1fd789ee0861bd6fc126ab21113d02d37e5d2f4347a296edca634`,
+  `3c7130d92683b83e6b6260e74907c6719f0e511d043fdbb1185e1d70403b50e1`,
   final SHA-256
-  `3c679aa1d7b1a4dc8c816c94e730adcbca50a0bb4634e5e407f18d3a6316b573`,
+  `6fa0766f63c3582bfd61edbd231ee455c59ae4ca2729e80b3d10b0cd981ea405`,
   and event-journal SHA-256
   `7dac547f463ec6995207dc41d8fab3449113b79cd6179d4037e821a8dc63b18f`;
   Windows, WSL, and pinned Emscripten 6.0.3 output is byte-identical.

@@ -2,23 +2,20 @@
 
 Tracy 0.13.1 capture: **pass**. The canonical profile workload entered its
 instrumented scenario zones and emitted frame marks while exercising all 13
-scenario slots after the stationary upper-platform slice.
+scenario slots after the prone-orientation and packed-state slice.
 
-- Commit: `39bb0c4590b8d000f73b69996ecbde14f2b62892`
+- Commit: `91d69f5f03a3a6205011af61f99c3d23c6d88f6d`
 - Dirty tree: `false`
 - Profile workload: `pass`
 - Measured scenarios: 10
 - Explicitly unavailable scenarios: 3
 - Target per sample: 100 ms
 - Repetitions: 15
-- Captured span: 6.1 s
-- Captured frames: 3
-- Captured zones: 2
 - Trace SHA-256:
-  `e7d561777aa10bce2d84c4288f293bb2367bb0828b9d9a669851818dce9d6be8`
-- Trace size: 11,776 bytes
+  `5a720f86d7ece6c609d71a7864322a418456c60c544f5af2dc289cbcc6cebe4f`
+- Trace size: 11,814 bytes
 - Profile binary SHA-256:
-  `6bc710ee3d417a586937af25666349ea5c2084eb5e38476cc2e6a0268b330ba2`
+  `df35269387c0c62e8505c8cf7fb6a14033126fe9c4dc2dfec482abbb69ac5c0b`
 - Tracy timer fallback: `ON`
 - Platform-profiler claim: none (`perf` was not installed in the WSL image)
 

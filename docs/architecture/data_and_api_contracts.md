@@ -81,14 +81,18 @@ Rules:
 - Observations and legal-action masks have separately versioned schemas.
 - Single and batched RL entry points invoke the same internal tick semantics.
 
-Save formats 1–45 remain historical checkpoints. The current M4 state uses
-save format 46: a fixed 771-byte checkpoint with state schema 47 and a 631-byte
-payload. It appends one attack-registration latch, one queue count, and nine
-newest-first canonical stale-move IDs per fixed player slot plus one thrown-item
-registration latch. Load makes owner-local scaling, successful-hurt-only queue
-insertion, per-instance deduplication, queue persistence, and reset semantics
-fail closed. Save format 45/state schema 46 retained the preceding byte layout
-while adding the moving revival-platform action/support semantics. Save format
+Save formats 1–47 remain historical checkpoints. The current M4 state uses
+save format 48: a fixed 771-byte checkpoint with state schema 49 and a 631-byte
+payload. It packs each player's signed tech direction and prone orientation
+into one canonical byte; reserved codes and bits fail closed. Save format
+47/state schema 48 retained the preceding byte layout while adding stationary
+upper-platform support semantics. Save format 46/state schema 47 appended one
+attack-registration latch, one queue count, and nine newest-first canonical
+stale-move IDs per fixed player slot plus one thrown-item registration latch.
+Load makes owner-local scaling, successful-hurt-only queue insertion,
+per-instance deduplication, queue persistence, and reset semantics fail closed.
+Save format 45/state schema 46 retained the preceding byte layout while adding
+the moving revival-platform action/support semantics. Save format
 44/state schema 45 appended one little-endian signed x-tilt and y-tilt value per
 fixed player slot and made tilt lifecycle, shield-volume derivation,
 blocking-versus-poke priority, release, interruption, and hitlag-resume state
@@ -382,6 +386,18 @@ values at 496–498 for 499 values total. Fighter schema 44, observation schema
 sizes, and the 1,080-byte scratch requirement remain unchanged. The larger
 copied immutable stage record raises the public state requirement from 2,448 to
 2,464 bytes, within the existing 4 KiB envelope.
+
+State schema 49 / save format 48 retains the 631-byte payload and 771-byte
+checkpoint. Bits 0–1 of each packed recovery byte encode tech direction
+0/negative/positive as 0/1/2, bits 2–3 encode prone none/back/stomach as 0/1/2,
+and code 3 or nonzero bits 4–7 are invalid. Content schema 52/fighter schema 45
+add four byte-sized getup-roll timing records; inspection schema 45 and
+observation schema 11 expose prone orientation. RL schema 13/transition schema
+11 and compact schema 12 retain 102 values by packing orientation into bits
+19–20 of the existing player-flags words. Browser schema 46 appends four
+orientation values at 499–502 for 503 total. Opaque requirements are 2,472
+state bytes and 1,088 scratch bytes inside the unchanged 4 KiB envelopes.
+
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain
