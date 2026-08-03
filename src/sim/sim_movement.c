@@ -318,6 +318,28 @@ static int8_t pf_m4_strong_direction(
     return INT8_C(0);
 }
 
+static int pf_m4_is_moonwalk_lower_back(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    int8_t facing,
+    int16_t stick_x,
+    int16_t stick_y)
+{
+    const uint16_t horizontal_magnitude =
+        pf_m4_axis_magnitude(stick_x);
+
+    return (action_state ==
+                (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            action_state ==
+                (uint8_t)PF_M4_ACTION_MOONWALK_SETUP) &&
+           pf_m4_axis_direction(
+               stick_x,
+               fighter->axis_dead_zone) == -facing &&
+           horizontal_magnitude > fighter->axis_dead_zone &&
+           stick_y >=
+               (int16_t)fighter->crouch_axis_threshold;
+}
+
 static int pf_m4_signs_differ(int32_t left, int32_t right)
 {
     return (left < INT32_C(0) && right > INT32_C(0)) ||
@@ -4714,7 +4736,13 @@ pf_status pf_m4_step_player(
              action_state !=
                  (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
              input->main_stick_y >=
-                 (int16_t)fighter->crouch_axis_threshold)
+                 (int16_t)fighter->crouch_axis_threshold &&
+             !pf_m4_is_moonwalk_lower_back(
+                 fighter,
+                 action_state,
+                 facing,
+                 input->main_stick_x,
+                 input->main_stick_y))
     {
         if (pf_m4_surface_is_pass_through(support) != 0)
         {
@@ -4776,12 +4804,21 @@ pf_status pf_m4_step_player(
             horizontal_direction == facing &&
             horizontal_magnitude >=
                 fighter->run_continue_axis_threshold;
+        const int moonwalk_lower_back =
+            pf_m4_is_moonwalk_lower_back(
+                fighter,
+                action_state,
+                facing,
+                input->main_stick_x,
+                input->main_stick_y);
         const int moonwalk_shallow_back =
             horizontal_direction == -facing &&
             horizontal_magnitude > fighter->axis_dead_zone &&
-            strong_direction == INT8_C(0);
+            (strong_direction == INT8_C(0) ||
+             moonwalk_lower_back != 0);
         const int moonwalk_full_back =
-            strong_direction == -facing;
+            strong_direction == -facing &&
+            moonwalk_lower_back == 0;
 
         if (action_state == (uint8_t)PF_M4_ACTION_TEETER)
         {

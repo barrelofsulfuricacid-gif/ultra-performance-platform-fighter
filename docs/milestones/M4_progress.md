@@ -29,6 +29,23 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the Falcon-easy Moonwalk input slice
+
+- Research and the Melee dash implementation agree that Moonwalk uses ordinary
+  initial-dash physics: a backward input below the dashback threshold applies
+  backward acceleration without changing facing. Falcon players normally use
+  the controller's lower-back diagonal notch for at least two frames before
+  moving to straight back.
+- Production input now recognizes that lower-back diagonal during
+  `INITIAL_DASH` and `MOONWALK_SETUP`, before crouch/platform-drop or dashback.
+  This remains reliable when a browser/DirectInput adapter independently
+  saturates both diagonal axes. The authored two-tick minimum, facing retention,
+  backward velocity, traction slide, and mistimed straight-back dashbacks are
+  unchanged.
+- The native oracle and Wasm startup probe now perform the natural fully
+  saturated lower-back-notch route. Browser help documents the GameCube notch,
+  keyboard Down-plus-opposite equivalent, and the retained Shift fallback.
+
 ## Implemented in the jump-takeoff momentum slice
 
 - The first grounded jump now applies a fighter-authored takeoff formula after

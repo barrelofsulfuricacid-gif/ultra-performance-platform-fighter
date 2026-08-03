@@ -3255,8 +3255,8 @@ static int run_moonwalk_test(
         source_inspection.players[0].dash_direction != INT8_C(1) ||
         !step_duel(
             source,
-            INT16_C(-13500),
-            INT16_C(0),
+            INT16_MIN,
+            INT16_MAX,
             UINT64_C(0),
             &source_inspection) ||
         source_inspection.players[0].action_state !=
@@ -3304,14 +3304,14 @@ static int run_moonwalk_test(
 
     if (!step_duel(
             source,
-            INT16_C(-13500),
-            INT16_C(0),
+            INT16_MIN,
+            INT16_MAX,
             UINT64_C(0),
             &source_inspection) ||
         !step_duel(
             loaded,
-            INT16_C(-13500),
-            INT16_C(0),
+            INT16_MIN,
+            INT16_MAX,
             UINT64_C(0),
             &loaded_inspection) ||
         source_inspection.players[0].action_state !=

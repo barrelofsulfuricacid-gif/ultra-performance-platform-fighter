@@ -1490,12 +1490,18 @@ they intentionally do not add technique-only state or duplicate harnesses.
 ## Moonwalk contract
 
 The original fighter authors `moonwalk_setup_ticks=2`. While in
-`INITIAL_DASH`, reduced horizontal input opposite the retained facing enters
-`MOONWALK_SETUP` at action tick 1. Holding that shallow-back input through
-action tick 2 and then switching to full back enters `MOONWALK`, retains the
-original facing and dash direction, and applies initial-dash speed in the
-opposite direction. Releasing the input returns to `GROUND_IDLE` while normal
-traction preserves a decaying backward slide.
+`INITIAL_DASH`, either reduced horizontal input opposite the retained facing
+or the natural lower-back diagonal enters `MOONWALK_SETUP` at action tick 1.
+The diagonal route takes priority over crouch/platform-drop and dashback when
+back is outside the dead zone and down meets the ordinary authored crouch
+threshold, matching the GameCube controller notch even when a browser adapter
+independently saturates both axes. Small vertical stick noise therefore does
+not turn a straight dashback into setup.
+Holding either setup input for at least two ticks and then switching
+to straight full back enters `MOONWALK`, retains the original facing and dash
+direction, and applies initial-dash speed in the opposite direction. Releasing
+the input returns to `GROUND_IDLE` while normal traction preserves a decaying
+backward slide.
 
 Full back immediately after the forward dash is the ordinary initial-dash
 reversal. Full back after only one shallow setup tick also falls back to that
@@ -1504,13 +1510,15 @@ The actions remain interruptible by the existing legal grounded routers and
 need no new per-player mutable field: action ID and action ticks carry the
 timing through save/load, rollback, replay, and hash.
 
-`tests/sim/test_m4_movement.c` supplies 12 focused invariants covering default
-and invalid authored timing, isolated content hashing, the exact two setup
-ticks, entry/hold/release velocity and facing, both dashback controls, and a
-771-byte mid-setup save/load with equal future hashes. Browser startup repeats
-all three timing outcomes and exports an independent `moonwalk_probe` before
-readiness. Browser controls use Shift plus the opposite horizontal key for two
-ticks, then the unmodified opposite key.
+`tests/sim/test_m4_movement.c` supplies focused invariants covering default and
+invalid authored timing, isolated content hashing, a fully saturated
+lower-back-notch route, exact minimum setup timing, entry/hold/release velocity
+and facing, both dashback controls, and a 771-byte mid-setup save/load with
+equal future hashes. Browser startup repeats the natural notch route and both
+negative timing outcomes and exports an independent `moonwalk_probe` before
+readiness. Keyboard controls use Down plus the opposite horizontal key for at
+least two ticks, then release Down while holding back; the existing Shift plus
+opposite reduced-horizontal route remains supported.
 
 ## Teeter-cancel contract
 
