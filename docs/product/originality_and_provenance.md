@@ -14,6 +14,13 @@ therefore separates behavioral requirements from all expressive production.
 
 ## Prohibited inputs
 
+The 2026-08-03 owner-approved M4 exception in `plan_modifications.md` permits
+numeric gameplay frame tables and formulas for SSBM behavioral fidelity when
+they are recorded in a field-level provenance document. The exception does not
+permit any expressive asset or executable game code, and extracted source
+files must stay outside this repository. Where the bullets below mention frame
+tables, formulas, or decompilation, that narrow recorded exception controls.
+
 Do not place any of the following in the repository, build pipeline, design
 workbooks, model-training data, reference boards, or shipped product:
 
@@ -56,9 +63,9 @@ Implementation then independently authors:
 - Move choreography and visual effects.
 - Names, terminology, story, and presentation.
 
-No claim of exact frame-perfect Melee reproduction is made. Functional
-equivalence is validated by the approved playtest rubric and matchup behavior,
-not copied data.
+No blanket claim of exact frame-perfect Melee reproduction is made. Individual
+systems may be marked equivalent only after decomp comparison and deterministic
+verification; all remaining gaps stay explicit in the fidelity audit.
 
 ## Art-direction separation
 

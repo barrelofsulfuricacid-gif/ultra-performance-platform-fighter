@@ -2823,6 +2823,14 @@ mergeInto(LibraryManager.library, {
       "UP STRONG CHARGE",
       "DOWN STRONG CHARGE",
       "REVIVAL PLATFORM",
+      "FORWARD AERIAL LANDING",
+      "BACK AERIAL LANDING",
+      "UP AERIAL LANDING",
+      "DOWN AERIAL LANDING",
+      "FORWARD AERIAL L-CANCEL LANDING",
+      "BACK AERIAL L-CANCEL LANDING",
+      "UP AERIAL L-CANCEL LANDING",
+      "DOWN AERIAL L-CANCEL LANDING",
     ];
 
     if (view[1] < previousTick) {

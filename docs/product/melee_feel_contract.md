@@ -9,7 +9,10 @@ expression or extracted implementation data.
 The governing fidelity choice is D1-A: every playable SSBM fighter/form gets an
 original mechanical counterpart with substantially the same move functions and
 matchup identity. Names, characters, worlds, visual/audio assets, lore,
-animation, presentation, and implementation data remain original.
+animation and presentation remain original. The 2026-08-03 owner-approved M4
+exception permits provenance-recorded numeric gameplay tables and formulas for
+behavioral fidelity; it does not permit importing expressive assets or game
+code.
 
 ## Core feel
 

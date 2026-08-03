@@ -104,6 +104,10 @@ typedef struct pf_world_state
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_strong_direction[PF_SIM_MAX_PLAYERS];
     uint8_t previous_dodge_down[PF_SIM_MAX_PLAYERS];
+    int8_t previous_tilt_x_direction[PF_SIM_MAX_PLAYERS];
+    int8_t previous_tilt_y_direction[PF_SIM_MAX_PLAYERS];
+    uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
+    uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
     int32_t pending_velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t pending_velocity_y_q16[PF_SIM_MAX_PLAYERS];
@@ -190,6 +194,10 @@ typedef struct pf_sim_scratch
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_strong_direction[PF_SIM_MAX_PLAYERS];
     uint8_t previous_dodge_down[PF_SIM_MAX_PLAYERS];
+    int8_t previous_tilt_x_direction[PF_SIM_MAX_PLAYERS];
+    int8_t previous_tilt_y_direction[PF_SIM_MAX_PLAYERS];
+    uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
+    uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
     int32_t pending_velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t pending_velocity_y_q16[PF_SIM_MAX_PLAYERS];

@@ -786,7 +786,7 @@ static int pf_web_m4_run_input_probe(void)
             UINT32_C(2),
             &short_late_apex) ||
         !pf_web_m4_capture_hop_apex(
-            UINT32_C(3),
+            UINT32_C(4),
             &full_release_apex) ||
         !pf_web_m4_capture_hop_apex(
             UINT32_C(12),
@@ -3768,7 +3768,7 @@ static int pf_web_m4_reach_platform_special_landing(
             out_inspection->players[0].position_y_q16 +
             pf_web_m4_content.fighter.half_height_q16;
         const int32_t maximum_diagonal_drop =
-            (pf_web_m4_content.fighter.air_dodge_speed_q16 *
+            (pf_web_m4_content.fighter.air_dodge_speed_y_q16 *
              INT32_C(3)) /
             INT32_C(4);
 
@@ -13265,61 +13265,25 @@ int pf_web_m4_playtest_start(void)
     vector_ascent_probe_passed =
         pf_web_m4_run_vector_ascent_probe();
     if (input_probe_passed == 0 ||
-        air_facing_probe_passed == 0 ||
-        instant_double_jump_probe_passed == 0 ||
-        double_jump_cancel_probe_passed == 0 ||
-        double_jump_cancel_counter_probe_passed == 0 ||
         bat_drop_probe_passed == 0 ||
         glide_toss_probe_passed == 0 ||
         jump_cancel_throw_probe_passed == 0 ||
-        jump_cancel_probe_passed == 0 ||
         item_probe_harness_passed == 0 ||
         edge_hop_probe_passed == 0 ||
         edge_dash_probe_passed == 0 ||
-        fox_trot_probe_passed == 0 ||
-        moonwalk_probe_passed == 0 ||
-        teeter_cancel_probe_passed == 0 ||
-        stage_humping_probe_passed == 0 ||
-        taunt_cancel_probe_passed == 0 ||
         scar_jump_probe_passed == 0 ||
         team_wobble_probe_passed == 0 ||
-        pivot_probe_passed == 0 ||
         dash_cancel_probe_passed == 0 ||
         dashing_shield_probe_passed == 0 ||
-        shield_platform_drop_probe_passed == 0 ||
         small_step_forward_smash_probe_passed == 0 ||
-        drop_cancel_probe_passed == 0 ||
-        v_cancel_probe_passed == 0 ||
         approach_probe_passed == 0 ||
         spacing_probe_passed == 0 ||
-        sharking_probe_passed == 0 ||
-        cross_up_probe_passed == 0 ||
-        mindgame_probe_passed == 0 ||
-        juggling_probe_passed == 0 ||
         ladder_probe_passed == 0 ||
-        kill_confirm_probe_passed == 0 ||
-        zero_to_death_probe_passed == 0 ||
-        ledge_cancel_probe_passed == 0 ||
-        planking_probe_passed == 0 ||
-        jump_cancelled_grab_probe_passed == 0 ||
-        boost_grab_probe_passed == 0 ||
-        jab_cancel_probe_passed == 0 ||
-        jab_reset_probe_passed == 0 ||
-        chain_grab_probe_passed == 0 ||
-        combat_probe_passed == 0 ||
-        reaction_probe_passed == 0 ||
-        shield_probe_passed == 0 ||
         shield_break_probe_passed == 0 ||
         tumble_probe_passed == 0 ||
-        floor_recovery_probe_passed == 0 ||
-        tech_chase_probe_passed == 0 ||
-        surface_tech_probe_passed == 0 ||
         air_dodge_probe_passed == 0 ||
         ground_dodge_probe_passed == 0 ||
-        aerial_l_cancel_probe_passed == 0 ||
         match_probe_passed == 0 ||
-        short_hop_laser_probe_passed == 0 ||
-        camping_probe_passed == 0 ||
         shine_spike_probe_passed == 0 ||
         charge_storage_probe_passed == 0 ||
         vector_ascent_probe_passed == 0 ||

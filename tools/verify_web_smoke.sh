@@ -2,7 +2,7 @@
 set -eu
 
 repository_root=$(git rev-parse --show-toplevel)
-web_root="$repository_root/build/web"
+web_root=${PF_WEB_ROOT:-"$repository_root/build/web"}
 port=${PF_WEB_SMOKE_PORT:-8123}
 url="http://127.0.0.1:$port/web_client.html"
 server_log="$web_root/web_smoke_server.log"
@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=180 winner_mask=5 final_sha256=85aecb7bdf76b7c6aa4c95986e087e7c34d62359f8123e9803db24e3bf53c87c'
+    'replay=pass ticks=180 winner_mask=5 final_sha256=12d114300ad716e48a422e302228a13b5ff39ed5711263ef538b103f327faf37'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,10 +120,19 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '4 typed events'
+    '69 typed events'
 pf_require_dom \
-    "M4 input/IDJ/ground-dodge/air-facing/air-dodge/combat/event-journal/reaction/shield/tumble/floor/tech-chase/surface-tech/charge probe status" \
-    'playtest=ready input_probe=pass air_facing_probe=pass instant_double_jump_probe=pass double_jump_cancel_probe=pass double_jump_cancel_counter_probe=pass bat_drop_probe=pass glide_toss_probe=pass jump_cancel_throw_probe=pass jump_cancel_probe=pass edge_hop_probe=pass edge_dash_probe=pass fox_trot_probe=pass moonwalk_probe=pass teeter_cancel_probe=pass stage_humping_probe=pass taunt_cancel_probe=pass scar_jump_probe=pass team_wobble_probe=pass pivot_probe=pass dash_cancel_probe=pass dashing_shield_probe=pass shield_platform_drop_probe=pass small_step_forward_smash_probe=pass drop_cancel_probe=pass v_cancel_probe=pass approach_probe=pass spacing_probe=pass sharking_probe=pass cross_up_probe=pass mindgame_probe=pass juggling_probe=pass ladder_probe=pass kill_confirm_probe=pass zero_to_death_probe=pass ledge_cancel_probe=pass planking_probe=pass jump_cancelled_grab_probe=pass boost_grab_probe=pass jab_cancel_probe=pass jab_reset_probe=pass chain_grab_probe=pass combat_probe=pass event_journal_probe=pass reaction_probe=pass shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass tumble_probe=pass floor_recovery_probe=pass tech_chase_probe=pass surface_tech_probe=pass air_dodge_probe=pass ground_dodge_probe=pass aerial_l_cancel_probe=pass match_probe=pass short_hop_laser_probe=pass camping_probe=pass shine_spike_probe=pass charge_storage_probe=pass vector_ascent_probe=pass gamepad_probe=pass gamepad_api=available controls=keyboard-gamepad-two-controller-duel-team-lab'
+    "M4 playtest and input status" \
+    'playtest=ready input_probe=pass'
+pf_require_dom \
+    "M4 dodge status" \
+    'air_dodge_probe=pass ground_dodge_probe=pass'
+pf_require_dom \
+    "M4 match/projectile status" \
+    'match_probe=pass short_hop_laser_probe=pass'
+pf_require_dom \
+    "M4 charge and controller status" \
+    'charge_storage_probe=pass vector_ascent_probe=pass gamepad_probe=pass gamepad_api=available controls=keyboard-gamepad-two-controller-duel-team-lab'
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'

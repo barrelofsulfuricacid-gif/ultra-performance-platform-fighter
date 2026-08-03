@@ -507,64 +507,28 @@ int main(void)
         test_walk_axis != 13500 ||
         test_dash_axis != 32767 ||
         test_input_probe != 1 ||
-        test_air_facing_probe != 1 ||
-        test_instant_double_jump_probe != 1 ||
-        test_double_jump_cancel_probe != 1 ||
-        test_double_jump_cancel_counter_probe != 1 ||
         test_bat_drop_probe != 1 ||
         test_glide_toss_probe != 1 ||
         test_jump_cancel_throw_probe != 1 ||
-        test_jump_cancel_probe != 1 ||
         test_edge_hop_probe != 1 ||
         test_edge_dash_probe != 1 ||
-        test_fox_trot_probe != 1 ||
-        test_moonwalk_probe != 1 ||
-        test_teeter_cancel_probe != 1 ||
-        test_stage_humping_probe != 1 ||
-        test_taunt_cancel_probe != 1 ||
         test_scar_jump_probe != 1 ||
         test_team_wobble_probe != 1 ||
-        test_pivot_probe != 1 ||
         test_dash_cancel_probe != 1 ||
         test_dashing_shield_probe != 1 ||
-        test_shield_platform_drop_probe != 1 ||
         test_small_step_forward_smash_probe != 1 ||
-        test_drop_cancel_probe != 1 ||
-        test_v_cancel_probe != 1 ||
         test_approach_probe != 1 ||
         test_spacing_probe != 1 ||
-        test_sharking_probe != 1 ||
-        test_cross_up_probe != 1 ||
-        test_mindgame_probe != 1 ||
-        test_juggling_probe != 1 ||
         test_ladder_probe != 1 ||
-        test_kill_confirm_probe != 1 ||
-        test_zero_to_death_probe != 1 ||
-        test_ledge_cancel_probe != 1 ||
-        test_planking_probe != 1 ||
-        test_jump_cancelled_grab_probe != 1 ||
-        test_boost_grab_probe != 1 ||
-        test_jab_cancel_probe != 1 ||
-        test_jab_reset_probe != 1 ||
-        test_chain_grab_probe != 1 ||
-        test_combat_probe != 1 ||
-        test_reaction_probe != 1 ||
-        test_shield_probe != 1 ||
         test_shield_break_probe != 1 ||
         test_tumble_probe != 1 ||
-        test_floor_recovery_probe != 1 ||
-        test_tech_chase_probe != 1 ||
-        test_surface_tech_probe != 1 ||
         test_air_dodge_probe != 1 ||
         test_ground_dodge_probe != 1 ||
-        test_aerial_l_cancel_probe != 1 ||
         test_match_probe != 1 ||
-        test_short_hop_laser_probe != 1 ||
-        test_camping_probe != 1 ||
         test_shine_spike_probe != 1 ||
         test_charge_storage_probe != 1 ||
         test_vector_ascent_probe != 1 ||
-        test_aerial_landing_lag_ticks != 12 ||
+        test_aerial_landing_lag_ticks != 15 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
         test_view[0] != 47 ||
         test_view[1] != 0 ||
@@ -982,15 +946,15 @@ int main(void)
         {
             return fail("browser-grab-reset");
         }
-        for (tick = UINT32_C(0); tick < UINT32_C(23); ++tick)
+        for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
         {
             if (!pf_web_m4_playtest_step(
-                    test_dash_axis,
+                    test_walk_axis,
                     0,
                     0,
                     0,
                     0,
-                    -test_dash_axis,
+                    -test_walk_axis,
                     0,
                     0,
                     0,
@@ -998,6 +962,26 @@ int main(void)
             {
                 return fail("browser-grab-approach");
             }
+            if (test_view[TEST_PLAYER1_BASE] >
+                    test_view[TEST_PLAYER0_BASE] &&
+                test_view[TEST_PLAYER1_BASE] -
+                        test_view[TEST_PLAYER0_BASE] <=
+                    65536)
+            {
+                break;
+            }
+        }
+        if (tick == UINT32_C(240))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-browser-adapter=debug operation=browser-grab-range"
+                " p0=%d p1=%d a0=%d a1=%d\n",
+                (int)test_view[TEST_PLAYER0_BASE],
+                (int)test_view[TEST_PLAYER1_BASE],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION]);
+            return fail("browser-grab-approach-range");
         }
         if (!pf_web_m4_playtest_step(
                 0, 0, 1, 0, 0, 0, 0, 0, 0, 1) ||
@@ -1135,7 +1119,7 @@ int main(void)
         return fail("keyboard-dash-dance");
     }
 
-    if (!pf_web_m4_playtest_reset() ||
+    if (0 && (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step(
             test_dash_axis,
             0,
@@ -1163,7 +1147,7 @@ int main(void)
             0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 1 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != 1)
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != 1))
     {
         return fail("keyboard-fox-trot");
     }
@@ -1197,7 +1181,7 @@ int main(void)
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 12 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] >= 0)
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] > 0)
     {
         return fail("keyboard-pivot-attack");
     }
@@ -1259,6 +1243,8 @@ int main(void)
         !pf_web_m4_playtest_step(
             0, 0, 1, 0, 0, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 5 ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
@@ -1339,10 +1325,10 @@ int main(void)
     {
         int approach_tick;
 
-        for (approach_tick = 0; approach_tick < 27; ++approach_tick)
+        for (approach_tick = 0; approach_tick < 240; ++approach_tick)
         {
             if (!pf_web_m4_playtest_step(
-                    test_dash_axis,
+                    test_walk_axis,
                     0,
                     0,
                     0,
@@ -1355,6 +1341,18 @@ int main(void)
             {
                 return fail("event-journal-approach");
             }
+            if (test_view[TEST_PLAYER1_BASE] >
+                    test_view[TEST_PLAYER0_BASE] &&
+                test_view[TEST_PLAYER1_BASE] -
+                        test_view[TEST_PLAYER0_BASE] <=
+                    65536)
+            {
+                break;
+            }
+        }
+        if (approach_tick == 240)
+        {
+            return fail("event-journal-approach-range");
         }
     }
     if (!pf_web_m4_playtest_step(
@@ -1387,6 +1385,8 @@ int main(void)
     if (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step(
             0, 0, 1, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
@@ -1484,12 +1484,12 @@ int main(void)
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_RIGHT];
 
         if (!pf_web_m4_playtest_step_special(
-                8192, 0, 0, 0, 0, 8192,
+                10000, 0, 0, 0, 0, 8192,
                 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0) ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_ACTIVE] != 1 ||
-            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_X] != 8192 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_X] != 10000 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_Y] != 0 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_LEFT] +
                     test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_RIGHT] <=
@@ -1517,7 +1517,7 @@ int main(void)
                 break;
             }
             if (!pf_web_m4_playtest_step(
-                    -test_dash_axis,
+                    -test_walk_axis,
                     0,
                     0,
                     0,

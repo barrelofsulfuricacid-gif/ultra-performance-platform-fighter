@@ -2,6 +2,11 @@
 
 ## Scope
 
+The 2026-08-03 Falcon-fidelity pass supersedes earlier statements in this
+document that describe all movement numbers as original placeholders. Imported
+NTSC 1.02 fields, unit conversions, and remaining divergences are authoritative
+in `m4_falcon_ntsc102_data_provenance.md` and `m4_ssbm_fidelity_audit.md`.
+
 This contract promotes the accepted Q16.16 movement experiment into the real
 simulation. The first original placeholder content consists of one tuning
 fighter definition and one moving-platform test stage. These identifiers,
@@ -320,8 +325,9 @@ The state structure follows the pinned Melee decomp's
 [air-dodge entry/decay/collision path](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_EscapeAir.c)
 and
 [special-fall gravity/drift/landing path](https://github.com/doldecomp/melee/blob/c638972460ad11289db50daea8d228ea3fb2c043/src/melee/ft/chara/ftCommon/ftCo_FallSpecial.c).
-The placeholder's fixed-point values remain explicit original fighter data,
-not a claim that one table represents every Melee character.
+The state-machine implementation remains independently written. Numeric values
+covered by the 2026-08-03 provenance record are imported Falcon/common data;
+all unlisted values remain provisional project data.
 
 ## Stage interaction
 

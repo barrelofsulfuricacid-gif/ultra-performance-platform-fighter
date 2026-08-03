@@ -11,8 +11,8 @@
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_BATCH_ENVIRONMENTS 6U
-#define TEST_LIGHT_SHIELD_TRIGGER UINT16_C(8192)
-#define TEST_SHIELD_TILT_AXIS INT16_C(5000)
+#define TEST_LIGHT_SHIELD_TRIGGER UINT16_C(32768)
+#define TEST_SHIELD_TILT_AXIS INT16_C(10000)
 
 typedef struct test_sim_storage
 {
@@ -263,6 +263,7 @@ static int run_duel_test(const pf_content_view *content)
     pf_state_hash after_invalid;
     pf_sim_identity identity;
     pf_sim_observation diagnostic_observation;
+    uint64_t movement_tick;
 
     if (!expect_status(
             pf_sim_default_config(
@@ -272,6 +273,9 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_OK,
             "duel-config"))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-config-contract\n");
         return 0;
     }
     config.max_ticks = UINT64_C(100);
@@ -327,6 +331,9 @@ static int run_duel_test(const pf_content_view *content)
         diagnostic_observation.seed !=
             UINT64_C(0xabcdef0123456789))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-initial-contract\n");
         return 0;
     }
 
@@ -373,6 +380,21 @@ static int run_duel_test(const pf_content_view *content)
             UINT8_C(2),
             UINT64_C(0)))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-light-shield strength=%u"
+            " compact=%" PRId32 " tilt=(%d,%d) health=%" PRIu32
+            "\n",
+            (unsigned int)transition.structured_observation.players[0]
+                .shield_strength,
+            transition.compact_observation.values[
+                PF_RL_COMPACT_SHIELD_STRENGTH_BASE],
+            (int)transition.structured_observation.players[0]
+                .shield_tilt_x,
+            (int)transition.structured_observation.players[0]
+                .shield_tilt_y,
+            transition.structured_observation.players[0]
+                .shield_health_q16);
         return 0;
     }
 
@@ -397,6 +419,7 @@ static int run_duel_test(const pf_content_view *content)
             "duel-post-smash-charge-reset") ||
         !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(0)))
     {
+        (void)fprintf(stderr, "rl-api=fail operation=duel-smash-charge\n");
         return 0;
     }
 
@@ -404,11 +427,24 @@ static int run_duel_test(const pf_content_view *content)
     actions[0].buttons = PF_INPUT_BUTTON_JUMP;
     actions[0].main_stick_x = INT16_MAX;
     actions[1].main_stick_x = INT16_MIN;
-    if (!expect_status(
-            pf_rl_step(sim, actions, (size_t)2, &transition),
-            PF_STATUS_OK,
-            "duel-rl-step") ||
-        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)) ||
+    for (movement_tick = UINT64_C(1);
+         movement_tick <= UINT64_C(4);
+         ++movement_tick)
+    {
+        if (!expect_status(
+                pf_rl_step(sim, actions, (size_t)2, &transition),
+                PF_STATUS_OK,
+                "duel-rl-step") ||
+            !verify_transition_contract(
+                &transition,
+                UINT8_C(2),
+                movement_tick))
+        {
+            return 0;
+        }
+    }
+    if (transition.structured_observation.players[0].grounded !=
+            UINT8_C(0) ||
         transition.structured_observation.players[0].position_y_q16 <=
             INT32_C(0) ||
         transition.reward_q16[0] <= INT32_C(0) ||
@@ -418,6 +454,17 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_OK,
             "duel-before-invalid-hash"))
     {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-movement tick=%" PRIu64
+            " grounded=%u y=%" PRId32 " reward0=%" PRId32
+            " reward1=%" PRId32 "\n",
+            transition.structured_observation.tick,
+            (unsigned int)transition.structured_observation.players[0]
+                .grounded,
+            transition.structured_observation.players[0].position_y_q16,
+            transition.reward_q16[0],
+            transition.reward_q16[1]);
         return 0;
     }
 
@@ -428,7 +475,7 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_INVALID_ARGUMENT,
             "duel-invalid-action") ||
         transition.status != (uint32_t)PF_STATUS_INVALID_ARGUMENT ||
-        transition.structured_observation.tick != UINT64_C(1) ||
+        transition.structured_observation.tick != UINT64_C(4) ||
         !expect_status(
             pf_sim_hash(sim, &after_invalid),
             PF_STATUS_OK,
@@ -447,7 +494,7 @@ static int run_duel_test(const pf_content_view *content)
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
             "duel-forfeit") ||
-        transition.tick_result.completed_tick != UINT64_C(2) ||
+        transition.tick_result.completed_tick != UINT64_C(5) ||
         transition.tick_result.terminated != UINT8_C(1) ||
         transition.tick_result.winner_mask != UINT8_C(2) ||
         transition.reward_q16[1] - transition.reward_q16[0] !=
@@ -497,6 +544,7 @@ static int run_team_reward_test(const pf_content_view *content)
             PF_STATUS_OK,
             "team-reset"))
     {
+        (void)fprintf(stderr, "rl-api=fail operation=team-initial-contract\n");
         return 0;
     }
 
@@ -793,11 +841,26 @@ int main(void)
         return 1;
     }
 
-    if (!run_duel_test(&content) ||
-        !run_team_reward_test(&content) ||
-        !run_engagement_shaping_test(&content) ||
-        !run_batch_test(&content))
+    if (!run_duel_test(&content))
     {
+        (void)fprintf(stderr, "rl-api=fail operation=duel-test\n");
+        return 1;
+    }
+    if (!run_team_reward_test(&content))
+    {
+        (void)fprintf(stderr, "rl-api=fail operation=team-reward-test\n");
+        return 1;
+    }
+    if (!run_engagement_shaping_test(&content))
+    {
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=engagement-shaping-test\n");
+        return 1;
+    }
+    if (!run_batch_test(&content))
+    {
+        (void)fprintf(stderr, "rl-api=fail operation=batch-test\n");
         return 1;
     }
 

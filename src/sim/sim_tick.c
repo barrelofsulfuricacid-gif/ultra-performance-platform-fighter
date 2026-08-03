@@ -546,6 +546,14 @@ pf_status pf_sim_tick_impl(
             scratch->previous_strong_direction[player_index];
         world->previous_dodge_down[player_index] =
             scratch->previous_dodge_down[player_index];
+        world->previous_tilt_x_direction[player_index] =
+            scratch->previous_tilt_x_direction[player_index];
+        world->previous_tilt_y_direction[player_index] =
+            scratch->previous_tilt_y_direction[player_index];
+        world->tilt_x_age[player_index] =
+            scratch->tilt_x_age[player_index];
+        world->tilt_y_age[player_index] =
+            scratch->tilt_y_age[player_index];
         world->damage_q16[player_index] =
             scratch->damage_q16[player_index];
         world->pending_velocity_x_q16[player_index] =

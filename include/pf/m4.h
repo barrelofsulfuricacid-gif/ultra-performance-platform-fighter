@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(54)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(47)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(56)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(48)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -123,7 +123,15 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_FORWARD_STRONG_CHARGE = 91,
     PF_M4_ACTION_UP_STRONG_CHARGE = 92,
     PF_M4_ACTION_DOWN_STRONG_CHARGE = 93,
-    PF_M4_ACTION_REVIVAL_PLATFORM = 94
+    PF_M4_ACTION_REVIVAL_PLATFORM = 94,
+    PF_M4_ACTION_FORWARD_AERIAL_LANDING = 95,
+    PF_M4_ACTION_BACK_AERIAL_LANDING = 96,
+    PF_M4_ACTION_UP_AERIAL_LANDING = 97,
+    PF_M4_ACTION_DOWN_AERIAL_LANDING = 98,
+    PF_M4_ACTION_FORWARD_AERIAL_L_CANCEL_LANDING = 99,
+    PF_M4_ACTION_BACK_AERIAL_L_CANCEL_LANDING = 100,
+    PF_M4_ACTION_UP_AERIAL_L_CANCEL_LANDING = 101,
+    PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING = 102
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -349,9 +357,18 @@ typedef struct pf_m4_fighter_data
     int32_t walk_speed_q16;
     int32_t run_speed_q16;
     int32_t initial_dash_speed_q16;
+    int32_t walk_initial_velocity_q16;
+    int32_t walk_acceleration_q16;
+    int32_t dash_run_base_acceleration_q16;
+    int32_t ground_max_horizontal_speed_q16;
+    int32_t walk_acceleration_taper_q16;
+    int32_t run_acceleration_taper_q16;
     int32_t teeter_snap_distance_q16;
     int32_t crouch_step_speed_q16;
     int32_t air_acceleration_q16;
+    int32_t air_base_acceleration_q16;
+    int32_t air_friction_q16;
+    int32_t air_max_horizontal_speed_q16;
     int32_t air_speed_q16;
     int32_t jump_horizontal_input_speed_q16;
     int32_t jump_horizontal_momentum_multiplier_q16;
@@ -362,10 +379,14 @@ typedef struct pf_m4_fighter_data
     int32_t full_hop_speed_q16;
     int32_t short_hop_speed_q16;
     int32_t double_jump_speed_q16;
+    int32_t double_jump_horizontal_speed_q16;
     int32_t platform_drop_nudge_q16;
+    int32_t ledge_jump_speed_x_q16;
+    int32_t ledge_jump_speed_y_q16;
     int32_t ledge_roll_distance_q16;
     int32_t drop_cancel_snap_distance_q16;
-    int32_t air_dodge_speed_q16;
+    int32_t air_dodge_speed_x_q16;
+    int32_t air_dodge_speed_y_q16;
     int32_t air_dodge_decay_q16;
     int32_t fall_special_mobility_q16;
     int32_t shield_break_launch_speed_q16;
@@ -517,6 +538,10 @@ typedef struct pf_m4_fighter_data
     uint16_t run_turnaround_axis_threshold;
     uint16_t run_continue_axis_threshold;
     uint16_t run_turnaround_lockout_ticks;
+    uint16_t tilt_axis_threshold;
+    uint16_t fast_fall_axis_threshold;
+    uint16_t fast_fall_input_window_ticks;
+    uint16_t air_dodge_dead_zone;
     uint16_t crouch_axis_threshold;
     uint16_t shield_drop_axis_threshold;
     uint16_t dash_attack_startup_ticks;
@@ -549,6 +574,10 @@ typedef struct pf_m4_fighter_data
     uint16_t aerial_landing_lag_begin_tick;
     uint16_t aerial_landing_lag_end_tick;
     uint16_t aerial_landing_lag_ticks;
+    uint16_t forward_aerial_landing_lag_ticks;
+    uint16_t back_aerial_landing_lag_ticks;
+    uint16_t up_aerial_landing_lag_ticks;
+    uint16_t down_aerial_landing_lag_ticks;
     uint16_t strong_aerial_landing_lag_ticks;
     uint16_t l_cancel_window_ticks;
     uint16_t l_cancel_divisor;

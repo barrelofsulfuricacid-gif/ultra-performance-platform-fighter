@@ -1,6 +1,7 @@
 #include "pf/m4.h"
 #include "pf/sim.h"
 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -482,7 +483,7 @@ static int run_stock_respawn_match_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-save-size") ||
-        save_size != (size_t)771)
+        save_size != (size_t)787)
     {
         return fail("respawn-save-size");
     }
@@ -882,7 +883,7 @@ static int run_simultaneous_ko_sudden_death_test(
     {
         if (!step_duel(
                 sim,
-                INT16_MIN,
+                -INT16_MAX,
                 UINT64_C(0),
                 INT16_MAX,
                 UINT64_C(0),
@@ -960,13 +961,43 @@ static int run_simultaneous_ko_sudden_death_test(
         return fail("sudden-death-spawn-retains-300-percent");
     }
 
+    {
+        const int32_t respawn_x_q16 =
+            inspection.players[0].position_x_q16;
+
+        /* Keep this match-resolution fixture simultaneous after importing
+         * Falcon's asymmetric fixed-point ground acceleration. */
+        for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+        {
+            if (!step_duel(
+                    sim,
+                    -INT16_MAX,
+                    UINT64_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    &result,
+                    &inspection))
+            {
+                return 0;
+            }
+            if (inspection.players[0].position_x_q16 <=
+                respawn_x_q16 - INT32_C(1))
+            {
+                break;
+            }
+        }
+    }
+    if (tick == UINT32_C(20))
+    {
+        return fail("sudden-death-movement-head-start");
+    }
     for (tick = UINT32_C(0); tick < TEST_STEP_LIMIT; ++tick)
     {
         if (!step_duel(
                 sim,
                 INT16_MIN,
                 UINT64_C(0),
-                INT16_MAX,
+                INT16_C(30500),
                 UINT64_C(0),
                 &result,
                 &inspection))
@@ -995,6 +1026,26 @@ static int run_simultaneous_ko_sudden_death_test(
         (result.events[3].flags &
          (uint16_t)PF_SIM_EVENT_FLAG_SUDDEN_DEATH) == UINT16_C(0))
     {
+        (void)fprintf(
+            stderr,
+            "m4-match=debug operation=sudden-death-resolution"
+            " tick=%" PRIu32 " winner=%u result_winner=%u"
+            " stocks=(%u,%u) events=%u types=(%u,%u,%u,%u)"
+            " details=(%u,%u) x=(%" PRId32 ",%" PRId32 ")\n",
+            tick,
+            (unsigned int)inspection.winner_mask,
+            (unsigned int)result.winner_mask,
+            (unsigned int)inspection.players[0].stocks_remaining,
+            (unsigned int)inspection.players[1].stocks_remaining,
+            (unsigned int)result.event_count,
+            (unsigned int)result.events[0].type,
+            (unsigned int)result.events[1].type,
+            (unsigned int)result.events[2].type,
+            (unsigned int)result.events[3].type,
+            (unsigned int)result.events[2].detail,
+            (unsigned int)result.events[3].detail,
+            inspection.players[0].position_x_q16,
+            inspection.players[1].position_x_q16);
         return fail("sudden-death-lowest-port-resolution");
     }
     return 1;

@@ -2376,3 +2376,39 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - Generated-page execution: pass in the clean Chrome CI lane.
 
 M5 content scaling remains blocked until M4 combat feel is approved.
+
+## 2026-08-03 Falcon movement-fidelity pass
+
+- The owner authorized provenance-recorded numeric frame tables. The pass uses
+  the owner's NTSC 1.02 `GALE01` data and pinned `doldecomp/melee` revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`; extracted files remain outside
+  the repository.
+- Content schema 56/fighter schema 48 maps Falcon walk, dash, run, jump,
+  double-jump, gravity, air-drift, fast-fall, run-brake, shield-break,
+  ledge-jump, wall-jump/tech, ceiling-tech, and landing values into the
+  laboratory stage coordinate scale.
+- State schema 51/save format 50 added canonical X/Y tilt directions and ages.
+  State schema 52/save format 51 retains the 787-byte save while adding the
+  distinct directional aerial-landing and L-cancel action semantics needed for
+  Falcon's 15/19/18/15/24 landing-lag table.
+- Ground and air acceleration follow the decomp's friction-aware target and
+  overshoot branches, including its conditional absolute-speed cap. Initial
+  dash applies Falcon's impulse once, and double jump replaces horizontal
+  velocity from current stick input.
+- Emergent-tactic verifier routines are skipped per owner direction. Core
+  deterministic mechanics, save/load, replay, browser, and cross-platform
+  checks remain required. The live fidelity audit records partial and divergent
+  systems; no whole-simulation equivalence claim is made.
+- The schema-52 replay is 31,479 bytes with corpus SHA-256
+  `6a898284ea4273b633f10c05e0956d2a161752467458afd2fe045aa7fd1d6259`,
+  final-state SHA-256
+  `12d114300ad716e48a422e302228a13b5ff39ed5711263ef538b103f327faf37`,
+  and event-journal SHA-256
+  `726ba7e815663eed26c6a6adfab6012e4214c393aabeb7e0a468f395fd4aa224`.
+- Windows MinGW GCC 15.2 and WSL Linux GCC each pass all 15 CTest targets.
+  A local MSVC run is unavailable because Visual Studio/MSVC is not installed
+  on the workstation; Windows behavior was still exercised natively rather
+  than through WSL.
+- The pinned Emscripten build and Chrome smoke pass. A live in-app-browser check
+  at `http://127.0.0.1:8002/web_client.html` reports WebGL2, replay, input,
+  gamepad, and playtest readiness as pass with no console errors.

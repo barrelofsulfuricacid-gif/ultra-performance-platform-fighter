@@ -613,6 +613,14 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+State schema 52/save format 51 retains the 647-byte canonical payload and
+787-byte checkpoint while adding fail-closed action semantics for distinct
+forward, back, up, and down aerial landing and L-cancel states. Content schema
+56/fighter schema 48 adds provenance-recorded Falcon movement fields,
+ledge-jump velocities, and the 15/19/18/15/24 aerial landing-lag table. State
+schema 51/save format 50 introduced the four per-player X/Y tilt directions and
+ages used by decomp-style dash and fast-fall input timing.
+
 A peer, replay, save state, or verifier job is compatible only when all
 deterministic identity fields match:
 

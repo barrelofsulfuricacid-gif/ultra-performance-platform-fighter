@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)631)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)647)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -30,7 +30,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x34), UINT8_C(0x39)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x31)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -457,6 +457,34 @@ static void pf_write_payload(
         pf_writer_u8(
             writer,
             world->previous_dodge_down[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i8(
+            writer,
+            world->previous_tilt_x_direction[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i8(
+            writer,
+            world->previous_tilt_y_direction[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->tilt_x_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->tilt_y_age[player_index]);
     }
     pf_writer_u32(writer, world->combat_event_sequence);
     for (player_index = UINT32_C(0);
@@ -898,6 +926,32 @@ static void pf_read_payload(
     {
         world->previous_dodge_down[player_index] =
             pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->previous_tilt_x_direction[player_index] =
+            pf_reader_i8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->previous_tilt_y_direction[player_index] =
+            pf_reader_i8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->tilt_x_age[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->tilt_y_age[player_index] = pf_reader_u8(reader);
     }
     world->combat_event_sequence = pf_reader_u32(reader);
     for (player_index = UINT32_C(0);
@@ -2032,7 +2086,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+                    (uint8_t)
+                        PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2073,6 +2128,16 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(1) ||
                 world->previous_dodge_down[player_index] >
                     UINT8_C(1) ||
+                world->previous_tilt_x_direction[player_index] <
+                    INT8_C(-1) ||
+                world->previous_tilt_x_direction[player_index] >
+                    INT8_C(1) ||
+                world->previous_tilt_y_direction[player_index] <
+                    INT8_C(-1) ||
+                world->previous_tilt_y_direction[player_index] >
+                    INT8_C(1) ||
+                world->tilt_x_age[player_index] > UINT8_C(254) ||
+                world->tilt_y_age[player_index] > UINT8_C(254) ||
                 world->damage_q16[player_index] >
                     PF_SIM_MAX_DAMAGE_Q16 ||
                 world->pending_velocity_x_q16[player_index] <
@@ -2496,6 +2561,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      INT8_C(0) ||
                  world->previous_dodge_down[player_index] !=
                      UINT8_C(0) ||
+                 world->previous_tilt_x_direction[player_index] !=
+                     INT8_C(0) ||
+                 world->previous_tilt_y_direction[player_index] !=
+                     INT8_C(0) ||
+                 world->tilt_x_age[player_index] != UINT8_C(0) ||
+                 world->tilt_y_age[player_index] != UINT8_C(0) ||
                  world->damage_q16[player_index] != UINT32_C(0) ||
                  world->pending_velocity_x_q16[player_index] !=
                      INT32_C(0) ||

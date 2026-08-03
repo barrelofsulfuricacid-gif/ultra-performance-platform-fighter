@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–49 / state schemas 1–50
+- **Status:** Accepted for save formats 1–51 / state schemas 1–52
 - **Date:** 2026-08-01
 
 ## Decision
@@ -59,6 +59,8 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 47 | 48 | 140 | 631 | 771 | No payload-layout change; stationary upper pass-through support ID 5, ordinary grounded/airborne relationships, and immutable stage-derived geometry fail closed |
 | 48 | 49 | 140 | 631 | 771 | Each former signed tech-direction byte packs canonical direction and prone orientation; exact orientation-specific getup-roll movement/invulnerability schedules and reserved-bit rejection fail closed |
 | 49 | 50 | 140 | 631 | 771 | No payload-layout change; event type 24 packs every final per-player action transition and simultaneous forfeits coalesce into one canonical player-mask event |
+| 50 | 51 | 140 | 647 | 787 | Four previous X/Y tilt directions and four X/Y tilt ages make dash and fast-fall input timing canonical |
+| 51 | 52 | 140 | 647 | 787 | No payload-layout change; distinct forward/back/up/down aerial landing and L-cancel action semantics fail closed |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -68,8 +70,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
-`PFSAVE47`, `PFSAVE48`, or `PFSAVE49`.
-The active M4 runtime emits and accepts format 49 with state schema 50. Earlier
+`PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, or `PFSAVE51`.
+The active M4 runtime emits and accepts format 51 with state schema 52. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
