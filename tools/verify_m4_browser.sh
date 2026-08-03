@@ -309,6 +309,9 @@ grep -Fq \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '_pf_web_m4_playtest_step_special' \
+    "$root/CMakeLists.txt"
+grep -Fq \
+    '_pf_web_m4_playtest_step_dual_trigger_special' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '_pf_web_m4_playtest_refresh' \
@@ -515,13 +518,22 @@ grep -Fq \
     'section.dataset.shieldCue = "readable-margin-strength-label"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'section.dataset.shieldHealthCue = "melee-health-density-scale"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'context.fillText("CROUCH", x, crouchCueY)' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'var shieldPresentationWidth = Math.max(' \
+    'var shieldHealthPresentationRatio =' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'var shieldPresentationPadding = lightShielding ? 22 : 14' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'leftShieldStrength: 0' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'rightShieldStrength: 0' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"LIGHT SHIELD "' \

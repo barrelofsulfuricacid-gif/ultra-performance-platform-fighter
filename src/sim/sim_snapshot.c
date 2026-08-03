@@ -2095,7 +2095,16 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 shield_stun > UINT16_C(600) ||
                 shield_health >
                     PF_SIM_MAX_SHIELD_HEALTH_Q16 ||
-                world->shield_held[player_index] > UINT8_C(1) ||
+                (world->shield_held[player_index] &
+                 (uint8_t)~PF_M4_TRIGGER_STATE_MASK) != UINT8_C(0) ||
+                ((world->shield_held[player_index] &
+                  PF_M4_TRIGGER_STATE_LEFT_DENSE) != UINT8_C(0) &&
+                 (world->shield_held[player_index] &
+                  PF_M4_TRIGGER_STATE_LEFT_HELD) == UINT8_C(0)) ||
+                ((world->shield_held[player_index] &
+                  PF_M4_TRIGGER_STATE_RIGHT_DENSE) != UINT8_C(0) &&
+                 (world->shield_held[player_index] &
+                  PF_M4_TRIGGER_STATE_RIGHT_HELD) == UINT8_C(0)) ||
                 powershield > UINT8_C(1) ||
                 tumble > UINT8_C(1) ||
                 world->sdi_pulse_count[player_index] >

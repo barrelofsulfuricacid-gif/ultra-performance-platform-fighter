@@ -883,6 +883,8 @@ mergeInto(LibraryManager.library, {
         taunt: false,
         shield: false,
         shieldStrength: 0,
+        leftShieldStrength: 0,
+        rightShieldStrength: 0,
       };
     }
 
@@ -1023,16 +1025,16 @@ mergeInto(LibraryManager.library, {
       input.jump = gamepadButtonPressed(gamepad, 2);
       input.special = gamepadButtonPressed(gamepad, 3);
       input.taunt = gamepadButtonPressed(gamepad, 8);
-      input.shieldStrength =
-        gamepadButtonPressed(gamepad, 4) ||
-        gamepadButtonPressed(gamepad, 5)
-          ? 65535
-          : Math.round(
-              Math.max(
-                gamepadButtonValue(gamepad, 6),
-                gamepadButtonValue(gamepad, 7)
-              ) * 65535
-            );
+      input.leftShieldStrength = gamepadButtonPressed(gamepad, 4)
+        ? 65535
+        : Math.round(gamepadButtonValue(gamepad, 6) * 65535);
+      input.rightShieldStrength = gamepadButtonPressed(gamepad, 5)
+        ? 65535
+        : Math.round(gamepadButtonValue(gamepad, 7) * 65535);
+      input.shieldStrength = Math.max(
+        input.leftShieldStrength,
+        input.rightShieldStrength
+      );
       input.shield = input.shieldStrength !== 0;
       return input;
     }
@@ -1075,17 +1077,17 @@ mergeInto(LibraryManager.library, {
         gamepadButtonPressed(gamepad, 0) ||
         gamepadButtonPressed(gamepad, 3);
       input.taunt = gamepadButtonPressed(gamepad, 9);
-      input.shieldStrength =
-        gamepadButtonPressed(gamepad, 4) ||
-        gamepadButtonPressed(gamepad, 5) ||
-        zPressed
+      input.leftShieldStrength =
+        gamepadButtonPressed(gamepad, 4) || zPressed
           ? 65535
-          : Math.round(
-              Math.max(
-                mayflashTriggerValue(gamepad, 3),
-                mayflashTriggerValue(gamepad, 4)
-              ) * 65535
-            );
+          : Math.round(mayflashTriggerValue(gamepad, 3) * 65535);
+      input.rightShieldStrength = gamepadButtonPressed(gamepad, 5)
+        ? 65535
+        : Math.round(mayflashTriggerValue(gamepad, 4) * 65535);
+      input.shieldStrength = Math.max(
+        input.leftShieldStrength,
+        input.rightShieldStrength
+      );
       input.shield = input.shieldStrength !== 0;
       return input;
     }
@@ -1249,6 +1251,9 @@ mergeInto(LibraryManager.library, {
         result.inputs[0].taunt &&
         result.inputs[0].shield &&
         result.inputs[0].shieldStrength === Math.round(0.75 * 65535) &&
+        result.inputs[0].leftShieldStrength ===
+          Math.round(0.75 * 65535) &&
+        result.inputs[0].rightShieldStrength === 0 &&
         mayflashInput.horizontal === Math.round(dashAxis * 0.5) &&
         mayflashInput.vertical === -Math.round(dashAxis * 0.5) &&
         mayflashInput.attack &&
@@ -1257,6 +1262,8 @@ mergeInto(LibraryManager.library, {
         mayflashInput.taunt &&
         mayflashInput.shield &&
         mayflashInput.shieldStrength === 65535 &&
+        mayflashInput.leftShieldStrength === 65535 &&
+        mayflashInput.rightShieldStrength === 0 &&
         result.inputs[1].horizontal === mayflashInput.horizontal &&
         result.inputs[1].vertical === mayflashInput.vertical &&
         result.inputs[1].attack &&
@@ -1265,7 +1272,9 @@ mergeInto(LibraryManager.library, {
         !result.inputs[1].special &&
         result.inputs[1].taunt &&
         result.inputs[1].shield &&
-        result.inputs[1].shieldStrength === 65535
+        result.inputs[1].shieldStrength === 65535 &&
+        result.inputs[1].leftShieldStrength === 65535 &&
+        result.inputs[1].rightShieldStrength === 0
       );
     }
 
@@ -1438,6 +1447,7 @@ mergeInto(LibraryManager.library, {
     section.dataset.crouchCue = "squat-chevron-label";
     section.dataset.lightShieldCue = "expanded-translucent-percent-label";
     section.dataset.shieldCue = "readable-margin-strength-label";
+    section.dataset.shieldHealthCue = "melee-health-density-scale";
     section.dataset.teamLab = "inactive";
     section.dataset.matchFlow = "setup";
     section.dataset.collisionOverlay = "visible";
@@ -2013,15 +2023,19 @@ mergeInto(LibraryManager.library, {
         held("KeyT") || state.tauntQueued[0] || player0Gamepad.taunt;
       var player1Taunt =
         held("Comma") || state.tauntQueued[1] || player1Gamepad.taunt;
-      var player0ShieldStrength =
+      var player0LeftShieldStrength =
         held("KeyG") || state.shieldQueued[0]
           ? 1
-          : player0Gamepad.shieldStrength;
-      var player1ShieldStrength =
+          : player0Gamepad.leftShieldStrength;
+      var player0RightShieldStrength =
+        player0Gamepad.rightShieldStrength;
+      var player1LeftShieldStrength =
         held("Period") || held("Numpad1") || state.shieldQueued[1]
           ? 1
-          : player1Gamepad.shieldStrength;
-      var passed = Module._pf_web_m4_playtest_step_special(
+          : player1Gamepad.leftShieldStrength;
+      var player1RightShieldStrength =
+        player1Gamepad.rightShieldStrength;
+      var passed = Module._pf_web_m4_playtest_step_dual_trigger_special(
         mergeAxis(
           horizontal("KeyA", "KeyD"),
           player0Gamepad.horizontal
@@ -2030,7 +2044,8 @@ mergeInto(LibraryManager.library, {
         player0Jump ? 1 : 0,
         player0Attack ? 1 : 0,
         player0StrongAttack ? 1 : 0,
-        player0ShieldStrength,
+        player0LeftShieldStrength,
+        player0RightShieldStrength,
         mergeAxis(
           horizontal("ArrowLeft", "ArrowRight"),
           player1Gamepad.horizontal
@@ -2042,7 +2057,8 @@ mergeInto(LibraryManager.library, {
         player1Jump ? 1 : 0,
         player1Attack ? 1 : 0,
         player1StrongAttack ? 1 : 0,
-        player1ShieldStrength,
+        player1LeftShieldStrength,
+        player1RightShieldStrength,
         player0Special ? 1 : 0,
         player1Special ? 1 : 0,
         player0Taunt ? 1 : 0,
@@ -3464,14 +3480,42 @@ mergeInto(LibraryManager.library, {
         var shieldCenterX = (shieldLeft + shieldRight) / 2;
         var shieldCenterY = (shieldTop + shieldBottom) / 2;
         var shieldPresentationPadding = lightShielding ? 22 : 14;
-        var shieldPresentationWidth = Math.max(
-          shieldWidth,
+        var shieldHealthFraction = Math.max(
+          0,
+          Math.min(1, view[base + 25] / (60 * 65536))
+        );
+        var shieldDensityScale =
+          view[base + 45] <= 8192
+            ? 1
+            : view[base + 45] >= 32768
+              ? 0.5
+              : 1 -
+                0.5 *
+                  ((view[base + 45] - 8192) / (32768 - 8192));
+        var shieldMinimumScale = 0.15;
+        var shieldFullHealthScale =
+          shieldMinimumScale +
+          (1 - shieldMinimumScale) * shieldDensityScale;
+        var shieldCurrentScale =
+          shieldMinimumScale +
+          (1 - shieldMinimumScale) *
+            shieldHealthFraction * shieldDensityScale;
+        var shieldHealthPresentationRatio =
+          shieldCurrentScale / shieldFullHealthScale;
+        var shieldFullHealthPresentationWidth = Math.max(
+          shieldWidth / shieldHealthPresentationRatio,
           width + shieldPresentationPadding
         );
-        var shieldPresentationHeight = Math.max(
-          shieldHeight,
+        var shieldFullHealthPresentationHeight = Math.max(
+          shieldHeight / shieldHealthPresentationRatio,
           height + shieldPresentationPadding
         );
+        var shieldPresentationWidth =
+          shieldFullHealthPresentationWidth *
+          shieldHealthPresentationRatio;
+        var shieldPresentationHeight =
+          shieldFullHealthPresentationHeight *
+          shieldHealthPresentationRatio;
         var shieldPresentationTop =
           shieldCenterY - shieldPresentationHeight / 2;
         var shieldPercent = Math.round(shieldInputFraction * 100);

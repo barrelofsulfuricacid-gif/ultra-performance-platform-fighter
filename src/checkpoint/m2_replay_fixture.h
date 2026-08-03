@@ -9,7 +9,7 @@
 #define PF_M2_REPLAY_PLAYERS UINT8_C(4)
 #define PF_M2_REPLAY_SEED UINT64_C(0x0123456789abcdef)
 #define PF_M2_REPLAY_CORPUS_SHA256                                      \
-    "08955dbf44be5e54f229796b42342904ba6933b4ad5779e61c515b71fe1a62fa"
+    "648abc53960d412d864a8d228444bed2db6a2e19dcc249f26cbd3a3add8a1796"
 #define PF_M2_REPLAY_FINAL_SHA256                                       \
     "17bfd5133e5926221fd71d526f2bbb62359a8a36b8c44949d92954137e25a5e2"
 #define PF_M2_REPLAY_EVENTS_SHA256                                      \

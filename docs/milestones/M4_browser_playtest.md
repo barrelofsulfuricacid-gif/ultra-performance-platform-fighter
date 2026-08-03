@@ -148,7 +148,9 @@ Burst, and up plus top face starts/resumes Arc Reservoir while grounded or
 Vector Ascent while airborne. Back/View taunts, either bumper supplies a full
 shield value, and the two analog triggers preserve their Standard Gamepad
 button values as 16-bit shield strength for shield/tech/air-dodge/L-cancel
-input. Light plus a bumper/trigger grabs. Keyboard and
+input. L/R remain independent, so holding one through a shield jump does not
+consume a later dense edge from the other; a light edge still cannot air dodge.
+Light plus a bumper/trigger grabs. Keyboard and
 gamepad inputs can be mixed for the same player.
 
 The Mayflash `0079:1843` DirectInput profile maps the GameCube main stick and
@@ -632,7 +634,9 @@ a shield; initial dash cannot shield until it reaches run. Input below 8,192
 does not shield, 8,192–32,767 is light, and 32,768 or higher is dense. A
 run-to-shield transition keeps momentum and slides under traction as a shield
 stop. The translucent player-color bubble shrinks with the inspected 60-point
-shield health. Light shield adds a dashed outer ring and a visible
+shield health using the same Melee health-and-density ratio as collision. Its
+full-health baseline stays readable, but it has no constant minimum visual size
+that would hide shield weakening. Light shield adds a dashed outer ring and a visible
 `LIGHT SHIELD N%` label; its opacity and the state-card strength percentage/raw
 value show the current analog strength.
 

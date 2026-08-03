@@ -269,7 +269,7 @@ function(pf_add_smoke_product target product_name render_probe)
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
-                "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_pf_web_replay_import,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_configure_duel,_pf_web_m4_playtest_set_team_lab"
+                "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_pf_web_replay_import,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_step_dual_trigger_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_configure_duel,_pf_web_m4_playtest_set_team_lab"
                 "--pre-js=${pf_m4_owner_checklist}"
                 "--pre-js=${pf_m4_owner_evidence}"
                 "--js-library=${pf_web_adapter}"

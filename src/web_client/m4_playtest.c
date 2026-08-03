@@ -380,11 +380,13 @@ static void pf_web_m4_make_inputs(
     int16_t player0_x,
     int16_t player0_y,
     uint64_t player0_buttons,
-    uint16_t player0_trigger,
+    uint16_t player0_left_trigger,
+    uint16_t player0_right_trigger,
     int16_t player1_x,
     int16_t player1_y,
     uint64_t player1_buttons,
-    uint16_t player1_trigger)
+    uint16_t player1_left_trigger,
+    uint16_t player1_right_trigger)
 {
     uint32_t player_index;
 
@@ -404,13 +406,15 @@ static void pf_web_m4_make_inputs(
     inputs[0].main_stick_x = player0_x;
     inputs[0].main_stick_y = player0_y;
     inputs[0].buttons = player0_buttons;
-    inputs[0].left_trigger = player0_trigger;
+    inputs[0].left_trigger = player0_left_trigger;
+    inputs[0].right_trigger = player0_right_trigger;
     if (pf_web_m4_team_lab_active != UINT8_C(0))
     {
         inputs[2].main_stick_x = player1_x;
         inputs[2].main_stick_y = player1_y;
         inputs[2].buttons = player1_buttons;
-        inputs[2].left_trigger = player1_trigger;
+        inputs[2].left_trigger = player1_left_trigger;
+        inputs[2].right_trigger = player1_right_trigger;
         if (before != NULL &&
             before->players[1].action_state ==
                 (uint8_t)PF_M4_ACTION_GRABBED &&
@@ -424,19 +428,22 @@ static void pf_web_m4_make_inputs(
         inputs[1].main_stick_x = player1_x;
         inputs[1].main_stick_y = player1_y;
         inputs[1].buttons = player1_buttons;
-        inputs[1].left_trigger = player1_trigger;
+        inputs[1].left_trigger = player1_left_trigger;
+        inputs[1].right_trigger = player1_right_trigger;
     }
 }
 
-static int pf_web_m4_tick_with_triggers(
+static int pf_web_m4_tick_with_dual_triggers(
     int16_t player0_x,
     int16_t player0_y,
     uint64_t player0_buttons,
-    uint16_t player0_trigger,
+    uint16_t player0_left_trigger,
+    uint16_t player0_right_trigger,
     int16_t player1_x,
     int16_t player1_y,
     uint64_t player1_buttons,
-    uint16_t player1_trigger,
+    uint16_t player1_left_trigger,
+    uint16_t player1_right_trigger,
     pf_m4_inspection *out_inspection)
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -455,11 +462,13 @@ static int pf_web_m4_tick_with_triggers(
         player0_x,
         player0_y,
         player0_buttons,
-        player0_trigger,
+        player0_left_trigger,
+        player0_right_trigger,
         player1_x,
         player1_y,
         player1_buttons,
-        player1_trigger);
+        player1_left_trigger,
+        player1_right_trigger);
     if (pf_sim_tick(
             pf_web_m4_sim,
             inputs,
@@ -471,6 +480,31 @@ static int pf_web_m4_tick_with_triggers(
     pf_web_m4_last_result = result;
     return pf_m4_inspect(pf_web_m4_sim, out_inspection) ==
            PF_STATUS_OK;
+}
+
+static int pf_web_m4_tick_with_triggers(
+    int16_t player0_x,
+    int16_t player0_y,
+    uint64_t player0_buttons,
+    uint16_t player0_trigger,
+    int16_t player1_x,
+    int16_t player1_y,
+    uint64_t player1_buttons,
+    uint16_t player1_trigger,
+    pf_m4_inspection *out_inspection)
+{
+    return pf_web_m4_tick_with_dual_triggers(
+        player0_x,
+        player0_y,
+        player0_buttons,
+        player0_trigger,
+        UINT16_C(0),
+        player1_x,
+        player1_y,
+        player1_buttons,
+        player1_trigger,
+        UINT16_C(0),
+        out_inspection);
 }
 
 static int pf_web_m4_tick(
@@ -13018,19 +13052,21 @@ int pf_web_m4_playtest_start(void)
     return pf_web_m4_render();
 }
 
-int pf_web_m4_playtest_step_special(
+int pf_web_m4_playtest_step_dual_trigger_special(
     int player0_x,
     int player0_y,
     int player0_jump,
     int player0_attack,
     int player0_strong_attack,
-    int player0_shield,
+    int player0_left_shield,
+    int player0_right_shield,
     int player1_x,
     int player1_y,
     int player1_jump,
     int player1_attack,
     int player1_strong_attack,
-    int player1_shield,
+    int player1_left_shield,
+    int player1_right_shield,
     int player0_special,
     int player1_special,
     int player0_taunt,
@@ -13056,14 +13092,20 @@ int pf_web_m4_playtest_step_special(
         (player0_attack != 0 && player0_attack != 1) ||
         (player0_strong_attack != 0 &&
          player0_strong_attack != 1) ||
-        player0_shield < 0 || player0_shield > (int)UINT16_MAX ||
+        player0_left_shield < 0 ||
+        player0_left_shield > (int)UINT16_MAX ||
+        player0_right_shield < 0 ||
+        player0_right_shield > (int)UINT16_MAX ||
         (player0_special != 0 && player0_special != 1) ||
         (player0_taunt != 0 && player0_taunt != 1) ||
         (player1_jump != 0 && player1_jump != 1) ||
         (player1_attack != 0 && player1_attack != 1) ||
         (player1_strong_attack != 0 &&
          player1_strong_attack != 1) ||
-        player1_shield < 0 || player1_shield > (int)UINT16_MAX ||
+        player1_left_shield < 0 ||
+        player1_left_shield > (int)UINT16_MAX ||
+        player1_right_shield < 0 ||
+        player1_right_shield > (int)UINT16_MAX ||
         (player1_special != 0 && player1_special != 1) ||
         (player1_taunt != 0 && player1_taunt != 1))
     {
@@ -13109,24 +13151,69 @@ int pf_web_m4_playtest_step_special(
     {
         player1_buttons |= PF_INPUT_BUTTON_TAUNT;
     }
-    if (!pf_web_m4_tick_with_triggers(
+    if (!pf_web_m4_tick_with_dual_triggers(
             (int16_t)player0_x,
             (int16_t)player0_y,
             player0_buttons,
-            player0_shield == 1
+            player0_left_shield == 1
                 ? UINT16_MAX
-                : (uint16_t)player0_shield,
+                : (uint16_t)player0_left_shield,
+            player0_right_shield == 1
+                ? UINT16_MAX
+                : (uint16_t)player0_right_shield,
             (int16_t)player1_x,
             (int16_t)player1_y,
             player1_buttons,
-            player1_shield == 1
+            player1_left_shield == 1
                 ? UINT16_MAX
-                : (uint16_t)player1_shield,
+                : (uint16_t)player1_left_shield,
+            player1_right_shield == 1
+                ? UINT16_MAX
+                : (uint16_t)player1_right_shield,
             &inspection))
     {
         return 0;
     }
     return pf_web_m4_render();
+}
+
+int pf_web_m4_playtest_step_special(
+    int player0_x,
+    int player0_y,
+    int player0_jump,
+    int player0_attack,
+    int player0_strong_attack,
+    int player0_shield,
+    int player1_x,
+    int player1_y,
+    int player1_jump,
+    int player1_attack,
+    int player1_strong_attack,
+    int player1_shield,
+    int player0_special,
+    int player1_special,
+    int player0_taunt,
+    int player1_taunt)
+{
+    return pf_web_m4_playtest_step_dual_trigger_special(
+        player0_x,
+        player0_y,
+        player0_jump,
+        player0_attack,
+        player0_strong_attack,
+        player0_shield,
+        0,
+        player1_x,
+        player1_y,
+        player1_jump,
+        player1_attack,
+        player1_strong_attack,
+        player1_shield,
+        0,
+        player0_special,
+        player1_special,
+        player0_taunt,
+        player1_taunt);
 }
 
 int pf_web_m4_playtest_step(

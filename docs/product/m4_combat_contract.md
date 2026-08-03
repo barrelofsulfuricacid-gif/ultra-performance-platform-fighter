@@ -757,6 +757,11 @@ window without a new trigger edge, so the existing tech-window/lockout contract
 remains intact. Roll, spot-dodge, platform-drop, grab, release, and jump-cancel
 routing accepts either light or dense shield input.
 
+Left and right trigger edges remain independent. Holding one trigger through a
+shield jump does not consume a later edge from the other trigger: a fresh dense
+press performs an air dodge, while a fresh light press remains a light-shield
+input and cannot air dodge.
+
 A block freezes its collision strength through shield hitlag and shield stun,
 including after the trigger is softened or released. If shield remains held
 when stun ends, the current trigger strength becomes canonical as ordinary
@@ -785,6 +790,11 @@ trigger strength, and is 0.5 at and above the 32,768 digital threshold. The
 shield is therefore larger than dense shield at equal health, while ordinary
 hold depletion and block damage shrink either volume and expose more of the
 fighter hurtbox.
+
+The browser bubble uses the same health-and-density ratio as the authoritative
+collision volume. Its full-health baseline keeps either shield readable around
+the fighter, then shrinks continuously with shield health instead of applying a
+constant minimum screen-space size.
 
 Main-stick axes outside the authored 4,096 dead zone move the shield center.
 Signed input is scaled independently to the authored maximum 0.3-unit x/y

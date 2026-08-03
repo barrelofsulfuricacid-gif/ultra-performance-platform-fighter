@@ -169,12 +169,13 @@ static int step_duel(
         out_inspection);
 }
 
-static int step_duel_trigger(
+static int step_duel_triggers(
     pf_sim *sim,
     int16_t main_stick_x,
     int16_t main_stick_y,
     uint64_t buttons,
-    uint16_t trigger,
+    uint16_t left_trigger,
+    uint16_t right_trigger,
     pf_m4_inspection *out_inspection)
 {
     pf_m4_inspection before;
@@ -192,7 +193,8 @@ static int step_duel_trigger(
     inputs[0].main_stick_x = main_stick_x;
     inputs[0].main_stick_y = main_stick_y;
     inputs[0].buttons = buttons;
-    inputs[0].left_trigger = trigger;
+    inputs[0].left_trigger = left_trigger;
+    inputs[0].right_trigger = right_trigger;
     if (!expect_status(
             pf_sim_tick(sim, inputs, (size_t)2, &result),
             PF_STATUS_OK,
@@ -205,6 +207,24 @@ static int step_duel_trigger(
         return 0;
     }
     return 1;
+}
+
+static int step_duel_trigger(
+    pf_sim *sim,
+    int16_t main_stick_x,
+    int16_t main_stick_y,
+    uint64_t buttons,
+    uint16_t trigger,
+    pf_m4_inspection *out_inspection)
+{
+    return step_duel_triggers(
+        sim,
+        main_stick_x,
+        main_stick_y,
+        buttons,
+        trigger,
+        UINT16_C(0),
+        out_inspection);
 }
 
 static int launch_player0(
@@ -407,8 +427,94 @@ static int run_air_dodge_test(
             view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
-            &sim) ||
-        !expect_status(
+            &sim))
+    {
+        return 0;
+    }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xa1d0d6d)),
+            PF_STATUS_OK,
+            "held-left-fresh-right-reset") ||
+        !step_duel_triggers(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !step_duel_triggers(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            UINT16_MAX,
+            UINT16_C(0),
+            &inspection))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=held-left-fresh-right-setup\n");
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         inspection.players[0].grounded != UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel_triggers(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].grounded != UINT8_C(0) ||
+        !step_duel_triggers(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            (uint16_t)(
+                default_content->fighter.digital_trigger_threshold -
+                UINT16_C(1)),
+            &inspection) ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        !step_duel_triggers(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            UINT16_C(0),
+            &inspection) ||
+        !step_duel_triggers(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=held-left-fresh-right-air-dodge\n");
+        return 0;
+    }
+    if (!expect_status(
             pf_sim_reset(sim, UINT64_C(0xa1d0d6e)),
             PF_STATUS_OK,
             "directional-air-dodge-reset") ||

@@ -2258,11 +2258,20 @@ pf_status pf_m4_step_player(
         (previous_buttons & PF_INPUT_BUTTON_TAUNT) == UINT64_C(0);
     const uint16_t input_shield_strength =
         pf_m4_input_shield_strength(fighter, input);
+    const uint8_t input_trigger_state =
+        pf_m4_input_trigger_state(fighter, input);
+    const uint8_t previous_trigger_state =
+        world->shield_held[player_index];
     const int shield_held =
-        input_shield_strength != UINT16_C(0);
+        (input_trigger_state & PF_M4_TRIGGER_STATE_HELD_MASK) !=
+        UINT8_C(0);
+    const int dense_shield_pressed =
+        (input_trigger_state & PF_M4_TRIGGER_STATE_DENSE_MASK &
+         (uint8_t)~previous_trigger_state) != UINT8_C(0);
     const int shield_pressed =
-        shield_held != 0 &&
-        world->shield_held[player_index] == UINT8_C(0);
+        ((input_trigger_state & PF_M4_TRIGGER_STATE_HELD_MASK &
+          (uint8_t)~previous_trigger_state) != UINT8_C(0)) ||
+        dense_shield_pressed != 0;
     const int grab_pressed =
         shield_held != 0 && light_attack_pressed != 0;
     const int boost_grab_pressed =
@@ -2673,8 +2682,7 @@ pf_status pf_m4_step_player(
         scratch->tech_lockout_ticks[player_index] =
             fighter->tech_lockout_ticks;
     }
-    scratch->shield_held[player_index] =
-        shield_held != 0 ? UINT8_C(1) : UINT8_C(0);
+    scratch->shield_held[player_index] = input_trigger_state;
     if (shield_pressed != 0)
     {
         scratch->trigger_input_age[player_index] = UINT8_C(0);
@@ -5273,7 +5281,7 @@ pf_status pf_m4_step_player(
                     fighter->air_acceleration_q16);
             }
             else if (
-                shield_pressed != 0 &&
+                dense_shield_pressed != 0 &&
                 input_shield_strength >=
                     fighter->digital_trigger_threshold &&
                 scratch->tumble[player_index] == UINT8_C(0))
@@ -6170,7 +6178,10 @@ pf_status pf_m4_inspect(
         player->last_hit_attacker =
             sim->world.last_hit_attacker[player_index];
         player->shield_held =
-            sim->world.shield_held[player_index];
+            (sim->world.shield_held[player_index] &
+             PF_M4_TRIGGER_STATE_HELD_MASK) != UINT8_C(0)
+                ? UINT8_C(1)
+                : UINT8_C(0);
         player->trigger_input_age =
             sim->world.trigger_input_age[player_index];
         player->l_cancel_eligible =

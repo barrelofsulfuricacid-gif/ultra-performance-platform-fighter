@@ -411,14 +411,7 @@ pf_status pf_sim_tick_impl(
         }
         scratch->previous_buttons[player_index] = input->buttons;
         scratch->shield_held[player_index] =
-            input->left_trigger >=
-                        sim->content.fighter
-                            .light_shield_trigger_threshold ||
-                    input->right_trigger >=
-                        sim->content.fighter
-                            .light_shield_trigger_threshold
-                ? UINT8_C(1)
-                : UINT8_C(0);
+            pf_m4_input_trigger_state(&sim->content.fighter, input);
         if (projectile_intent != PF_M4_PROJECTILE_INPUT_NONE)
         {
             status = pf_m4_apply_projectile_input(

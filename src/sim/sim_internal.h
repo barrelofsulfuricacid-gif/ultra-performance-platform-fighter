@@ -13,6 +13,39 @@
     (UINT32_C(100) * UINT32_C(65536))
 #define PF_SIM_MAX_HITSTUN_TICKS UINT16_C(600)
 
+#define PF_M4_TRIGGER_STATE_LEFT_HELD UINT8_C(1)
+#define PF_M4_TRIGGER_STATE_RIGHT_HELD UINT8_C(2)
+#define PF_M4_TRIGGER_STATE_LEFT_DENSE UINT8_C(4)
+#define PF_M4_TRIGGER_STATE_RIGHT_DENSE UINT8_C(8)
+#define PF_M4_TRIGGER_STATE_HELD_MASK UINT8_C(3)
+#define PF_M4_TRIGGER_STATE_DENSE_MASK UINT8_C(12)
+#define PF_M4_TRIGGER_STATE_MASK UINT8_C(15)
+
+static inline uint8_t pf_m4_input_trigger_state(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input)
+{
+    uint8_t state = UINT8_C(0);
+
+    if (input->left_trigger >= fighter->light_shield_trigger_threshold)
+    {
+        state |= PF_M4_TRIGGER_STATE_LEFT_HELD;
+    }
+    if (input->right_trigger >= fighter->light_shield_trigger_threshold)
+    {
+        state |= PF_M4_TRIGGER_STATE_RIGHT_HELD;
+    }
+    if (input->left_trigger >= fighter->digital_trigger_threshold)
+    {
+        state |= PF_M4_TRIGGER_STATE_LEFT_DENSE;
+    }
+    if (input->right_trigger >= fighter->digital_trigger_threshold)
+    {
+        state |= PF_M4_TRIGGER_STATE_RIGHT_DENSE;
+    }
+    return state;
+}
+
 typedef struct pf_world_state
 {
     pf_hash256 content_hash;

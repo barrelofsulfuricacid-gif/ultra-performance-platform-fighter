@@ -11,6 +11,7 @@
 #define TEST_PLAYER2_BASE (TEST_PLAYER1_BASE + TEST_PLAYER_STRIDE)
 #define TEST_PLAYER3_BASE (TEST_PLAYER2_BASE + TEST_PLAYER_STRIDE)
 #define TEST_ACTION_GRAB 49
+#define TEST_ACTION_AIR_DODGE 32
 #define TEST_SOLID_LEFT 14
 #define TEST_SOLID_RIGHT 15
 #define TEST_SOLID_TOP 16
@@ -466,6 +467,32 @@ static int test_player0_reach_run(void)
         }
     }
     return test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] == 3;
+}
+
+static int test_dual_trigger_step(
+    int player0_jump,
+    int player0_left_shield,
+    int player0_right_shield)
+{
+    return pf_web_m4_playtest_step_dual_trigger_special(
+        0,
+        0,
+        player0_jump,
+        0,
+        0,
+        player0_left_shield,
+        player0_right_shield,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0);
 }
 
 int main(void)
@@ -1250,6 +1277,41 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 0)
     {
         return fail("keyboard-short-hop-air-dodge-wavedash");
+    }
+
+    if (!pf_web_m4_playtest_reset() ||
+        !test_dual_trigger_step(0, 65535, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
+        !test_dual_trigger_step(1, 65535, 0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 5)
+    {
+        return fail("dual-trigger-held-left-setup");
+    }
+    {
+        uint32_t tick;
+
+        for (tick = UINT32_C(0);
+             tick < UINT32_C(8) &&
+             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GROUNDED] != 0;
+             ++tick)
+        {
+            if (!test_dual_trigger_step(0, 65535, 0))
+            {
+                return fail("dual-trigger-held-left-takeoff");
+            }
+        }
+        if (test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GROUNDED] != 0 ||
+            !test_dual_trigger_step(0, 65535, 32767) ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] ==
+                TEST_ACTION_AIR_DODGE ||
+            !test_dual_trigger_step(0, 65535, 0) ||
+            !test_dual_trigger_step(0, 65535, 65535) ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] !=
+                TEST_ACTION_AIR_DODGE ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 0)
+        {
+            return fail("dual-trigger-held-left-fresh-right-air-dodge");
+        }
     }
 
     if (!pf_web_m4_playtest_reset() ||

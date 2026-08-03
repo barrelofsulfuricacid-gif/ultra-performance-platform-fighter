@@ -35,6 +35,26 @@ int pf_web_m4_playtest_step_special(
     int player0_taunt,
     int player1_taunt);
 
+int pf_web_m4_playtest_step_dual_trigger_special(
+    int player0_x,
+    int player0_y,
+    int player0_jump,
+    int player0_attack,
+    int player0_strong_attack,
+    int player0_left_shield,
+    int player0_right_shield,
+    int player1_x,
+    int player1_y,
+    int player1_jump,
+    int player1_attack,
+    int player1_strong_attack,
+    int player1_left_shield,
+    int player1_right_shield,
+    int player0_special,
+    int player1_special,
+    int player0_taunt,
+    int player1_taunt);
+
 int pf_web_m4_playtest_reset(void);
 
 int pf_web_m4_playtest_refresh(void);
