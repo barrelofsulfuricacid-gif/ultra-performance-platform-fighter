@@ -20,11 +20,21 @@ simulation tick in addition to its two keyboard slots. The left stick is
 deterministically quantized from `[-1, 1]` into signed input magnitude after a
 0.2 browser dead zone, while the D-pad emits full magnitude. The first two
 connected standard mappings are assigned in browser index order; non-standard
-mappings are ignored rather than guessed, and hot-plugging does not add state
-to the simulation.
+mappings are ignored rather than guessed, except for the explicitly identified
+Mayflash `0079:1843` GameCube adapter. Its main stick and C-stick normalize the
+adapter's approximately 0.75 cardinal gate report to full magnitude, and empty
+adapter ports are skipped. Hot-plugging does not add state to the simulation.
 
 - Main-stick magnitude below the dash threshold produces proportional walking.
-  A full horizontal value can enter initial dash and run.
+  Reaching the dash threshold before the data-defined X-tilt timer expires
+  enters initial dash, including a low first sample followed by a full second
+  sample. Taking longer to sweep from the lower movement threshold to the dash
+  threshold commits to walking, so gradually moving the stick produces a fast
+  walk rather than a dash.
+- This threshold/timer decision follows the pinned Melee decomp's
+  [`ftCo_Dash_CheckInput`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/chara/ftCommon/ftCo_Dash.c#L30-L48)
+  and
+  [X-tilt timer update](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/fighter.c#L1898-L1949).
 - Reversing the full horizontal value during initial dash starts a new initial
   dash in the opposite direction without requiring a neutral tick. This is the
   invariant used by keyboard and controller dash-dance tests.

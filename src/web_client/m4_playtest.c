@@ -657,8 +657,7 @@ static int pf_web_m4_run_input_probe(void)
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_WALK ||
-        inspection.players[0].action_ticks !=
-            pf_web_m4_content.fighter.dash_input_window_ticks ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
         !pf_web_m4_tick(
             ramp_middle,
             INT16_C(0),
@@ -699,12 +698,7 @@ static int pf_web_m4_run_input_probe(void)
     }
     if (!pf_web_m4_reset_internal() ||
         !pf_web_m4_tick(
-            (int16_t)(
-                ((uint32_t)pf_web_m4_content.fighter.axis_dead_zone +
-                 (uint32_t)
-                     pf_web_m4_content.fighter.dash_axis_threshold) /
-                    UINT32_C(2) +
-                UINT32_C(1)),
+            ramp_low,
             INT16_C(0),
             UINT64_C(0),
             INT16_C(0),

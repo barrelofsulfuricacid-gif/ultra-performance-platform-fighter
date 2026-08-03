@@ -326,7 +326,10 @@ grep -Fq \
     'player0Gamepad.secondaryHorizontal' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'var cStickX = mayflashCStickAxis(gamepad, 5)' \
+    'input.horizontal = mayflashStickAxis(gamepad, 0)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'var cStickX = mayflashStickAxis(gamepad, 5)' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'var cStickX = gamepadAxis(gamepad, 2)' \

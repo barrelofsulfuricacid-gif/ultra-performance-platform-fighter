@@ -2583,8 +2583,7 @@ static int run_ground_control_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_WALK ||
-        inspection.players[0].action_ticks !=
-            content->fighter.dash_input_window_ticks ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
         !step_duel(
             sim,
             ramp_middle,
@@ -2641,7 +2640,7 @@ static int run_ground_control_test(
     if (!expect_status(
             pf_sim_reset(sim, UINT64_C(2)),
             PF_STATUS_OK,
-            "one-sample-walk-reset") ||
+            "two-tick-flick-reset") ||
         !step_duel(
             sim,
             ramp_low,
@@ -2650,6 +2649,7 @@ static int run_ground_control_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
         !step_duel(
             sim,
             INT16_MAX,
@@ -2657,14 +2657,12 @@ static int run_ground_control_test(
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_WALK ||
-        inspection.players[0].dash_direction != INT8_C(0) ||
-        inspection.players[0].velocity_x_q16 >
-            content->fighter.walk_speed_q16)
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].dash_direction != INT8_C(1))
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=one-sample-fast-walk\n");
+            "m4-movement=fail operation=two-tick-flick-dash\n");
         return 0;
     }
 
@@ -2674,11 +2672,7 @@ static int run_ground_control_test(
             "two-sample-dash-reset") ||
         !step_duel(
             sim,
-            (int16_t)(
-                ((uint32_t)content->fighter.axis_dead_zone +
-                 (uint32_t)content->fighter.dash_axis_threshold) /
-                    UINT32_C(2) +
-                UINT32_C(1)),
+            ramp_low,
             INT16_C(0),
             UINT64_C(0),
             &inspection) ||

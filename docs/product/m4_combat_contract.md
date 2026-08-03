@@ -1491,21 +1491,21 @@ they intentionally do not add technique-only state or duplicate harnesses.
 
 The original fighter authors `dash_input_window_ticks=2`, preserving Melee's
 two-frame horizontal stick-tilt timing for a normal controller flick. A direct
-neutral-to-`dash_axis_threshold` sample enters `INITIAL_DASH`; an initial sample
-above the midpoint between the dead zone and dash threshold may reach the dash
-threshold on the following tick and also dash. Entering through the lower half
-of that range commits to `WALK`, which remains active when the stick later
-reaches full horizontal magnitude. The full input then targets
-`walk_speed_q16`, producing the fastest analog walk, not `RUN`. Returning to the
-dead zone resets the route, and a fresh quick motion can dash again. A direct
-fast reversal starts a new directional window.
+neutral-to-`dash_axis_threshold` sample enters `INITIAL_DASH`; any first sample
+above the movement threshold may reach the dash threshold on the following tick
+and also dash. If the stick takes a third sample or longer to reach the dash
+threshold, `WALK` remains active and full horizontal targets `walk_speed_q16`,
+producing the fastest analog walk rather than `RUN`. Returning to the dead zone
+resets the route, and a fresh quick motion can dash again. A direct fast
+reversal starts a new directional window. This is the pinned decomp's
+magnitude-plus-X-tilt-timer rule; it has no midpoint early-commit branch.
 
 `WALK` action ticks hold the bounded tilt age, so the timing is already part of
 canonical save/load, replay, rollback, and hashing without adding mutable
 state. Content schema 54/fighter schema 47 append, default, validate, and hash
-the immutable window. The native ground-control oracle covers a low-entry fast
-walk, a two-sample controller dash, and a direct-snap dash; browser readiness
-repeats these paths in the production Wasm simulation.
+the immutable window. The native ground-control oracle covers a three-sample
+fast walk, a low-then-full two-sample controller dash, and a direct-snap dash;
+browser readiness repeats these paths in the production Wasm simulation.
 
 ## Moonwalk contract
 

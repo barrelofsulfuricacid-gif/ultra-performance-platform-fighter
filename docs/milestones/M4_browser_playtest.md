@@ -165,10 +165,11 @@ ignored. The adapter can expose multiple browser devices even when some of its
 four sockets are empty; empty sockets are filtered before the first two
 attached controllers are assigned.
 
-The DirectInput C-stick profile saturates its physical 0.75 cardinal range to
-the simulation's full axis, so real adapter values cross the authored shield
-escape thresholds instead of falling just below them. The toolbar shows the
-currently mapped `C neutral/left/right/up/down` direction for physical diagnosis.
+The DirectInput main-stick and C-stick profiles saturate their physical 0.75
+cardinal range to the simulation's full axis, so real adapter values cross the
+authored dash and shield-escape thresholds instead of falling just below them.
+The toolbar shows the currently mapped `C neutral/left/right/up/down` direction
+for physical diagnosis.
 
 Standard-mapped controllers expose the browser's right-stick axes through the
 same secondary-stick path, so right-stick left/right/down/up provide the same

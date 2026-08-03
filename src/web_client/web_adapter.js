@@ -934,7 +934,7 @@ mergeInto(LibraryManager.library, {
       return value < 0 ? -magnitude : magnitude;
     }
 
-    function mayflashCStickAxis(gamepad, index) {
+    function mayflashStickAxis(gamepad, index) {
       var value = Math.max(-1, Math.min(1, gamepadRawAxis(gamepad, index)));
       if (Math.abs(value) < 0.2) {
         return 0;
@@ -1071,8 +1071,8 @@ mergeInto(LibraryManager.library, {
         return input;
       }
 
-      input.horizontal = gamepadAxis(gamepad, 0);
-      input.vertical = gamepadAxis(gamepad, 1);
+      input.horizontal = mayflashStickAxis(gamepad, 0);
+      input.vertical = mayflashStickAxis(gamepad, 1);
       var dpad = mayflashDpad(gamepad);
       if (dpad.left || dpad.right) {
         input.horizontal =
@@ -1083,8 +1083,8 @@ mergeInto(LibraryManager.library, {
           dpad.up === dpad.down ? 0 : dpad.up ? -dashAxis : dashAxis;
       }
 
-      var cStickX = mayflashCStickAxis(gamepad, 5);
-      var cStickY = mayflashCStickAxis(gamepad, 2);
+      var cStickX = mayflashStickAxis(gamepad, 5);
+      var cStickY = mayflashStickAxis(gamepad, 2);
       if (cStickX !== 0 || cStickY !== 0) {
         input.secondaryHorizontal = cStickX;
         input.secondaryVertical = cStickY;
@@ -1262,7 +1262,7 @@ mergeInto(LibraryManager.library, {
         connected: true,
         mapping: "",
         id: "MAYFLASH GameCube Controller Adapter (Vendor: 0079 Product: 1843)",
-        axes: [0.25, 0, -0.6, -0.76, -0.76, 0.6, 0, 0, 0, 1.3],
+        axes: [0.75, 0, -0.6, -0.76, -0.76, 0.6, 0, 0, 0, 1.3],
         buttons: mayflashButtons,
       };
       var emptyMayflashPort = {
@@ -1303,7 +1303,7 @@ mergeInto(LibraryManager.library, {
         result.inputs[0].leftShieldStrength ===
           Math.round(0.75 * 65535) &&
         result.inputs[0].rightShieldStrength === 0 &&
-        mayflashInput.horizontal === Math.round(dashAxis * 0.25) &&
+        mayflashInput.horizontal === dashAxis &&
         mayflashInput.vertical === 0 &&
         mayflashInput.secondaryHorizontal ===
           Math.round(dashAxis * 0.8) &&
@@ -1754,9 +1754,10 @@ mergeInto(LibraryManager.library, {
       "simulation tick, so hot-plugging does not alter canonical state. Left " +
       "stick magnitude preserves analog walk/dash thresholds; the D-pad emits " +
       "full magnitude. A normal quick flick may reach full horizontal over two " +
-      "samples and still dash. Starting through the lower half of the analog range " +
-      "commits to the fastest walk, even at full tilt, until the stick returns to neutral. The Mayflash " +
-      "0079:1843 adapter must be in PC mode; " +
+      "samples and still dash. A slower sweep that takes three or more samples " +
+      "to reach the dash threshold becomes the fastest walk. The Mayflash " +
+      "0079:1843 adapter must be in PC mode; its main-stick and C-stick cardinal " +
+      "gate values are normalized to full magnitude, and " +
       "empty adapter ports are skipped. Keyboard and gamepad buttons may be mixed per player. " +
       "Tap jump and release during the three-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +

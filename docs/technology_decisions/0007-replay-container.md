@@ -68,7 +68,7 @@ used by the native/WebAssembly corpus test and browser inspector:
   special-landing state in the production combat path. The verified event
   stream includes packed per-player action transitions.
 - Replay SHA-256
-  `537c936f485ee7ae16adbc07c41362568ba3adfc58880bd7511f212b8cb943e2`.
+  `43f635c1b1b8ef72d24e8dd0b1163c9f0bc3a70f08d78b52b40997238cc6adc1`.
 - Final state SHA-256
   `85aecb7bdf76b7c6aa4c95986e087e7c34d62359f8123e9803db24e3bf53c87c`.
 - Per-tick event-journal SHA-256 under domain `PFEVT001`

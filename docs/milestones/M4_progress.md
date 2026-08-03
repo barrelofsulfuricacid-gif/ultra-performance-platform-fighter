@@ -31,12 +31,17 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 ## Implemented in the gradual-stick fast-walk follow-up
 
-- The one-sample accessibility retune overcorrected and made ordinary analog
-  dashes unnecessarily strict. The authored two-tick window is restored, while
-  a first sample in the lower half between dead zone and dash threshold now
-  saturates the existing `WALK` age. A normal upper-half sample followed by full
-  tilt still dashes, and a low-entry gradual motion remains the fastest walk.
-  No new canonical field or schema change is required.
+- The midpoint-based follow-up also overcorrected: unlike Melee, it committed a
+  low first sample to walking even when the stick reached full horizontal on
+  the next frame. The production rule now follows the pinned decomp's global
+  X-tilt timing: any first sample above the movement threshold starts tick 1,
+  reaching the dash threshold on tick 2 still dashes, and reaching it on tick
+  3 or later remains the fastest walk. No new canonical field or schema change
+  is required.
+- The Mayflash `0079:1843` mapping now applies the existing 0.75 gate
+  normalization to the main stick as well as the C-stick. A physical cardinal
+  flick therefore reaches full simulation magnitude instead of landing at or
+  just below the dash threshold because of adapter rounding.
 - The superseded controller-accessibility retune authored
   `dash_input_window_ticks=1`: any sampled intermediate horizontal magnitude
   committed to the fastest `WALK` route, while only a direct neutral-to-full
@@ -45,17 +50,20 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   replay identities remained unchanged through both revisions.
 - Research against Melee's `ftCo_Dash_CheckInput` and horizontal stick-tilt
   timer confirmed that dash is a magnitude-plus-time decision: the stick must
-  reach the dash region within two frames of leaving the horizontal dead zone.
+  reach the dash region while the two-frame timer remains open. There is no
+  midpoint-based early walk commit.
 - The initial fidelity implementation authored `dash_input_window_ticks=2`.
   `WALK` action ticks retain the bounded tilt age, so a gradual neutral-to-full
   ramp stays in `WALK` at `walk_speed_q16`; the accessibility retune above later
   narrowed this authored window to one sample. Neutral resets the window.
-- Content schema 54/fighter schema 47 hash and validate the new immutable
-  timing. Native and Wasm input probes cover both the aged fast-walk route and
-  its within-window dash control without adding canonical mutable fields.
-- The schema-driven replay corpus identity and eight-match verifier digest are
-  repinned; the replay's final-state and event-stream SHA-256 values remain
-  unchanged. State/scratch requirements remain 2,488/1,088 bytes.
+- Content schema 54/fighter schema 47 hash and validate the immutable timing.
+  Native and Wasm input probes cover both a three-sample aged fast-walk route
+  and a low-then-full two-sample dash without adding canonical mutable fields.
+- The schema-driven replay corpus identity is repinned to
+  `43f635c1b1b8ef72d24e8dd0b1163c9f0bc3a70f08d78b52b40997238cc6adc1`;
+  its final-state and event-stream SHA-256 values remain unchanged. The
+  eight-match verifier digest and 2,488/1,088-byte state/scratch requirements
+  also remain unchanged.
 
 ## Implemented in the sampled half-moon Moonwalk follow-up
 
