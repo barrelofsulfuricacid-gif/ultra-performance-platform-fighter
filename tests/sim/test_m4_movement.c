@@ -2205,7 +2205,7 @@ static int run_content_contract_test(
 
     invalid_content = *default_content;
     invalid_content.fighter.dash_input_window_ticks = UINT16_C(0);
-    if (default_content->fighter.dash_input_window_ticks != UINT16_C(1) ||
+    if (default_content->fighter.dash_input_window_ticks != UINT16_C(2) ||
         !expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -2583,7 +2583,8 @@ static int run_ground_control_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_WALK ||
-        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].action_ticks !=
+            content->fighter.dash_input_window_ticks ||
         !step_duel(
             sim,
             ramp_middle,
@@ -2670,7 +2671,20 @@ static int run_ground_control_test(
     if (!expect_status(
             pf_sim_reset(sim, UINT64_C(2)),
             PF_STATUS_OK,
-            "dash-reset") ||
+            "two-sample-dash-reset") ||
+        !step_duel(
+            sim,
+            (int16_t)(
+                ((uint32_t)content->fighter.axis_dead_zone +
+                 (uint32_t)content->fighter.dash_axis_threshold) /
+                    UINT32_C(2) +
+                UINT32_C(1)),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
         !step_duel(
             sim,
             INT16_MAX,
@@ -2689,7 +2703,27 @@ static int run_ground_control_test(
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=initial-dash\n");
+            "m4-movement=fail operation=two-sample-controller-dash\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "direct-dash-reset") ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].dash_direction != INT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=direct-dash\n");
         return 0;
     }
 

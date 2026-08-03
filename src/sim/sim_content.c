@@ -1280,7 +1280,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->double_jump_cancel_ticks = UINT16_C(6);
     fighter->double_jump_armor_max_hitstun_ticks = UINT16_C(20);
     fighter->initial_dash_ticks = UINT16_C(10);
-    fighter->dash_input_window_ticks = UINT16_C(1);
+    fighter->dash_input_window_ticks = UINT16_C(2);
     fighter->moonwalk_setup_ticks = UINT16_C(2);
     fighter->teeter_ticks = UINT16_C(30);
     fighter->crouch_step_ticks = UINT16_C(1);

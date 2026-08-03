@@ -422,12 +422,14 @@ from 2472 to 2488 bytes; the 1088-byte scratch requirement is unchanged, and
 both remain inside the public 4 KiB storage bounds.
 
 Content schema 54/fighter schema 47 append, validate, default, and hash the
-one-sample horizontal dash-input window. `WALK` reuses its serialized action tick
+two-tick horizontal dash-input window. `WALK` reuses its serialized action tick
 as the bounded time since leaving the dead zone, so save/state, observation,
 RL, inspection, browser, compact, and replay-container layouts remain
 unchanged. The new `uint16_t` occupies existing fighter-record alignment space,
 so the measured 2,488-byte state and 1,088-byte scratch requirements are also
-unchanged. Old content fails closed through its schema and hash.
+unchanged. A first horizontal sample at or below the midpoint between dead zone
+and dash threshold saturates the bounded age to express walk intent without new
+canonical state. Old content fails closed through its schema and hash.
 
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile

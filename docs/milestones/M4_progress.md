@@ -31,14 +31,18 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 ## Implemented in the gradual-stick fast-walk follow-up
 
-- A controller-accessibility retune now authors `dash_input_window_ticks=1`:
-  any sampled intermediate horizontal magnitude commits to the fastest `WALK`
-  route, while only a direct neutral-to-full sample dashes. This is deliberately
-  easier than Melee's exact two-frame timer and leaves keyboard/D-pad dashes
-  unchanged. Native and browser probes cover the one-intermediate-sample route
-  against the direct-snap dash control. The content-bearing replay corpus and
-  deterministic verifier digest are repinned; final state and event-stream
-  identities remain unchanged.
+- The one-sample accessibility retune overcorrected and made ordinary analog
+  dashes unnecessarily strict. The authored two-tick window is restored, while
+  a first sample in the lower half between dead zone and dash threshold now
+  saturates the existing `WALK` age. A normal upper-half sample followed by full
+  tilt still dashes, and a low-entry gradual motion remains the fastest walk.
+  No new canonical field or schema change is required.
+- The superseded controller-accessibility retune authored
+  `dash_input_window_ticks=1`: any sampled intermediate horizontal magnitude
+  committed to the fastest `WALK` route, while only a direct neutral-to-full
+  sample dashed. It proved too strict for ordinary analog dashes and was
+  replaced by the balanced low-entry rule above. Final-state and event-stream
+  replay identities remained unchanged through both revisions.
 - Research against Melee's `ftCo_Dash_CheckInput` and horizontal stick-tilt
   timer confirmed that dash is a magnitude-plus-time decision: the stick must
   reach the dash region within two frames of leaving the horizontal dead zone.

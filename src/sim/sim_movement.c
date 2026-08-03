@@ -5093,6 +5093,10 @@ pf_status pf_m4_step_player(
         }
         else
         {
+            const int32_t walk_commit_axis_threshold =
+                ((int32_t)fighter->axis_dead_zone +
+                 (int32_t)fighter->dash_axis_threshold) /
+                INT32_C(2);
             const int walk_direction_changed =
                 action_state == (uint8_t)PF_M4_ACTION_WALK &&
                 horizontal_direction != facing;
@@ -5193,7 +5197,11 @@ pf_status pf_m4_step_player(
                     if (walk_direction_changed != 0 ||
                         action_ticks == UINT16_C(0))
                     {
-                        action_ticks = UINT16_C(1);
+                        action_ticks =
+                            horizontal_magnitude <=
+                                    walk_commit_axis_threshold
+                                ? fighter->dash_input_window_ticks
+                                : UINT16_C(1);
                     }
                     else if (action_ticks <
                              fighter->dash_input_window_ticks)
