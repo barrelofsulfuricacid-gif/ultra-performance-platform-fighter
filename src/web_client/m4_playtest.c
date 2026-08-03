@@ -4443,12 +4443,13 @@ static int pf_web_m4_run_air_facing_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
         inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
         inspection.players[0].facing != INT8_C(1))
     {
         return 0;
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
     {
         if (!pf_web_m4_tick(
                 PF_WEB_M4_DASH_AXIS,
@@ -4478,7 +4479,7 @@ static int pf_web_m4_run_instant_double_jump_probe(void)
 
     if (!pf_web_m4_reset_internal() ||
         !pf_web_m4_tick(
-            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
             INT16_C(0),
             PF_INPUT_BUTTON_JUMP,
             INT16_C(0),
@@ -4486,7 +4487,7 @@ static int pf_web_m4_run_instant_double_jump_probe(void)
             UINT64_C(0),
             &inspection) ||
         !pf_web_m4_tick(
-            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
             INT16_C(0),
             UINT64_C(0),
             INT16_C(0),
@@ -4494,7 +4495,7 @@ static int pf_web_m4_run_instant_double_jump_probe(void)
             UINT64_C(0),
             &inspection) ||
         !pf_web_m4_tick(
-            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
             INT16_C(0),
             UINT64_C(0),
             INT16_C(0),
@@ -4504,6 +4505,7 @@ static int pf_web_m4_run_instant_double_jump_probe(void)
         inspection.players[0].grounded != UINT8_C(0) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         inspection.players[0].air_jumps_remaining != UINT8_C(1))
     {
         return 0;
@@ -4523,6 +4525,7 @@ static int pf_web_m4_run_instant_double_jump_probe(void)
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         inspection.players[0].action_ticks != UINT16_C(0) ||
         inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        inspection.players[0].velocity_x_q16 != INT32_C(0) ||
         inspection.players[0].velocity_y_q16 !=
             expected_velocity_y ||
         inspection.players[0].position_y_q16 !=
@@ -8262,6 +8265,30 @@ static int pf_web_m4_run_air_dodge_probe(void)
     takeoff_facing = inspection.players[0].facing;
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint16_t)(
+                pf_web_m4_content.fighter.digital_trigger_threshold -
+                UINT16_C(1)),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_AIR_DODGE ||
+        !pf_web_m4_tick_with_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
         !pf_web_m4_tick_with_triggers(
             PF_WEB_M4_DASH_AXIS,
             -PF_WEB_M4_DASH_AXIS,

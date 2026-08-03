@@ -5108,6 +5108,9 @@ pf_status pf_m4_step_player(
             else if (jump_pressed != 0 &&
                      air_jumps_remaining > UINT8_C(0))
             {
+                velocity_x = pf_m4_scale_axis_q16(
+                    input->main_stick_x,
+                    fighter->air_speed_q16);
                 velocity_y = -fighter->double_jump_speed_q16;
                 --air_jumps_remaining;
                 fast_fall = UINT8_C(0);
@@ -5269,7 +5272,10 @@ pf_status pf_m4_step_player(
                     air_target,
                     fighter->air_acceleration_q16);
             }
-            else if (shield_pressed != 0 &&
+            else if (
+                shield_pressed != 0 &&
+                input_shield_strength >=
+                    fighter->digital_trigger_threshold &&
                 scratch->tumble[player_index] == UINT8_C(0))
             {
                 status = pf_m4_enter_air_dodge(
@@ -5319,6 +5325,9 @@ pf_status pf_m4_step_player(
                 jump_pressed &&
                 air_jumps_remaining > UINT8_C(0))
             {
+                velocity_x = pf_m4_scale_axis_q16(
+                    input->main_stick_x,
+                    fighter->air_speed_q16);
                 velocity_y = -fighter->double_jump_speed_q16;
                 --air_jumps_remaining;
                 fast_fall = UINT8_C(0);
@@ -5445,6 +5454,7 @@ pf_status pf_m4_step_player(
     {
         int32_t surface_left;
         int32_t surface_right;
+        int retains_surface;
 
         pf_m4_surface_bounds_q16(
             content,
@@ -5452,6 +5462,17 @@ pf_status pf_m4_step_player(
             world->tick + UINT64_C(1),
             &surface_left,
             &surface_right);
+        retains_surface =
+            position_x >= surface_left && position_x <= surface_right;
+        if (support == (uint8_t)PF_M4_SURFACE_SOLID_TOP)
+        {
+            retains_surface =
+                pf_m4_body_overlaps_horizontal_interval(
+                    position_x,
+                    fighter->half_width_q16,
+                    surface_left,
+                    surface_right);
+        }
         if (horizontal_magnitude <= fighter->axis_dead_zone &&
             pf_m4_action_can_enter_teeter(action_state) != 0 &&
             position_x < surface_left &&
@@ -5481,7 +5502,7 @@ pf_status pf_m4_step_player(
             action_ticks = UINT16_C(0);
             dash_direction = INT8_C(0);
         }
-        else if (position_x < surface_left || position_x > surface_right)
+        else if (retains_surface == 0)
         {
             const int shield_break_fall =
                 pf_m4_action_is_shield_break(action_state);

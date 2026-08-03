@@ -416,6 +416,31 @@ static int run_air_dodge_test(
     {
         return 0;
     }
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            (uint16_t)(
+                default_content->fighter.digital_trigger_threshold -
+                UINT16_C(1)),
+            &inspection) ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_AIR_DODGE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=light-trigger-no-air-dodge\n");
+        return 0;
+    }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xa1d0d6e)),
+            PF_STATUS_OK,
+            "directional-air-dodge-second-reset") ||
+        !launch_player0(sim, 0, &inspection))
+    {
+        return 0;
+    }
     takeoff_facing = inspection.players[0].facing;
     if (!step_duel_trigger(
             sim,
@@ -4880,25 +4905,26 @@ static int run_instant_double_jump_test(
 
     if (!step_duel(
             source,
-            INT16_C(0),
+            INT16_MAX,
             INT16_C(0),
             PF_INPUT_BUTTON_JUMP,
             &source_inspection) ||
         !step_duel(
             source,
-            INT16_C(0),
+            INT16_MAX,
             INT16_C(0),
             UINT64_C(0),
             &source_inspection) ||
         !step_duel(
             source,
-            INT16_C(0),
+            INT16_MAX,
             INT16_C(0),
             UINT64_C(0),
             &source_inspection) ||
         source_inspection.players[0].grounded != UINT8_C(0) ||
         source_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         source_inspection.players[0].air_jumps_remaining !=
             UINT8_C(1))
     {
@@ -4924,6 +4950,7 @@ static int run_instant_double_jump_test(
         source_inspection.players[0].action_ticks != UINT16_C(0) ||
         source_inspection.players[0].air_jumps_remaining !=
             UINT8_C(0) ||
+        source_inspection.players[0].velocity_x_q16 != INT32_C(0) ||
         source_inspection.players[0].velocity_y_q16 !=
             expected_velocity_y ||
         source_inspection.players[0].position_y_q16 !=
@@ -5639,6 +5666,7 @@ static int run_air_facing_lock_test(const pf_content_view *view)
             PF_INPUT_BUTTON_JUMP,
             &inspection) ||
         inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
         inspection.players[0].velocity_y_q16 >= INT32_C(0) ||
         inspection.players[0].facing != INT8_C(1))
     {
@@ -5648,7 +5676,7 @@ static int run_air_facing_lock_test(const pf_content_view *view)
         return 0;
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
     {
         if (!step_duel(
                 sim,
@@ -7502,6 +7530,41 @@ static int run_solid_geometry_test(
             inspection.players[0].position_y_q16,
             (unsigned int)inspection.players[0].grounded,
             (unsigned int)inspection.players[0].support);
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        if (!step_duel(
+                top,
+                -INT16_C(13500),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].support ==
+            (uint8_t)PF_M4_SURFACE_SOLID_TOP ||
+        inspection.players[0].position_x_q16 +
+                content.fighter.half_width_q16 >=
+            content.stage.solid_left_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=solid-top-left-edge-escape"
+            " action=%u ticks=%u grounded=%u support=%u"
+            " position=(%" PRId32 ",%" PRId32 ")"
+            " velocity=(%" PRId32 ",%" PRId32 ")\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.players[0].support,
+            inspection.players[0].position_x_q16,
+            inspection.players[0].position_y_q16,
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16);
         return 0;
     }
 

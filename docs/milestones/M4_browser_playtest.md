@@ -179,8 +179,8 @@ append-only at 496–498. Four append-only prone-orientation values occupy
 499–502. The state cards show raw shield strength, percentage, tilt, platform
 activity, the readable stale queue, selected-move scale, registration, and
 `prone none/back/stomach`.
-Bubble fill and
-stroke weight distinguish light from dense input, while the collision
+Bubble size, translucent fill, dashed outer ring, and an explicit live
+`LIGHT SHIELD N%` label distinguish light from dense input, while the collision
 inspector draws the authoritative shield AABB and the regular presentation
 draws an ellipse inside those same bounds.
 
@@ -434,8 +434,10 @@ short-hop launch speed; hold through takeoff for the one fixed full-hop launch
 speed. Releasing or continuing to hold after takeoff cannot change the selected
 apex. For an instant double jump, release the first jump during jump squat and
 press the other jump key on the first airborne frame. The live `air jumps`
-counter changes from 1 to 0; holding one key through takeoff does not consume
-the air jump because only a fresh edge is accepted.
+counter changes from 1 to 0. Double-jump entry replaces horizontal momentum
+with stick-scaled air speed, so returning the stick to neutral first produces
+exactly zero horizontal velocity. Holding one key through takeoff does not
+consume the air jump because only a fresh edge is accepted.
 
 After a legal air jump, the action card shows `DELAYED AIR JUMP` for the
 default six-tick window. Fresh light or strong attack on action ticks 0–5
@@ -449,7 +451,9 @@ the fighter faces. An air jump also preserves facing, even when performed while
 holding the opposite horizontal direction. Turn on the ground before takeoff
 when an inward or outward airborne facing is required.
 
-A fresh shield/tech-key press while ordinarily airborne performs an air dodge.
+A fresh dense shield/tech-key press while ordinarily airborne performs an air
+dodge. Analog pressure below the dense threshold remains available for light
+shield and timing inputs without starting an air dodge.
 Hold a stick direction with it for a fixed-speed directional dodge; neutral
 stick zeros both velocity components. Facing never follows the air-dodge
 direction. `AIR DODGE` decays momentum without gravity, becomes invulnerable on
@@ -625,8 +629,9 @@ a shield; initial dash cannot shield until it reaches run. Input below 8,192
 does not shield, 8,192–32,767 is light, and 32,768 or higher is dense. A
 run-to-shield transition keeps momentum and slides under traction as a shield
 stop. The translucent player-color bubble shrinks with the inspected 60-point
-shield health; its opacity/stroke and the state-card strength percentage/raw value
-show the current analog strength.
+shield health. Light shield adds a dashed outer ring and a visible
+`LIGHT SHIELD N%` label; its opacity and the state-card strength percentage/raw
+value show the current analog strength.
 
 At the light threshold, holding shield drains 0.07 health per tick; depletion
 interpolates to 0.28 at the dense threshold. Releasing before eight ticks keeps
@@ -860,7 +865,9 @@ broader acceptance evidence.
 24. Get above the raised block with a full/double jump or launch, descend
     beside its upper-left corner, and hold toward the block. Confirm the
     fighter lands or stays flush with the contacted face and no part of the
-    body enters the block. Repeat from the upper-right corner.
+    body enters the block. Walk back off the upper-left edge and confirm the
+    fighter leaves `LANDING` instead of becoming pinned to support 3. Repeat
+    from the upper-right corner.
 25. From idle, press trigger plus the direction the fighter faces. Confirm
     `FORWARD ROLL`, unchanged facing, movement only during its middle window,
     the gold ring only on action ticks 4–16, and idle after 31 ticks. Repeat

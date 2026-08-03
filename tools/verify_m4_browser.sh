@@ -509,7 +509,13 @@ grep -Fq \
     'section.dataset.crouchCue = "squat-chevron-label"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'section.dataset.lightShieldCue = "expanded-translucent-percent-label"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'context.fillText("CROUCH", x, crouchCueY)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"LIGHT SHIELD " + lightShieldPercent + "%"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'controls=keyboard-gamepad-two-controller-duel-team-lab' \

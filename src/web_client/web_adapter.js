@@ -1436,6 +1436,7 @@ mergeInto(LibraryManager.library, {
       gamepadApiAvailable ? "available" : "unavailable";
     section.dataset.gamepadProfiles = "standard-mayflash-0079-1843";
     section.dataset.crouchCue = "squat-chevron-label";
+    section.dataset.lightShieldCue = "expanded-translucent-percent-label";
     section.dataset.teamLab = "inactive";
     section.dataset.matchFlow = "setup";
     section.dataset.collisionOverlay = "visible";
@@ -1691,6 +1692,8 @@ mergeInto(LibraryManager.library, {
       "takeoff never changes either apex. For an instant double jump, release " +
       "the first jump during jump squat, then press the other jump key on the " +
       "first airborne frame; the live air-jumps counter changes from 1 to 0. " +
+      "Its horizontal speed is replaced by current stick input, so neutral " +
+      "stops horizontal momentum. " +
       "Holding one jump key never repeats the input. Tap opposite full directions during " +
       "initial dash to dash-dance; after the state reaches RUN, the same reversal " +
       "enters RUN TURNAROUND instead. To fox-trot, rhythmically tap and release " +
@@ -1759,7 +1762,8 @@ mergeInto(LibraryManager.library, {
       "KOs enter the deterministic 300% sudden-death fixture. " +
       "Hold G or . on the ground for a full draining shield; Standard Gamepad " +
       "analog triggers provide light shield from 12.5% pressure and become dense " +
-      "at 50%. Only fresh dense shields powershield during their four-tick window, " +
+      "at 50%. A light shield has a dashed ring and live percentage label. " +
+      "Only fresh dense shields powershield during their four-tick window, " +
       "while releases have 15 ticks of lag. During shield hitlag, cross the " +
       "horizontal threshold once for 0.66-scaled shield SDI; holding it or adding " +
       "vertical does not repeat, and the final horizontal input supplies one " +
@@ -1770,7 +1774,7 @@ mergeInto(LibraryManager.library, {
       "recovery, and invulnerability windows and never flip facing. Tap the " +
       "same trigger shortly before a tumble landing to tech in " +
       "place; hold left or right to tech-roll. " +
-      "While airborne, a fresh trigger performs a directional air dodge; " +
+      "While airborne, only a fresh dense trigger performs a directional air dodge; " +
       "hold a direction with it, or leave the stick neutral to stop in place. " +
       "For a wavedash, short hop, then press down-left or down-right plus the " +
       "trigger on the first airborne frame. AIR DODGE becomes FALL SPECIAL if " +
@@ -3448,6 +3452,8 @@ mergeInto(LibraryManager.library, {
           0,
           Math.min(1, view[base + 45] / 65535)
         );
+        var lightShielding =
+          view[base + 27] === 0 && view[base + 45] < 32768;
         var shieldLeft = sx(view[base + 47]);
         var shieldRight = sx(view[base + 48]);
         var shieldTop = sy(view[base + 49]);
@@ -3479,11 +3485,15 @@ mergeInto(LibraryManager.library, {
         context.fillStyle =
           view[base + 27] !== 0
             ? "#f7fbff55"
-            : colors[playerIndex] + (shieldInputFraction < 0.5 ? "20" : "33");
+            : colors[playerIndex] + (lightShielding ? "28" : "45");
         context.strokeStyle =
-          view[base + 27] !== 0 ? "#ffffff" : colors[playerIndex];
+          view[base + 27] !== 0
+            ? "#ffffff"
+            : lightShielding
+              ? "#f2dcff"
+              : colors[playerIndex];
         context.lineWidth =
-          view[base + 27] !== 0 ? 4 : 1.5 + shieldInputFraction * 1.5;
+          view[base + 27] !== 0 ? 4 : lightShielding ? 2.5 : 3;
         context.beginPath();
         context.ellipse(
           shieldCenterX,
@@ -3496,6 +3506,40 @@ mergeInto(LibraryManager.library, {
         );
         context.fill();
         context.stroke();
+        if (lightShielding) {
+          var lightShieldPercent = Math.round(shieldInputFraction * 100);
+          context.strokeStyle = colors[playerIndex] + "bb";
+          context.lineWidth = 2;
+          context.setLineDash([6, 4]);
+          context.beginPath();
+          context.ellipse(
+            shieldCenterX,
+            shieldCenterY,
+            shieldWidth / 2 + 4,
+            shieldHeight / 2 + 4,
+            0,
+            0,
+            Math.PI * 2
+          );
+          context.stroke();
+          context.setLineDash([]);
+          context.font = "700 11px ui-monospace, SFMono-Regular, monospace";
+          context.textAlign = "center";
+          context.textBaseline = "bottom";
+          context.lineWidth = 4;
+          context.strokeStyle = "#08111f";
+          context.strokeText(
+            "LIGHT SHIELD " + lightShieldPercent + "%",
+            shieldCenterX,
+            shieldTop - 7
+          );
+          context.fillStyle = "#f2dcff";
+          context.fillText(
+            "LIGHT SHIELD " + lightShieldPercent + "%",
+            shieldCenterX,
+            shieldTop - 7
+          );
+        }
         context.restore();
       }
 
