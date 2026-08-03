@@ -649,7 +649,8 @@ release. Shield health regenerates by 0.07 per non-shield tick.
 From an otherwise actionable grounded state, press a fresh full horizontal
 direction with the trigger to roll. Direction is interpreted relative to the
 fighter's fixed facing: toward facing is `FORWARD ROLL`, away is `BACKWARD
-ROLL`, and neither option flips the facing arrow. Press fresh down with the
+ROLL`. A forward roll flips the facing arrow, while a backward roll preserves
+it, so either finishes facing opposite its travel direction. Press fresh down with the
 trigger for `SPOT DODGE`; down wins over a simultaneous horizontal input.
 Forward roll lasts 31 ticks, backward roll 35, and spot dodge 25. The dashed
 gold ring shows the exact roll action-tick window `[4, 17)` or spot-dodge
@@ -1165,7 +1166,8 @@ through:
   2 maps to allied simulation slot P3;
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
-  reaching their authored invulnerability windows without changing facing;
+  reaching their authored invulnerability windows, with forward roll flipping
+  facing and backward roll preserving it;
 - two different short-hop release timings producing the same apex;
 - two different post-takeoff full-hop hold durations producing the same apex;
 - an exact first-airborne-frame instant double jump consuming one air jump and

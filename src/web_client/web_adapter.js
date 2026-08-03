@@ -1781,8 +1781,10 @@ mergeInto(LibraryManager.library, {
       "0.66-scaled shield ASDI shift. Press a fresh full horizontal direction " +
       "with the trigger for a " +
       "forward or backward roll relative to facing; press fresh down with the " +
-      "trigger for a spot dodge. These grounded dodges have fixed movement, " +
-      "recovery, and invulnerability windows and never flip facing. Tap the " +
+      "trigger for a spot dodge. A forward roll turns the fighter around; a " +
+      "backward roll preserves facing, so either ends facing opposite its " +
+      "travel direction. These grounded dodges have fixed movement, recovery, " +
+      "and invulnerability windows. Tap the " +
       "same trigger shortly before a tumble landing to tech in " +
       "place; hold left or right to tech-roll. " +
       "While airborne, only a fresh dense trigger performs a directional air dodge; " +

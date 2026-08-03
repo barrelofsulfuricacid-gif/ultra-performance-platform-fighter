@@ -935,6 +935,11 @@ roll table rejects physical hitboxes on half-open action ticks `[4, 17)`;
 startup ticks 0–3 and tick 17 onward accept hits. Spot dodge rejects hits on
 `[3, 16)` and is vulnerable outside that range.
 
+Roll facing follows Melee's escape rule: the fighter faces the direction it
+came from, opposite the roll's travel direction. A forward roll therefore
+flips facing, while a backward roll preserves the original facing. Spot dodge
+does not change facing.
+
 Inspection derives the gold invulnerability marker from action ID, action
 timer, and fighter data. A hit outside the legal window replaces the defensive
 action with ordinary hitlag and hitstun; there is no redundant mutable

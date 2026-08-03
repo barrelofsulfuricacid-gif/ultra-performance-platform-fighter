@@ -1431,7 +1431,7 @@ static int run_ground_dodge_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
         inspection.players[0].action_ticks != UINT16_C(1) ||
-        inspection.players[0].facing != facing)
+        inspection.players[0].facing != (int8_t)-facing)
     {
         return 0;
     }
@@ -1474,7 +1474,7 @@ static int run_ground_dodge_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         inspection.players[0].position_x_q16 != expected_x ||
-        inspection.players[0].facing != facing)
+        inspection.players[0].facing != (int8_t)-facing)
     {
         (void)fprintf(
             stderr,

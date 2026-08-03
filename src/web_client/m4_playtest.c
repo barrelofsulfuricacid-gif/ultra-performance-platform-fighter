@@ -4356,7 +4356,7 @@ static int pf_web_m4_run_ground_dodge_probe(void)
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
-        inspection.players[0].facing != facing)
+        inspection.players[0].facing != (int8_t)-facing)
     {
         return 0;
     }

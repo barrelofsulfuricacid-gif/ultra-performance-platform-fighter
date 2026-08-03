@@ -3448,6 +3448,7 @@ pf_status pf_m4_step_player(
                 strong_direction == facing
                     ? (uint8_t)PF_M4_ACTION_ROLL_FORWARD
                     : (uint8_t)PF_M4_ACTION_ROLL_BACKWARD;
+            facing = (int8_t)-strong_direction;
         }
         action_ticks = UINT16_C(0);
         velocity_x = INT32_C(0);
@@ -4289,8 +4290,7 @@ pf_status pf_m4_step_player(
                 forward != 0
                     ? fighter->forward_roll_ticks
                     : fighter->backward_roll_ticks;
-            const int8_t direction =
-                forward != 0 ? facing : (int8_t)-facing;
+            const int8_t direction = (int8_t)-facing;
             const int32_t speed =
                 forward != 0
                     ? fighter->forward_roll_speed_q16
