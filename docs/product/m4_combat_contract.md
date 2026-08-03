@@ -940,6 +940,13 @@ came from, opposite the roll's travel direction. A forward roll therefore
 flips facing, while a backward roll preserves the original facing. Spot dodge
 does not change facing.
 
+The C-stick is retained as the normalized secondary stick instead of being
+collapsed into main-stick movement. While shield is requested, a held full
+horizontal C-stick direction buffers through shield stun and the one eligible
+shield frame, then selects the same production forward/backward roll path.
+Unlike the main-stick path, the secondary-stick buffer does not require a
+fresh directional edge.
+
 Inspection derives the gold invulnerability marker from action ID, action
 timer, and fighter data. A hit outside the legal window replaces the defensive
 action with ordinary hitlag and hitstun; there is no redundant mutable

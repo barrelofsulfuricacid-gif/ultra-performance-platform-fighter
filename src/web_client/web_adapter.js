@@ -876,6 +876,8 @@ mergeInto(LibraryManager.library, {
       return {
         horizontal: 0,
         vertical: 0,
+        secondaryHorizontal: 0,
+        secondaryVertical: 0,
         jump: false,
         attack: false,
         strongAttack: false,
@@ -1065,8 +1067,8 @@ mergeInto(LibraryManager.library, {
       var cStickX = gamepadAxis(gamepad, 5);
       var cStickY = gamepadAxis(gamepad, 2);
       if (cStickX !== 0 || cStickY !== 0) {
-        input.horizontal = cStickX;
-        input.vertical = cStickY;
+        input.secondaryHorizontal = cStickX;
+        input.secondaryVertical = cStickY;
         input.strongAttack = true;
       }
 
@@ -1254,8 +1256,12 @@ mergeInto(LibraryManager.library, {
         result.inputs[0].leftShieldStrength ===
           Math.round(0.75 * 65535) &&
         result.inputs[0].rightShieldStrength === 0 &&
-        mayflashInput.horizontal === Math.round(dashAxis * 0.5) &&
-        mayflashInput.vertical === -Math.round(dashAxis * 0.5) &&
+        mayflashInput.horizontal === Math.round(dashAxis * 0.25) &&
+        mayflashInput.vertical === 0 &&
+        mayflashInput.secondaryHorizontal ===
+          Math.round(dashAxis * 0.5) &&
+        mayflashInput.secondaryVertical ===
+          -Math.round(dashAxis * 0.5) &&
         mayflashInput.attack &&
         mayflashInput.strongAttack &&
         mayflashInput.jump &&
@@ -1266,6 +1272,10 @@ mergeInto(LibraryManager.library, {
         mayflashInput.rightShieldStrength === 0 &&
         result.inputs[1].horizontal === mayflashInput.horizontal &&
         result.inputs[1].vertical === mayflashInput.vertical &&
+        result.inputs[1].secondaryHorizontal ===
+          mayflashInput.secondaryHorizontal &&
+        result.inputs[1].secondaryVertical ===
+          mayflashInput.secondaryVertical &&
         result.inputs[1].attack &&
         result.inputs[1].strongAttack &&
         result.inputs[1].jump &&
@@ -1679,7 +1689,7 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong · L/R shield · Z grab/item · Start taunt"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield roll · L/R shield · Z grab/item · Start taunt"
       )
     );
     controls.appendChild(
@@ -1783,7 +1793,10 @@ mergeInto(LibraryManager.library, {
       "forward or backward roll relative to facing; press fresh down with the " +
       "trigger for a spot dodge. A forward roll turns the fighter around; a " +
       "backward roll preserves facing, so either ends facing opposite its " +
-      "travel direction. These grounded dodges have fixed movement, recovery, " +
+      "travel direction. On the GameCube adapter, hold the independent C-stick " +
+      "left or right with L/R to buffer that roll through shield stun and the " +
+      "eligible shield frame; no fresh C-stick edge is required. These grounded " +
+      "dodges have fixed movement, recovery, " +
       "and invulnerability windows. Tap the " +
       "same trigger shortly before a tumble landing to tech in " +
       "place; hold left or right to tech-roll. " +
@@ -2043,6 +2056,8 @@ mergeInto(LibraryManager.library, {
           player0Gamepad.horizontal
         ),
         mergeAxis(vertical("KeyW", "KeyS"), player0Gamepad.vertical),
+        player0Gamepad.secondaryHorizontal,
+        player0Gamepad.secondaryVertical,
         player0Jump ? 1 : 0,
         player0Attack ? 1 : 0,
         player0StrongAttack ? 1 : 0,
@@ -2056,6 +2071,8 @@ mergeInto(LibraryManager.library, {
           vertical("ArrowUp", "ArrowDown"),
           player1Gamepad.vertical
         ),
+        player1Gamepad.secondaryHorizontal,
+        player1Gamepad.secondaryVertical,
         player1Jump ? 1 : 0,
         player1Attack ? 1 : 0,
         player1StrongAttack ? 1 : 0,

@@ -9084,6 +9084,39 @@ static int start_normal_shield_block(
         out_inspection);
 }
 
+static int step_player1_secondary_shield(
+    pf_sim *sim,
+    int16_t secondary_stick_x,
+    pf_m4_inspection *out_inspection)
+{
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_m4_inspection before;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, &before),
+            PF_STATUS_OK,
+            "secondary-shield-inspect-before-step"))
+    {
+        return 0;
+    }
+    make_inputs(inputs, UINT8_C(2), before.tick);
+    inputs[1].secondary_stick_x = secondary_stick_x;
+    inputs[1].buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+    inputs[1].left_trigger = UINT16_MAX;
+    return expect_status(
+               pf_sim_tick(
+                   sim,
+                   inputs,
+                   (size_t)2,
+                   &test_last_result),
+               PF_STATUS_OK,
+               "secondary-shield-step") &&
+           expect_status(
+               pf_m4_inspect(sim, out_inspection),
+               PF_STATUS_OK,
+               "secondary-shield-inspect-after-step");
+}
+
 static int start_window_shield_block(
     pf_sim *sim,
     uint16_t shield_strength,
@@ -11334,6 +11367,7 @@ static int run_shield_block_test(
         content->fighter.shield_hold_depletion_q16;
     int32_t normal_pushback;
     uint16_t normal_shield_stun;
+    int8_t normal_facing;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -11384,21 +11418,17 @@ static int run_shield_block_test(
         normal_inspection.players[1].velocity_x_q16;
     normal_shield_stun =
         normal_inspection.players[1].shield_stun_ticks;
+    normal_facing = normal_inspection.players[1].facing;
 
     for (tick = UINT32_C(0);
          tick < (uint32_t)content->fighter.jab_hitlag_ticks;
          ++tick)
     {
-        if (!step_reaction_duel(
+        if (!step_player1_secondary_shield(
                 normal,
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                UINT16_C(0),
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                UINT16_MAX,
+                normal_facing == INT8_C(1)
+                    ? INT16_MAX
+                    : INT16_MIN,
                 &normal_inspection))
         {
             return fail("shield-hitlag-step");
@@ -11412,16 +11442,11 @@ static int run_shield_block_test(
     }
     for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
     {
-        if (!step_reaction_duel(
+        if (!step_player1_secondary_shield(
                 normal,
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                UINT16_C(0),
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                UINT16_MAX,
+                normal_facing == INT8_C(1)
+                    ? INT16_MAX
+                    : INT16_MIN,
                 &normal_inspection))
         {
             return fail("shield-stun-step");
@@ -11438,6 +11463,19 @@ static int run_shield_block_test(
             UINT16_C(0))
     {
         return fail("shield-stun-duration");
+    }
+    if (!step_player1_secondary_shield(
+            normal,
+            normal_facing == INT8_C(1)
+                ? INT16_MAX
+                : INT16_MIN,
+            &normal_inspection) ||
+        normal_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        normal_inspection.players[1].facing !=
+            (int8_t)-normal_facing)
+    {
+        return fail("c-stick-roll-buffer-through-shield-stun");
     }
 
     if (!start_powershield_block(power, &power_inspection) ||

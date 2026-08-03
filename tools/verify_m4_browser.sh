@@ -314,6 +314,15 @@ grep -Fq \
     '_pf_web_m4_playtest_step_dual_trigger_special' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'secondaryHorizontal: 0' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'player0Gamepad.secondaryHorizontal' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'no fresh C-stick edge is required' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     '_pf_web_m4_playtest_refresh' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \

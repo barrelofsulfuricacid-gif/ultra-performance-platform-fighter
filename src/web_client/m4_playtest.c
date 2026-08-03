@@ -379,11 +379,15 @@ static void pf_web_m4_make_inputs(
     uint64_t tick,
     int16_t player0_x,
     int16_t player0_y,
+    int16_t player0_secondary_x,
+    int16_t player0_secondary_y,
     uint64_t player0_buttons,
     uint16_t player0_left_trigger,
     uint16_t player0_right_trigger,
     int16_t player1_x,
     int16_t player1_y,
+    int16_t player1_secondary_x,
+    int16_t player1_secondary_y,
     uint64_t player1_buttons,
     uint16_t player1_left_trigger,
     uint16_t player1_right_trigger)
@@ -405,6 +409,8 @@ static void pf_web_m4_make_inputs(
     }
     inputs[0].main_stick_x = player0_x;
     inputs[0].main_stick_y = player0_y;
+    inputs[0].secondary_stick_x = player0_secondary_x;
+    inputs[0].secondary_stick_y = player0_secondary_y;
     inputs[0].buttons = player0_buttons;
     inputs[0].left_trigger = player0_left_trigger;
     inputs[0].right_trigger = player0_right_trigger;
@@ -412,6 +418,8 @@ static void pf_web_m4_make_inputs(
     {
         inputs[2].main_stick_x = player1_x;
         inputs[2].main_stick_y = player1_y;
+        inputs[2].secondary_stick_x = player1_secondary_x;
+        inputs[2].secondary_stick_y = player1_secondary_y;
         inputs[2].buttons = player1_buttons;
         inputs[2].left_trigger = player1_left_trigger;
         inputs[2].right_trigger = player1_right_trigger;
@@ -427,6 +435,8 @@ static void pf_web_m4_make_inputs(
     {
         inputs[1].main_stick_x = player1_x;
         inputs[1].main_stick_y = player1_y;
+        inputs[1].secondary_stick_x = player1_secondary_x;
+        inputs[1].secondary_stick_y = player1_secondary_y;
         inputs[1].buttons = player1_buttons;
         inputs[1].left_trigger = player1_left_trigger;
         inputs[1].right_trigger = player1_right_trigger;
@@ -436,11 +446,15 @@ static void pf_web_m4_make_inputs(
 static int pf_web_m4_tick_with_dual_triggers(
     int16_t player0_x,
     int16_t player0_y,
+    int16_t player0_secondary_x,
+    int16_t player0_secondary_y,
     uint64_t player0_buttons,
     uint16_t player0_left_trigger,
     uint16_t player0_right_trigger,
     int16_t player1_x,
     int16_t player1_y,
+    int16_t player1_secondary_x,
+    int16_t player1_secondary_y,
     uint64_t player1_buttons,
     uint16_t player1_left_trigger,
     uint16_t player1_right_trigger,
@@ -461,11 +475,15 @@ static int pf_web_m4_tick_with_dual_triggers(
         before.tick,
         player0_x,
         player0_y,
+        player0_secondary_x,
+        player0_secondary_y,
         player0_buttons,
         player0_left_trigger,
         player0_right_trigger,
         player1_x,
         player1_y,
+        player1_secondary_x,
+        player1_secondary_y,
         player1_buttons,
         player1_left_trigger,
         player1_right_trigger);
@@ -496,11 +514,15 @@ static int pf_web_m4_tick_with_triggers(
     return pf_web_m4_tick_with_dual_triggers(
         player0_x,
         player0_y,
+        INT16_C(0),
+        INT16_C(0),
         player0_buttons,
         player0_trigger,
         UINT16_C(0),
         player1_x,
         player1_y,
+        INT16_C(0),
+        INT16_C(0),
         player1_buttons,
         player1_trigger,
         UINT16_C(0),
@@ -4429,8 +4451,60 @@ static int pf_web_m4_run_ground_dodge_probe(void)
             return 0;
         }
     }
-    return inspection.players[0].invulnerable == UINT8_C(1) &&
-           inspection.players[0].facing == facing;
+    if (inspection.players[0].invulnerable != UINT8_C(1) ||
+        inspection.players[0].facing != facing ||
+        !pf_web_m4_reset_internal() ||
+        pf_m4_inspect(
+            pf_web_m4_sim,
+            &inspection) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    facing = inspection.players[0].facing;
+    if (!pf_web_m4_tick_with_dual_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            facing == INT8_C(1)
+                ? PF_WEB_M4_DASH_AXIS
+                : -PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !pf_web_m4_tick_with_dual_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            facing == INT8_C(1)
+                ? PF_WEB_M4_DASH_AXIS
+                : -PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    return inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_ROLL_FORWARD &&
+           inspection.players[0].facing == (int8_t)-facing;
 }
 
 static int pf_web_m4_run_air_facing_probe(void)
@@ -13055,6 +13129,8 @@ int pf_web_m4_playtest_start(void)
 int pf_web_m4_playtest_step_dual_trigger_special(
     int player0_x,
     int player0_y,
+    int player0_secondary_x,
+    int player0_secondary_y,
     int player0_jump,
     int player0_attack,
     int player0_strong_attack,
@@ -13062,6 +13138,8 @@ int pf_web_m4_playtest_step_dual_trigger_special(
     int player0_right_shield,
     int player1_x,
     int player1_y,
+    int player1_secondary_x,
+    int player1_secondary_y,
     int player1_jump,
     int player1_attack,
     int player1_strong_attack,
@@ -13086,8 +13164,16 @@ int pf_web_m4_playtest_step_dual_trigger_special(
 
     if (player0_x < INT16_MIN || player0_x > INT16_MAX ||
         player0_y < INT16_MIN || player0_y > INT16_MAX ||
+        player0_secondary_x < INT16_MIN ||
+        player0_secondary_x > INT16_MAX ||
+        player0_secondary_y < INT16_MIN ||
+        player0_secondary_y > INT16_MAX ||
         player1_x < INT16_MIN || player1_x > INT16_MAX ||
         player1_y < INT16_MIN || player1_y > INT16_MAX ||
+        player1_secondary_x < INT16_MIN ||
+        player1_secondary_x > INT16_MAX ||
+        player1_secondary_y < INT16_MIN ||
+        player1_secondary_y > INT16_MAX ||
         (player0_jump != 0 && player0_jump != 1) ||
         (player0_attack != 0 && player0_attack != 1) ||
         (player0_strong_attack != 0 &&
@@ -13154,6 +13240,8 @@ int pf_web_m4_playtest_step_dual_trigger_special(
     if (!pf_web_m4_tick_with_dual_triggers(
             (int16_t)player0_x,
             (int16_t)player0_y,
+            (int16_t)player0_secondary_x,
+            (int16_t)player0_secondary_y,
             player0_buttons,
             player0_left_shield == 1
                 ? UINT16_MAX
@@ -13163,6 +13251,8 @@ int pf_web_m4_playtest_step_dual_trigger_special(
                 : (uint16_t)player0_right_shield,
             (int16_t)player1_x,
             (int16_t)player1_y,
+            (int16_t)player1_secondary_x,
+            (int16_t)player1_secondary_y,
             player1_buttons,
             player1_left_shield == 1
                 ? UINT16_MAX
@@ -13198,6 +13288,8 @@ int pf_web_m4_playtest_step_special(
     return pf_web_m4_playtest_step_dual_trigger_special(
         player0_x,
         player0_y,
+        0,
+        0,
         player0_jump,
         player0_attack,
         player0_strong_attack,
@@ -13205,6 +13297,8 @@ int pf_web_m4_playtest_step_special(
         0,
         player1_x,
         player1_y,
+        0,
+        0,
         player1_jump,
         player1_attack,
         player1_strong_attack,

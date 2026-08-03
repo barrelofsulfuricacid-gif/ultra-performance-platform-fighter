@@ -227,6 +227,48 @@ static int step_duel_trigger(
         out_inspection);
 }
 
+static int step_duel_secondary_trigger(
+    pf_sim *sim,
+    int16_t main_stick_x,
+    int16_t main_stick_y,
+    int16_t secondary_stick_x,
+    int16_t secondary_stick_y,
+    uint64_t buttons,
+    uint16_t trigger,
+    pf_m4_inspection *out_inspection)
+{
+    pf_m4_inspection before;
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+
+    if (!expect_status(
+            pf_m4_inspect(sim, &before),
+            PF_STATUS_OK,
+            "secondary-trigger-inspect-before-step"))
+    {
+        return 0;
+    }
+    make_inputs(inputs, UINT8_C(2), before.tick);
+    inputs[0].main_stick_x = main_stick_x;
+    inputs[0].main_stick_y = main_stick_y;
+    inputs[0].secondary_stick_x = secondary_stick_x;
+    inputs[0].secondary_stick_y = secondary_stick_y;
+    inputs[0].buttons = buttons;
+    inputs[0].left_trigger = trigger;
+    if (!expect_status(
+            pf_sim_tick(sim, inputs, (size_t)2, &result),
+            PF_STATUS_OK,
+            "secondary-trigger-step") ||
+        !expect_status(
+            pf_m4_inspect(sim, out_inspection),
+            PF_STATUS_OK,
+            "secondary-trigger-inspect-after-step"))
+    {
+        return 0;
+    }
+    return 1;
+}
+
 static int launch_player0(
     pf_sim *sim,
     int short_hop,
@@ -1690,6 +1732,48 @@ static int run_ground_dodge_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_SPOT_DODGE)
     {
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d741)),
+            PF_STATUS_OK,
+            "c-stick-buffered-roll-reset") ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "c-stick-buffered-roll-inspect"))
+    {
+        return 0;
+    }
+    facing = inspection.players[0].facing;
+    if (!step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            facing == INT8_C(1) ? INT16_MAX : INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            facing == INT8_C(1) ? INT16_MAX : INT16_MIN,
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        inspection.players[0].facing != (int8_t)-facing)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=c-stick-buffered-roll\n");
         return 0;
     }
 

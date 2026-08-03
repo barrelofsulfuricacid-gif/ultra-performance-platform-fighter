@@ -155,14 +155,22 @@ L-cancel:
   Pressing trigger and direction together is legal, as is raising shield first
   and then flicking the direction.
 - Horizontal input matching fixed facing selects `ROLL_FORWARD`; the opposite
-  direction selects `ROLL_BACKWARD`. Neither action changes facing.
+  direction selects `ROLL_BACKWARD`. A forward roll flips facing and a
+  backward roll preserves it, so either finishes facing opposite travel.
+- The secondary stick remains a distinct normalized axis pair. Holding it
+  horizontally while shield is requested buffers the direction through the
+  one shield frame and enters the roll without requiring a fresh secondary-
+  stick edge. Holding it through shield stun likewise takes the roll on the
+  first eligible shield frame. The main-stick path remains edge-triggered.
 - Fresh down plus trigger selects `SPOT_DODGE`. If down and a full horizontal
   edge arrive together, spot dodge has priority.
 - Reduced down while already shielding is below the spot-dodge threshold and
   therefore remains available to the pass-through-platform shield-drop route.
 - A direction held before the trigger is not fresh and cannot start a roll.
-  Down held before the trigger likewise produces ordinary shield instead of a
-  spot dodge. Initial dash and other locked actions remain excluded.
+  This negative case applies to the main stick; the held secondary-stick
+  buffer is intentional. Down held before the trigger likewise produces
+  ordinary shield instead of a spot dodge. Initial dash and other locked
+  actions remain excluded.
 
 All timing is deterministic fighter data. The current original placeholder
 uses:

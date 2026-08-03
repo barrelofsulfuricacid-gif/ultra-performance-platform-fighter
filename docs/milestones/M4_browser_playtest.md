@@ -155,7 +155,8 @@ gamepad inputs can be mixed for the same player.
 
 The Mayflash `0079:1843` DirectInput profile maps the GameCube main stick and
 D-pad to movement, A to light attack, B to special, X/Y to jump, the C-stick to
-directional strong attack, analog or digital L/R to shield, Z directly to the
+its own secondary axes for directional strong attacks and shield-roll
+buffering, analog or digital L/R to shield, Z directly to the
 attack-plus-shield grab/item chord, and Start to taunt. Chromium exposes the
 adapter's HID hat and axes without a Standard Gamepad remap, so the adapter is
 recognized explicitly and all other unknown non-standard mappings remain
@@ -650,12 +651,17 @@ From an otherwise actionable grounded state, press a fresh full horizontal
 direction with the trigger to roll. Direction is interpreted relative to the
 fighter's fixed facing: toward facing is `FORWARD ROLL`, away is `BACKWARD
 ROLL`. A forward roll flips the facing arrow, while a backward roll preserves
-it, so either finishes facing opposite its travel direction. Press fresh down with the
-trigger for `SPOT DODGE`; down wins over a simultaneous horizontal input.
+it, so either finishes facing opposite its travel direction. The GameCube
+C-stick is independent of the main stick: hold C-stick left or right with L/R
+to buffer a roll. It may be held before the shield becomes actionable or
+through shield stun; the fighter shows one eligible shield frame and then
+rolls without requiring a new C-stick edge. Press fresh down with the trigger
+for `SPOT DODGE`; down wins over a simultaneous horizontal input.
 Forward roll lasts 31 ticks, backward roll 35, and spot dodge 25. The dashed
 gold ring shows the exact roll action-tick window `[4, 17)` or spot-dodge
-window `[3, 16)`. Holding the direction before pressing trigger is the
-negative case because the direction is no longer fresh.
+window `[3, 16)`. Holding the main-stick direction before pressing trigger is
+the negative case because that direction is no longer fresh; holding a
+horizontal C-stick direction is the buffered positive case.
 
 Blocking the current physical attack prevents percent and launch, freezes both
 players in hitlag, applies damage-scaled pushback, and resumes the defender in
@@ -1167,7 +1173,9 @@ through:
 - fresh trigger-plus-horizontal input selecting forward/backward roll relative
   to facing, fresh trigger-plus-down selecting spot dodge, and both actions
   reaching their authored invulnerability windows, with forward roll flipping
-  facing and backward roll preserving it;
+  facing and backward roll preserving it; the same probe holds a separate
+  secondary-stick direction across the shield frame and confirms the buffered
+  roll starts without a fresh main-stick edge;
 - two different short-hop release timings producing the same apex;
 - two different post-takeoff full-hop hold durations producing the same apex;
 - an exact first-airborne-frame instant double jump consuming one air jump and

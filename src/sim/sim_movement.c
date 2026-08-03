@@ -795,10 +795,24 @@ static uint8_t pf_m4_grab_action_for_input(
     const pf_input_frame *input,
     int8_t facing)
 {
+    const int use_secondary_stick =
+        (input->buttons & PF_INPUT_BUTTON_STRONG_ATTACK) != UINT64_C(0) &&
+        (pf_m4_axis_magnitude(input->secondary_stick_x) >=
+             fighter->axis_dead_zone ||
+         pf_m4_axis_magnitude(input->secondary_stick_y) >=
+             fighter->axis_dead_zone);
+    const int16_t stick_x =
+        use_secondary_stick != 0
+            ? input->secondary_stick_x
+            : input->main_stick_x;
+    const int16_t stick_y =
+        use_secondary_stick != 0
+            ? input->secondary_stick_y
+            : input->main_stick_y;
     const uint16_t horizontal =
-        pf_m4_axis_magnitude(input->main_stick_x);
+        pf_m4_axis_magnitude(stick_x);
     const uint16_t vertical =
-        pf_m4_axis_magnitude(input->main_stick_y);
+        pf_m4_axis_magnitude(stick_y);
 
     if (horizontal < fighter->dash_axis_threshold &&
         vertical < fighter->dash_axis_threshold)
@@ -807,11 +821,11 @@ static uint8_t pf_m4_grab_action_for_input(
     }
     if (vertical > horizontal)
     {
-        return input->main_stick_y < INT16_C(0)
+        return stick_y < INT16_C(0)
                    ? (uint8_t)PF_M4_ACTION_THROW_UP
                    : (uint8_t)PF_M4_ACTION_THROW_DOWN;
     }
-    return (input->main_stick_x < INT16_C(0) ? INT8_C(-1) : INT8_C(1)) ==
+    return (stick_x < INT16_C(0) ? INT8_C(-1) : INT8_C(1)) ==
                    facing
                ? (uint8_t)PF_M4_ACTION_THROW_FORWARD
                : (uint8_t)PF_M4_ACTION_THROW_BACK;
@@ -2315,6 +2329,29 @@ pf_status pf_m4_step_player(
         pf_m4_strong_direction(
             input->main_stick_x,
             fighter->dash_axis_threshold);
+    const uint16_t secondary_horizontal_magnitude =
+        pf_m4_axis_magnitude(input->secondary_stick_x);
+    const uint16_t secondary_vertical_magnitude =
+        pf_m4_axis_magnitude(input->secondary_stick_y);
+    const int secondary_stick_active =
+        secondary_horizontal_magnitude >= fighter->axis_dead_zone ||
+        secondary_vertical_magnitude >= fighter->axis_dead_zone;
+    const int16_t strong_attack_stick_x =
+        secondary_stick_active != 0
+            ? input->secondary_stick_x
+            : input->main_stick_x;
+    const int16_t strong_attack_stick_y =
+        secondary_stick_active != 0
+            ? input->secondary_stick_y
+            : input->main_stick_y;
+    const int8_t strong_attack_horizontal_direction =
+        pf_m4_axis_direction(
+            strong_attack_stick_x,
+            fighter->axis_dead_zone);
+    const int8_t secondary_strong_direction =
+        pf_m4_strong_direction(
+            input->secondary_stick_x,
+            fighter->dash_axis_threshold);
     const int forward_smash_pressed =
         grab_pressed == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
@@ -2362,8 +2399,8 @@ pf_status pf_m4_step_player(
     const uint8_t ground_strong_attack_action =
         pf_m4_select_ground_strong_attack_action(
             fighter,
-            input->main_stick_x,
-            input->main_stick_y);
+            strong_attack_stick_x,
+            strong_attack_stick_y);
     const int dash_attack_pressed =
         grab_pressed == 0 && light_attack_pressed != 0 &&
         world->action_state[player_index] ==
@@ -2387,10 +2424,22 @@ pf_status pf_m4_step_player(
         shield_held != 0 &&
         dodge_down_held != 0 &&
         world->previous_dodge_down[player_index] == UINT8_C(0);
-    const int roll_pressed =
+    const int main_stick_roll_pressed =
         shield_held != 0 &&
         strong_direction != INT8_C(0) &&
         world->previous_strong_direction[player_index] == INT8_C(0);
+    const int secondary_stick_roll_buffered =
+        shield_held != 0 &&
+        secondary_strong_direction != INT8_C(0) &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_SHIELD;
+    const int roll_pressed =
+        main_stick_roll_pressed != 0 ||
+        secondary_stick_roll_buffered != 0;
+    const int8_t roll_direction =
+        main_stick_roll_pressed != 0
+            ? strong_direction
+            : secondary_strong_direction;
     const int shield_platform_drop_requested =
         shield_held != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
@@ -3445,10 +3494,10 @@ pf_status pf_m4_step_player(
         else
         {
             action_state =
-                strong_direction == facing
+                roll_direction == facing
                     ? (uint8_t)PF_M4_ACTION_ROLL_FORWARD
                     : (uint8_t)PF_M4_ACTION_ROLL_BACKWARD;
-            facing = (int8_t)-strong_direction;
+            facing = (int8_t)-roll_direction;
         }
         action_ticks = UINT16_C(0);
         velocity_x = INT32_C(0);
@@ -3508,7 +3557,9 @@ pf_status pf_m4_step_player(
             velocity_x =
                 (int32_t)facing * fighter->dash_attack_speed_q16;
         }
-        if (horizontal_direction != INT8_C(0) &&
+        if ((ground_strong_attack_pressed != 0
+                 ? strong_attack_horizontal_direction
+                 : horizontal_direction) != INT8_C(0) &&
             (action_state ==
                  (uint8_t)PF_M4_ACTION_FORWARD_ATTACK ||
              action_state ==
@@ -3516,7 +3567,9 @@ pf_status pf_m4_step_player(
              action_state ==
                  (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE))
         {
-            facing = horizontal_direction;
+            facing = ground_strong_attack_pressed != 0
+                         ? strong_attack_horizontal_direction
+                         : horizontal_direction;
         }
     }
 
@@ -3708,13 +3761,17 @@ pf_status pf_m4_step_player(
             short_hop_latched = UINT8_C(0);
             dash_direction = INT8_C(0);
             scratch->powershield[player_index] = UINT8_C(0);
-            if (horizontal_direction != INT8_C(0) &&
+            if ((strong_attack_pressed != 0
+                     ? strong_attack_horizontal_direction
+                     : horizontal_direction) != INT8_C(0) &&
                 (action_state ==
                      (uint8_t)PF_M4_ACTION_FORWARD_ATTACK ||
                  action_state ==
                      (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK))
             {
-                facing = horizontal_direction;
+                facing = strong_attack_pressed != 0
+                             ? strong_attack_horizontal_direction
+                             : horizontal_direction;
             }
         }
         else if (jump_pressed)
