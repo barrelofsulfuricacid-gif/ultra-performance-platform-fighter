@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(52)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(45)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(53)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(46)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -353,6 +353,9 @@ typedef struct pf_m4_fighter_data
     int32_t crouch_step_speed_q16;
     int32_t air_acceleration_q16;
     int32_t air_speed_q16;
+    int32_t jump_horizontal_input_speed_q16;
+    int32_t jump_horizontal_momentum_multiplier_q16;
+    int32_t jump_horizontal_max_speed_q16;
     int32_t gravity_q16;
     int32_t fall_speed_q16;
     int32_t fast_fall_speed_q16;

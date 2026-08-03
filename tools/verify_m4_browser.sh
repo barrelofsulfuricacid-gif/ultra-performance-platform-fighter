@@ -125,6 +125,12 @@ grep -Fq \
     '" air_facing_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'fighter->jump_horizontal_momentum_multiplier_q16' \
+    "$root/src/sim/sim_movement.c"
+grep -Fq \
+    'immediately hold backward through jump squat' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     '" instant_double_jump_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \

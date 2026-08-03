@@ -47,6 +47,22 @@ respawn, a moving revival platform, post-drop respawn invulnerability,
 elimination, team results, rematch, and simultaneous-final-stock sudden death
 are now part of the checkpoint.
 
+## Jump-squat takeoff momentum
+
+The first grounded jump continues applying ordinary traction on every
+`JUMP_SQUAT` tick. On takeoff, horizontal velocity is computed as:
+
+`clamp(ground_velocity * momentum_multiplier + normalized_stick_x * input_speed, -max_speed, max_speed)`
+
+All three terms are immutable, validated fighter content and participate in the
+content hash. The default original fighter authors a 0.8 momentum multiplier,
+0.18 full-stick input speed, and 0.28 maximum. A full opposite stick input
+immediately after a running jump begins therefore nearly cancels the remaining
+forward velocity without changing facing; neutral retains only scaled ground
+momentum, and forward input reaches the longer capped jump. The formula is
+evaluated only when grounded jump squat becomes the first airborne frame.
+Double jumps retain their separate stick-replacement rule.
+
 ## Attack, collision, and ownership
 
 The light or strong ground attack is entered by a rising edge on its separate

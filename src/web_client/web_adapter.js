@@ -1757,7 +1757,10 @@ mergeInto(LibraryManager.library, {
       "empty adapter ports are skipped. Keyboard and gamepad buttons may be mixed per player. " +
       "Tap jump and release during the three-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +
-      "takeoff never changes either apex. For an instant double jump, release " +
+      "takeoff never changes either apex. Run, press jump while holding " +
+      "forward, then immediately hold backward through jump squat to nearly " +
+      "cancel horizontal takeoff momentum without turning around. For an " +
+      "instant double jump, release " +
       "the first jump during jump squat, then press the other jump key on the " +
       "first airborne frame; the live air-jumps counter changes from 1 to 0. " +
       "Its horizontal speed is replaced by current stick input, so neutral " +

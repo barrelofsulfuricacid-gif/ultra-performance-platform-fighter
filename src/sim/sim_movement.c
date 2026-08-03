@@ -4576,6 +4576,32 @@ pf_status pf_m4_step_player(
         ++action_ticks;
         if (action_ticks >= fighter->jump_squat_ticks)
         {
+            const int32_t carried_velocity_x = pf_m4_multiply_q16(
+                velocity_x,
+                fighter->jump_horizontal_momentum_multiplier_q16);
+            const int32_t input_velocity_x = pf_m4_scale_axis_q16(
+                input->main_stick_x,
+                fighter->jump_horizontal_input_speed_q16);
+            const int64_t requested_velocity_x =
+                (int64_t)carried_velocity_x +
+                (int64_t)input_velocity_x;
+
+            if (requested_velocity_x <
+                -(int64_t)fighter->jump_horizontal_max_speed_q16)
+            {
+                velocity_x =
+                    -fighter->jump_horizontal_max_speed_q16;
+            }
+            else if (requested_velocity_x >
+                     (int64_t)fighter->jump_horizontal_max_speed_q16)
+            {
+                velocity_x =
+                    fighter->jump_horizontal_max_speed_q16;
+            }
+            else
+            {
+                velocity_x = (int32_t)requested_velocity_x;
+            }
             velocity_y =
                 -(short_hop_latched != UINT8_C(0)
                       ? fighter->short_hop_speed_q16

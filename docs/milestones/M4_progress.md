@@ -29,6 +29,25 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the jump-takeoff momentum slice
+
+- The first grounded jump now applies a fighter-authored takeoff formula after
+  ordinary jump-squat traction: scaled ground velocity plus the current
+  horizontal-stick contribution, clamped to the authored jump maximum.
+- The default original fighter uses a 0.8 ground-momentum multiplier, 0.18
+  full-stick contribution, and 0.28 takeoff cap. Running forward, pressing
+  jump, then immediately holding backward through the remaining three-tick
+  jump squat produces an almost in-place launch while keeping the original
+  facing. Forward and neutral controls retain long and intermediate travel.
+- Content schema 53/fighter schema 46 hash and validate all three values. The
+  native movement oracle and existing Wasm air-facing startup probe cover the
+  reverse, neutral, and forward takeoff routes through the production input
+  and simulation paths; no technique-only canonical state was added.
+- The copied fighter data increases the opaque simulation-state requirement
+  from 2472 to 2488 bytes. Scratch remains 1088 bytes, and both stay within the
+  public 4 KiB storage bounds; serialized state/save and browser layouts do not
+  change.
+
 ## Delivered in the first M4 slice
 
 - A validated, hash-identified `pf_m4_content` precursor containing one

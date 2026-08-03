@@ -4650,7 +4650,67 @@ static int pf_web_m4_run_air_facing_probe(void)
             return 0;
         }
     }
-    return inspection.players[0].velocity_x_q16 > INT32_C(0);
+    if (inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        !pf_web_m4_reset_internal())
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)pf_web_m4_content.fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick(
+                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)pf_web_m4_content.fighter.jump_squat_ticks;
+         ++tick)
+    {
+        if (!pf_web_m4_tick(
+                -PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    return inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AIRBORNE &&
+           inspection.players[0].grounded == UINT8_C(0) &&
+           inspection.players[0].facing == INT8_C(1) &&
+           inspection.players[0].velocity_x_q16 >=
+               -pf_web_m4_content.fighter.air_acceleration_q16 &&
+           inspection.players[0].velocity_x_q16 <=
+               pf_web_m4_content.fighter.air_acceleration_q16;
 }
 
 static int pf_web_m4_run_instant_double_jump_probe(void)

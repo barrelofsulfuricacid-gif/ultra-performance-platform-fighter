@@ -225,6 +225,11 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->crouch_step_speed_q16);
     pf_m4_hash_i32(hash, fighter->air_acceleration_q16);
     pf_m4_hash_i32(hash, fighter->air_speed_q16);
+    pf_m4_hash_i32(hash, fighter->jump_horizontal_input_speed_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->jump_horizontal_momentum_multiplier_q16);
+    pf_m4_hash_i32(hash, fighter->jump_horizontal_max_speed_q16);
     pf_m4_hash_i32(hash, fighter->gravity_q16);
     pf_m4_hash_i32(hash, fighter->fall_speed_q16);
     pf_m4_hash_i32(hash, fighter->fast_fall_speed_q16);
@@ -863,6 +868,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->crouch_step_speed_q16 = PF_Q16_RATIO(1, 10);
     fighter->air_acceleration_q16 = PF_Q16_RATIO(1, 100);
     fighter->air_speed_q16 = PF_Q16_RATIO(4, 25);
+    fighter->jump_horizontal_input_speed_q16 = PF_Q16_RATIO(9, 50);
+    fighter->jump_horizontal_momentum_multiplier_q16 =
+        PF_Q16_RATIO(4, 5);
+    fighter->jump_horizontal_max_speed_q16 = PF_Q16_RATIO(7, 25);
     fighter->gravity_q16 = PF_Q16_RATIO(1, 50);
     fighter->fall_speed_q16 = PF_Q16_RATIO(2, 5);
     fighter->fast_fall_speed_q16 = PF_Q16_RATIO(3, 5);
@@ -1827,6 +1836,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->crouch_step_speed_q16 > fighter->walk_speed_q16 ||
         fighter->air_acceleration_q16 <= INT32_C(0) ||
         fighter->air_speed_q16 <= INT32_C(0) ||
+        fighter->jump_horizontal_input_speed_q16 <= INT32_C(0) ||
+        fighter->jump_horizontal_momentum_multiplier_q16 <= INT32_C(0) ||
+        fighter->jump_horizontal_momentum_multiplier_q16 > PF_Q16_ONE ||
+        fighter->jump_horizontal_max_speed_q16 <
+            fighter->jump_horizontal_input_speed_q16 ||
         fighter->gravity_q16 <= INT32_C(0) ||
         fighter->fall_speed_q16 <= fighter->gravity_q16 ||
         fighter->fast_fall_speed_q16 <= fighter->fall_speed_q16 ||
@@ -2135,6 +2149,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->air_acceleration_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->air_speed_q16 > PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->jump_horizontal_input_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->jump_horizontal_max_speed_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->gravity_q16 > PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->fall_speed_q16 > PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->fast_fall_speed_q16 >

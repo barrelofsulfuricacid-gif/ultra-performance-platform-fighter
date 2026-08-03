@@ -451,7 +451,13 @@ rules follow the documented Melee `RUN`/`TURNRUN` behavior in
 Jump has a three-tick jump squat. Release during jump squat for the one fixed
 short-hop launch speed; hold through takeoff for the one fixed full-hop launch
 speed. Releasing or continuing to hold after takeoff cannot change the selected
-apex. For an instant double jump, release the first jump during jump squat and
+apex. Horizontal takeoff combines the traction-reduced ground velocity with the
+current stick-scaled jump velocity under an authored cap. Run, press jump while
+still holding forward, then immediately hold backward for the remaining jump
+squat: the two terms nearly cancel and produce an almost in-place jump without
+turning the fighter around. Holding forward preserves the long jump, while
+neutral produces the intermediate carried-momentum route. For an instant double
+jump, release the first jump during jump squat and
 press the other jump key on the first airborne frame. The live `air jumps`
 counter changes from 1 to 0. Double-jump entry replaces horizontal momentum
 with stick-scaled air speed, so returning the stick to neutral first produces

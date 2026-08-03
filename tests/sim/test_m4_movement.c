@@ -2115,12 +2115,14 @@ static int run_content_contract_test(
     test_sim_storage default_storage;
     test_sim_storage tuned_storage;
     pf_m4_content invalid_content = *default_content;
+    pf_m4_content jump_tuned_content = *default_content;
     pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
     pf_m4_content crouch_step_tuned_content = *default_content;
     pf_m4_content taunt_tuned_content = *default_content;
     pf_m4_content tuned_content = *default_content;
     pf_content_view damaged_view = *default_view;
+    pf_content_view jump_tuned_view;
     pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
     pf_content_view crouch_step_tuned_view;
@@ -2141,6 +2143,61 @@ static int run_content_contract_test(
             PF_STATUS_INVALID_CONFIG,
             "reject-invalid-content"))
     {
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.jump_horizontal_input_speed_q16 = INT32_C(0);
+    if (default_content->fighter.jump_horizontal_input_speed_q16 !=
+            PF_Q16_ONE * INT32_C(9) / INT32_C(50) ||
+        default_content->fighter.jump_horizontal_momentum_multiplier_q16 !=
+            PF_Q16_ONE * INT32_C(4) / INT32_C(5) ||
+        default_content->fighter.jump_horizontal_max_speed_q16 !=
+            PF_Q16_ONE * INT32_C(7) / INT32_C(25) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-jump-horizontal-input-speed"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.jump_horizontal_momentum_multiplier_q16 =
+        PF_Q16_ONE + INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-large-jump-horizontal-momentum-multiplier"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.jump_horizontal_max_speed_q16 =
+        invalid_content.fighter.jump_horizontal_input_speed_q16 -
+        INT32_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-low-jump-horizontal-max-speed"))
+    {
+        return 0;
+    }
+    jump_tuned_content.fighter.jump_horizontal_input_speed_q16 +=
+        INT32_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &jump_tuned_content,
+                &jump_tuned_view),
+            PF_STATUS_OK,
+            "jump-horizontal-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            jump_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=jump-horizontal-content-hash\n");
         return 0;
     }
 
@@ -2711,6 +2768,148 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_jump_takeoff_momentum_route(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    uint64_t seed,
+    int16_t takeoff_axis,
+    int32_t *out_velocity_x)
+{
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, seed),
+            PF_STATUS_OK,
+            "jump-takeoff-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=jump-takeoff-run-entry\n");
+        return 0;
+    }
+    for (tick = UINT32_C(1);
+         tick < (uint32_t)content->fighter.jump_squat_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                takeoff_axis,
+                INT16_C(0),
+                PF_INPUT_BUTTON_JUMP,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].facing != INT8_C(1) ||
+        inspection.players[0].velocity_y_q16 >= INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=jump-takeoff-launch"
+            " action=%u grounded=%u facing=%d velocity=(%" PRId32
+            ",%" PRId32 ")\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].grounded,
+            (int)inspection.players[0].facing,
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16);
+        return 0;
+    }
+    *out_velocity_x = inspection.players[0].velocity_x_q16;
+    return 1;
+}
+
+static int run_jump_takeoff_momentum_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    int32_t forward_velocity_x;
+    int32_t neutral_velocity_x;
+    int32_t reverse_velocity_x;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !run_jump_takeoff_momentum_route(
+            sim,
+            content,
+            UINT64_C(0x4a554d50464f52),
+            INT16_MAX,
+            &forward_velocity_x) ||
+        !run_jump_takeoff_momentum_route(
+            sim,
+            content,
+            UINT64_C(0x4a554d504e4555),
+            INT16_C(0),
+            &neutral_velocity_x) ||
+        !run_jump_takeoff_momentum_route(
+            sim,
+            content,
+            UINT64_C(0x4a554d50524556),
+            INT16_MIN,
+            &reverse_velocity_x))
+    {
+        return 0;
+    }
+    if (forward_velocity_x !=
+            content->fighter.jump_horizontal_max_speed_q16 -
+                content->fighter.air_acceleration_q16 ||
+        neutral_velocity_x <= reverse_velocity_x ||
+        forward_velocity_x <= neutral_velocity_x ||
+        absolute_i32(reverse_velocity_x) >
+            content->fighter.air_acceleration_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=jump-takeoff-momentum"
+            " forward=%" PRId32 " neutral=%" PRId32
+            " reverse=%" PRId32 " tolerance=%" PRId32 "\n",
+            forward_velocity_x,
+            neutral_velocity_x,
+            reverse_velocity_x,
+            content->fighter.air_acceleration_q16);
         return 0;
     }
     return 1;
@@ -11067,6 +11266,7 @@ int main(void)
             "content-view") ||
         !run_content_contract_test(&content, &view) ||
         !run_ground_control_test(&content, &view) ||
+        !run_jump_takeoff_momentum_test(&content, &view) ||
         !run_fox_trot_test(&content, &view) ||
         !run_moonwalk_test(&content, &view) ||
         !run_teeter_cancel_test(&content, &view) ||
@@ -11099,7 +11299,8 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=349 moonwalk=1 teeter_cancel=1 "
+        "movement_invariants=350 jump_takeoff_momentum=1 "
+        "moonwalk=1 teeter_cancel=1 "
         "taunt_cancel=1 "
         "scar_jump=1 "
         "stage_humping=1 "

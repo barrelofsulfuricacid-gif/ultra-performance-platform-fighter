@@ -412,6 +412,15 @@ event whose `detail` is the nonzero forfeiting-player mask. Inspection schema
 inspection layout or the 503-value browser layout. Content, fighter,
 observation, RL, transition, and compact schemas are unchanged.
 
+Content schema 53/fighter schema 46 append, validate, default, and hash three
+Q16.16 grounded-jump takeoff fields: horizontal stick contribution, retained
+ground-momentum multiplier, and absolute horizontal maximum. They are immutable
+compatibility identity. Serialized state/save, observation, RL, inspection,
+browser, and replay-container layouts remain unchanged. Because the opaque
+simulation state copies the immutable fighter record, its requirement grows
+from 2472 to 2488 bytes; the 1088-byte scratch requirement is unchanged, and
+both remain inside the public 4 KiB storage bounds.
+
 The M4 collision inspector consumes schema-35 stage geometry, fighter and
 active attack/grab bounds, schema-42 exact shield bounds, and item/projectile
 extents. Its default-on toggle, legend, and pause-safe redraw remain
