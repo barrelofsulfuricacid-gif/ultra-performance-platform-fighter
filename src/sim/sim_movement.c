@@ -2237,7 +2237,15 @@ static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
     return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
            action_state ==
                (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
-           action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL;
+           action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+           action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+           action_state == (uint8_t)PF_M4_ACTION_WALK ||
+           action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN ||
+           action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
+           action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE;
 }
 
 pf_status pf_m4_step_player(
@@ -3368,21 +3376,22 @@ pf_status pf_m4_step_player(
         action_state != (uint8_t)PF_M4_ACTION_WALL_JUMP &&
         special_pressed != 0)
     {
-        const int aerial_up_special_requested =
-            grounded == UINT8_C(0) &&
+        const int up_special_requested =
             input->main_stick_y <=
                 -(int16_t)fighter->dash_axis_threshold;
         const int charge_requested =
             content->charge.enabled != UINT8_C(0) &&
             grounded != UINT8_C(0) &&
-            input->main_stick_y <=
-                -(int16_t)fighter->dash_axis_threshold;
+            up_special_requested != 0 &&
+            light_attack_held != 0;
+        const int vector_ascent_requested =
+            up_special_requested != 0 && charge_requested == 0;
         const int reflector_requested =
             content->reflector.enabled != UINT8_C(0) &&
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
 
-        if (aerial_up_special_requested != 0)
+        if (vector_ascent_requested != 0)
         {
             if (content->recovery.enabled != UINT8_C(0) &&
                 recovery_available != UINT8_C(0) &&
@@ -3396,6 +3405,8 @@ pf_status pf_m4_step_player(
                     (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
                 action_ticks = UINT16_C(0);
                 recovery_available = UINT8_C(0);
+                grounded = UINT8_C(0);
+                support = (uint8_t)PF_M4_SURFACE_NONE;
                 fast_fall = UINT8_C(0);
                 scratch->tumble[player_index] = UINT8_C(0);
                 launched_this_tick = 1;
@@ -3415,7 +3426,7 @@ pf_status pf_m4_step_player(
                            : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR);
                 action_ticks = UINT16_C(0);
         }
-        if (aerial_up_special_requested == 0 ||
+        if (vector_ascent_requested == 0 ||
             action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
         {
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
@@ -3445,7 +3456,11 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_CHARGE_GROUND &&
-        attack_pressed != 0)
+        special_pressed == 0 &&
+        (attack_pressed != 0 ||
+         (light_attack_held != 0 &&
+          (input->buttons & PF_INPUT_BUTTON_SPECIAL) == UINT64_C(0) &&
+          (previous_buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0))))
     {
         action_state =
             (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND;

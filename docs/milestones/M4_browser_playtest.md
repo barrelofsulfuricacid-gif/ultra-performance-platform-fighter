@@ -95,7 +95,7 @@ silently inferred from replay metadata.
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light attack; grounded reduced direction selects a tilt and full direction charges a smash; airborne full direction selects forward/back/up/down aerial | `F` | `/` or Numpad `0` |
 | Immediate uncharged strong; grounded direction selects forward/up/down strong, airborne remains direct strong aerial | `H` | `'` or Numpad `2` |
-| Special: neutral Pulse Bolt, full down Prism Burst, full up Arc Reservoir while grounded or Vector Ascent while airborne | `E` | `;` or Numpad `3` |
+| Special: neutral Pulse Bolt, full down Prism Burst, full up Vector Ascent from ground or air; add held light for grounded Arc Reservoir | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Pummel while holding a victim | Neutral/reduced direction + fresh `F` or `H` | Neutral/reduced direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
@@ -144,8 +144,9 @@ movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack, directional tilt, or charged
 smash, the right face button is an immediate uncharged directional strong, the left face button
 jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
-Burst, and up plus top face starts/resumes Arc Reservoir while grounded or
-Vector Ascent while airborne. Back/View taunts, either bumper supplies a full
+Burst, and up plus top face selects Vector Ascent from the ground or air.
+Holding light with grounded up plus top face starts/resumes Arc Reservoir.
+Back/View taunts, either bumper supplies a full
 shield value, and the two analog triggers preserve their Standard Gamepad
 button values as 16-bit shield strength for shield/tech/air-dodge/L-cancel
 input. L/R remain independent, so holding one through a shield jump does not
@@ -163,6 +164,11 @@ recognized explicitly and all other unknown non-standard mappings remain
 ignored. The adapter can expose multiple browser devices even when some of its
 four sockets are empty; empty sockets are filtered before the first two
 attached controllers are assigned.
+
+The DirectInput C-stick profile saturates its physical 0.75 cardinal range to
+the simulation's full axis, so real adapter values cross the authored shield
+escape thresholds instead of falling just below them. The toolbar shows the
+currently mapped `C neutral/left/right/up/down` direction for physical diagnosis.
 
 Standard-mapped controllers expose the browser's right-stick axes through the
 same secondary-stick path, so right-stick left/right/down/up provide the same
@@ -244,22 +250,24 @@ Shine-spike route, follow an offstage opponent and place `PRISM BURST AIR` into
 their recovery path; the readiness oracle also proves the same victim recovers
 when left unchallenged.
 
-Hold full up and freshly press the same special control for Arc Reservoir.
+Hold light attack with full up and freshly press the same special control for
+Arc Reservoir.
 The `ARC RESERVOIR CHARGE` state adds one meter tick per simulation tick up to
 120. Press shield to enter `ARC RESERVOIR STORE`, then release shield before
 the four-tick store animation finishes: the meter remains and the ordinary
 grounded controls return immediately, including a same-tick light attack.
-Enter again with up plus fresh special to resume at the exact stored value,
+Enter again with light plus up plus fresh special to resume at the exact stored value,
 then press light to use `ARC RESERVOIR RELEASE`; its damage scales from 4% to
 20%. Holding shield through all four store ticks enters ordinary shield, while
 being hit during charge/store clears the meter.
 
-While airborne, hold full up and freshly press the same special control to
-enter `VECTOR ASCENT`. The fighter receives the authored upward launch, may
+From the ground or air, hold full up and freshly press the same special control
+to enter `VECTOR ASCENT`. The fighter receives the authored upward launch, may
 steer horizontally during the 18-tick ascent under ordinary gravity, then
 enters `FALL SPECIAL`. The player card changes Vector Ascent from `READY` to
 `SPENT`; another up-special is ignored until landing, ledge grab, respawn, or
-Reset restores it.
+Reset restores it. Grounded entry must finish its special-landing lag and then
+accept an ordinary dash; the startup probe refuses readiness otherwise.
 
 For the emergent gimp route, knock the opponent offstage, let them begin an
 inward-steered Vector Ascent, then intercept it with the light aerial or

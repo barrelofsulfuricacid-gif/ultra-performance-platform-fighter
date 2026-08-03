@@ -320,6 +320,9 @@ grep -Fq \
     'player0Gamepad.secondaryHorizontal' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'var cStickX = mayflashCStickAxis(gamepad, 5)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'var cStickX = gamepadAxis(gamepad, 2)' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
@@ -500,7 +503,7 @@ grep -Fq \
     'to crouch cancel' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'Vector Ascent recovery in the air' \
+    'Vector Ascent recovery from the ground or air' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MISSED STRONG L-CANCEL"' \

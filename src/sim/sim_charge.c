@@ -34,6 +34,7 @@ void pf_m4_prepare_charge_input(
     *effective_input = *input;
     up_special =
         (input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
+        (input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&
         input->main_stick_y <=
             -(int16_t)content->fighter.dash_axis_threshold;
     if (up_special == 0 ||

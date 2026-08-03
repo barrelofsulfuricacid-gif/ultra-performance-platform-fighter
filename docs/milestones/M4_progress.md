@@ -2080,11 +2080,12 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
   Its active physical hit must launch downward, its active box must transfer
   projectile ownership without powershield, and invalid or held input must not
   manufacture either action.
-- Grounded full up plus a fresh special edge must start or resume Arc
-  Reservoir. Early shield release during store must preserve charge and regain
-  the grounded router, holding shield through the boundary must enter ordinary
-  shield, Attack must release scaled damage, and a hit during charge/store must
-  clear the value.
+- Full up plus a fresh special edge must start Vector Ascent from the ground or
+  air and restore ordinary movement after landing lag. Holding light with the
+  grounded chord must start or resume Arc Reservoir. Early shield release
+  during store must preserve charge and regain the grounded router, holding
+  shield through the boundary must enter ordinary shield, Attack must release
+  scaled damage, and a hit during charge/store must clear the value.
 - Airborne horizontal input changes drift velocity but never changes facing;
   an opposite-direction air jump likewise preserves the takeoff-facing
   direction.

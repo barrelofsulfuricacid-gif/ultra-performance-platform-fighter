@@ -934,6 +934,17 @@ mergeInto(LibraryManager.library, {
       return value < 0 ? -magnitude : magnitude;
     }
 
+    function mayflashCStickAxis(gamepad, index) {
+      var value = Math.max(-1, Math.min(1, gamepadRawAxis(gamepad, index)));
+      if (Math.abs(value) < 0.2) {
+        return 0;
+      }
+      var magnitude = Math.round(
+        Math.min(1, Math.abs(value) / 0.75) * dashAxis
+      );
+      return value < 0 ? -magnitude : magnitude;
+    }
+
     function isMayflashGameCubeAdapter(gamepad) {
       var id = gamepad && gamepad.id ? String(gamepad.id).toLowerCase() : "";
       return (
@@ -1072,8 +1083,8 @@ mergeInto(LibraryManager.library, {
           dpad.up === dpad.down ? 0 : dpad.up ? -dashAxis : dashAxis;
       }
 
-      var cStickX = gamepadAxis(gamepad, 5);
-      var cStickY = gamepadAxis(gamepad, 2);
+      var cStickX = mayflashCStickAxis(gamepad, 5);
+      var cStickY = mayflashCStickAxis(gamepad, 2);
       if (cStickX !== 0 || cStickY !== 0) {
         input.secondaryHorizontal = cStickX;
         input.secondaryVertical = cStickY;
@@ -1160,6 +1171,23 @@ mergeInto(LibraryManager.library, {
     }
 
     function gamepadStatusLabel(gamepads) {
+      var cStick = gamepads.inputs[0];
+      var cStickHorizontal =
+        cStick.secondaryHorizontal < 0
+          ? "left"
+          : cStick.secondaryHorizontal > 0
+          ? "right"
+          : "";
+      var cStickVertical =
+        cStick.secondaryVertical < 0
+          ? "up"
+          : cStick.secondaryVertical > 0
+          ? "down"
+          : "";
+      var cStickLabel =
+        cStickVertical && cStickHorizontal
+          ? cStickVertical + "-" + cStickHorizontal
+          : cStickVertical || cStickHorizontal || "neutral";
       if (!gamepadApiAvailable) {
         return "gamepad API unavailable";
       }
@@ -1170,10 +1198,17 @@ mergeInto(LibraryManager.library, {
           "/2 · GameCube " +
           gamepads.mayflashControllers +
           "/" +
-          gamepads.mayflashPorts
+          gamepads.mayflashPorts +
+          " · C " +
+          cStickLabel
         );
       }
-      return "controllers " + gamepads.connected + "/2";
+      return (
+        "controllers " +
+        gamepads.connected +
+        "/2 · right stick " +
+        cStickLabel
+      );
     }
 
     function runGamepadMappingProbe() {
@@ -1227,7 +1262,7 @@ mergeInto(LibraryManager.library, {
         connected: true,
         mapping: "",
         id: "MAYFLASH GameCube Controller Adapter (Vendor: 0079 Product: 1843)",
-        axes: [0.25, 0, -0.5, -0.76, -0.76, 0.5, 0, 0, 0, 1.3],
+        axes: [0.25, 0, -0.6, -0.76, -0.76, 0.6, 0, 0, 0, 1.3],
         buttons: mayflashButtons,
       };
       var emptyMayflashPort = {
@@ -1271,9 +1306,9 @@ mergeInto(LibraryManager.library, {
         mayflashInput.horizontal === Math.round(dashAxis * 0.25) &&
         mayflashInput.vertical === 0 &&
         mayflashInput.secondaryHorizontal ===
-          Math.round(dashAxis * 0.5) &&
+          Math.round(dashAxis * 0.8) &&
         mayflashInput.secondaryVertical ===
-          -Math.round(dashAxis * 0.5) &&
+          -Math.round(dashAxis * 0.8) &&
         mayflashInput.attack &&
         mayflashInput.strongAttack &&
         mayflashInput.jump &&
@@ -1701,13 +1736,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, Up + E Vector Ascent recovery from the ground or air, or hold F with Up + E to charge Arc Reservoir · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge on the ground / Vector Ascent recovery in the air · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, Up + special Vector Ascent recovery from the ground or air, or hold light with Up + special to charge Arc Reservoir · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -1859,10 +1894,13 @@ mergeInto(LibraryManager.library, {
       "Hold down with special for the Prism Burst reflector: its two active " +
       "frames strike nearby fighters down and away, and reverse an overlapping " +
       "Pulse Bolt without using the powershield result. " +
-      "While airborne, hold up and freshly press special to spend the once-per-" +
-      "airtime Vector Ascent; steer horizontally during its 18-tick rise, then " +
+      "From the ground or air, hold up and freshly press special to spend the " +
+      "once-per-airtime Vector Ascent; steer horizontally during its 18-tick " +
+      "rise, then " +
       "land or grab a ledge to restore it. The fighter card shows READY or " +
-      "SPENT. To gimp, intercept an opponent's ascent with an aerial or Prism " +
+      "SPENT. On the ground, hold light while pressing up plus special to enter " +
+      "Arc Reservoir charge instead. To gimp, intercept an opponent's ascent " +
+      "with an aerial or Prism " +
       "Burst so they miss the stage; leave the same recovery unchallenged for " +
       "the control. To stage-spike, fight below the raised block and launch the " +
       "opponent into its underside; a missed tech ceiling-bounces downward, " +

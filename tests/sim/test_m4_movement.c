@@ -10516,6 +10516,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
     pf_rl_action actions[2];
     uint8_t save_bytes[1024];
     size_t save_size = (size_t)0;
+    int32_t grounded_recovery_x;
     uint32_t player_bits;
     uint32_t guard;
 
@@ -10589,12 +10590,105 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             "vector-ascent-inspect-reset") ||
         source_inspection.players[0].recovery_available != UINT8_C(1) ||
         !step_duel(
+            loaded,
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_SPECIAL,
+            &loaded_inspection) ||
+        loaded_inspection.players[0].grounded != UINT8_C(0) ||
+        loaded_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+        loaded_inspection.players[0].recovery_available != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ground-vector-ascent-entry"
+            " action=%u grounded=%u recovery=%u reset_action=%u"
+            " charge_enabled=%u recovery_enabled=%u threshold=%u\n",
+            (unsigned int)loaded_inspection.players[0].action_state,
+            (unsigned int)loaded_inspection.players[0].grounded,
+            (unsigned int)loaded_inspection.players[0].recovery_available,
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)content.charge.enabled,
+            (unsigned int)content.recovery.enabled,
+            (unsigned int)content.fighter.dash_axis_threshold);
+        return 0;
+    }
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(240) &&
+         loaded_inspection.players[0].grounded == UINT8_C(0);
+         ++guard)
+    {
+        if (!step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection))
+        {
+            return 0;
+        }
+    }
+    if (guard == UINT32_C(240) ||
+        loaded_inspection.players[0].recovery_available != UINT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ground-vector-ascent-land"
+            " guard=%u action=%u grounded=%u recovery=%u\n",
+            (unsigned int)guard,
+            (unsigned int)loaded_inspection.players[0].action_state,
+            (unsigned int)loaded_inspection.players[0].grounded,
+            (unsigned int)loaded_inspection.players[0].recovery_available);
+        return 0;
+    }
+    for (guard = UINT32_C(0);
+         guard < UINT32_C(32) &&
+         loaded_inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+         ++guard)
+    {
+        if (!step_duel(
+                loaded,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &loaded_inspection))
+        {
+            return 0;
+        }
+    }
+    grounded_recovery_x = loaded_inspection.players[0].position_x_q16;
+    if (guard == UINT32_C(32) ||
+        !step_duel(
+            loaded,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &loaded_inspection) ||
+        loaded_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        loaded_inspection.players[0].position_x_q16 <=
+            grounded_recovery_x ||
+        !expect_status(
+            pf_sim_reset(loaded, UINT64_C(0x564543544f524153)),
+            PF_STATUS_OK,
+            "vector-ascent-reset-loaded-after-ground") ||
+        !step_duel(
             source,
             INT16_C(0),
             INT16_C(0),
             PF_INPUT_BUTTON_JUMP,
             &source_inspection))
     {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ground-vector-ascent-mobility"
+            " guard=%u action=%u x=%d start=%d\n",
+            (unsigned int)guard,
+            (unsigned int)loaded_inspection.players[0].action_state,
+            loaded_inspection.players[0].position_x_q16,
+            grounded_recovery_x);
         return 0;
     }
 

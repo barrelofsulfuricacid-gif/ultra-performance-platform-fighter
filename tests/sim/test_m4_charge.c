@@ -277,7 +277,9 @@ static int run_cancel_and_resume_contract(
     pf_tick_result result;
     pf_m4_inspection inspection;
     const test_command up_special = {
-        INT16_MIN, PF_INPUT_BUTTON_SPECIAL, UINT16_C(0)};
+        INT16_MIN,
+        PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK,
+        UINT16_C(0)};
     const test_command shield = {
         INT16_C(0), UINT64_C(0), UINT16_MAX};
     uint16_t stored_charge;
@@ -374,7 +376,9 @@ static int release_damage_after_charge(
     pf_tick_result result;
     pf_m4_inspection inspection;
     const test_command up_special = {
-        INT16_MIN, PF_INPUT_BUTTON_SPECIAL, UINT16_C(0)};
+        INT16_MIN,
+        PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK,
+        UINT16_C(0)};
     uint32_t tick;
 
     if (!reset_sim(sim) ||
@@ -448,7 +452,9 @@ static int run_release_and_interrupt_contract(
     uint32_t high_damage;
     uint32_t tick;
     const test_command up_special = {
-        INT16_MIN, PF_INPUT_BUTTON_SPECIAL, UINT16_C(0)};
+        INT16_MIN,
+        PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK,
+        UINT16_C(0)};
 
     if (!initialize_sim(&storage, view, &sim) ||
         !release_damage_after_charge(sim, UINT16_C(1), &low_damage) ||
@@ -537,7 +543,9 @@ static int run_state_interfaces_contract(
     pf_rl_action actions[2];
     pf_rl_transition transition;
     const test_command up_special = {
-        INT16_MIN, PF_INPUT_BUTTON_SPECIAL, UINT16_C(0)};
+        INT16_MIN,
+        PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK,
+        UINT16_C(0)};
     const test_command shield = {
         INT16_C(0), UINT64_C(0), UINT16_MAX};
     uint32_t tick;
@@ -664,7 +672,8 @@ static int run_state_interfaces_contract(
         if (tick == UINT32_C(0))
         {
             replay_inputs[0].main_stick_y = INT16_MIN;
-            replay_inputs[0].buttons = PF_INPUT_BUTTON_SPECIAL;
+            replay_inputs[0].buttons =
+                PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK;
         }
         else if (tick == UINT32_C(6))
         {
@@ -745,7 +754,8 @@ static int run_state_interfaces_contract(
     actions[0].schema_version = PF_RL_ACTION_SCHEMA_VERSION;
     actions[1].schema_version = PF_RL_ACTION_SCHEMA_VERSION;
     actions[0].main_stick_y = INT16_MIN;
-    actions[0].buttons = PF_INPUT_BUTTON_SPECIAL;
+    actions[0].buttons =
+        PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK;
     if (!expect_status(
             pf_rl_step(rl_sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,

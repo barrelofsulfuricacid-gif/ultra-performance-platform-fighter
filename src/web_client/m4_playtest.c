@@ -11548,7 +11548,7 @@ static int pf_web_m4_run_charge_storage_probe(void)
             pf_web_m4_tick(
                 INT16_C(0),
                 INT16_MIN,
-                PF_INPUT_BUTTON_SPECIAL,
+                PF_INPUT_BUTTON_SPECIAL | PF_INPUT_BUTTON_ATTACK,
                 INT16_C(0),
                 INT16_C(0),
                 UINT64_C(0),
@@ -11617,7 +11617,8 @@ static int pf_web_m4_run_charge_storage_probe(void)
                     pf_web_m4_tick(
                         INT16_C(0),
                         INT16_MIN,
-                        PF_INPUT_BUTTON_SPECIAL,
+                        PF_INPUT_BUTTON_SPECIAL |
+                            PF_INPUT_BUTTON_ATTACK,
                         INT16_C(0),
                         INT16_C(0),
                         UINT64_C(0),
@@ -11626,6 +11627,14 @@ static int pf_web_m4_run_charge_storage_probe(void)
                         (uint8_t)PF_M4_ACTION_CHARGE_GROUND &&
                     inspection.players[0].charge_ticks ==
                         (uint16_t)(stored_charge + UINT16_C(1)) &&
+                    pf_web_m4_tick(
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection) &&
                     pf_web_m4_tick(
                         INT16_C(0),
                         INT16_C(0),
@@ -11651,8 +11660,10 @@ static int pf_web_m4_run_charge_storage_probe(void)
 static int pf_web_m4_run_vector_ascent_probe(void)
 {
     pf_m4_inspection inspection;
+    int32_t landed_x;
     uint32_t guard;
-    int passed = 0;
+    int grounded_passed = 0;
+    int aerial_passed = 0;
     int restored;
 
     if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK)
@@ -11660,6 +11671,76 @@ static int pf_web_m4_run_vector_ascent_probe(void)
         pf_web_m4_content.recovery.enabled = UINT8_C(1);
         if (pf_web_m4_initialize_current_content() &&
             pf_web_m4_reset_internal() &&
+            pf_web_m4_tick(
+                INT16_C(0),
+                INT16_MIN,
+                PF_INPUT_BUTTON_SPECIAL,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) &&
+            inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_VECTOR_ASCENT &&
+            inspection.players[0].recovery_available == UINT8_C(0))
+        {
+            for (guard = UINT32_C(0);
+                 guard < UINT32_C(240) &&
+                 inspection.players[0].grounded == UINT8_C(0);
+                 ++guard)
+            {
+                if (!pf_web_m4_tick(
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection))
+                {
+                    break;
+                }
+            }
+            if (guard < UINT32_C(240) &&
+                inspection.players[0].recovery_available == UINT8_C(1))
+            {
+                for (guard = UINT32_C(0);
+                     guard < UINT32_C(32) &&
+                     inspection.players[0].action_state !=
+                         (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                     ++guard)
+                {
+                    if (!pf_web_m4_tick(
+                            INT16_C(0),
+                            INT16_C(0),
+                            UINT64_C(0),
+                            INT16_C(0),
+                            INT16_C(0),
+                            UINT64_C(0),
+                            &inspection))
+                    {
+                        break;
+                    }
+                }
+                landed_x = inspection.players[0].position_x_q16;
+                if (guard < UINT32_C(32) &&
+                    pf_web_m4_tick(
+                        INT16_MAX,
+                        INT16_C(0),
+                        UINT64_C(0),
+                        INT16_C(0),
+                        INT16_C(0),
+                        UINT64_C(0),
+                        &inspection) &&
+                    inspection.players[0].action_state ==
+                        (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                    inspection.players[0].position_x_q16 > landed_x)
+                {
+                    grounded_passed = 1;
+                }
+            }
+        }
+        if (pf_web_m4_reset_internal() &&
             pf_web_m4_tick(
                 INT16_C(0),
                 INT16_C(0),
@@ -11704,14 +11785,15 @@ static int pf_web_m4_run_vector_ascent_probe(void)
                 inspection.players[0].velocity_x_q16 > INT32_C(0) &&
                 inspection.players[0].velocity_y_q16 < INT32_C(0))
             {
-                passed = 1;
+                aerial_passed = 1;
             }
         }
     }
     restored =
         pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK &&
         pf_web_m4_initialize_current_content();
-    return passed != 0 && restored != 0;
+    return grounded_passed != 0 && aerial_passed != 0 &&
+           restored != 0;
 }
 
 static int pf_web_m4_run_moonwalk_probe(void)

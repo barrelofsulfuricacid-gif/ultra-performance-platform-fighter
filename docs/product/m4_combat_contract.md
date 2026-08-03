@@ -1403,16 +1403,18 @@ while naming both actions and exporting the Shine-spike result.
 The original Arc Reservoir is one immutable grounded charge definition.
 Default content keeps it disabled so earlier fixtures remain isolated; the
 focused charge fixture and live browser lab enable the same authored data.
-From grounded idle, walk, initial dash, run, or crouch, full up plus a fresh
-special edge selects `CHARGE_GROUND`. Invalid, airborne, hitlag, tumble, held,
-or disabled requests are consumed without falling through to Pulse Bolt.
+From grounded idle, walk, initial dash, run, or crouch, holding light attack
+with full up plus a fresh special edge selects `CHARGE_GROUND`. The extra light
+input keeps ordinary grounded up-special available to Vector Ascent. Invalid,
+airborne, hitlag, tumble, held, or disabled charge requests are consumed
+without falling through to Pulse Bolt.
 
 Every charging tick adds one canonical charge tick through an inclusive
 120-tick clamp. A fresh shield edge enters `CHARGE_STORE_GROUND`. Releasing
 shield before the four-tick store animation completes returns to grounded
 idle, retains the stored value, and permits a same-tick ordinary attack. Holding
 shield through the animation commits to ordinary shield while retaining the
-stored value. A later legal up-special resumes at that exact value.
+stored value. A later legal light-plus-up-special resumes at that exact value.
 
 A fresh light attack during charge selects `CHARGE_RELEASE_GROUND`. Its
 four-tick startup, three active ticks, and fourteen recovery ticks use one
@@ -1436,12 +1438,14 @@ the event/item/projectile blocks by two values and producing a 304-value view.
 The original Vector Ascent is one immutable recovery definition. Default
 content keeps it disabled so focused historical fixtures retain their prior
 input routing; the recovery fixture and live browser lab enable the same
-authored data. While airborne, full up plus a fresh Special edge selects
-`VECTOR_ASCENT` from `AIRBORNE`, `DELAYED_AIR_JUMP`, or `FALL_SPECIAL` only
-when the once-per-airtime recovery resource is ready. Grounded full-up Special
-remains Arc Reservoir, down Special remains Prism Burst, and neutral Special
-remains Pulse Bolt. An unavailable aerial up-special is consumed without
-falling through to another special.
+authored data. From ordinary grounded movement or shield, and while airborne,
+full up plus a fresh Special edge selects `VECTOR_ASCENT` only when the
+once-per-airtime recovery resource is ready. Grounded entry clears support and
+launches immediately; landing enters the authored special-landing lag and then
+restores ordinary movement. Holding light with grounded full-up Special selects
+Arc Reservoir instead; down Special remains Prism Burst and neutral Special
+remains Pulse Bolt. An unavailable up-special is consumed without falling
+through to another special.
 
 Entry spends the resource, clears fast fall and tumble, applies the authored
 4/5-unit upward velocity, and derives horizontal velocity from stick input up
@@ -1452,12 +1456,13 @@ or otherwise interrupted does not refund the independent resource. Landing,
 ledge grab, stock loss/respawn, and reset restore it, so rollback and replay
 cannot manufacture an extra recovery.
 
-`tests/sim/test_m4_movement.c` supplies nine focused recovery invariants:
+`tests/sim/test_m4_movement.c` supplies focused recovery invariants:
 default and invalid data, isolated content hashing, ordinary jump-to-recovery
-entry, authored velocity and consumption, structured and compact observation,
-771-byte mid-action save/load with equal future hashes, blocked second use,
-landing restoration, and second-airtime reuse. Browser startup repeats the
-ordinary input entry and exposes `vector_ascent_probe`; browser view schema 33
+entry, grounded entry, post-landing movement restoration, authored velocity and
+consumption, structured and compact observation, 771-byte mid-action save/load
+with equal future hashes, blocked second use, landing restoration, and
+second-airtime reuse. Browser startup repeats grounded and airborne entry,
+requires post-landing dash control, and exposes `vector_ascent_probe`; browser view schema 33
 introduced one READY/SPENT value per player at indices 392–395; current browser
 view schema 42 retains those values at indices 427–430 after the shield-volume
 and tilt player-field expansion.
