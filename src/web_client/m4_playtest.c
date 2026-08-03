@@ -619,6 +619,9 @@ static int pf_web_m4_run_input_probe(void)
     int32_t short_late_apex;
     int32_t full_release_apex;
     int32_t full_hold_apex;
+    int16_t ramp_low;
+    int16_t ramp_middle;
+    int16_t ramp_high;
     uint32_t tick;
 
     if (!pf_web_m4_reset_internal() ||
@@ -632,6 +635,86 @@ static int pf_web_m4_run_input_probe(void)
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_WALK)
+    {
+        return 0;
+    }
+    ramp_low = (int16_t)(
+        pf_web_m4_content.fighter.axis_dead_zone + UINT16_C(1));
+    ramp_middle = (int16_t)(
+        ((uint32_t)pf_web_m4_content.fighter.axis_dead_zone +
+         (uint32_t)pf_web_m4_content.fighter.dash_axis_threshold) /
+        UINT32_C(2));
+    ramp_high = (int16_t)(
+        pf_web_m4_content.fighter.dash_axis_threshold - UINT16_C(1));
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick(
+            ramp_low,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        !pf_web_m4_tick(
+            ramp_middle,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks !=
+            pf_web_m4_content.fighter.dash_input_window_ticks ||
+        !pf_web_m4_tick(
+            ramp_high,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks !=
+            pf_web_m4_content.fighter.dash_input_window_ticks ||
+        inspection.players[0].dash_direction != INT8_C(0) ||
+        inspection.players[0].velocity_x_q16 >
+            pf_web_m4_content.fighter.walk_speed_q16)
+    {
+        return 0;
+    }
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick(
+            ramp_low,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !pf_web_m4_tick(
+            PF_WEB_M4_DASH_AXIS,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH)
     {
         return 0;
     }
@@ -9616,11 +9699,37 @@ static int16_t pf_web_m4_tech_chase_axis(
     const int32_t delta =
         inspection->players[1].position_x_q16 -
         inspection->players[0].position_x_q16;
+    const int aged_walk =
+        inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_WALK &&
+        inspection->players[0].action_ticks >=
+            pf_web_m4_content.fighter.dash_input_window_ticks;
+    const int target_is_tech_rolling =
+        inspection->players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_TECH_ROLL;
+
+    if (target_is_tech_rolling != 0)
+    {
+        if (aged_walk != 0)
+        {
+            return INT16_C(0);
+        }
+        if (delta > INT32_C(0))
+        {
+            return PF_WEB_M4_DASH_AXIS;
+        }
+        if (delta < INT32_C(0))
+        {
+            return -PF_WEB_M4_DASH_AXIS;
+        }
+    }
 
     if (delta >
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
     {
-        return PF_WEB_M4_DASH_AXIS;
+        return aged_walk != 0
+                   ? INT16_C(0)
+                   : PF_WEB_M4_DASH_AXIS;
     }
     if (delta > PF_Q16_ONE / INT32_C(2))
     {
@@ -9629,7 +9738,9 @@ static int16_t pf_web_m4_tech_chase_axis(
     if (delta <
         -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
     {
-        return -PF_WEB_M4_DASH_AXIS;
+        return aged_walk != 0
+                   ? INT16_C(0)
+                   : -PF_WEB_M4_DASH_AXIS;
     }
     if (delta < -PF_Q16_ONE / INT32_C(2))
     {

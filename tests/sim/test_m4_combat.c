@@ -13719,16 +13719,41 @@ static int run_knockdown_and_tech_test(
 }
 
 static int16_t tech_chase_axis(
+    const pf_m4_content *content,
     const pf_m4_inspection *inspection)
 {
     const int32_t delta =
         inspection->players[1].position_x_q16 -
         inspection->players[0].position_x_q16;
+    const int aged_walk =
+        inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_WALK &&
+        inspection->players[0].action_ticks >=
+            content->fighter.dash_input_window_ticks;
+    const int target_is_tech_rolling =
+        inspection->players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_TECH_ROLL;
+
+    if (target_is_tech_rolling != 0)
+    {
+        if (aged_walk != 0)
+        {
+            return INT16_C(0);
+        }
+        if (delta > INT32_C(0))
+        {
+            return INT16_MAX;
+        }
+        if (delta < INT32_C(0))
+        {
+            return -INT16_MAX;
+        }
+    }
 
     if (delta >
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
     {
-        return INT16_MAX;
+        return aged_walk != 0 ? INT16_C(0) : INT16_MAX;
     }
     if (delta > PF_Q16_ONE / INT32_C(2))
     {
@@ -13737,7 +13762,7 @@ static int16_t tech_chase_axis(
     if (delta <
         -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2))
     {
-        return -INT16_MAX;
+        return aged_walk != 0 ? INT16_C(0) : -INT16_MAX;
     }
     if (delta < -PF_Q16_ONE / INT32_C(2))
     {
@@ -13773,6 +13798,7 @@ static int tech_chase_jab_in_range(
 
 static int run_until_tech_chase_landing(
     pf_sim *sim,
+    const pf_m4_content *content,
     int tech_mode,
     pf_m4_inspection *out_inspection)
 {
@@ -13803,7 +13829,7 @@ static int run_until_tech_chase_landing(
 
         if (!step_reaction_duel(
                 sim,
-                tech_chase_axis(out_inspection),
+                tech_chase_axis(content, out_inspection),
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
@@ -13891,14 +13917,17 @@ static int run_tech_chase_test(
             &miss) ||
         !run_until_tech_chase_landing(
             in_place,
+            content,
             1,
             &in_place_inspection) ||
         !run_until_tech_chase_landing(
             roll,
+            content,
             2,
             &roll_inspection) ||
         !run_until_tech_chase_landing(
             miss,
+            content,
             2,
             &miss_inspection))
     {
@@ -13922,7 +13951,8 @@ static int run_tech_chase_test(
     initial_damage = in_place_inspection.players[1].damage_q16;
     for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
     {
-        int16_t chaser_x = tech_chase_axis(&in_place_inspection);
+        int16_t chaser_x =
+            tech_chase_axis(content, &in_place_inspection);
         uint64_t chaser_buttons = UINT64_C(0);
 
         if (attack_sent == 0 &&
@@ -13984,7 +14014,7 @@ static int run_tech_chase_test(
     {
         if (!step_reaction_duel(
                 roll,
-                tech_chase_axis(&roll_inspection),
+                tech_chase_axis(content, &roll_inspection),
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
@@ -14039,7 +14069,8 @@ static int run_tech_chase_test(
     saw_hit = 0;
     for (tick = UINT32_C(0); tick < UINT32_C(100); ++tick)
     {
-        int16_t chaser_x = tech_chase_axis(&roll_inspection);
+        int16_t chaser_x =
+            tech_chase_axis(content, &roll_inspection);
         uint64_t chaser_buttons = UINT64_C(0);
 
         if (attack_sent == 0 &&

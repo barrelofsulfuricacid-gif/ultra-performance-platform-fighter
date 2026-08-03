@@ -4880,7 +4880,7 @@ pf_status pf_m4_step_player(
             else
             {
                 action_state = (uint8_t)PF_M4_ACTION_WALK;
-                action_ticks = UINT16_C(0);
+                action_ticks = UINT16_C(1);
                 dash_direction = INT8_C(0);
                 facing = horizontal_direction;
                 velocity_x = pf_m4_scale_axis_q16(
@@ -5093,6 +5093,17 @@ pf_status pf_m4_step_player(
         }
         else
         {
+            const int walk_direction_changed =
+                action_state == (uint8_t)PF_M4_ACTION_WALK &&
+                horizontal_direction != facing;
+            const int walk_dash_window_open =
+                action_state != (uint8_t)PF_M4_ACTION_WALK ||
+                action_ticks < fighter->dash_input_window_ticks ||
+                walk_direction_changed != 0;
+            const int aged_walk_continues =
+                action_state == (uint8_t)PF_M4_ACTION_WALK &&
+                action_ticks >= fighter->dash_input_window_ticks &&
+                walk_direction_changed == 0;
             const int moonwalk_setup_started =
                 action_state ==
                     (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
@@ -5100,7 +5111,9 @@ pf_status pf_m4_step_player(
                  moonwalk_lower_sweep != 0);
             const int dash_started =
                 strong_direction != INT8_C(0) &&
-                (previous_strong_direction == INT8_C(0) ||
+                ((previous_strong_direction == INT8_C(0) &&
+                  walk_dash_window_open != 0) ||
+                 walk_direction_changed != 0 ||
                  (action_state ==
                       (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
                   strong_direction == -dash_direction));
@@ -5164,7 +5177,8 @@ pf_status pf_m4_step_player(
 
                 facing = horizontal_direction;
                 dash_direction = INT8_C(0);
-                if (strong_direction != INT8_C(0))
+                if (strong_direction != INT8_C(0) &&
+                    aged_walk_continues == 0)
                 {
                     action_state = (uint8_t)PF_M4_ACTION_RUN;
                     action_ticks =
@@ -5176,7 +5190,16 @@ pf_status pf_m4_step_player(
                 else
                 {
                     action_state = (uint8_t)PF_M4_ACTION_WALK;
-                    action_ticks = UINT16_C(0);
+                    if (walk_direction_changed != 0 ||
+                        action_ticks == UINT16_C(0))
+                    {
+                        action_ticks = UINT16_C(1);
+                    }
+                    else if (action_ticks <
+                             fighter->dash_input_window_ticks)
+                    {
+                        ++action_ticks;
+                    }
                     target = pf_m4_scale_axis_q16(
                         input->main_stick_x,
                         fighter->walk_speed_q16);

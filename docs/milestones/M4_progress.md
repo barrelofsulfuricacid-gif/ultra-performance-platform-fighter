@@ -29,6 +29,22 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the gradual-stick fast-walk follow-up
+
+- Research against Melee's `ftCo_Dash_CheckInput` and horizontal stick-tilt
+  timer confirmed that dash is a magnitude-plus-time decision: the stick must
+  reach the dash region within two frames of leaving the horizontal dead zone.
+- The original fighter now authors `dash_input_window_ticks=2`. `WALK` action
+  ticks retain the bounded tilt age, so a gradual neutral-to-full ramp stays in
+  `WALK` at `walk_speed_q16`; a direct input or a ramp completed inside the
+  window still enters `INITIAL_DASH`. Neutral resets the window.
+- Content schema 54/fighter schema 47 hash and validate the new immutable
+  timing. Native and Wasm input probes cover both the aged fast-walk route and
+  its within-window dash control without adding canonical mutable fields.
+- The schema-driven replay corpus identity and eight-match verifier digest are
+  repinned; the replay's final-state and event-stream SHA-256 values remain
+  unchanged. State/scratch requirements remain 2,488/1,088 bytes.
+
 ## Implemented in the sampled half-moon Moonwalk follow-up
 
 - The remaining failure was the center of the physical half-moon, not its

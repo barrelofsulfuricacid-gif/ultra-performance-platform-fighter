@@ -2116,6 +2116,7 @@ static int run_content_contract_test(
     test_sim_storage tuned_storage;
     pf_m4_content invalid_content = *default_content;
     pf_m4_content jump_tuned_content = *default_content;
+    pf_m4_content dash_window_tuned_content = *default_content;
     pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
     pf_m4_content crouch_step_tuned_content = *default_content;
@@ -2123,6 +2124,7 @@ static int run_content_contract_test(
     pf_m4_content tuned_content = *default_content;
     pf_content_view damaged_view = *default_view;
     pf_content_view jump_tuned_view;
+    pf_content_view dash_window_tuned_view;
     pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
     pf_content_view crouch_step_tuned_view;
@@ -2198,6 +2200,46 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=jump-horizontal-content-hash\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.dash_input_window_ticks = UINT16_C(0);
+    if (default_content->fighter.dash_input_window_ticks != UINT16_C(2) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-dash-input-window"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.dash_input_window_ticks =
+        invalid_content.fighter.initial_dash_ticks + UINT16_C(1);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-long-dash-input-window"))
+    {
+        return 0;
+    }
+
+    dash_window_tuned_content.fighter.dash_input_window_ticks =
+        UINT16_C(3);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &dash_window_tuned_content,
+                &dash_window_tuned_view),
+            PF_STATUS_OK,
+            "dash-window-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            dash_window_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-window-content-hash\n");
         return 0;
     }
 
@@ -2478,8 +2520,12 @@ static int run_ground_control_test(
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     int32_t slow_walk_velocity;
+    int32_t fast_walk_velocity;
     int32_t dash_velocity;
     int32_t run_velocity;
+    int16_t ramp_low;
+    int16_t ramp_middle;
+    int16_t ramp_high;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -2515,6 +2561,107 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=analog-walk\n");
+        return 0;
+    }
+
+    ramp_low = (int16_t)(content->fighter.axis_dead_zone + UINT16_C(1));
+    ramp_middle = (int16_t)(
+        ((uint32_t)content->fighter.axis_dead_zone +
+         (uint32_t)content->fighter.dash_axis_threshold) /
+        UINT32_C(2));
+    ramp_high =
+        (int16_t)(content->fighter.dash_axis_threshold - UINT16_C(1));
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "gradual-walk-reset") ||
+        !step_duel(
+            sim,
+            ramp_low,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        !step_duel(
+            sim,
+            ramp_middle,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks !=
+            content->fighter.dash_input_window_ticks ||
+        !step_duel(
+            sim,
+            ramp_high,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    fast_walk_velocity = inspection.players[0].velocity_x_q16;
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks !=
+            content->fighter.dash_input_window_ticks ||
+        inspection.players[0].dash_direction != INT8_C(0) ||
+        inspection.players[0].facing != INT8_C(1) ||
+        fast_walk_velocity <= slow_walk_velocity ||
+        fast_walk_velocity > content->fighter.walk_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=gradual-fast-walk\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "timely-dash-reset") ||
+        !step_duel(
+            sim,
+            ramp_low,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].dash_direction != INT8_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=timely-stick-dash\n");
         return 0;
     }
 
@@ -11337,7 +11484,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_invariants=350 jump_takeoff_momentum=1 "
+        "movement_invariants=352 jump_takeoff_momentum=1 "
         "moonwalk=1 teeter_cancel=1 "
         "taunt_cancel=1 "
         "scar_jump=1 "

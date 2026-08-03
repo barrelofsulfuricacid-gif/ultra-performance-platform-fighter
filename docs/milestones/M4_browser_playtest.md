@@ -288,6 +288,13 @@ and the neutral tick preserves a short traction slide. Holding the direction
 instead reaches `RUN` after the data-defined ten-tick window; using the
 `Shift`/reduced-magnitude input after release produces `WALK`, not another dash.
 
+For analog walk timing, move the main stick gradually from neutral toward a
+horizontal gate. If reaching the full dash region takes longer than the
+data-defined two-tick window, the state remains `WALK` and full tilt produces
+the fastest walk. Return the stick to neutral, then move it to full horizontal
+within two ticks to compare the ordinary `INITIAL DASH` route. The D-pad and
+keyboard full-direction keys are immediate inputs and therefore dash.
+
 For a Moonwalk, begin a full forward dash and sweep the GameCube main stick in
 a half-moon through the lower half to straight back. Forward-down, down, and
 lower-back remain `MOONWALK SETUP`; finishing straight back becomes `MOONWALK`
