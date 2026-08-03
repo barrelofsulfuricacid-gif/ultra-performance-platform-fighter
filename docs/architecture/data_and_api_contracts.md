@@ -422,7 +422,7 @@ from 2472 to 2488 bytes; the 1088-byte scratch requirement is unchanged, and
 both remain inside the public 4 KiB storage bounds.
 
 Content schema 54/fighter schema 47 append, validate, default, and hash the
-two-tick horizontal dash-input window. `WALK` reuses its serialized action tick
+one-sample horizontal dash-input window. `WALK` reuses its serialized action tick
 as the bounded time since leaving the dead zone, so save/state, observation,
 RL, inspection, browser, compact, and replay-container layouts remain
 unchanged. The new `uint16_t` occupies existing fighter-record alignment space,

@@ -31,13 +31,21 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 ## Implemented in the gradual-stick fast-walk follow-up
 
+- A controller-accessibility retune now authors `dash_input_window_ticks=1`:
+  any sampled intermediate horizontal magnitude commits to the fastest `WALK`
+  route, while only a direct neutral-to-full sample dashes. This is deliberately
+  easier than Melee's exact two-frame timer and leaves keyboard/D-pad dashes
+  unchanged. Native and browser probes cover the one-intermediate-sample route
+  against the direct-snap dash control. The content-bearing replay corpus and
+  deterministic verifier digest are repinned; final state and event-stream
+  identities remain unchanged.
 - Research against Melee's `ftCo_Dash_CheckInput` and horizontal stick-tilt
   timer confirmed that dash is a magnitude-plus-time decision: the stick must
   reach the dash region within two frames of leaving the horizontal dead zone.
-- The original fighter now authors `dash_input_window_ticks=2`. `WALK` action
-  ticks retain the bounded tilt age, so a gradual neutral-to-full ramp stays in
-  `WALK` at `walk_speed_q16`; a direct input or a ramp completed inside the
-  window still enters `INITIAL_DASH`. Neutral resets the window.
+- The initial fidelity implementation authored `dash_input_window_ticks=2`.
+  `WALK` action ticks retain the bounded tilt age, so a gradual neutral-to-full
+  ramp stays in `WALK` at `walk_speed_q16`; the accessibility retune above later
+  narrowed this authored window to one sample. Neutral resets the window.
 - Content schema 54/fighter schema 47 hash and validate the new immutable
   timing. Native and Wasm input probes cover both the aged fast-walk route and
   its within-window dash control without adding canonical mutable fields.

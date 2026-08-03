@@ -1489,21 +1489,22 @@ they intentionally do not add technique-only state or duplicate harnesses.
 
 ## Walk-versus-dash input contract
 
-The original fighter authors `dash_input_window_ticks=2`, matching Melee's
-horizontal stick-tilt timer. Leaving the horizontal dead zone starts that
-window. Reaching `dash_axis_threshold` on either of its two ticks enters
-`INITIAL_DASH`; crossing the same range more gradually expires the window and
-keeps `WALK` even when the stick later reaches full horizontal magnitude. The
-full input then targets `walk_speed_q16`, producing the fastest analog walk,
-not `RUN`. Returning to the dead zone resets the route, and a fresh fast motion
-can dash again. A direct fast reversal starts a new directional window.
+The original fighter authors `dash_input_window_ticks=1`. This intentionally
+widens the practical controller route beyond Melee's two-frame horizontal
+stick-tilt timer: only a direct neutral-to-`dash_axis_threshold` sample enters
+`INITIAL_DASH`. Any intermediate horizontal sample outside the dead zone starts
+`WALK` and keeps it even when the stick later reaches full horizontal
+magnitude. The full input then targets `walk_speed_q16`, producing the fastest
+analog walk, not `RUN`. Returning to the dead zone resets the route, and a fresh
+direct snap can dash again. A direct fast reversal starts a new directional
+window.
 
 `WALK` action ticks hold the bounded tilt age, so the timing is already part of
 canonical save/load, replay, rollback, and hashing without adding mutable
 state. Content schema 54/fighter schema 47 append, default, validate, and hash
-the immutable window. The native ground-control oracle covers an expired
-multi-sample ramp and a within-window positive dash; browser readiness repeats
-both paths in the production Wasm simulation.
+the immutable window. The native ground-control oracle covers both a
+single-intermediate-sample fast walk and a direct-snap dash; browser readiness
+repeats both paths in the production Wasm simulation.
 
 ## Moonwalk contract
 

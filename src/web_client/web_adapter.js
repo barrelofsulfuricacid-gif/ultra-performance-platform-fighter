@@ -1753,9 +1753,9 @@ mergeInto(LibraryManager.library, {
       "Supported controllers are assigned in browser index order and polled every " +
       "simulation tick, so hot-plugging does not alter canonical state. Left " +
       "stick magnitude preserves analog walk/dash thresholds; the D-pad emits " +
-      "full magnitude. Reaching full horizontal within two ticks of leaving " +
-      "the dead zone dashes; moving there more gradually produces the fastest " +
-      "walk even at full tilt until the stick returns to neutral. The Mayflash " +
+      "full magnitude. Snapping directly from neutral to full horizontal in one " +
+      "sample dashes; any intermediate horizontal stick sample produces the " +
+      "fastest walk even at full tilt until the stick returns to neutral. The Mayflash " +
       "0079:1843 adapter must be in PC mode; " +
       "empty adapter ports are skipped. Keyboard and gamepad buttons may be mixed per player. " +
       "Tap jump and release during the three-tick jump squat for the fixed " +

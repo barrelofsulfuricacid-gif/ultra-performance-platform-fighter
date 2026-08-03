@@ -2205,7 +2205,7 @@ static int run_content_contract_test(
 
     invalid_content = *default_content;
     invalid_content.fighter.dash_input_window_ticks = UINT16_C(0);
-    if (default_content->fighter.dash_input_window_ticks != UINT16_C(2) ||
+    if (default_content->fighter.dash_input_window_ticks != UINT16_C(1) ||
         !expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -2640,7 +2640,7 @@ static int run_ground_control_test(
     if (!expect_status(
             pf_sim_reset(sim, UINT64_C(2)),
             PF_STATUS_OK,
-            "timely-dash-reset") ||
+            "one-sample-walk-reset") ||
         !step_duel(
             sim,
             ramp_low,
@@ -2656,12 +2656,14 @@ static int run_ground_control_test(
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        inspection.players[0].dash_direction != INT8_C(1))
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].dash_direction != INT8_C(0) ||
+        inspection.players[0].velocity_x_q16 >
+            content->fighter.walk_speed_q16)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=timely-stick-dash\n");
+            "m4-movement=fail operation=one-sample-fast-walk\n");
         return 0;
     }
 

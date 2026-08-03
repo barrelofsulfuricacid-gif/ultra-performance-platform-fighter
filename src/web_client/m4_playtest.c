@@ -714,7 +714,10 @@ static int pf_web_m4_run_input_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].dash_direction != INT8_C(0) ||
+        inspection.players[0].velocity_x_q16 >
+            pf_web_m4_content.fighter.walk_speed_q16)
     {
         return 0;
     }
