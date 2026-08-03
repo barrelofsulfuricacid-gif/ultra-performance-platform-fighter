@@ -1777,6 +1777,228 @@ static int run_ground_dodge_test(
         return 0;
     }
 
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d742)),
+            PF_STATUS_OK,
+            "c-stick-buffered-spot-dodge-reset") ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            INT16_MAX,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            INT16_MAX,
+            PF_INPUT_BUTTON_STRONG_ATTACK |
+                PF_INPUT_BUTTON_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=c-stick-buffered-spot-dodge"
+            "-priority\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d743)),
+            PF_STATUS_OK,
+            "c-stick-buffered-jump-reset") ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=c-stick-buffered-jump\n");
+        return 0;
+    }
+    for (elapsed = UINT32_C(0);
+         elapsed < (uint32_t)default_content->fighter.jump_squat_ticks;
+         ++elapsed)
+    {
+        if (!step_duel_secondary_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                INT16_MIN,
+                PF_INPUT_BUTTON_STRONG_ATTACK,
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].velocity_y_q16 !=
+            -default_content->fighter.full_hop_speed_q16 +
+                default_content->fighter.gravity_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=c-stick-held-full-hop"
+            " action=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            inspection.players[0].velocity_y_q16,
+            -default_content->fighter.full_hop_speed_q16 +
+                default_content->fighter.gravity_q16);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d744)),
+            PF_STATUS_OK,
+            "c-stick-release-short-hop-reset") ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection) ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            &inspection))
+    {
+        return 0;
+    }
+    for (elapsed = UINT32_C(0);
+         elapsed < (uint32_t)default_content->fighter.jump_squat_ticks;
+         ++elapsed)
+    {
+        if (!step_duel_secondary_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].velocity_y_q16 !=
+            -default_content->fighter.short_hop_speed_q16 +
+                default_content->fighter.gravity_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=c-stick-release-short-hop"
+            " action=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            inspection.players[0].velocity_y_q16,
+            -default_content->fighter.short_hop_speed_q16 +
+                default_content->fighter.gravity_q16);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0xd0d745)),
+            PF_STATUS_OK,
+            "c-stick-shield-release-buffer-reset") ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection))
+    {
+        return 0;
+    }
+    while (inspection.players[0].action_ticks <
+           default_content->fighter.shield_minimum_hold_ticks)
+    {
+        if (!step_duel_secondary_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_MAX,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=c-stick-shield-release"
+            "-spot-dodge\n");
+        return 0;
+    }
+
     wall_content.stage.solid_left_q16 =
         -INT32_C(6) * PF_Q16_ONE;
     wall_content.stage.solid_right_q16 =

@@ -161,7 +161,18 @@ L-cancel:
   horizontally while shield is requested buffers the direction through the
   one shield frame and enters the roll without requiring a fresh secondary-
   stick edge. Holding it through shield stun likewise takes the roll on the
-  first eligible shield frame. The main-stick path remains edge-triggered.
+  first eligible shield frame. Holding full secondary-stick down uses the
+  same route to buffer spot dodge, and holding full secondary-stick up buffers
+  jump squat. The main-stick paths remain edge-triggered.
+- Secondary down has priority over a simultaneous horizontal secondary-stick
+  direction and shield grab, while horizontal roll has priority over
+  secondary up. These priorities match Melee's guard router: spot dodge, then
+  roll, then grab, then jump.
+- Releasing shield after its minimum hold does not discard a held vertical
+  secondary-stick option. Down cancels `SHIELD_RELEASE` into spot dodge and up
+  cancels it into jump squat; horizontal secondary input intentionally cannot
+  roll from shield release. A held secondary-up jump produces a full hop, and
+  releasing it during jump squat latches the ordinary short hop.
 - Fresh down plus trigger selects `SPOT_DODGE`. If down and a full horizontal
   edge arrive together, spot dodge has priority.
 - Reduced down while already shielding is below the spot-dodge threshold and
@@ -171,6 +182,15 @@ L-cancel:
   buffer is intentional. Down held before the trigger likewise produces
   ordinary shield instead of a spot dodge. Initial dash and other locked
   actions remain excluded.
+
+The held secondary-stick thresholds and shield action routing follow the
+pinned Melee decomp's
+[horizontal, down, and up C-stick predicates](https://github.com/doldecomp/melee/blob/e5c34839555716e305891df8023d15dba8c18bc0/src/melee/ft/ft_0DF1.c#L212-L233),
+[roll and spot-dodge selection](https://github.com/doldecomp/melee/blob/e5c34839555716e305891df8023d15dba8c18bc0/src/melee/ft/chara/ftCommon/ftCo_Escape.c#L60-L76),
+and
+[guard input priority](https://github.com/doldecomp/melee/blob/e5c34839555716e305891df8023d15dba8c18bc0/src/melee/ft/chara/ftCommon/ftCo_Guard.c#L490-L498).
+The C-stick jump's hold-versus-release result follows the decomp's
+[source-aware short-hop check](https://github.com/doldecomp/melee/blob/e5c34839555716e305891df8023d15dba8c18bc0/src/melee/ft/chara/ftCommon/ftCo_KneeBend.c#L43-L53).
 
 All timing is deterministic fighter data. The current original placeholder
 uses:

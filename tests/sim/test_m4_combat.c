@@ -9087,6 +9087,7 @@ static int start_normal_shield_block(
 static int step_player1_secondary_shield(
     pf_sim *sim,
     int16_t secondary_stick_x,
+    int16_t secondary_stick_y,
     pf_m4_inspection *out_inspection)
 {
     pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -9101,6 +9102,7 @@ static int step_player1_secondary_shield(
     }
     make_inputs(inputs, UINT8_C(2), before.tick);
     inputs[1].secondary_stick_x = secondary_stick_x;
+    inputs[1].secondary_stick_y = secondary_stick_y;
     inputs[1].buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
     inputs[1].left_trigger = UINT16_MAX;
     return expect_status(
@@ -11345,10 +11347,16 @@ static int run_shield_block_test(
 {
     test_sim_storage normal_storage;
     test_sim_storage power_storage;
+    test_sim_storage spot_storage;
+    test_sim_storage jump_storage;
     pf_sim *normal = NULL;
     pf_sim *power = NULL;
+    pf_sim *spot = NULL;
+    pf_sim *jump = NULL;
     pf_m4_inspection normal_inspection;
     pf_m4_inspection power_inspection;
+    pf_m4_inspection spot_inspection;
+    pf_m4_inspection jump_inspection;
     uint8_t save_bytes[TEST_SAVE_CAPACITY];
     pf_mut_bytes destination;
     pf_bytes save;
@@ -11384,6 +11392,20 @@ static int run_shield_block_test(
             PF_SIM_MODE_DUEL,
             1,
             &power) ||
+        !initialize_sim(
+            &spot_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &spot) ||
+        !initialize_sim(
+            &jump_storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &jump) ||
         !start_normal_shield_block(normal, &normal_inspection))
     {
         return fail("normal-shield-block-setup");
@@ -11429,6 +11451,7 @@ static int run_shield_block_test(
                 normal_facing == INT8_C(1)
                     ? INT16_MAX
                     : INT16_MIN,
+                INT16_C(0),
                 &normal_inspection))
         {
             return fail("shield-hitlag-step");
@@ -11447,6 +11470,7 @@ static int run_shield_block_test(
                 normal_facing == INT8_C(1)
                     ? INT16_MAX
                     : INT16_MIN,
+                INT16_C(0),
                 &normal_inspection))
         {
             return fail("shield-stun-step");
@@ -11469,6 +11493,7 @@ static int run_shield_block_test(
             normal_facing == INT8_C(1)
                 ? INT16_MAX
                 : INT16_MIN,
+            INT16_C(0),
             &normal_inspection) ||
         normal_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
@@ -11476,6 +11501,70 @@ static int run_shield_block_test(
             (int8_t)-normal_facing)
     {
         return fail("c-stick-roll-buffer-through-shield-stun");
+    }
+
+    if (!start_normal_shield_block(spot, &spot_inspection) ||
+        !start_normal_shield_block(jump, &jump_inspection))
+    {
+        return fail("c-stick-vertical-buffer-shield-block-setup");
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         ++tick)
+    {
+        if (!step_player1_secondary_shield(
+                spot,
+                INT16_C(0),
+                INT16_MAX,
+                &spot_inspection) ||
+            !step_player1_secondary_shield(
+                jump,
+                INT16_C(0),
+                INT16_MIN,
+                &jump_inspection))
+        {
+            return fail("c-stick-vertical-buffer-hitlag-step");
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        if (!step_player1_secondary_shield(
+                spot,
+                INT16_C(0),
+                INT16_MAX,
+                &spot_inspection) ||
+            !step_player1_secondary_shield(
+                jump,
+                INT16_C(0),
+                INT16_MIN,
+                &jump_inspection))
+        {
+            return fail("c-stick-vertical-buffer-shield-stun-step");
+        }
+        if (spot_inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD &&
+            jump_inspection.players[1].action_state ==
+                (uint8_t)PF_M4_ACTION_SHIELD)
+        {
+            break;
+        }
+    }
+    if (!step_player1_secondary_shield(
+            spot,
+            INT16_C(0),
+            INT16_MAX,
+            &spot_inspection) ||
+        spot_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        !step_player1_secondary_shield(
+            jump,
+            INT16_C(0),
+            INT16_MIN,
+            &jump_inspection) ||
+        jump_inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        return fail("c-stick-vertical-buffer-through-shield-stun");
     }
 
     if (!start_powershield_block(power, &power_inspection) ||

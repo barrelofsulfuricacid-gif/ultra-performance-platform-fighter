@@ -2420,10 +2420,27 @@ pf_status pf_m4_step_player(
     const int dodge_down_held =
         input->main_stick_y >=
         (int16_t)fighter->crouch_axis_threshold;
-    const int spot_dodge_pressed =
+    const int secondary_dodge_down_held =
+        input->secondary_stick_y >=
+        (int16_t)fighter->crouch_axis_threshold;
+    const int secondary_jump_up_buffered =
+        input->secondary_stick_y <=
+        -(int16_t)fighter->dash_axis_threshold;
+    const int secondary_jump_up_held =
+        input->secondary_stick_y <=
+        -(int16_t)fighter->crouch_axis_threshold;
+    const int main_stick_spot_dodge_pressed =
         shield_held != 0 &&
         dodge_down_held != 0 &&
         world->previous_dodge_down[player_index] == UINT8_C(0);
+    const int secondary_stick_spot_dodge_buffered =
+        shield_held != 0 &&
+        secondary_dodge_down_held != 0 &&
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_SHIELD;
+    const int spot_dodge_pressed =
+        main_stick_spot_dodge_pressed != 0 ||
+        secondary_stick_spot_dodge_buffered != 0;
     const int main_stick_roll_pressed =
         shield_held != 0 &&
         strong_direction != INT8_C(0) &&
@@ -2440,6 +2457,22 @@ pf_status pf_m4_step_player(
         main_stick_roll_pressed != 0
             ? strong_direction
             : secondary_strong_direction;
+    const int shield_jump_pressed =
+        jump_pressed != 0 ||
+        (shield_held != 0 &&
+         secondary_jump_up_buffered != 0 &&
+         world->action_state[player_index] ==
+             (uint8_t)PF_M4_ACTION_SHIELD);
+    const int shield_release_spot_dodge_pressed =
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+        ((dodge_down_held != 0 &&
+          world->previous_dodge_down[player_index] == UINT8_C(0)) ||
+         secondary_dodge_down_held != 0);
+    const int shield_release_jump_pressed =
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
+        (jump_pressed != 0 || secondary_jump_up_buffered != 0);
     const int shield_platform_drop_requested =
         shield_held != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
@@ -3441,6 +3474,8 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         ((grab_pressed != 0 &&
+          spot_dodge_pressed == 0 &&
+          roll_pressed == 0 &&
           pf_m4_action_can_start_grab(action_state)) ||
          boost_grab_pressed != 0) &&
         scratch->grab_target_slot[player_index] == UINT8_C(0) &&
@@ -3679,7 +3714,7 @@ pf_status pf_m4_step_player(
             scratch->shield_stun_ticks[player_index] =
                 UINT16_C(0);
         }
-        else if (was_shielding && jump_pressed)
+        else if (was_shielding && shield_jump_pressed)
         {
             action_state = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
             action_ticks = UINT16_C(0);
@@ -3774,7 +3809,16 @@ pf_status pf_m4_step_player(
                              : horizontal_direction;
             }
         }
-        else if (jump_pressed)
+        else if (shield_release_spot_dodge_pressed != 0)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_SPOT_DODGE;
+            action_ticks = UINT16_C(0);
+            velocity_x = INT32_C(0);
+            short_hop_latched = UINT8_C(0);
+            dash_direction = INT8_C(0);
+            scratch->powershield[player_index] = UINT8_C(0);
+        }
+        else if (shield_release_jump_pressed != 0)
         {
             action_state = (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
             action_ticks = UINT16_C(0);
@@ -4509,7 +4553,8 @@ pf_status pf_m4_step_player(
             velocity_x,
             INT32_C(0),
             fighter->traction_q16);
-        if ((input->buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0))
+        if ((input->buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0) &&
+            secondary_jump_up_held == 0)
         {
             short_hop_latched = UINT8_C(1);
         }

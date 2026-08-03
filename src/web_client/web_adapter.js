@@ -1022,8 +1022,16 @@ mergeInto(LibraryManager.library, {
         input.vertical =
           dpadUp === dpadDown ? 0 : dpadUp ? -dashAxis : dashAxis;
       }
+      var cStickX = gamepadAxis(gamepad, 2);
+      var cStickY = gamepadAxis(gamepad, 3);
+      if (cStickX !== 0 || cStickY !== 0) {
+        input.secondaryHorizontal = cStickX;
+        input.secondaryVertical = cStickY;
+        input.strongAttack = true;
+      }
       input.attack = gamepadButtonPressed(gamepad, 0);
-      input.strongAttack = gamepadButtonPressed(gamepad, 1);
+      input.strongAttack =
+        input.strongAttack || gamepadButtonPressed(gamepad, 1);
       input.jump = gamepadButtonPressed(gamepad, 2);
       input.special = gamepadButtonPressed(gamepad, 3);
       input.taunt = gamepadButtonPressed(gamepad, 8);
@@ -1183,7 +1191,7 @@ mergeInto(LibraryManager.library, {
       var analog = {
         connected: true,
         mapping: "standard",
-        axes: [0.5, -0.25],
+        axes: [0.5, -0.25, 0.5, -0.5],
         buttons: analogButtons,
       };
       var dpadButtons = buttons();
@@ -1246,8 +1254,12 @@ mergeInto(LibraryManager.library, {
         result.mayflashControllers === 1 &&
         result.inputs[0].horizontal === Math.round(dashAxis * 0.5) &&
         result.inputs[0].vertical === -Math.round(dashAxis * 0.25) &&
+        result.inputs[0].secondaryHorizontal ===
+          Math.round(dashAxis * 0.5) &&
+        result.inputs[0].secondaryVertical ===
+          -Math.round(dashAxis * 0.5) &&
         result.inputs[0].attack &&
-        !result.inputs[0].strongAttack &&
+        result.inputs[0].strongAttack &&
         result.inputs[0].jump &&
         !result.inputs[0].special &&
         result.inputs[0].taunt &&
@@ -1689,7 +1701,7 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield roll · L/R shield · Z grab/item · Start taunt"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
       )
     );
     controls.appendChild(
@@ -1793,9 +1805,10 @@ mergeInto(LibraryManager.library, {
       "forward or backward roll relative to facing; press fresh down with the " +
       "trigger for a spot dodge. A forward roll turns the fighter around; a " +
       "backward roll preserves facing, so either ends facing opposite its " +
-      "travel direction. On the GameCube adapter, hold the independent C-stick " +
-      "left or right with L/R to buffer that roll through shield stun and the " +
-      "eligible shield frame; no fresh C-stick edge is required. These grounded " +
+      "travel direction. Hold the independent GameCube C-stick or Standard " +
+      "Gamepad right stick with shield: left/right buffers a roll, down buffers " +
+      "spot dodge, and up buffers jump through shield stun and the eligible " +
+      "shield frame; no fresh C-stick edge is required. These grounded " +
       "dodges have fixed movement, recovery, " +
       "and invulnerability windows. Tap the " +
       "same trigger shortly before a tumble landing to tech in " +

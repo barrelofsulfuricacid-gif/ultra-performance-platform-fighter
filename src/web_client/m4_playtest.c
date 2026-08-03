@@ -4502,9 +4502,86 @@ static int pf_web_m4_run_ground_dodge_probe(void)
     {
         return 0;
     }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+        inspection.players[0].facing != (int8_t)-facing ||
+        !pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_dual_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !pf_web_m4_tick_with_dual_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
+        !pf_web_m4_reset_internal() ||
+        !pf_web_m4_tick_with_dual_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            -PF_WEB_M4_DASH_AXIS,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !pf_web_m4_tick_with_dual_triggers(
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            -PF_WEB_M4_DASH_AXIS,
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_MAX,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return 0;
+    }
     return inspection.players[0].action_state ==
-               (uint8_t)PF_M4_ACTION_ROLL_FORWARD &&
-           inspection.players[0].facing == (int8_t)-facing;
+        (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
 }
 
 static int pf_web_m4_run_air_facing_probe(void)

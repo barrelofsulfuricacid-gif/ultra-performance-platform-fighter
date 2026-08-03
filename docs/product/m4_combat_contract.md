@@ -944,8 +944,12 @@ The C-stick is retained as the normalized secondary stick instead of being
 collapsed into main-stick movement. While shield is requested, a held full
 horizontal C-stick direction buffers through shield stun and the one eligible
 shield frame, then selects the same production forward/backward roll path.
-Unlike the main-stick path, the secondary-stick buffer does not require a
-fresh directional edge.
+Held C-stick down similarly selects spot dodge, and held C-stick up selects
+jump squat. Down wins over horizontal input and shield grab; horizontal wins
+over up. The vertical held options also cancel shield release, whereas a
+horizontal C-stick roll does not. Unlike the main-stick paths, none of these
+secondary-stick buffers requires a fresh directional edge. Holding C-stick up
+through jump squat produces a full hop and releasing it produces a short hop.
 
 Inspection derives the gold invulnerability marker from action ID, action
 timer, and fighter data. A hit outside the legal window replaces the defensive

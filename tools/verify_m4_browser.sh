@@ -320,6 +320,12 @@ grep -Fq \
     'player0Gamepad.secondaryHorizontal' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'var cStickX = gamepadAxis(gamepad, 2)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'var cStickY = gamepadAxis(gamepad, 3)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'no fresh C-stick edge is required' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
