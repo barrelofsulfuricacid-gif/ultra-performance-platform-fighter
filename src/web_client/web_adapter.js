@@ -1437,6 +1437,7 @@ mergeInto(LibraryManager.library, {
     section.dataset.gamepadProfiles = "standard-mayflash-0079-1843";
     section.dataset.crouchCue = "squat-chevron-label";
     section.dataset.lightShieldCue = "expanded-translucent-percent-label";
+    section.dataset.shieldCue = "readable-margin-strength-label";
     section.dataset.teamLab = "inactive";
     section.dataset.matchFlow = "setup";
     section.dataset.collisionOverlay = "visible";
@@ -3462,6 +3463,26 @@ mergeInto(LibraryManager.library, {
         var shieldHeight = Math.max(1, shieldBottom - shieldTop);
         var shieldCenterX = (shieldLeft + shieldRight) / 2;
         var shieldCenterY = (shieldTop + shieldBottom) / 2;
+        var shieldPresentationPadding = lightShielding ? 22 : 14;
+        var shieldPresentationWidth = Math.max(
+          shieldWidth,
+          width + shieldPresentationPadding
+        );
+        var shieldPresentationHeight = Math.max(
+          shieldHeight,
+          height + shieldPresentationPadding
+        );
+        var shieldPresentationTop =
+          shieldCenterY - shieldPresentationHeight / 2;
+        var shieldPercent = Math.round(shieldInputFraction * 100);
+        var shieldLabel =
+          view[base + 27] !== 0
+            ? "POWERSHIELD"
+            : lightShielding
+              ? "LIGHT SHIELD " + shieldPercent + "%"
+              : (shieldPercent >= 99 ? "FULL SHIELD " : "DENSE SHIELD ") +
+                shieldPercent +
+                "%";
         context.save();
         if (state.collisionOverlayVisible) {
           context.fillStyle = "#a991ff18";
@@ -3484,30 +3505,32 @@ mergeInto(LibraryManager.library, {
         }
         context.fillStyle =
           view[base + 27] !== 0
-            ? "#f7fbff55"
-            : colors[playerIndex] + (lightShielding ? "28" : "45");
+            ? "#f7fbff77"
+            : colors[playerIndex] + (lightShielding ? "38" : "62");
         context.strokeStyle =
           view[base + 27] !== 0
             ? "#ffffff"
             : lightShielding
               ? "#f2dcff"
-              : colors[playerIndex];
+              : "#f8fbff";
         context.lineWidth =
-          view[base + 27] !== 0 ? 4 : lightShielding ? 2.5 : 3;
+          view[base + 27] !== 0 ? 4 : lightShielding ? 3 : 4;
+        context.shadowColor = colors[playerIndex];
+        context.shadowBlur = lightShielding ? 12 : 18;
         context.beginPath();
         context.ellipse(
           shieldCenterX,
           shieldCenterY,
-          shieldWidth / 2,
-          shieldHeight / 2,
+          shieldPresentationWidth / 2,
+          shieldPresentationHeight / 2,
           0,
           0,
           Math.PI * 2
         );
         context.fill();
         context.stroke();
+        context.shadowBlur = 0;
         if (lightShielding) {
-          var lightShieldPercent = Math.round(shieldInputFraction * 100);
           context.strokeStyle = colors[playerIndex] + "bb";
           context.lineWidth = 2;
           context.setLineDash([6, 4]);
@@ -3515,31 +3538,32 @@ mergeInto(LibraryManager.library, {
           context.ellipse(
             shieldCenterX,
             shieldCenterY,
-            shieldWidth / 2 + 4,
-            shieldHeight / 2 + 4,
+            shieldPresentationWidth / 2 + 4,
+            shieldPresentationHeight / 2 + 4,
             0,
             0,
             Math.PI * 2
           );
           context.stroke();
           context.setLineDash([]);
-          context.font = "700 11px ui-monospace, SFMono-Regular, monospace";
-          context.textAlign = "center";
-          context.textBaseline = "bottom";
-          context.lineWidth = 4;
-          context.strokeStyle = "#08111f";
-          context.strokeText(
-            "LIGHT SHIELD " + lightShieldPercent + "%",
-            shieldCenterX,
-            shieldTop - 7
-          );
-          context.fillStyle = "#f2dcff";
-          context.fillText(
-            "LIGHT SHIELD " + lightShieldPercent + "%",
-            shieldCenterX,
-            shieldTop - 7
-          );
         }
+        context.font = "700 11px ui-monospace, SFMono-Regular, monospace";
+        context.textAlign = "center";
+        context.textBaseline = "bottom";
+        context.lineWidth = 4;
+        context.strokeStyle = "#08111f";
+        context.strokeText(
+          shieldLabel,
+          shieldCenterX,
+          shieldPresentationTop - 7
+        );
+        context.fillStyle =
+          lightShielding ? "#f2dcff" : "#f8fbff";
+        context.fillText(
+          shieldLabel,
+          shieldCenterX,
+          shieldPresentationTop - 7
+        );
         context.restore();
       }
 

@@ -181,8 +181,11 @@ activity, the readable stale queue, selected-move scale, registration, and
 `prone none/back/stomach`.
 Bubble size, translucent fill, dashed outer ring, and an explicit live
 `LIGHT SHIELD N%` label distinguish light from dense input, while the collision
-inspector draws the authoritative shield AABB and the regular presentation
-draws an ellipse inside those same bounds.
+inspector draws the authoritative shield AABB. The regular presentation keeps
+that center and analog size relationship but applies a minimum margin around
+the deliberately enlarged fighter silhouette so neither shield can disappear
+behind it. Dense input shows `DENSE SHIELD N%`, and maximum input shows
+`FULL SHIELD 100%`.
 
 For the additional stage-geometry check, climb onto the raised block, jump
 through the pale-pink deck from below, and fall back onto it. The fighter must

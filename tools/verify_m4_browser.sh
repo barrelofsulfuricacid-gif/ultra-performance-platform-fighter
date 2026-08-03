@@ -512,10 +512,22 @@ grep -Fq \
     'section.dataset.lightShieldCue = "expanded-translucent-percent-label"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'section.dataset.shieldCue = "readable-margin-strength-label"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'context.fillText("CROUCH", x, crouchCueY)' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    '"LIGHT SHIELD " + lightShieldPercent + "%"' \
+    'var shieldPresentationWidth = Math.max(' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'var shieldPresentationPadding = lightShielding ? 22 : 14' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"LIGHT SHIELD "' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    '"FULL SHIELD "' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'controls=keyboard-gamepad-two-controller-duel-team-lab' \
