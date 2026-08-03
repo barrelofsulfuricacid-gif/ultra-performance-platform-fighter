@@ -84,7 +84,7 @@ silently inferred from replay metadata.
 |---|---|---|
 | Full left/right input and horizontal DI | `A` / `D` | Left / Right |
 | Reduced-magnitude walk | `Shift+A` / `Shift+D` | `Shift+Left` / `Shift+Right` |
-| Moonwalk | Dash, hold `S` plus the opposite direction for at least two ticks, then release `S` while keeping back held; `Shift` plus opposite remains an alternate | Use the GameCube lower-back diagonal notch for at least two ticks, then roll to straight back; keyboard uses Down plus Left / Right |
+| Moonwalk | Dash, sweep through `S`, then `S` plus opposite, then release `S` at back; `Shift` plus opposite remains an alternate | Sweep the GameCube main stick through the lower half from forward to straight back; pausing at lower-back for two ticks also works |
 | Teeter cancel | Dash toward an edge, release the direction just before crossing, then Attack or press full opposite direction | Same with Left / Right |
 | Crouch step / Stage humping | Tap `S` plus `A` or `D`, release, and repeat | Tap Down plus Left or Right, release, and repeat |
 | Taunt / Taunt cancel | `T`; while dashing toward an edge, release horizontal and press `T` just before crossing | `,`; use the same edge timing |
@@ -288,14 +288,15 @@ and the neutral tick preserves a short traction slide. Holding the direction
 instead reaches `RUN` after the data-defined ten-tick window; using the
 `Shift`/reduced-magnitude input after release produces `WALK`, not another dash.
 
-For a Moonwalk, begin a full forward dash, move to the GameCube lower-back
-diagonal notch for at least two simulation ticks, then roll to straight back.
-On keyboard, hold Down plus the opposite horizontal direction and then release
-Down while keeping back held; `Shift` plus opposite followed by releasing
-`Shift` remains an alternate. `MOONWALK SETUP` becomes `MOONWALK`; the fighter
-keeps the original facing while sliding backward. Release the direction to see
-ordinary traction preserve the diminishing slide. Switching directly to
-straight full back or doing so after only one setup tick instead turns the
+For a Moonwalk, begin a full forward dash and sweep the GameCube main stick in
+a half-moon through the lower half to straight back. Forward-down, down, and
+lower-back remain `MOONWALK SETUP`; finishing straight back becomes `MOONWALK`
+without changing facing. On keyboard, pass through `S`, then `S` plus the
+opposite horizontal direction, then release `S` while holding back. Pausing at
+the lower-back notch for at least two simulation ticks and the existing
+`Shift` plus opposite route also work. Release the direction to see ordinary
+traction preserve the diminishing slide. Switching directly to straight full
+back or doing so after only one direct lower-back setup tick instead turns the
 fighter into an ordinary opposite `INITIAL DASH`.
 
 For a Teeter cancel, dash toward the floor edge and release the horizontal key

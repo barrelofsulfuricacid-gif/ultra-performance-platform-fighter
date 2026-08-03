@@ -29,6 +29,23 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the sampled half-moon Moonwalk follow-up
+
+- The remaining failure was the center of the physical half-moon, not its
+  lower-back endpoint. Melee's dash action remains active while the stick
+  passes through down/neutral, and its horizontal tilt timer ages out the
+  dashback check; the browser build instead routed the same sampled input to
+  crouch/platform-drop or idle before it ever reached back.
+- Production `INITIAL_DASH` now preserves a lower-half sweep through saturated
+  forward-down, down, and lower-back samples. The existing `MOONWALK_SETUP`
+  state records that traversal, reconstructing the continuous neutral crossing
+  that can occur between two 60 Hz browser samples. Straight back then enters
+  the facing-preserving Moonwalk. Small vertical noise and a direct immediate
+  straight-back input retain ordinary dashback behavior.
+- Native and Wasm probes now execute the complete half-moon instead of starting
+  at its lower-back endpoint. The direct two-tick lower-back/notch and reduced
+  horizontal alternatives remain supported.
+
 ## Implemented in the Falcon-easy Moonwalk input slice
 
 - Research and the Melee dash implementation agree that Moonwalk uses ordinary

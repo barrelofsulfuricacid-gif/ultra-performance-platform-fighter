@@ -11876,7 +11876,7 @@ static int pf_web_m4_run_moonwalk_probe(void)
         inspection.players[0].action_state ==
             (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
         pf_web_m4_tick(
-            -PF_WEB_M4_DASH_AXIS,
+            PF_WEB_M4_DASH_AXIS,
             PF_WEB_M4_DASH_AXIS,
             UINT64_C(0),
             INT16_C(0),
@@ -11885,8 +11885,21 @@ static int pf_web_m4_run_moonwalk_probe(void)
             &inspection) &&
         inspection.players[0].action_state ==
             (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
-        inspection.players[0].action_ticks == UINT16_C(1) &&
+        inspection.players[0].action_ticks ==
+            pf_web_m4_content.fighter.moonwalk_setup_ticks &&
         inspection.players[0].facing == INT8_C(1) &&
+        pf_web_m4_tick(
+            INT16_C(0),
+            PF_WEB_M4_DASH_AXIS,
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) &&
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
+        inspection.players[0].action_ticks ==
+            pf_web_m4_content.fighter.moonwalk_setup_ticks &&
         pf_web_m4_tick(
             -PF_WEB_M4_DASH_AXIS,
             PF_WEB_M4_DASH_AXIS,

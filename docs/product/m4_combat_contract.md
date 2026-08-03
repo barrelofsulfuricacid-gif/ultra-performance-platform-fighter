@@ -1489,19 +1489,23 @@ they intentionally do not add technique-only state or duplicate harnesses.
 
 ## Moonwalk contract
 
-The original fighter authors `moonwalk_setup_ticks=2`. While in
-`INITIAL_DASH`, either reduced horizontal input opposite the retained facing
-or the natural lower-back diagonal enters `MOONWALK_SETUP` at action tick 1.
-The diagonal route takes priority over crouch/platform-drop and dashback when
-back is outside the dead zone and down meets the ordinary authored crouch
-threshold, matching the GameCube controller notch even when a browser adapter
-independently saturates both axes. Small vertical stick noise therefore does
-not turn a straight dashback into setup.
-Holding either setup input for at least two ticks and then switching
-to straight full back enters `MOONWALK`, retains the original facing and dash
-direction, and applies initial-dash speed in the opposite direction. Releasing
-the input returns to `GROUND_IDLE` while normal traction preserves a decaying
-backward slide.
+The original fighter authors `moonwalk_setup_ticks=2`. During `INITIAL_DASH`,
+a main-stick sweep through the lower half enters `MOONWALK_SETUP` without
+crouching, dropping through a platform, or leaving dash. Forward-down and
+straight-down traversal arm the setup at its authored two-tick threshold;
+continuing through lower-back and finishing at straight full back enters
+`MOONWALK`, retains the original facing and dash direction, and applies
+initial-dash speed in the opposite direction. This represents the continuous
+GameCube half-moon even when the browser's 60 Hz samples do not capture the
+instant at which horizontal input crossed neutral.
+
+The direct route remains faithful: reduced back or the lower-back notch without
+an earlier lower-half traversal must be held for at least two ticks before
+straight full back. The diagonal route takes priority over crouch/platform-drop
+and dashback when down meets the authored crouch threshold, including when a
+browser adapter independently saturates both axes. Small vertical stick noise
+does not turn a straight dashback into setup. Releasing the input returns to
+`GROUND_IDLE` while normal traction preserves a decaying backward slide.
 
 Full back immediately after the forward dash is the ordinary initial-dash
 reversal. Full back after only one shallow setup tick also falls back to that
@@ -1511,14 +1515,14 @@ need no new per-player mutable field: action ID and action ticks carry the
 timing through save/load, rollback, replay, and hash.
 
 `tests/sim/test_m4_movement.c` supplies focused invariants covering default and
-invalid authored timing, isolated content hashing, a fully saturated
-lower-back-notch route, exact minimum setup timing, entry/hold/release velocity
-and facing, both dashback controls, and a 771-byte mid-setup save/load with
-equal future hashes. Browser startup repeats the natural notch route and both
-negative timing outcomes and exports an independent `moonwalk_probe` before
-readiness. Keyboard controls use Down plus the opposite horizontal key for at
-least two ticks, then release Down while holding back; the existing Shift plus
-opposite reduced-horizontal route remains supported.
+invalid authored timing, isolated content hashing, fully saturated
+forward-down, down, lower-back, and straight-back samples, exact minimum setup
+timing, entry/hold/release velocity and facing, both dashback controls, and a
+771-byte mid-sweep save/load with equal future hashes. Browser startup repeats
+the half-moon and both negative timing outcomes and exports an independent
+`moonwalk_probe` before readiness. Keyboard controls can reproduce the sweep
+with Down, Down plus opposite, then opposite; the existing Shift plus opposite
+reduced-horizontal route remains supported.
 
 ## Teeter-cancel contract
 

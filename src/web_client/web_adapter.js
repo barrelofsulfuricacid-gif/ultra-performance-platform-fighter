@@ -1770,10 +1770,12 @@ mergeInto(LibraryManager.library, {
       "enters RUN TURNAROUND instead. To fox-trot, rhythmically tap and release " +
       "one full direction; each fresh tap restarts INITIAL DASH, while holding " +
       "the direction reaches RUN and a reduced-magnitude re-entry only walks. " +
-      "To moonwalk, dash, hold down plus the opposite direction for at least two " +
-      "ticks (the GameCube lower-back notch), then release down while keeping " +
-      "back held; the fighter slides backward without changing facing. Keyboard " +
-      "also supports Shift plus opposite, then releasing Shift. " +
+      "To moonwalk, dash and sweep the main stick through the lower half from " +
+      "forward through down to back, then finish at straight back; the whole " +
+      "GameCube half-moon stays in dash and slides backward without changing " +
+      "facing. Pausing at the lower-back notch for two ticks also works. Keyboard " +
+      "supports S, then S plus opposite, then opposite; Shift plus opposite " +
+      "followed by releasing Shift remains available. " +
       "A faster straight reversal is a dashback. " +
       "To pivot, dash, tap the opposite full direction for one tick, return to " +
       "neutral on the next tick, and immediately attack; the fighter keeps the " +

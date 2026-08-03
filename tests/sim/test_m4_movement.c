@@ -3255,13 +3255,14 @@ static int run_moonwalk_test(
         source_inspection.players[0].dash_direction != INT8_C(1) ||
         !step_duel(
             source,
-            INT16_MIN,
+            INT16_MAX,
             INT16_MAX,
             UINT64_C(0),
             &source_inspection) ||
         source_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
-        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].action_ticks !=
+            content->fighter.moonwalk_setup_ticks ||
         source_inspection.players[0].facing != INT8_C(1) ||
         source_inspection.players[0].dash_direction != INT8_C(1) ||
         !expect_status(
@@ -3304,13 +3305,13 @@ static int run_moonwalk_test(
 
     if (!step_duel(
             source,
-            INT16_MIN,
+            INT16_C(0),
             INT16_MAX,
             UINT64_C(0),
             &source_inspection) ||
         !step_duel(
             loaded,
-            INT16_MIN,
+            INT16_C(0),
             INT16_MAX,
             UINT64_C(0),
             &loaded_inspection) ||
@@ -3334,6 +3335,43 @@ static int run_moonwalk_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=moonwalk-setup-window\n");
+        return 0;
+    }
+
+    if (!step_duel(
+            source,
+            INT16_MIN,
+            INT16_MAX,
+            UINT64_C(0),
+            &source_inspection) ||
+        !step_duel(
+            loaded,
+            INT16_MIN,
+            INT16_MAX,
+            UINT64_C(0),
+            &loaded_inspection) ||
+        source_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
+        source_inspection.players[0].action_ticks !=
+            content->fighter.moonwalk_setup_ticks ||
+        source_inspection.players[0].facing != INT8_C(1) ||
+        source_inspection.players[0].dash_direction != INT8_C(1) ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "moonwalk-source-lower-back-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "moonwalk-loaded-lower-back-hash") ||
+        memcmp(
+            source_hash.bytes,
+            loaded_hash.bytes,
+            sizeof(source_hash.bytes)) != 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=moonwalk-lower-back\n");
         return 0;
     }
 
