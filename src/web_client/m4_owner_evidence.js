@@ -459,7 +459,7 @@
     twoInputsCheck.id = "pf-m4-owner-two-inputs";
     var gamepadCheck = addCheck(
       matchGrid,
-      "A real Standard Gamepad was connected and exercised",
+      "A real supported controller was connected and exercised (Standard Gamepad or Mayflash 0079:1843 GameCube adapter)",
       evidence.realGamepad
     );
     gamepadCheck.id = "pf-m4-owner-real-gamepad";
@@ -708,7 +708,7 @@
           (evidence.completedMatch ? "pass" : "not complete"),
         "- Both players used supported human inputs: " +
           (evidence.twoSupportedInputs ? "pass" : "not complete"),
-        "- Real Standard Gamepad exercised: " +
+        "- Real supported controller exercised: " +
           (evidence.realGamepad ? "pass" : "not complete"),
         "- Completed human matches: " + evidence.completedMatches,
         "",

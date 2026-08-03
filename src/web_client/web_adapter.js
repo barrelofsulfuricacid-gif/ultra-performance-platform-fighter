@@ -913,17 +913,85 @@ mergeInto(LibraryManager.library, {
       );
     }
 
-    function gamepadAxis(gamepad, index) {
+    function gamepadRawAxis(gamepad, index) {
       var value =
         gamepad && gamepad.axes && index < gamepad.axes.length
           ? Number(gamepad.axes[index])
           : 0;
-      if (!Number.isFinite(value) || Math.abs(value) < 0.2) {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function gamepadAxis(gamepad, index) {
+      var value = Math.max(-1, Math.min(1, gamepadRawAxis(gamepad, index)));
+      if (Math.abs(value) < 0.2) {
         return 0;
       }
-      value = Math.max(-1, Math.min(1, value));
       var magnitude = Math.round(Math.abs(value) * dashAxis);
       return value < 0 ? -magnitude : magnitude;
+    }
+
+    function isMayflashGameCubeAdapter(gamepad) {
+      var id = gamepad && gamepad.id ? String(gamepad.id).toLowerCase() : "";
+      return (
+        id.indexOf("mayflash gamecube controller adapter") !== -1 ||
+        (id.indexOf("0079") !== -1 && id.indexOf("1843") !== -1)
+      );
+    }
+
+    function mayflashPortHasController(gamepad) {
+      var index;
+      for (index = 0; gamepad.buttons && index < gamepad.buttons.length; ++index) {
+        if (gamepadButtonPressed(gamepad, index)) {
+          return true;
+        }
+      }
+
+      var centeredStickAxes = [0, 1, 2, 5].filter(function (axisIndex) {
+        return Math.abs(gamepadRawAxis(gamepad, axisIndex)) < 0.85;
+      }).length;
+      var triggerReportActive =
+        Math.max(
+          gamepadRawAxis(gamepad, 3),
+          gamepadRawAxis(gamepad, 4)
+        ) > -0.95;
+      return centeredStickAxes >= 2 && triggerReportActive;
+    }
+
+    function mayflashTriggerValue(gamepad, index) {
+      var value = (gamepadRawAxis(gamepad, index) + 1) / 2;
+      if (value <= 0.15) {
+        return 0;
+      }
+      return Math.min(1, (value - 0.15) / 0.85);
+    }
+
+    function mayflashDpad(gamepad) {
+      var up = gamepadButtonPressed(gamepad, 12);
+      var right = gamepadButtonPressed(gamepad, 13);
+      var down = gamepadButtonPressed(gamepad, 14);
+      var left = gamepadButtonPressed(gamepad, 15);
+      var hat = gamepadRawAxis(gamepad, 9);
+      var hasHatAxis =
+        gamepad && gamepad.axes && gamepad.axes.length > 9;
+      if (
+        !up &&
+        !right &&
+        !down &&
+        !left &&
+        hasHatAxis &&
+        hat >= -1 &&
+        hat <= 1.05
+      ) {
+        var direction = Math.max(
+          0,
+          Math.min(7, Math.round(((hat + 1) / 2) * 7))
+        );
+        up = direction === 0 || direction === 1 || direction === 7;
+        right = direction >= 1 && direction <= 3;
+        down = direction >= 3 && direction <= 5;
+        left = direction >= 5 && direction <= 7;
+      }
+      return { up: up, right: right, down: down, left: left };
     }
 
     function mapStandardGamepad(gamepad) {
@@ -969,42 +1037,131 @@ mergeInto(LibraryManager.library, {
       return input;
     }
 
-    function collectStandardGamepads(gamepads) {
+    function mapMayflashGameCubeAdapter(gamepad) {
+      var input = emptyGamepadInput();
+      if (
+        !gamepad ||
+        gamepad.connected === false ||
+        !isMayflashGameCubeAdapter(gamepad) ||
+        !mayflashPortHasController(gamepad)
+      ) {
+        return input;
+      }
+
+      input.horizontal = gamepadAxis(gamepad, 0);
+      input.vertical = gamepadAxis(gamepad, 1);
+      var dpad = mayflashDpad(gamepad);
+      if (dpad.left || dpad.right) {
+        input.horizontal =
+          dpad.left === dpad.right ? 0 : dpad.left ? -dashAxis : dashAxis;
+      }
+      if (dpad.up || dpad.down) {
+        input.vertical =
+          dpad.up === dpad.down ? 0 : dpad.up ? -dashAxis : dashAxis;
+      }
+
+      var cStickX = gamepadAxis(gamepad, 5);
+      var cStickY = gamepadAxis(gamepad, 2);
+      if (cStickX !== 0 || cStickY !== 0) {
+        input.horizontal = cStickX;
+        input.vertical = cStickY;
+        input.strongAttack = true;
+      }
+
+      var zPressed = gamepadButtonPressed(gamepad, 7);
+      input.attack = gamepadButtonPressed(gamepad, 1) || zPressed;
+      input.special = gamepadButtonPressed(gamepad, 2);
+      input.jump =
+        gamepadButtonPressed(gamepad, 0) ||
+        gamepadButtonPressed(gamepad, 3);
+      input.taunt = gamepadButtonPressed(gamepad, 9);
+      input.shieldStrength =
+        gamepadButtonPressed(gamepad, 4) ||
+        gamepadButtonPressed(gamepad, 5) ||
+        zPressed
+          ? 65535
+          : Math.round(
+              Math.max(
+                mayflashTriggerValue(gamepad, 3),
+                mayflashTriggerValue(gamepad, 4)
+              ) * 65535
+            );
+      input.shield = input.shieldStrength !== 0;
+      return input;
+    }
+
+    function isSupportedGamepad(gamepad) {
+      return (
+        gamepad &&
+        gamepad.connected !== false &&
+        (gamepad.mapping === "standard" ||
+          (isMayflashGameCubeAdapter(gamepad) &&
+            mayflashPortHasController(gamepad)))
+      );
+    }
+
+    function mapSupportedGamepad(gamepad) {
+      return gamepad && gamepad.mapping === "standard"
+        ? mapStandardGamepad(gamepad)
+        : mapMayflashGameCubeAdapter(gamepad);
+    }
+
+    function collectSupportedGamepads(gamepads) {
       var result = {
         connected: 0,
+        mayflashPorts: 0,
+        mayflashControllers: 0,
         inputs: [emptyGamepadInput(), emptyGamepadInput()],
       };
       var index;
-      for (
-        index = 0;
-        gamepads && index < gamepads.length && result.connected < 2;
-        ++index
-      ) {
+      for (index = 0; gamepads && index < gamepads.length; ++index) {
         var gamepad = gamepads[index];
-        if (
-          gamepad &&
-          gamepad.connected !== false &&
-          gamepad.mapping === "standard"
-        ) {
-          result.inputs[result.connected] = mapStandardGamepad(gamepad);
+        if (gamepad && isMayflashGameCubeAdapter(gamepad)) {
+          ++result.mayflashPorts;
+        }
+        if (isSupportedGamepad(gamepad)) {
+          if (isMayflashGameCubeAdapter(gamepad)) {
+            ++result.mayflashControllers;
+          }
+          if (result.connected >= 2) {
+            continue;
+          }
+          result.inputs[result.connected] = mapSupportedGamepad(gamepad);
           ++result.connected;
         }
       }
       return result;
     }
 
-    function pollStandardGamepads() {
+    function pollSupportedGamepads() {
       if (
         typeof navigator === "undefined" ||
         typeof navigator.getGamepads !== "function"
       ) {
-        return collectStandardGamepads([]);
+        return collectSupportedGamepads([]);
       }
       try {
-        return collectStandardGamepads(navigator.getGamepads());
+        return collectSupportedGamepads(navigator.getGamepads());
       } catch (error) {
-        return collectStandardGamepads([]);
+        return collectSupportedGamepads([]);
       }
+    }
+
+    function gamepadStatusLabel(gamepads) {
+      if (!gamepadApiAvailable) {
+        return "gamepad API unavailable";
+      }
+      if (gamepads.mayflashPorts > 0) {
+        return (
+          "controllers " +
+          gamepads.connected +
+          "/2 · GameCube " +
+          gamepads.mayflashControllers +
+          "/" +
+          gamepads.mayflashPorts
+        );
+      }
+      return "controllers " + gamepads.connected + "/2";
     }
 
     function runGamepadMappingProbe() {
@@ -1039,6 +1196,7 @@ mergeInto(LibraryManager.library, {
       var ignored = {
         connected: true,
         mapping: "",
+        id: "Unknown DirectInput Controller",
         axes: [1, 1],
         buttons: dpadButtons,
       };
@@ -1048,11 +1206,40 @@ mergeInto(LibraryManager.library, {
         axes: [0.1, -0.1],
         buttons: buttons(),
       });
-      var result = collectStandardGamepads([ignored, analog, null, dpad]);
+      var mayflashButtons = buttons();
+      mayflashButtons[1] = { pressed: true, value: 1 };
+      mayflashButtons[3] = { pressed: true, value: 1 };
+      mayflashButtons[7] = { pressed: true, value: 1 };
+      mayflashButtons[9] = { pressed: true, value: 1 };
+      var mayflash = {
+        connected: true,
+        mapping: "",
+        id: "MAYFLASH GameCube Controller Adapter (Vendor: 0079 Product: 1843)",
+        axes: [0.25, 0, -0.5, -0.76, -0.76, 0.5, 0, 0, 0, 1.3],
+        buttons: mayflashButtons,
+      };
+      var emptyMayflashPort = {
+        connected: true,
+        mapping: "",
+        id: "0079-1843-Microsoft PC-joystick driver",
+        axes: [-1, -1, -1, -1, -1, -1, 0, 0, 0, 1.3],
+        buttons: buttons(),
+      };
+      var mayflashInput = mapMayflashGameCubeAdapter(mayflash);
+      var result = collectSupportedGamepads([
+        ignored,
+        emptyMayflashPort,
+        analog,
+        null,
+        mayflash,
+        dpad,
+      ]);
       return (
         centered.horizontal === 0 &&
         centered.vertical === 0 &&
         result.connected === 2 &&
+        result.mayflashPorts === 2 &&
+        result.mayflashControllers === 1 &&
         result.inputs[0].horizontal === Math.round(dashAxis * 0.5) &&
         result.inputs[0].vertical === -Math.round(dashAxis * 0.25) &&
         result.inputs[0].attack &&
@@ -1062,15 +1249,23 @@ mergeInto(LibraryManager.library, {
         result.inputs[0].taunt &&
         result.inputs[0].shield &&
         result.inputs[0].shieldStrength === Math.round(0.75 * 65535) &&
-        result.inputs[1].horizontal === dashAxis &&
-        result.inputs[1].vertical === -dashAxis &&
-        !result.inputs[1].attack &&
+        mayflashInput.horizontal === Math.round(dashAxis * 0.5) &&
+        mayflashInput.vertical === -Math.round(dashAxis * 0.5) &&
+        mayflashInput.attack &&
+        mayflashInput.strongAttack &&
+        mayflashInput.jump &&
+        mayflashInput.taunt &&
+        mayflashInput.shield &&
+        mayflashInput.shieldStrength === 65535 &&
+        result.inputs[1].horizontal === mayflashInput.horizontal &&
+        result.inputs[1].vertical === mayflashInput.vertical &&
+        result.inputs[1].attack &&
         result.inputs[1].strongAttack &&
-        !result.inputs[1].jump &&
-        result.inputs[1].special &&
-        !result.inputs[1].taunt &&
-        !result.inputs[1].shield &&
-        result.inputs[1].shieldStrength === 0
+        result.inputs[1].jump &&
+        !result.inputs[1].special &&
+        result.inputs[1].taunt &&
+        result.inputs[1].shield &&
+        result.inputs[1].shieldStrength === 65535
       );
     }
 
@@ -1239,6 +1434,8 @@ mergeInto(LibraryManager.library, {
     section.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
+    section.dataset.gamepadProfiles = "standard-mayflash-0079-1843";
+    section.dataset.crouchCue = "squat-chevron-label";
     section.dataset.teamLab = "inactive";
     section.dataset.matchFlow = "setup";
     section.dataset.collisionOverlay = "visible";
@@ -1282,7 +1479,8 @@ mergeInto(LibraryManager.library, {
     title.textContent = "M4 real-simulation browser playtest";
     var subtitle = document.createElement("p");
     subtitle.textContent =
-      "Keyboard and up to two Standard Gamepads drive the same deterministic " +
+      "Keyboard, Standard Gamepads, and the Mayflash four-port GameCube " +
+      "adapter drive the same deterministic " +
       "Q16.16 simulation used by native, replay, rollback, and headless " +
       "execution. The collision inspector draws production stage surfaces, " +
       "hurtboxes, shield volumes, attack and grab boxes, item/projectile " +
@@ -1366,7 +1564,7 @@ mergeInto(LibraryManager.library, {
     setupTitle.textContent = "Local 1v1 match setup";
     var setupSummary = document.createElement("span");
     setupSummary.textContent =
-      "Vector vs Vector · Test Stage · 60 Hz · keyboard or Standard Gamepads";
+      "Vector vs Vector · Test Stage · 60 Hz · keyboard or supported controllers";
     setupCopy.appendChild(setupTitle);
     setupCopy.appendChild(setupSummary);
     var stockLabel = document.createElement("label");
@@ -1430,9 +1628,7 @@ mergeInto(LibraryManager.library, {
     tickLabel.textContent = "tick 0 · fixed 60 Hz";
     var gamepadLabel = document.createElement("span");
     gamepadLabel.className = "pf-m4-gamepads";
-    gamepadLabel.textContent = gamepadApiAvailable
-      ? "standard gamepads 0/2"
-      : "gamepad API unavailable";
+    gamepadLabel.textContent = gamepadStatusLabel(collectSupportedGamepads([]));
     toolbar.appendChild(pauseButton);
     toolbar.appendChild(stepButton);
     toolbar.appendChild(resetButton);
@@ -1471,13 +1667,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · down + top face reflector · up + top face charge/recovery · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, or Up + E Arc Reservoir charge on the ground / Vector Ascent recovery in the air · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong · L/R shield · Z grab/item · Start taunt"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge on the ground / Vector Ascent recovery in the air · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Standard Gamepad 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, or Up + special Arc Reservoir charge on the ground / Vector Ascent recovery in the air · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -1485,10 +1681,11 @@ mergeInto(LibraryManager.library, {
     var note = document.createElement("p");
     note.className = "pf-m4-note";
     note.textContent =
-      "Standard Gamepads are assigned in browser index order and polled every " +
+      "Supported controllers are assigned in browser index order and polled every " +
       "simulation tick, so hot-plugging does not alter canonical state. Left " +
       "stick magnitude preserves analog walk/dash thresholds; the D-pad emits " +
-      "full magnitude. Keyboard and gamepad buttons may be mixed per player. " +
+      "full magnitude. The Mayflash 0079:1843 adapter must be in PC mode; " +
+      "empty adapter ports are skipped. Keyboard and gamepad buttons may be mixed per player. " +
       "Tap jump and release during the three-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +
       "takeoff never changes either apex. For an instant double jump, release " +
@@ -1768,12 +1965,15 @@ mergeInto(LibraryManager.library, {
     }
 
     function step() {
-      var gamepads = pollStandardGamepads();
+      var gamepads = pollSupportedGamepads();
       var player0Gamepad = gamepads.inputs[0];
       var player1Gamepad = gamepads.inputs[1];
-      state.gamepadLabel.textContent = gamepadApiAvailable
-        ? "standard gamepads " + gamepads.connected + "/2"
-        : "gamepad API unavailable";
+      state.gamepadLabel.textContent = gamepadStatusLabel(gamepads);
+      section.dataset.gamecubeAdapter =
+        gamepads.mayflashPorts > 0 ? "detected" : "not-detected";
+      section.dataset.gamecubeControllers = String(
+        gamepads.mayflashControllers
+      );
       var player0Jump =
         held("KeyW") ||
         held("Space") ||
@@ -1931,9 +2131,9 @@ mergeInto(LibraryManager.library, {
       state.teamLabButton.textContent = "Team Wobble Lab";
       state.teamLabButton.setAttribute("aria-pressed", "false");
       section.dataset.teamLab = "inactive";
-      state.gamepadLabel.textContent = gamepadApiAvailable
-        ? "standard gamepads 0/2"
-        : "gamepad API unavailable";
+      state.gamepadLabel.textContent = gamepadStatusLabel(
+        collectSupportedGamepads([])
+      );
       setMatchFlow("playing");
       setRunning(true);
     }
@@ -1984,9 +2184,7 @@ mergeInto(LibraryManager.library, {
       section.dataset.teamLab = nextActive ? "active" : "inactive";
       state.gamepadLabel.textContent = nextActive
         ? "team lab: controls P1/P3 · P2 auto-mashes"
-        : gamepadApiAvailable
-          ? "standard gamepads 0/2"
-          : "gamepad API unavailable";
+        : gamepadStatusLabel(collectSupportedGamepads([]));
       setRunning(true);
     }
 
@@ -3146,6 +3344,7 @@ mergeInto(LibraryManager.library, {
       var respawning = actionState === 44;
       var onRevival = actionState === 94;
       var eliminated = actionState === 45;
+      var crouched = actionState === 4 || actionState === 74;
       var tumbling =
         view[base + 22] !== 0 && actionState !== 13;
       var prone =
@@ -3306,6 +3505,11 @@ mergeInto(LibraryManager.library, {
         width = Math.max(width * 1.35, height * 1.15);
         height = Math.max(12, width * 0.28);
         y += (standingHeight - height) / 2;
+      } else if (crouched) {
+        var uprightHeight = height;
+        width = Math.max(18, width * 1.18);
+        height = Math.max(16, height * 0.58);
+        y += (uprightHeight - height) / 2;
       }
       context.translate(x, y);
       if (tumbling) {
@@ -3338,6 +3542,29 @@ mergeInto(LibraryManager.library, {
       context.closePath();
       context.fill();
       context.restore();
+      if (crouched) {
+        var crouchCueY = y - height / 2 - 21;
+        context.save();
+        context.globalAlpha = eliminated ? 0.12 : 1;
+        context.fillStyle = "#07111ddd";
+        context.strokeStyle = colors[playerIndex];
+        context.lineWidth = 1.5;
+        context.fillRect(x - 27, crouchCueY - 8, 54, 16);
+        context.strokeRect(x - 27, crouchCueY - 8, 54, 16);
+        context.fillStyle = "#f3f8ff";
+        context.font = "800 9px ui-monospace, monospace";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText("CROUCH", x, crouchCueY);
+        context.strokeStyle = colors[playerIndex];
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(x - 5, crouchCueY + 11);
+        context.lineTo(x, crouchCueY + 16);
+        context.lineTo(x + 5, crouchCueY + 11);
+        context.stroke();
+        context.restore();
+      }
       if (invulnerable) {
         context.strokeStyle = "#fff6a8";
         context.lineWidth = 3;

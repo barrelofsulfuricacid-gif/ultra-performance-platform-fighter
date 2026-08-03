@@ -500,6 +500,18 @@ grep -Fq \
     '" gamepad_api="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
+    'function mapMayflashGameCubeAdapter(gamepad)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'section.dataset.gamepadProfiles = "standard-mayflash-0079-1843"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'section.dataset.crouchCue = "squat-chevron-label"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'context.fillText("CROUCH", x, crouchCueY)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
     'controls=keyboard-gamepad-two-controller-duel-team-lab' \
     "$root/tools/verify_web_smoke.sh"
 

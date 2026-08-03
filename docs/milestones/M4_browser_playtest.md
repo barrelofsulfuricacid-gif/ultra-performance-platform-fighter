@@ -52,7 +52,7 @@ every failure.
 
 The same panel records the eight mandatory combat-rubric scores, critical
 collision-anomaly confirmation, completed setup-to-results/rematch matches,
-two-player input use, real Standard Gamepad use, environment/build identity,
+two-player input use, real supported-controller use, environment/build identity,
 and the explicit owner decision. Drafts persist in browser-local storage under
 the evidence schema and source revision. `Export Markdown` produces the
 repository-review record; `Export JSON` preserves the structured source data.
@@ -136,9 +136,10 @@ visible. The legend and `data-collision-overlay-semantics` attribute expose
 these meanings to the browser verifier. Toggling while paused redraws the
 captured frame without consuming a simulation tick.
 
-Up to two gamepads using the
-[W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) are
-assigned in browser index order. On each pad, the left stick supplies analog
+Up to two gamepads using either the
+[W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) or the
+[Mayflash W012 four-port GameCube adapter](https://www.mayflash.com/product/W012.html)
+in PC mode are assigned in browser index order. On a Standard Gamepad, the left stick supplies analog
 movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack, directional tilt, or charged
 smash, the right face button is an immediate uncharged directional strong, the left face button
@@ -148,8 +149,17 @@ Vector Ascent while airborne. Back/View taunts, either bumper supplies a full
 shield value, and the two analog triggers preserve their Standard Gamepad
 button values as 16-bit shield strength for shield/tech/air-dodge/L-cancel
 input. Light plus a bumper/trigger grabs. Keyboard and
-gamepad inputs can be mixed for the same player. Non-standard browser mappings
-are ignored rather than guessed.
+gamepad inputs can be mixed for the same player.
+
+The Mayflash `0079:1843` DirectInput profile maps the GameCube main stick and
+D-pad to movement, A to light attack, B to special, X/Y to jump, the C-stick to
+directional strong attack, analog or digital L/R to shield, Z directly to the
+attack-plus-shield grab/item chord, and Start to taunt. Chromium exposes the
+adapter's HID hat and axes without a Standard Gamepad remap, so the adapter is
+recognized explicitly and all other unknown non-standard mappings remain
+ignored. The adapter can expose multiple browser devices even when some of its
+four sockets are empty; empty sockets are filtered before the first two
+attached controllers are assigned.
 In Team Wobble Lab, the two physical controller assignments deliberately map
 to allied simulation slots P1 and P3. The default duel maps them to P1 and P2.
 
@@ -929,10 +939,14 @@ broader acceptance evidence.
     `TECH IN PLACE` ends. Repeat with a right tech roll and chase the observed
     movement before jabbing. Finally reset, leave Player 1 at the original
     spacing, and jab at the same target action tick; confirm the roll escapes.
-36. Connect one standard-mapped gamepad, press or move it once so the browser
-    exposes it, and confirm the toolbar says `standard gamepads 1/2`. Verify
+36. Connect one standard-mapped gamepad, or put a Mayflash `0079:1843`
+    GameCube adapter in PC mode and connect a controller. Press or move it once
+    so the browser exposes it, and confirm the toolbar says `controllers 1/2`
+    (with `GameCube 1/N` for the adapter ports currently exposed by the
+    browser). Verify
     analog walk versus dash, D-pad full input, both attacks, jump, shield, tech,
-    air dodge, and L-cancel. Hot-plug a second pad and confirm it controls
+    air dodge, and L-cancel. For GameCube, also verify C-stick strong attacks
+    and Z grab/item. Hot-plug a second pad and confirm it controls
     Player 2 while the first remains Player 1; disconnect either pad and confirm
     keyboard control remains live.
 37. Move both fighters close, jump, and have Player 1's aerial reach Player 2.
