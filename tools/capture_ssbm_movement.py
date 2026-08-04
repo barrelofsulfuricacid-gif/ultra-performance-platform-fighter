@@ -230,6 +230,39 @@ def input_trace() -> list[dict[str, object]]:
         digital_left=True,
     )
     repeat("cstick_jump_recovery", 32)
+
+    # Aerial locomotion routes retain exact button-hold and stick timing so
+    # short/full-hop selection, jump-squat momentum reversal, double-jump
+    # velocity replacement, and fast-fall entry are executable-oracle gates.
+    repeat("cstick_jump_landing", 60)
+    repeat("recenter_after_defense", 15, main_x=0.0)
+    repeat("recenter_after_defense_brake", 20)
+    repeat("run_for_jump_squat_reverse", 20, main_x=1.0)
+    trace.append(command("running_jump_start", main_x=1.0, jump=True))
+    repeat("jump_squat_reverse", 5, main_x=0.0)
+    repeat("reverse_jump_landing", 80)
+
+    repeat("recenter_before_double_jump", 5, main_x=0.0)
+    repeat("recenter_before_double_jump_brake", 20)
+
+    trace.append(command("neutral_jump_for_double_jump", jump=True))
+    repeat("neutral_jump_squat_for_double_jump", 5)
+    repeat("first_jump_drift_left", 10, main_x=0.0)
+    trace.append(command("neutral_stick_double_jump", jump=True))
+    repeat("neutral_stick_double_jump_landing", 90)
+
+    trace.append(command("short_hop_press", jump=True))
+    repeat("short_hop_release", 80)
+
+    trace.append(command("full_hop_press", jump=True))
+    repeat("full_hop_hold", 5, jump=True)
+    repeat("full_hop_landing", 95)
+
+    trace.append(command("full_hop_for_fast_fall", jump=True))
+    repeat("full_hop_hold_for_fast_fall", 5, jump=True)
+    repeat("rise_before_fast_fall", 35)
+    repeat("fast_fall_down_press", 4, main_y=0.0)
+    repeat("fast_fall_landing", 65)
     return trace
 
 

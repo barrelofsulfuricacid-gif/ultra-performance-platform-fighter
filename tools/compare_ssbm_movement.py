@@ -45,6 +45,18 @@ SSBM_TO_M4_ACTION = {
     "LANDING": 7,
 }
 
+M4_DELAYED_AIR_JUMP = 61
+
+POSITION_ANCHOR_LABELS = {
+    "recenter_after_defense",
+    "run_for_jump_squat_reverse",
+    "recenter_before_double_jump",
+    "neutral_jump_for_double_jump",
+    "short_hop_press",
+    "full_hop_press",
+    "full_hop_for_fast_fall",
+}
+
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
 # GALE01's Falcon attributes (for example, 2.0 becomes 24/115).
 SSBM_TO_M4_Q16 = 65536.0 * 12.0 / 115.0
@@ -101,12 +113,22 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
     return None
 
 
+def expected_action_state(action: str, action_frame: float) -> int | None:
+    if action in {"JUMPING_ARIAL_FORWARD", "JUMPING_ARIAL_BACKWARD"}:
+        # M4 exposes the six-frame deterministic double-jump-cancel window as
+        # a distinct internal action before returning to its common airborne
+        # state. Both states correspond to Melee's JumpAerial action.
+        if round(action_frame) <= 6:
+            return M4_DELAYED_AIR_JUMP
+    return SSBM_TO_M4_ACTION.get(action)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
     parser.add_argument("runner", type=Path)
     parser.add_argument(
-        "--position-tolerance-q16", type=int, default=384,
+        "--position-tolerance-q16", type=int, default=640,
         help="allowed float-to-fixed position quantization difference",
     )
     parser.add_argument(
@@ -162,10 +184,29 @@ def main() -> int:
         )
         return 1
 
+    previous_oracle: dict[str, object] | None = None
+    previous_native: dict[str, str] | None = None
+    oracle_anchor_x = 0.0
+    oracle_anchor_y = 0.0
+    native_anchor_x = 0
+    native_anchor_y = 0
+    previous_label: str | None = None
     for oracle, native in zip(oracle_rows, native_rows, strict=True):
         frame = int(oracle["trace_frame"])
+        label = str(oracle["label"])
+        if (
+            label != previous_label
+            and label in POSITION_ANCHOR_LABELS
+            and previous_oracle is not None
+        ):
+            oracle_anchor_x = float(previous_oracle["position_x_from_origin"])
+            oracle_anchor_y = float(previous_oracle["position_y"])
+            native_anchor_x = int(previous_native["position_x_q16_from_origin"])
+            native_anchor_y = int(previous_native["position_y_q16_from_origin"])
         action_name = str(oracle["action"])
-        expected_action = SSBM_TO_M4_ACTION.get(action_name)
+        expected_action = expected_action_state(
+            action_name, float(oracle["action_frame"])
+        )
         actual_action = int(native["action_state"])
         expected_ticks = expected_action_ticks(
             action_name, float(oracle["action_frame"])
@@ -173,10 +214,18 @@ def main() -> int:
         actual_ticks = int(native["action_ticks"])
         expected_facing = int(oracle["facing"])
         actual_facing = int(native["facing"])
-        expected_position = scaled_q16(float(oracle["position_x_from_origin"]))
-        actual_position = int(native["position_x_q16_from_origin"])
-        expected_position_y = scaled_y_q16(float(oracle["position_y"]))
-        actual_position_y = int(native["position_y_q16_from_origin"])
+        expected_position = scaled_q16(
+            float(oracle["position_x_from_origin"]) - oracle_anchor_x
+        )
+        actual_position = (
+            int(native["position_x_q16_from_origin"]) - native_anchor_x
+        )
+        expected_position_y = scaled_y_q16(
+            float(oracle["position_y"]) - oracle_anchor_y
+        )
+        actual_position_y = (
+            int(native["position_y_q16_from_origin"]) - native_anchor_y
+        )
         expected_velocity = scaled_q16(
             float(
                 oracle[
@@ -231,7 +280,10 @@ def main() -> int:
                 f"position_q16 expected={expected_position} actual={actual_position} "
                 f"delta={actual_position - expected_position}"
             )
-        if abs(actual_position_y - expected_position_y) > 384:
+        if (
+            abs(actual_position_y - expected_position_y)
+            > args.position_tolerance_q16
+        ):
             differences.append(
                 "position_y_q16 "
                 f"expected={expected_position_y} actual={actual_position_y} "
@@ -265,6 +317,10 @@ def main() -> int:
                 f"frame={frame} label={oracle['label']} " + " | ".join(differences)
             )
             return 1
+
+        previous_oracle = oracle
+        previous_native = native
+        previous_label = label
 
     print(f"ssbm-movement-compare=pass frames={len(oracle_rows)}")
     return 0

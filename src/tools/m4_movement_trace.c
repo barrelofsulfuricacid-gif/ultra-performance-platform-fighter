@@ -53,6 +53,23 @@ int main(void)
     {
         return fail_status("default-content", status);
     }
+    /*
+     * Keep the executable-oracle runner on an intentionally plain, wide floor.
+     * The production laboratory stage retains its original moving platforms
+     * and solid block, but those unrelated fixtures must not intercept a
+     * Final-Destination locomotion trace after hundreds of accumulated frames.
+     */
+    content.stage.platform_center_x_q16 =
+        -INT32_C(28) * PF_Q16_ONE;
+    content.stage.platform_half_width_q16 = PF_Q16_ONE;
+    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content.stage.solid_left_q16 = -INT32_C(22) * PF_Q16_ONE;
+    content.stage.solid_right_q16 = -INT32_C(21) * PF_Q16_ONE;
+    content.stage.solid_top_q16 = INT32_C(28) * PF_Q16_ONE;
+    content.stage.solid_bottom_q16 = INT32_C(29) * PF_Q16_ONE;
+    content.stage.upper_platform_center_x_q16 =
+        -INT32_C(25) * PF_Q16_ONE;
+    content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     status = pf_m4_make_content_view(&content, &view);
     if (status != PF_STATUS_OK)
     {

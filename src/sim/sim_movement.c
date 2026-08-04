@@ -5122,10 +5122,16 @@ pf_status pf_m4_step_player(
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
     {
-        velocity_x = pf_m4_approach(
-            velocity_x,
-            INT32_C(0),
-            fighter->traction_q16);
+        if (action_ticks + UINT16_C(1) < fighter->jump_squat_ticks)
+        {
+            velocity_x = pf_m4_approach(
+                velocity_x,
+                INT32_C(0),
+                velocity_x > fighter->walk_speed_q16 ||
+                        velocity_x < -fighter->walk_speed_q16
+                    ? fighter->turn_acceleration_q16
+                    : fighter->traction_q16);
+        }
         if (short_hop_latched != UINT8_C(2) &&
             (input->buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0) &&
             secondary_jump_up_held == 0)
@@ -5432,10 +5438,25 @@ pf_status pf_m4_step_player(
                 ++action_ticks;
                 if (action_ticks >= fighter->standing_turn_ticks)
                 {
-                    action_state =
-                        (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-                    action_ticks = UINT16_C(0);
                     dash_direction = INT8_C(0);
+                    if (horizontal_direction == facing &&
+                        horizontal_magnitude > fighter->axis_dead_zone)
+                    {
+                        action_state = (uint8_t)PF_M4_ACTION_WALK;
+                        action_ticks = UINT16_C(1);
+                        velocity_x = pf_m4_apply_ground_input(
+                            fighter,
+                            velocity_x,
+                            input->main_stick_x,
+                            fighter->walk_speed_q16,
+                            1);
+                    }
+                    else
+                    {
+                        action_state =
+                            (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                        action_ticks = UINT16_C(0);
+                    }
                 }
             }
         }
@@ -5507,6 +5528,17 @@ pf_status pf_m4_step_player(
                                 fighter->axis_dead_zone
                             ? (uint8_t)PF_M4_ACTION_WALK
                             : (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                    if (action_state ==
+                            (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                        (velocity_x > fighter->walk_speed_q16 ||
+                         velocity_x < -fighter->walk_speed_q16))
+                    {
+                        /* Wait physics doubles traction above walk speed. */
+                        velocity_x = pf_m4_approach(
+                            velocity_x,
+                            INT32_C(0),
+                            fighter->traction_q16);
+                    }
                 }
             }
         }
@@ -5665,37 +5697,30 @@ pf_status pf_m4_step_player(
                 INT32_C(0),
                 fighter->traction_q16);
             ++action_ticks;
-            if (run_turnaround_requested)
+            if (action_ticks >= fighter->run_brake_ticks)
             {
-                action_state =
-                    (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
-                action_ticks = UINT16_C(1);
-                dash_direction = horizontal_direction;
-                velocity_x = pf_m4_apply_ground_input(
-                    fighter,
-                    velocity_x,
-                    input->main_stick_x,
-                    fighter->run_speed_q16,
-                    0);
-            }
-            else if (run_continues)
-            {
-                action_state = (uint8_t)PF_M4_ACTION_RUN;
-                action_ticks =
-                    fighter->run_turnaround_lockout_ticks;
-                velocity_x = pf_m4_apply_ground_input(
-                    fighter,
-                    velocity_x,
-                    input->main_stick_x,
-                    fighter->run_speed_q16,
-                    2);
-            }
-            else if (action_ticks >= fighter->run_brake_ticks)
-            {
-                action_state =
-                    (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-                action_ticks = UINT16_C(0);
-                dash_direction = INT8_C(0);
+                if (horizontal_direction == -facing &&
+                    horizontal_magnitude > fighter->axis_dead_zone)
+                {
+                    /*
+                     * RunBrake has no horizontal IASA in GALE01. A held
+                     * opposite direction is consumed only when the full
+                     * brake animation ends, entering the ordinary (not
+                     * TurnRun) standing turn on the same displayed frame.
+                     */
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_STANDING_TURN;
+                    action_ticks = UINT16_C(1);
+                    dash_direction =
+                        (int8_t)(INT8_C(2) * horizontal_direction);
+                }
+                else
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                    action_ticks = UINT16_C(0);
+                    dash_direction = INT8_C(0);
+                }
             }
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
@@ -5800,9 +5825,7 @@ pf_status pf_m4_step_player(
                     action_state =
                         (uint8_t)PF_M4_ACTION_STANDING_TURN;
                     velocity_x = pf_m4_approach(
-                        pf_m4_multiply_q16(
-                            velocity_x,
-                            PF_Q16_ONE / INT32_C(4)),
+                        velocity_x,
                         INT32_C(0),
                         fighter->traction_q16);
                 }
@@ -5897,7 +5920,10 @@ pf_status pf_m4_step_player(
                 velocity_x = pf_m4_approach(
                     velocity_x,
                     INT32_C(0),
-                    fighter->traction_q16);
+                    velocity_x > fighter->walk_speed_q16 ||
+                            velocity_x < -fighter->walk_speed_q16
+                        ? fighter->turn_acceleration_q16
+                        : fighter->traction_q16);
             }
         }
     }
@@ -6232,11 +6258,14 @@ pf_status pf_m4_step_player(
             }
             else
             {
-                velocity_x = pf_m4_apply_air_input(
-                    fighter,
-                    velocity_x,
-                    input->main_stick_x,
-                    fighter->air_speed_q16);
+                if (!launched_this_tick)
+                {
+                    velocity_x = pf_m4_apply_air_input(
+                        fighter,
+                        velocity_x,
+                        input->main_stick_x,
+                        fighter->air_speed_q16);
+                }
                 if (action_state ==
                     (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP)
                 {
@@ -6615,7 +6644,10 @@ pf_status pf_m4_step_player(
             if (position_x >= stage->floor_left_q16 &&
                 position_x <= stage->floor_right_q16 &&
                 ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  previous_bottom > stage->floor_y_q16) ||
+                  (previous_bottom > stage->floor_y_q16 ||
+                   (fast_fall != UINT8_C(0) &&
+                    previous_bottom <= stage->floor_y_q16 &&
+                    new_bottom >= stage->floor_y_q16))) ||
                  (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
                   previous_bottom <= stage->floor_y_q16 &&
                   new_bottom >= stage->floor_y_q16)) &&

@@ -2900,13 +2900,46 @@ static int run_ground_control_test(
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
-        inspection.players[0].action_state ==
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=run-brake-turnaround\n");
+            "m4-movement=fail operation=run-brake-horizontal-lockout\n");
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick + UINT32_C(1) <
+             (uint32_t)content->fighter.run_brake_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MIN,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RUN_BRAKE)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=run-brake-full-lockout\n");
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-expiry-turn\n");
         return 0;
     }
 

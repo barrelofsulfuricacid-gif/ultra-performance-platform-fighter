@@ -2428,20 +2428,23 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   checks remain required. The live fidelity audit records partial and divergent
   systems; no whole-simulation equivalence claim is made.
 - The current 240-tick replay has corpus SHA-256
-  `cee8d6fa7b625d745fb927e62bb512ebe1722e6127d1fa076d85a94ccb77ea5d`,
+  `30ab31b9c38c7f34c8d81324a40547db84b64353ddfbe6d8ca6602e2b0c31c2b`,
   final-state SHA-256
-  `6758ad700cd0dab99c30a97d32d663e05eb4061f90cae6719b3d4e133c5284a4`,
+  `71bfda9f3448a5c140e1654578ad730806f4aad6b0f84bc0bb5eda6ddbed7e7c`,
   and event-journal SHA-256
-  `be839fb07f9c44eb30d1ef7391b004f84a1dcf9bbb047ab5f49f7fac7d6454a1`.
+  `12c446555a8e4b81e544d762a9c066003f509f9859a7d8ba6afb5b5fab95db71`.
 - Local Windows MSVC and WSL Linux GCC each pass all 22 CTest targets. The
-  repeated-match verifier digest is `127f7dcb041e7b37` after the shield-fidelity
+  repeated-match verifier digest is `8040f1d3de670dca` after the aerial-fidelity
   correction.
-- The 894-frame Dolphin/Slippi capture and native comparator pass exact action,
+- The 1,519-frame Dolphin/Slippi capture and native comparator pass exact action,
   facing, and velocity gates plus the documented accumulated float-to-Q16.16
-  position tolerance. The corpus covers the locomotion regression routes plus
+  maneuver-local float-to-Q16.16 position tolerance. The corpus covers the
+  locomotion regression routes plus
   full/light shield, trigger dead-zone rejection, forward/backward/C-stick
   rolls, spot dodge, C-stick spot-dodge and jump buffers, jump from held L into
-  a fresh-R air dodge, and analog light shield in air without air dodge.
+  a fresh-R air dodge, analog light shield in air without air dodge, nonzero-
+  velocity dash/turn, jump-squat reversal, short/full hop, neutral-stick double
+  jump, fast fall, and landing.
 - PC-mode Mayflash detection accepts neutral controllers whose unpressed
   trigger axes report `-1`, and the browser advances at most one simulation
   tick per animation frame so one physical Gamepad sample cannot age through
@@ -2462,9 +2465,9 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 894-frame movement/defense trace is a regression slice, not
-  completion of this gate. Every uncovered applicable route and every
+- The passing 1,519-frame movement/defense/aerial trace is a regression slice,
+  not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
-  reproducer.
-  M4 remains unfinished, and fidelity work continues without waiting for CI,
-  until the complete applicable corpus has no unresolved divergence.
+  reproducer. M4 remains unfinished, and fidelity work continues without
+  waiting for CI, until the complete applicable corpus has no unresolved
+  divergence.
