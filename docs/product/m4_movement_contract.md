@@ -73,8 +73,12 @@ to the simulation.
   opposite-direction form has only the one-tick pivot window.
 - Once initial dash has become `RUN`, an opposite input at or above the
   data-defined 0.375 threshold enters `RUN TURNAROUND`, never another initial
-  dash. Holding at least the data-defined 0.625 threshold toward the new
-  direction on the turnaround's final tick returns to `RUN`.
+  dash. The old facing is retained while full TurnRun acceleration reduces the
+  old ground velocity. The animation freezes on displayed frame 9 until that
+  velocity crosses the common 0.01 threshold, flips facing on the following
+  physics tick, then resumes through displayed frame 21. Holding at least the
+  data-defined 0.625 threshold toward the new direction returns to `RUN` and
+  starts the data-defined ten-tick run lockout.
 - Neutral, sub-threshold, or weak backward input from an unlocked run enters
   `RUN BRAKE`. A turnaround-completed run has a data-defined ten-tick window
   during which another run turnaround or run brake cannot begin.

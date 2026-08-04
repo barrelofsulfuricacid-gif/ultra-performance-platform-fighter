@@ -380,8 +380,10 @@ static int32_t pf_m4_ground_input_acceleration(
     int16_t stick_x,
     int32_t velocity_x,
     int32_t target_x,
-    int walk)
+    int movement_mode)
 {
+    const int walk = movement_mode == 1;
+    const int run = movement_mode == 2;
     const int32_t stick_acceleration_q16 =
         walk != 0
             ? fighter->walk_initial_velocity_q16
@@ -391,14 +393,26 @@ static int32_t pf_m4_ground_input_acceleration(
             ? fighter->walk_acceleration_q16
             : fighter->dash_run_base_acceleration_q16;
     const int32_t taper_q16 =
-        fighter->walk_acceleration_taper_q16;
+        walk != 0
+            ? fighter->walk_acceleration_taper_q16
+            : fighter->run_acceleration_taper_q16;
     int32_t acceleration =
         pf_m4_scale_axis_q16(stick_x, stick_acceleration_q16) +
         (stick_x < INT16_C(0)
              ? -base_acceleration_q16
              : base_acceleration_q16);
 
-    if (walk != 0 &&
+    if (walk == 0 &&
+        (stick_x >= INT16_C(32767) ||
+         stick_x <= INT16_C(-32767)))
+    {
+        acceleration =
+            stick_x < INT16_C(0)
+                ? -fighter->turn_acceleration_q16
+                : fighter->turn_acceleration_q16;
+    }
+
+    if ((walk != 0 || run != 0) &&
         target_x != INT32_C(0) &&
         (int64_t)velocity_x * (int64_t)target_x > INT64_C(0) &&
         ((target_x > INT32_C(0) && velocity_x < target_x) ||
@@ -434,7 +448,7 @@ static int32_t pf_m4_apply_ground_input(
     int32_t velocity_x,
     int16_t stick_x,
     int32_t maximum_speed_q16,
-    int walk)
+    int movement_mode)
 {
     const int32_t target_x =
         pf_m4_scale_axis_q16(stick_x, maximum_speed_q16);
@@ -453,7 +467,7 @@ static int32_t pf_m4_apply_ground_input(
         stick_x,
         velocity_x,
         target_x,
-        walk);
+        movement_mode);
     next = (int64_t)velocity_x + (int64_t)acceleration;
 
     if ((int64_t)velocity_x * (int64_t)acceleration >= INT64_C(0))
@@ -5444,14 +5458,6 @@ pf_status pf_m4_step_player(
                 horizontal_magnitude >=
                     fighter->run_continue_axis_threshold;
 
-            facing = target_direction;
-            velocity_x = pf_m4_apply_ground_input(
-                fighter,
-                velocity_x,
-                input->main_stick_x,
-                fighter->run_speed_q16,
-                0);
-            ++action_ticks;
             if (action_ticks >= fighter->run_turnaround_ticks)
             {
                 dash_direction = INT8_C(0);
@@ -5459,6 +5465,13 @@ pf_status pf_m4_step_player(
                 if (target_held)
                 {
                     action_state = (uint8_t)PF_M4_ACTION_RUN;
+                    action_ticks = UINT16_C(1);
+                    velocity_x = pf_m4_apply_ground_input(
+                        fighter,
+                        velocity_x,
+                        input->main_stick_x,
+                        fighter->run_speed_q16,
+                        2);
                 }
                 else
                 {
@@ -5469,6 +5482,31 @@ pf_status pf_m4_step_player(
                         INT32_C(0),
                         fighter->traction_q16);
                 }
+            }
+            else
+            {
+                /*
+                 * TurnRun freezes on displayed frame 9 until the old-facing
+                 * ground velocity crosses the common 0.01 threshold. The
+                 * facing flip occurs one physics tick after the crossing.
+                 */
+                if (facing != target_direction &&
+                    (int64_t)velocity_x * (int64_t)facing <=
+                        INT64_C(68))
+                {
+                    facing = target_direction;
+                }
+                else if (facing == target_direction ||
+                         action_ticks < UINT16_C(10))
+                {
+                    ++action_ticks;
+                }
+                velocity_x = pf_m4_apply_ground_input(
+                    fighter,
+                    velocity_x,
+                    input->main_stick_x,
+                    fighter->run_speed_q16,
+                    0);
             }
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE)
@@ -5484,7 +5522,6 @@ pf_status pf_m4_step_player(
                     (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
                 action_ticks = UINT16_C(1);
                 dash_direction = horizontal_direction;
-                facing = horizontal_direction;
                 velocity_x = pf_m4_apply_ground_input(
                     fighter,
                     velocity_x,
@@ -5502,7 +5539,7 @@ pf_status pf_m4_step_player(
                     velocity_x,
                     input->main_stick_x,
                     fighter->run_speed_q16,
-                    0);
+                    2);
             }
             else if (action_ticks >= fighter->run_brake_ticks)
             {
@@ -5523,7 +5560,7 @@ pf_status pf_m4_step_player(
                     velocity_x,
                     input->main_stick_x,
                     fighter->run_speed_q16,
-                    0);
+                    2);
             }
             else if (run_turnaround_requested)
             {
@@ -5531,7 +5568,6 @@ pf_status pf_m4_step_player(
                     (uint8_t)PF_M4_ACTION_RUN_TURNAROUND;
                 action_ticks = UINT16_C(1);
                 dash_direction = horizontal_direction;
-                facing = horizontal_direction;
                 velocity_x = pf_m4_apply_ground_input(
                     fighter,
                     velocity_x,
@@ -5556,7 +5592,7 @@ pf_status pf_m4_step_player(
                     velocity_x,
                     input->main_stick_x,
                     fighter->run_speed_q16,
-                    0);
+                    2);
             }
         }
         else
@@ -5701,7 +5737,7 @@ pf_status pf_m4_step_player(
                     walk != 0
                         ? fighter->walk_speed_q16
                         : fighter->run_speed_q16,
-                    walk);
+                    walk != 0 ? 1 : 2);
             }
             else
             {

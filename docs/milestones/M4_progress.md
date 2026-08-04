@@ -2425,16 +2425,17 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   checks remain required. The live fidelity audit records partial and divergent
   systems; no whole-simulation equivalence claim is made.
 - The schema-53 replay has corpus SHA-256
-  `4e5a99751df55cee2900d5d777e2fc727593c795cf984aed2a2b7d8abf3ad478`,
+  `13c4b843ec224bc936039fb64c8dedd36cfa2ddf23528120d12c9524107b22ee`,
   final-state SHA-256
-  `a4dcf5ecfd9b77068156d6deb4e26c8fdfff0036f0d4d395ed2d22e97a1b32af`,
+  `b6f949614065bcb68fbbfe1d364cbebc34fb3b3282b7bade56288745e4d64eaa`,
   and event-journal SHA-256
   `9ee69c2aceb5a2f2eb9b547dc86bcddf424b88fb4d1c4453a059c72eccec80f6`.
 - Local Windows MSVC and WSL Linux GCC each pass all 22 CTest targets. The
-  repeated-match verifier digest is `db6f2618a6c68d0e`.
-- The 312-frame Dolphin/Slippi capture and native comparator pass exact action,
+  repeated-match verifier digest is `37ffa8643696bc40`.
+- The 287-frame Dolphin/Slippi capture and native comparator pass exact action,
   facing, and velocity gates plus the documented accumulated float-to-Q16.16
-  position tolerance.
+  position tolerance. The corpus now covers the complete held run-turnaround
+  freeze, velocity crossing, facing flip, exit, and post-turn lockout.
 - PC-mode Mayflash detection accepts neutral controllers whose unpressed
   trigger axes report `-1`, and the browser advances at most one simulation
   tick per animation frame so one physical Gamepad sample cannot age through

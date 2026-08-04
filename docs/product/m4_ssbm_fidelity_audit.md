@@ -22,7 +22,7 @@ movement placeholder on the original laboratory stage.
 | Dash dance and backward dash acceleration | equivalent | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. |
 | Run braking | equivalent for captured route | Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing, matching the executable oracle. Other animation-command interrupts remain unaudited. |
 | Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. Both timing and friction routes match the executable oracle. |
-| Run turnaround | partial | Directional routing exists, but the complete `TurnRun` animation-command, velocity-crossing, and lockout route has not yet passed the identical-input oracle. |
+| Run turnaround | equivalent for captured route | Full reversal from terminal run retains the old facing, applies full TurnRun acceleration, freezes displayed frame 9 until velocity crosses the common 0.01 threshold, flips facing on the following physics tick, resumes through displayed frame 21, and enters the ten-tick locked run route. The identical-input oracle covers the complete held reversal and neutral brake after exit. |
 | Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. |
 | Short/full hop | equivalent | Falcon 1.9 and 3.1 vertical velocities are converted to stage units. |
 | Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. |
@@ -47,8 +47,8 @@ movement placeholder on the original laboratory stage.
 
 ## Blocking work before an exact-equivalence claim
 
-1. Import and route the relevant common action/animation-command timings for
-   turn, run turnaround, brake, shield, dodges, ledges, techs, and landing.
+1. Import and route the remaining common action/animation-command timings for
+   shield, dodges, ledges, techs, landing, and unaudited brake interrupts.
 2. Audit common damage, knockback, shield, hitlag, hitstun, DI, SDI, stale-move,
    crouch-cancel, and collision formulas field by field.
 3. Replace original combat fixtures with separately approved counterpart data
@@ -64,9 +64,10 @@ position, velocity, and observed controller sample. `pf_m4_movement_trace`
 replays those observed samples through the native simulator, and
 `tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
 
-The 2026-08-03 Windows comparison passes 312 identical input frames covering
-held dash/run, released dash and run brake, direct dash dancing, moving
-dashbacks, two-sample dash recognition, smash and empty pivots, basic standing
-turn, and slow-stick sweep. Position comparison allows only the documented
+The 2026-08-03 Windows comparison passes 287 identical input frames covering
+held dash/run, complete run turnaround and post-turnaround lockout, released
+dash and run brake, direct dash dancing, moving dashbacks, two-sample dash
+recognition, smash and empty pivots, basic standing turn, and slow-stick sweep.
+Position comparison allows only the documented
 accumulated float-to-Q16.16 conversion tolerance; action, facing, and velocity
 use their tighter independent gates.

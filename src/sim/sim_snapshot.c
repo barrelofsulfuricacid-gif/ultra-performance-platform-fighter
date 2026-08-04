@@ -2214,8 +2214,6 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 ((action ==
                       (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
                   action ==
-                      (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
-                  action ==
                       (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
                   action ==
                       (uint8_t)PF_M4_ACTION_MOONWALK) &&

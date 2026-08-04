@@ -28,9 +28,8 @@ def input_trace() -> list[dict[str, object]]:
 
     extend("settle", [0.5] * 10)
     extend("held_dash_right", [1.0] * 25)
+    extend("run_turnaround_left", [0.0] * 35)
     extend("held_dash_neutral", [0.5] * 35)
-    extend("held_dash_left", [0.0] * 25)
-    extend("held_dash_neutral_2", [0.5] * 35)
     extend("direct_dash_right", [1.0] * 4)
     extend("direct_dash_dance_left", [0.0] * 5)
     extend("direct_dash_dance_right", [1.0] * 5)

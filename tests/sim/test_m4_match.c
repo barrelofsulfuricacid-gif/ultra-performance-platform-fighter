@@ -961,41 +961,39 @@ static int run_simultaneous_ko_sudden_death_test(
         return fail("sudden-death-spawn-retains-300-percent");
     }
 
+    for (tick = UINT32_C(0); tick < TEST_STEP_LIMIT; ++tick)
     {
-        const int32_t respawn_x_q16 =
-            inspection.players[0].position_x_q16;
-
-        for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &result,
+                &inspection))
         {
-            if (!step_duel(
-                    sim,
-                    INT16_MIN,
-                    UINT64_C(0),
-                    INT16_C(0),
-                    UINT64_C(0),
-                    &result,
-                    &inspection))
-            {
-                return 0;
-            }
-            if (inspection.players[0].position_x_q16 <
-                respawn_x_q16 -
-                    INT32_C(3) * PF_Q16_ONE / INT32_C(10))
-            {
-                break;
-            }
+            return 0;
+        }
+        if (inspection.players[0].grounded != UINT8_C(0) &&
+            inspection.players[1].grounded != UINT8_C(0) &&
+            inspection.players[0].support ==
+                (uint8_t)PF_M4_SURFACE_FLOOR &&
+            inspection.players[1].support ==
+                (uint8_t)PF_M4_SURFACE_FLOOR)
+        {
+            break;
         }
     }
-    if (tick == UINT32_C(20))
+    if (tick == TEST_STEP_LIMIT)
     {
-        return fail("sudden-death-movement-head-start");
+        return fail("sudden-death-grounded-restart");
     }
 
     for (tick = UINT32_C(0); tick < TEST_STEP_LIMIT; ++tick)
     {
         if (!step_duel(
                 sim,
-                INT16_C(-26300),
+                -INT16_MAX,
                 UINT64_C(0),
                 INT16_MAX,
                 UINT64_C(0),

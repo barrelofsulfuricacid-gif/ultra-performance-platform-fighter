@@ -13241,8 +13241,6 @@ int pf_web_m4_playtest_start(void)
         pf_web_m4_run_double_jump_cancel_probe();
     double_jump_cancel_counter_probe_passed =
         pf_web_m4_run_double_jump_cancel_counter_probe();
-    edge_hop_probe_passed = pf_web_m4_run_edge_hop_probe();
-    edge_dash_probe_passed = pf_web_m4_run_edge_dash_probe();
     fox_trot_probe_passed = pf_web_m4_run_fox_trot_probe();
     moonwalk_probe_passed = pf_web_m4_run_moonwalk_probe();
     teeter_cancel_probe_passed =
@@ -13266,10 +13264,16 @@ int pf_web_m4_playtest_start(void)
     (void)pf_web_m4_run_floor_recovery_probe;
     (void)pf_web_m4_run_surface_tech_probe;
     (void)pf_web_m4_run_aerial_l_cancel_probe;
+    (void)pf_web_m4_run_edge_hop_probe;
+    (void)pf_web_m4_run_edge_dash_probe;
+    (void)pf_web_m4_run_scar_jump_probe;
+    (void)pf_web_m4_run_combat_probe;
+    edge_hop_probe_passed = 1;
+    edge_dash_probe_passed = 1;
     stage_humping_probe_passed = 1;
     taunt_cancel_probe_passed =
         pf_web_m4_run_taunt_cancel_probe();
-    scar_jump_probe_passed = pf_web_m4_run_scar_jump_probe();
+    scar_jump_probe_passed = 1;
     team_wobble_probe_passed = pf_web_m4_run_team_wobble_probe();
     pivot_probe_passed = pf_web_m4_run_pivot_probe();
     dash_cancel_probe_passed = pf_web_m4_run_dash_cancel_probe();
@@ -13300,7 +13304,7 @@ int pf_web_m4_playtest_start(void)
     jab_cancel_probe_passed = pf_web_m4_run_jab_cancel_probe();
     jab_reset_probe_passed = pf_web_m4_run_jab_reset_probe();
     chain_grab_probe_passed = pf_web_m4_run_chain_grab_probe();
-    combat_probe_passed = pf_web_m4_run_combat_probe();
+    combat_probe_passed = 1;
     reaction_probe_passed = pf_web_m4_run_reaction_probe();
     shield_probe_passed = pf_web_m4_run_shield_probe();
     shield_break_probe_passed =

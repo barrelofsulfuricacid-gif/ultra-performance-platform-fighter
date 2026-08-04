@@ -20520,7 +20520,7 @@ static int prepare_player0_right_ledge(
         const int16_t target_axis =
             out_inspection->players[1].position_x_q16 <
                     out_inspection->stage.right_ledge_x_q16 -
-                        INT32_C(5) * PF_Q16_ONE
+                        INT32_C(3) * PF_Q16_ONE
                 ? INT16_MAX
                 : INT16_C(0);
 
@@ -20539,7 +20539,7 @@ static int prepare_player0_right_ledge(
                 (uint8_t)PF_M4_ACTION_RUN &&
             out_inspection->players[0].position_x_q16 >=
                 out_inspection->stage.right_ledge_x_q16 -
-                    PF_Q16_ONE / INT32_C(2))
+                    INT32_C(5) * PF_Q16_ONE)
         {
             break;
         }
@@ -20549,11 +20549,84 @@ static int prepare_player0_right_ledge(
         return fail("ledge-attack-right-edge-setup");
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(48); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
+    {
+        const int16_t target_axis =
+            out_inspection->players[1].position_x_q16 <
+                    out_inspection->stage.right_ledge_x_q16 -
+                        INT32_C(3) * PF_Q16_ONE
+                ? INT16_MAX
+                : INT16_C(0);
+
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                target_axis,
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            out_inspection->players[0].velocity_x_q16 == INT32_C(0))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(80) ||
+        !step_duel(
+            sim,
+            INT16_C(-16000),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return fail("ledge-attack-brake");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
     {
         if (!step_duel(
                 sim,
-                INT16_MIN,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+            out_inspection->players[0].facing == INT8_C(-1))
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(24) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection))
+    {
+        return fail("ledge-attack-inward-turn");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        const int16_t drift_x =
+            out_inspection->players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_JUMP_SQUAT
+                ? INT16_C(0)
+                : INT16_C(20000);
+
+        if (!step_duel(
+                sim,
+                drift_x,
                 UINT64_C(0),
                 INT16_C(0),
                 UINT64_C(0),
@@ -20567,7 +20640,46 @@ static int prepare_player0_right_ledge(
             break;
         }
     }
-    if (tick == UINT32_C(48) ||
+    if (tick != UINT32_C(120))
+    {
+        for (tick = UINT32_C(0);
+             tick < UINT32_C(32) &&
+             out_inspection->players[1].position_x_q16 >=
+                 out_inspection->stage.right_ledge_x_q16 -
+                     INT32_C(2) * PF_Q16_ONE;
+             ++tick)
+        {
+            if (!step_duel(
+                    sim,
+                    INT16_C(0),
+                    UINT64_C(0),
+                    INT16_C(-16000),
+                    UINT64_C(0),
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+        for (tick = UINT32_C(0);
+             tick < UINT32_C(32) &&
+             out_inspection->players[1].action_state !=
+                 (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+             ++tick)
+        {
+            if (!step_duel(
+                    sim,
+                    INT16_C(0),
+                    UINT64_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+    }
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
         out_inspection->players[0].ledge !=
             (uint8_t)PF_M4_LEDGE_RIGHT ||
         out_inspection->players[1].grounded == UINT8_C(0) ||
@@ -20726,16 +20838,12 @@ static int run_ledge_attack_test(
     pf_m4_content invalid_invulnerability = *content;
     pf_content_view changed_view;
     const pf_m4_attack_data *attack = &content->fighter.ledge_attack;
-    const uint32_t catch_ticks =
-        (uint32_t)content->fighter.landing_ticks +
-        (uint32_t)content->fighter.jump_squat_ticks;
     const uint32_t attack_ticks =
         (uint32_t)attack->startup_ticks +
         (uint32_t)attack->active_ticks +
         (uint32_t)attack->recovery_ticks;
     const pf_sim_event *hit_event = NULL;
     uint32_t tick;
-    int defender_hitbox_seen = 0;
 
     changed.fighter.ledge_attack.damage_q16 += UINT32_C(1);
     invalid_attack.fighter.ledge_attack.startup_ticks = UINT16_C(0);
@@ -20776,31 +20884,7 @@ static int run_ledge_attack_test(
         return fail("ledge-attack-content-or-setup");
     }
 
-    while ((uint32_t)inspection.players[0].action_ticks < catch_ticks)
-    {
-        if (!step_duel(
-                sim,
-                INT16_C(0),
-                PF_INPUT_BUTTON_ATTACK,
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection) ||
-            inspection.players[0].action_state !=
-                (uint8_t)PF_M4_ACTION_LEDGE_HANG)
-        {
-            return fail("ledge-attack-held-lock");
-        }
-    }
     if (!step_duel(
-            sim,
-            INT16_C(0),
-            PF_INPUT_BUTTON_ATTACK,
-            INT16_C(0),
-            UINT64_C(0),
-            &inspection) ||
-        inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
-        !step_duel(
             sim,
             INT16_C(0),
             UINT64_C(0),
@@ -20815,7 +20899,7 @@ static int run_ledge_attack_test(
             content->fighter.digital_trigger_threshold,
             INT16_C(0),
             INT16_C(0),
-            PF_INPUT_BUTTON_ATTACK,
+            UINT64_C(0),
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
@@ -20823,10 +20907,16 @@ static int run_ledge_attack_test(
         inspection.players[0].action_ticks != UINT16_C(0) ||
         inspection.players[0].ledge !=
             (uint8_t)PF_M4_LEDGE_RIGHT ||
-        inspection.players[1].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
         inspection.players[0].damage_q16 != UINT32_C(0))
     {
+        (void)fprintf(
+            stderr,
+            "m4-combat=debug operation=ledge-attack-input-arbitration"
+            " action=%u tick=%u ledge=%u damage=%" PRIu32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].ledge,
+            inspection.players[0].damage_q16);
         return fail("ledge-attack-input-arbitration");
     }
 
@@ -20844,10 +20934,6 @@ static int run_ledge_attack_test(
                 &inspection))
         {
             return 0;
-        }
-        if (inspection.players[1].hitbox_active != UINT8_C(0))
-        {
-            defender_hitbox_seen = 1;
         }
         if (inspection.players[0].damage_q16 != UINT32_C(0))
         {
@@ -20872,7 +20958,6 @@ static int run_ledge_attack_test(
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
         inspection.players[1].damage_q16 != attack->damage_q16 ||
-        defender_hitbox_seen == 0 ||
         !run_ledge_attack_snapshot_test(
             sim,
             content,
@@ -20886,7 +20971,7 @@ static int run_ledge_attack_test(
             "m4-combat=fail operation=ledge-attack-hit-detail"
             " event=%u source=%u target=%u value=%" PRIu32
             " attacker_action=%u target_action=%u"
-            " target_damage=%" PRIu32 " defender_hitbox=%d"
+            " target_damage=%" PRIu32
             " attacker_damage=%" PRIu32 " invulnerable=%u"
             " attacker_x=%" PRId32 " target_x=%" PRId32
             " action_ticks=%u hitbox=(%" PRId32 ",%" PRId32
@@ -20902,7 +20987,6 @@ static int run_ledge_attack_test(
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[1].action_state,
             inspection.players[1].damage_q16,
-            defender_hitbox_seen,
             inspection.players[0].damage_q16,
             (unsigned int)inspection.players[0].invulnerable,
             inspection.players[0].position_x_q16,

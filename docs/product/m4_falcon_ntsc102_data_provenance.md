@@ -40,7 +40,7 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | dash initial velocity | 2.0 | 24/115 |
 | dash/run acceleration A / B | 0.15 / 0.01 | 9/575 / 3/2875 |
 | run terminal / ground maximum | 2.3 / 3.0 | 6/25 / 36/115 |
-| maximum run-brake frames | 30 | 30 ticks |
+| maximum run-brake frames | 30 | 29 action ticks, producing displayed frames 1 through 28 before standing |
 | jump startup time | 4 | four action ticks after jump-squat entry |
 | jump horizontal input / momentum / cap | 0.95 / 0.75 / 2.1 | 57/575 / 3/4 / 126/575 |
 | full hop / short hop | 3.1 / 1.9 | 11/20 / 209/620 |
@@ -69,6 +69,8 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | walk threshold / taper | 0.18 / 0.5 | 5898 / 1/2 |
 | run taper | 0.4 | 2/5 |
 | turn threshold | -0.375 | -12288 of 32767 |
+| TurnRun animation / velocity-crossing hold | displayed frames 0 through 21 / hold displayed frame 9 until old-facing ground velocity is at most 0.01 | 22 animation ticks with a deterministic frame-9 hold and 68-Q16 converted threshold |
+| post-TurnRun run lockout | 10 | 10 ticks |
 | tap-jump threshold / window | 0.6625 / 4 | 21709 / 4 ticks |
 | fast-fall threshold / window | 0.6625 / 4 | 21709 / 4 ticks |
 | analog shield minimum / trigger press | 0.35 / 0.25 | 22937 / 16384 of 65535 |

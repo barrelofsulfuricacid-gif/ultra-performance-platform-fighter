@@ -1340,7 +1340,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->ledge_roll_invulnerability_ticks = UINT16_C(22);
     fighter->ledge_attack_invulnerability_ticks = UINT16_C(10);
     fighter->special_landing_ticks = UINT16_C(10);
-    fighter->run_turnaround_ticks = UINT16_C(12);
+    fighter->run_turnaround_ticks = UINT16_C(22);
     fighter->run_brake_ticks = UINT16_C(29);
     fighter->axis_dead_zone = UINT16_C(9175);
     fighter->dash_axis_threshold = UINT16_C(26214);
