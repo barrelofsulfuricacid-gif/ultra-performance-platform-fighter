@@ -3066,6 +3066,7 @@ static int run_crouch_common_iasa_test(
     size_t action_index;
 
     route_content.projectile.enabled = UINT8_C(1);
+    route_content.reflector.enabled = UINT8_C(1);
     if (!expect_status(
             pf_m4_make_content_view(&route_content, &route_view),
             PF_STATUS_OK,
@@ -3164,6 +3165,35 @@ static int run_crouch_common_iasa_test(
             stderr,
             "m4-movement=fail operation=crouch-end-neutral-special-rejected\n");
         return 0;
+    }
+
+    for (action_index = (size_t)0;
+         action_index <
+             sizeof(crouch_actions) / sizeof(crouch_actions[0]);
+         ++action_index)
+    {
+        const uint8_t crouch_action = crouch_actions[action_index];
+
+        if (!reset_to_crouch_action(
+                sim,
+                &route_content,
+                crouch_action,
+                &inspection) ||
+            !step_duel(
+                sim,
+                INT16_C(0),
+                (int16_t)route_content.fighter.crouch_axis_threshold,
+                PF_INPUT_BUTTON_SPECIAL,
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=crouch-down-special-%u\n",
+                (unsigned int)crouch_action);
+            return 0;
+        }
     }
 
     for (action_index = (size_t)0;

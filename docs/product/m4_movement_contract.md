@@ -144,7 +144,8 @@ to the simulation.
   not run the common catch check, the same packet falls back to
   `GROUND ATTACK`. These are common transition-eligibility claims only: the
   selected attack and special content remains project-authored. Down-special
-  and platform-pass routes remain part of the broader executable-oracle gate.
+  is accepted from all three crouch states. The platform-pass route remains
+  part of the broader executable-oracle gate.
 - Down on a pass-through platform starts the data-defined nine-tick
   pass-through window. The drop tick applies only the authored nudge and
   ordinary gravity; it cannot also trigger fast fall. Subsequent down input may

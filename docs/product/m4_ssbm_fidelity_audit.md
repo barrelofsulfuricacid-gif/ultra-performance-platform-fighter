@@ -28,7 +28,7 @@ movement placeholder on the original laboratory stage.
 | Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. |
 | Gravity, terminal velocity, air drift | equivalent | Falcon A/B acceleration, drift target, friction, gravity, terminal, and absolute horizontal cap are mapped. |
 | Fast fall | equivalent | Requires a fresh downward tilt within four ticks after descent begins; holding down before the apex does not trigger it. |
-| Crouch/crawl | equivalent for captured routes | Full-down input produces Falcon's seven displayed `Squat` frames, held `SquatWait`, ten displayed `SquatRv` frames, then standing. Exact 0.6875 entry and 0.625 release boundaries preserve the decomp's hysteresis. Jump, fresh guard, fresh taunt, and neutral A from all three states match, as do held-crouch dash/turn and release-state walk. Neutral B is accepted only from `Squat`. Physical Z enters `Catch` from `Squat`, but its A component falls back to `Attack11` from `SquatWait`/`SquatRv`, where catch is absent. `Squat` and `SquatWait` are crouch-cancel eligible while `SquatRv` is not; crawl entry remains disabled because Falcon cannot crawl. Down-special and platform-pass IASA remain unaudited. |
+| Crouch/crawl | equivalent for captured routes | Full-down input produces Falcon's seven displayed `Squat` frames, held `SquatWait`, ten displayed `SquatRv` frames, then standing. Exact 0.6875 entry and 0.625 release boundaries preserve the decomp's hysteresis. Jump, fresh guard, fresh taunt, neutral A, and down-special from all three states match, as do held-crouch dash/turn and release-state walk. Neutral B is accepted only from `Squat`. Physical Z enters `Catch` from `Squat`, but its A component falls back to `Attack11` from `SquatWait`/`SquatRv`, where catch is absent. `Squat` and `SquatWait` are crouch-cancel eligible while `SquatRv` is not; crawl entry remains disabled because Falcon cannot crawl. Platform-pass IASA remains unaudited. |
 | Ground and platform collision | partial | Deterministic swept collision and corner-overlap recovery are present; stage collision primitives, ECB evolution, and the executable-observed grounded player-push displacement do not yet reproduce Melee's engine. |
 | Ledge jump velocities | equivalent | Falcon 1.0 horizontal and 3.3 vertical attributes are mapped. |
 | Other ledge actions | partial | Hang, drop, climb, roll, attack, regrab lockout, and invulnerability exist, but exact animation-command and percent-dependent ledge tables are not imported. |
@@ -64,7 +64,7 @@ position, velocity, and observed controller sample. `pf_m4_movement_trace`
 replays those observed samples through the native simulator, and
 `tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
 
-The current comparison passes 8,016 identical input frames covering held
+The current comparison passes 8,675 identical input frames covering held
 dash/run, complete run turnaround and post-turnaround lockout, released dash
 and run brake, direct dash dancing, moving dashbacks, two-sample dash
 recognition, smash and empty pivots, basic standing turn including its
@@ -85,7 +85,9 @@ entry: neutral A from all three crouch states; neutral B accepted only from
 `SquatWait`/`SquatRv`. Because fighter attacks and specials remain original
 content, those routes compare semantic eligibility at entry, skip the
 character-specific action body, then resume exact comparison at the next
-stationary anchor. Crouch down-special and platform-pass remain uncovered.
+stationary anchor. Down-special entry from all three crouch states is also
+covered with its character-specific bodies isolated at the end of the corpus.
+Crouch platform-pass remains uncovered.
 Position
 comparison allows only the documented accumulated float-to-Q16.16 conversion
 tolerance; action, facing, velocity, and applicable action ticks use their

@@ -2466,7 +2466,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 8,016-frame movement/defense/aerial/crouch/RunBrake trace is a
+- The passing 8,675-frame movement/defense/aerial/crouch/RunBrake trace is a
   regression slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
@@ -2614,9 +2614,9 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## 2026-08-04 Falcon crouch common-IASA executable-oracle slice
 
-- The identical-input Dolphin route now contains 8,016 frames. Nine new routes
-  exercise neutral A, neutral B, and physical Z from displayed `Squat`,
-  `SquatWait`, and `SquatRv` states.
+- The identical-input Dolphin route now contains 8,675 frames. Twelve new routes
+  exercise neutral A, neutral B, physical Z, and down-special from displayed
+  `Squat`, `SquatWait`, and `SquatRv` states.
 - Neutral A enters displayed `Attack11` frame 1 from all three states. The
   project's corresponding semantic action is `GROUND ATTACK`; focused core
   regressions pin all three entries.
@@ -2634,14 +2634,23 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Pinned decomp revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` confirms the asymmetry: `Squat`
   contains neutral special and catch checks, while `SquatWait` and `SquatRv`
-  do not. The latter two retain their attack checks. Down-special and
-  platform-pass remain explicit uncovered crouch-IASA routes.
+  do not. The latter two retain their attack checks.
+- Three further routes prove that down-special is accepted from `Squat`,
+  `SquatWait`, and `SquatRv`, matching the shared `ftCo_800D68C0` check in all
+  three decomp IASA lists. Production already exposed the correct reflector
+  semantic action; focused core regressions now pin every entry.
+- Falcon Kick's character-specific travel is isolated at the end of the
+  corpus. Each route first lands and settles, creates space away from the FD
+  edge, and faces back toward center. The project oracle runner enables its
+  original reflector counterpart on a widened plain floor, then compares only
+  entry eligibility. No tolerance was widened. Platform-pass remains the sole
+  uncovered crouch-IASA route.
 - Attack and special bodies remain original project content. The differential
   runner therefore compares their common semantic eligibility at entry,
   advances past the character-specific body, and resumes exact action, facing,
   velocity, position, and applicable action-tick comparison at the next
   stationary anchor. Rejected routes remain exact for their whole duration.
-- The 8,016-frame comparator passes against both Windows MSVC and WSL Linux
+- The 8,675-frame comparator passes against both Windows MSVC and WSL Linux
   GCC binaries. All 22 CTest targets pass on both platforms. Replay corpus,
   final-state, event-journal, and verifier expectations remain unchanged
   because the fixed eligibility routes are outside the pinned 240-tick replay.

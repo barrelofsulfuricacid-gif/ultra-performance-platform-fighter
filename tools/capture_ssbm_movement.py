@@ -688,6 +688,57 @@ def input_trace() -> list[dict[str, object]]:
     trace.append(command("run_brake_jump_entry"))
     trace.append(command("run_brake_jump", jump=True))
     repeat("run_brake_jump_recovery", 12)
+
+    # Keep character-specific Falcon Kick bodies at the end so their motion
+    # cannot alter the preconditions of later shared-movement routes. Each
+    # case creates space on the left, turns back toward stage center, and then
+    # qualifies only the common down-special interrupt entry.
+    repeat("settle_before_down_special_slice", 100)
+    repeat("recenter_before_crouch_start_down_special", 25, main_x=0.0)
+    repeat("settle_before_crouch_start_down_special", 30)
+    trace.append(
+        command(
+            "face_right_before_crouch_start_down_special",
+            main_x=0.65,
+        )
+    )
+    repeat("face_right_settle_before_crouch_start_down_special", 15)
+    repeat("crouch_start_before_down_special", 2, main_y=0.0)
+    trace.append(
+        command("crouch_start_down_special", main_y=0.0, special=True)
+    )
+    repeat("crouch_start_down_special_recovery", 100)
+
+    repeat("recenter_before_crouch_wait_down_special", 25, main_x=0.0)
+    repeat("settle_before_crouch_wait_down_special", 30)
+    trace.append(
+        command(
+            "face_right_before_crouch_wait_down_special",
+            main_x=0.65,
+        )
+    )
+    repeat("face_right_settle_before_crouch_wait_down_special", 15)
+    repeat("crouch_wait_before_down_special", 20, main_y=0.0)
+    trace.append(
+        command("crouch_wait_down_special", main_y=0.0, special=True)
+    )
+    repeat("crouch_wait_down_special_recovery", 100)
+
+    repeat("recenter_before_crouch_end_down_special", 25, main_x=0.0)
+    repeat("settle_before_crouch_end_down_special", 30)
+    trace.append(
+        command(
+            "face_right_before_crouch_end_down_special",
+            main_x=0.65,
+        )
+    )
+    repeat("face_right_settle_before_crouch_end_down_special", 15)
+    repeat("crouch_end_before_down_special", 20, main_y=0.0)
+    trace.append(command("crouch_end_down_special_release"))
+    trace.append(
+        command("crouch_end_down_special", main_y=0.0, special=True)
+    )
+    repeat("crouch_end_down_special_recovery", 100)
     return trace
 
 

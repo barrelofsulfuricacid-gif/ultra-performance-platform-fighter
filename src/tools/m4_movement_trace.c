@@ -70,6 +70,11 @@ int main(void)
     content.projectile.enabled = UINT8_C(1);
     content.projectile.speed_q16 = INT32_C(1);
     content.projectile.lifetime_ticks = UINT16_C(1);
+    content.reflector.enabled = UINT8_C(1);
+    content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
+    content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
+    content.stage.blast_left_q16 = -INT32_C(160) * PF_Q16_ONE;
+    content.stage.blast_right_q16 = INT32_C(160) * PF_Q16_ONE;
     content.stage.platform_center_x_q16 =
         -INT32_C(28) * PF_Q16_ONE;
     content.stage.platform_half_width_q16 = PF_Q16_ONE;
@@ -95,6 +100,8 @@ int main(void)
         return fail_status("default-config", status);
     }
     config.max_ticks = UINT64_C(100000);
+    config.arena_half_width_q16 = INT32_C(256) * PF_Q16_ONE;
+    config.arena_ceiling_q16 = INT32_C(256) * PF_Q16_ONE;
     config.stock_count = UINT8_C(0);
     status = pf_sim_init(
         storage.state,

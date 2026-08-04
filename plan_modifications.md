@@ -65,7 +65,7 @@ the same ordered per-frame inputs in Dolphin and the simulator for every
 applicable route. A passing current corpus proves only its captured routes.
 
 Current qualification evidence is deliberately narrower than this acceptance
-gate. The pinned 8,016-frame Captain Falcon trace currently agrees for its
+gate. The pinned 8,675-frame Captain Falcon trace currently agrees for its
 locomotion, shield/light-shield, forward/backward/C-stick roll, spot-dodge,
 jump-from-shield, fresh-opposite-trigger air-dodge, analog-trigger-in-air,
 nonzero-velocity dash/turn, jump-squat reversal, short/full-hop, neutral-stick
@@ -91,9 +91,12 @@ falling back through its A component to `Attack11` from `SquatWait` and
 fixtures remain original project content, so this comparison asserts the
 common transition eligibility at entry and resumes exact shared-state
 comparison only after the route settles.
+Down-special entry is accepted from all three crouch states, matching their
+shared `ftCo_800D68C0` check. Those character-specific bodies are isolated at
+the end of the corpus and receive the same semantic-entry treatment.
 That passing trace is a regression slice, not
 evidence that every applicable movement or shared-simulation route is
-equivalent; the remaining crouch down-special and platform-pass IASA routes,
-player push collision, and the
+equivalent; the remaining crouch platform-pass IASA route, player push
+collision, and the
 other remaining systems still require identical-input Dolphin reproducers and
 comparable-state assertions.
