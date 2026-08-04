@@ -1901,15 +1901,43 @@ typedef struct pf_m4_world_hurt_capsule
     int64_t radius_q16;
 } pf_m4_world_hurt_capsule;
 
-static int pf_m4_use_reference_standing_hurt_pose(
+static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
-    uint32_t target_index)
+    uint32_t target_index,
+    uint8_t *out_count)
 {
-    return fighter->reference_frame_data_enabled != UINT8_C(0) &&
-           scratch->grounded[target_index] != UINT8_C(0) &&
-           scratch->action_state[target_index] ==
-               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+    pf_m4_falcon_move_index move_index;
+    uint8_t action_state = scratch->action_state[target_index];
+
+    if (out_count != NULL)
+    {
+        *out_count = UINT8_C(0);
+    }
+    if (fighter->reference_frame_data_enabled == UINT8_C(0))
+    {
+        return NULL;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+        scratch->hitlag_resume_action[target_index] != UINT8_C(0))
+    {
+        action_state = scratch->hitlag_resume_action[target_index];
+    }
+    if (scratch->grounded[target_index] != UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return pf_m4_falcon_reference_standing_hurt_capsules(out_count);
+    }
+    if (!pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return NULL;
+    }
+    return pf_m4_falcon_reference_hurt_capsules_at_frame(
+        move_index,
+        scratch->action_ticks[target_index],
+        out_count);
 }
 
 static pf_m4_world_hurt_capsule pf_m4_world_hurt_capsule_from_reference(
@@ -1941,17 +1969,18 @@ static int pf_m4_hitbox_overlaps_player(
     int32_t hitbox_top_q16,
     int32_t hitbox_bottom_q16)
 {
-    if (pf_m4_use_reference_standing_hurt_pose(
+    uint8_t capsule_count;
+    const pf_m4_reference_hurt_capsule *capsules =
+        pf_m4_reference_hurt_pose(
             fighter,
             scratch,
-            target_index))
+            target_index,
+            &capsule_count);
+
+    if (capsules != NULL)
     {
-        const pf_m4_reference_hurt_capsule *capsules;
-        uint8_t capsule_count;
         uint8_t capsule_index;
 
-        capsules = pf_m4_falcon_reference_standing_hurt_capsules(
-            &capsule_count);
         for (capsule_index = UINT8_C(0);
              capsule_index < capsule_count;
              ++capsule_index)
@@ -2089,18 +2118,16 @@ static int pf_m4_hitbox_overlaps_player_or_shield(
                hitbox_bottom_q16);
 }
 
-static int pf_m4_hit_sphere_overlaps_reference_standing(
+static int pf_m4_hit_sphere_overlaps_reference_pose(
     const pf_sim_scratch *scratch,
     uint32_t target_index,
     const pf_m4_hit_sphere_inspection *sphere,
+    const pf_m4_reference_hurt_capsule *capsules,
+    uint8_t capsule_count,
     int grabbable_only)
 {
-    const pf_m4_reference_hurt_capsule *capsules;
-    uint8_t capsule_count;
     uint8_t capsule_index;
 
-    capsules = pf_m4_falcon_reference_standing_hurt_capsules(
-        &capsule_count);
     for (capsule_index = UINT8_C(0);
          capsule_index < capsule_count;
          ++capsule_index)
@@ -2174,15 +2201,22 @@ static int pf_m4_hit_sphere_overlaps_player(
     uint32_t target_index,
     const pf_m4_hit_sphere_inspection *sphere)
 {
-    if (pf_m4_use_reference_standing_hurt_pose(
+    uint8_t capsule_count;
+    const pf_m4_reference_hurt_capsule *capsules =
+        pf_m4_reference_hurt_pose(
             fighter,
             scratch,
-            target_index))
+            target_index,
+            &capsule_count);
+
+    if (capsules != NULL)
     {
-        return pf_m4_hit_sphere_overlaps_reference_standing(
+        return pf_m4_hit_sphere_overlaps_reference_pose(
             scratch,
             target_index,
             sphere,
+            capsules,
+            capsule_count,
             0);
     }
     const int32_t hurtbox_left =
@@ -2225,15 +2259,22 @@ static int pf_m4_grab_sphere_overlaps_player(
     uint32_t target_index,
     const pf_m4_hit_sphere_inspection *sphere)
 {
-    if (pf_m4_use_reference_standing_hurt_pose(
+    uint8_t capsule_count;
+    const pf_m4_reference_hurt_capsule *capsules =
+        pf_m4_reference_hurt_pose(
             fighter,
             scratch,
-            target_index))
+            target_index,
+            &capsule_count);
+
+    if (capsules != NULL)
     {
-        return pf_m4_hit_sphere_overlaps_reference_standing(
+        return pf_m4_hit_sphere_overlaps_reference_pose(
             scratch,
             target_index,
             sphere,
+            capsules,
+            capsule_count,
             1);
     }
     return pf_m4_hit_sphere_overlaps_player(

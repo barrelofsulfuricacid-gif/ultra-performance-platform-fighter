@@ -557,7 +557,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-movement=pass content_schema=68 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
+                   "m4-movement=pass content_schema=69 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
 
     add_executable(m4_combat_test tests/sim/test_m4_combat.c)
     target_link_libraries(m4_combat_test PRIVATE sim)
@@ -570,7 +570,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-combat=pass content_schema=68 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=4 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
+                   "m4-combat=pass content_schema=69 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=4 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)
@@ -583,7 +583,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=68 state_schema=58 save_bytes=803 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=69 state_schema=58 save_bytes=803 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
         m4_projectile_test
@@ -600,7 +600,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=68 state_schema=58 save_bytes=803 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+                   "m4-projectile=pass content_schema=69 state_schema=58 save_bytes=803 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
         m4_reflector_test
@@ -617,7 +617,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-reflector=pass content_schema=68 state_schema=58 save_bytes=803 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+                   "m4-reflector=pass content_schema=69 state_schema=58 save_bytes=803 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
         m4_charge_test
@@ -637,7 +637,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_charge
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-charge=pass content_schema=68 state_schema=58 save_bytes=803 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+                   "m4-charge=pass content_schema=69 state_schema=58 save_bytes=803 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
     add_executable(m4_match_test tests/sim/test_m4_match.c)
     target_link_libraries(m4_match_test PRIVATE sim)

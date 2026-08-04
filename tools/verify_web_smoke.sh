@@ -120,7 +120,7 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '79 typed events'
+    '87 typed events'
 pf_require_dom \
     "M4 playtest and input status" \
     'playtest=ready input_probe=pass'

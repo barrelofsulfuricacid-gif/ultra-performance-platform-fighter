@@ -21429,6 +21429,9 @@ static int run_falcon_reference_table_test(void)
     uint8_t grab_sphere_count = UINT8_C(0);
     uint8_t dash_grab_sphere_count = UINT8_C(0);
     uint8_t standing_hurt_capsule_count = UINT8_C(0);
+    uint8_t jab_hurt_capsule_count = UINT8_C(0);
+    uint8_t nair_hurt_capsule_count = UINT8_C(0);
+    uint8_t grab_hurt_capsule_count = UINT8_C(0);
     const pf_m4_reference_hit_sphere *jab_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_JAB1,
@@ -21457,6 +21460,23 @@ static int run_falcon_reference_table_test(void)
     const pf_m4_reference_hurt_capsule *standing_hurt_capsules =
         pf_m4_falcon_reference_standing_hurt_capsules(
             &standing_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *jab_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_JAB1,
+            UINT16_C(1),
+            &jab_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *nair_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_NEUTRAL_AERIAL,
+            UINT16_C(44),
+            &nair_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *grab_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_GRAB,
+            UINT16_C(29),
+            &grab_hurt_capsule_count);
+    const uint8_t *geometry_sha256 =
+        pf_m4_falcon_reference_geometry_sha256();
     int32_t dash_motion_q16 = INT32_C(0);
     uint32_t present_count = UINT32_C(0);
 
@@ -21604,7 +21624,37 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].radius_q16 != INT32_C(16412) ||
         standing_hurt_capsules[0].hurtbox_id != UINT8_C(0) ||
         standing_hurt_capsules[0].height != UINT8_C(1) ||
-        standing_hurt_capsules[0].grabbable != UINT8_C(1))
+        standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
+        jab_hurt_capsules == NULL ||
+        jab_hurt_capsule_count != UINT8_C(11) ||
+        jab_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(1374) ||
+        jab_hurt_capsules[0].endpoint_a_y_q16 != INT32_C(-61868) ||
+        jab_hurt_capsules[10].endpoint_b_x_q16 != INT32_C(15528) ||
+        jab_hurt_capsules[10].endpoint_b_y_q16 != INT32_C(-16299) ||
+        nair_hurt_capsules == NULL ||
+        nair_hurt_capsule_count != UINT8_C(11) ||
+        nair_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(5704) ||
+        nair_hurt_capsules[10].endpoint_b_y_q16 != INT32_C(7436) ||
+        grab_hurt_capsules == NULL ||
+        grab_hurt_capsule_count != UINT8_C(11) ||
+        grab_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(-3099) ||
+        geometry_sha256 == NULL ||
+        geometry_sha256[0] != UINT8_C(0xe0) ||
+        geometry_sha256[1] != UINT8_C(0x4c) ||
+        geometry_sha256[30] != UINT8_C(0x74) ||
+        geometry_sha256[31] != UINT8_C(0x3e) ||
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_JAB1,
+            UINT16_C(0),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_NEUTRAL_AERIAL,
+            UINT16_C(45),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND,
+            UINT16_C(1),
+            NULL) != NULL)
     {
         return fail("falcon-reference-hit-geometry");
     }
@@ -21660,6 +21710,10 @@ static int run_falcon_reference_table_test(void)
         !pf_m4_falcon_reference_move_for_action(
             (uint8_t)PF_M4_ACTION_DOWN_AERIAL,
             NULL) ||
+        !pf_m4_falcon_reference_move_for_action(
+            (uint8_t)PF_M4_ACTION_DASH_GRAB,
+            &mapped_move) ||
+        mapped_move != PF_M4_FALCON_DASH_GRAB ||
         pf_m4_falcon_reference_move_for_action(
             (uint8_t)PF_M4_ACTION_STRONG_ATTACK,
             &mapped_move) ||

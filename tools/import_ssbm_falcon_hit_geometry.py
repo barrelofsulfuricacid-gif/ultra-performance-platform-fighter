@@ -22,6 +22,9 @@ EXPECTED_FULL_SOURCE_SHA256 = (
 EXPECTED_CAPTURE_SHA256 = (
     "5a7ac3a35775b0352d48566d622860c846fa2907c4bef03f760080f2a18ba3e8"
 )
+EXPECTED_HURT_CAPTURE_SHA256 = (
+    "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
+)
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
 )
@@ -91,8 +94,55 @@ def captured_effect_key(hitbox: dict[str, Any]) -> tuple[int, ...]:
     )
 
 
-def validate_capture(capture: dict[str, Any]) -> None:
-    if capture.get("schema") != 8:
+def captured_hurt_capsules(
+    memory: dict[str, Any],
+    hurtbox_key: str,
+    fighter_position_key: str,
+    facing: int,
+) -> tuple[tuple[int, ...], ...]:
+    """Canonicalize one live pose into facing-right simulation space."""
+
+    fighter_position = [
+        float(value) for value in memory[fighter_position_key]
+    ]
+    capsules = []
+    for hurtbox_id, source in enumerate(memory[hurtbox_key]):
+        hurtbox = dict(source)
+        if int(hurtbox["state"]) != 0:
+            continue
+        endpoint_a = [float(value) for value in hurtbox["position_a"]]
+        endpoint_b = [float(value) for value in hurtbox["position_b"]]
+        capsules.append(
+            (
+                round(
+                    facing
+                    * (endpoint_a[0] - fighter_position[0])
+                    * MELEE_TO_SIM_Q16
+                ),
+                round(
+                    -(endpoint_a[1] - fighter_position[1])
+                    * MELEE_TO_SIM_Q16
+                ),
+                round(
+                    facing
+                    * (endpoint_b[0] - fighter_position[0])
+                    * MELEE_TO_SIM_Q16
+                ),
+                round(
+                    -(endpoint_b[1] - fighter_position[1])
+                    * MELEE_TO_SIM_Q16
+                ),
+                round(float(hurtbox["radius"]) * MELEE_TO_SIM_Q16),
+                hurtbox_id,
+                int(hurtbox["height"]),
+                int(hurtbox["grabbable"]),
+            )
+        )
+    return tuple(capsules)
+
+
+def validate_capture(capture: dict[str, Any], expected_schema: int) -> None:
+    if capture.get("schema") != expected_schema:
         raise ValueError("unexpected hit-geometry capture schema")
     if capture.get("fighter") != "CPTFALCON":
         raise ValueError("hit-geometry capture is not Captain Falcon")
@@ -146,12 +196,18 @@ def hitboxes_for_frame(
 def generate(
     timing_data: dict[str, Any],
     full_data: dict[str, Any],
-    capture: dict[str, Any],
+    hit_capture: dict[str, Any],
+    hurt_capture: dict[str, Any],
 ) -> str:
-    rows = list(capture["rows"])
+    rows = list(hit_capture["rows"])
+    hurt_rows = list(hurt_capture["rows"])
     frames: list[dict[str, int]] = []
     spheres: list[dict[str, int]] = []
     geometry_moves: list[dict[str, int]] = []
+    hurt_frames: list[dict[str, int]] = []
+    hurt_capsules: list[tuple[int, ...]] = []
+    hurt_moves: list[dict[str, int]] = []
+    hurt_pose_offsets: dict[tuple[tuple[int, ...], ...], int] = {}
     standing_rows = [
         row
         for row in rows
@@ -166,45 +222,12 @@ def generate(
             "expected one collision-evaluated standing hurt-capsule pose"
         )
     standing_memory = dict(standing_rows[0]["hitbox_memory"])
-    standing_position = [
-        float(value)
-        for value in standing_memory["opponent_fighter_position"]
-    ]
-    standing_hurtboxes = []
-    for hurtbox_id, source in enumerate(
-        standing_memory["opponent_hurtboxes"]
-    ):
-        hurtbox = dict(source)
-        if int(hurtbox["state"]) != 0:
-            continue
-        endpoint_a = [float(value) for value in hurtbox["position_a"]]
-        endpoint_b = [float(value) for value in hurtbox["position_b"]]
-        standing_hurtboxes.append(
-            {
-                "a_x": round(
-                    -(endpoint_a[0] - standing_position[0])
-                    * MELEE_TO_SIM_Q16
-                ),
-                "a_y": round(
-                    -(endpoint_a[1] - standing_position[1])
-                    * MELEE_TO_SIM_Q16
-                ),
-                "b_x": round(
-                    -(endpoint_b[0] - standing_position[0])
-                    * MELEE_TO_SIM_Q16
-                ),
-                "b_y": round(
-                    -(endpoint_b[1] - standing_position[1])
-                    * MELEE_TO_SIM_Q16
-                ),
-                "radius": round(
-                    float(hurtbox["radius"]) * MELEE_TO_SIM_Q16
-                ),
-                "hurtbox_id": hurtbox_id,
-                "height": int(hurtbox["height"]),
-                "grabbable": int(hurtbox["grabbable"]),
-            }
-        )
+    standing_hurtboxes = captured_hurt_capsules(
+        standing_memory,
+        "opponent_hurtboxes",
+        "opponent_fighter_position",
+        -1,
+    )
     if len(standing_hurtboxes) != 11:
         raise ValueError("unexpected Falcon standing hurt-capsule count")
 
@@ -214,10 +237,73 @@ def generate(
             geometry_moves.append(
                 {"frame_offset": 0, "first_frame": 0, "frame_count": 0}
             )
+            hurt_moves.append(
+                {"frame_offset": 0, "first_frame": 0, "frame_count": 0}
+            )
             continue
 
         timing_move = dict(timing_data[move_key])
         full_move = dict(full_data[move_key])
+        total_frames = int(timing_move["totalFrames"])
+        hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
+        for row in hurt_rows:
+            if row.get("action") != action_name:
+                continue
+            raw_frame = float(row["action_frame"])
+            action_frame = round(raw_frame)
+            if abs(raw_frame - action_frame) > 0.000001:
+                raise ValueError(
+                    f"{move_key}: fractional action frame {raw_frame}"
+                )
+            if action_frame < 1 or action_frame > total_frames:
+                continue
+            facing = int(row["facing"])
+            if facing not in (-1, 1):
+                raise ValueError(f"{move_key}: invalid facing {facing}")
+            pose = captured_hurt_capsules(
+                dict(row["hitbox_memory"]),
+                "fighter_hurtboxes",
+                "fighter_position",
+                facing,
+            )
+            previous_pose = hurt_by_frame.get(action_frame)
+            if previous_pose is not None and previous_pose != pose:
+                raise ValueError(
+                    f"{move_key}: inconsistent hurt pose on frame "
+                    f"{action_frame}"
+                )
+            hurt_by_frame[action_frame] = pose
+        expected_hurt_frames = set(range(1, total_frames + 1))
+        if set(hurt_by_frame) != expected_hurt_frames:
+            raise ValueError(
+                f"{move_key}: hurt-frame mismatch: "
+                f"expected {min(expected_hurt_frames)}-"
+                f"{max(expected_hurt_frames)}, captured "
+                f"{sorted(hurt_by_frame)}"
+            )
+        hurt_frame_offset = len(hurt_frames)
+        for action_frame in range(1, total_frames + 1):
+            pose = hurt_by_frame[action_frame]
+            capsule_offset = hurt_pose_offsets.get(pose)
+            if capsule_offset is None:
+                capsule_offset = len(hurt_capsules)
+                if capsule_offset > 0xFFFF:
+                    raise ValueError("too many Falcon hurt capsules")
+                hurt_pose_offsets[pose] = capsule_offset
+                hurt_capsules.extend(pose)
+            hurt_frames.append(
+                {
+                    "capsule_offset": capsule_offset,
+                    "capsule_count": len(pose),
+                }
+            )
+        hurt_moves.append(
+            {
+                "frame_offset": hurt_frame_offset,
+                "first_frame": 1,
+                "frame_count": total_frames,
+            }
+        )
         source_frames = active_frames(full_move)
         expected_frames = set(
             EXECUTABLE_ACTIVE_FRAMES.get(move_key, source_frames)
@@ -357,12 +443,36 @@ def generate(
             }
         )
 
+    geometry_digest = hashlib.sha256(
+        json.dumps(
+            {
+                "geometry_moves": geometry_moves,
+                "hit_frames": frames,
+                "hit_spheres": spheres,
+                "hurt_moves": hurt_moves,
+                "hurt_frames": hurt_frames,
+                "hurt_capsules": hurt_capsules,
+                "standing_hurt_capsules": standing_hurtboxes,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
     lines = [
         "/* Generated by tools/import_ssbm_falcon_hit_geometry.py. */",
         f"/* full source SHA-256: {EXPECTED_FULL_SOURCE_SHA256} */",
-        f"/* Dolphin capture SHA-256: {EXPECTED_CAPTURE_SHA256} */",
+        f"/* hit-sphere capture SHA-256: {EXPECTED_CAPTURE_SHA256} */",
+        f"/* hurt-pose capture SHA-256: {EXPECTED_HURT_CAPTURE_SHA256} */",
         f"/* disc SHA-256: {EXPECTED_DISC_SHA256} */",
         f"/* decomp revision: {EXPECTED_DECOMP_REVISION} */",
+        f"/* canonical geometry SHA-256: {geometry_digest} */",
+        "",
+        "static const uint8_t pf_m4_falcon_geometry_sha256[32] = {",
+        "    " + ", ".join(
+            f"UINT8_C(0x{geometry_digest[index:index + 2]})"
+            for index in range(0, len(geometry_digest), 2)
+        ),
+        "};",
         "",
         "static const pf_m4_reference_geometry_move",
         "pf_m4_falcon_geometry_moves[PF_M4_FALCON_MOVE_COUNT] = {",
@@ -414,6 +524,58 @@ def generate(
         (
             "};",
             "",
+            "static const pf_m4_reference_hurt_move",
+            "pf_m4_falcon_hurt_moves[PF_M4_FALCON_MOVE_COUNT] = {",
+        )
+    )
+    lines.extend(
+        "    { "
+        f"UINT16_C({move['frame_offset']}), "
+        f"UINT8_C({move['first_frame']}), "
+        f"UINT8_C({move['frame_count']}) "
+        "},"
+        for move in hurt_moves
+    )
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_reference_hurt_frame",
+            "pf_m4_falcon_hurt_frames[] = {",
+        )
+    )
+    lines.extend(
+        "    { "
+        f"UINT16_C({frame['capsule_offset']}), "
+        f"UINT8_C({frame['capsule_count']}), UINT8_C(0) "
+        "},"
+        for frame in hurt_frames
+    )
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_reference_hurt_capsule",
+            "pf_m4_falcon_hurt_capsules[] = {",
+        )
+    )
+    lines.extend(
+        "    { "
+        f"INT32_C({hurtbox[0]}), "
+        f"INT32_C({hurtbox[1]}), "
+        f"INT32_C({hurtbox[2]}), "
+        f"INT32_C({hurtbox[3]}), "
+        f"INT32_C({hurtbox[4]}), "
+        f"UINT8_C({hurtbox[5]}), "
+        f"UINT8_C({hurtbox[6]}), "
+        f"UINT8_C({hurtbox[7]}), UINT8_C(0) "
+        "},"
+        for hurtbox in hurt_capsules
+    )
+    lines.extend(
+        (
+            "};",
+            "",
             "/* Opponent Stand pose 18, collision-evaluated during Ftilt frame 9. */",
             "static const pf_m4_reference_hurt_capsule",
             "pf_m4_falcon_standing_hurt_capsules[] = {",
@@ -421,14 +583,14 @@ def generate(
     )
     lines.extend(
         "    { "
-        f"INT32_C({hurtbox['a_x']}), "
-        f"INT32_C({hurtbox['a_y']}), "
-        f"INT32_C({hurtbox['b_x']}), "
-        f"INT32_C({hurtbox['b_y']}), "
-        f"INT32_C({hurtbox['radius']}), "
-        f"UINT8_C({hurtbox['hurtbox_id']}), "
-        f"UINT8_C({hurtbox['height']}), "
-        f"UINT8_C({hurtbox['grabbable']}), UINT8_C(0) "
+        f"INT32_C({hurtbox[0]}), "
+        f"INT32_C({hurtbox[1]}), "
+        f"INT32_C({hurtbox[2]}), "
+        f"INT32_C({hurtbox[3]}), "
+        f"INT32_C({hurtbox[4]}), "
+        f"UINT8_C({hurtbox[5]}), "
+        f"UINT8_C({hurtbox[6]}), "
+        f"UINT8_C({hurtbox[7]}), UINT8_C(0) "
         "},"
         for hurtbox in standing_hurtboxes
     )
@@ -440,7 +602,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("timing_source", type=Path)
     parser.add_argument("full_source", type=Path)
-    parser.add_argument("capture", type=Path)
+    parser.add_argument("hit_capture", type=Path)
+    parser.add_argument("hurt_capture", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
 
@@ -455,15 +618,33 @@ def main() -> int:
         raise SystemExit(
             f"unexpected Falcon full source SHA-256: {full_digest}"
         )
-    capture_digest = file_sha256(args.capture)
-    if capture_digest != EXPECTED_CAPTURE_SHA256:
+    hit_capture_digest = file_sha256(args.hit_capture)
+    if hit_capture_digest != EXPECTED_CAPTURE_SHA256:
         raise SystemExit(
-            f"unexpected Dolphin geometry capture SHA-256: {capture_digest}"
+            "unexpected Dolphin hit-sphere capture SHA-256: "
+            f"{hit_capture_digest}"
+        )
+    hurt_capture_digest = file_sha256(args.hurt_capture)
+    if hurt_capture_digest != EXPECTED_HURT_CAPTURE_SHA256:
+        raise SystemExit(
+            "unexpected Dolphin hurt-pose capture SHA-256: "
+            f"{hurt_capture_digest}"
         )
     full_data = json.loads(args.full_source.read_text(encoding="utf-8"))
-    capture = json.loads(args.capture.read_text(encoding="utf-8"))
-    validate_capture(capture)
-    output = generate(timing_data, full_data, capture)
+    hit_capture = json.loads(
+        args.hit_capture.read_text(encoding="utf-8")
+    )
+    hurt_capture = json.loads(
+        args.hurt_capture.read_text(encoding="utf-8")
+    )
+    validate_capture(hit_capture, 8)
+    validate_capture(hurt_capture, 9)
+    output = generate(
+        timing_data,
+        full_data,
+        hit_capture,
+        hurt_capture,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")
     print(

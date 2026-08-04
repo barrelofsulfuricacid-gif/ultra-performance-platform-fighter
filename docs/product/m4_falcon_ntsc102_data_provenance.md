@@ -168,17 +168,29 @@ frames 7-8; dash grab's three spheres are live on frames 11-12. Grab collision
 uses the same fixed-capacity sphere path as attacks and considers only source
 hurt capsules whose live `grabbable` flag is set.
 
-The same capture reads Falcon's 11 live `FighterHurtCapsule` records from
-`fighter+0x11a0` with stride `0x4c`. Production currently uses the
-phase-pinned Stand frame-18 pose for grounded idle targets and exact 2D
-circle-versus-capsule intersection. Other target actions still use the
-project's rectangular hurt volume; special attack geometry has not yet
-been captured; the retained source Z coordinate is not yet part of the 2D
-collision decision; and attack-sphere versus shield uses the sphere's AABB
-against the source-derived shield ellipse. These are active fidelity gaps, not
-values to be filled by guessed frame data. Custom authored content may opt out
-of the reference geometry explicitly; default Falcon-counterpart content opts
-in and cannot silently use the old rectangle for any of the 16 covered moves.
+The probe reads Falcon's 11 live `FighterHurtCapsule` records from
+`fighter+0x11a0` with stride `0x4c`. A second 1,948-row Dolphin capture, SHA-256
+`d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32`,
+records the acting Falcon on every displayed frame of all 16 routed
+normal/aerial/grab actions. Its full-hop, delayed-double-jump aerial setup keeps
+Falcon airborne through neutral-air and down-air frame 44; the importer rejects
+even one missing source frame instead of cloning the previous pose. The
+generated table contains 612 frame rows and 6,732 pose capsules, while the
+phase-pinned Stand frame-18 pose remains the grounded-idle route. A single
+move/frame lookup feeds exact 2D circle-versus-capsule intersection for attacks,
+grabs, item/projectile boxes, and hitlag-frozen source actions without allocation.
+
+The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
+hash to
+`e04cb094239f43d449d95da11b84c75918354816f87f2a8ebcb7b29e09e3743e`.
+That digest is compiled into every M4 content hash, so changing geometry cannot
+retain an old compatibility identity. Actions outside these 16 still use the
+project's rectangular hurt volume; special attack geometry has not yet been
+captured; the retained source Z coordinate is not yet part of the 2D collision
+decision; and attack-sphere versus shield uses the sphere's AABB against the
+source-derived shield ellipse. These are active fidelity gaps, not values to be
+filled by guessed frame data. Custom authored content may opt out of reference
+geometry explicitly; default Falcon-counterpart content opts in.
 
 An independent recapture produced a different raw JSON hash because unused
 single-precision memory samples vary below the retained fixed-point precision.

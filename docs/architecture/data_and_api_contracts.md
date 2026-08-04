@@ -614,6 +614,16 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+Content schema 69/fighter schema 62 folds the canonical Falcon geometry digest
+into content identity and routes 612 executable-captured animation frames and
+6,732 hurt capsules for the 14 production normals/aerials plus standing and
+dash grab. The move/frame tables are immutable offset/count arrays; collision
+does one bounded lookup and iterates at most 11 capsules without allocation.
+Hit-sphere geometry remains sourced from its independently pinned capture, so
+recapturing hurt poses cannot perturb already-qualified attack coordinates.
+State schema 58 and the 803-byte checkpoint are unchanged because animation
+frame selection uses the existing canonical action and action-tick state.
+
 Content schema 67/fighter schema 59 appends, validates, defaults, and hashes
 Falcon jab 2's angle, KBG, set-weight, BKB, and semantic-selection flag;
 content schema 66/fighter schema 58 did the same for jab 1. The complete pinned

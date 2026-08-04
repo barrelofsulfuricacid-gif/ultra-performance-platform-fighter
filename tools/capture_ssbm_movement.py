@@ -261,10 +261,28 @@ def input_trace(
                 move,
                 [
                     command(f"hitbox_geometry_{move}_jump", jump=True),
-                    command(f"hitbox_geometry_{move}_jump_squat"),
-                    command(f"hitbox_geometry_{move}_jump_squat"),
-                    command(f"hitbox_geometry_{move}_jump_squat"),
-                    command(f"hitbox_geometry_{move}_jump_squat"),
+                    command(
+                        f"hitbox_geometry_{move}_jump_squat",
+                        jump=True,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_jump_squat",
+                        jump=True,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_jump_squat",
+                        jump=True,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_jump_squat",
+                        jump=True,
+                    ),
+                    command(f"hitbox_geometry_{move}_ascent"),
+                    command(f"hitbox_geometry_{move}_ascent"),
+                    command(
+                        f"hitbox_geometry_{move}_double_jump",
+                        jump=True,
+                    ),
                     command(
                         f"hitbox_geometry_{move}_start",
                         **attack_input,
@@ -1488,7 +1506,7 @@ def read_fighter_hurt_capsules(
 
 
 def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
-    """Read Falcon's live attack and opponent hurt capsules."""
+    """Read both Falcons' live attack and hurt-capsule geometry."""
 
     fighter = read_fighter_address(memory_engine, 0)
     opponent = read_fighter_address(memory_engine, 1)
@@ -1534,6 +1552,9 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
             for axis in range(3)
         ],
         "hitboxes": hitboxes,
+        "fighter_hurtboxes": read_fighter_hurt_capsules(
+            memory_engine, fighter
+        ),
         "opponent_fighter_address": opponent,
         "opponent_fighter_position": [
             memory_engine.read_float(opponent + 0xB0 + 4 * axis)
@@ -2092,12 +2113,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
 
         return {
             "schema": (
-                8
-                if (
-                    args.memory_probe_shield
-                    or args.memory_probe_damage
-                    or args.memory_probe_hitbox
-                )
+                9
+                if args.memory_probe_hitbox
+                else 8
+                if args.memory_probe_shield or args.memory_probe_damage
                 else 7
             ),
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",

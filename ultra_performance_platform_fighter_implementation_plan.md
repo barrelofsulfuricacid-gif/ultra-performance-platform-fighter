@@ -470,11 +470,13 @@ ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
 character-special subactions. No implemented Falcon-counterpart move may use a
 guessed timing or effect when this table contains it. The current executable
 geometry slice adds 121 active-frame rows and 250 independent transformed hit
-spheres for the 14 production normals/aerials plus standing and dash grab, and
-the 11-capsule grounded-idle hurt pose. Animated hurt capsules for every other
-action, special geometry, source-Z collision semantics, and exact sphere-versus-
-shield intersection remain explicit M4 gaps and must be extracted or qualified
-rather than approximated with invented frame data.
+spheres for the 14 production normals/aerials plus standing and dash grab. A
+separate complete-frame executable capture adds 612 animated hurt-pose rows and
+6,732 capsules for those same 16 actions, plus the 11-capsule grounded-idle
+pose. Hurt capsules for other actions, special geometry, source-Z collision
+semantics, and exact sphere-versus-shield intersection remain explicit M4 gaps
+and must be extracted or qualified rather than approximated with invented frame
+data.
 These captures qualify only their sampled routes and do not reduce the
 exhaustive obligation below.
 

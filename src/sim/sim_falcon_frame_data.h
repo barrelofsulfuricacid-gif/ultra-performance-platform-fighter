@@ -129,6 +129,20 @@ typedef struct pf_m4_reference_hurt_capsule
     uint8_t reserved;
 } pf_m4_reference_hurt_capsule;
 
+typedef struct pf_m4_reference_hurt_move
+{
+    uint16_t frame_offset;
+    uint8_t first_frame;
+    uint8_t frame_count;
+} pf_m4_reference_hurt_move;
+
+typedef struct pf_m4_reference_hurt_frame
+{
+    uint16_t capsule_offset;
+    uint8_t capsule_count;
+    uint8_t reserved;
+} pf_m4_reference_hurt_frame;
+
 typedef struct pf_m4_reference_throw
 {
     uint16_t angle_degrees;
@@ -187,6 +201,8 @@ typedef enum pf_m4_reference_ground_physics
 
 const uint8_t *pf_m4_falcon_reference_source_sha256(void);
 
+const uint8_t *pf_m4_falcon_reference_geometry_sha256(void);
+
 const pf_m4_reference_move *pf_m4_falcon_reference_move(
     pf_m4_falcon_move_index move_index);
 
@@ -220,6 +236,12 @@ int pf_m4_falcon_reference_has_hit_geometry(
 
 const pf_m4_reference_hurt_capsule *
 pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count);
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_hurt_capsules_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame,
+    uint8_t *out_count);
 
 int pf_m4_falcon_reference_move_for_action(
     uint8_t action_state,

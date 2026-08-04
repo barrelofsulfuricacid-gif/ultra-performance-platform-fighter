@@ -499,6 +499,10 @@ static void pf_m4_hash_fighter(
         hash,
         pf_m4_falcon_reference_source_sha256(),
         (size_t)32);
+    pf_sha256_update(
+        hash,
+        pf_m4_falcon_reference_geometry_sha256(),
+        (size_t)32);
     uint32_t stale_index;
 
     pf_m4_hash_u16(hash, fighter->schema_version);

@@ -3143,3 +3143,46 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   separate unsampled WSL run reports 992,316 single-world and 997,311 batched
   ticks per second with identical state; these local compiler results are not
   substituted for the repository's canonical performance history.
+
+## 2026-08-04 complete-frame Falcon hurt-pose geometry
+
+- A new schema-9 Dolphin 3.4.0 memory capture records the acting Falcon's 11
+  live `FighterHurtCapsule` records on every displayed frame of the 14 routed
+  normals/aerials and both grabs. The 1,948-row capture SHA-256 is
+  `d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32`.
+  Its full-hop route delays the double jump by two ascent samples, keeping
+  neutral air and down air airborne through source frame 44. The importer
+  rejects a fractional, missing, duplicated-but-different, wrong-facing, or
+  wrong-action pose rather than manufacturing a replacement.
+- The immutable output adds 612 frame rows and 6,732 capsules. One move-indexed
+  offset and one frame-indexed offset select a contiguous, at-most-11-capsule
+  span; the collision path performs no allocation. The original independently
+  pinned 121 hit-frame/250-sphere capture remains the attack-position source,
+  and its numeric section regenerates byte-identically despite the new aerial
+  setup. Grounded idle retains its separately pinned Stand frame-18 pose.
+- A shared hurt-pose selector now supplies source sphere collision, grab
+  collision with the live `grabbable` bit, and authored item/projectile bounds.
+  It uses the existing canonical action/action-tick state and follows
+  `hitlag_resume_action` so an attacking Falcon's pose freezes during hitlag.
+  There is no per-action runtime branch table or new rollback state.
+- The combined canonical geometry SHA-256 is
+  `e04cb094239f43d449d95da11b84c75918354816f87f2a8ebcb7b29e09e3743e`;
+  the generated include SHA-256 is
+  `5376ee7efc2d92e6c2cd478d6996d896f826301d92441bd12a686f16d03d113e`.
+  Content schema 69/fighter schema 62 folds the geometry digest into the M4
+  content hash. The eight-match verifier identity correspondingly refreshes to
+  `40a4c37827908f55`; save/state schemas and the 803-byte checkpoint do not
+  change.
+- Fresh verification passes 20/20 Windows GCC tests, 22/22 WSL GCC tests, the
+  Emscripten build, browser adapter, Windows-Chrome Wasm smoke, and identical
+  native/Wasm canonical replay hashes
+  `4f38617b574c30088ff374283918ddf5e89111d417d638bf164120908126caed`,
+  `34d2019a582d081cce10b8c7053909b8b5153d45cfe3d889f41bd7f135fc29ac`,
+  and `6a58ca0e2ef8dd3e08308d8b8d3085c22c73530400286013f305f2343f38bf87`.
+  The 13-scenario profile workload passes with ten available scenarios. A
+  separate unsampled WSL run reports 1,406,579 single-world and 1,426,551
+  batched ticks per second with identical state.
+- M4 remains unfinished. Captured hurt poses outside these 16 actions, special
+  hit geometry and executable frame-rate logic, source-Z collision, exact
+  sphere-versus-shield intersection, and normal-throw collateral hits remain
+  active source/decomp work rather than guessed-frame placeholders.
