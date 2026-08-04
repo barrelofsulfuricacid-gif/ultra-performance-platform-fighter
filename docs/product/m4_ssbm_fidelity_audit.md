@@ -40,7 +40,7 @@ threshold, and route differences are not.
 | Wall jump / wall and ceiling tech velocities | equivalent | Falcon passive-wall, wall-jump, and passive-ceiling attributes are mapped. |
 | Normal landing lag and shared IASA | equivalent for captured routes | Falcon's four-frame value is mapped. Identical-input taunt, jump, dash/turn, guard, walk, direct-crouch, late-down-lockout, and ordinary-turn routes open or remain locked on the executable's exact boundary. First-frame down enters `SquatWait` directly; down one displayed frame later remains `Landing`. Character attack/special/grab content remains outside this row. |
 | Aerial landing lag | equivalent | Distinct neutral/forward/back/up/down landing states select Falcon's 15/19/18/15/24 table; L-cancel states halve the selected value. |
-| Shield input, light shield, shield size | equivalent for captured pressure and shield-hit routes | A 500-frame pressure sweep matches sub-threshold through digital-full input, health, release, and regeneration. Three 283-frame light/intermediate/dense physical-hit captures additionally match integer shield-hit conversion, pressure-dependent health/stun, post-hitlag ordering, defender pushback, and the separately decaying attacker-recoil component. Exact tilt smoothing and executable shield geometry remain partial. |
+| Shield input, light shield, size, tilt, and volume | equivalent for captured routes | A 500-frame pressure sweep matches sub-threshold through digital-full input, health, release, and regeneration. Three 283-frame light/intermediate/dense physical-hit captures additionally match integer shield-hit conversion, pressure-dependent health/stun, post-hitlag ordering, defender pushback, and separately decaying attacker recoil. New 270- and 2,158-frame memory-probed executable captures qualify guard-angle and magnitude smoothing, all eight linear direction-animation keys, Falcon's joint-derived center, health/pressure radius, facing reflection, and the anisotropically mapped elliptical volume. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
 | Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands, including exact hitlag and inferred separate attacker recoil. Ordinary damage, launch, knockback, hitstun, and broader DI/SDI formulas have not completed a field-by-field equivalence review. |
 | Attacks, grabs, throws, stale moves | divergent | They are original M4 fixtures, not Falcon's action, hitbox, damage, or frame tables. |
@@ -112,8 +112,16 @@ A separate 500-frame Final Destination analog-shield capture covers both sides
 of the common dead zone, four accepted pressure bands across both shoulder
 inputs, simultaneous shoulders, digital full shield, release, and regeneration.
 It compares action/state, shield health, and normalized pressure; the pressure
-gate accepts only one unit of 16-bit conversion error. It does not claim to
-qualify shield-hit collision formulas or geometry.
+gate accepts only one unit of 16-bit conversion error.
+
+Separate 270- and 2,158-frame memory-probed shield-geometry captures compare
+the simulator against live GALE01 guard magnitude, biased guard angle, shield
+joint world center, and transformed sphere radius. The sweep covers all eight
+45-degree animation keys and intermediate linear samples. The comparator
+accounts explicitly for the controller/post-frame pipeline offset, maps the
+Melee sphere into the project's independent horizontal and vertical units,
+and stops on angle, magnitude, center, or radius divergence outside the small
+fixed-point gates.
 
 Three separate 283-frame physical shield-hit captures request light,
 intermediate, and dense pressure. They compare both fighters' discrete state,

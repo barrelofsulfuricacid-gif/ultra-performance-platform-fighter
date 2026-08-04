@@ -355,20 +355,22 @@ static int run_duel_test(const pf_content_view *content)
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_STRENGTH_BASE] !=
             (int32_t)TEST_LIGHT_SHIELD_STRENGTH ||
-        transition.structured_observation.players[0].shield_tilt_x !=
-            TEST_SHIELD_TILT_AXIS ||
-        transition.structured_observation.players[0].shield_tilt_y !=
-            -TEST_SHIELD_TILT_AXIS ||
+        transition.structured_observation.players[0].shield_tilt_x <=
+            INT16_C(0) ||
+        transition.structured_observation.players[0].shield_tilt_y >=
+            INT16_C(0) ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_HEALTH_BASE] !=
             (int32_t)transition.structured_observation.players[0]
                 .shield_health_q16 ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_TILT_BASE] !=
-            (int32_t)TEST_SHIELD_TILT_AXIS ||
+            (int32_t)transition.structured_observation.players[0]
+                .shield_tilt_x ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_TILT_BASE + UINT16_C(1)] !=
-            (int32_t)-TEST_SHIELD_TILT_AXIS ||
+            (int32_t)transition.structured_observation.players[0]
+                .shield_tilt_y ||
         !expect_status(
             pf_rl_reset(
                 sim,

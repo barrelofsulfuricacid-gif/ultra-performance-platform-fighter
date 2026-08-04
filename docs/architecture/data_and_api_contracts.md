@@ -614,6 +614,17 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+Content schema 65/fighter schema 57 replaces approximate rectangular shield
+extents and direct Cartesian tilt with Falcon's owner-executable joint center,
+anisotropic radii, animation scales, and guard-direction table. State schema
+57/save format 54 reinterprets the same four canonical per-player bytes as an
+unsigned angle turn and Q0.16 magnitude; the canonical payload remains 663
+bytes and the checkpoint remains 803 bytes. Observation schema 13 and
+inspection schema 49 expose smoothed Cartesian tilt, while inspection also
+exposes the canonical angle and magnitude. One shared shield-volume helper is
+the only runtime authority for health/pressure size, facing reflection, tilt
+animation, inspection bounds, and ellipse collision.
+
 Content schema 64/fighter schema 56 replaces the prior approximate
 shield-response constants with the owner-disc/decomp pressure-dependent
 damage, stun, defender-pushback, separate attacker-recoil, and recoil-decay

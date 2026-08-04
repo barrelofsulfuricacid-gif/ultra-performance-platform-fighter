@@ -221,40 +221,208 @@ static uint16_t pf_m4_axis_magnitude(int16_t axis)
     return (uint16_t)axis;
 }
 
-static int16_t pf_m4_shield_tilt_axis(
-    const pf_m4_fighter_data *fighter,
-    int16_t axis)
+/* atan(i / 64) in unsigned-turn units. The compact octant table keeps guard
+ * steering deterministic across native and Wasm builds without a libm call. */
+static const uint16_t pf_m4_atan_turn_table[65] = {
+    UINT16_C(0), UINT16_C(163), UINT16_C(326), UINT16_C(489),
+    UINT16_C(651), UINT16_C(813), UINT16_C(975), UINT16_C(1136),
+    UINT16_C(1297), UINT16_C(1457), UINT16_C(1617), UINT16_C(1775),
+    UINT16_C(1933), UINT16_C(2090), UINT16_C(2246), UINT16_C(2401),
+    UINT16_C(2555), UINT16_C(2708), UINT16_C(2860), UINT16_C(3010),
+    UINT16_C(3159), UINT16_C(3307), UINT16_C(3453), UINT16_C(3599),
+    UINT16_C(3742), UINT16_C(3884), UINT16_C(4025), UINT16_C(4164),
+    UINT16_C(4302), UINT16_C(4438), UINT16_C(4572), UINT16_C(4705),
+    UINT16_C(4836), UINT16_C(4966), UINT16_C(5094), UINT16_C(5220),
+    UINT16_C(5344), UINT16_C(5467), UINT16_C(5589), UINT16_C(5708),
+    UINT16_C(5826), UINT16_C(5943), UINT16_C(6058), UINT16_C(6171),
+    UINT16_C(6282), UINT16_C(6392), UINT16_C(6500), UINT16_C(6607),
+    UINT16_C(6712), UINT16_C(6815), UINT16_C(6917), UINT16_C(7018),
+    UINT16_C(7117), UINT16_C(7214), UINT16_C(7310), UINT16_C(7405),
+    UINT16_C(7498), UINT16_C(7589), UINT16_C(7679), UINT16_C(7768),
+    UINT16_C(7856), UINT16_C(7942), UINT16_C(8026), UINT16_C(8110),
+    UINT16_C(8192)};
+
+static const int16_t pf_m4_sine_q15_table[65] = {
+    INT16_C(0), INT16_C(804), INT16_C(1608), INT16_C(2410),
+    INT16_C(3212), INT16_C(4011), INT16_C(4808), INT16_C(5602),
+    INT16_C(6393), INT16_C(7179), INT16_C(7962), INT16_C(8739),
+    INT16_C(9512), INT16_C(10278), INT16_C(11039), INT16_C(11793),
+    INT16_C(12539), INT16_C(13279), INT16_C(14010), INT16_C(14732),
+    INT16_C(15446), INT16_C(16151), INT16_C(16846), INT16_C(17530),
+    INT16_C(18204), INT16_C(18868), INT16_C(19519), INT16_C(20159),
+    INT16_C(20787), INT16_C(21403), INT16_C(22005), INT16_C(22594),
+    INT16_C(23170), INT16_C(23731), INT16_C(24279), INT16_C(24811),
+    INT16_C(25329), INT16_C(25832), INT16_C(26319), INT16_C(26790),
+    INT16_C(27245), INT16_C(27683), INT16_C(28105), INT16_C(28510),
+    INT16_C(28898), INT16_C(29268), INT16_C(29621), INT16_C(29956),
+    INT16_C(30273), INT16_C(30571), INT16_C(30852), INT16_C(31113),
+    INT16_C(31356), INT16_C(31580), INT16_C(31785), INT16_C(31971),
+    INT16_C(32137), INT16_C(32285), INT16_C(32412), INT16_C(32521),
+    INT16_C(32609), INT16_C(32678), INT16_C(32728), INT16_C(32757),
+    INT16_C(32767)};
+
+static int32_t pf_m4_sine_q15(uint16_t angle_turn)
 {
-    return pf_m4_axis_magnitude(axis) <= fighter->axis_dead_zone
-               ? INT16_C(0)
-               : axis;
+    const uint32_t quadrant = (uint32_t)angle_turn >> 14U;
+    uint32_t quarter_turn = (uint32_t)angle_turn & UINT32_C(16383);
+    uint32_t position;
+    uint32_t index;
+    uint32_t fraction;
+    int32_t lower;
+    int32_t upper;
+    int32_t value;
+
+    if ((quadrant & UINT32_C(1)) != UINT32_C(0))
+    {
+        quarter_turn = UINT32_C(16384) - quarter_turn;
+    }
+    position = quarter_turn << 2U;
+    index = position >> 10U;
+    fraction = position & UINT32_C(1023);
+    lower = pf_m4_sine_q15_table[index];
+    upper = pf_m4_sine_q15_table[
+        index < UINT32_C(64) ? index + UINT32_C(1) : index];
+    value = lower +
+            (int32_t)(((int64_t)(upper - lower) * fraction) /
+                      INT64_C(1024));
+    return quadrant >= UINT32_C(2) ? -value : value;
+}
+
+void pf_m4_shield_tilt_axes(
+    uint16_t angle_turn,
+    uint16_t magnitude,
+    int8_t facing,
+    int16_t *out_x,
+    int16_t *out_y)
+{
+    const int32_t local_x_q15 =
+        pf_m4_sine_q15((uint16_t)(angle_turn + UINT16_C(16384)));
+    const int32_t local_y_q15 = pf_m4_sine_q15(angle_turn);
+
+    *out_x = (int16_t)(
+        ((int64_t)local_x_q15 * (int64_t)magnitude * (int64_t)facing) /
+        INT64_C(65535));
+    *out_y = (int16_t)(
+        -((int64_t)local_y_q15 * (int64_t)magnitude) /
+        INT64_C(65535));
+}
+
+static uint16_t pf_m4_atan_octant_turn(uint32_t numerator, uint32_t denominator)
+{
+    const uint64_t position =
+        ((uint64_t)numerator << 22U) / (uint64_t)denominator;
+    const uint32_t index = (uint32_t)(position >> 16U);
+    const uint32_t fraction = (uint32_t)position & UINT32_C(65535);
+    const uint32_t lower = pf_m4_atan_turn_table[index];
+    const uint32_t upper = pf_m4_atan_turn_table[
+        index < UINT32_C(64) ? index + UINT32_C(1) : index];
+
+    return (uint16_t)(
+        lower +
+        (((upper - lower) * fraction + UINT32_C(32768)) >> 16U));
+}
+
+static uint16_t pf_m4_atan2_turn(int32_t y, int32_t x)
+{
+    const uint32_t absolute_x =
+        x < INT32_C(0) ? (uint32_t)(-x) : (uint32_t)x;
+    const uint32_t absolute_y =
+        y < INT32_C(0) ? (uint32_t)(-y) : (uint32_t)y;
+    uint16_t octant;
+    uint32_t angle;
+
+    if ((absolute_x | absolute_y) == UINT32_C(0))
+    {
+        return UINT16_C(0);
+    }
+    octant = absolute_x >= absolute_y
+                  ? pf_m4_atan_octant_turn(absolute_y, absolute_x)
+                  : (uint16_t)(
+                        UINT16_C(16384) -
+                        pf_m4_atan_octant_turn(absolute_x, absolute_y));
+    if (x >= INT32_C(0))
+    {
+        angle = y >= INT32_C(0)
+                    ? (uint32_t)octant
+                    : UINT32_C(65536) - (uint32_t)octant;
+    }
+    else
+    {
+        angle = y >= INT32_C(0)
+                    ? UINT32_C(32768) - (uint32_t)octant
+                    : UINT32_C(32768) + (uint32_t)octant;
+    }
+    /* GALE01 clamps angles in the final degree to 359 before smoothing. */
+    return (uint16_t)(angle > UINT32_C(65354) ? UINT32_C(65354) : angle);
+}
+
+static int32_t pf_m4_half_nearest(int32_t value)
+{
+    return value < INT32_C(0)
+               ? -((-value + INT32_C(1)) / INT32_C(2))
+               : (value + INT32_C(1)) / INT32_C(2);
+}
+
+static uint32_t pf_m4_u64_sqrt(uint64_t value);
+
+static uint16_t pf_m4_shield_target_magnitude(const pf_input_frame *input)
+{
+    const uint32_t x = pf_m4_axis_magnitude(input->main_stick_x);
+    const uint32_t y = pf_m4_axis_magnitude(input->main_stick_y);
+    uint32_t magnitude = pf_m4_u64_sqrt(
+        (uint64_t)x * (uint64_t)x + (uint64_t)y * (uint64_t)y);
+
+    if (magnitude > UINT32_C(32768))
+    {
+        magnitude = UINT32_C(32768);
+    }
+    return (uint16_t)(
+        (magnitude * UINT32_C(65535) + UINT32_C(16384)) >> 15U);
 }
 
 static void pf_m4_update_shield_tilt(
-    const pf_m4_fighter_data *fighter,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
     uint32_t player_index,
     uint8_t action_state,
-    uint8_t hitlag_resume_action)
+    uint8_t hitlag_resume_action,
+    int8_t facing)
 {
     if (action_state == (uint8_t)PF_M4_ACTION_SHIELD)
     {
-        scratch->shield_tilt_x[player_index] =
-            pf_m4_shield_tilt_axis(
-                fighter,
-                input->main_stick_x);
-        scratch->shield_tilt_y[player_index] =
-            pf_m4_shield_tilt_axis(
-                fighter,
-                input->main_stick_y);
+        const uint16_t target_angle = pf_m4_atan2_turn(
+            -(int32_t)input->main_stick_y,
+            (int32_t)input->main_stick_x * (int32_t)facing);
+        const uint16_t current_angle =
+            scratch->shield_angle_turn[player_index];
+        int32_t angle_delta =
+            (int32_t)target_angle - (int32_t)current_angle;
+        const uint16_t target_magnitude =
+            pf_m4_shield_target_magnitude(input);
+
+        if (angle_delta > INT32_C(32768))
+        {
+            angle_delta -= INT32_C(65536);
+        }
+        else if (angle_delta < INT32_C(-32768))
+        {
+            angle_delta += INT32_C(65536);
+        }
+        scratch->shield_angle_turn[player_index] = (uint16_t)(
+            (uint32_t)((int32_t)current_angle +
+                       pf_m4_half_nearest(angle_delta)) &
+            UINT32_C(65535));
+        scratch->shield_magnitude[player_index] = (uint16_t)(
+            ((uint32_t)scratch->shield_magnitude[player_index] +
+             (uint32_t)target_magnitude + UINT32_C(1)) /
+            UINT32_C(2));
     }
     else if (!pf_m4_action_retains_shield_strength(
                  action_state,
                  hitlag_resume_action))
     {
-        scratch->shield_tilt_x[player_index] = INT16_C(0);
-        scratch->shield_tilt_y[player_index] = INT16_C(0);
+        scratch->shield_angle_turn[player_index] = UINT16_C(0);
+        scratch->shield_magnitude[player_index] = UINT16_C(0);
     }
 }
 
@@ -1916,8 +2084,8 @@ void pf_m4_reset_player(
     sim->world.charge_ticks[player_index] = UINT16_C(0);
     sim->world.smash_charge_ticks[player_index] = UINT16_C(0);
     sim->world.shield_strength[player_index] = UINT16_C(0);
-    sim->world.shield_tilt_x[player_index] = INT16_C(0);
-    sim->world.shield_tilt_y[player_index] = INT16_C(0);
+    sim->world.shield_angle_turn[player_index] = UINT16_C(0);
+    sim->world.shield_magnitude[player_index] = UINT16_C(0);
     sim->world.grab_target_slot[player_index] = UINT8_C(0);
     sim->world.grab_owner_slot[player_index] = UINT8_C(0);
     sim->world.grounded[player_index] = UINT8_C(1);
@@ -2030,8 +2198,8 @@ static void pf_m4_enter_shield_break_launch(
     scratch->shield_stun_ticks[player_index] = UINT16_C(0);
     scratch->powershield[player_index] = UINT8_C(0);
     scratch->shield_strength[player_index] = UINT16_C(0);
-    scratch->shield_tilt_x[player_index] = INT16_C(0);
-    scratch->shield_tilt_y[player_index] = INT16_C(0);
+    scratch->shield_angle_turn[player_index] = UINT16_C(0);
+    scratch->shield_magnitude[player_index] = UINT16_C(0);
     scratch->tech_window_ticks[player_index] = UINT16_C(0);
     scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
@@ -2501,10 +2669,10 @@ static void pf_m4_copy_combat_scratch(
         world->smash_charge_ticks[player_index];
     scratch->shield_strength[player_index] =
         world->shield_strength[player_index];
-    scratch->shield_tilt_x[player_index] =
-        world->shield_tilt_x[player_index];
-    scratch->shield_tilt_y[player_index] =
-        world->shield_tilt_y[player_index];
+    scratch->shield_angle_turn[player_index] =
+        world->shield_angle_turn[player_index];
+    scratch->shield_magnitude[player_index] =
+        world->shield_magnitude[player_index];
     scratch->grab_target_slot[player_index] =
         world->grab_target_slot[player_index];
     scratch->grab_owner_slot[player_index] =
@@ -2662,8 +2830,8 @@ static void pf_m4_prepare_spawn(
     scratch->charge_ticks[player_index] = UINT16_C(0);
     scratch->smash_charge_ticks[player_index] = UINT16_C(0);
     scratch->shield_strength[player_index] = UINT16_C(0);
-    scratch->shield_tilt_x[player_index] = INT16_C(0);
-    scratch->shield_tilt_y[player_index] = INT16_C(0);
+    scratch->shield_angle_turn[player_index] = UINT16_C(0);
+    scratch->shield_magnitude[player_index] = UINT16_C(0);
     scratch->grab_target_slot[player_index] = UINT8_C(0);
     scratch->grab_owner_slot[player_index] = UINT8_C(0);
 }
@@ -3142,12 +3310,12 @@ pf_status pf_m4_step_player(
         }
 
         pf_m4_update_shield_tilt(
-            fighter,
             scratch,
             input,
             player_index,
             action_state,
-            scratch->hitlag_resume_action[player_index]);
+            scratch->hitlag_resume_action[player_index],
+            facing);
         pf_m4_write_scratch(
             scratch,
             player_index,
@@ -3239,12 +3407,12 @@ pf_status pf_m4_step_player(
         }
 
         pf_m4_update_shield_tilt(
-            fighter,
             scratch,
             input,
             player_index,
             action_state,
-            scratch->hitlag_resume_action[player_index]);
+            scratch->hitlag_resume_action[player_index],
+            facing);
         pf_m4_write_scratch(
             scratch,
             player_index,
@@ -3548,12 +3716,12 @@ pf_status pf_m4_step_player(
             scratch->shield_strength[player_index] = UINT16_C(0);
         }
         pf_m4_update_shield_tilt(
-            fighter,
             scratch,
             input,
             player_index,
             action_state,
-            scratch->hitlag_resume_action[player_index]);
+            scratch->hitlag_resume_action[player_index],
+            facing);
         if (resumed_hitlag_motion_this_tick == 0)
         {
             pf_m4_write_scratch(
@@ -7214,12 +7382,12 @@ pf_status pf_m4_step_player(
     }
 
     pf_m4_update_shield_tilt(
-        fighter,
         scratch,
         input,
         player_index,
         action_state,
-        scratch->hitlag_resume_action[player_index]);
+        scratch->hitlag_resume_action[player_index],
+        facing);
 
     if (shield_recoil_x != INT32_C(0))
     {
@@ -7544,10 +7712,16 @@ pf_status pf_m4_inspect(
             sim->world.smash_charge_ticks[player_index];
         player->shield_strength =
             sim->world.shield_strength[player_index];
-        player->shield_tilt_x =
-            sim->world.shield_tilt_x[player_index];
-        player->shield_tilt_y =
-            sim->world.shield_tilt_y[player_index];
+        player->shield_angle_turn =
+            sim->world.shield_angle_turn[player_index];
+        player->shield_magnitude =
+            sim->world.shield_magnitude[player_index];
+        pf_m4_shield_tilt_axes(
+            sim->world.shield_angle_turn[player_index],
+            sim->world.shield_magnitude[player_index],
+            player->facing,
+            &player->shield_tilt_x,
+            &player->shield_tilt_y);
         player->shield_active = (uint8_t)pf_m4_shield_box(
             &sim->content.fighter,
             player->position_x_q16,
@@ -7556,8 +7730,9 @@ pf_status pf_m4_inspect(
             sim->world.hitlag_resume_action[player_index],
             player->shield_health_q16,
             player->shield_strength,
-            player->shield_tilt_x,
-            player->shield_tilt_y,
+            player->facing,
+            sim->world.shield_angle_turn[player_index],
+            sim->world.shield_magnitude[player_index],
             &player->shield_left_q16,
             &player->shield_right_q16,
             &player->shield_top_q16,

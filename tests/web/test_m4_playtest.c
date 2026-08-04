@@ -1475,7 +1475,7 @@ int main(void)
                 0, 0, 0, 0) ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_ACTIVE] != 1 ||
-            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_X] != 10000 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_X] <= 0 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_Y] != 0 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_LEFT] +
                     test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_RIGHT] <=

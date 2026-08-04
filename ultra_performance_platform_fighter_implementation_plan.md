@@ -447,9 +447,13 @@ plus position within the established 640-Q16 envelope and the attacker's
 separate recoil within 32 Q16 units, inferred independently from executable
 position delta minus self velocity. These routes qualify integer shield-hit
 conversion, pressure-dependent damage/stun and defender pushback, same-frame
-post-hitlag ordering, and separate ground-decaying attacker recoil. Aggregate
-executable-oracle evidence is therefore 10,912 captured frames. Exact shield
-tilt, collision geometry, and uncaptured pressure/time/spacing routes remain
+post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
+270- and 2,158-frame memory-probed shield routes qualify the half-step wrapped
+angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
+joint-derived center and radius, facing reflection, health/pressure scaling,
+and the anisotropically mapped elliptical collision volume. Aggregate
+executable-oracle evidence is therefore 13,340 captured frames. Uncaptured
+pressure/time/spacing routes and the broader shared-simulation inventory remain
 active work.
 These captures qualify only their sampled routes and do not reduce the
 exhaustive obligation below.

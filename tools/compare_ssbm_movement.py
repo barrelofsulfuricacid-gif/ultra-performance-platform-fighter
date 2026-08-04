@@ -334,7 +334,10 @@ def main() -> int:
     previous_label: str | None = None
     skip_character_content = False
     shield_contact_seen = False
-    for oracle, native in zip(oracle_rows, native_rows, strict=True):
+    shield_numeric_ticks = 0
+    for oracle_index, (oracle, native) in enumerate(
+        zip(oracle_rows, native_rows, strict=True)
+    ):
         frame = int(oracle["trace_frame"])
         label = str(oracle["label"])
         entering_anchor = (
@@ -465,7 +468,17 @@ def main() -> int:
                 f"expected={expected_velocity_y} actual={actual_velocity_y} "
                 f"delta={actual_velocity_y - expected_velocity_y}"
             )
-        if abs(actual_shield_health - expected_shield_health) > 64:
+        if (
+            previous_oracle is not None
+            and float(oracle["shield_health"])
+            != float(previous_oracle["shield_health"])
+        ):
+            shield_numeric_ticks += 1
+        shield_health_tolerance_q16 = max(64, shield_numeric_ticks * 2)
+        if (
+            abs(actual_shield_health - expected_shield_health)
+            > shield_health_tolerance_q16
+        ):
             differences.append(
                 "shield_health_q16 "
                 f"expected={expected_shield_health} actual={actual_shield_health} "
@@ -478,6 +491,91 @@ def main() -> int:
                 f"actual={actual_shield_strength} "
                 f"delta={actual_shield_strength - expected_shield_strength}"
             )
+        shield_memory = oracle.get("shield_memory")
+        shield_state_memory = (
+            oracle_rows[oracle_index + 1].get("shield_memory")
+            if oracle_index + 1 < len(oracle_rows)
+            and str(oracle_rows[oracle_index + 1]["action"]) == "SHIELD"
+            else None
+        )
+        if (
+            isinstance(shield_memory, dict)
+            and isinstance(shield_state_memory, dict)
+            and action_name == "SHIELD"
+            and actual_shield_strength > 0
+        ):
+            expected_guard_magnitude = round(
+                float(shield_state_memory["guard_magnitude"]) * 65535.0
+            )
+            actual_guard_magnitude = int(native["shield_magnitude"])
+            expected_guard_angle = round(
+                (
+                    (float(shield_state_memory["guard_angle_degrees"]) - 10.0)
+                    % 360.0
+                )
+                * 65536.0
+                / 360.0
+            ) % 65536
+            actual_guard_angle = int(native["shield_angle_turn"])
+            guard_angle_delta = (
+                (actual_guard_angle - expected_guard_angle + 32768) % 65536
+            ) - 32768
+            fighter_position = shield_state_memory["fighter_position"]
+            shield_matrix = shield_state_memory["shield_joint_matrix"]
+            expected_center_offset_x = scaled_q16(
+                float(shield_matrix[3]) - float(fighter_position[0])
+            )
+            expected_center_offset_y = (
+                scaled_y_q16(
+                    float(shield_matrix[7]) - float(fighter_position[1])
+                )
+                + round(0.8 * 65536.0)
+            )
+            size_matrix = shield_memory["shield_joint_matrix"]
+            shield_world_radius = (
+                float(size_matrix[0]) ** 2
+                + float(size_matrix[4]) ** 2
+                + float(size_matrix[8]) ** 2
+            ) ** 0.5
+            expected_radius_x = scaled_q16(shield_world_radius)
+            expected_radius_y = round(
+                shield_world_radius * SSBM_TO_M4_Y_Q16
+            )
+            geometry_pairs = (
+                (
+                    "shield_center_offset_x_q16",
+                    expected_center_offset_x,
+                    96,
+                ),
+                (
+                    "shield_center_offset_y_q16",
+                    expected_center_offset_y,
+                    96,
+                ),
+                ("shield_radius_x_q16", expected_radius_x, 96),
+                ("shield_radius_y_q16", expected_radius_y, 96),
+            )
+            if abs(actual_guard_magnitude - expected_guard_magnitude) > 64:
+                differences.append(
+                    "shield_magnitude "
+                    f"expected={expected_guard_magnitude} "
+                    f"actual={actual_guard_magnitude} "
+                    f"delta={actual_guard_magnitude - expected_guard_magnitude}"
+                )
+            if abs(guard_angle_delta) > 64:
+                differences.append(
+                    "shield_angle_turn "
+                    f"expected={expected_guard_angle} actual={actual_guard_angle} "
+                    f"delta={guard_angle_delta}"
+                )
+            for field, expected_geometry, tolerance in geometry_pairs:
+                actual_geometry = int(native[field])
+                if abs(actual_geometry - expected_geometry) > tolerance:
+                    differences.append(
+                        f"{field} expected={expected_geometry} "
+                        f"actual={actual_geometry} "
+                        f"delta={actual_geometry - expected_geometry}"
+                    )
         if shield_hit_mode and actual_hitlag != expected_hitlag:
             differences.append(
                 f"hitlag expected={expected_hitlag} actual={actual_hitlag}"

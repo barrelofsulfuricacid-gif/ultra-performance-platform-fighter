@@ -115,14 +115,6 @@ static void pf_writer_i32(pf_byte_writer *writer, int32_t value)
     pf_writer_u32(writer, (uint32_t)value);
 }
 
-static void pf_writer_i16(pf_byte_writer *writer, int16_t value)
-{
-    uint16_t bits;
-
-    (void)memcpy(&bits, &value, sizeof(bits));
-    pf_writer_u16(writer, bits);
-}
-
 static void pf_writer_i8(pf_byte_writer *writer, int8_t value)
 {
     uint8_t bits;
@@ -219,15 +211,6 @@ static int32_t pf_reader_i32(pf_byte_reader *reader)
 {
     const uint32_t bits = pf_reader_u32(reader);
     int32_t value;
-
-    (void)memcpy(&value, &bits, sizeof(value));
-    return value;
-}
-
-static int16_t pf_reader_i16(pf_byte_reader *reader)
-{
-    const uint16_t bits = pf_reader_u16(reader);
-    int16_t value;
 
     (void)memcpy(&value, &bits, sizeof(value));
     return value;
@@ -698,13 +681,13 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i16(writer, world->shield_tilt_x[player_index]);
+        pf_writer_u16(writer, world->shield_angle_turn[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        pf_writer_i16(writer, world->shield_tilt_y[player_index]);
+        pf_writer_u16(writer, world->shield_magnitude[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1189,13 +1172,13 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->shield_tilt_x[player_index] = pf_reader_i16(reader);
+        world->shield_angle_turn[player_index] = pf_reader_u16(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->shield_tilt_y[player_index] = pf_reader_i16(reader);
+        world->shield_magnitude[player_index] = pf_reader_u16(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1613,8 +1596,8 @@ static int pf_m4_snapshot_content_state_consistent(
              !smash_release_resume) ||
             ((shield_strength != UINT16_C(0)) !=
              (shield_strength_action != 0)) ||
-            ((world->shield_tilt_x[player_index] != INT16_C(0) ||
-              world->shield_tilt_y[player_index] != INT16_C(0)) &&
+            ((world->shield_angle_turn[player_index] != UINT16_C(0) ||
+              world->shield_magnitude[player_index] != UINT16_C(0)) &&
              shield_strength == UINT16_C(0)) ||
             (world->powershield[player_index] != UINT8_C(0) &&
              shield_strength_action != 0 &&
@@ -1747,8 +1730,8 @@ static int pf_m4_player_state_consistent(
                world->charge_ticks[player_index] == UINT16_C(0) &&
                world->smash_charge_ticks[player_index] == UINT16_C(0) &&
                world->shield_strength[player_index] == UINT16_C(0) &&
-               world->shield_tilt_x[player_index] == INT16_C(0) &&
-               world->shield_tilt_y[player_index] == INT16_C(0) &&
+               world->shield_angle_turn[player_index] == UINT16_C(0) &&
+               world->shield_magnitude[player_index] == UINT16_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1) &&
                world->grab_target_slot[player_index] == UINT8_C(0) &&
                world->grab_owner_slot[player_index] == UINT8_C(0) &&
@@ -2704,8 +2687,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   world->smash_charge_ticks[player_index] !=
                       UINT16_C(0) ||
                    world->shield_strength[player_index] != UINT16_C(0) ||
-                   world->shield_tilt_x[player_index] != INT16_C(0) ||
-                   world->shield_tilt_y[player_index] != INT16_C(0) ||
+                   world->shield_angle_turn[player_index] != UINT16_C(0) ||
+                   world->shield_magnitude[player_index] != UINT16_C(0) ||
                   world->grab_target_slot[player_index] != UINT8_C(0) ||
                   world->grab_owner_slot[player_index] != UINT8_C(0) ||
                   world->stocks_remaining[player_index] != UINT8_C(0))

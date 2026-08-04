@@ -234,7 +234,7 @@ static int verify_wire_prefix(
 
     if (save_size != (size_t)803 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
-        save_bytes[8] != UINT8_C(53) ||
+        save_bytes[8] != UINT8_C(54) ||
         save_bytes[9] != UINT8_C(0) ||
         save_bytes[10] != UINT8_C(140) ||
         save_bytes[11] != UINT8_C(0) ||
@@ -242,7 +242,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(56) ||
+        save_bytes[16] != UINT8_C(57) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(5) ||
         save_bytes[23] != UINT8_C(0) ||

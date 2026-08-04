@@ -85,8 +85,8 @@ typedef struct pf_world_state
     uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t smash_charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t shield_strength[PF_SIM_MAX_PLAYERS];
-    int16_t shield_tilt_x[PF_SIM_MAX_PLAYERS];
-    int16_t shield_tilt_y[PF_SIM_MAX_PLAYERS];
+    uint16_t shield_angle_turn[PF_SIM_MAX_PLAYERS];
+    uint16_t shield_magnitude[PF_SIM_MAX_PLAYERS];
     uint8_t team[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
@@ -177,8 +177,8 @@ typedef struct pf_sim_scratch
     uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t smash_charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t shield_strength[PF_SIM_MAX_PLAYERS];
-    int16_t shield_tilt_x[PF_SIM_MAX_PLAYERS];
-    int16_t shield_tilt_y[PF_SIM_MAX_PLAYERS];
+    uint16_t shield_angle_turn[PF_SIM_MAX_PLAYERS];
+    uint16_t shield_magnitude[PF_SIM_MAX_PLAYERS];
     uint8_t grounded[PF_SIM_MAX_PLAYERS];
     uint8_t active[PF_SIM_MAX_PLAYERS];
     uint8_t stocks_remaining[PF_SIM_MAX_PLAYERS];
@@ -449,12 +449,19 @@ int pf_m4_shield_box(
     uint8_t hitlag_resume_action,
     uint32_t shield_health_q16,
     uint16_t shield_strength,
-    int16_t shield_tilt_x,
-    int16_t shield_tilt_y,
+    int8_t facing,
+    uint16_t shield_angle_turn,
+    uint16_t shield_magnitude,
     int32_t *out_left_q16,
     int32_t *out_right_q16,
     int32_t *out_top_q16,
     int32_t *out_bottom_q16);
+void pf_m4_shield_tilt_axes(
+    uint16_t angle_turn,
+    uint16_t magnitude,
+    int8_t facing,
+    int16_t *out_x,
+    int16_t *out_y);
 pf_status pf_sim_tick_impl(
     pf_sim *sim,
     const pf_input_frame *inputs,

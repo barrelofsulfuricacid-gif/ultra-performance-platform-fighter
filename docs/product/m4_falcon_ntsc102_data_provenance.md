@@ -24,6 +24,9 @@ Behavior and field meanings were checked against `doldecomp/melee` revision
 common fall/air-physics routines, plus `ftCo_Guard.c` and `fighter.c` for the
 shield-health and pressure formulas, `ftcoll.c` for shield-hit damage
 conversion, and `ftcommon.c` for attacker-recoil initialization and decay.
+Shield tilt and geometry additionally follow `ftCo_80091BC4`,
+`ftCo_80091E78`, `ftAnim_80070108`, `ftColl_8007B1B8`, and the transformed
+sphere path in `lbcollision.c` at the same pinned revision.
 
 ## Coordinate conversion
 
@@ -74,7 +77,10 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | regeneration (`x27C`) | 0.07 | 7/100 Q16 HP per unshielded tick |
 | minimum size floor (`x264`) | 0.15 | 3/20 |
 | pressure size endpoints (`x2D4` / `x2D8`) | 1.0 / 0.5 | light density 1 to dense density 1/2 |
-| guard-stick smoothing (`x44C`) | 0.5 | recorded; exact tilt route remains unqualified |
+| guard-stick smoothing (`x44C`) | 0.5 | shortest wrapped angle delta and stick magnitude each converge by one half per shield tick |
+| initial shield size / model scale | 15 / 0.97 | full-health light-shield radii 99,501 x and 169,178 y Q16 units after independent coordinate conversion |
+| neutral shield-joint center | 0.194 forward / 10.134072 up from the Melee fighter origin | 1,327 forward and 65,404 up from the simulation fighter center |
+| direction-animation scale | 0.97 | 6,633 x and 11,279 y Q16 units per local animation unit |
 | shield damage base / pressure (`x284` / `x288`, `x2DC` / `x2E0`) | 1 / 0, 0.1 / 0.3 | `D * (0.9 - 0.2*p)` |
 | shield-stun damage endpoints / base (`x28C` / `x290`, `x2E4` / `x2E8`) | 1.5 / 2, 0.05 / 0.7 | duration `D * (1.425 - 0.975*p) + 2` |
 | defender pushback scale / cap / ordinary factor (`x294` / `x298` / `x2BC`) | 0.2 / 2 / 0.6 | duration times 0.2, times 0.6 unless powershielded, capped at 2 |
@@ -95,8 +101,21 @@ and 1.0 / 0.914285719 /
 `2d95549b7ffe6ac950c339fe9dcd346b4e6c401324d2cce0e8414d2677a3489f`.
 The collision path first converts attack damage to an integral shield-hit
 amount, preserving a nonzero sub-unit hit as one. Here `D` is that amount and
-`p` is normalized shield pressure. Exact stick smoothing and executable shield
-geometry remain unqualified.
+`p` is normalized shield pressure.
+
+The executable geometry oracle reads the live guard magnitude at fighter
+offset `0x2344`, biased angle at `0x2348`, shield joint at `0x19C0`, and that
+joint's scale, translation, and world matrix. The direction animation is
+piecewise linear at unbiased angles 0/45/90/135/180/225/270/315/360 degrees.
+Its local `(y, z-1)` Q16 keys are `(0,3)`, `(2.5,2)`, `(4.5,1)`,
+`(2.5,-0.200073242)`, `(0,-1)`, `(-1,-0.200073242)`,
+`(-1.799804688,1)`, `(-1,2)`, and `(0,3)`. The two small non-decimal values
+are the values encoded by the owner executable rather than rounded design
+values. `tools/capture_ssbm_movement.py --memory-probe-shield` records these
+fields; the 270-frame cardinal/diagonal route and 2,158-frame angular sweep
+both pass the identical-input comparator. Their SHA-256 values are
+`02b420230efdaf105889c73ec413ff459eadbf98103a4a6a6dea0dacfa49e92f` and
+`fb90e6173feb98139019ddd98eda05390bbf7ed38ebad662b1eedb2f1c22f9f0`.
 
 ## Imported common-input values
 

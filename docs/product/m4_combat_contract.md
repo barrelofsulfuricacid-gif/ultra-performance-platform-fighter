@@ -813,14 +813,23 @@ collision volume. Its full-health baseline keeps either shield readable around
 the fighter, then shrinks continuously with shield health instead of applying a
 constant minimum screen-space size.
 
-Main-stick axes outside the authored 4,096 dead zone move the shield center.
-Signed input is scaled independently to the authored maximum 0.3-unit x/y
-offset using 32,767 for positive input and 32,768 for negative input. Sampling
-is direct on each ordinary shield tick, so returning an axis to the dead zone
-recenters that axis. The canonical signed 16-bit tilt values and collision
-strength freeze through shield hitlag and shield stun, survive save/load and
-rollback, and clear with release, break, hit, grab, stock loss, respawn, or
-reset.
+On every ordinary shield tick, the main-stick target angle is measured relative
+to facing and follows the shortest wrapped route; target magnitude is the
+capped Euclidean stick magnitude. Both canonical values converge by one half
+per tick, matching common-data field `x44C`. A 65-entry octant table supplies a
+deterministic fixed-point `atan2`, while the captured eight-key Falcon guard
+animation is linearly interpolated from one immutable table. The four-byte
+canonical angle/magnitude state freezes through shield hitlag and shield stun,
+survives save/load and rollback, and clears with release, break, hit, grab,
+stock loss, respawn, or reset.
+
+Falcon's neutral shield-joint center, 0.97 model scale, 15-unit initial radius,
+and guard animation are converted independently through the project's x and y
+coordinate scales. The result is one authoritative elliptical volume helper.
+Inspection and the browser consume its bounding box; physical hit collision
+uses an ellipse-versus-hitbox nearest-point test. Health, analog density,
+facing reflection, and tilt therefore cannot drift between gameplay and
+visualization.
 
 Physical attacks, thrown items, and projectiles test the shield volume and the
 hurtbox independently. Shield collision wins wherever both overlap. If an
@@ -829,12 +838,13 @@ clears the shield lifecycle state; this is a shield poke. A hitbox may also
 block against shield space outside the body. Grabs continue to test only the
 hurtbox and therefore retain their shield-bypass contract.
 
-The size and analog-position rules follow the pinned Melee guard path in
-[`ftCo_Guard.c`](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_Guard.c)
-and the documented shrink, tilt, light-shield, and poke behavior in
-[SmashWiki's shield reference](https://www.ssbwiki.com/Shield). The exact
-fixed-point formula and AABB collision representation above are this engine's
-original deterministic contract.
+The size, tilt, animation blend, and transformed-sphere rules follow the pinned
+Melee paths in
+[`ftCo_Guard.c`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/chara/ftCommon/ftCo_Guard.c),
+[`ftanim.c`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/ftanim.c), and
+[`lbcollision.c`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/lb/lbcollision.c).
+Owner-executable memory probes qualify the resulting angle, magnitude, center,
+and radius across cardinal, diagonal, and angular-sweep routes.
 
 ## Blocking, shield stun, and powershield
 

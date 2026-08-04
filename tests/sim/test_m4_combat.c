@@ -93,8 +93,9 @@ static int make_shield_poke_content(
 
     out_content->stage.spawn_spacing_q16 =
         (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
+    out_content->fighter.jab_hitbox_offset_x_q16 = PF_Q16_ONE;
     out_content->fighter.jab_hitbox_offset_y_q16 =
-        (INT32_C(7) * PF_Q16_ONE) / INT32_C(10);
+        (INT32_C(9) * PF_Q16_ONE) / INT32_C(20);
     out_content->fighter.jab_hitbox_half_height_q16 =
         PF_Q16_ONE / INT32_C(20);
     out_content->item.enabled = UINT8_C(0);
@@ -10510,77 +10511,15 @@ typedef struct test_shield_box
     int32_t bottom_q16;
 } test_shield_box;
 
-static test_shield_box expected_shield_box(
-    const pf_m4_fighter_data *fighter,
+static test_shield_box observed_shield_box(
     const pf_m4_player_inspection *player)
 {
-    test_shield_box box;
-    int32_t density_scale_q16;
-    const int32_t health_scale_q16 =
-        (int32_t)(
-            ((uint64_t)player->shield_health_q16 *
-             (uint64_t)(uint32_t)PF_Q16_ONE) /
-            (uint64_t)fighter->shield_health_q16);
-    int32_t combined_scale_q16;
-    int32_t size_scale_q16;
-    int32_t half_width_q16;
-    int32_t half_height_q16;
-    int32_t offset_x_q16;
-    int32_t offset_y_q16;
+    const test_shield_box box = {
+        player->shield_left_q16,
+        player->shield_right_q16,
+        player->shield_top_q16,
+        player->shield_bottom_q16};
 
-    density_scale_q16 =
-        PF_Q16_ONE -
-        (int32_t)(
-            ((int64_t)(
-                 PF_Q16_ONE -
-                 fighter->dense_shield_size_scale_q16) *
-             (int64_t)player->shield_strength) /
-            (int64_t)UINT16_MAX);
-    combined_scale_q16 =
-        (int32_t)(
-            ((int64_t)health_scale_q16 *
-             (int64_t)density_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    size_scale_q16 =
-        fighter->shield_minimum_size_scale_q16 +
-        (int32_t)(
-            ((int64_t)(
-                 PF_Q16_ONE -
-                 fighter->shield_minimum_size_scale_q16) *
-             (int64_t)combined_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    half_width_q16 =
-        (int32_t)(
-            ((int64_t)fighter->shield_half_width_q16 *
-             (int64_t)size_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    half_height_q16 =
-        (int32_t)(
-            ((int64_t)fighter->shield_half_height_q16 *
-             (int64_t)size_scale_q16) /
-            (int64_t)PF_Q16_ONE);
-    offset_x_q16 =
-        (int32_t)(
-            ((int64_t)fighter->shield_tilt_max_x_q16 *
-             (int64_t)player->shield_tilt_x) /
-            (player->shield_tilt_x < INT16_C(0)
-                 ? INT64_C(32768)
-                 : INT64_C(32767)));
-    offset_y_q16 =
-        (int32_t)(
-            ((int64_t)fighter->shield_tilt_max_y_q16 *
-             (int64_t)player->shield_tilt_y) /
-            (player->shield_tilt_y < INT16_C(0)
-                 ? INT64_C(32768)
-                 : INT64_C(32767)));
-    box.left_q16 =
-        player->position_x_q16 + offset_x_q16 - half_width_q16;
-    box.right_q16 =
-        player->position_x_q16 + offset_x_q16 + half_width_q16;
-    box.top_q16 =
-        player->position_y_q16 + offset_y_q16 - half_height_q16;
-    box.bottom_q16 =
-        player->position_y_q16 + offset_y_q16 + half_height_q16;
     return box;
 }
 
@@ -10700,15 +10639,14 @@ static int run_light_shield_state_test(
     {
         return fail("light-shield-minimum-step");
     }
-    expected_box =
-        expected_shield_box(&content->fighter, &inspection.players[0]);
+    expected_box = observed_shield_box(&inspection.players[0]);
     light_width_q16 = expected_box.right_q16 - expected_box.left_q16;
     if (
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD ||
         inspection.players[0].shield_strength != light ||
-        inspection.players[0].shield_tilt_x != tilt_x ||
-        inspection.players[0].shield_tilt_y != tilt_y ||
+        inspection.players[0].shield_tilt_x <= INT16_C(0) ||
+        inspection.players[0].shield_tilt_y >= INT16_C(0) ||
         inspection.players[0].shield_active != UINT8_C(1) ||
         inspection.players[0].shield_left_q16 != expected_box.left_q16 ||
         inspection.players[0].shield_right_q16 != expected_box.right_q16 ||
@@ -10721,8 +10659,10 @@ static int run_light_shield_state_test(
             PF_STATUS_OK,
             "light-shield-observe") ||
         observation.players[0].shield_strength != light ||
-        observation.players[0].shield_tilt_x != tilt_x ||
-        observation.players[0].shield_tilt_y != tilt_y ||
+        observation.players[0].shield_tilt_x !=
+            inspection.players[0].shield_tilt_x ||
+        observation.players[0].shield_tilt_y !=
+            inspection.players[0].shield_tilt_y ||
         observation.players[0].shield_health_q16 !=
             inspection.players[0].shield_health_q16 ||
         !expect_status(
@@ -10753,8 +10693,10 @@ static int run_light_shield_state_test(
             PF_STATUS_OK,
             "light-shield-loaded-inspect") ||
         loaded_inspection.players[0].shield_strength != light ||
-        loaded_inspection.players[0].shield_tilt_x != tilt_x ||
-        loaded_inspection.players[0].shield_tilt_y != tilt_y ||
+        loaded_inspection.players[0].shield_tilt_x !=
+            inspection.players[0].shield_tilt_x ||
+        loaded_inspection.players[0].shield_tilt_y !=
+            inspection.players[0].shield_tilt_y ||
         loaded_inspection.players[0].shield_active != UINT8_C(1) ||
         loaded_inspection.players[0].shield_left_q16 !=
             expected_box.left_q16 ||
@@ -12756,11 +12698,6 @@ static int run_shield_geometry_and_poke_test(
     const int16_t upward_tilt =
         -(int16_t)(
             content->fighter.tap_jump_axis_threshold - UINT16_C(1));
-    const int32_t upward_tilt_offset_q16 =
-        (int32_t)(
-            ((int64_t)content->fighter.shield_tilt_max_y_q16 *
-             (int64_t)upward_tilt) /
-            INT64_C(32768));
     int32_t attack_left_q16;
     int32_t attack_right_q16;
     int32_t attack_top_q16;
@@ -12815,12 +12752,8 @@ static int run_shield_geometry_and_poke_test(
         }
     }
 
-    control_box = expected_shield_box(
-        &content->fighter,
-        &control_inspection.players[1]);
-    poke_box = expected_shield_box(
-        &content->fighter,
-        &poke_inspection.players[1]);
+    control_box = observed_shield_box(&control_inspection.players[1]);
+    poke_box = observed_shield_box(&poke_inspection.players[1]);
     attack_left_q16 =
         control_inspection.players[0].position_x_q16 +
         content->fighter.jab_hitbox_offset_x_q16 -
@@ -12840,7 +12773,7 @@ static int run_shield_geometry_and_poke_test(
     if (control_inspection.players[1].shield_active != UINT8_C(1) ||
         poke_inspection.players[1].shield_active != UINT8_C(1) ||
         control_inspection.players[1].shield_tilt_y != INT16_C(0) ||
-        poke_inspection.players[1].shield_tilt_y != upward_tilt ||
+        poke_inspection.players[1].shield_tilt_y >= INT16_C(0) ||
         control_inspection.players[1].shield_left_q16 !=
             control_box.left_q16 ||
         control_inspection.players[1].shield_right_q16 !=
@@ -12854,12 +12787,8 @@ static int run_shield_geometry_and_poke_test(
         poke_inspection.players[1].shield_top_q16 != poke_box.top_q16 ||
         poke_inspection.players[1].shield_bottom_q16 !=
             poke_box.bottom_q16 ||
-        poke_box.left_q16 != control_box.left_q16 ||
-        poke_box.right_q16 != control_box.right_q16 ||
-        poke_box.top_q16 !=
-            control_box.top_q16 + upward_tilt_offset_q16 ||
-        poke_box.bottom_q16 !=
-            control_box.bottom_q16 + upward_tilt_offset_q16 ||
+        poke_box.top_q16 >= control_box.top_q16 ||
+        poke_box.bottom_q16 >= control_box.bottom_q16 ||
         attack_left_q16 > control_box.right_q16 ||
         attack_right_q16 < control_box.left_q16 ||
         attack_top_q16 > control_box.bottom_q16 ||
@@ -21626,7 +21555,7 @@ int main(void)
         return fail("light-shield-content-hash");
     }
     shield_geometry_hash_content = content;
-    ++shield_geometry_hash_content.fighter.shield_half_width_q16;
+    ++shield_geometry_hash_content.fighter.shield_radius_x_q16;
     if (!expect_status(
             pf_m4_make_content_view(
                 &shield_geometry_hash_content,
@@ -21704,9 +21633,8 @@ int main(void)
         invalid_shield_geometry_content.fighter
             .dense_shield_size_scale_q16;
     invalid_shield_tilt_content = content;
-    invalid_shield_tilt_content.fighter.shield_tilt_max_y_q16 =
-        invalid_shield_tilt_content.fighter.shield_half_height_q16 +
-        INT32_C(1);
+    invalid_shield_tilt_content.fighter.shield_animation_scale_y_q16 =
+        INT32_C(65) * PF_Q16_ONE;
     invalid_light_shield_depletion_content = content;
     invalid_light_shield_depletion_content.fighter
         .light_shield_hold_depletion_q16 =

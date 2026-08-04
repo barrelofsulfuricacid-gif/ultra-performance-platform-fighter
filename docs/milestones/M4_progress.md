@@ -2833,3 +2833,58 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Exact shield tilt/geometry and every uncaptured shared-simulation route stay
   active under the exhaustive near-equivalence and implementation-quality
   gates; M4 remains unfinished.
+
+## 2026-08-04 Falcon shield tilt and geometry executable-oracle slice
+
+- A 270-frame cardinal/diagonal route and a 2,158-frame angular sweep use
+  Dolphin Memory Engine to record live GALE01 guard magnitude, biased guard
+  angle, shield-joint translation/scale/world matrix, fighter position, health,
+  and analog pressure. Capture schema 6 records those probes alongside the
+  existing post-frame controller and Slippi state. Capture SHA-256 values are
+  `02b420230efdaf105889c73ec413ff459eadbf98103a4a6a6dea0dacfa49e92f` and
+  `fb90e6173feb98139019ddd98eda05390bbf7ed38ebad662b1eedb2f1c22f9f0`.
+- Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+  confirms shortest-wrapped angle smoothing and magnitude smoothing by common
+  factor 0.5. The executable probes resolve Falcon's direction animation as
+  eight exactly linear 45-degree segments, including the encoded 0.799926758
+  and -1.799804688 lower keys, rather than guessed symmetric offsets.
+- Canonical shield steering remains four bytes per player: an unsigned turn
+  and Q0.16 magnitude replace the former unsmoothed Cartesian pair. A compact
+  65-entry octant table supplies deterministic fixed-point `atan2`; one shared
+  eight-key table supplies the joint animation. Public Cartesian tilt is
+  derived only at inspection boundaries.
+- One allocation-free shield-volume authority computes center and anisotropic
+  radii from content, health, pressure, facing, angle, and magnitude. Inspection
+  and browser visualization consume its bounding box, while physical collision
+  uses its ellipse against the authored hitbox. The formula is not duplicated
+  across attacks, items, projectiles, replay, RL, or web code.
+- Falcon's 15-unit initial radius, 0.97 model scale, neutral joint center, and
+  independent 12/115 x and 11/62 y conversions are content-hashed. Content
+  schema 65/fighter schema 57, state schema 57, observation schema 13,
+  inspection schema 49, and save format 54 fail closed on the changed data and
+  canonical state meaning; checkpoint size
+  remains 803 bytes because the canonical steering state remains four bytes.
+- The comparator explicitly accounts for the one-frame controller/post-frame
+  pipeline difference for guard state while retaining same-frame health/radius.
+  Both new captures pass strict action/facing/grounded gates and bounded
+  fixed-point angle, magnitude, center, and radius gates. Together with the
+  prior routes, aggregate owner-executable evidence is 13,340 frames.
+- The refreshed 41,575-byte replay SHA-256 is
+  `2c9b2e214c336b95408592b29669c31cf9fc36d7f8fe6714cd35387b8c82bd64`;
+  final-state SHA-256 is
+  `0b99990e67bd75d868dbf421edbc8a3a1727add168be367c88b11be8a64b52f6`;
+  event-journal SHA-256 remains
+  `f574b8063f8339b8495ec44eaea0a0c09395c1bf5f545dc5e4454248baeb62ba`,
+  and the repeated-match verifier digest is `88983bd051160acd`.
+- Windows MSVC Release and WSL Linux GCC each pass all 22 CTest targets. Strict
+  movement, combat, M2 kernel, native/Wasm replay equality, browser adapter,
+  and real Windows Chrome playtest gates pass; the rebuilt port-8002 playtest
+  visibly presents the exported elliptical full shield and its label. An
+  alternating clean-c336b56/candidate Windows comparison with 100 ms samples
+  and 15 repetitions passes all 10 measurable scenarios with zero invalid,
+  suspected, or confirmed regressions. Optimized MSVC objects retain one
+  shared shield-volume authority, compact integer lookup tables, and no
+  trigonometric or square-root runtime imports.
+- M4 remains unfinished: these captures qualify only sampled Falcon shield
+  routes, and the exhaustive decomp/inventory gate still contains broader
+  shared collision, damage, defensive-action, ledge, and match-state work.

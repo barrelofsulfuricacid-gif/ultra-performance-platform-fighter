@@ -12,8 +12,11 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import math
+import os
 from pathlib import Path
 import socket
+import subprocess
 import sys
 import time
 
@@ -24,6 +27,8 @@ def input_trace(
     platform_only: bool = False,
     push_only: bool = False,
     shield_only: bool = False,
+    shield_geometry_only: bool = False,
+    shield_geometry_sweep_only: bool = False,
     shield_hit_only: bool = False,
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
@@ -138,6 +143,59 @@ def input_trace(
             digital_left=True,
         )
         repeat("shield_formula_regeneration", 120)
+        return trace
+
+    if shield_geometry_only:
+        repeat("shield_geometry_settle", 60)
+        repeat(
+            "shield_geometry_neutral",
+            20,
+            left_shoulder=0.35,
+        )
+        for label, main_x, main_y in (
+            ("right", 0.68, 0.5),
+            ("up_right", 0.625, 0.625),
+            ("up", 0.5, 0.68),
+            ("up_left", 0.375, 0.625),
+            ("left", 0.32, 0.5),
+            ("down_left", 0.375, 0.375),
+            ("down", 0.5, 0.32),
+            ("down_right", 0.625, 0.375),
+        ):
+            repeat(
+                f"shield_geometry_{label}",
+                12,
+                main_x=main_x,
+                main_y=main_y,
+                left_shoulder=0.35,
+            )
+            repeat(
+                f"shield_geometry_{label}_recenter",
+                8,
+                left_shoulder=0.35,
+            )
+        repeat("shield_geometry_release", 30)
+        return trace
+
+    if shield_geometry_sweep_only:
+        repeat("shield_geometry_sweep_settle", 60)
+        repeat(
+            "shield_geometry_sweep_neutral",
+            20,
+            left_shoulder=0.35,
+        )
+        for angle_index in range(256):
+            angle = 2.0 * math.pi * angle_index / 256.0
+            signed_x = 0.55 * math.cos(angle)
+            signed_y = 0.55 * math.sin(angle)
+            repeat(
+                f"shield_geometry_sweep_{angle_index:03d}",
+                8,
+                main_x=0.5 + signed_x / 3.125,
+                main_y=0.5 + signed_y / 3.125,
+                left_shoulder=0.35,
+            )
+        repeat("shield_geometry_sweep_release", 30)
         return trace
 
     if shield_hit_only:
@@ -861,6 +919,53 @@ def input_trace(
     return trace
 
 
+def read_shield_memory_probe(memory_engine: object) -> dict[str, object]:
+    """Read Falcon's live guard state and shield-joint world transform."""
+
+    player_slot = 0x80453080
+    transformed = memory_engine.read_byte(player_slot + 0x0C)
+    fighter_gobj = memory_engine.read_word(
+        player_slot + 0xB0 + 4 * transformed
+    )
+    fighter = memory_engine.read_word(fighter_gobj + 0x2C)
+    shield_joint = memory_engine.read_word(fighter + 0x19C0)
+    matrix = [
+        memory_engine.read_float(shield_joint + 0x44 + 4 * index)
+        for index in range(12)
+    ]
+    return {
+        "fighter_address": fighter,
+        "shield_joint_address": shield_joint,
+        "guard_magnitude": memory_engine.read_float(fighter + 0x2344),
+        "guard_angle_degrees": memory_engine.read_float(fighter + 0x2348),
+        "shield_health": memory_engine.read_float(fighter + 0x1998),
+        "lightshield_amount": memory_engine.read_float(fighter + 0x199C),
+        "shield_radius": memory_engine.read_float(fighter + 0x19E0),
+        "initial_shield_size": memory_engine.read_float(fighter + 0x1A0),
+        "fighter_scale": [
+            memory_engine.read_float(fighter + 0x34 + 4 * index)
+            for index in range(3)
+        ],
+        "fighter_position": [
+            memory_engine.read_float(fighter + 0xB0 + 4 * index)
+            for index in range(3)
+        ],
+        "shield_position": [
+            memory_engine.read_float(fighter + 0x19C8 + 4 * index)
+            for index in range(3)
+        ],
+        "shield_joint_scale": [
+            memory_engine.read_float(shield_joint + 0x2C + 4 * index)
+            for index in range(3)
+        ],
+        "shield_joint_translate": [
+            memory_engine.read_float(shield_joint + 0x38 + 4 * index)
+            for index in range(3)
+        ],
+        "shield_joint_matrix": matrix,
+    }
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -957,6 +1062,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     player_one = melee.Controller(console, 1, melee.ControllerType.STANDARD)
     player_two = melee.Controller(console, 2, melee.ControllerType.STANDARD)
     started_at = time.monotonic()
+    memory_engine = None
 
     try:
         environment = None
@@ -964,7 +1070,28 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             # WSL commonly lacks FUSE. AppImage's supported extraction fallback
             # keeps the oracle runnable without installing a kernel component.
             environment = {"APPIMAGE_EXTRACT_AND_RUN": "1"}
-        console.run(iso_path=str(iso), environment_vars=environment)
+        if args.batch:
+            executable = dolphin / "dolphin-emu" if dolphin.is_dir() else dolphin
+            dolphin_environment = os.environ.copy()
+            if environment is not None:
+                dolphin_environment.update(environment)
+            # libmelee 0.44.0 does not expose Dolphin's --batch or null-video
+            # switches. Preserve its process/home ownership while extending
+            # only the launch command used by this reproducible oracle route.
+            console._process = subprocess.Popen(
+                [
+                    str(executable),
+                    "--batch",
+                    "--video_backend=Null",
+                    "--exec",
+                    str(iso),
+                    "--user",
+                    console._get_dolphin_home_path(),
+                ],
+                env=dolphin_environment,
+            )
+        else:
+            console.run(iso_path=str(iso), environment_vars=environment)
         wait_for_udp_listener(console.slippi_port, 30.0)
         if not console.connect():
             raise RuntimeError("Dolphin Slippi stream did not connect")
@@ -998,6 +1125,27 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             state = None if gamestate is None else str(gamestate.menu_state)
             raise TimeoutError(f"Dolphin match setup timed out in {state}")
 
+        if args.memory_probe_shield:
+            try:
+                import dolphin_memory_engine as memory_engine_module
+            except ImportError as error:
+                raise RuntimeError(
+                    "--memory-probe-shield requires dolphin-memory-engine"
+                ) from error
+            memory_engine_module.hook()
+            hook_deadline = time.monotonic() + 10.0
+            while (
+                not memory_engine_module.is_hooked()
+                and time.monotonic() < hook_deadline
+            ):
+                time.sleep(0.05)
+                memory_engine_module.hook()
+            if not memory_engine_module.is_hooked():
+                raise RuntimeError(
+                    "dolphin-memory-engine could not hook the oracle process"
+                )
+            memory_engine = memory_engine_module
+
         player_one.release_all()
         player_two.release_all()
         rows: list[dict[str, object]] = []
@@ -1007,6 +1155,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             platform_only=args.platform_only,
             push_only=args.push_only,
             shield_only=args.shield_only,
+            shield_geometry_only=args.shield_geometry_only,
+            shield_geometry_sweep_only=args.shield_geometry_sweep_only,
             shield_hit_only=args.shield_hit_only,
             shield_hit_pressure=args.shield_hit_pressure,
         )
@@ -1118,13 +1268,26 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             requested_c_y = float(scheduled["c_y"])
             axis_aligned = (
                 (requested_x == 0.5 and abs(observed_x - 0.5) <= 0.02)
+                or (
+                    abs(requested_x - 0.5) <= 0.02
+                    and abs(observed_x - 0.5) <= 0.02
+                )
                 or (requested_x < 0.5 and observed_x < 0.5)
                 or (requested_x > 0.5 and observed_x > 0.5)
             ) and (
                 (requested_y == 0.5 and abs(observed_y - 0.5) <= 0.02)
+                or (
+                    abs(requested_y - 0.5) <= 0.02
+                    and abs(observed_y - 0.5) <= 0.02
+                )
                 or (requested_y < 0.5 and observed_y < 0.5)
                 or (requested_y > 0.5 and observed_y > 0.5)
             )
+            if args.shield_geometry_sweep_only:
+                # The game's per-axis dead zone intentionally collapses small
+                # sweep components to neutral. The recorded post-frame sample
+                # remains the authoritative input for this extraction route.
+                axis_aligned = True
             c_axis_aligned = (
                 (requested_c_x == 0.5 and abs(observed_c_x - 0.5) <= 0.02)
                 or (requested_c_x < 0.5 and observed_c_x < 0.5)
@@ -1203,8 +1366,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 origin_x = player.position.x
             if origin_two_x is None:
                 origin_two_x = player_two_state.position.x
-            rows.append(
-                {
+            row = {
                     "trace_frame": index,
                     "game_frame": int(gamestate.frame),
                     "label": scheduled["label"],
@@ -1298,10 +1460,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         player_two_state.hitlag_left
                     ),
                 }
-            )
+            if memory_engine is not None:
+                row["shield_memory"] = read_shield_memory_probe(memory_engine)
+            rows.append(row)
 
         return {
-            "schema": 5,
+            "schema": 6 if args.memory_probe_shield else 5,
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
             "libmelee_version": importlib.metadata.version("melee"),
@@ -1321,9 +1485,29 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 args.shield_hit_pressure if args.shield_hit_only else None
             ),
             "controller_postframe_pipeline_delay": pipeline_delay,
+            "shield_memory_probe": (
+                {
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "guard_state_pipeline_delay_frames": 1,
+                    "fields": {
+                        "guard_magnitude": "fighter+0x2344",
+                        "guard_angle_degrees": "fighter+0x2348",
+                        "shield_health": "fighter+0x1998",
+                        "lightshield_amount": "fighter+0x199c",
+                        "shield_joint": "fighter+0x19c0",
+                    },
+                }
+                if args.memory_probe_shield
+                else None
+            ),
             "rows": rows,
         }
     finally:
+        if memory_engine is not None:
+            memory_engine.un_hook()
         player_one.disconnect()
         player_two.disconnect()
         console.stop()
@@ -1336,11 +1520,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--menu-timeout", type=float, default=120.0)
     parser.add_argument("--start-frame", type=int, default=120)
+    parser.add_argument("--batch", action="store_true")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
     mode.add_argument("--shield-only", action="store_true")
+    mode.add_argument("--shield-geometry-only", action="store_true")
+    mode.add_argument("--shield-geometry-sweep-only", action="store_true")
     mode.add_argument("--shield-hit-only", action="store_true")
+    parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args()
     if not 0.30 <= args.shield_hit_pressure <= 1.0:

@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(64)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(56)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(65)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(57)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(48)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(49)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -498,12 +498,14 @@ typedef struct pf_m4_fighter_data
     int32_t shield_attacker_pushback_base_q16;
     int32_t shield_attacker_pushback_air_decay_q16;
     int32_t shield_attacker_pushback_ground_friction_scale_q16;
-    int32_t shield_half_width_q16;
-    int32_t shield_half_height_q16;
+    int32_t shield_radius_x_q16;
+    int32_t shield_radius_y_q16;
     int32_t shield_minimum_size_scale_q16;
     int32_t dense_shield_size_scale_q16;
-    int32_t shield_tilt_max_x_q16;
-    int32_t shield_tilt_max_y_q16;
+    int32_t shield_center_forward_q16;
+    int32_t shield_center_up_q16;
+    int32_t shield_animation_scale_x_q16;
+    int32_t shield_animation_scale_y_q16;
     int32_t grabbox_offset_x_q16;
     int32_t grabbox_offset_y_q16;
     int32_t grabbox_half_width_q16;
@@ -784,6 +786,8 @@ typedef struct pf_m4_player_inspection
     uint8_t stocks_remaining;
     uint8_t recovery_available;
     uint16_t shield_strength;
+    uint16_t shield_angle_turn;
+    uint16_t shield_magnitude;
     int16_t shield_tilt_x;
     int16_t shield_tilt_y;
     int32_t shield_left_q16;

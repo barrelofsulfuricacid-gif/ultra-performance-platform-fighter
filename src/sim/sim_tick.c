@@ -608,10 +608,10 @@ pf_status pf_sim_tick_impl(
             scratch->smash_charge_ticks[player_index];
         world->shield_strength[player_index] =
             scratch->shield_strength[player_index];
-        world->shield_tilt_x[player_index] =
-            scratch->shield_tilt_x[player_index];
-        world->shield_tilt_y[player_index] =
-            scratch->shield_tilt_y[player_index];
+        world->shield_angle_turn[player_index] =
+            scratch->shield_angle_turn[player_index];
+        world->shield_magnitude[player_index] =
+            scratch->shield_magnitude[player_index];
         world->grab_target_slot[player_index] =
             scratch->grab_target_slot[player_index];
         world->grab_owner_slot[player_index] =

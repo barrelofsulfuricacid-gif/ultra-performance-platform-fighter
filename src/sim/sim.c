@@ -475,10 +475,12 @@ pf_status pf_sim_observe(
             sim->world.smash_charge_ticks[player_index];
         player->shield_strength =
             sim->world.shield_strength[player_index];
-        player->shield_tilt_x =
-            sim->world.shield_tilt_x[player_index];
-        player->shield_tilt_y =
-            sim->world.shield_tilt_y[player_index];
+        pf_m4_shield_tilt_axes(
+            sim->world.shield_angle_turn[player_index],
+            sim->world.shield_magnitude[player_index],
+            sim->world.facing[player_index],
+            &player->shield_tilt_x,
+            &player->shield_tilt_y);
         player->shield_health_q16 =
             sim->world.shield_health_q16[player_index];
         player->prone_orientation =

@@ -242,7 +242,9 @@ int main(int argc, char **argv)
         "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
         "position_y_q16_from_origin,"
         "velocity_x_q16,velocity_y_q16,shield_recoil_x_q16,"
-        "shield_health_q16,shield_strength,"
+        "shield_health_q16,shield_strength,shield_angle_turn,"
+        "shield_magnitude,shield_center_offset_x_q16,"
+        "shield_center_offset_y_q16,shield_radius_x_q16,shield_radius_y_q16,"
         "powershield,hitlag_ticks,shield_stun_ticks,"
         "opponent_action_state,opponent_action_ticks,opponent_hitlag_ticks,"
         "opponent_facing,opponent_grounded,"
@@ -332,7 +334,8 @@ int main(int argc, char **argv)
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
             ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
-            ",%" PRIu32 ",%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
+            ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
+            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
             ",%" PRId32 ",%" PRId32 ",%" PRId32 "\n",
             trace_frame,
             input_x,
@@ -356,6 +359,24 @@ int main(int argc, char **argv)
             inspection.players[0].shield_recoil_x_q16,
             inspection.players[0].shield_health_q16,
             (unsigned int)inspection.players[0].shield_strength,
+            (unsigned int)inspection.players[0].shield_angle_turn,
+            (unsigned int)inspection.players[0].shield_magnitude,
+            inspection.players[0].shield_left_q16 +
+                (inspection.players[0].shield_right_q16 -
+                 inspection.players[0].shield_left_q16) /
+                    INT32_C(2) -
+                inspection.players[0].position_x_q16,
+            inspection.players[0].shield_top_q16 +
+                (inspection.players[0].shield_bottom_q16 -
+                 inspection.players[0].shield_top_q16) /
+                    INT32_C(2) -
+                inspection.players[0].position_y_q16,
+            (inspection.players[0].shield_right_q16 -
+             inspection.players[0].shield_left_q16) /
+                INT32_C(2),
+            (inspection.players[0].shield_bottom_q16 -
+             inspection.players[0].shield_top_q16) /
+                INT32_C(2),
             (unsigned int)inspection.players[0].powershield,
             (unsigned int)inspection.players[0].hitlag_ticks,
             (unsigned int)inspection.players[0].shield_stun_ticks,
