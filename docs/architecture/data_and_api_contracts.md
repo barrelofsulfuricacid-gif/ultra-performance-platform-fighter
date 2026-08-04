@@ -614,6 +614,19 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+Content schema 64/fighter schema 56 replaces the prior approximate
+shield-response constants with the owner-disc/decomp pressure-dependent
+damage, stun, defender-pushback, separate attacker-recoil, and recoil-decay
+table. State schema 56/save format 53 appends one signed Q16.16 attacker-recoil
+component per fixed player slot. The canonical payload is 663 bytes and the
+`PFSAVE53` checkpoint is 803 bytes. Inspection schema 48 exposes the component
+without changing the ordinary self-velocity meaning. Hashing, validation,
+save/load, replay, reset, inactive-slot zeroing, and browser/native inspection
+all treat the new values as deterministic compatibility identity. An internal
+derived presence mask is rebuilt from serialized recoil values on load; it is
+not compatibility state and lets ordinary zero-recoil ticks skip copying or
+committing the sparse component.
+
 Content schema 63/fighter schema 55 append, validate, default, and hash the
 Falcon grounded-player-push radius and common nudge speed. The prior
 platform-pass downward speed and grounded crouch-start delay remain part of the

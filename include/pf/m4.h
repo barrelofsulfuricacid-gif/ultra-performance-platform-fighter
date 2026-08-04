@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(63)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(55)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(64)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(56)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(47)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(48)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -486,15 +486,18 @@ typedef struct pf_m4_fighter_data
     uint32_t shield_hold_depletion_q16;
     uint32_t light_shield_hold_depletion_q16;
     uint32_t shield_regeneration_q16;
-    uint32_t shield_damage_multiplier_q16;
-    int32_t shield_stun_damage_multiplier_q16;
+    uint32_t light_shield_damage_multiplier_q16;
+    uint32_t dense_shield_damage_multiplier_q16;
+    int32_t light_shield_stun_damage_multiplier_q16;
+    int32_t dense_shield_stun_damage_multiplier_q16;
     int32_t shield_stun_base_q16;
-    int32_t shield_defender_pushback_damage_q16;
-    int32_t shield_defender_pushback_base_q16;
-    int32_t shield_defender_pushback_scale_q16;
-    int32_t light_shield_defender_pushback_scale_q16;
+    int32_t shield_defender_pushback_stun_scale_q16;
+    int32_t shield_defender_pushback_normal_scale_q16;
+    int32_t shield_defender_pushback_max_q16;
     int32_t shield_attacker_pushback_damage_q16;
     int32_t shield_attacker_pushback_base_q16;
+    int32_t shield_attacker_pushback_air_decay_q16;
+    int32_t shield_attacker_pushback_ground_friction_scale_q16;
     int32_t shield_half_width_q16;
     int32_t shield_half_height_q16;
     int32_t shield_minimum_size_scale_q16;
@@ -721,6 +724,7 @@ typedef struct pf_m4_player_inspection
     int32_t position_y_q16;
     int32_t velocity_x_q16;
     int32_t velocity_y_q16;
+    int32_t shield_recoil_x_q16;
     uint16_t action_ticks;
     uint16_t respawn_count;
     uint8_t action_state;

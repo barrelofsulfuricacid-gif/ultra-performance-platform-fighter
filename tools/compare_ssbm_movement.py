@@ -27,6 +27,8 @@ SSBM_TO_M4_ACTION = {
     "SHIELD_REFLECT": 18,
     "SHIELD": 18,
     "SHIELD_RELEASE": 20,
+    "SHIELD_STUN": 19,
+    "NEUTRAL_ATTACK_1": 12,
     "ROLL_FORWARD": 38,
     "ROLL_BACKWARD": 39,
     "SPOTDODGE": 40,
@@ -164,6 +166,7 @@ def normalized_shield_strength(row: dict[str, object]) -> int:
         "SHIELD_START",
         "SHIELD_REFLECT",
         "SHIELD",
+        "SHIELD_STUN",
     }:
         return 0
     if bool(row.get("requested_digital_left")) or bool(
@@ -229,6 +232,10 @@ def main() -> int:
     push_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("push_")
+    shield_hit_mode = bool(oracle_rows) and str(
+        oracle_rows[0].get("label", "")
+    ).startswith("shield_hit_")
+    two_player_mode = push_mode or shield_hit_mode
     # Q16.16 accumulation can move a strict float overlap across the boundary
     # by one tick. Accept at most one 0.3-unit Melee push nudge per fighter in
     # this route, in addition to the ordinary position quantization envelope;
@@ -276,12 +283,16 @@ def main() -> int:
         opponent_input_x = controller_axis(
             float(row.get("observed_opponent_main_x", 0.5))
         )
+        opponent_buttons = (
+            2 if bool(row.get("observed_opponent_attack", False)) else 0
+        )
         input_lines.append(
             f"{controller_axis(float(row['observed_main_x']))},"
             f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
             f"{controller_axis(float(row.get('observed_c_x', 0.5)))},"
             f"{controller_axis_y(float(row.get('observed_c_y', 0.5)))},"
-            f"{left_trigger},{right_trigger},{buttons},{opponent_input_x}\n"
+            f"{left_trigger},{right_trigger},{buttons},{opponent_input_x},"
+            f"{opponent_buttons}\n"
         )
     input_text = "".join(input_lines)
     runner_command = [str(args.runner)]
@@ -289,6 +300,8 @@ def main() -> int:
         runner_command.append("--platform")
     elif push_mode:
         runner_command.append("--push")
+    elif shield_hit_mode:
+        runner_command.append("--shield-hit")
     completed = subprocess.run(
         runner_command,
         input=input_text,
@@ -320,6 +333,7 @@ def main() -> int:
     native_anchor_y = 0
     previous_label: str | None = None
     skip_character_content = False
+    shield_contact_seen = False
     for oracle, native in zip(oracle_rows, native_rows, strict=True):
         frame = int(oracle["trace_frame"])
         label = str(oracle["label"])
@@ -348,6 +362,8 @@ def main() -> int:
             expected_action = expected_action_state(
                 action_name, float(oracle["action_frame"])
             )
+        if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
+            expected_action = 13
         actual_action = int(native["action_state"])
         expected_ticks = (
             None
@@ -356,6 +372,8 @@ def main() -> int:
                 action_name, float(oracle["action_frame"])
             )
         )
+        if shield_hit_mode:
+            expected_ticks = None
         actual_ticks = int(native["action_ticks"])
         expected_facing = int(oracle["facing"])
         actual_facing = int(native["facing"])
@@ -401,6 +419,8 @@ def main() -> int:
         actual_shield_health = int(native["shield_health_q16"])
         expected_shield_strength = normalized_shield_strength(oracle)
         actual_shield_strength = int(native["shield_strength"])
+        expected_hitlag = round(float(oracle.get("hitlag_left", 0.0)))
+        actual_hitlag = int(native["hitlag_ticks"])
         differences: list[str] = []
         if expected_action is None:
             differences.append(f"unsupported_action={action_name}")
@@ -458,18 +478,33 @@ def main() -> int:
                 f"actual={actual_shield_strength} "
                 f"delta={actual_shield_strength - expected_shield_strength}"
             )
-        if push_mode:
+        if shield_hit_mode and actual_hitlag != expected_hitlag:
+            differences.append(
+                f"hitlag expected={expected_hitlag} actual={actual_hitlag}"
+            )
+        if two_player_mode:
             opponent_action_name = str(oracle["opponent_action"])
             expected_opponent_action = expected_action_state(
                 opponent_action_name,
                 float(oracle["opponent_action_frame"]),
             )
+            if (
+                shield_hit_mode
+                and float(oracle.get("opponent_hitlag_left", 0.0)) > 0.0
+            ):
+                expected_opponent_action = 13
             actual_opponent_action = int(native["opponent_action_state"])
             expected_opponent_ticks = expected_action_ticks(
                 opponent_action_name,
                 float(oracle["opponent_action_frame"]),
             )
+            if shield_hit_mode:
+                expected_opponent_ticks = None
             actual_opponent_ticks = int(native["opponent_action_ticks"])
+            expected_opponent_hitlag = round(
+                float(oracle.get("opponent_hitlag_left", 0.0))
+            )
+            actual_opponent_hitlag = int(native["opponent_hitlag_ticks"])
             expected_opponent_facing = int(oracle["opponent_facing"])
             actual_opponent_facing = int(native["opponent_facing"])
             expected_opponent_position = scaled_q16(
@@ -486,6 +521,9 @@ def main() -> int:
                 float(oracle["opponent_ground_velocity_x"])
             )
             actual_opponent_velocity = int(native["opponent_velocity_x_q16"])
+            opponent_hitlag = float(oracle.get("opponent_hitlag_left", 0.0))
+            if shield_hit_mode and opponent_hitlag > 0.0:
+                shield_contact_seen = True
             if expected_opponent_action is None:
                 differences.append(
                     f"unsupported_opponent_action={opponent_action_name}"
@@ -510,6 +548,15 @@ def main() -> int:
                     "opponent_facing "
                     f"expected={expected_opponent_facing} "
                     f"actual={actual_opponent_facing}"
+                )
+            if (
+                shield_hit_mode
+                and actual_opponent_hitlag != expected_opponent_hitlag
+            ):
+                differences.append(
+                    "opponent_hitlag "
+                    f"expected={expected_opponent_hitlag} "
+                    f"actual={actual_opponent_hitlag}"
                 )
             if (
                 abs(
@@ -542,6 +589,31 @@ def main() -> int:
                     "delta="
                     f"{actual_opponent_velocity - expected_opponent_velocity}"
                 )
+            if (
+                shield_hit_mode
+                and shield_contact_seen
+                and opponent_hitlag == 0.0
+                and previous_oracle is not None
+            ):
+                expected_opponent_recoil = scaled_q16(
+                    float(oracle["opponent_position_x_from_origin"])
+                    - float(previous_oracle["opponent_position_x_from_origin"])
+                    - float(oracle["opponent_ground_velocity_x"])
+                )
+                actual_opponent_recoil = int(
+                    native["opponent_shield_recoil_x_q16"]
+                )
+                if (
+                    abs(actual_opponent_recoil - expected_opponent_recoil)
+                    > args.velocity_tolerance_q16
+                ):
+                    differences.append(
+                        "opponent_shield_recoil_q16 "
+                        f"expected={expected_opponent_recoil} "
+                        f"actual={actual_opponent_recoil} "
+                        "delta="
+                        f"{actual_opponent_recoil - expected_opponent_recoil}"
+                    )
         if differences:
             print(
                 "ssbm-movement-compare=fail "

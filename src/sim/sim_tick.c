@@ -434,6 +434,14 @@ pf_status pf_sim_tick_impl(
     scratch->stale_move_sync_valid = UINT8_C(0);
     scratch->stale_move_dirty_mask = UINT8_C(0);
     scratch->action_transition_mask = UINT8_C(0);
+    scratch->shield_recoil_mask = world->shield_recoil_mask;
+    if (world->shield_recoil_mask != UINT8_C(0))
+    {
+        (void)memcpy(
+            scratch->shield_recoil_x_q16,
+            world->shield_recoil_x_q16,
+            sizeof(scratch->shield_recoil_x_q16));
+    }
     pf_m4_begin_item_tick(world, scratch);
     pf_m4_begin_projectile_tick(world, scratch);
     for (player_index = UINT32_C(0);
@@ -697,6 +705,23 @@ pf_status pf_sim_tick_impl(
         world->prone_orientation[player_index] =
             scratch->prone_orientation[player_index];
     }
+    if ((world->shield_recoil_mask | scratch->shield_recoil_mask) !=
+        UINT8_C(0))
+    {
+        for (player_index = UINT32_C(0);
+             player_index < PF_SIM_MAX_PLAYERS;
+             ++player_index)
+        {
+            const uint8_t recoil_bit =
+                (uint8_t)(UINT8_C(1) << player_index);
+
+            world->shield_recoil_x_q16[player_index] =
+                (scratch->shield_recoil_mask & recoil_bit) != UINT8_C(0)
+                    ? scratch->shield_recoil_x_q16[player_index]
+                    : INT32_C(0);
+        }
+    }
+    world->shield_recoil_mask = scratch->shield_recoil_mask;
     if (scratch->stale_move_dirty_mask != UINT8_C(0))
     {
         for (player_index = UINT32_C(0);

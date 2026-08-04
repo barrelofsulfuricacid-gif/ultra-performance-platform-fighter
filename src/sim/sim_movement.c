@@ -1898,6 +1898,11 @@ void pf_m4_reset_player(
         stage->floor_y_q16 - fighter->half_height_q16;
     sim->world.velocity_x_q16[player_index] = INT32_C(0);
     sim->world.velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.shield_recoil_x_q16[player_index] = INT32_C(0);
+    sim->world.shield_recoil_mask =
+        (uint8_t)(
+            sim->world.shield_recoil_mask &
+            (uint8_t)~(UINT8_C(1) << player_index));
     sim->world.action_ticks[player_index] = UINT16_C(0);
     sim->world.respawn_count[player_index] = respawn_count;
     sim->world.respawn_ticks[player_index] = UINT16_C(0);
@@ -2630,6 +2635,11 @@ static void pf_m4_prepare_spawn(
     scratch->tech_window_ticks[player_index] = UINT16_C(0);
     scratch->tech_lockout_ticks[player_index] = UINT16_C(0);
     scratch->shield_stun_ticks[player_index] = UINT16_C(0);
+    scratch->shield_recoil_x_q16[player_index] = INT32_C(0);
+    scratch->shield_recoil_mask =
+        (uint8_t)(
+            scratch->shield_recoil_mask &
+            (uint8_t)~(UINT8_C(1) << player_index));
     scratch->shield_health_q16[player_index] =
         fighter->shield_health_q16;
     scratch->hitlag_resume_action[player_index] = UINT8_C(0);
@@ -3002,6 +3012,7 @@ pf_status pf_m4_step_player(
     int released_ledge_this_tick = 0;
     int shield_reset_this_tick = 0;
     int initial_dash_entered_this_tick = 0;
+    int resumed_hitlag_motion_this_tick = 0;
     int32_t initial_dash_entry_motion_velocity_x = velocity_x;
     int32_t animation_motion_x_q16 = INT32_C(0);
     int hitstun_locked;
@@ -3495,6 +3506,7 @@ pf_status pf_m4_step_player(
                 {
                     return status;
                 }
+                resumed_hitlag_motion_this_tick = 1;
             }
             else if (
                 action_state ==
@@ -3516,6 +3528,12 @@ pf_status pf_m4_step_player(
                 scratch->grounded[player_index] = grounded;
                 scratch->support[player_index] = support;
             }
+            else if (
+                (scratch->shield_recoil_mask &
+                 (uint8_t)(UINT8_C(1) << player_index)) != UINT8_C(0))
+            {
+                resumed_hitlag_motion_this_tick = 1;
+            }
             scratch->sdi_direction_x[player_index] = INT8_C(0);
             scratch->sdi_direction_y[player_index] = INT8_C(0);
         }
@@ -3536,33 +3554,36 @@ pf_status pf_m4_step_player(
             player_index,
             action_state,
             scratch->hitlag_resume_action[player_index]);
-        pf_m4_write_scratch(
-            scratch,
-            player_index,
-            input,
-            position_x,
-            position_y,
-            velocity_x,
-            velocity_y,
-            action_ticks,
-            respawn_count,
-            grounded,
-            action_state,
-            support,
-            air_jumps_remaining,
-            recovery_available,
-            short_hop_latched,
-            platform_drop_ticks,
-            fast_fall,
-            facing,
-            dash_direction,
-            previous_strong_direction,
-            previous_dodge_down,
-            tilt_x_direction,
-            tilt_y_direction,
-            tilt_x_age,
-            tilt_y_age);
-        return PF_STATUS_OK;
+        if (resumed_hitlag_motion_this_tick == 0)
+        {
+            pf_m4_write_scratch(
+                scratch,
+                player_index,
+                input,
+                position_x,
+                position_y,
+                velocity_x,
+                velocity_y,
+                action_ticks,
+                respawn_count,
+                grounded,
+                action_state,
+                support,
+                air_jumps_remaining,
+                recovery_available,
+                short_hop_latched,
+                platform_drop_ticks,
+                fast_fall,
+                facing,
+                dash_direction,
+                previous_strong_direction,
+                previous_dodge_down,
+                tilt_x_direction,
+                tilt_y_direction,
+                tilt_x_age,
+                tilt_y_age);
+            return PF_STATUS_OK;
+        }
     }
 
     hitstun_locked =
@@ -4366,7 +4387,8 @@ pf_status pf_m4_step_player(
                     velocity_x < -fighter->walk_speed_q16
                 ? fighter->turn_acceleration_q16
                 : fighter->traction_q16);
-        if (scratch->shield_stun_ticks[player_index] >
+        if (resumed_hitlag_motion_this_tick == 0 &&
+            scratch->shield_stun_ticks[player_index] >
             UINT16_C(0))
         {
             --scratch->shield_stun_ticks[player_index];
@@ -6557,6 +6579,36 @@ pf_status pf_m4_step_player(
                 fighter->shield_health_q16);
     }
 
+    const uint8_t shield_recoil_bit =
+        (uint8_t)(UINT8_C(1) << player_index);
+    int32_t shield_recoil_x =
+        (scratch->shield_recoil_mask & shield_recoil_bit) != UINT8_C(0)
+            ? scratch->shield_recoil_x_q16[player_index]
+            : INT32_C(0);
+
+    if (shield_recoil_x != INT32_C(0))
+    {
+        const int32_t recoil_decay_q16 =
+            grounded != UINT8_C(0)
+                ? pf_m4_multiply_q16(
+                      fighter->traction_q16,
+                      fighter
+                          ->shield_attacker_pushback_ground_friction_scale_q16)
+                : fighter->shield_attacker_pushback_air_decay_q16;
+
+        shield_recoil_x = pf_m4_approach(
+            shield_recoil_x,
+            INT32_C(0),
+            recoil_decay_q16);
+        if (shield_recoil_x == INT32_C(0))
+        {
+            scratch->shield_recoil_mask =
+                (uint8_t)(
+                    scratch->shield_recoil_mask &
+                    (uint8_t)~shield_recoil_bit);
+        }
+    }
+
     previous_position_x = position_x;
     next_position =
         (int64_t)position_x +
@@ -6564,6 +6616,7 @@ pf_status pf_m4_step_player(
         (int64_t)(initial_dash_entered_this_tick != 0
                       ? initial_dash_entry_motion_velocity_x
                       : velocity_x) +
+        (int64_t)shield_recoil_x +
         (int64_t)animation_motion_x_q16;
     if (!ledge_motion_handled &&
         !pf_m4_checked_i32(next_position, &position_x))
@@ -7168,6 +7221,10 @@ pf_status pf_m4_step_player(
         action_state,
         scratch->hitlag_resume_action[player_index]);
 
+    if (shield_recoil_x != INT32_C(0))
+    {
+        scratch->shield_recoil_x_q16[player_index] = shield_recoil_x;
+    }
     pf_m4_write_scratch(
         scratch,
         player_index,
@@ -7371,6 +7428,8 @@ pf_status pf_m4_inspect(
             sim->world.velocity_x_q16[player_index];
         player->velocity_y_q16 =
             sim->world.velocity_y_q16[player_index];
+        player->shield_recoil_x_q16 =
+            sim->world.shield_recoil_x_q16[player_index];
         player->action_ticks =
             sim->world.action_ticks[player_index];
         player->respawn_count =

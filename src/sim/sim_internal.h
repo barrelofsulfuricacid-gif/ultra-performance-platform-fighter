@@ -69,7 +69,7 @@ typedef struct pf_world_state
     uint8_t terminated;
     uint8_t truncated;
     uint8_t winner_mask;
-    uint8_t reserved;
+    uint8_t shield_recoil_mask;
     uint64_t previous_buttons[PF_SIM_MAX_PLAYERS];
     int32_t position_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t position_y_q16[PF_SIM_MAX_PLAYERS];
@@ -157,6 +157,7 @@ typedef struct pf_world_state
     uint8_t projectile_state;
     uint8_t projectile_owner_slot;
     uint32_t combat_event_sequence;
+    int32_t shield_recoil_x_q16[PF_SIM_MAX_PLAYERS];
 } pf_world_state;
 
 typedef struct pf_sim_scratch
@@ -251,7 +252,9 @@ typedef struct pf_sim_scratch
     uint8_t stale_move_sync_valid;
     uint8_t stale_move_dirty_mask;
     uint8_t action_transition_mask;
+    uint8_t shield_recoil_mask;
     pf_sim_event combat_events[PF_SIM_MAX_EVENTS_PER_TICK];
+    int32_t shield_recoil_x_q16[PF_SIM_MAX_PLAYERS];
 } pf_sim_scratch;
 
 static inline void pf_m4_track_action_transition(

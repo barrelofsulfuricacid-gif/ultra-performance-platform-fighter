@@ -12,7 +12,7 @@
 #define TEST_SAVE_CAPACITY 1024U
 #define TEST_SAVE_HEADER_BYTES 140U
 #define TEST_PAYLOAD_HASH_OFFSET 108U
-#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 519U
+#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 535U
 #define TEST_PACKED_RECOVERY_OFFSET                                      \
     (TEST_SAVE_HEADER_BYTES + TEST_PACKED_RECOVERY_PAYLOAD_OFFSET)
 #define TEST_TRACE_TICKS UINT64_C(73)
@@ -232,9 +232,9 @@ static int verify_wire_prefix(
         UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
         UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x31)};
 
-    if (save_size != (size_t)787 ||
+    if (save_size != (size_t)803 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
-        save_bytes[8] != UINT8_C(52) ||
+        save_bytes[8] != UINT8_C(53) ||
         save_bytes[9] != UINT8_C(0) ||
         save_bytes[10] != UINT8_C(140) ||
         save_bytes[11] != UINT8_C(0) ||
@@ -242,7 +242,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(55) ||
+        save_bytes[16] != UINT8_C(56) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(5) ||
         save_bytes[23] != UINT8_C(0) ||
@@ -366,7 +366,7 @@ int main(void)
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "query-save-size") ||
-        required_bytes != (size_t)787)
+        required_bytes != (size_t)803)
     {
         (void)fprintf(
             stderr,

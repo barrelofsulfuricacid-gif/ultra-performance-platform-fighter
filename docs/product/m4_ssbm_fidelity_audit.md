@@ -40,9 +40,9 @@ threshold, and route differences are not.
 | Wall jump / wall and ceiling tech velocities | equivalent | Falcon passive-wall, wall-jump, and passive-ceiling attributes are mapped. |
 | Normal landing lag and shared IASA | equivalent for captured routes | Falcon's four-frame value is mapped. Identical-input taunt, jump, dash/turn, guard, walk, direct-crouch, late-down-lockout, and ordinary-turn routes open or remain locked on the executable's exact boundary. First-frame down enters `SquatWait` directly; down one displayed frame later remains `Landing`. Character attack/special/grab content remains outside this row. |
 | Aerial landing lag | equivalent | Distinct neutral/forward/back/up/down landing states select Falcon's 15/19/18/15/24 table; L-cancel states halve the selected value. |
-| Shield input, light shield, shield size | partial | A separate 500-frame identical-input pressure sweep matches sub-threshold, light, intermediate, near-dense, both-shoulder, digital-full, release, and regeneration action/health behavior with a one-unit 16-bit pressure allowance. Decomp/disc health, hold-drain, regeneration, and health/density size terms are recorded. Exact tilt smoothing and executable shield geometry are not yet compared; collision damage, stun, and pushback formulas remain partial. |
+| Shield input, light shield, shield size | equivalent for captured pressure and shield-hit routes | A 500-frame pressure sweep matches sub-threshold through digital-full input, health, release, and regeneration. Three 283-frame light/intermediate/dense physical-hit captures additionally match integer shield-hit conversion, pressure-dependent health/stun, post-hitlag ordering, defender pushback, and the separately decaying attacker-recoil component. Exact tilt smoothing and executable shield geometry remain partial. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
-| Damage, knockback, hitlag, hitstun, DI/SDI | partial | Deterministic systems exist, but formulas and common constants have not completed a field-by-field decomp equivalence review. |
+| Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands, including exact hitlag and inferred separate attacker recoil. Ordinary damage, launch, knockback, hitstun, and broader DI/SDI formulas have not completed a field-by-field equivalence review. |
 | Attacks, grabs, throws, stale moves | divergent | They are original M4 fixtures, not Falcon's action, hitbox, damage, or frame tables. |
 | Special moves and recovery | divergent | Pulse Bolt, Prism Burst, Arc Reservoir, and Vector Ascent are original fixtures, not Falcon specials. |
 | Items, projectiles, reflector, charge | divergent | These are original technique-support fixtures rather than SSBM content tables. |
@@ -114,3 +114,17 @@ inputs, simultaneous shoulders, digital full shield, release, and regeneration.
 It compares action/state, shield health, and normalized pressure; the pressure
 gate accepts only one unit of 16-bit conversion error. It does not claim to
 qualify shield-hit collision formulas or geometry.
+
+Three separate 283-frame physical shield-hit captures request light,
+intermediate, and dense pressure. They compare both fighters' discrete state,
+facing, grounded state, position, self velocity, shield health/pressure,
+hitlag, shield stun, and the attacker recoil inferred independently from the
+executable's position delta minus self velocity. Component gates are exact or
+32 Q16 units; position retains the established 640-Q16 conversion envelope.
+Their SHA-256 values are
+`563cabf633126656b80a0351b67fdffb35f664774e052e85c04ff7b20fd2e4f5`,
+`84b462f717074b2a2984b6901ed33a2abd2b9f98527f1c52db400c98ace411ab`,
+and `2d95549b7ffe6ac950c339fe9dcd346b4e6c401324d2cce0e8414d2677a3489f`.
+Across the main and isolated corpora, the current aggregate executable-oracle
+evidence is 10,912 captured frames. This does not qualify exact shield tilt or
+geometry, nor any uncaptured pressure/time/spacing route.

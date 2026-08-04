@@ -4,7 +4,7 @@ The governing artifact is
 `ultra_performance_platform_fighter_implementation_plan.md`, current living
 revision as of 2026-08-04, SHA-256:
 
-`1f363227134b93b930a5ff235969a2711e552c6fef4909174acfd50e1c016c9f`
+`c4cda8d0f86b2c94d968ff9a95b159a05fca848c1b650619fe658776a6dc94d5`
 
 The owner resolved the binding choices on 2026-07-27:
 

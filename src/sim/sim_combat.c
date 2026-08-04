@@ -883,33 +883,82 @@ static int pf_m4_attack_for_action(
     return 0;
 }
 
-static uint32_t pf_m4_shield_damage_q16(
-    const pf_m4_fighter_data *fighter,
-    uint32_t attack_damage_q16)
+typedef struct pf_m4_shield_hit_response
 {
-    const uint64_t product =
-        (uint64_t)attack_damage_q16 *
-        (uint64_t)fighter->shield_damage_multiplier_q16;
-    const uint64_t damage = product >> 16U;
+    uint32_t damage_q16;
+    uint16_t stun_ticks;
+    int32_t defender_pushback_q16;
+    int32_t attacker_pushback_q16;
+} pf_m4_shield_hit_response;
 
-    return damage > (uint64_t)UINT32_MAX
-               ? UINT32_MAX
-               : (uint32_t)damage;
+static inline int32_t pf_m4_shield_pressure_lerp_q16(
+    int32_t light_q16,
+    int32_t dense_q16,
+    uint16_t shield_strength)
+{
+    return light_q16 -
+           (int32_t)(
+               ((int64_t)(light_q16 - dense_q16) *
+                (int64_t)shield_strength) /
+               (int64_t)UINT16_MAX);
 }
 
-static uint16_t pf_m4_shield_stun_ticks(
-    const pf_m4_fighter_data *fighter,
+static inline uint32_t pf_m4_shield_hit_damage_q16(
     uint32_t attack_damage_q16)
 {
-    int64_t stun_q16 =
-        ((int64_t)attack_damage_q16 *
-         (int64_t)fighter->shield_stun_damage_multiplier_q16) >>
-        16U;
-    int64_t ticks;
+    uint32_t integer_damage = attack_damage_q16 >> 16U;
 
-    stun_q16 += (int64_t)fighter->shield_stun_base_q16;
-    stun_q16 = stun_q16 * INT64_C(200) / INT64_C(201);
-    ticks = stun_q16 >> 16U;
+    if (attack_damage_q16 != UINT32_C(0) &&
+        integer_damage == UINT32_C(0))
+    {
+        integer_damage = UINT32_C(1);
+    }
+    return integer_damage << 16U;
+}
+
+static pf_m4_shield_hit_response pf_m4_shield_hit_response_for(
+    const pf_m4_fighter_data *fighter,
+    uint32_t attack_damage_q16,
+    uint16_t shield_strength,
+    int powershield)
+{
+    pf_m4_shield_hit_response response;
+    const uint32_t shield_hit_damage_q16 =
+        pf_m4_shield_hit_damage_q16(attack_damage_q16);
+    const int32_t damage_multiplier_q16 =
+        pf_m4_shield_pressure_lerp_q16(
+            (int32_t)fighter->light_shield_damage_multiplier_q16,
+            (int32_t)fighter->dense_shield_damage_multiplier_q16,
+            shield_strength);
+    const int32_t stun_damage_multiplier_q16 =
+        pf_m4_shield_pressure_lerp_q16(
+            fighter->light_shield_stun_damage_multiplier_q16,
+            fighter->dense_shield_stun_damage_multiplier_q16,
+            shield_strength);
+    const int64_t stun_duration_q16 =
+        (((int64_t)shield_hit_damage_q16 *
+          (int64_t)stun_damage_multiplier_q16) >>
+         16U) +
+        (int64_t)fighter->shield_stun_base_q16;
+    const uint64_t pressure_damage_q16 =
+        ((uint64_t)shield_hit_damage_q16 *
+         (uint64_t)shield_strength) /
+        (uint64_t)UINT16_MAX;
+    int64_t ticks =
+        (stun_duration_q16 * INT64_C(200) / INT64_C(201)) >> 16U;
+    int64_t defender_pushback_q16 =
+        (stun_duration_q16 *
+         (int64_t)fighter->shield_defender_pushback_stun_scale_q16) >>
+        16U;
+    int64_t attacker_pushback_q16 =
+        ((int64_t)pressure_damage_q16 *
+         (int64_t)fighter->shield_attacker_pushback_damage_q16) >>
+        16U;
+
+    response.damage_q16 =
+        (uint32_t)(((uint64_t)shield_hit_damage_q16 *
+                    (uint64_t)(uint32_t)damage_multiplier_q16) >>
+                   16U);
     if (ticks < INT64_C(1))
     {
         ticks = INT64_C(1);
@@ -918,71 +967,119 @@ static uint16_t pf_m4_shield_stun_ticks(
     {
         ticks = (int64_t)UINT16_MAX;
     }
-    return (uint16_t)ticks;
-}
+    response.stun_ticks = (uint16_t)ticks;
 
-static int32_t pf_m4_shield_defender_pushback_q16(
-    const pf_m4_fighter_data *fighter,
-    uint32_t attack_damage_q16,
-    int powershield,
-    uint16_t shield_strength)
-{
-    int64_t pushback =
-        ((int64_t)attack_damage_q16 *
-         (int64_t)fighter->shield_defender_pushback_damage_q16) >>
-        16U;
-
-    pushback +=
-        (int64_t)fighter->shield_defender_pushback_base_q16;
     if (powershield == 0)
     {
-        int64_t light_scale_q16 =
-            fighter->light_shield_defender_pushback_scale_q16;
-
-        pushback =
-            pushback *
-            (int64_t)fighter->shield_defender_pushback_scale_q16 /
-            (int64_t)PF_Q16_ONE;
-        if (shield_strength == UINT16_MAX)
-        {
-            light_scale_q16 = (int64_t)PF_Q16_ONE;
-        }
-        else
-        {
-            light_scale_q16 -=
-                ((int64_t)(
-                     fighter
-                         ->light_shield_defender_pushback_scale_q16 -
-                     PF_Q16_ONE) *
-                 (int64_t)shield_strength) /
-                (int64_t)UINT16_MAX;
-        }
-        pushback =
-            pushback * light_scale_q16 / (int64_t)PF_Q16_ONE;
+        defender_pushback_q16 =
+            (defender_pushback_q16 *
+             (int64_t)fighter
+                 ->shield_defender_pushback_normal_scale_q16) >>
+            16U;
     }
-    if (pushback > INT64_C(2) * (int64_t)PF_Q16_ONE)
+    if (defender_pushback_q16 >
+        (int64_t)fighter->shield_defender_pushback_max_q16)
     {
-        pushback = INT64_C(2) * (int64_t)PF_Q16_ONE;
+        defender_pushback_q16 =
+            (int64_t)fighter->shield_defender_pushback_max_q16;
     }
-    return (int32_t)pushback;
+    response.defender_pushback_q16 =
+        (int32_t)defender_pushback_q16;
+
+    attacker_pushback_q16 +=
+        (int64_t)fighter->shield_attacker_pushback_base_q16;
+    if (attacker_pushback_q16 >
+        (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    {
+        attacker_pushback_q16 =
+            (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16;
+    }
+    response.attacker_pushback_q16 =
+        (int32_t)attacker_pushback_q16;
+    return response;
 }
 
-static int32_t pf_m4_shield_attacker_pushback_q16(
+static pf_status pf_m4_apply_shield_hit(
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
     const pf_m4_fighter_data *fighter,
-    uint32_t attack_damage_q16)
+    uint32_t source_index,
+    uint32_t target_index,
+    uint32_t attack_damage_q16,
+    uint16_t hitlag_ticks,
+    int32_t horizontal_direction,
+    int powershield,
+    uint16_t source_action,
+    pf_m4_shield_hit_response *out_response)
 {
-    int64_t pushback =
-        ((int64_t)attack_damage_q16 *
-         (int64_t)fighter->shield_attacker_pushback_damage_q16) >>
-        16U;
+    const pf_m4_shield_hit_response response =
+        pf_m4_shield_hit_response_for(
+            fighter,
+            attack_damage_q16,
+            scratch->shield_strength[target_index],
+            powershield);
+    pf_sim_event_type event_type;
 
-    pushback +=
-        (int64_t)fighter->shield_attacker_pushback_base_q16;
-    if (pushback > (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16)
+    if (powershield == 0)
     {
-        pushback = (int64_t)PF_SIM_MAX_MOTION_SPEED_Q16;
+        scratch->shield_health_q16[target_index] =
+            response.damage_q16 >=
+                    scratch->shield_health_q16[target_index]
+                ? UINT32_C(0)
+                : scratch->shield_health_q16[target_index] -
+                      response.damage_q16;
     }
-    return (int32_t)pushback;
+    scratch->velocity_x_q16[target_index] =
+        horizontal_direction * response.defender_pushback_q16;
+    scratch->velocity_y_q16[target_index] = INT32_C(0);
+    scratch->powershield[target_index] =
+        powershield ? UINT8_C(1) : UINT8_C(0);
+    scratch->hitlag_ticks[target_index] = hitlag_ticks;
+    pf_m4_set_action_state(
+        world,
+        scratch,
+        target_index,
+        (uint8_t)PF_M4_ACTION_HITLAG);
+    scratch->dash_direction[target_index] = INT8_C(0);
+    scratch->short_hop_latched[target_index] = UINT8_C(0);
+    scratch->fast_fall[target_index] = UINT8_C(0);
+
+    if (scratch->shield_health_q16[target_index] == UINT32_C(0))
+    {
+        scratch->shield_stun_ticks[target_index] = UINT16_C(0);
+        scratch->hitlag_resume_action[target_index] =
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
+        scratch->action_ticks[target_index] = UINT16_C(0);
+        scratch->shield_strength[target_index] = UINT16_C(0);
+        scratch->shield_tilt_x[target_index] = INT16_C(0);
+        scratch->shield_tilt_y[target_index] = INT16_C(0);
+        event_type = PF_SIM_EVENT_SHIELD_BREAK;
+    }
+    else
+    {
+        scratch->shield_stun_ticks[target_index] = response.stun_ticks;
+        scratch->hitlag_resume_action[target_index] =
+            (uint8_t)PF_M4_ACTION_SHIELD_STUN;
+        event_type = powershield ? PF_SIM_EVENT_POWERSHIELD
+                                 : PF_SIM_EVENT_SHIELD_BLOCK;
+    }
+
+    if (out_response != NULL)
+    {
+        *out_response = response;
+    }
+    return pf_sim_push_event(
+        scratch,
+        world->tick,
+        event_type,
+        (uint8_t)source_index,
+        (uint8_t)target_index,
+        powershield ? UINT32_C(0) : response.damage_q16,
+        scratch->velocity_x_q16[target_index],
+        scratch->velocity_y_q16[target_index],
+        UINT16_C(0),
+        source_action,
+        NULL);
 }
 
 int pf_m4_attack_hitbox(
@@ -1603,6 +1700,11 @@ static pf_status pf_m4_apply_hit_reaction(
             ? UINT8_C(1)
             : UINT8_C(0);
     scratch->shield_stun_ticks[target_index] = UINT16_C(0);
+    scratch->shield_recoil_x_q16[target_index] = INT32_C(0);
+    scratch->shield_recoil_mask =
+        (uint8_t)(
+            scratch->shield_recoil_mask &
+            (uint8_t)~(UINT8_C(1) << target_index));
     scratch->powershield[target_index] = UINT8_C(0);
     scratch->shield_strength[target_index] = UINT16_C(0);
     scratch->shield_tilt_x[target_index] = INT16_C(0);
@@ -2139,76 +2241,16 @@ static pf_status pf_m4_resolve_item_combat(
                     content->fighter.powershield_window_ticks &&
                 scratch->shield_strength[target_index] >=
                     content->fighter.digital_trigger_threshold;
-            const uint32_t shield_damage =
-                pf_m4_shield_damage_q16(
-                    &content->fighter,
-                    damage_q16);
-            const int32_t defender_pushback =
-                pf_m4_shield_defender_pushback_q16(
-                    &content->fighter,
-                    damage_q16,
-                    powershield,
-                    scratch->shield_strength[target_index]);
-
-            if (!powershield)
-            {
-                scratch->shield_health_q16[target_index] =
-                    shield_damage >=
-                            scratch->shield_health_q16[target_index]
-                        ? UINT32_C(0)
-                        : scratch->shield_health_q16[target_index] -
-                              shield_damage;
-            }
-            scratch->velocity_x_q16[target_index] =
-                (int32_t)launch_direction * defender_pushback;
-            scratch->velocity_y_q16[target_index] = INT32_C(0);
-            scratch->powershield[target_index] =
-                powershield ? UINT8_C(1) : UINT8_C(0);
-            scratch->hitlag_ticks[target_index] = item->hitlag_ticks;
-            pf_m4_set_action_state(
-                world,
-                scratch,
-                target_index,
-                (uint8_t)PF_M4_ACTION_HITLAG);
-            scratch->dash_direction[target_index] = INT8_C(0);
-            scratch->short_hop_latched[target_index] = UINT8_C(0);
-            scratch->fast_fall[target_index] = UINT8_C(0);
-            if (scratch->shield_health_q16[target_index] ==
-                UINT32_C(0))
-            {
-                scratch->shield_stun_ticks[target_index] =
-                    UINT16_C(0);
-                scratch->hitlag_resume_action[target_index] =
-                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
-                scratch->action_ticks[target_index] = UINT16_C(0);
-                scratch->shield_strength[target_index] = UINT16_C(0);
-                scratch->shield_tilt_x[target_index] = INT16_C(0);
-                scratch->shield_tilt_y[target_index] = INT16_C(0);
-            }
-            else
-            {
-                scratch->shield_stun_ticks[target_index] =
-                    pf_m4_shield_stun_ticks(
-                        &content->fighter,
-                        damage_q16);
-                scratch->hitlag_resume_action[target_index] =
-                    (uint8_t)PF_M4_ACTION_SHIELD_STUN;
-            }
-            if (pf_sim_push_event(
+            if (pf_m4_apply_shield_hit(
+                    world,
                     scratch,
-                    world->tick,
-                    powershield
-                        ? PF_SIM_EVENT_POWERSHIELD
-                        : (scratch->shield_health_q16[target_index] ==
-                                   UINT32_C(0)
-                               ? PF_SIM_EVENT_SHIELD_BREAK
-                               : PF_SIM_EVENT_SHIELD_BLOCK),
-                    (uint8_t)source_index,
-                    (uint8_t)target_index,
-                    powershield ? UINT32_C(0) : shield_damage,
-                    scratch->velocity_x_q16[target_index],
-                    scratch->velocity_y_q16[target_index],
-                    UINT16_C(0),
+                    &content->fighter,
+                    source_index,
+                    target_index,
+                    damage_q16,
+                    item->hitlag_ticks,
+                    (int32_t)launch_direction,
+                    powershield,
                     (uint16_t)PF_M4_ACTION_ITEM_THROW,
                     NULL) != PF_STATUS_OK)
             {
@@ -2470,70 +2512,16 @@ static pf_status pf_m4_resolve_projectile_combat(
                     owner_index,
                     move_id,
                     projectile->damage_q16);
-            const uint32_t shield_damage =
-                pf_m4_shield_damage_q16(
-                    &content->fighter,
-                    damage_q16);
-            const int32_t defender_pushback =
-                pf_m4_shield_defender_pushback_q16(
-                    &content->fighter,
-                    damage_q16,
-                    0,
-                    scratch->shield_strength[target_index]);
-            pf_sim_event_type event_type;
-
-            scratch->shield_health_q16[target_index] =
-                shield_damage >=
-                        scratch->shield_health_q16[target_index]
-                    ? UINT32_C(0)
-                    : scratch->shield_health_q16[target_index] -
-                          shield_damage;
-            scratch->velocity_x_q16[target_index] =
-                (int32_t)launch_direction * defender_pushback;
-            scratch->velocity_y_q16[target_index] = INT32_C(0);
-            scratch->powershield[target_index] = UINT8_C(0);
-            scratch->hitlag_ticks[target_index] =
-                projectile->hitlag_ticks;
-            pf_m4_set_action_state(
-                world,
-                scratch,
-                target_index,
-                (uint8_t)PF_M4_ACTION_HITLAG);
-            scratch->dash_direction[target_index] = INT8_C(0);
-            scratch->short_hop_latched[target_index] = UINT8_C(0);
-            scratch->fast_fall[target_index] = UINT8_C(0);
-            if (scratch->shield_health_q16[target_index] ==
-                UINT32_C(0))
-            {
-                scratch->shield_stun_ticks[target_index] = UINT16_C(0);
-                scratch->hitlag_resume_action[target_index] =
-                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
-                scratch->action_ticks[target_index] = UINT16_C(0);
-                scratch->shield_strength[target_index] = UINT16_C(0);
-                scratch->shield_tilt_x[target_index] = INT16_C(0);
-                scratch->shield_tilt_y[target_index] = INT16_C(0);
-                event_type = PF_SIM_EVENT_SHIELD_BREAK;
-            }
-            else
-            {
-                scratch->shield_stun_ticks[target_index] =
-                    pf_m4_shield_stun_ticks(
-                        &content->fighter,
-                        damage_q16);
-                scratch->hitlag_resume_action[target_index] =
-                    (uint8_t)PF_M4_ACTION_SHIELD_STUN;
-                event_type = PF_SIM_EVENT_SHIELD_BLOCK;
-            }
-            if (pf_sim_push_event(
+            if (pf_m4_apply_shield_hit(
+                    world,
                     scratch,
-                    world->tick,
-                    event_type,
-                    (uint8_t)owner_index,
-                    (uint8_t)target_index,
-                    shield_damage,
-                    scratch->velocity_x_q16[target_index],
-                    scratch->velocity_y_q16[target_index],
-                    UINT16_C(0),
+                    &content->fighter,
+                    owner_index,
+                    target_index,
+                    damage_q16,
+                    projectile->hitlag_ticks,
+                    (int32_t)launch_direction,
+                    0,
                     (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND,
                     NULL) != PF_STATUS_OK)
             {
@@ -2606,6 +2594,7 @@ pf_status pf_m4_resolve_combat(
     uint8_t attacker_blocked[PF_SIM_MAX_PLAYERS];
     uint8_t target_blocked[PF_SIM_MAX_PLAYERS];
     uint8_t target_powershield[PF_SIM_MAX_PLAYERS];
+    int32_t attacker_shield_pushback_q16[PF_SIM_MAX_PLAYERS];
     pf_m4_attack_runtime attacker_attack[PF_SIM_MAX_PLAYERS];
     uint32_t attacker_index;
     uint32_t target_index;
@@ -2625,6 +2614,10 @@ pf_status pf_m4_resolve_combat(
     (void)memset(attacker_hit, 0, sizeof(attacker_hit));
     (void)memset(attacker_blocked, 0, sizeof(attacker_blocked));
     (void)memset(target_blocked, 0, sizeof(target_blocked));
+    (void)memset(
+        attacker_shield_pushback_q16,
+        0,
+        sizeof(attacker_shield_pushback_q16));
     (void)memset(
         target_powershield,
         0,
@@ -2777,91 +2770,28 @@ pf_status pf_m4_resolve_combat(
         {
             const int powershield =
                 target_powershield[target_index] != UINT8_C(0);
-            const uint32_t shield_damage =
-                pf_m4_shield_damage_q16(
-                    &content->fighter,
-                    attack.damage_q16);
-            const int32_t defender_pushback =
-                pf_m4_shield_defender_pushback_q16(
-                    &content->fighter,
-                    attack.damage_q16,
-                    powershield,
-                    scratch->shield_strength[target_index]);
+            pf_m4_shield_hit_response response;
 
-            if (!powershield)
-            {
-                if (shield_damage >=
-                    scratch->shield_health_q16[target_index])
-                {
-                    scratch->shield_health_q16[target_index] =
-                        UINT32_C(0);
-                }
-                else
-                {
-                    scratch->shield_health_q16[target_index] -=
-                        shield_damage;
-                }
-            }
-            scratch->velocity_x_q16[target_index] =
-                (int32_t)scratch->facing[owner] *
-                (int32_t)attack.direction *
-                defender_pushback;
-            scratch->velocity_y_q16[target_index] =
-                INT32_C(0);
-            scratch->powershield[target_index] =
-                powershield ? UINT8_C(1) : UINT8_C(0);
-            scratch->hitlag_ticks[target_index] =
-                attack.hitlag_ticks;
-            pf_m4_set_action_state(
-                world,
-                scratch,
-                target_index,
-                (uint8_t)PF_M4_ACTION_HITLAG);
-            scratch->dash_direction[target_index] = INT8_C(0);
-            scratch->short_hop_latched[target_index] =
-                UINT8_C(0);
-            scratch->fast_fall[target_index] = UINT8_C(0);
-            if (scratch->shield_health_q16[target_index] ==
-                UINT32_C(0))
-            {
-                scratch->shield_stun_ticks[target_index] =
-                    UINT16_C(0);
-                scratch->hitlag_resume_action[target_index] =
-                    (uint8_t)PF_M4_ACTION_SHIELD_BREAK;
-                scratch->action_ticks[target_index] =
-                    UINT16_C(0);
-                scratch->shield_strength[target_index] = UINT16_C(0);
-                scratch->shield_tilt_x[target_index] = INT16_C(0);
-                scratch->shield_tilt_y[target_index] = INT16_C(0);
-            }
-            else
-            {
-                scratch->shield_stun_ticks[target_index] =
-                    pf_m4_shield_stun_ticks(
-                        &content->fighter,
-                        attack.damage_q16);
-                scratch->hitlag_resume_action[target_index] =
-                    (uint8_t)PF_M4_ACTION_SHIELD_STUN;
-            }
-            if (pf_sim_push_event(
+            if (pf_m4_apply_shield_hit(
+                    world,
                     scratch,
-                    world->tick,
-                    powershield
-                        ? PF_SIM_EVENT_POWERSHIELD
-                        : (scratch->shield_health_q16[target_index] ==
-                                   UINT32_C(0)
-                               ? PF_SIM_EVENT_SHIELD_BREAK
-                               : PF_SIM_EVENT_SHIELD_BLOCK),
+                    &content->fighter,
                     owner,
-                    (uint8_t)target_index,
-                    powershield ? UINT32_C(0) : shield_damage,
-                    scratch->velocity_x_q16[target_index],
-                    scratch->velocity_y_q16[target_index],
-                    UINT16_C(0),
+                    target_index,
+                    attack.damage_q16,
+                    attack.hitlag_ticks,
+                    (int32_t)scratch->facing[owner] *
+                        (int32_t)attack.direction,
+                    powershield,
                     (uint16_t)attacker_action[owner],
-                    NULL) != PF_STATUS_OK)
+                    &response) != PF_STATUS_OK)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            if (attacker_shield_pushback_q16[owner] == INT32_C(0))
+            {
+                attacker_shield_pushback_q16[owner] =
+                    response.attacker_pushback_q16;
             }
             continue;
         }
@@ -2924,12 +2854,14 @@ pf_status pf_m4_resolve_combat(
             attack = attacker_attack[attacker_index];
             if (attacker_blocked[attacker_index] != UINT8_C(0))
             {
-                scratch->velocity_x_q16[attacker_index] =
+                scratch->shield_recoil_x_q16[attacker_index] =
                     -(int32_t)scratch->facing[attacker_index] *
                     (int32_t)attack.direction *
-                    pf_m4_shield_attacker_pushback_q16(
-                        &content->fighter,
-                        attack.damage_q16);
+                    attacker_shield_pushback_q16[attacker_index];
+                scratch->shield_recoil_mask =
+                    (uint8_t)(
+                        scratch->shield_recoil_mask |
+                        (uint8_t)(UINT8_C(1) << attacker_index));
             }
             scratch->hitlag_ticks[attacker_index] =
                 attack.hitlag_ticks;

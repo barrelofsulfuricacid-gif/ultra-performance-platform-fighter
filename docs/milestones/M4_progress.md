@@ -2777,3 +2777,59 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   data-defined. Exact tilt smoothing, executable shield geometry, collision
   damage, shield stun, and attacker/defender pushback remain uncovered and M4
   remains unfinished.
+
+## 2026-08-04 Falcon shield-hit response executable-oracle slice
+
+- Three separate 283-frame identical-input Final Destination captures drive
+  Falcon jab into light, intermediate, and dense Falcon shield. Requested /
+  Slippi-observed pressure is 0.35 / 0.321428567, 0.65 / 0.592857122, and 1.0 /
+  0.914285719. Capture SHA-256 values are
+  `563cabf633126656b80a0351b67fdffb35f664774e052e85c04ff7b20fd2e4f5`,
+  `84b462f717074b2a2984b6901ed33a2abd2b9f98527f1c52db400c98ace411ab`,
+  and `2d95549b7ffe6ac950c339fe9dcd346b4e6c401324d2cce0e8414d2677a3489f`.
+- Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+  and the owner's extracted `PlCo.dat` map integer shield-hit damage `D` and
+  normalized pressure `p` to health damage `D*(0.9-0.2p)`, stun duration
+  `D*(1.425-0.975p)+2`, defender pushback `duration*0.2*0.6` capped at 2,
+  and attacker recoil `p*D*0.07+0.02`. Powershield defender pushback omits
+  the 0.6 factor. No extracted disc data is committed.
+- Attacker recoil is canonical state separate from ordinary self velocity. It
+  decays before integration by Falcon ground friction times 1.1 or by 0.05 in
+  air. A single shared shield-response helper and a single shared application
+  path serve physical attacks, items, and projectiles; the hot path remains
+  allocation-free and the compiler can inline the response arithmetic.
+- The comparator checks both fighters' action, facing, grounded state,
+  position, self velocity, shield health/pressure, hitlag, and shield stun. It
+  independently infers executable attacker recoil as position delta minus self
+  velocity and compares it directly to the simulator component. Discrete gates
+  are exact, recoil/velocity use 32 Q16 units, and position retains the 640-Q16
+  float-to-fixed envelope. All three captures pass against Windows MSVC and
+  WSL Linux GCC runners.
+- Post-hitlag shield stun now updates physics on the same tick as the decomp:
+  ASDI and defender pushback both affect the first resumed frame. Grounded
+  shield SDI/ASDI past a support edge enters fall instead of clamping to the
+  edge. Focused core coverage pins pressure endpoints/midpoint, separate recoil
+  decay/integration, and browser probe ordering without adding tests for
+  emergent techniques.
+- Content schema 64/fighter schema 56, state schema 56/save format 53,
+  inspection schema 48, the 663-byte canonical payload, and 803-byte
+  checkpoint make the new data and state fail closed. The refreshed 41,575-byte
+  replay SHA-256 is
+  `20081466dda33520e122343f6ad178d685cf6a0b398a04e598408cf41a6d03f3`;
+  final-state SHA-256 is
+  `f6db91a5b18186515ad09609aa353b7ab6fd69da01c753eeec44dca404d43ef4`;
+  event-journal SHA-256 remains
+  `f574b8063f8339b8495ec44eaea0a0c09395c1bf5f545dc5e4454248baeb62ba`,
+  and the repeated-match verifier digest is `c824a2207a625170`.
+- The aggregate executable-oracle evidence is now 10,912 captured frames.
+  Windows MSVC and WSL Linux each pass all 22 CTest targets; strict movement,
+  combat, M2 kernel, native/Wasm replay equality, browser adapter, and real
+  headless-Chrome playtest smoke also pass. Optimized MSVC code generation
+  emits one shared application routine called by the three collision sources;
+  its response and pressure interpolation helpers are inlined, and the
+  zero-recoil movement path is guarded before decay arithmetic. A derived
+  sparse-component presence mask also keeps inactive ticks from copying or
+  committing the recoil array and is rebuilt from canonical values on load.
+  Exact shield tilt/geometry and every uncaptured shared-simulation route stay
+  active under the exhaustive near-equivalence and implementation-quality
+  gates; M4 remains unfinished.

@@ -45,12 +45,15 @@ int main(int argc, char **argv)
     int input_c_x;
     int input_c_y;
     int opponent_input_x;
+    uint64_t opponent_buttons;
+    char input_line[256];
     unsigned int left_trigger;
     unsigned int right_trigger;
     uint64_t buttons;
     pf_status status;
     int platform_mode = 0;
     int push_mode = 0;
+    int shield_hit_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -60,11 +63,16 @@ int main(int argc, char **argv)
     {
         push_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--shield-hit") == 0)
+    {
+        shield_hit_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
             stderr,
-            "usage: pf_m4_movement_trace [--platform|--push]\n");
+            "usage: pf_m4_movement_trace "
+            "[--platform|--push|--shield-hit]\n");
         return 1;
     }
 
@@ -115,11 +123,21 @@ int main(int argc, char **argv)
     content.stage.upper_platform_center_x_q16 =
         -INT32_C(25) * PF_Q16_ONE;
     content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
-    if (push_mode != 0)
+    if (push_mode != 0 || shield_hit_mode != 0)
     {
         /* Final Destination starts ports one and two at -60/+60. */
         content.stage.spawn_spacing_q16 =
             (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
+    }
+    if (shield_hit_mode != 0)
+    {
+        /* Falcon's Jab 1 hits on displayed frames 3-4 for 2 damage. */
+        content.fighter.jab_damage_q16 =
+            UINT32_C(2) * UINT32_C(65536);
+        content.fighter.jab_startup_ticks = UINT16_C(2);
+        content.fighter.jab_active_ticks = UINT16_C(2);
+        content.fighter.jab_recovery_ticks = UINT16_C(18);
+        content.fighter.jab_hitlag_ticks = UINT16_C(3);
     }
     status = pf_m4_make_content_view(&content, &view);
     if (status != PF_STATUS_OK)
@@ -223,25 +241,44 @@ int main(int argc, char **argv)
         "action_state,action_ticks,facing,grounded,"
         "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
         "position_y_q16_from_origin,"
-        "velocity_x_q16,velocity_y_q16,shield_health_q16,shield_strength,"
-        "powershield,opponent_action_state,opponent_action_ticks,"
+        "velocity_x_q16,velocity_y_q16,shield_recoil_x_q16,"
+        "shield_health_q16,shield_strength,"
+        "powershield,hitlag_ticks,shield_stun_ticks,"
+        "opponent_action_state,opponent_action_ticks,opponent_hitlag_ticks,"
         "opponent_facing,opponent_grounded,"
         "opponent_position_x_q16_from_origin,"
         "opponent_position_y_q16_from_origin,"
-        "opponent_velocity_x_q16,opponent_velocity_y_q16");
-    while (scanf(
-               "%d,%d,%d,%d,%u,%u,%" SCNu64 ",%d",
-               &input_x,
-               &input_y,
-               &input_c_x,
-               &input_c_y,
-               &left_trigger,
-               &right_trigger,
-               &buttons,
-               &opponent_input_x) == 8)
+        "opponent_velocity_x_q16,opponent_velocity_y_q16,"
+        "opponent_shield_recoil_x_q16");
+    while (fgets(input_line, sizeof(input_line), stdin) != NULL)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
+        int parsed_input_count;
+
+        opponent_buttons = UINT64_C(0);
+        parsed_input_count = sscanf(
+            input_line,
+            "%d,%d,%d,%d,%u,%u,%" SCNu64 ",%d,%" SCNu64,
+            &input_x,
+            &input_y,
+            &input_c_x,
+            &input_c_y,
+            &left_trigger,
+            &right_trigger,
+            &buttons,
+            &opponent_input_x,
+            &opponent_buttons);
+        if (parsed_input_count != 8 && parsed_input_count != 9)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=input-format frame=%" PRIu32
+                " fields=%d\n",
+                trace_frame,
+                parsed_input_count);
+            return 1;
+        }
 
         if (input_x < (int)INT16_MIN || input_x > (int)INT16_MAX ||
             input_y < (int)INT16_MIN || input_y > (int)INT16_MAX ||
@@ -280,6 +317,7 @@ int main(int argc, char **argv)
         inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[1].player_slot = UINT8_C(1);
         inputs[1].main_stick_x = (int16_t)opponent_input_x;
+        inputs[1].buttons = opponent_buttons;
         status = pf_sim_tick(sim, inputs, (size_t)2, &result);
         if (status != PF_STATUS_OK)
         {
@@ -293,8 +331,9 @@ int main(int argc, char **argv)
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
             ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRIu32 ",%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%" PRId32 "\n",
+            ",%" PRId32
+            ",%" PRIu32 ",%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
+            ",%" PRId32 ",%" PRId32 ",%" PRId32 "\n",
             trace_frame,
             input_x,
             input_y,
@@ -314,11 +353,15 @@ int main(int argc, char **argv)
             inspection.players[0].position_y_q16 - origin_y_q16,
             inspection.players[0].velocity_x_q16,
             inspection.players[0].velocity_y_q16,
+            inspection.players[0].shield_recoil_x_q16,
             inspection.players[0].shield_health_q16,
             (unsigned int)inspection.players[0].shield_strength,
             (unsigned int)inspection.players[0].powershield,
+            (unsigned int)inspection.players[0].hitlag_ticks,
+            (unsigned int)inspection.players[0].shield_stun_ticks,
             (unsigned int)inspection.players[1].action_state,
             (unsigned int)inspection.players[1].action_ticks,
+            (unsigned int)inspection.players[1].hitlag_ticks,
             (int)inspection.players[1].facing,
             (unsigned int)inspection.players[1].grounded,
             inspection.players[1].position_x_q16 -
@@ -326,7 +369,8 @@ int main(int argc, char **argv)
             inspection.players[1].position_y_q16 -
                 opponent_origin_y_q16,
             inspection.players[1].velocity_x_q16,
-            inspection.players[1].velocity_y_q16);
+            inspection.players[1].velocity_y_q16,
+            inspection.players[1].shield_recoil_x_q16);
         ++trace_frame;
     }
     if (ferror(stdin) != 0)

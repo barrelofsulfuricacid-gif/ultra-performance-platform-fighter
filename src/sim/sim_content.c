@@ -381,29 +381,40 @@ static void pf_m4_hash_fighter(
         hash,
         fighter->light_shield_hold_depletion_q16);
     pf_m4_hash_u32(hash, fighter->shield_regeneration_q16);
-    pf_m4_hash_u32(hash, fighter->shield_damage_multiplier_q16);
+    pf_m4_hash_u32(
+        hash,
+        fighter->light_shield_damage_multiplier_q16);
+    pf_m4_hash_u32(
+        hash,
+        fighter->dense_shield_damage_multiplier_q16);
     pf_m4_hash_i32(
         hash,
-        fighter->shield_stun_damage_multiplier_q16);
+        fighter->light_shield_stun_damage_multiplier_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->dense_shield_stun_damage_multiplier_q16);
     pf_m4_hash_i32(hash, fighter->shield_stun_base_q16);
     pf_m4_hash_i32(
         hash,
-        fighter->shield_defender_pushback_damage_q16);
+        fighter->shield_defender_pushback_stun_scale_q16);
     pf_m4_hash_i32(
         hash,
-        fighter->shield_defender_pushback_base_q16);
+        fighter->shield_defender_pushback_normal_scale_q16);
     pf_m4_hash_i32(
         hash,
-        fighter->shield_defender_pushback_scale_q16);
-    pf_m4_hash_i32(
-        hash,
-        fighter->light_shield_defender_pushback_scale_q16);
+        fighter->shield_defender_pushback_max_q16);
     pf_m4_hash_i32(
         hash,
         fighter->shield_attacker_pushback_damage_q16);
     pf_m4_hash_i32(
         hash,
         fighter->shield_attacker_pushback_base_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_attacker_pushback_air_decay_q16);
+    pf_m4_hash_i32(
+        hash,
+        fighter->shield_attacker_pushback_ground_friction_scale_q16);
     pf_m4_hash_i32(hash, fighter->shield_half_width_q16);
     pf_m4_hash_i32(hash, fighter->shield_half_height_q16);
     pf_m4_hash_i32(
@@ -1247,23 +1258,29 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         (uint32_t)PF_Q16_RATIO(7, 500);
     fighter->shield_regeneration_q16 =
         (uint32_t)PF_Q16_RATIO(7, 100);
-    fighter->shield_damage_multiplier_q16 =
+    fighter->light_shield_damage_multiplier_q16 =
+        (uint32_t)PF_Q16_RATIO(9, 10);
+    fighter->dense_shield_damage_multiplier_q16 =
         (uint32_t)PF_Q16_RATIO(7, 10);
-    fighter->shield_stun_damage_multiplier_q16 =
+    fighter->light_shield_stun_damage_multiplier_q16 =
+        PF_Q16_RATIO(57, 40);
+    fighter->dense_shield_stun_damage_multiplier_q16 =
         PF_Q16_RATIO(9, 20);
     fighter->shield_stun_base_q16 = INT32_C(2) * PF_Q16_ONE;
-    fighter->shield_defender_pushback_damage_q16 =
-        PF_Q16_RATIO(9, 100);
-    fighter->shield_defender_pushback_base_q16 =
-        PF_Q16_RATIO(2, 5);
-    fighter->shield_defender_pushback_scale_q16 =
+    fighter->shield_defender_pushback_stun_scale_q16 =
+        PF_Q16_RATIO(12, 575);
+    fighter->shield_defender_pushback_normal_scale_q16 =
         PF_Q16_RATIO(3, 5);
-    fighter->light_shield_defender_pushback_scale_q16 =
-        PF_Q16_RATIO(5, 4);
+    fighter->shield_defender_pushback_max_q16 =
+        PF_Q16_RATIO(24, 115);
     fighter->shield_attacker_pushback_damage_q16 =
-        PF_Q16_RATIO(7, 100);
+        PF_Q16_RATIO(21, 2875);
     fighter->shield_attacker_pushback_base_q16 =
-        PF_Q16_RATIO(1, 50);
+        PF_Q16_RATIO(6, 2875);
+    fighter->shield_attacker_pushback_air_decay_q16 =
+        PF_Q16_RATIO(3, 575);
+    fighter->shield_attacker_pushback_ground_friction_scale_q16 =
+        PF_Q16_RATIO(11, 10);
     fighter->shield_half_width_q16 = PF_Q16_RATIO(4, 5);
     fighter->shield_half_height_q16 = PF_Q16_RATIO(7, 5);
     fighter->shield_minimum_size_scale_q16 =
@@ -2169,31 +2186,32 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->shield_regeneration_q16 == UINT32_C(0) ||
         fighter->shield_regeneration_q16 >
             fighter->shield_health_q16 ||
-        fighter->shield_damage_multiplier_q16 == UINT32_C(0) ||
-        fighter->shield_damage_multiplier_q16 >
+        fighter->light_shield_damage_multiplier_q16 == UINT32_C(0) ||
+        fighter->light_shield_damage_multiplier_q16 >
             UINT32_C(2) * UINT32_C(65536) ||
-        fighter->shield_stun_damage_multiplier_q16 <= INT32_C(0) ||
-        fighter->shield_stun_damage_multiplier_q16 >
+        fighter->dense_shield_damage_multiplier_q16 == UINT32_C(0) ||
+        fighter->dense_shield_damage_multiplier_q16 >
+            fighter->light_shield_damage_multiplier_q16 ||
+        fighter->light_shield_stun_damage_multiplier_q16 <= INT32_C(0) ||
+        fighter->light_shield_stun_damage_multiplier_q16 >
             INT32_C(2) * PF_Q16_ONE ||
+        fighter->dense_shield_stun_damage_multiplier_q16 <= INT32_C(0) ||
+        fighter->dense_shield_stun_damage_multiplier_q16 >
+            fighter->light_shield_stun_damage_multiplier_q16 ||
         fighter->shield_stun_base_q16 <= INT32_C(0) ||
         fighter->shield_stun_base_q16 >
             INT32_C(16) * PF_Q16_ONE ||
-        fighter->shield_defender_pushback_damage_q16 <=
+        fighter->shield_defender_pushback_stun_scale_q16 <=
             INT32_C(0) ||
-        fighter->shield_defender_pushback_damage_q16 >
+        fighter->shield_defender_pushback_stun_scale_q16 >
             PF_Q16_ONE ||
-        fighter->shield_defender_pushback_base_q16 <=
+        fighter->shield_defender_pushback_normal_scale_q16 <=
             INT32_C(0) ||
-        fighter->shield_defender_pushback_base_q16 >
+        fighter->shield_defender_pushback_normal_scale_q16 >
+            PF_Q16_ONE ||
+        fighter->shield_defender_pushback_max_q16 <= INT32_C(0) ||
+        fighter->shield_defender_pushback_max_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
-        fighter->shield_defender_pushback_scale_q16 <=
-            INT32_C(0) ||
-        fighter->shield_defender_pushback_scale_q16 >
-            PF_Q16_ONE ||
-        fighter->light_shield_defender_pushback_scale_q16 <
-            PF_Q16_ONE ||
-        fighter->light_shield_defender_pushback_scale_q16 >
-            INT32_C(2) * PF_Q16_ONE ||
         fighter->shield_attacker_pushback_damage_q16 <=
             INT32_C(0) ||
         fighter->shield_attacker_pushback_damage_q16 >
@@ -2202,6 +2220,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             INT32_C(0) ||
         fighter->shield_attacker_pushback_base_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->shield_attacker_pushback_air_decay_q16 <=
+            INT32_C(0) ||
+        fighter->shield_attacker_pushback_air_decay_q16 >
+            PF_SIM_MAX_MOTION_SPEED_Q16 ||
+        fighter->shield_attacker_pushback_ground_friction_scale_q16 <=
+            INT32_C(0) ||
+        fighter->shield_attacker_pushback_ground_friction_scale_q16 >
+            INT32_C(2) * PF_Q16_ONE ||
         fighter->shield_half_width_q16 <= INT32_C(0) ||
         fighter->shield_half_width_q16 >
             maximum_fighter_extent_q16 ||

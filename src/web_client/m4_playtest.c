@@ -10531,7 +10531,8 @@ static int pf_web_m4_run_shield_probe(void)
             (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
         inspection.players[1].position_x_q16 !=
             shield_sdi_start_x + shield_sdi_distance_q16 +
-                shield_asdi_distance_q16)
+                shield_asdi_distance_q16 +
+                inspection.players[1].velocity_x_q16)
     {
         return 0;
     }

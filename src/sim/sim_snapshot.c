@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)647)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)663)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -321,6 +321,14 @@ static void pf_write_payload(
          ++player_index)
     {
         pf_writer_i32(writer, world->velocity_y_q16[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i32(
+            writer,
+            world->shield_recoil_x_q16[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -797,6 +805,21 @@ static void pf_read_payload(
          ++player_index)
     {
         world->velocity_y_q16[player_index] = pf_reader_i32(reader);
+    }
+    world->shield_recoil_mask = UINT8_C(0);
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->shield_recoil_x_q16[player_index] =
+            pf_reader_i32(reader);
+        if (world->shield_recoil_x_q16[player_index] != INT32_C(0))
+        {
+            world->shield_recoil_mask =
+                (uint8_t)(
+                    world->shield_recoil_mask |
+                    (uint8_t)(UINT8_C(1) << player_index));
+        }
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1702,6 +1725,8 @@ static int pf_m4_player_state_consistent(
                support == (uint8_t)PF_M4_SURFACE_NONE &&
                world->velocity_x_q16[player_index] == INT32_C(0) &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->shield_recoil_x_q16[player_index] ==
+                   INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->dash_direction[player_index] == INT8_C(0) &&
                world->hitlag_ticks[player_index] == UINT16_C(0) &&
@@ -1743,6 +1768,8 @@ static int pf_m4_player_state_consistent(
                    (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM &&
                world->velocity_x_q16[player_index] == INT32_C(0) &&
                world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->shield_recoil_x_q16[player_index] ==
+                   INT32_C(0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1);
     }
@@ -1805,8 +1832,10 @@ static int pf_m4_player_state_consistent(
             action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK) &&
-           world->velocity_x_q16[player_index] == INT32_C(0) &&
-           world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->velocity_x_q16[player_index] == INT32_C(0) &&
+               world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->shield_recoil_x_q16[player_index] ==
+                   INT32_C(0) &&
            world->fast_fall[player_index] == UINT8_C(0) &&
            world->recovery_available[player_index] == UINT8_C(1);
 }
@@ -1820,6 +1849,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
     uint32_t player_index;
     uint32_t stale_index;
     uint8_t active_mask;
+    uint8_t expected_shield_recoil_mask = UINT8_C(0);
     uint8_t ledge_claims = UINT8_C(0);
 
     if (world == NULL ||
@@ -1848,7 +1878,6 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
         world->sudden_death > UINT8_C(1) ||
         (world->sudden_death != UINT8_C(0) &&
          world->stock_count == UINT8_C(0)) ||
-        world->reserved != UINT8_C(0) ||
         world->terminated > UINT8_C(1) ||
         world->truncated > UINT8_C(1))
     {
@@ -1857,7 +1886,21 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
 
     active_mask =
         (uint8_t)((UINT32_C(1) << world->player_count) - UINT32_C(1));
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        if (world->shield_recoil_x_q16[player_index] != INT32_C(0))
+        {
+            expected_shield_recoil_mask =
+                (uint8_t)(
+                    expected_shield_recoil_mask |
+                    (uint8_t)(UINT8_C(1) << player_index));
+        }
+    }
     if ((world->winner_mask & (uint8_t)~active_mask) != UINT8_C(0) ||
+        world->shield_recoil_mask != expected_shield_recoil_mask ||
+        (world->shield_recoil_mask & (uint8_t)~active_mask) != UINT8_C(0) ||
         (world->terminated == UINT8_C(0) &&
          world->winner_mask != UINT8_C(0)) ||
         (world->terminated != UINT8_C(0) &&
@@ -2104,6 +2147,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] <
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->velocity_y_q16[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                world->shield_recoil_x_q16[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                world->shield_recoil_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action > (uint8_t)PF_M4_ACTION_CROUCH_END ||
@@ -2585,6 +2632,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->position_y_q16[player_index] != INT32_C(0) ||
                  world->velocity_x_q16[player_index] != INT32_C(0) ||
                  world->velocity_y_q16[player_index] != INT32_C(0) ||
+                 world->shield_recoil_x_q16[player_index] !=
+                     INT32_C(0) ||
                  world->action_ticks[player_index] != UINT16_C(0) ||
                  world->respawn_count[player_index] != UINT16_C(0) ||
                  world->team[player_index] != UINT8_C(0) ||

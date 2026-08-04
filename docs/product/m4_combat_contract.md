@@ -601,8 +601,9 @@ The hit target can affect its reaction through the normalized main stick:
   truncation.
 - A hitlag shift cannot pass downward through a floor or pass-through
   platform. An ordinary target shift can move upward or beyond a support edge
-  and become airborne; shield SDI/ASDI stays grounded and clamps horizontally
-  to the current support edge.
+  and become airborne. Grounded shield SDI/ASDI can likewise move beyond a
+  support edge; the guard collision update then enters ordinary fall instead
+  of pinning the fighter to the edge.
 
 The attacker does not receive target SDI/ASDI/DI behavior from attacker-only
 hitlag.
@@ -842,12 +843,17 @@ independently under the priority rule above. A legal block:
 
 - prevents percent gain and launch;
 - applies ordinary hitlag to attacker and defender;
-- applies shield damage equal to base damage multiplied by 0.7;
-- floors shield stun from `(damage * 0.45 + 2) * 200 / 201`;
-- applies dense defender pushback `(damage * 0.09 + 0.4) * 0.6`, capped at 2;
-  light strength adds a multiplier that linearly falls from 1.25 at the light
-  threshold to 1 at the digital threshold; and
-- applies attacker pushback `damage * 0.07 + 0.02`.
+- converts nonzero attack damage to the integral shield-hit amount `D`, with a
+  nonzero sub-unit result promoted to one;
+- at normalized shield pressure `p`, applies shield damage
+  `D * (0.9 - 0.2*p)`;
+- derives shield-stun duration from `D * (1.425 - 0.975*p) + 2`, then floors
+  ticks from `duration * 200 / 201`;
+- applies defender pushback `duration * 0.2 * 0.6`, capped at 2; the 0.6
+  ordinary-block factor is omitted for a powershield; and
+- applies attacker recoil `p * D * 0.07 + 0.02` as a separate motion
+  component. It decays before integration by 0.05 in air or by ground friction
+  times 1.1 on ground, without overwriting the attacker's self velocity.
 
 The defender resumes in `SHIELD_STUN` after hitlag and cannot act until its
 timer expires. Holding the trigger then returns to shield; releasing it enters
@@ -866,9 +872,9 @@ shield drop and opens the cancel path described below. Projectile powershield
 reflection uses the same dense-strength gate; light shield takes the ordinary
 projectile-block path.
 
-These values follow the Melee dense-shield and pushback tables in
-[SmashWiki's shield reference](https://www.ssbwiki.com/Shield), the four-frame
-physical window and no-damage behavior in its
+These values follow the pinned `ftcoll.c`, `fighter.c`, `ftcommon.c`, and
+`ftCo_Guard.c` paths plus the owner-disc common-data table. The four-frame
+physical window and no-damage behavior are also described in the
 [powershield reference](https://www.ssbwiki.com/Power_shield), and the
 traction-preserving input sequence in its
 [shield-stop reference](https://www.ssbwiki.com/Shield-stop).

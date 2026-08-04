@@ -24,6 +24,8 @@ def input_trace(
     platform_only: bool = False,
     push_only: bool = False,
     shield_only: bool = False,
+    shield_hit_only: bool = False,
+    shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
 
@@ -48,6 +50,7 @@ def input_trace(
         grab: bool = False,
         taunt: bool = False,
         opponent_main_x: float = 0.5,
+        opponent_attack: bool = False,
     ) -> dict[str, object]:
         return {
             "label": label,
@@ -65,6 +68,7 @@ def input_trace(
             "grab": grab,
             "taunt": taunt,
             "opponent_main_x": opponent_main_x,
+            "opponent_attack": opponent_attack,
         }
 
     def repeat(label: str, count: int, **inputs: object) -> None:
@@ -134,6 +138,35 @@ def input_trace(
             digital_left=True,
         )
         repeat("shield_formula_regeneration", 120)
+        return trace
+
+    if shield_hit_only:
+        repeat("shield_hit_settle", 60)
+        repeat(
+            "shield_hit_close_distance",
+            115,
+            main_x=0.7,
+            opponent_main_x=0.3,
+        )
+        repeat("shield_hit_neutral_settle", 20)
+        repeat(
+            "shield_hit_hold",
+            12,
+            left_shoulder=shield_hit_pressure,
+        )
+        trace.append(
+            command(
+                "shield_hit_jab",
+                left_shoulder=shield_hit_pressure,
+                opponent_attack=True,
+            )
+        )
+        repeat(
+            "shield_hit_recovery",
+            45,
+            left_shoulder=shield_hit_pressure,
+        )
+        repeat("shield_hit_release", 30)
         return trace
 
     if platform_only:
@@ -958,7 +991,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.platform_only
                 else melee.Stage.FINAL_DESTINATION,
                 melee.Character.CPTFALCON
-                if args.push_only
+                if args.push_only or args.shield_hit_only
                 else melee.Character.FOX,
             )
         else:
@@ -974,26 +1007,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             platform_only=args.platform_only,
             push_only=args.push_only,
             shield_only=args.shield_only,
+            shield_hit_only=args.shield_hit_only,
+            shield_hit_pressure=args.shield_hit_pressure,
         )
         pipeline_delay = 2
         commands = trace + [
-            {
-                "label": "pipeline_drain",
-                "main_x": 0.5,
-                "main_y": 0.5,
-                "c_x": 0.5,
-                "c_y": 0.5,
-                "left_shoulder": 0.0,
-                "right_shoulder": 0.0,
-                "digital_left": False,
-                "digital_right": False,
-                "jump": False,
-                "attack": False,
-                "special": False,
-                "grab": False,
-                "taunt": False,
-                "opponent_main_x": 0.5,
-            }
+            {**trace[0], "label": "pipeline_drain"}
             for _ in range(pipeline_delay)
         ]
         for command_index, sample in enumerate(commands):
@@ -1036,6 +1055,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 float(sample["opponent_main_x"]),
                 0.5,
             )
+            if bool(sample["opponent_attack"]):
+                player_two.press_button(melee.Button.BUTTON_A)
             gamestate = console.step()
             if (
                 gamestate is None
@@ -1085,6 +1106,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
             observed_opponent_x = float(
                 player_two_state.controller_state.main_stick[0]
+            )
+            observed_opponent_attack = bool(
+                player_two_state.controller_state.button[
+                    melee.Button.BUTTON_A
+                ]
             )
             requested_x = float(scheduled["main_x"])
             requested_y = float(scheduled["main_y"])
@@ -1155,6 +1181,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and c_axis_aligned
                 and shoulder_aligned
                 and opponent_axis_aligned
+                and observed_opponent_attack
+                == bool(scheduled["opponent_attack"])
             )
             if not aligned:
                 raise RuntimeError(
@@ -1168,7 +1196,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     f"jump={observed_jump} attack={observed_attack} "
                     f"special={observed_special} grab={observed_grab} "
                     f"taunt={observed_taunt} "
-                    f"opponent_x={observed_opponent_x}"
+                    f"opponent_x={observed_opponent_x} "
+                    f"opponent_attack={observed_opponent_attack}"
                 )
             if origin_x is None:
                 origin_x = player.position.x
@@ -1201,6 +1230,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "requested_grab": bool(scheduled["grab"]),
                     "requested_taunt": bool(scheduled["taunt"]),
                     "requested_opponent_main_x": requested_opponent_x,
+                    "requested_opponent_attack": bool(
+                        scheduled["opponent_attack"]
+                    ),
                     "observed_main_x": observed_x,
                     "observed_main_y": observed_y,
                     "observed_c_x": observed_c_x,
@@ -1219,6 +1251,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "observed_grab": observed_grab,
                     "observed_taunt": observed_taunt,
                     "observed_opponent_main_x": observed_opponent_x,
+                    "observed_opponent_attack": observed_opponent_attack,
                     "action": player.action.name,
                     "action_value": int(player.action.value),
                     "action_frame": float(player.action_frame),
@@ -1230,6 +1263,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "ground_velocity_x": float(player.speed_ground_x_self),
                     "air_velocity_x": float(player.speed_air_x_self),
                     "velocity_y": float(player.speed_y_self),
+                    "attack_velocity_x": float(player.speed_x_attack),
+                    "hitlag_left": float(player.hitlag_left),
                     "shield_health": float(player.shield_strength),
                     "opponent_action": player_two_state.action.name,
                     "opponent_action_value": int(
@@ -1256,6 +1291,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "opponent_velocity_y": float(
                         player_two_state.speed_y_self
                     ),
+                    "opponent_attack_velocity_x": float(
+                        player_two_state.speed_x_attack
+                    ),
+                    "opponent_hitlag_left": float(
+                        player_two_state.hitlag_left
+                    ),
                 }
             )
 
@@ -1270,8 +1311,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "sha256": sha256(iso),
             },
             "fighter": "CPTFALCON",
-            "opponent": "CPTFALCON" if args.push_only else "FOX",
+            "opponent": (
+                "CPTFALCON"
+                if args.push_only or args.shield_hit_only
+                else "FOX"
+            ),
             "stage": "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION",
+            "shield_hit_requested_pressure": (
+                args.shield_hit_pressure if args.shield_hit_only else None
+            ),
             "controller_postframe_pipeline_delay": pipeline_delay,
             "rows": rows,
         }
@@ -1292,7 +1340,12 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--platform-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
     mode.add_argument("--shield-only", action="store_true")
-    return parser.parse_args()
+    mode.add_argument("--shield-hit-only", action="store_true")
+    parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
+    args = parser.parse_args()
+    if not 0.30 <= args.shield_hit_pressure <= 1.0:
+        parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
+    return args
 
 
 def main() -> int:

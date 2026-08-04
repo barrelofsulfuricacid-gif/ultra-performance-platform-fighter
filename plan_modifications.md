@@ -141,8 +141,20 @@ light, intermediate, near-dense, simultaneous-shoulder, and digital-full input,
 then release and regeneration. Action/state and shield health remain strict
 within the existing 64-Q16 health gate; normalized shield pressure allows only
 one unit of 16-bit conversion error. Shield collision damage, stun, pushback,
-tilt smoothing, and exact collision geometry remain active work rather than
-being inferred from this pressure-only route.
+tilt smoothing, and exact collision geometry are not inferred from this
+pressure-only route.
+
+Shield-hit response is qualified separately by three 283-frame identical-input
+Final Destination captures at requested light, intermediate, and dense
+pressure. The comparator checks both fighters' discrete state, position,
+self-velocity, health/pressure, hitlag, shield stun, defender pushback, and the
+attacker recoil independently inferred from executable position delta minus
+self velocity. The implementation follows the pinned decomp and owner-disc
+common table: integer shield-hit conversion; pressure-dependent damage and
+stun; post-hitlag ordering; and a separate attacker-recoil component with
+ground/air decay. The three captures pass with exact/32-Q16 component gates
+and the established 640-Q16 position envelope. Exact shield tilt, collision
+geometry, and uncaptured shield-hit routes remain active work.
 
 The platform routes are qualified separately by a 348-frame Battlefield
 capture. A neutral jump passes upward through the platform, crosses it on

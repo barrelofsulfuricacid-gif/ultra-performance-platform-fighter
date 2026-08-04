@@ -22,7 +22,8 @@ Behavior and field meanings were checked against `doldecomp/melee` revision
 `ftCo_TurnRun.c`, `ftCo_KneeBend.c`, `ftCo_Jump.c`, `ftCo_JumpAerial.c`, and
 `ftCo_Squat.c`, `ftCo_SquatWait.c`, `ftCo_SquatRv.c`, `ftCo_Damage.c`, and the
 common fall/air-physics routines, plus `ftCo_Guard.c` and `fighter.c` for the
-shield-health and pressure formulas.
+shield-health and pressure formulas, `ftcoll.c` for shield-hit damage
+conversion, and `ftcommon.c` for attacker-recoil initialization and decay.
 
 ## Coordinate conversion
 
@@ -74,13 +75,28 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | minimum size floor (`x264`) | 0.15 | 3/20 |
 | pressure size endpoints (`x2D4` / `x2D8`) | 1.0 / 0.5 | light density 1 to dense density 1/2 |
 | guard-stick smoothing (`x44C`) | 0.5 | recorded; exact tilt route remains unqualified |
+| shield damage base / pressure (`x284` / `x288`, `x2DC` / `x2E0`) | 1 / 0, 0.1 / 0.3 | `D * (0.9 - 0.2*p)` |
+| shield-stun damage endpoints / base (`x28C` / `x290`, `x2E4` / `x2E8`) | 1.5 / 2, 0.05 / 0.7 | duration `D * (1.425 - 0.975*p) + 2` |
+| defender pushback scale / cap / ordinary factor (`x294` / `x298` / `x2BC`) | 0.2 / 2 / 0.6 | duration times 0.2, times 0.6 unless powershielded, capped at 2 |
+| attacker recoil damage / base (`x3E0` / `x3E4`) | 0.07 / 0.02 | separate component `p * D * 0.07 + 0.02` |
+| attacker recoil air decay / ground-friction scale (`x3E8` / `x3EC`) | 0.05 / 1.1 | decay by 0.05 airborne or Falcon friction times 1.1 grounded |
 
 For normalized analog amount `a=(pressure-0.30)/(1-0.30)`, the common hold
 drain is `0.14 * (0.1 + 1.9*a)`. The non-Yoshi shield size is
 `initial_size * (0.15 + 0.85*(health/60)*(1.0 - 0.5*a))`. The 500-frame
 pressure-only executable capture qualifies input, health depletion, release,
-and regeneration. It does not by itself qualify the rendered/collision radius,
-stick smoothing, or shield-hit formulas.
+and regeneration. Three additional 283-frame captures qualify the sampled
+light, intermediate, and dense physical shield-hit routes. Their requested /
+observed pressures and SHA-256 values are 0.35 / 0.321428567 /
+`563cabf633126656b80a0351b67fdffb35f664774e052e85c04ff7b20fd2e4f5`,
+0.65 / 0.592857122 /
+`84b462f717074b2a2984b6901ed33a2abd2b9f98527f1c52db400c98ace411ab`,
+and 1.0 / 0.914285719 /
+`2d95549b7ffe6ac950c339fe9dcd346b4e6c401324d2cce0e8414d2677a3489f`.
+The collision path first converts attack damage to an integral shield-hit
+amount, preserving a nonzero sub-unit hit as one. Here `D` is that amount and
+`p` is normalized shield pressure. Exact stick smoothing and executable shield
+geometry remain unqualified.
 
 ## Imported common-input values
 

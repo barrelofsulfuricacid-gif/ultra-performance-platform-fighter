@@ -440,6 +440,17 @@ boundary crossing. The Battlefield
 route includes ordinary jump-through and landing,
 a one-frame-down negative control, held-down `Squat` frames 1-3, `Pass` entry
 at the executable's 0.63 downward speed, and same-frame solid-floor landing.
+Three additional 283-frame Final Destination shield-hit captures request
+light, intermediate, and dense pressure. They compare both fighters' strict
+discrete state, self velocity, shield health/pressure, hitlag and shield stun,
+plus position within the established 640-Q16 envelope and the attacker's
+separate recoil within 32 Q16 units, inferred independently from executable
+position delta minus self velocity. These routes qualify integer shield-hit
+conversion, pressure-dependent damage/stun and defender pushback, same-frame
+post-hitlag ordering, and separate ground-decaying attacker recoil. Aggregate
+executable-oracle evidence is therefore 10,912 captured frames. Exact shield
+tilt, collision geometry, and uncaptured pressure/time/spacing routes remain
+active work.
 These captures qualify only their sampled routes and do not reduce the
 exhaustive obligation below.
 
