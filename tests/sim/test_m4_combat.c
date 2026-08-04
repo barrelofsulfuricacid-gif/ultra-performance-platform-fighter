@@ -2,6 +2,8 @@
 #include "pf/replay.h"
 #include "pf/rl.h"
 #include "pf/sim.h"
+#include "../../src/sim/sim_falcon_frame_data.h"
+#include "../../src/sim/sim_melee.h"
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -993,9 +995,7 @@ static int run_v_cancel_air_case(
             UINT16_C(0),
             INT16_C(0),
             INT16_C(0),
-            target_attacks != 0
-                ? PF_INPUT_BUTTON_STRONG_ATTACK
-                : UINT64_C(0),
+            UINT64_C(0),
             UINT16_C(0),
             &inspection))
     {
@@ -1008,13 +1008,19 @@ static int run_v_cancel_air_case(
          ++tick)
     {
         uint16_t target_trigger = UINT16_C(0);
+        const uint64_t target_buttons =
+            target_attacks != 0 &&
+                    inspection.players[0].action_ticks == UINT16_C(1)
+                ? PF_INPUT_BUTTON_STRONG_ATTACK
+                : UINT64_C(0);
 
         if (trigger_lead_ticks != UINT32_MAX &&
             inspection.players[0].action_state ==
                 (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
             (uint32_t)inspection.players[0].action_ticks +
                     trigger_lead_ticks + UINT32_C(1) ==
-                (uint32_t)content->fighter.aerial_startup_ticks)
+                (uint32_t)content->fighter.aerial_startup_ticks +
+                    UINT32_C(1))
         {
             target_trigger = UINT16_MAX;
         }
@@ -1026,7 +1032,7 @@ static int run_v_cancel_air_case(
                 UINT16_C(0),
                 INT16_C(0),
                 INT16_C(0),
-                UINT64_C(0),
+                target_buttons,
                 target_trigger,
                 &inspection))
         {
@@ -1893,35 +1899,6 @@ static int run_weight_reaction_case(
     return fail("weight-reaction-hit-missing");
 }
 
-static uint16_t expected_weight_hitstun_ticks(
-    const pf_m4_fighter_data *fighter,
-    int32_t velocity_x_q16,
-    int32_t velocity_y_q16)
-{
-    const int64_t horizontal =
-        velocity_x_q16 < INT32_C(0)
-            ? -(int64_t)velocity_x_q16
-            : (int64_t)velocity_x_q16;
-    const int64_t vertical =
-        velocity_y_q16 < INT32_C(0)
-            ? -(int64_t)velocity_y_q16
-            : (int64_t)velocity_y_q16;
-    const int64_t divisor =
-        (int64_t)fighter->hitstun_velocity_per_tick_q16;
-    int64_t ticks =
-        (horizontal + vertical + divisor - INT64_C(1)) / divisor;
-
-    if (ticks < INT64_C(1))
-    {
-        ticks = INT64_C(1);
-    }
-    if (ticks > (int64_t)TEST_MAX_HITSTUN_TICKS)
-    {
-        ticks = (int64_t)TEST_MAX_HITSTUN_TICKS;
-    }
-    return (uint16_t)ticks;
-}
-
 static int run_weight_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -2108,28 +2085,33 @@ static int directional_attack_reaction_matches(
     const pf_m4_fighter_data *fighter,
     const pf_m4_attack_data *attack,
     const test_directional_attack_reaction *reaction,
-    int8_t vertical_direction)
+    pf_m4_falcon_move_index move_index)
 {
-    const int64_t growth =
-        ((int64_t)attack->knockback_growth_q16 *
-         (int64_t)attack->damage_q16) >>
-        16U;
-    const int32_t expected_velocity_x =
-        attack->base_knockback_x_q16 + (int32_t)growth;
-    const int32_t expected_velocity_y =
-        (int32_t)vertical_direction *
-        (attack->base_knockback_y_q16 +
-         (int32_t)(growth / INT64_C(2)));
+    const pf_m4_reference_hit_effect *effect =
+        pf_m4_falcon_reference_primary_effect(move_index);
+    pf_m4_melee_knockback_data knockback = {0};
+    pf_m4_melee_knockback_result result;
 
-    return reaction->velocity_x_q16 == expected_velocity_x &&
-           reaction->velocity_y_q16 == expected_velocity_y &&
+    if (effect == NULL)
+    {
+        return 0;
+    }
+    knockback.angle_degrees = effect->angle_degrees;
+    knockback.growth = effect->growth;
+    knockback.weight_set = effect->weight_set;
+    knockback.base = effect->base;
+    knockback.enabled = UINT8_C(1);
+    result = pf_m4_melee_knockback(
+        &knockback,
+        fighter->knockback_weight,
+        attack->damage_q16,
+        attack->damage_q16);
+
+    return reaction->velocity_x_q16 == result.velocity_x_q16 &&
+           reaction->velocity_y_q16 == -result.velocity_y_q16 &&
            reaction->damage_q16 == attack->damage_q16 &&
-           reaction->hitstun_ticks ==
-               expected_weight_hitstun_ticks(
-                   fighter,
-                   expected_velocity_x,
-                   expected_velocity_y) &&
-           reaction->hitlag_ticks == attack->hitlag_ticks;
+           reaction->hitstun_ticks == result.hitstun_ticks &&
+           reaction->hitlag_ticks == result.hitlag_ticks;
 }
 
 static int run_directional_attack_snapshot_test(
@@ -2587,7 +2569,12 @@ static int run_smash_charge_snapshot_test(
     {
         return fail("smash-charge-trade-release");
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)content->fighter.forward_strong_attack.startup_ticks +
+                 (uint32_t)content->fighter.forward_strong_attack.active_ticks +
+                 UINT32_C(2);
+         ++tick)
     {
         uint32_t event_index;
 
@@ -2672,21 +2659,38 @@ static int run_directional_ground_attack_test(
     invalid_timing.fighter.up_attack.startup_ticks = UINT16_C(0);
     invalid_charge.fighter.smash_charge_max_ticks = UINT16_C(0);
     if (content->fighter.up_attack.damage_q16 !=
-            UINT32_C(9) * UINT32_C(65536) ||
-        content->fighter.up_attack.startup_ticks != UINT16_C(4) ||
-        content->fighter.up_attack.active_ticks != UINT16_C(3) ||
-        content->fighter.down_attack.damage_q16 !=
-            UINT32_C(8) * UINT32_C(65536) ||
-        content->fighter.down_attack.startup_ticks != UINT16_C(5) ||
-        content->fighter.down_attack.active_ticks != UINT16_C(3) ||
-        content->fighter.forward_attack.damage_q16 !=
-            UINT32_C(7) * UINT32_C(65536) ||
-        content->fighter.forward_strong_attack.damage_q16 !=
-            UINT32_C(12) * UINT32_C(65536) ||
-        content->fighter.up_strong_attack.damage_q16 !=
             UINT32_C(13) * UINT32_C(65536) ||
-        content->fighter.down_strong_attack.damage_q16 !=
+        content->fighter.up_attack.startup_ticks != UINT16_C(16) ||
+        content->fighter.up_attack.active_ticks != UINT16_C(5) ||
+        content->fighter.up_attack.recovery_ticks != UINT16_C(18) ||
+        content->fighter.down_attack.damage_q16 !=
+            UINT32_C(12) * UINT32_C(65536) ||
+        content->fighter.down_attack.startup_ticks != UINT16_C(9) ||
+        content->fighter.down_attack.active_ticks != UINT16_C(6) ||
+        content->fighter.down_attack.recovery_ticks != UINT16_C(20) ||
+        content->fighter.forward_attack.damage_q16 !=
             UINT32_C(11) * UINT32_C(65536) ||
+        content->fighter.forward_attack.startup_ticks != UINT16_C(8) ||
+        content->fighter.forward_attack.active_ticks != UINT16_C(3) ||
+        content->fighter.forward_attack.recovery_ticks != UINT16_C(18) ||
+        content->fighter.forward_strong_attack.damage_q16 !=
+            UINT32_C(20) * UINT32_C(65536) ||
+        content->fighter.forward_strong_attack.startup_ticks !=
+            UINT16_C(17) ||
+        content->fighter.forward_strong_attack.active_ticks !=
+            UINT16_C(4) ||
+        content->fighter.forward_strong_attack.recovery_ticks !=
+            UINT16_C(43) ||
+        content->fighter.up_strong_attack.damage_q16 !=
+            UINT32_C(8) * UINT32_C(65536) ||
+        content->fighter.up_strong_attack.startup_ticks != UINT16_C(20) ||
+        content->fighter.up_strong_attack.active_ticks != UINT16_C(8) ||
+        content->fighter.up_strong_attack.recovery_ticks != UINT16_C(26) ||
+        content->fighter.down_strong_attack.damage_q16 !=
+            UINT32_C(18) * UINT32_C(65536) ||
+        content->fighter.down_strong_attack.startup_ticks != UINT16_C(18) ||
+        content->fighter.down_strong_attack.active_ticks != UINT16_C(14) ||
+        content->fighter.down_strong_attack.recovery_ticks != UINT16_C(17) ||
         content->fighter.smash_charge_damage_bonus_q16 !=
             PF_Q16_ONE / UINT32_C(2) ||
         content->fighter.smash_charge_max_ticks != UINT16_C(60) ||
@@ -2777,34 +2781,34 @@ static int run_directional_ground_attack_test(
             &content->fighter,
             &content->fighter.up_attack,
             &up_reaction,
-            INT8_C(-1)) ||
+            PF_M4_FALCON_UP_TILT) ||
         !directional_attack_reaction_matches(
             &content->fighter,
             &content->fighter.down_attack,
             &down_reaction,
-            INT8_C(1)) ||
+            PF_M4_FALCON_DOWN_TILT) ||
         !directional_attack_reaction_matches(
             &content->fighter,
             &content->fighter.forward_attack,
             &forward_reaction,
-            INT8_C(-1)) ||
+            PF_M4_FALCON_FORWARD_TILT) ||
         !directional_attack_reaction_matches(
             &content->fighter,
             &content->fighter.forward_strong_attack,
             &forward_strong_reaction,
-            INT8_C(-1)) ||
+            PF_M4_FALCON_FORWARD_SMASH) ||
         !directional_attack_reaction_matches(
             &content->fighter,
             &content->fighter.up_strong_attack,
             &up_strong_reaction,
-            INT8_C(-1)) ||
+            PF_M4_FALCON_UP_SMASH) ||
         !directional_attack_reaction_matches(
             &content->fighter,
             &content->fighter.down_strong_attack,
             &down_strong_reaction,
-            INT8_C(-1)) ||
+            PF_M4_FALCON_DOWN_SMASH) ||
         up_reaction.velocity_y_q16 >= INT32_C(0) ||
-        down_reaction.velocity_y_q16 <= INT32_C(0) ||
+        down_reaction.velocity_y_q16 >= INT32_C(0) ||
         forward_reaction.velocity_y_q16 >= INT32_C(0) ||
         forward_strong_reaction.velocity_y_q16 >= INT32_C(0) ||
         up_strong_reaction.velocity_y_q16 >= INT32_C(0) ||
@@ -3473,6 +3477,11 @@ static int run_directional_aerial_test(
         &back_reaction,
         &up_reaction,
         &down_reaction};
+    const pf_m4_falcon_move_index moves[4] = {
+        PF_M4_FALCON_FORWARD_AERIAL,
+        PF_M4_FALCON_BACK_AERIAL,
+        PF_M4_FALCON_UP_AERIAL,
+        PF_M4_FALCON_DOWN_AERIAL};
     uint32_t attack_index;
 
     changed.fighter.forward_aerial.damage_q16 += UINT32_C(1);
@@ -3485,17 +3494,25 @@ static int run_directional_aerial_test(
         INT32_C(0);
     invalid_timing.fighter.back_aerial.startup_ticks = UINT16_C(0);
     if (content->fighter.forward_aerial.damage_q16 !=
-            UINT32_C(10) * UINT32_C(65536) ||
-        content->fighter.forward_aerial.startup_ticks != UINT16_C(5) ||
+            UINT32_C(18) * UINT32_C(65536) ||
+        content->fighter.forward_aerial.startup_ticks != UINT16_C(13) ||
+        content->fighter.forward_aerial.active_ticks != UINT16_C(17) ||
+        content->fighter.forward_aerial.recovery_ticks != UINT16_C(9) ||
         content->fighter.back_aerial.damage_q16 !=
-            UINT32_C(11) * UINT32_C(65536) ||
-        content->fighter.back_aerial.startup_ticks != UINT16_C(4) ||
+            UINT32_C(14) * UINT32_C(65536) ||
+        content->fighter.back_aerial.startup_ticks != UINT16_C(9) ||
+        content->fighter.back_aerial.active_ticks != UINT16_C(8) ||
+        content->fighter.back_aerial.recovery_ticks != UINT16_C(18) ||
         content->fighter.up_aerial.damage_q16 !=
-            UINT32_C(9) * UINT32_C(65536) ||
+            UINT32_C(13) * UINT32_C(65536) ||
         content->fighter.up_aerial.startup_ticks != UINT16_C(5) ||
+        content->fighter.up_aerial.active_ticks != UINT16_C(9) ||
+        content->fighter.up_aerial.recovery_ticks != UINT16_C(19) ||
         content->fighter.down_aerial.damage_q16 !=
-            UINT32_C(10) * UINT32_C(65536) ||
-        content->fighter.down_aerial.startup_ticks != UINT16_C(7) ||
+            UINT32_C(16) * UINT32_C(65536) ||
+        content->fighter.down_aerial.startup_ticks != UINT16_C(15) ||
+        content->fighter.down_aerial.active_ticks != UINT16_C(5) ||
+        content->fighter.down_aerial.recovery_ticks != UINT16_C(24) ||
         content->fighter.forward_aerial_landing_lag_ticks !=
             UINT16_C(19) ||
         content->fighter.back_aerial_landing_lag_ticks != UINT16_C(18) ||
@@ -3569,32 +3586,11 @@ static int run_directional_aerial_test(
          attack_index < UINT32_C(4);
          ++attack_index)
     {
-        const int64_t growth =
-            ((int64_t)attacks[attack_index]->knockback_growth_q16 *
-             (int64_t)attacks[attack_index]->damage_q16) >>
-            16U;
-        const int32_t expected_x =
-            attacks[attack_index]->base_knockback_x_q16 +
-            (int32_t)growth;
-        const int32_t vertical_magnitude =
-            attacks[attack_index]->base_knockback_y_q16 +
-            (int32_t)(growth / INT64_C(2));
-        const int32_t expected_y =
-            attack_index == UINT32_C(3)
-                ? vertical_magnitude
-                : -vertical_magnitude;
-
-        if (reactions[attack_index]->velocity_x_q16 != expected_x ||
-            reactions[attack_index]->velocity_y_q16 != expected_y ||
-            reactions[attack_index]->damage_q16 !=
-                attacks[attack_index]->damage_q16 ||
-            reactions[attack_index]->hitstun_ticks !=
-                expected_weight_hitstun_ticks(
-                    &content->fighter,
-                    expected_x,
-                    expected_y) ||
-            reactions[attack_index]->hitlag_ticks !=
-                attacks[attack_index]->hitlag_ticks)
+        if (!directional_attack_reaction_matches(
+                &content->fighter,
+                attacks[attack_index],
+                reactions[attack_index],
+                moves[attack_index]))
         {
             return fail("directional-aerial-exact-launch");
         }
@@ -3891,31 +3887,43 @@ static int prepare_v_cancel_snapshot(
             return 0;
         }
     }
-    return out_inspection->players[0].grounded == UINT8_C(0) &&
-           out_inspection->players[1].grounded == UINT8_C(0) &&
-           step_reaction_duel(
-               sim,
-               INT16_C(0),
-               INT16_C(0),
-               PF_INPUT_BUTTON_ATTACK,
-               UINT16_C(0),
-               INT16_C(0),
-               INT16_C(0),
-               UINT64_C(0),
-               UINT16_C(0),
-               out_inspection) &&
-           step_reaction_duel(
-               sim,
-               INT16_C(0),
-               INT16_C(0),
-               UINT64_C(0),
-               UINT16_C(0),
-               INT16_C(0),
-               INT16_C(0),
-               UINT64_C(0),
-               UINT16_C(0),
-               out_inspection) &&
-           step_reaction_duel(
+    if (out_inspection->players[0].grounded != UINT8_C(0) ||
+        out_inspection->players[1].grounded != UINT8_C(0) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick + UINT32_C(2) <
+             (uint32_t)content->fighter.aerial_startup_ticks;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return step_reaction_duel(
                sim,
                INT16_C(0),
                INT16_C(0),
@@ -3939,7 +3947,7 @@ static int prepare_v_cancel_snapshot(
                out_inspection) &&
            out_inspection->players[0].action_state ==
                (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
-           out_inspection->players[0].action_ticks + UINT16_C(1) ==
+           out_inspection->players[0].action_ticks ==
                content->fighter.aerial_startup_ticks &&
            out_inspection->players[1].action_state ==
                (uint8_t)PF_M4_ACTION_AIR_DODGE &&
@@ -4537,9 +4545,11 @@ static int launch_double_jump_counter_pair(
 
 static int start_double_jump_counter_weak_hit(
     pf_sim *sim,
+    const pf_m4_content *content,
     pf_m4_inspection *out_inspection)
 {
     const pf_sim_event *event;
+    uint32_t tick;
 
     if (!launch_double_jump_counter_pair(sim, out_inspection) ||
         !step_duel(
@@ -4551,8 +4561,28 @@ static int start_double_jump_counter_weak_hit(
             out_inspection) ||
         out_inspection->players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
-        out_inspection->players[0].action_ticks != UINT16_C(0) ||
-        !step_duel(
+        out_inspection->players[0].action_ticks != UINT16_C(0))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         out_inspection->players[0].action_ticks <
+             content->fighter.aerial_startup_ticks;
+         ++tick)
+    {
+        if (tick > UINT32_C(120) ||
+            !step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
             sim,
             INT16_C(0),
             UINT64_C(0),
@@ -4613,8 +4643,27 @@ static int start_double_jump_counter_late_hit(
             PF_INPUT_BUTTON_ATTACK,
             INT16_C(0),
             UINT64_C(0),
-            out_inspection) ||
-        !step_duel(
+            out_inspection))
+    {
+        return 0;
+    }
+    while (out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
+           out_inspection->players[0].action_ticks <
+               content->fighter.aerial_startup_ticks)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
             sim,
             INT16_C(0),
             UINT64_C(0),
@@ -4842,6 +4891,7 @@ static int run_double_jump_cancel_counter_test(
 
     if (!start_double_jump_counter_weak_hit(
             source,
+            content,
             &source_inspection))
     {
         return fail("double-jump-cancel-counter-weak-contact");
@@ -5068,6 +5118,7 @@ static int run_double_jump_cancel_counter_test(
 
     if (!start_double_jump_counter_weak_hit(
             exact,
+            content,
             &exact_inspection))
     {
         return fail("double-jump-cancel-counter-exact-contact");
@@ -5080,6 +5131,7 @@ static int run_double_jump_cancel_counter_test(
     exact_event = *event;
     if (!start_double_jump_counter_weak_hit(
             below,
+            content,
             &below_inspection))
     {
         return fail("double-jump-cancel-counter-below-contact");
@@ -5092,6 +5144,7 @@ static int run_double_jump_cancel_counter_test(
     below_event = *event;
     if (!start_double_jump_counter_weak_hit(
             disabled,
+            content,
             &disabled_inspection))
     {
         return fail("double-jump-cancel-counter-disabled-contact");
@@ -5266,7 +5319,7 @@ static int run_aerial_hit_test(
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
         inspection.players[0].action_ticks !=
-            content->fighter.aerial_startup_ticks ||
+            content->fighter.aerial_startup_ticks + UINT16_C(1) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
         inspection.players[0].hitlag_ticks !=
@@ -17232,17 +17285,26 @@ static int run_jab_cancel_test(
         close_content->fighter.jab_combo_input_end_tick !=
             UINT16_C(7) ||
         close_content->fighter.jab_final_startup_ticks !=
-            UINT16_C(2) ||
+            UINT16_C(3) ||
         close_content->fighter.jab_final_active_ticks !=
-            UINT16_C(2) ||
+            UINT16_C(3) ||
         close_content->fighter.jab_final_recovery_ticks !=
-            UINT16_C(10) ||
+            UINT16_C(13) ||
         close_content->fighter.jab_final_hitlag_ticks !=
             UINT16_C(4) ||
         close_content->fighter.jab_final_damage_q16 !=
-            UINT32_C(7) * UINT32_C(65536))
+            UINT32_C(3) * UINT32_C(65536) ||
+        close_content->fighter.jab_final_melee_knockback.enabled !=
+            UINT8_C(1) ||
+        close_content->fighter.jab_final_melee_knockback.angle_degrees !=
+            UINT16_C(80) ||
+        close_content->fighter.jab_final_melee_knockback.growth !=
+            UINT16_C(100) ||
+        close_content->fighter.jab_final_melee_knockback.weight_set !=
+            UINT16_C(20) ||
+        close_content->fighter.jab_final_melee_knockback.base != UINT16_C(0))
     {
-        return fail("jab-cancel-authored-defaults");
+        return fail("jab-cancel-reference-defaults");
     }
 
     if (!initialize_sim(
@@ -19947,8 +20009,8 @@ static int run_pummel_test(
 
     if (content->fighter.pummel_damage_q16 !=
             UINT32_C(3) * UINT32_C(65536) ||
-        content->fighter.pummel_hit_tick != UINT16_C(2) ||
-        content->fighter.pummel_total_ticks != UINT16_C(10))
+        content->fighter.pummel_hit_tick != UINT16_C(4) ||
+        content->fighter.pummel_total_ticks != UINT16_C(23))
     {
         return fail("pummel-default-data");
     }
@@ -21286,6 +21348,107 @@ static int run_ledge_attack_test(
     return 1;
 }
 
+static int run_falcon_reference_table_test(void)
+{
+    pf_m4_falcon_move_index mapped_move = PF_M4_FALCON_MOVE_COUNT;
+    const pf_m4_reference_move *jab =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_move *missing =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_FORWARD_SMASH_MID_HIGH);
+    const pf_m4_reference_hit_phase *jab_phase =
+        pf_m4_falcon_reference_phase(PF_M4_FALCON_JAB1, UINT16_C(0));
+    const pf_m4_reference_hit_effect *jab_effect =
+        pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_throw *down_throw =
+        pf_m4_falcon_reference_throw(PF_M4_FALCON_DOWN_THROW);
+    const pf_m4_reference_timing jab_timing =
+        pf_m4_falcon_reference_timing(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_timing dash_timing =
+        pf_m4_falcon_reference_timing(PF_M4_FALCON_DASH_ATTACK);
+    const pf_m4_reference_timing missing_timing =
+        pf_m4_falcon_reference_timing(
+            PF_M4_FALCON_FORWARD_SMASH_MID_HIGH);
+    const pf_m4_reference_hit_phase *nair_late_phase =
+        pf_m4_falcon_reference_phase_at_frame(
+            PF_M4_FALCON_NEUTRAL_AERIAL,
+            UINT16_C(20));
+    const pf_m4_reference_hit_effect *nair_late_effect =
+        pf_m4_falcon_reference_effect_at_frame(
+            PF_M4_FALCON_NEUTRAL_AERIAL,
+            UINT16_C(20));
+
+    if (jab == NULL || jab->present != UINT8_C(1) ||
+        jab->total_frames != UINT16_C(21) ||
+        jab->phase_count != UINT8_C(1) ||
+        jab->effect_count != UINT8_C(1) ||
+        jab_phase == NULL || jab_phase->first_frame != UINT16_C(3) ||
+        jab_phase->last_frame != UINT16_C(5) ||
+        jab_phase->effect_mask != UINT16_C(1) ||
+        jab_effect == NULL || jab_effect->damage != UINT8_C(2) ||
+        jab_effect->angle_degrees != UINT16_C(80) ||
+        jab_effect->growth != UINT16_C(100) ||
+        jab_effect->weight_set != UINT16_C(20) ||
+        jab_effect->base != UINT16_C(0) ||
+        jab_timing.startup_ticks != UINT16_C(2) ||
+        jab_timing.active_ticks != UINT16_C(3) ||
+        jab_timing.recovery_ticks != UINT16_C(16))
+    {
+        return fail("falcon-reference-jab");
+    }
+    if (dash_timing.startup_ticks != UINT16_C(6) ||
+        dash_timing.active_ticks != UINT16_C(10) ||
+        dash_timing.recovery_ticks != UINT16_C(23) ||
+        missing == NULL || missing->present != UINT8_C(0) ||
+        missing_timing.startup_ticks != UINT16_C(0) ||
+        missing_timing.active_ticks != UINT16_C(0) ||
+        missing_timing.recovery_ticks != UINT16_C(0))
+    {
+        return fail("falcon-reference-timing");
+    }
+    if (down_throw == NULL || down_throw->damage != UINT8_C(7) ||
+        down_throw->angle_degrees != UINT16_C(65) ||
+        down_throw->growth != UINT16_C(34) ||
+        down_throw->weight_set != UINT16_C(0) ||
+        down_throw->base != UINT16_C(18) ||
+        pf_m4_falcon_reference_move(
+            (pf_m4_falcon_move_index)PF_M4_FALCON_MOVE_COUNT) != NULL ||
+        pf_m4_falcon_reference_phase(
+            PF_M4_FALCON_JAB1,
+            UINT16_C(1)) != NULL ||
+        pf_m4_falcon_reference_effect(
+            PF_M4_FALCON_JAB1,
+            UINT16_C(1)) != NULL ||
+        pf_m4_falcon_reference_throw(PF_M4_FALCON_JAB1) != NULL)
+    {
+        return fail("falcon-reference-bounds-and-throw");
+    }
+    if (pf_m4_falcon_reference_phase_at_frame(
+            PF_M4_FALCON_NEUTRAL_AERIAL,
+            UINT16_C(13)) != NULL ||
+        pf_m4_falcon_reference_effect_at_frame(
+            PF_M4_FALCON_NEUTRAL_AERIAL,
+            UINT16_C(13)) != NULL ||
+        nair_late_phase == NULL ||
+        nair_late_phase->first_frame != UINT16_C(20) ||
+        nair_late_phase->last_frame != UINT16_C(29) ||
+        nair_late_effect == NULL ||
+        nair_late_effect->damage != UINT8_C(7) ||
+        !pf_m4_falcon_reference_move_for_action(
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK,
+            &mapped_move) ||
+        mapped_move != PF_M4_FALCON_FORWARD_SMASH ||
+        !pf_m4_falcon_reference_move_for_action(
+            (uint8_t)PF_M4_ACTION_DOWN_AERIAL,
+            NULL) ||
+        pf_m4_falcon_reference_move_for_action(
+            (uint8_t)PF_M4_ACTION_STRONG_ATTACK,
+            &mapped_move))
+    {
+        return fail("falcon-reference-phase-and-action-route");
+    }
+    return 1;
+}
+
 int main(void)
 {
     pf_m4_content content;
@@ -21392,7 +21555,8 @@ int main(void)
     pf_content_view stale_hash_view;
     pf_content_view getup_roll_hash_view;
 
-    if (!make_combat_content(&content, &view) ||
+    if (!run_falcon_reference_table_test() ||
+        !make_combat_content(&content, &view) ||
         !make_shield_poke_content(
             &shield_poke_content,
             &shield_poke_view) ||

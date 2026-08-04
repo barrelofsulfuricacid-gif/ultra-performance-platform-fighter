@@ -204,6 +204,22 @@ void pf_m2_replay_make_tick_inputs(
         inputs[2].left_trigger =
             tick == UINT64_C(5) ? UINT16_MAX : UINT16_C(0);
     }
+    if (tick >= UINT64_C(35) && tick <= UINT64_C(80))
+    {
+        inputs[0].main_stick_x =
+            tick < UINT64_C(70) ? INT16_MAX : INT16_C(0);
+        inputs[0].main_stick_y = INT16_C(0);
+        inputs[0].buttons =
+            tick == UINT64_C(70)
+                ? PF_INPUT_BUTTON_ATTACK
+                : UINT64_C(0);
+        inputs[0].left_trigger = UINT16_C(0);
+        inputs[1].main_stick_x =
+            tick == UINT64_C(74) ? INT16_MAX : INT16_C(0);
+        inputs[1].main_stick_y = INT16_C(0);
+        inputs[1].buttons = UINT64_C(0);
+        inputs[1].left_trigger = UINT16_C(0);
+    }
     if (tick + UINT64_C(1) == PF_M2_REPLAY_TICKS)
     {
         inputs[3].buttons |= PF_INPUT_BUTTON_FORFEIT;

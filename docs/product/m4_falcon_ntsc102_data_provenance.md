@@ -54,11 +54,27 @@ kind, and throw effect. Extracted DAT files and bone-relative hitbox geometry
 remain temporary external evidence and are not repository or build inputs.
 `tools/import_ssbm_falcon_frame_data.py` is the reproducible conversion path;
 `generated/data/m4_falcon_ntsc102_frame_data.inc` is its numeric output.
-The default jab-1 content and production ordinary-hit response consume that
-generated record directly. The semantic route is explicitly selectable so
-original/custom content can retain its authored vector response without
-silently inheriting Falcon semantics. Remaining Falcon records stay in the
-same compact immutable table while their multi-phase runtime routing is built.
+The default production routes for jab 1, jab 2, dash attack, all three tilts,
+all three smashes, and all five aerials consume this generated table directly.
+Each action uses the imported total timing, and an exact frame lookup preserves
+disjoint active windows and selects that phase's damage, angle, KBG,
+weight-set knockback, BKB, and hitlag. The five aerial landing-lag values and
+pummel damage/timing also come from the same table. The generated data is
+compiled once behind a small query API rather than included separately by each
+consumer. Its canonical source SHA-256 is folded into the M4 content hash, so
+changing a late phase or non-primary effect cannot retain a stale compatibility
+identity.
+
+The semantic jab route remains explicitly selectable so original/custom
+content can retain its authored vector response without silently inheriting
+Falcon semantics. Other customized action records fall back when their timing
+or primary damage no longer identifies the generated default. The current
+single rectangular collision volume cannot choose among simultaneous
+bone-relative sweet and weak hitboxes, so a phase uses its first source-defined
+effect until transformed bone geometry is represented independently. Standing
+and dash grab also remain separate source records but need separate simulation
+states before either timing can be selected without a compromise; throw
+effects are imported but are not yet the production throw response.
 
 ## Coordinate conversion
 

@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(66)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(58)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(67)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(59)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -432,6 +432,7 @@ typedef struct pf_m4_fighter_data
     int32_t jab_final_base_knockback_x_q16;
     int32_t jab_final_base_knockback_y_q16;
     int32_t jab_final_knockback_growth_q16;
+    pf_m4_melee_knockback_data jab_final_melee_knockback;
     pf_m4_attack_data up_attack;
     pf_m4_attack_data down_attack;
     pf_m4_attack_data forward_attack;

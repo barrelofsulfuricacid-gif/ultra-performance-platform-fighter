@@ -120,6 +120,45 @@ typedef struct pf_m4_reference_move
     uint8_t reserved;
 } pf_m4_reference_move;
 
-#include "../../generated/data/m4_falcon_ntsc102_frame_data.inc"
+typedef struct pf_m4_reference_timing
+{
+    uint16_t startup_ticks;
+    uint16_t active_ticks;
+    uint16_t recovery_ticks;
+} pf_m4_reference_timing;
+
+const uint8_t *pf_m4_falcon_reference_source_sha256(void);
+
+const pf_m4_reference_move *pf_m4_falcon_reference_move(
+    pf_m4_falcon_move_index move_index);
+
+const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase(
+    pf_m4_falcon_move_index move_index,
+    uint16_t phase_index);
+
+const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect(
+    pf_m4_falcon_move_index move_index,
+    uint16_t effect_index);
+
+const pf_m4_reference_hit_effect *pf_m4_falcon_reference_primary_effect(
+    pf_m4_falcon_move_index move_index);
+
+const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame);
+
+const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame);
+
+int pf_m4_falcon_reference_move_for_action(
+    uint8_t action_state,
+    pf_m4_falcon_move_index *out_move_index);
+
+const pf_m4_reference_throw *pf_m4_falcon_reference_throw(
+    pf_m4_falcon_move_index move_index);
+
+pf_m4_reference_timing pf_m4_falcon_reference_timing(
+    pf_m4_falcon_move_index move_index);
 
 #endif

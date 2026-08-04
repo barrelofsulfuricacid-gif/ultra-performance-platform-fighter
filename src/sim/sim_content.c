@@ -14,103 +14,185 @@ static const uint8_t pf_m4_content_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x4d), UINT8_C(0x34),
     UINT8_C(0x44), UINT8_C(0x41), UINT8_C(0x54), UINT8_C(0x31)};
 
-typedef struct pf_m4_reference_timing
-{
-    uint16_t startup_ticks;
-    uint16_t active_ticks;
-    uint16_t recovery_ticks;
-} pf_m4_reference_timing;
-
-static pf_m4_reference_timing pf_m4_falcon_reference_timing(
-    pf_m4_falcon_move_index move_index)
-{
-    const pf_m4_reference_move *move = &pf_m4_falcon_moves[move_index];
-    pf_m4_reference_timing timing = {0};
-
-    if (move->present != UINT8_C(0) && move->phase_count != UINT8_C(0))
-    {
-        const pf_m4_reference_hit_phase *first =
-            &pf_m4_falcon_hit_phases[move->phase_offset];
-        const pf_m4_reference_hit_phase *last =
-            &pf_m4_falcon_hit_phases[
-                move->phase_offset + move->phase_count - UINT16_C(1)];
-
-        timing.startup_ticks = first->first_frame - UINT16_C(1);
-        timing.active_ticks = (uint16_t)(
-            (uint32_t)last->last_frame -
-            (uint32_t)first->first_frame + UINT32_C(1));
-        timing.recovery_ticks = move->total_frames - last->last_frame;
-    }
-    return timing;
-}
-
-static const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect(
-    pf_m4_falcon_move_index move_index)
-{
-    const pf_m4_reference_move *move = &pf_m4_falcon_moves[move_index];
-    const pf_m4_reference_hit_phase *phase;
-    uint16_t mask;
-    uint16_t effect_index = UINT16_C(0);
-
-    if (move->present == UINT8_C(0) || move->phase_count == UINT8_C(0) ||
-        move->effect_count == UINT8_C(0))
-    {
-        return NULL;
-    }
-    phase = &pf_m4_falcon_hit_phases[move->phase_offset];
-    mask = phase->effect_mask;
-    while ((mask & UINT16_C(1)) == UINT16_C(0))
-    {
-        mask >>= 1U;
-        ++effect_index;
-    }
-    return &pf_m4_falcon_hit_effects[move->effect_offset + effect_index];
-}
-
 static uint16_t pf_m4_falcon_reference_hitlag_ticks(uint8_t damage)
 {
     return (uint16_t)(damage / UINT8_C(3) + UINT8_C(3));
 }
 
-static void pf_m4_apply_falcon_reference_attack(
+static int pf_m4_apply_falcon_reference_attack(
     pf_m4_attack_data *attack,
     pf_m4_falcon_move_index move_index)
 {
     const pf_m4_reference_hit_effect *effect =
-        pf_m4_falcon_reference_effect(move_index);
+        pf_m4_falcon_reference_primary_effect(move_index);
     const pf_m4_reference_timing timing =
         pf_m4_falcon_reference_timing(move_index);
 
+    if (attack == NULL || effect == NULL ||
+        timing.active_ticks == UINT16_C(0))
+    {
+        return 0;
+    }
     attack->damage_q16 = (uint32_t)effect->damage * UINT32_C(65536);
     attack->startup_ticks = timing.startup_ticks;
     attack->active_ticks = timing.active_ticks;
     attack->recovery_ticks = timing.recovery_ticks;
     attack->hitlag_ticks =
         pf_m4_falcon_reference_hitlag_ticks(effect->damage);
+    return 1;
 }
 
-static void pf_m4_apply_falcon_reference_jab(
+static void pf_m4_apply_falcon_reference_knockback(
+    pf_m4_melee_knockback_data *knockback,
+    const pf_m4_reference_hit_effect *effect)
+{
+    knockback->angle_degrees = effect->angle_degrees;
+    knockback->growth = effect->growth;
+    knockback->weight_set = effect->weight_set;
+    knockback->base = effect->base;
+    knockback->enabled = UINT8_C(1);
+}
+
+static int pf_m4_apply_falcon_reference_jab(
     pf_m4_fighter_data *fighter)
 {
-    const pf_m4_reference_hit_effect *effect =
-        pf_m4_falcon_reference_effect(PF_M4_FALCON_JAB1);
-    pf_m4_attack_data attack = {0};
+    const pf_m4_reference_hit_effect *jab_effect =
+        pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_hit_effect *jab_final_effect =
+        pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_JAB2);
+    pf_m4_attack_data jab = {0};
+    pf_m4_attack_data jab_final = {0};
 
-    pf_m4_apply_falcon_reference_attack(
-        &attack,
-        PF_M4_FALCON_JAB1);
-    fighter->jab_damage_q16 = attack.damage_q16;
-    fighter->jab_startup_ticks = attack.startup_ticks;
-    fighter->jab_active_ticks = attack.active_ticks;
-    fighter->jab_recovery_ticks = attack.recovery_ticks;
-    fighter->jab_hitlag_ticks = attack.hitlag_ticks;
+    if (!pf_m4_apply_falcon_reference_attack(
+        &jab,
+        PF_M4_FALCON_JAB1) ||
+        !pf_m4_apply_falcon_reference_attack(
+        &jab_final,
+        PF_M4_FALCON_JAB2) ||
+        jab_effect == NULL || jab_final_effect == NULL)
+    {
+        return 0;
+    }
+    fighter->jab_damage_q16 = jab.damage_q16;
+    fighter->jab_startup_ticks = jab.startup_ticks;
+    fighter->jab_active_ticks = jab.active_ticks;
+    fighter->jab_recovery_ticks = jab.recovery_ticks;
+    fighter->jab_hitlag_ticks = jab.hitlag_ticks;
     fighter->jab_combo_input_begin_tick =
-        attack.startup_ticks + attack.active_ticks;
-    fighter->jab_melee_knockback.angle_degrees = effect->angle_degrees;
-    fighter->jab_melee_knockback.growth = effect->growth;
-    fighter->jab_melee_knockback.weight_set = effect->weight_set;
-    fighter->jab_melee_knockback.base = effect->base;
-    fighter->jab_melee_knockback.enabled = UINT8_C(1);
+        jab.startup_ticks + jab.active_ticks;
+    pf_m4_apply_falcon_reference_knockback(
+        &fighter->jab_melee_knockback,
+        jab_effect);
+    fighter->jab_final_damage_q16 = jab_final.damage_q16;
+    fighter->jab_final_startup_ticks = jab_final.startup_ticks;
+    fighter->jab_final_active_ticks = jab_final.active_ticks;
+    fighter->jab_final_recovery_ticks = jab_final.recovery_ticks;
+    fighter->jab_final_hitlag_ticks = jab_final.hitlag_ticks;
+    pf_m4_apply_falcon_reference_knockback(
+        &fighter->jab_final_melee_knockback,
+        jab_final_effect);
+    return 1;
+}
+
+static int pf_m4_apply_falcon_reference_defaults(
+    pf_m4_fighter_data *fighter)
+{
+    const pf_m4_reference_move *neutral_aerial =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_NEUTRAL_AERIAL);
+    const pf_m4_reference_move *forward_aerial =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_FORWARD_AERIAL);
+    const pf_m4_reference_move *back_aerial =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_BACK_AERIAL);
+    const pf_m4_reference_move *up_aerial =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_UP_AERIAL);
+    const pf_m4_reference_move *down_aerial =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_DOWN_AERIAL);
+    const pf_m4_reference_move *pummel =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_PUMMEL);
+    pf_m4_attack_data dash_attack = {0};
+    pf_m4_attack_data neutral_aerial_attack = {0};
+
+    if (fighter == NULL || neutral_aerial == NULL ||
+        forward_aerial == NULL || back_aerial == NULL ||
+        up_aerial == NULL || down_aerial == NULL || pummel == NULL ||
+        !pf_m4_apply_falcon_reference_jab(fighter) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &dash_attack,
+            PF_M4_FALCON_DASH_ATTACK) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->up_attack,
+            PF_M4_FALCON_UP_TILT) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->down_attack,
+            PF_M4_FALCON_DOWN_TILT) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->forward_attack,
+            PF_M4_FALCON_FORWARD_TILT) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->forward_strong_attack,
+            PF_M4_FALCON_FORWARD_SMASH) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->up_strong_attack,
+            PF_M4_FALCON_UP_SMASH) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->down_strong_attack,
+            PF_M4_FALCON_DOWN_SMASH) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->forward_aerial,
+            PF_M4_FALCON_FORWARD_AERIAL) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->back_aerial,
+            PF_M4_FALCON_BACK_AERIAL) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->up_aerial,
+            PF_M4_FALCON_UP_AERIAL) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &fighter->down_aerial,
+            PF_M4_FALCON_DOWN_AERIAL) ||
+        !pf_m4_apply_falcon_reference_attack(
+            &neutral_aerial_attack,
+            PF_M4_FALCON_NEUTRAL_AERIAL))
+    {
+        return 0;
+    }
+
+    fighter->dash_attack_damage_q16 = dash_attack.damage_q16;
+    fighter->dash_attack_startup_ticks = dash_attack.startup_ticks;
+    fighter->dash_attack_active_ticks = dash_attack.active_ticks;
+    fighter->dash_attack_recovery_ticks = dash_attack.recovery_ticks;
+    fighter->dash_attack_hitlag_ticks = dash_attack.hitlag_ticks;
+
+    fighter->aerial_damage_q16 = neutral_aerial_attack.damage_q16;
+    fighter->aerial_startup_ticks = neutral_aerial_attack.startup_ticks;
+    fighter->aerial_active_ticks = neutral_aerial_attack.active_ticks;
+    fighter->aerial_recovery_ticks = neutral_aerial_attack.recovery_ticks;
+    fighter->aerial_hitlag_ticks = neutral_aerial_attack.hitlag_ticks;
+
+    fighter->aerial_landing_lag_ticks = neutral_aerial->landing_lag;
+    fighter->forward_aerial_landing_lag_ticks =
+        forward_aerial->landing_lag;
+    fighter->back_aerial_landing_lag_ticks = back_aerial->landing_lag;
+    fighter->up_aerial_landing_lag_ticks = up_aerial->landing_lag;
+    fighter->down_aerial_landing_lag_ticks = down_aerial->landing_lag;
+
+    {
+        const pf_m4_reference_hit_effect *pummel_effect =
+            pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_PUMMEL);
+        const pf_m4_reference_hit_phase *pummel_phase =
+            pf_m4_falcon_reference_phase(
+                PF_M4_FALCON_PUMMEL,
+                UINT16_C(0));
+
+        if (pummel_effect == NULL || pummel_phase == NULL)
+        {
+            return 0;
+        }
+        fighter->pummel_damage_q16 =
+            (uint32_t)pummel_effect->damage * UINT32_C(65536);
+        fighter->pummel_hit_tick = pummel_phase->first_frame;
+        fighter->pummel_total_ticks = pummel->total_frames;
+    }
+    return 1;
 }
 
 static void pf_m4_hash_u8(pf_sha256 *hash, uint8_t value)
@@ -309,6 +391,10 @@ static void pf_m4_hash_fighter(
     pf_sha256 *hash,
     const pf_m4_fighter_data *fighter)
 {
+    pf_sha256_update(
+        hash,
+        pf_m4_falcon_reference_source_sha256(),
+        (size_t)32);
     uint32_t stale_index;
 
     pf_m4_hash_u16(hash, fighter->schema_version);
@@ -408,6 +494,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_knockback_growth_q16);
+    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.angle_degrees);
+    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.growth);
+    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.weight_set);
+    pf_m4_hash_u16(hash, fighter->jab_final_melee_knockback.base);
+    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.enabled);
+    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.reserved[0]);
+    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.reserved[1]);
+    pf_m4_hash_u8(hash, fighter->jab_final_melee_knockback.reserved[2]);
     pf_m4_hash_attack(hash, &fighter->up_attack);
     pf_m4_hash_attack(hash, &fighter->down_attack);
     pf_m4_hash_attack(hash, &fighter->forward_attack);
@@ -1093,7 +1187,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_final_hitbox_offset_y_q16 = INT32_C(0);
     fighter->jab_final_hitbox_half_width_q16 = PF_Q16_RATIO(13, 20);
     fighter->jab_final_hitbox_half_height_q16 = PF_Q16_RATIO(9, 20);
-    fighter->jab_final_damage_q16 = UINT32_C(7) * UINT32_C(65536);
     fighter->jab_final_base_knockback_x_q16 = PF_Q16_RATIO(1, 4);
     fighter->jab_final_base_knockback_y_q16 = PF_Q16_RATIO(3, 10);
     fighter->jab_final_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
@@ -1519,10 +1612,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->boost_grab_cancel_end_tick = UINT16_C(3);
     fighter->jab_combo_input_begin_tick = UINT16_C(4);
     fighter->jab_combo_input_end_tick = UINT16_C(7);
-    fighter->jab_final_startup_ticks = UINT16_C(2);
-    fighter->jab_final_active_ticks = UINT16_C(2);
-    fighter->jab_final_recovery_ticks = UINT16_C(10);
-    fighter->jab_final_hitlag_ticks = UINT16_C(4);
     fighter->reset_max_hitstun_ticks = UINT16_C(12);
     fighter->reset_bound_ticks = UINT16_C(12);
     fighter->reset_forced_getup_ticks = UINT16_C(30);
@@ -1635,7 +1724,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->crouch_start_ticks = UINT16_C(7);
     fighter->crouch_end_ticks = UINT16_C(10);
     fighter->crouch_release_axis_threshold = UINT16_C(20479);
-    pf_m4_apply_falcon_reference_jab(fighter);
+    if (!pf_m4_apply_falcon_reference_defaults(fighter))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -2171,6 +2263,15 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_final_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->jab_final_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->jab_final_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->jab_final_melee_knockback.angle_degrees > UINT16_C(361) ||
+        fighter->jab_final_melee_knockback.growth == UINT16_C(0) ||
+        fighter->jab_final_melee_knockback.growth > UINT16_C(1000) ||
+        fighter->jab_final_melee_knockback.weight_set > UINT16_C(1000) ||
+        fighter->jab_final_melee_knockback.base > UINT16_C(1000) ||
+        fighter->jab_final_melee_knockback.enabled > UINT8_C(1) ||
+        fighter->jab_final_melee_knockback.reserved[0] != UINT8_C(0) ||
+        fighter->jab_final_melee_knockback.reserved[1] != UINT8_C(0) ||
+        fighter->jab_final_melee_knockback.reserved[2] != UINT8_C(0) ||
         fighter->reset_max_damage_q16 == UINT32_C(0) ||
         fighter->reset_max_damage_q16 >
             UINT32_C(7) * UINT32_C(65536) ||

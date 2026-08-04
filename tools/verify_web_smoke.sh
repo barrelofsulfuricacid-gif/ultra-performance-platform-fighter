@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=d9d47e250920373653ff0906a42cf3806004c4347726a9ed91213f2975f4e640'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=2dca650173bd419852de3011d7e75f8887d61b1da8e31688f22c1a912c21905b'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,13 +120,16 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '92 typed events'
+    '78 typed events'
 pf_require_dom \
     "M4 playtest and input status" \
     'playtest=ready input_probe=pass'
 pf_require_dom \
     "M4 dodge status" \
     'air_dodge_probe=pass ground_dodge_probe=pass'
+pf_require_dom \
+    "M4 double-jump cancel counter status" \
+    'double_jump_cancel_counter_probe=pass'
 pf_require_dom \
     "M4 reaction and shield status" \
     'reaction_probe=pass shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass'

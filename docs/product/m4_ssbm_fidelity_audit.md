@@ -42,8 +42,8 @@ threshold, and route differences are not.
 | Aerial landing lag | equivalent | Distinct neutral/forward/back/up/down landing states select Falcon's 15/19/18/15/24 table; L-cancel states halve the selected value. |
 | Shield input, light shield, size, tilt, and volume | equivalent for captured routes | A 500-frame pressure sweep matches sub-threshold through digital-full input, health, release, and regeneration. Three 283-frame light/intermediate/dense physical-hit captures additionally match integer shield-hit conversion, pressure-dependent health/stun, post-hitlag ordering, defender pushback, and separately decaying attacker recoil. New 270- and 2,158-frame memory-probed executable captures qualify guard-angle and magnitude smoothing, all eight linear direction-animation keys, Falcon's joint-derived center, health/pressure radius, facing reflection, and the anisotropically mapped elliptical volume. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
-| Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands. Falcon jab 1 now uses the imported 2-damage, angle-80, KBG-100, set-weight-20, BKB-0 record and Melee's fixed-point knockback/hitlag/hitstun path; its zero-percent Dolphin capture reports three hitlag frames, 13 hitstun frames, and the expected launch. Knockback decay, DI and broader move coverage remain incomplete. |
-| Attacks, grabs, throws, stale moves | partial | A pinned importer now retains the complete 50-subaction Falcon timing/effect/throw table, and jab 1 consumes it in production. Other production actions still use the original single-volume fixtures until all imported phases/effects can be routed without disc-derived hitbox geometry or lossy first-effect selection. |
+| Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands. Jab 1, jab 2, dash attack, the three tilts, the three explicit smashes, and the five directional aerials now select imported phase damage, angle, KBG, set-weight, BKB, and hitlag through Melee's fixed-point response. The jab-1 zero-percent Dolphin capture reports three hitlag frames, 13 hitstun frames, and the expected launch. Knockback decay, DI, and simultaneous geometry-dependent effect selection remain incomplete. |
+| Attacks, grabs, throws, stale moves | partial | A pinned importer retains the complete 50-subaction Falcon timing/effect/throw table. Production routes now consume exact imported timing for jab 1/2, dash attack, all tilts, all explicit smashes, all five aerials, aerial landing lag, and pummel; frame lookup preserves inactive gaps and late-hit changes. A single rectangular volume still cannot select simultaneous bone-relative sweet/weak effects. Standing and dash grab need distinct states, imported throw effects are not yet routed, and the custom generic strong-aerial/special fixtures intentionally remain outside Falcon equivalence. |
 | Special moves and recovery | divergent | Pulse Bolt, Prism Burst, Arc Reservoir, and Vector Ascent are original fixtures, not Falcon specials. |
 | Items, projectiles, reflector, charge | divergent | These are original technique-support fixtures rather than SSBM content tables. |
 | Stage geometry, blast zones, spawns | divergent | The Relay Rod laboratory is an original test stage, not an SSBM stage. |
@@ -56,8 +56,9 @@ threshold, and route differences are not.
    shield, dodges, ledges, techs, landing, and unaudited brake interrupts.
 2. Audit common damage, knockback, shield, hitlag, hitstun, DI, SDI, stale-move,
    crouch-cancel, and collision formulas field by field.
-3. Route every supported combat action through the imported multi-phase Falcon
-   table without duplicating constants or collapsing distinct effects.
+3. Represent transformed bone-relative hitbox geometry, split standing and dash
+   grab, and route the imported throw effects without duplicating constants or
+   collapsing simultaneous distinct effects.
 4. Validate native Windows, WSL Linux, Wasm/browser, replay, save/load, and
    rollback results from the same content hash.
 

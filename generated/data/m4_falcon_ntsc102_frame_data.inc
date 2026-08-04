@@ -5,6 +5,10 @@
 /* PlCa.dat SHA-256: 4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af */
 /* PlCaAJ.dat SHA-256: a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a */
 
+static const uint8_t pf_m4_falcon_source_sha256[32] = {
+    UINT8_C(0x42), UINT8_C(0xbb), UINT8_C(0x4e), UINT8_C(0xce), UINT8_C(0xfb), UINT8_C(0x33), UINT8_C(0xe8), UINT8_C(0x7d), UINT8_C(0xc9), UINT8_C(0x78), UINT8_C(0x48), UINT8_C(0x2e), UINT8_C(0xcd), UINT8_C(0xb7), UINT8_C(0xb1), UINT8_C(0xf9), UINT8_C(0x3f), UINT8_C(0xf1), UINT8_C(0x2c), UINT8_C(0xa0), UINT8_C(0x90), UINT8_C(0xe8), UINT8_C(0x70), UINT8_C(0x43), UINT8_C(0x1f), UINT8_C(0xff), UINT8_C(0x91), UINT8_C(0x34), UINT8_C(0x80), UINT8_C(0x60), UINT8_C(0x13), UINT8_C(0x56)
+};
+
 static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {
     { UINT16_C(3), UINT16_C(5), UINT16_C(1), UINT16_C(0) },
     { UINT16_C(4), UINT16_C(6), UINT16_C(1), UINT16_C(0) },

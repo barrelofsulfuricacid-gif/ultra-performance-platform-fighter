@@ -31,6 +31,7 @@ common_flags="
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -57,6 +58,7 @@ grep -Fqx \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -83,6 +85,7 @@ grep -Fqx \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -110,6 +113,7 @@ grep -Fqx \
     "$root/src/sim/sim.c" \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -127,7 +131,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=240 players=4 bytes=41575 corpus_sha256=430f8ce21ac7c8326e9adb3eb41d9d59973cd15cf66afacd0cc12eb73aeb3504 final_sha256=d9d47e250920373653ff0906a42cf3806004c4347726a9ed91213f2975f4e640 events_sha256=3ac6da05eb0d45cbc5944ee94d00f053f122d6099236b1e1b80fa7738b0ce9f0' \
+    'sim-replay=pass ticks=240 players=4 bytes=41575 corpus_sha256=0d303a7a8a30fe59f391bf7779e716f193de5fcabf7a9ae026fa4b566aafa028 final_sha256=2dca650173bd419852de3011d7e75f8887d61b1da8e31688f22c1a912c21905b events_sha256=c9b0f348b2ca91d83ced7c5e2c290847c118ec8c8da936db4fad7a1639660206' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -149,6 +153,13 @@ grep -Fqx \
     -I"$root/src/sim" \
     -c "$root/src/sim/sim_content.c" \
     -o "$output_dir/sim_content.o"
+
+# shellcheck disable=SC2086
+"$compiler" $common_flags \
+    -I"$root/include" \
+    -I"$root/src/sim" \
+    -c "$root/src/sim/sim_falcon_frame_data.c" \
+    -o "$output_dir/sim_falcon_frame_data.o"
 
 # shellcheck disable=SC2086
 "$compiler" $common_flags \
@@ -226,6 +237,7 @@ if command -v nm >/dev/null 2>&1; then
         "$output_dir/sim.o" \
         "$output_dir/sim_combat.o" \
         "$output_dir/sim_content.o" \
+        "$output_dir/sim_falcon_frame_data.o" \
         "$output_dir/sim_event.o" \
         "$output_dir/sim_item.o" \
         "$output_dir/sim_movement.o" \

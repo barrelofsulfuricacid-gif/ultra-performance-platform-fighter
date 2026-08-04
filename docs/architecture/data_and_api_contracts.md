@@ -614,6 +614,17 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+Content schema 67/fighter schema 59 appends, validates, defaults, and hashes
+Falcon jab 2's angle, KBG, set-weight, BKB, and semantic-selection flag;
+content schema 66/fighter schema 58 did the same for jab 1. The complete pinned
+50-subaction Falcon table is immutable compiled data behind one query API.
+Existing hashed action timing/damage fields receive its defaults, and the
+runtime table route is selected only while those identity fields still match;
+customized content falls back instead of silently mixing two contracts. The
+canonical source SHA-256 is also part of every M4 content hash, covering late
+phases and effects that are not repeated as public fighter fields. No canonical
+state or save layout changes.
+
 Content schema 65/fighter schema 57 replaces approximate rectangular shield
 extents and direct Cartesian tilt with Falcon's owner-executable joint center,
 anisotropic radii, animation scales, and guard-direction table. State schema

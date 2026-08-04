@@ -113,6 +113,13 @@ def generate(data: dict[str, Any]) -> str:
         f"/* PlCa.dat SHA-256: {SOURCE_DAT_SHA256} */",
         f"/* PlCaAJ.dat SHA-256: {SOURCE_ANIMATION_DAT_SHA256} */",
         "",
+        "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
+        "    " + ", ".join(
+            f"UINT8_C(0x{EXPECTED_CANONICAL_SHA256[index:index + 2]})"
+            for index in range(0, len(EXPECTED_CANONICAL_SHA256), 2)
+        ),
+        "};",
+        "",
         "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",
     ]
     lines.extend(

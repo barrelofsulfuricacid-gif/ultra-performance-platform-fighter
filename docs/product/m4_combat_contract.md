@@ -1193,10 +1193,11 @@ before exposing readiness; the live adapter labels the production action
 
 ## Jab sequence and jab cancel
 
-The production neutral attack is now a two-hit decision sequence. The existing
-`GROUND_ATTACK` is the first jab: two startup ticks, two active ticks, eight
-recovery ticks, 6% damage, and four hitlag ticks. Stored action ticks 4 through
-7 form the hashed and validated combo-input window. A fresh shield trigger in
+The production neutral attack is a two-hit decision sequence. `GROUND_ATTACK`
+uses Falcon jab 1's imported two startup ticks, three active ticks, 16 recovery
+ticks, 2% damage, angle 80, KBG 100, set-weight 20, BKB 0, and three hitlag
+ticks. Stored action ticks 4 through 7 form the hashed and validated
+combo-input window. A fresh shield trigger in
 that inclusive window cancels directly into the existing production `SHIELD`
 state on either hit or whiff. A fresh light-attack edge instead selects the
 independently authored `JAB_FINAL`; neutral input lets the first jab finish.
@@ -1206,9 +1207,10 @@ neutral-attack sequence before its final hit. An early trigger held into the
 window never becomes fresh, and the first frame after the stored tick-7
 boundary cannot cancel.
 
-`JAB_FINAL` has its own forward hitbox, 7% damage, signed base launch and
-per-percent growth, two startup ticks, two active ticks, ten recovery ticks,
-and four hitlag ticks. It emits the ordinary typed `HIT` event with
+`JAB_FINAL` uses Falcon jab 2's imported forward hitbox record: 3% damage,
+angle 80, KBG 100, set-weight 20, BKB 0, three startup ticks, three active
+ticks, 13 recovery ticks, and four hitlag ticks. It emits the ordinary typed
+`HIT` event with
 `JAB_FINAL` in `detail`. The transition resets the shared per-attack hit mask,
 so the same target can legally receive the independently identified final hit;
 no jab-cancel flag, buffered choice, or other technique-only mutable state is

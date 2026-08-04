@@ -5237,8 +5237,29 @@ static int pf_web_m4_run_double_jump_cancel_counter_route(void)
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
-        inspection.players[0].action_ticks != UINT16_C(0) ||
-        !pf_web_m4_tick(
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         inspection.players[0].action_ticks <
+             fighter->aerial_startup_ticks;
+         ++tick)
+    {
+        if (tick > UINT32_C(120) ||
+            !pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -5382,16 +5403,39 @@ static int pf_web_m4_run_double_jump_cancel_counter_route(void)
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
         inspection.players[1].action_state !=
-            (uint8_t)PF_M4_ACTION_AIRBORNE ||
-        !pf_web_m4_tick(
+            (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        return 0;
+    }
+    if (!pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
-            &inspection) ||
-        !pf_web_m4_tick(
+            &inspection))
+    {
+        return 0;
+    }
+    while (inspection.players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_AERIAL_ATTACK &&
+           inspection.players[0].action_ticks <
+               fighter->aerial_startup_ticks)
+    {
+        if (!pf_web_m4_tick(
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -6224,19 +6268,19 @@ static int pf_web_m4_run_jab_cancel_route(void)
     int first_hit_seen = 0;
 
     if (pf_web_m4_content.fighter.jab_combo_input_begin_tick !=
-            UINT16_C(4) ||
+            UINT16_C(5) ||
         pf_web_m4_content.fighter.jab_combo_input_end_tick !=
             UINT16_C(7) ||
         pf_web_m4_content.fighter.jab_final_startup_ticks !=
-            UINT16_C(2) ||
+            UINT16_C(3) ||
         pf_web_m4_content.fighter.jab_final_active_ticks !=
-            UINT16_C(2) ||
+            UINT16_C(3) ||
         pf_web_m4_content.fighter.jab_final_recovery_ticks !=
-            UINT16_C(10) ||
+            UINT16_C(13) ||
         pf_web_m4_content.fighter.jab_final_hitlag_ticks !=
             UINT16_C(4) ||
         pf_web_m4_content.fighter.jab_final_damage_q16 !=
-            UINT32_C(7) * UINT32_C(65536))
+            UINT32_C(3) * UINT32_C(65536))
     {
         return 0;
     }

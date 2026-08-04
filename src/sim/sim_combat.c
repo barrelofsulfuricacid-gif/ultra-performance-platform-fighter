@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
 #include "sim_melee.h"
 
 #include <limits.h>
@@ -395,6 +396,7 @@ typedef struct pf_m4_attack_runtime
     uint16_t active_begin_tick;
     uint16_t active_end_tick;
     uint16_t hitlag_ticks;
+    pf_m4_melee_knockback_data reference_melee_knockback;
     const pf_m4_melee_knockback_data *melee_knockback;
     int8_t direction;
     int8_t vertical_direction;
@@ -441,6 +443,141 @@ static uint32_t pf_m4_smash_charged_damage(
          (uint64_t)fighter->smash_charge_max_ticks);
 
     return base_damage_q16 + (uint32_t)bonus_damage;
+}
+
+static uint32_t pf_m4_authored_base_damage_for_action(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    const pf_m4_attack_data *ground_attack =
+        pf_m4_ground_attack_data(fighter, action_state);
+
+    if (ground_attack != NULL)
+    {
+        return ground_attack->damage_q16;
+    }
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_GROUND_ATTACK:
+            return fighter->jab_damage_q16;
+        case PF_M4_ACTION_JAB_FINAL:
+            return fighter->jab_final_damage_q16;
+        case PF_M4_ACTION_DASH_ATTACK:
+            return fighter->dash_attack_damage_q16;
+        case PF_M4_ACTION_STRONG_ATTACK:
+            return fighter->strong_damage_q16;
+        case PF_M4_ACTION_AERIAL_ATTACK:
+            return fighter->aerial_damage_q16;
+        case PF_M4_ACTION_FORWARD_AERIAL:
+            return fighter->forward_aerial.damage_q16;
+        case PF_M4_ACTION_BACK_AERIAL:
+            return fighter->back_aerial.damage_q16;
+        case PF_M4_ACTION_UP_AERIAL:
+            return fighter->up_aerial.damage_q16;
+        case PF_M4_ACTION_DOWN_AERIAL:
+            return fighter->down_aerial.damage_q16;
+        default:
+            return UINT32_C(0);
+    }
+}
+
+static int pf_m4_reference_knockback_matches(
+    const pf_m4_melee_knockback_data *knockback,
+    const pf_m4_reference_hit_effect *effect)
+{
+    return knockback != NULL && effect != NULL &&
+           knockback->enabled != UINT8_C(0) &&
+           knockback->angle_degrees == effect->angle_degrees &&
+           knockback->growth == effect->growth &&
+           knockback->weight_set == effect->weight_set &&
+           knockback->base == effect->base;
+}
+
+/*
+ * Returns 1 when the generated Falcon route supplied this frame's effect,
+ * 0 when authored content does not match that route, and -1 for an inactive
+ * frame inside an otherwise table-backed action. This keeps custom content
+ * authored while making the default fighter's disjoint hit phases exact.
+ */
+static int pf_m4_apply_falcon_reference_frame(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint16_t action_frame,
+    uint16_t smash_charge_ticks,
+    pf_m4_attack_runtime *attack)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_hit_effect *primary_effect;
+    const pf_m4_reference_hit_effect *frame_effect;
+    pf_m4_reference_timing timing;
+    uint32_t damage_q16;
+
+    if (fighter == NULL || attack == NULL ||
+        !pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return 0;
+    }
+    primary_effect = pf_m4_falcon_reference_primary_effect(move_index);
+    timing = pf_m4_falcon_reference_timing(move_index);
+    if (primary_effect == NULL || timing.active_ticks == UINT16_C(0) ||
+        (action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+         !pf_m4_reference_knockback_matches(
+             &fighter->jab_melee_knockback,
+             primary_effect)) ||
+        (action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL &&
+         !pf_m4_reference_knockback_matches(
+             &fighter->jab_final_melee_knockback,
+             primary_effect)) ||
+        attack->active_begin_tick !=
+            timing.startup_ticks + UINT16_C(1) ||
+        attack->active_end_tick !=
+            timing.startup_ticks + timing.active_ticks ||
+        pf_m4_authored_base_damage_for_action(fighter, action_state) !=
+            (uint32_t)primary_effect->damage * UINT32_C(65536))
+    {
+        return 0;
+    }
+    frame_effect = pf_m4_falcon_reference_effect_at_frame(
+        move_index,
+        action_frame);
+    if (frame_effect == NULL)
+    {
+        return -1;
+    }
+
+    damage_q16 =
+        (uint32_t)frame_effect->damage * UINT32_C(65536);
+    if ((action_state ==
+             (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK) &&
+        smash_charge_ticks != UINT16_C(0))
+    {
+        damage_q16 = pf_m4_smash_charged_damage(
+            fighter,
+            damage_q16,
+            smash_charge_ticks);
+    }
+    attack->damage_q16 = damage_q16;
+    attack->hitlag_ticks =
+        (uint16_t)(frame_effect->damage / UINT8_C(3) + UINT8_C(3));
+    attack->reference_melee_knockback.angle_degrees =
+        frame_effect->angle_degrees;
+    attack->reference_melee_knockback.growth = frame_effect->growth;
+    attack->reference_melee_knockback.weight_set =
+        frame_effect->weight_set;
+    attack->reference_melee_knockback.base = frame_effect->base;
+    attack->reference_melee_knockback.enabled = UINT8_C(1);
+    (void)memset(
+        attack->reference_melee_knockback.reserved,
+        0,
+        sizeof(attack->reference_melee_knockback.reserved));
+    attack->melee_knockback = &attack->reference_melee_knockback;
+    return 1;
 }
 
 static int pf_m4_attack_for_action(
@@ -513,6 +650,10 @@ static int pf_m4_attack_for_action(
             fighter->jab_final_startup_ticks +
             fighter->jab_final_active_ticks;
         out_attack->hitlag_ticks = fighter->jab_final_hitlag_ticks;
+        out_attack->melee_knockback =
+            fighter->jab_final_melee_knockback.enabled != UINT8_C(0)
+                ? &fighter->jab_final_melee_knockback
+                : NULL;
         out_attack->direction = INT8_C(1);
         out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state = (uint8_t)PF_M4_ACTION_JAB_FINAL;
@@ -666,10 +807,11 @@ static int pf_m4_attack_for_action(
             attack->base_knockback_y_q16;
         out_attack->knockback_growth_q16 =
             attack->knockback_growth_q16;
-        out_attack->active_begin_tick = attack->startup_ticks;
+        out_attack->active_begin_tick =
+            attack->startup_ticks + UINT16_C(1);
         out_attack->active_end_tick = (uint16_t)(
             (uint32_t)attack->startup_ticks +
-            (uint32_t)attack->active_ticks - UINT32_C(1));
+            (uint32_t)attack->active_ticks);
         out_attack->hitlag_ticks = attack->hitlag_ticks;
         out_attack->direction =
             action_state == (uint8_t)PF_M4_ACTION_BACK_AERIAL
@@ -730,12 +872,11 @@ static int pf_m4_attack_for_action(
         out_attack->knockback_growth_q16 =
             fighter->aerial_knockback_growth_q16;
         out_attack->active_begin_tick =
-            fighter->aerial_startup_ticks;
+            fighter->aerial_startup_ticks + UINT16_C(1);
         out_attack->active_end_tick =
             (uint16_t)(
                 (uint32_t)fighter->aerial_startup_ticks +
-                (uint32_t)fighter->aerial_active_ticks -
-                UINT32_C(1));
+                (uint32_t)fighter->aerial_active_ticks);
         out_attack->hitlag_ticks = fighter->aerial_hitlag_ticks;
         out_attack->direction = INT8_C(1);
         out_attack->vertical_direction = INT8_C(-1);
@@ -1124,7 +1265,13 @@ int pf_m4_attack_hitbox(
     {
         return 0;
     }
-    if (action_ticks < attack.active_begin_tick ||
+    if (pf_m4_apply_falcon_reference_frame(
+            &content->fighter,
+            action_state,
+            action_ticks,
+            UINT16_C(0),
+            &attack) < 0 ||
+        action_ticks < attack.active_begin_tick ||
         action_ticks > attack.active_end_tick)
     {
         return 0;
@@ -2215,6 +2362,9 @@ static pf_status pf_m4_resolve_grabs(
                 UINT8_C(0);
             scratch->powershield[target_index] = UINT8_C(0);
             scratch->tumble[target_index] = UINT8_C(0);
+            scratch->tech_direction[target_index] = INT8_C(0);
+            scratch->prone_orientation[target_index] =
+                (uint8_t)PF_M4_PRONE_NONE;
             if (pf_sim_push_event(
                     scratch,
                     world->tick,
@@ -2770,6 +2920,15 @@ pf_status pf_m4_resolve_combat(
                 scratch->charge_ticks[attacker_index],
                 scratch->smash_charge_ticks[attacker_index],
                 &attacker_attack[attacker_index]))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (pf_m4_apply_falcon_reference_frame(
+                &content->fighter,
+                attacker_action[attacker_index],
+                scratch->action_ticks[attacker_index],
+                scratch->smash_charge_ticks[attacker_index],
+                &attacker_attack[attacker_index]) < 0)
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }

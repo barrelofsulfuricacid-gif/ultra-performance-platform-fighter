@@ -2889,7 +2889,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   routes, and the exhaustive decomp/inventory gate still contains broader
   shared collision, damage, defensive-action, ledge, and match-state work.
 
-## 2026-08-04 complete Falcon frame-data import and jab response slice
+## 2026-08-04 complete Falcon frame-data import and table-routed attack slice
 
 - The owner NTSC 1.02 `PlCa.dat` and `PlCaAJ.dat` were processed with pinned
   `meleeDat2Json` and `meleeFrameDataExtractor` revisions. The resulting
@@ -2898,27 +2898,35 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and covers all 50 ordinary, grab/throw, and special subactions, including
   every active phase and effect. A hash-checking importer generates the compact
   immutable C table; raw DAT and hitbox geometry remain outside the repository.
-- The default jab-1 route now consumes the generated damage, timing, angle,
-  KBG, set-weight, and BKB values. Its deterministic fixed-point Melee response
+- Default jab 1/2, dash attack, all three tilts, all three explicit smashes,
+  and all five aerial routes now consume generated timing and phase-specific
+  damage, angle, KBG, set-weight, BKB, and hitlag. Exact frame lookup preserves
+  inactive gaps and late-hit changes; the same table owns aerial landing lag
+  and pummel timing/damage. Jab 1's deterministic fixed-point Melee response
   produces 1,179 x and -11,369 y Q16 simulation velocity, three hitlag frames,
   and 13 hitstun frames, corresponding to the captured zero-percent Dolphin
   velocity after the documented independent coordinate conversions. Custom
-  content selects semantic or authored-vector knockback explicitly.
+  jab content still selects semantic or authored-vector knockback explicitly.
 - The final 271-frame live-hitbox/damage capture has SHA-256
   `2660274136b77aef393db391c85582be7795bee7360ebd6607325e437ac9af04`.
   Aggregate owner-executable evidence is now 13,611 captured frames.
-- Content schema 66 and fighter schema 58 fail closed on the semantic data.
+- Content schema 67 and fighter schema 59 fail closed on the two semantic jab
+  records. The generated table is compiled once behind zero-allocation query
+  functions, so content defaults, combat frame selection, and tests do not
+  duplicate the 50-subaction data.
   The refreshed 41,575-byte replay SHA-256 is
-  `430f8ce21ac7c8326e9adb3eb41d9d59973cd15cf66afacd0cc12eb73aeb3504`;
+  `0d303a7a8a30fe59f391bf7779e716f193de5fcabf7a9ae026fa4b566aafa028`;
   final-state SHA-256 is
-  `d9d47e250920373653ff0906a42cf3806004c4347726a9ed91213f2975f4e640`;
+  `2dca650173bd419852de3011d7e75f8887d61b1da8e31688f22c1a912c21905b`;
   event-journal SHA-256 is
-  `3ac6da05eb0d45cbc5944ee94d00f053f122d6099236b1e1b80fa7738b0ce9f0`,
-  and the repeated-match verifier digest is `b29a97d14458a9a9`.
+  `c9b0f348b2ca91d83ced7c5e2c290847c118ec8c8da936db4fad7a1639660206`,
+  and the repeated-match verifier digest is `aa6e1a0e6ba20a35`.
 - Windows MSVC Release and WSL Linux GCC each pass all 22 CTest targets. M4
-  remains unfinished: the remaining imported phases/effects still need direct
-  production routing, and ordinary knockback decay, DI, stale scaling, throws,
-  and bone-independent collision coverage remain active fidelity gaps.
+  remains unfinished: simultaneous bone-relative sweet/weak geometry,
+  separate standing/dash grab states, production throw effects, ordinary
+  knockback decay, DI, and broader collision coverage remain active fidelity
+  gaps. Original generic strong-aerial and special fixtures are not presented
+  as Falcon-equivalent behavior.
 - A clean alternating Windows comparison against pre-import commit `4b6ea8c`
   used 100 ms samples and 15 repetitions. Candidate run 4 in
   `performance/local/falcon-frame-data-alternating-20260804.sqlite3` passes all
