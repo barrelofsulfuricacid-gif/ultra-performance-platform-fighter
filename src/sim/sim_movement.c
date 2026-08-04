@@ -5308,7 +5308,7 @@ pf_status pf_m4_step_player(
                 ? fighter->turn_acceleration_q16
                 : fighter->traction_q16);
         if (input->main_stick_y <
-            (int16_t)fighter->crouch_axis_threshold)
+            (int16_t)fighter->crouch_release_axis_threshold)
         {
             action_state = (uint8_t)PF_M4_ACTION_CROUCH_END;
             action_ticks = UINT16_C(1);

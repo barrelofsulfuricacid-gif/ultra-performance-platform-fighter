@@ -628,6 +628,7 @@ static void pf_m4_hash_fighter(
     }
     pf_m4_hash_u16(hash, fighter->crouch_start_ticks);
     pf_m4_hash_u16(hash, fighter->crouch_end_ticks);
+    pf_m4_hash_u16(hash, fighter->crouch_release_axis_threshold);
 }
 
 static void pf_m4_hash_stage(
@@ -1357,7 +1358,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->fast_fall_axis_threshold = UINT16_C(21709);
     fighter->fast_fall_input_window_ticks = UINT16_C(4);
     fighter->air_dodge_dead_zone = UINT16_C(8192);
-    fighter->crouch_axis_threshold = UINT16_C(16384);
+    fighter->crouch_axis_threshold = UINT16_C(22528);
     fighter->shield_drop_axis_threshold = UINT16_C(12288);
     fighter->dash_attack_startup_ticks = UINT16_C(4);
     fighter->dash_attack_active_ticks = UINT16_C(3);
@@ -1486,6 +1487,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     /* GALE01 Captain Falcon Squat and SquatRv animation lengths. */
     fighter->crouch_start_ticks = UINT16_C(7);
     fighter->crouch_end_ticks = UINT16_C(10);
+    fighter->crouch_release_axis_threshold = UINT16_C(20479);
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -2374,7 +2376,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->tilt_axis_threshold == UINT16_C(0) ||
         fighter->tilt_axis_threshold >= fighter->axis_dead_zone ||
         fighter->fast_fall_axis_threshold <=
-            fighter->crouch_axis_threshold ||
+            fighter->crouch_release_axis_threshold ||
         fighter->fast_fall_axis_threshold > UINT16_C(32767) ||
         fighter->fast_fall_input_window_ticks == UINT16_C(0) ||
         fighter->fast_fall_input_window_ticks > UINT16_C(120) ||
@@ -2382,6 +2384,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->air_dodge_dead_zone > fighter->axis_dead_zone ||
         fighter->crouch_axis_threshold <= fighter->axis_dead_zone ||
         fighter->crouch_axis_threshold > UINT16_C(32767) ||
+        fighter->crouch_release_axis_threshold <=
+            fighter->axis_dead_zone ||
+        fighter->crouch_release_axis_threshold >=
+            fighter->crouch_axis_threshold ||
         fighter->shield_drop_axis_threshold <=
             fighter->axis_dead_zone ||
         fighter->shield_drop_axis_threshold >=

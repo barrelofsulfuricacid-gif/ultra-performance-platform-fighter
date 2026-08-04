@@ -28,7 +28,7 @@ movement placeholder on the original laboratory stage.
 | Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. |
 | Gravity, terminal velocity, air drift | equivalent | Falcon A/B acceleration, drift target, friction, gravity, terminal, and absolute horizontal cap are mapped. |
 | Fast fall | equivalent | Requires a fresh downward tilt within four ticks after descent begins; holding down before the apex does not trigger it. |
-| Crouch/crawl | equivalent for captured route | Full-down input produces Falcon's seven displayed `Squat` frames, held `SquatWait`, ten displayed `SquatRv` frames, then standing. `Squat` and `SquatWait` are crouch-cancel eligible while `SquatRv` is not; crawl entry remains disabled because Falcon cannot crawl. Analog threshold hysteresis and the complete IASA/interrupt matrix remain unaudited. |
+| Crouch/crawl | equivalent for captured routes | Full-down input produces Falcon's seven displayed `Squat` frames, held `SquatWait`, ten displayed `SquatRv` frames, then standing. Exact 0.6875 entry and 0.625 release boundaries preserve the decomp's hysteresis. `Squat` and `SquatWait` are crouch-cancel eligible while `SquatRv` is not; crawl entry remains disabled because Falcon cannot crawl. The complete IASA/interrupt matrix remains unaudited. |
 | Ground and platform collision | partial | Deterministic swept collision and corner-overlap recovery are present; stage collision primitives and ECB evolution do not reproduce Melee's engine. |
 | Ledge jump velocities | equivalent | Falcon 1.0 horizontal and 3.3 vertical attributes are mapped. |
 | Other ledge actions | partial | Hang, drop, climb, roll, attack, regrab lockout, and invulnerability exist, but exact animation-command and percent-dependent ledge tables are not imported. |
@@ -64,12 +64,13 @@ position, velocity, and observed controller sample. `pf_m4_movement_trace`
 replays those observed samples through the native simulator, and
 `tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
 
-The current comparison passes 1,589 identical input frames covering held
+The current comparison passes 1,649 identical input frames covering held
 dash/run, complete run turnaround and post-turnaround lockout, released dash
 and run brake, direct dash dancing, moving dashbacks, two-sample dash
 recognition, smash and empty pivots, basic standing turn, slow-stick sweep,
 shield/light shield and defensive escapes, jump/air movement/landing, and
-Falcon's complete full-down crouch start/hold/release sequence. Position
+Falcon's complete full-down crouch start/hold/release sequence plus exact and
+just-beyond entry/release threshold samples. Position
 comparison allows only the documented accumulated float-to-Q16.16 conversion
 tolerance; action, facing, velocity, and applicable action ticks use their
 tighter independent gates. This remains a regression slice, not evidence that

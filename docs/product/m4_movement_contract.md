@@ -119,9 +119,11 @@ to the simulation.
   `CROUCH` at tick 1. Releasing down from the held state enters `CROUCH END` at
   tick 1, remains there through tick 10, then returns to ground idle on the
   following tick. `CROUCH START` and held `CROUCH` are crouch-cancel eligible;
-  `CROUCH END` is not. These timings and transitions match the pinned GALE01
-  executable trace. Analog threshold hysteresis and every interrupt route
-  remain part of the broader executable-oracle gate.
+  `CROUCH END` is not. Entry requires down strictly beyond 0.6875 (the first
+  accepted signed-axis value is 22528); held crouch releases strictly below
+  0.625 down (the exact signed-axis boundary 20479 remains held). These timings,
+  transitions, and boundary cases match the pinned GALE01 executable trace.
+  Every interrupt route remains part of the broader executable-oracle gate.
 - Down on a pass-through platform starts the data-defined nine-tick
   pass-through window. The drop tick applies only the authored nudge and
   ordinary gravity; it cannot also trigger fast fall. Subsequent down input may

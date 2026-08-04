@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(59)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(51)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(60)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(52)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -653,6 +653,7 @@ typedef struct pf_m4_fighter_data
         PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
     uint16_t crouch_start_ticks;
     uint16_t crouch_end_ticks;
+    uint16_t crouch_release_axis_threshold;
 } pf_m4_fighter_data;
 
 typedef struct pf_m4_stage_data

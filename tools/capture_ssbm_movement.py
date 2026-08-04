@@ -271,6 +271,17 @@ def input_trace() -> list[dict[str, object]]:
     repeat("settle_before_crouch", 20)
     repeat("crouch_hold", 30, main_y=0.0)
     repeat("crouch_release", 20)
+
+    # Common-data x90/x94 form a deliberate hysteresis band. Exact x90 does
+    # not enter squat; moving just beyond it does. Exact x94 keeps SquatWait;
+    # moving just above it starts SquatRv.
+    # Dolphin's pipe takes an unsigned controller byte while Slippi reports the
+    # in-game signed stick after its 80-unit normalization. Bytes 73/72 observe
+    # as 0.15625/0.15; bytes 78/79 observe as 0.1875/0.19375.
+    repeat("crouch_entry_boundary", 10, main_y=73.0 / 255.0)
+    repeat("crouch_entry_beyond", 20, main_y=72.0 / 255.0)
+    repeat("crouch_release_boundary", 10, main_y=78.0 / 255.0)
+    repeat("crouch_release_beyond", 20, main_y=79.0 / 255.0)
     return trace
 
 
