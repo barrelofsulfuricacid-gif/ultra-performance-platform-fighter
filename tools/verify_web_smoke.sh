@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=9fef35cd32abe0fa98013bf32c1f98d953289551465aa5f2dffec60834bb5f56'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=1bcf9444a66610479106ff4bc0782e891365a1a36e4561513fe47e1777b5272a'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,7 +120,7 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '72 typed events'
+    '79 typed events'
 pf_require_dom \
     "M4 playtest and input status" \
     'playtest=ready input_probe=pass'

@@ -73,6 +73,16 @@ separately by each consumer. Its canonical source SHA-256 is folded into the M4
 content hash, so changing a late phase or non-primary effect cannot retain a
 stale compatibility identity.
 
+Ground-attack interruption is being routed from the same generated rows rather
+than from authored frame guesses. The first completed route is Jab 1: imported
+IASA frame 16 enables the jump/dash/crouch/turn/walk intersection present in
+the pinned `ftCo_Attack11_IASA` callback, while guard, grab, special, and taunt
+remain locked because that callback does not test them. A held horizontal stick
+therefore follows the source callback's Dash-then-Walk ordering, and the source
+animation retains displayed frame 21 before returning to Wait. Customized
+timing or primary damage fails the compact reference-match guard and keeps the
+project's authored fallback semantics.
+
 Standing grab and dash grab are distinct production states. Their generated
 startup/active/recovery schedules are 5/2/22 and 9/2/28 respectively (active
 frames 6-7 and 10-11; total animations 29 and 39). Direct grabs from Dash or

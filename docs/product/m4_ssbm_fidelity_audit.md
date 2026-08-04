@@ -43,7 +43,7 @@ threshold, and route differences are not.
 | Shield input, light shield, size, tilt, and volume | equivalent for captured routes | A 500-frame pressure sweep matches sub-threshold through digital-full input, health, release, and regeneration. Three 283-frame light/intermediate/dense physical-hit captures additionally match integer shield-hit conversion, pressure-dependent health/stun, post-hitlag ordering, defender pushback, and separately decaying attacker recoil. New 270- and 2,158-frame memory-probed executable captures qualify guard-angle and magnitude smoothing, all eight linear direction-animation keys, Falcon's joint-derived center, health/pressure radius, facing reflection, and the anisotropically mapped elliptical volume. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
 | Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands. Jab 1, jab 2, dash attack, the three tilts, the three explicit smashes, and the five directional aerials now select imported phase damage, angle, KBG, set-weight, BKB, and hitlag through Melee's fixed-point response. The jab-1 zero-percent Dolphin capture reports three hitlag frames, 13 hitstun frames, and the expected launch. Knockback decay, DI, and simultaneous geometry-dependent effect selection remain incomplete. |
-| Attacks, grabs, throws, stale moves | partial | A pinned importer retains the complete 50-subaction Falcon timing/effect/throw table. Production routes consume exact imported timing for jab 1/2, dash attack, all tilts, all explicit smashes, all five aerials, standing/dash grab, aerial landing lag, pummel, and all four normal throws. Standing grab uses 5/2/22 startup/active/recovery while dash grab uses its distinct 9/2/28 state. Throw release frames are decoded from the original DAT action scripts and throw response uses imported damage/angle/KBG/WDKB/BKB through the shared integer Melee formula. Frame lookup preserves inactive gaps and late-hit changes. A single rectangular volume still cannot select simultaneous bone-relative sweet/weak effects, normal-throw collateral hitboxes do not yet hit bystanders, and the custom generic strong-aerial/special fixtures intentionally remain outside Falcon equivalence. |
+| Attacks, grabs, throws, stale moves | partial | A pinned importer retains the complete 50-subaction Falcon timing/effect/throw table. Production routes consume exact imported timing for jab 1/2, dash attack, all tilts, all explicit smashes, all five aerials, standing/dash grab, aerial landing lag, pummel, and all four normal throws. Jab 1 additionally uses imported IASA frame 16 for the exact jump/dash/crouch/turn/walk subset in `ftCo_Attack11_IASA`; guard remains locked, a pre-held stick enters Walk after the failed Dash check, and displayed frame 21 is retained. Standing grab uses 5/2/22 startup/active/recovery while dash grab uses its distinct 9/2/28 state. Throw release frames are decoded from the original DAT action scripts and throw response uses imported damage/angle/KBG/WDKB/BKB through the shared integer Melee formula. Frame lookup preserves inactive gaps and late-hit changes. Other ground attacks still need their distinct IASA callback policies, a single rectangular volume cannot select simultaneous bone-relative sweet/weak effects, normal-throw collateral hitboxes do not yet hit bystanders, and the custom generic strong-aerial/special fixtures intentionally remain outside Falcon equivalence. |
 | Special moves and recovery | divergent | Pulse Bolt, Prism Burst, Arc Reservoir, and Vector Ascent are original fixtures, not Falcon specials. |
 | Items, projectiles, reflector, charge | divergent | These are original technique-support fixtures rather than SSBM content tables. |
 | Stage geometry, blast zones, spawns | divergent | The Relay Rod laboratory is an original test stage, not an SSBM stage. |
@@ -142,8 +142,17 @@ the target receives three hitlag frames and 13 hitstun frames; captured Melee
 velocity is -0.17242245 x and 0.97785604 y before the documented coordinate
 conversion. Capture schema 8 SHA-256 is
 `2660274136b77aef393db391c85582be7795bee7360ebd6607325e437ac9af04`.
+
+A separate 543-frame Jab 1 interruption capture pulses jump and guard one
+displayed frame before and exactly on imported IASA frame 16, then holds a
+horizontal stick through the same boundary. Dolphin keeps frame-15 jump and
+both guard pulses in `Attack11`, starts `KneeBend` from the frame-16 jump,
+enters Walk from the pre-held stick, retains displayed frame 21, and returns to
+Wait on the next tick. The identical-input comparison passes with the ordinary
+640-Q16 position envelope. Capture SHA-256 is
+`d17f8e9a7dfc3c1a0d260d3ffe3c7fd9c3e2b5f89f3f17b1c3ce9e7218a8f427`.
 Across the main and isolated corpora, the current aggregate executable-oracle
-evidence is 13,611 captured frames. The memory-probed routes qualify the
+evidence is 14,154 captured frames. The memory-probed routes qualify the
 sampled Falcon shield tilt and geometry surface; they do not qualify broader
 uncaptured pressure/time/spacing routes or the other partial/divergent systems
 listed above.

@@ -232,6 +232,48 @@ pf_m4_reference_timing pf_m4_falcon_reference_timing(
     return timing;
 }
 
+const pf_m4_reference_move *pf_m4_falcon_reference_attack(
+    uint8_t action_state,
+    pf_m4_reference_timing authored_timing,
+    uint32_t authored_damage_q16)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+    const pf_m4_reference_hit_effect *effect;
+    pf_m4_reference_timing reference;
+
+    if (!pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return NULL;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    effect = pf_m4_falcon_reference_primary_effect(move_index);
+    reference = pf_m4_falcon_reference_timing(move_index);
+    if (move == NULL || effect == NULL ||
+        authored_timing.startup_ticks != reference.startup_ticks ||
+        authored_timing.active_ticks != reference.active_ticks ||
+        authored_timing.recovery_ticks != reference.recovery_ticks ||
+        authored_damage_q16 !=
+            (uint32_t)effect->damage * UINT32_C(65536))
+    {
+        return NULL;
+    }
+    return move;
+}
+
+int pf_m4_falcon_reference_attack_matches(
+    uint8_t action_state,
+    pf_m4_reference_timing authored_timing,
+    uint32_t authored_damage_q16)
+{
+    return pf_m4_falcon_reference_attack(
+               action_state,
+               authored_timing,
+               authored_damage_q16) != NULL;
+}
+
 int pf_m4_falcon_reference_landing_lag_active(
     uint8_t action_state,
     uint16_t action_frame)

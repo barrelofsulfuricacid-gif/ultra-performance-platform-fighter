@@ -21450,7 +21450,16 @@ static int run_falcon_reference_table_test(void)
         jab_effect->base != UINT16_C(0) ||
         jab_timing.startup_ticks != UINT16_C(2) ||
         jab_timing.active_ticks != UINT16_C(3) ||
-        jab_timing.recovery_ticks != UINT16_C(16))
+        jab_timing.recovery_ticks != UINT16_C(16) ||
+        jab->iasa_frame != UINT16_C(16) ||
+        !pf_m4_falcon_reference_attack_matches(
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK,
+            jab_timing,
+            UINT32_C(2) * UINT32_C(65536)) ||
+        pf_m4_falcon_reference_attack_matches(
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK,
+            jab_timing,
+            UINT32_C(3) * UINT32_C(65536)))
     {
         return fail("falcon-reference-jab");
     }
@@ -21556,6 +21565,276 @@ static int run_falcon_reference_table_test(void)
             UINT16_C(1)) != -1)
     {
         return fail("falcon-reference-aerial-autocancel-bounds");
+    }
+    return 1;
+}
+
+static int run_falcon_jab1_iasa_test(void)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "falcon-jab1-iasa-default-content"))
+    {
+        return 0;
+    }
+    content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
+    content.item.enabled = UINT8_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "falcon-jab1-iasa-content-view"))
+    {
+        return 0;
+    }
+
+    /* A jump pulse on displayed frame 15 remains locked. */
+    if (!initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(13); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(15))
+    {
+        return fail("falcon-jab1-frame15-jump-lock");
+    }
+
+    /* The same pulse on imported IASA frame 16 starts jump squat. */
+    if (!initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(14); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        return fail("falcon-jab1-frame16-jump-iasa");
+    }
+
+    /* Jab 1's custom IASA excludes Guard, even on frame 16. */
+    if (!initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(14); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(16) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(17) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(18))
+    {
+        return fail("falcon-jab1-defense-special-taunt-lock");
+    }
+
+    /* A stick held before IASA follows Melee's Dash then Walk ordering. */
+    if (!initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(15); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK)
+    {
+        return fail("falcon-jab1-frame16-held-stick-walk");
+    }
+
+    /* The source action displays frame 21 and exits on the next tick. */
+    if (!initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        inspection.players[0].action_ticks != UINT16_C(21) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return fail("falcon-jab1-total-frames");
     }
     return 1;
 }
@@ -21667,6 +21946,7 @@ int main(void)
     pf_content_view getup_roll_hash_view;
 
     if (!run_falcon_reference_table_test() ||
+        !run_falcon_jab1_iasa_test() ||
         !make_combat_content(&content, &view) ||
         !make_shield_poke_content(
             &shield_poke_content,

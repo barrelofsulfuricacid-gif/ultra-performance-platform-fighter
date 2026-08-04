@@ -31,6 +31,7 @@ def input_trace(
     shield_geometry_sweep_only: bool = False,
     shield_hit_only: bool = False,
     damage_hit_only: bool = False,
+    attack_iasa_only: bool = False,
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
@@ -90,6 +91,55 @@ def input_trace(
             opponent_main_x=0.3,
         )
         repeat("push_opponent_recovery", 60)
+        return trace
+
+    if attack_iasa_only:
+        # The generated NTSC 1.02 table records Jab 1 IASA on displayed frame
+        # 16. Pulse edge-triggered inputs both one frame early and exactly on
+        # that boundary; a held stick route independently exposes the first
+        # continuous-input transition. These are oracle assertions over the
+        # imported value, not a second authored timing source.
+        falcon_jab1_iasa_frame = 16
+
+        def jab_interrupt_route(
+            label: str,
+            interrupt_frame: int,
+            **interrupt_inputs: object,
+        ) -> None:
+            repeat(f"{label}_settle", 30)
+            trace.append(command(f"{label}_jab", attack=True))
+            repeat(
+                f"{label}_before_interrupt",
+                interrupt_frame - 2,
+            )
+            trace.append(
+                command(
+                    f"{label}_interrupt",
+                    **interrupt_inputs,
+                )
+            )
+            repeat(f"{label}_recover", 60)
+
+        for frame_label, interrupt_frame in (
+            ("early", falcon_jab1_iasa_frame - 1),
+            ("exact", falcon_jab1_iasa_frame),
+        ):
+            jab_interrupt_route(
+                f"attack_iasa_jump_{frame_label}",
+                interrupt_frame,
+                jump=True,
+            )
+            jab_interrupt_route(
+                f"attack_iasa_guard_{frame_label}",
+                interrupt_frame,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+
+        repeat("attack_iasa_walk_settle", 30)
+        trace.append(command("attack_iasa_walk_jab", attack=True))
+        repeat("attack_iasa_walk_hold", 30, main_x=1.0)
+        repeat("attack_iasa_walk_recover", 60)
         return trace
 
     if shield_only:
@@ -1269,6 +1319,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_geometry_sweep_only=args.shield_geometry_sweep_only,
             shield_hit_only=args.shield_hit_only,
             damage_hit_only=args.damage_hit_only,
+            attack_iasa_only=args.attack_iasa_only,
             shield_hit_pressure=args.shield_hit_pressure,
         )
         pipeline_delay = 2
@@ -1682,6 +1733,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-geometry-sweep-only", action="store_true")
     mode.add_argument("--shield-hit-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
+    mode.add_argument("--attack-iasa-only", action="store_true")
     parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--memory-probe-damage", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)

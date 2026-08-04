@@ -1480,6 +1480,108 @@ static const pf_m4_attack_data *pf_m4_directional_ground_data(
     }
 }
 
+static pf_m4_reference_timing pf_m4_ground_attack_timing(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    pf_m4_reference_timing timing = {0};
+    const pf_m4_attack_data *attack =
+        pf_m4_directional_ground_data(fighter, action_state);
+
+    if (attack != NULL)
+    {
+        timing.startup_ticks = attack->startup_ticks;
+        timing.active_ticks = attack->active_ticks;
+        timing.recovery_ticks = attack->recovery_ticks;
+        return timing;
+    }
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_DASH_ATTACK:
+            timing.startup_ticks = fighter->dash_attack_startup_ticks;
+            timing.active_ticks = fighter->dash_attack_active_ticks;
+            timing.recovery_ticks = fighter->dash_attack_recovery_ticks;
+            break;
+        case PF_M4_ACTION_JAB_FINAL:
+            timing.startup_ticks = fighter->jab_final_startup_ticks;
+            timing.active_ticks = fighter->jab_final_active_ticks;
+            timing.recovery_ticks = fighter->jab_final_recovery_ticks;
+            break;
+        case PF_M4_ACTION_STRONG_ATTACK:
+            timing.startup_ticks = fighter->strong_startup_ticks;
+            timing.active_ticks = fighter->strong_active_ticks;
+            timing.recovery_ticks = fighter->strong_recovery_ticks;
+            break;
+        case PF_M4_ACTION_GROUND_ATTACK:
+            timing.startup_ticks = fighter->jab_startup_ticks;
+            timing.active_ticks = fighter->jab_active_ticks;
+            timing.recovery_ticks = fighter->jab_recovery_ticks;
+            break;
+        default:
+            break;
+    }
+    return timing;
+}
+
+static uint32_t pf_m4_ground_attack_damage_q16(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    const pf_m4_attack_data *attack =
+        pf_m4_directional_ground_data(fighter, action_state);
+
+    if (attack != NULL)
+    {
+        return attack->damage_q16;
+    }
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_DASH_ATTACK:
+            return fighter->dash_attack_damage_q16;
+        case PF_M4_ACTION_JAB_FINAL:
+            return fighter->jab_final_damage_q16;
+        case PF_M4_ACTION_STRONG_ATTACK:
+            return fighter->strong_damage_q16;
+        case PF_M4_ACTION_GROUND_ATTACK:
+            return fighter->jab_damage_q16;
+        default:
+            return UINT32_C(0);
+    }
+}
+
+static int pf_m4_falcon_ground_reference_matches(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    const pf_m4_reference_timing authored =
+        pf_m4_ground_attack_timing(fighter, action_state);
+
+    return pf_m4_falcon_reference_attack_matches(
+        action_state,
+        authored,
+        pf_m4_ground_attack_damage_q16(fighter, action_state));
+}
+
+static int pf_m4_falcon_ground_common_iasa_active(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    const pf_m4_reference_timing authored =
+        pf_m4_ground_attack_timing(fighter, action_state);
+    const pf_m4_reference_move *move =
+        pf_m4_falcon_reference_attack(
+            action_state,
+            authored,
+            pf_m4_ground_attack_damage_q16(
+                fighter,
+                action_state));
+
+    return move != NULL && move->iasa_frame != UINT16_C(0) &&
+           (uint32_t)action_ticks + UINT32_C(1) >=
+               (uint32_t)move->iasa_frame;
+}
+
 static uint8_t pf_m4_select_ground_light_attack_action(
     const pf_m4_fighter_data *fighter,
     int16_t stick_x,
@@ -3255,6 +3357,19 @@ pf_status pf_m4_step_player(
             (int16_t)fighter->shield_drop_axis_threshold &&
         input->main_stick_y <
             (int16_t)fighter->crouch_axis_threshold;
+    const int ground_attack_common_iasa =
+        world->grounded[player_index] != UINT8_C(0) &&
+        pf_m4_action_is_ground_attack(
+            world->action_state[player_index]) &&
+        pf_m4_falcon_ground_common_iasa_active(
+            fighter,
+            world->action_state[player_index],
+            world->action_ticks[player_index]);
+    const int ground_common_iasa_input =
+        jump_pressed != 0 ||
+        horizontal_magnitude > fighter->axis_dead_zone ||
+        input->main_stick_y >=
+            (int16_t)fighter->crouch_axis_threshold;
     int32_t position_x = world->position_x_q16[player_index];
     int32_t position_y = world->position_y_q16[player_index];
     int32_t velocity_x = world->velocity_x_q16[player_index];
@@ -4199,10 +4314,48 @@ pf_status pf_m4_step_player(
         action_ticks = UINT16_C(0);
     }
 
+    /*
+     * Every mapped Melee ground-attack IASA callback exposes jump plus the
+     * dash/crouch/turn/walk subset. Re-enter the existing zero-allocation
+     * common ground path for that proven intersection only when the default
+     * authored move still matches the extracted Falcon row and its displayed
+     * IASA frame has arrived. The callbacks' differing attack/item/defense
+     * branches remain locked until their individual policies are routed.
+     */
+    if (!ledge_motion_handled && !hitstun_locked &&
+        ground_attack_common_iasa != 0 &&
+        ground_common_iasa_input != 0 &&
+        pf_m4_action_is_ground_attack(action_state))
+    {
+        if (jump_pressed == 0 &&
+            input->main_stick_y <
+                (int16_t)fighter->crouch_axis_threshold &&
+            horizontal_magnitude > fighter->axis_dead_zone &&
+            tilt_x_age >= fighter->dash_input_window_ticks)
+        {
+            /* Walk_CheckInput follows Dash_CheckInput in every one of these
+             * callbacks, so an aged held axis enters Walk directly. */
+            action_state = (uint8_t)PF_M4_ACTION_WALK;
+            action_ticks = fighter->dash_input_window_ticks;
+        }
+        else
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+        }
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        scratch->attack_stale_registered[player_index] = UINT8_C(0);
+        scratch->smash_charge_ticks[player_index] = UINT16_C(0);
+    }
+
     if (!ledge_motion_handled &&
         !hitstun_locked &&
         action_state != (uint8_t)PF_M4_ACTION_WALL_JUMP &&
         action_state != (uint8_t)PF_M4_ACTION_RUN_BRAKE &&
+        !(action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+          pf_m4_falcon_ground_reference_matches(
+              fighter,
+              action_state)) &&
         special_pressed != 0)
     {
         const int up_special_requested =
@@ -5453,49 +5606,15 @@ pf_status pf_m4_step_player(
                 }
             }
         }
-        else if (action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK)
-        {
-            attack_ticks =
-                (uint32_t)fighter->dash_attack_startup_ticks +
-                (uint32_t)fighter->dash_attack_active_ticks +
-                (uint32_t)fighter->dash_attack_recovery_ticks;
-        }
-        else if (action_state ==
-                 (uint8_t)PF_M4_ACTION_JAB_FINAL)
-        {
-            attack_ticks =
-                (uint32_t)fighter->jab_final_startup_ticks +
-                (uint32_t)fighter->jab_final_active_ticks +
-                (uint32_t)fighter->jab_final_recovery_ticks;
-        }
-        else if (action_state ==
-                 (uint8_t)PF_M4_ACTION_STRONG_ATTACK)
-        {
-            attack_ticks =
-                (uint32_t)fighter->strong_startup_ticks +
-                (uint32_t)fighter->strong_active_ticks +
-                (uint32_t)fighter->strong_recovery_ticks;
-        }
-        else if (pf_m4_directional_ground_data(
-                     fighter,
-                     action_state) != NULL)
-        {
-            const pf_m4_attack_data *attack =
-                pf_m4_directional_ground_data(
-                    fighter,
-                    action_state);
-
-            attack_ticks =
-                (uint32_t)attack->startup_ticks +
-                (uint32_t)attack->active_ticks +
-                (uint32_t)attack->recovery_ticks;
-        }
         else
         {
+            const pf_m4_reference_timing timing =
+                pf_m4_ground_attack_timing(fighter, action_state);
+
             attack_ticks =
-                (uint32_t)fighter->jab_startup_ticks +
-                (uint32_t)fighter->jab_active_ticks +
-                (uint32_t)fighter->jab_recovery_ticks;
+                (uint32_t)timing.startup_ticks +
+                (uint32_t)timing.active_ticks +
+                (uint32_t)timing.recovery_ticks;
         }
 
         if (attack_ticks != UINT32_C(0))
@@ -5505,7 +5624,13 @@ pf_status pf_m4_step_player(
                 INT32_C(0),
                 fighter->traction_q16);
             ++action_ticks;
-            if ((uint32_t)action_ticks >= attack_ticks)
+            if ((action_state ==
+                     (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+                 pf_m4_falcon_ground_reference_matches(
+                     fighter,
+                     action_state))
+                    ? (uint32_t)action_ticks > attack_ticks
+                    : (uint32_t)action_ticks >= attack_ticks)
             {
                 action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
                 action_ticks = UINT16_C(0);

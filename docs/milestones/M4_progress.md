@@ -3004,3 +3004,27 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `9fef35cd32abe0fa98013bf32c1f98d953289551465aa5f2dffec60834bb5f56`,
   and `b92e065007f6794dc1d26bb38313c185775ac14833f02d2f951fe9ba3a2aab18`.
   The repeated-match verifier digest is `957a947eaff53872`.
+
+## 2026-08-04 table-routed Falcon Jab 1 IASA slice
+
+- The production Jab 1 route now reads imported IASA frame 16 from the complete
+  Falcon table. A shared pure timing-and-damage matcher preserves custom-content
+  fallback, and the tick path adds no allocation, lookup-table duplication, or
+  character-data transcription.
+- Pinned decomp callback `ftCo_Attack11_IASA` exposes jump followed by
+  dash/crouch/turn/walk, but not guard, grab, special, or taunt. Production
+  implements only the proven intersection shared by the currently mapped
+  ground callbacks; action-specific branches remain an explicit follow-up
+  instead of being incorrectly generalized to `ftCo_Wait_IASA`.
+- A 543-frame owner-executable capture proves that frame-15 jump stays locked,
+  frame-16 jump enters `KneeBend`, guard stays locked on both boundaries, a
+  pre-held horizontal stick enters Walk, displayed frame 21 remains visible,
+  and the next tick returns to Wait. The identical-input comparison passes at
+  the established 640-Q16 position tolerance. Capture SHA-256 is
+  `d17f8e9a7dfc3c1a0d260d3ffe3c7fd9c3e2b5f89f3f17b1c3ce9e7218a8f427`;
+  aggregate owner-executable evidence is now 14,154 captured frames.
+- The refreshed 41,575-byte replay, final-state, and event-journal SHA-256
+  values are `1149ddd6bfd08048ff48c833a736ce6d023f975a718351b9db9d399177cb2af1`,
+  `1bcf9444a66610479106ff4bc0782e891365a1a36e4561513fe47e1777b5272a`,
+  and `61d93989ea9c831cd2cf562787fd978cb9e7bd05f694c87671e9520ec26ae280`.
+  The repeated-match verifier digest is `1bbde902bfb8d7ce`.

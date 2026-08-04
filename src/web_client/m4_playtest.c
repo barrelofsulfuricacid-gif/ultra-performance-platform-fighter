@@ -11837,7 +11837,7 @@ static int pf_web_m4_run_charge_storage_probe(void)
                     (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
                 inspection.players[0].charge_ticks == stored_charge)
             {
-                for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+                for (tick = UINT32_C(0); tick < UINT32_C(21); ++tick)
                 {
                     if (!pf_web_m4_tick(
                             INT16_C(0),
@@ -11851,7 +11851,7 @@ static int pf_web_m4_run_charge_storage_probe(void)
                         break;
                     }
                 }
-                if (tick == UINT32_C(20) &&
+                if (tick == UINT32_C(21) &&
                     inspection.players[0].action_state ==
                         (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
                     pf_web_m4_tick(
