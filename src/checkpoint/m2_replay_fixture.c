@@ -193,6 +193,10 @@ void pf_m2_replay_make_tick_inputs(
     {
         inputs[1].main_stick_x = INT16_MAX;
     }
+    if (tick == UINT64_C(113))
+    {
+        inputs[0].main_stick_x = INT16_MIN;
+    }
     if (tick <= UINT64_C(5))
     {
         inputs[2].main_stick_x = INT16_C(0);

@@ -10857,6 +10857,7 @@ static int run_ledge_hit_rejection_test(
     pf_m4_inspection inspection;
     uint32_t tick;
 
+    content.fighter.reference_frame_data_enabled = UINT8_C(0);
     content.fighter.jab_hitbox_half_width_q16 =
         INT32_C(64) * PF_Q16_ONE;
     content.fighter.jab_hitbox_half_height_q16 =

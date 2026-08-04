@@ -8186,6 +8186,14 @@ pf_status pf_m4_inspect(
             &player->hitbox_right_q16,
             &player->hitbox_top_q16,
             &player->hitbox_bottom_q16);
+        player->hit_sphere_count = pf_m4_attack_hit_spheres(
+            &sim->content,
+            player->position_x_q16,
+            player->position_y_q16,
+            player->facing,
+            player->action_state,
+            player->action_ticks,
+            player->hit_spheres);
         player->grabbox_active = (uint8_t)pf_m4_grabbox(
             &sim->content,
             player->position_x_q16,

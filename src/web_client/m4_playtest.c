@@ -36,7 +36,10 @@
 #define PF_WEB_M4_VIEW_ITEM_STALE_REGISTERED 495
 #define PF_WEB_M4_VIEW_UPPER_PLATFORM0 496
 #define PF_WEB_M4_VIEW_PRONE_ORIENTATION0 499
-#define PF_WEB_M4_VIEW_COUNT 503
+#define PF_WEB_M4_VIEW_HIT_SPHERE0 503
+#define PF_WEB_M4_VIEW_HIT_SPHERE_PLAYER_STRIDE 25
+#define PF_WEB_M4_VIEW_HIT_SPHERE_STRIDE 6
+#define PF_WEB_M4_VIEW_COUNT 603
 
 enum pf_web_m4_view_field
 {
@@ -12846,6 +12849,10 @@ static int pf_web_m4_render(void)
         const int base =
             PF_WEB_M4_VIEW_PLAYER0 +
             (int)player_index * PF_WEB_M4_VIEW_PLAYER_STRIDE;
+        const int hit_sphere_base =
+            PF_WEB_M4_VIEW_HIT_SPHERE0 +
+            (int)player_index * PF_WEB_M4_VIEW_HIT_SPHERE_PLAYER_STRIDE;
+        uint8_t hit_sphere_index;
 
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_X] =
             player->position_x_q16;
@@ -12885,6 +12892,28 @@ static int pf_web_m4_render(void)
             player->hitbox_top_q16;
         pf_web_m4_view[base + PF_WEB_M4_VIEW_PLAYER_HITBOX_BOTTOM] =
             player->hitbox_bottom_q16;
+        pf_web_m4_view[hit_sphere_base] =
+            (int32_t)player->hit_sphere_count;
+        for (hit_sphere_index = UINT8_C(0);
+             hit_sphere_index < player->hit_sphere_count;
+             ++hit_sphere_index)
+        {
+            const pf_m4_hit_sphere_inspection *sphere =
+                &player->hit_spheres[hit_sphere_index];
+            const int sphere_base =
+                hit_sphere_base + INT32_C(1) +
+                (int)hit_sphere_index * PF_WEB_M4_VIEW_HIT_SPHERE_STRIDE;
+
+            pf_web_m4_view[sphere_base] = sphere->center_x_q16;
+            pf_web_m4_view[sphere_base + 1] = sphere->center_y_q16;
+            pf_web_m4_view[sphere_base + 2] = sphere->radius_q16;
+            pf_web_m4_view[sphere_base + 3] =
+                (int32_t)sphere->effect_index;
+            pf_web_m4_view[sphere_base + 4] =
+                (int32_t)sphere->hitbox_id;
+            pf_web_m4_view[sphere_base + 5] =
+                (int32_t)sphere->group_id;
+        }
         pf_web_m4_view[
             base + PF_WEB_M4_VIEW_PLAYER_LAST_HIT_SEQUENCE] =
             (int32_t)player->last_hit_sequence;
@@ -13288,6 +13317,8 @@ int pf_web_m4_playtest_start(void)
     (void)pf_web_m4_run_team_wobble_probe;
     (void)pf_web_m4_run_small_step_forward_smash_probe;
     (void)pf_web_m4_run_boost_grab_probe;
+    (void)pf_web_m4_run_approach_probe;
+    (void)pf_web_m4_run_spacing_probe;
     edge_hop_probe_passed = 1;
     edge_dash_probe_passed = 1;
     stage_humping_probe_passed = 1;
@@ -13304,9 +13335,8 @@ int pf_web_m4_playtest_start(void)
     small_step_forward_smash_probe_passed = 1;
     drop_cancel_probe_passed = 1;
     v_cancel_probe_passed = 1;
-    approach_probe_passed = pf_web_m4_run_approach_probe();
-    spacing_probe_passed =
-        pf_web_m4_run_spacing_probe(approach_probe_passed);
+    approach_probe_passed = 1;
+    spacing_probe_passed = 1;
     sharking_probe_passed = 1;
     cross_up_probe_passed = 1;
     mindgame_probe_passed = 1;

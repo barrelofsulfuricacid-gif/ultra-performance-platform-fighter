@@ -372,7 +372,7 @@ grep -Fq \
     '"Local 1v1 match setup"' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'viewCount !== 503' \
+    'viewCount !== 603' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'stale queue newest first' \

@@ -9,6 +9,10 @@
 #include <string.h>
 #include <time.h>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 #define PF_HEADLESS_MEMORY_BYTES 4096U
 #define PF_HEADLESS_MEMORY_ALIGNMENT 64U
 #define PF_HEADLESS_ENVIRONMENTS 64U
@@ -35,6 +39,18 @@ static pf_state_hash pf_headless_single_hashes[
 
 static double monotonic_sample_seconds(void)
 {
+#if defined(_WIN32)
+    LARGE_INTEGER counter;
+    LARGE_INTEGER frequency;
+
+    if (QueryPerformanceFrequency(&frequency) == 0 ||
+        QueryPerformanceCounter(&counter) == 0 ||
+        frequency.QuadPart <= 0)
+    {
+        return 0.0;
+    }
+    return (double)counter.QuadPart / (double)frequency.QuadPart;
+#else
     struct timespec value;
 
     if (timespec_get(&value, TIME_UTC) != TIME_UTC)
@@ -43,6 +59,7 @@ static double monotonic_sample_seconds(void)
     }
     return (double)value.tv_sec +
            (double)value.tv_nsec / 1000000000.0;
+#endif
 }
 
 static pf_content_view make_benchmark_content(void)

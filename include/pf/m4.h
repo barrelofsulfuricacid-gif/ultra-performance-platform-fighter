@@ -11,14 +11,15 @@ extern "C"
 #endif
 
 #define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(68)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(60)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(61)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(49)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(50)
+#define PF_M4_INSPECTION_HIT_SPHERE_CAPACITY 4
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -362,7 +363,8 @@ typedef struct pf_m4_fighter_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
-    uint16_t reserved;
+    uint8_t reference_frame_data_enabled;
+    uint8_t reserved;
     int32_t half_width_q16;
     int32_t half_height_q16;
     int32_t player_push_half_width_q16;
@@ -739,6 +741,17 @@ typedef struct pf_m4_content
     pf_m4_recovery_data recovery;
 } pf_m4_content;
 
+typedef struct pf_m4_hit_sphere_inspection
+{
+    int32_t center_x_q16;
+    int32_t center_y_q16;
+    int32_t radius_q16;
+    uint8_t effect_index;
+    uint8_t hitbox_id;
+    uint8_t group_id;
+    uint8_t reserved;
+} pf_m4_hit_sphere_inspection;
+
 typedef struct pf_m4_player_inspection
 {
     int32_t position_x_q16;
@@ -768,6 +781,8 @@ typedef struct pf_m4_player_inspection
     int32_t hitbox_right_q16;
     int32_t hitbox_top_q16;
     int32_t hitbox_bottom_q16;
+    pf_m4_hit_sphere_inspection
+        hit_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
     int32_t grabbox_left_q16;
     int32_t grabbox_right_q16;
     int32_t grabbox_top_q16;
@@ -779,6 +794,7 @@ typedef struct pf_m4_player_inspection
     uint16_t shield_stun_ticks;
     uint8_t attack_hit_mask;
     uint8_t hitbox_active;
+    uint8_t hit_sphere_count;
     uint8_t grabbox_active;
     uint8_t last_hit_valid;
     uint8_t last_hit_attacker;
@@ -824,6 +840,7 @@ typedef struct pf_m4_player_inspection
     uint8_t attack_stale_registered;
     uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
     uint8_t prone_orientation;
+    uint8_t reserved3[3];
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection

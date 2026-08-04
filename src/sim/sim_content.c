@@ -502,6 +502,7 @@ static void pf_m4_hash_fighter(
     uint32_t stale_index;
 
     pf_m4_hash_u16(hash, fighter->schema_version);
+    pf_m4_hash_u8(hash, fighter->reference_frame_data_enabled);
     pf_m4_hash_i32(hash, fighter->half_width_q16);
     pf_m4_hash_i32(hash, fighter->half_height_q16);
     pf_m4_hash_i32(hash, fighter->player_push_half_width_q16);
@@ -1215,6 +1216,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter = &out_content->fighter;
     fighter->struct_size = (uint32_t)sizeof(*fighter);
     fighter->schema_version = PF_M4_FIGHTER_SCHEMA_VERSION;
+    fighter->reference_frame_data_enabled = UINT8_C(1);
     fighter->half_width_q16 = PF_Q16_RATIO(9, 20);
     fighter->half_height_q16 = PF_Q16_RATIO(4, 5);
     fighter->player_push_half_width_q16 = PF_Q16_RATIO(42, 115);
@@ -2033,7 +2035,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->reflector_count != PF_M4_TEST_REFLECTOR_COUNT ||
         content->charge_count != PF_M4_TEST_CHARGE_COUNT ||
         content->recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
-        content->fighter.reserved != UINT16_C(0) ||
+        content->fighter.reference_frame_data_enabled > UINT8_C(1) ||
+        content->fighter.reserved != UINT8_C(0) ||
         content->fighter.smash_charge_reserved != UINT16_C(0) ||
         content->fighter.reserved2 != UINT8_C(0) ||
         content->stage.reserved != UINT16_C(0) ||

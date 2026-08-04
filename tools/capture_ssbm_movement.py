@@ -33,6 +33,7 @@ def input_trace(
     damage_hit_only: bool = False,
     attack_iasa_only: bool = False,
     ground_attack_iasa_only: bool = False,
+    hitbox_geometry_only: bool = False,
     ground_attack_moves: tuple[str, ...] | None = None,
     falcon_frame_data: dict[str, object] | None = None,
     shield_hit_pressure: float = 0.35,
@@ -147,6 +148,108 @@ def input_trace(
         trace.append(command("attack_iasa_walk_jab", attack=True))
         repeat("attack_iasa_walk_hold", 30, main_x=1.0)
         repeat("attack_iasa_walk_recover", 60)
+        return trace
+
+    if hitbox_geometry_only:
+        if falcon_frame_data is None:
+            raise ValueError(
+                "hitbox-geometry capture requires Falcon frame data"
+            )
+
+        def move_total(move: str) -> int:
+            return int(dict(falcon_frame_data[move])["totalFrames"])
+
+        def isolated_route(
+            move: str,
+            starter: list[dict[str, object]],
+            recovery_padding: int = 40,
+        ) -> None:
+            repeat(f"hitbox_geometry_{move}_settle", 30)
+            trace.extend(starter)
+            repeat(
+                f"hitbox_geometry_{move}_observe",
+                move_total(move) + recovery_padding,
+            )
+
+        isolated_route(
+            "jab1",
+            [command("hitbox_geometry_jab1_start", attack=True)],
+        )
+        isolated_route(
+            "jab2",
+            [
+                command("hitbox_geometry_jab2_jab1", attack=True),
+                command("hitbox_geometry_jab2_wait"),
+                command("hitbox_geometry_jab2_chain", attack=True),
+            ],
+        )
+        isolated_route(
+            "dashattack",
+            [
+                command("hitbox_geometry_dashattack_dash", main_x=1.0),
+                command("hitbox_geometry_dashattack_hold", main_x=1.0),
+                command("hitbox_geometry_dashattack_hold", main_x=1.0),
+                command("hitbox_geometry_dashattack_hold", main_x=1.0),
+                command(
+                    "hitbox_geometry_dashattack_start",
+                    main_x=1.0,
+                    attack=True,
+                ),
+            ],
+        )
+        isolated_route(
+            "ftilt_m",
+            [
+                command(
+                    "hitbox_geometry_ftilt_m_start",
+                    main_x=0.70,
+                    attack=True,
+                )
+            ],
+        )
+        isolated_route(
+            "utilt",
+            [command("hitbox_geometry_utilt_start", main_y=0.65, attack=True)],
+        )
+        isolated_route(
+            "dtilt",
+            [command("hitbox_geometry_dtilt_start", main_y=0.35, attack=True)],
+        )
+        isolated_route(
+            "fsmash_m",
+            [command("hitbox_geometry_fsmash_m_start", c_x=1.0)],
+        )
+        isolated_route(
+            "usmash",
+            [command("hitbox_geometry_usmash_start", c_y=1.0)],
+        )
+        isolated_route(
+            "dsmash",
+            [command("hitbox_geometry_dsmash_start", c_y=0.0)],
+        )
+
+        def aerial_starter(move: str, **attack_input: object) -> None:
+            isolated_route(
+                move,
+                [
+                    command(f"hitbox_geometry_{move}_jump", jump=True),
+                    command(f"hitbox_geometry_{move}_jump_squat"),
+                    command(f"hitbox_geometry_{move}_jump_squat"),
+                    command(f"hitbox_geometry_{move}_jump_squat"),
+                    command(f"hitbox_geometry_{move}_jump_squat"),
+                    command(
+                        f"hitbox_geometry_{move}_start",
+                        **attack_input,
+                    ),
+                ],
+                recovery_padding=70,
+            )
+
+        aerial_starter("nair", attack=True)
+        aerial_starter("fair", c_x=1.0)
+        aerial_starter("bair", c_x=0.0)
+        aerial_starter("uair", c_y=1.0)
+        aerial_starter("dair", c_y=0.0)
         return trace
 
     if ground_attack_iasa_only:
@@ -1291,6 +1394,129 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
     }
 
 
+def read_fighter_address(memory_engine: object, player_index: int) -> int:
+    """Resolve one of Melee's six StaticPlayer slots to its live Fighter."""
+
+    static_player_stride = 0xE90
+    player_slot = 0x80453080 + player_index * static_player_stride
+    transformed = memory_engine.read_byte(player_slot + 0x0C)
+    fighter_gobj = memory_engine.read_word(
+        player_slot + 0xB0 + 4 * transformed
+    )
+    return memory_engine.read_word(fighter_gobj + 0x2C)
+
+
+def read_fighter_hurt_capsules(
+    memory_engine: object, fighter: int
+) -> list[dict[str, object]]:
+    """Read live pose-transformed FighterHurtCapsule values."""
+
+    def read_vector(address: int) -> list[float]:
+        return [
+            memory_engine.read_float(address + 4 * axis)
+            for axis in range(3)
+        ]
+
+    def transform(matrix: list[float], value: list[float]) -> list[float]:
+        return [
+            matrix[row * 4] * value[0]
+            + matrix[row * 4 + 1] * value[1]
+            + matrix[row * 4 + 2] * value[2]
+            + matrix[row * 4 + 3]
+            for row in range(3)
+        ]
+
+    hurtboxes = []
+    hurtbox_count = memory_engine.read_byte(fighter + 0x119E)
+    if hurtbox_count > 15:
+        raise RuntimeError(
+            f"invalid Fighter hurt-capsule count: {hurtbox_count}"
+        )
+    for index in range(hurtbox_count):
+        hurtbox = fighter + 0x11A0 + index * 0x4C
+        bone = memory_engine.read_word(hurtbox + 0x20)
+        offset_a = read_vector(hurtbox + 0x04)
+        offset_b = read_vector(hurtbox + 0x10)
+        bone_matrix = [
+            memory_engine.read_float(bone + 0x44 + 4 * element)
+            for element in range(12)
+        ]
+        hurtboxes.append(
+            {
+                "state": memory_engine.read_word(hurtbox),
+                "radius": memory_engine.read_float(hurtbox + 0x1C),
+                "offset_a": offset_a,
+                "offset_b": offset_b,
+                "position_a": transform(bone_matrix, offset_a),
+                "position_b": transform(bone_matrix, offset_b),
+                "collision_position_a": read_vector(hurtbox + 0x28),
+                "collision_position_b": read_vector(hurtbox + 0x34),
+                "bone_index": memory_engine.read_word(hurtbox + 0x40),
+                "height": memory_engine.read_word(hurtbox + 0x44),
+                "grabbable": memory_engine.read_word(hurtbox + 0x48),
+            }
+        )
+    return hurtboxes
+
+
+def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
+    """Read Falcon's live attack and opponent hurt capsules."""
+
+    fighter = read_fighter_address(memory_engine, 0)
+    opponent = read_fighter_address(memory_engine, 1)
+    hitboxes = []
+    for index in range(4):
+        hitbox = fighter + 0x914 + index * 0x138
+        hitboxes.append(
+            {
+                "state": memory_engine.read_word(hitbox),
+                "hit_id": memory_engine.read_word(hitbox + 0x04),
+                "damage_count": memory_engine.read_word(hitbox + 0x08),
+                "damage": memory_engine.read_float(hitbox + 0x0C),
+                "bone_offset": [
+                    memory_engine.read_float(hitbox + 0x10 + 4 * axis)
+                    for axis in range(3)
+                ],
+                "radius": memory_engine.read_float(hitbox + 0x1C),
+                "angle": memory_engine.read_word(hitbox + 0x20),
+                "knockback_growth": memory_engine.read_word(hitbox + 0x24),
+                "weight_set_knockback": memory_engine.read_word(
+                    hitbox + 0x28
+                ),
+                "base_knockback": memory_engine.read_word(hitbox + 0x2C),
+                "element": memory_engine.read_word(hitbox + 0x30),
+                "position": [
+                    memory_engine.read_float(hitbox + 0x4C + 4 * axis)
+                    for axis in range(3)
+                ],
+                "previous_position": [
+                    memory_engine.read_float(hitbox + 0x58 + 4 * axis)
+                    for axis in range(3)
+                ],
+            }
+        )
+    return {
+        "fighter_address": fighter,
+        "fighter_position": [
+            memory_engine.read_float(fighter + 0xB0 + 4 * axis)
+            for axis in range(3)
+        ],
+        "fighter_scale": [
+            memory_engine.read_float(fighter + 0x34 + 4 * axis)
+            for axis in range(3)
+        ],
+        "hitboxes": hitboxes,
+        "opponent_fighter_address": opponent,
+        "opponent_fighter_position": [
+            memory_engine.read_float(opponent + 0xB0 + 4 * axis)
+            for axis in range(3)
+        ],
+        "opponent_hurtboxes": read_fighter_hurt_capsules(
+            memory_engine, opponent
+        ),
+    }
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -1447,6 +1673,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     args.push_only
                     or args.shield_hit_only
                     or args.damage_hit_only
+                    or args.hitbox_geometry_only
                 )
                 else melee.Character.FOX,
             )
@@ -1454,7 +1681,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             state = None if gamestate is None else str(gamestate.menu_state)
             raise TimeoutError(f"Dolphin match setup timed out in {state}")
 
-        if args.memory_probe_shield or args.memory_probe_damage:
+        if (
+            args.memory_probe_shield
+            or args.memory_probe_damage
+            or args.memory_probe_hitbox
+        ):
             try:
                 import dolphin_memory_engine as memory_engine_module
             except ImportError as error:
@@ -1495,6 +1726,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             damage_hit_only=args.damage_hit_only,
             attack_iasa_only=args.attack_iasa_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
+            hitbox_geometry_only=args.hitbox_geometry_only,
             ground_attack_moves=(
                 tuple(args.ground_attack_move)
                 if args.ground_attack_move
@@ -1824,12 +2056,20 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     row["damage_memory"] = read_damage_memory_probe(
                         memory_engine
                     )
+                if args.memory_probe_hitbox:
+                    row["hitbox_memory"] = read_hitbox_memory_probe(
+                        memory_engine
+                    )
             rows.append(row)
 
         return {
             "schema": (
                 8
-                if args.memory_probe_shield or args.memory_probe_damage
+                if (
+                    args.memory_probe_shield
+                    or args.memory_probe_damage
+                    or args.memory_probe_hitbox
+                )
                 else 7
             ),
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
@@ -1847,6 +2087,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     args.push_only
                     or args.shield_hit_only
                     or args.damage_hit_only
+                    or args.hitbox_geometry_only
                 )
                 else "FOX"
             ),
@@ -1888,6 +2129,29 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_damage
                 else None
             ),
+            "hitbox_memory_probe": (
+                {
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "fighter_hitbox_array": "fighter+0x914",
+                    "hitbox_stride": "0x138",
+                    "position": "hitbox+0x4c",
+                    "previous_position": "hitbox+0x58",
+                    "static_player_stride": "0xe90",
+                    "fighter_hurtbox_count": "fighter+0x119e",
+                    "fighter_hurtbox_array": "fighter+0x11a0",
+                    "hurtbox_stride": "0x4c",
+                    "hurtbox_position_a": "hurtbox+0x28",
+                    "hurtbox_position_b": "hurtbox+0x34",
+                    "decomp_revision": (
+                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
+                    ),
+                }
+                if args.memory_probe_hitbox
+                else None
+            ),
             "rows": rows,
         }
     finally:
@@ -1916,6 +2180,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
+    mode.add_argument("--hitbox-geometry-only", action="store_true")
     parser.add_argument(
         "--ground-attack-move",
         action="append",
@@ -1927,13 +2192,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--falcon-frame-data", type=Path)
     parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--memory-probe-damage", action="store_true")
+    parser.add_argument("--memory-probe-hitbox", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args()
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
-    if args.memory_probe_damage and args.memory_probe_shield:
+    if args.memory_probe_hitbox and not args.hitbox_geometry_only:
+        parser.error(
+            "--memory-probe-hitbox requires --hitbox-geometry-only"
+        )
+    if sum(
+        (
+            args.memory_probe_shield,
+            args.memory_probe_damage,
+            args.memory_probe_hitbox,
+        )
+    ) > 1:
         parser.error("select only one memory probe")
     return args
 

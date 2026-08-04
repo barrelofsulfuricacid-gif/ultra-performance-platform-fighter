@@ -441,6 +441,15 @@ int pf_m4_grabbox(
     int32_t *out_right_q16,
     int32_t *out_top_q16,
     int32_t *out_bottom_q16);
+uint8_t pf_m4_attack_hit_spheres(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    pf_m4_hit_sphere_inspection
+        out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY]);
 int pf_m4_shield_box(
     const pf_m4_fighter_data *fighter,
     int32_t position_x_q16,

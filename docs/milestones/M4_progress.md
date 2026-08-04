@@ -3068,3 +3068,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   with identical state. Canonical performance-history qualification is still
   pending because this local WSL compiler is GCC 13.4 while the repository's
   measurement contract requires GCC 13.3 exactly.
+
+## 2026-08-04 executable-qualified Falcon hit-geometry slice
+
+- The complete owner-extracted frame-data source regenerates byte-for-byte as
+  a 50-slot schema with 48 concrete Falcon subactions. The only absent rows are
+  the two forward-smash angles not defined by Falcon's NTSC 1.02 DAT; all 17
+  character-special rows are present. Timing, effects, throws, landing data,
+  IASA, action flags, and root motion remain generated rather than transcribed.
+- A hash-pinned 1,719-row Dolphin 3.4.0 memory capture adds live transformed
+  geometry for every currently implemented normal and aerial: 117 active-frame
+  rows, 240 independent attack spheres, and the 11-capsule standing hurt pose.
+  The importer cross-checks each sphere's effect against the complete static
+  table and rejects mismatched disc, capture, extractor, or decomp provenance.
+- Production collision now performs source-sphere versus capsule/rectangle
+  narrow phase and selects each simultaneous sphere's own damage and knockback
+  effect. Lookup is O(1), storage is fixed capacity, and the tick path performs
+  no allocation. The inspection ABI and web overlay expose the same spheres;
+  custom authored fixtures opt out explicitly instead of defeating source
+  geometry with magic values.
+- The canonical replay keeps its SDI coverage with an explicit opposite-stick
+  sample on input tick 113, immediately after the source-geometry hit. Its
+  refreshed 41,575-byte replay, final-state, and event-journal SHA-256 values
+  are `4f38617b574c30088ff374283918ddf5e89111d417d638bf164120908126caed`,
+  `34d2019a582d081cce10b8c7053909b8b5153d45cfe3d889f41bd7f135fc29ac`,
+  and `6a58ca0e2ef8dd3e08308d8b8d3085c22c73530400286013f305f2343f38bf87`.
+  The refreshed eight-match verifier digest is `23545e83e9dbef9c`.
+- Remaining geometry gaps are explicit: animated hurt capsules outside grounded
+  idle, specials/grabs, source-Z collision semantics, and exact
+  sphere-versus-shield intersection. They require extraction and executable
+  qualification, not guessed frame data.
+- Fresh release verification passes 20/20 configured native Windows GCC tests,
+  21/21 WSL Linux GCC tests, a clean Emscripten web build, and byte-identical
+  native/Wasm canonical replay output. The Windows throughput executable now
+  samples `QueryPerformanceCounter` rather than relying on MinGW's incomplete
+  C `timespec_get` surface. A separate unsampled WSL run reports 1,181,323
+  single-world and 1,281,076 batched ticks per second with identical state;
+  the independently sampled 13-scenario profile workload passes with ten
+  scenarios available. These local numbers are evidence for this build, not a
+  canonical historical comparison because the compiler contract differs.

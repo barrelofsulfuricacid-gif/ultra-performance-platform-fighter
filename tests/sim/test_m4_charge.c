@@ -131,6 +131,7 @@ static int make_charge_content(
     {
         return 0;
     }
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->charge.enabled = UINT8_C(1);
     content->charge.hitbox_offset_x_q16 = INT32_C(0);
     content->charge.hitbox_half_width_q16 = INT32_C(4) * PF_Q16_ONE;

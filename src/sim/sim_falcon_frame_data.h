@@ -90,6 +90,45 @@ typedef struct pf_m4_reference_hit_phase
     uint16_t reserved;
 } pf_m4_reference_hit_phase;
 
+typedef struct pf_m4_reference_geometry_move
+{
+    uint16_t frame_offset;
+    uint8_t first_frame;
+    uint8_t frame_count;
+} pf_m4_reference_geometry_move;
+
+typedef struct pf_m4_reference_hit_frame
+{
+    uint16_t sphere_offset;
+    uint8_t sphere_count;
+    uint8_t reserved;
+} pf_m4_reference_hit_frame;
+
+typedef struct pf_m4_reference_hit_sphere
+{
+    int32_t offset_x_q16;
+    int32_t offset_y_q16;
+    int32_t offset_z_q16;
+    int32_t radius_q16;
+    uint8_t effect_index;
+    uint8_t hitbox_id;
+    uint8_t group_id;
+    uint8_t reserved;
+} pf_m4_reference_hit_sphere;
+
+typedef struct pf_m4_reference_hurt_capsule
+{
+    int32_t endpoint_a_x_q16;
+    int32_t endpoint_a_y_q16;
+    int32_t endpoint_b_x_q16;
+    int32_t endpoint_b_y_q16;
+    int32_t radius_q16;
+    uint8_t hurtbox_id;
+    uint8_t height;
+    uint8_t grabbable;
+    uint8_t reserved;
+} pf_m4_reference_hurt_capsule;
+
 typedef struct pf_m4_reference_throw
 {
     uint16_t angle_degrees;
@@ -169,6 +208,18 @@ const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
 const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect_at_frame(
     pf_m4_falcon_move_index move_index,
     uint16_t action_frame);
+
+const pf_m4_reference_hit_sphere *
+pf_m4_falcon_reference_hit_spheres_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame,
+    uint8_t *out_sphere_count);
+
+int pf_m4_falcon_reference_has_hit_geometry(
+    pf_m4_falcon_move_index move_index);
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count);
 
 int pf_m4_falcon_reference_move_for_action(
     uint8_t action_state,

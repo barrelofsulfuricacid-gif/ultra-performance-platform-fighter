@@ -3154,7 +3154,7 @@ mergeInto(LibraryManager.library, {
   pf_web_m4_playtest_render__sig: "vpi",
   pf_web_m4_playtest_render: function (viewPointer, viewCount) {
     var state = Module.pfM4Playtest;
-    if (!state || viewCount !== 503) {
+    if (!state || viewCount !== 603) {
       return;
     }
     var previousTick = state.latest ? state.latest[1] : -1;
@@ -3952,6 +3952,8 @@ mergeInto(LibraryManager.library, {
       }
 
       if (state.collisionOverlayVisible && view[base + 14]) {
+        var hitSphereBase = 503 + playerIndex * 25;
+        var hitSphereCount = view[hitSphereBase];
         var hitboxLeft = sx(view[base + 15]);
         var hitboxRight = sx(view[base + 16]);
         var hitboxTop = sy(view[base + 17]);
@@ -3972,18 +3974,50 @@ mergeInto(LibraryManager.library, {
               ? "#d7adff"
               : "#ffd089";
         context.lineWidth = 2;
-        context.fillRect(
-          hitboxLeft,
-          hitboxTop,
-          hitboxRight - hitboxLeft,
-          hitboxBottom - hitboxTop
-        );
-        context.strokeRect(
-          hitboxLeft,
-          hitboxTop,
-          hitboxRight - hitboxLeft,
-          hitboxBottom - hitboxTop
-        );
+        if (hitSphereCount > 0) {
+          for (
+            var hitSphereIndex = 0;
+            hitSphereIndex < hitSphereCount;
+            hitSphereIndex += 1
+          ) {
+            var sphereBase =
+              hitSphereBase + 1 + hitSphereIndex * 6;
+            var sphereX = sx(view[sphereBase]);
+            var sphereY = sy(view[sphereBase + 1]);
+            var sphereRadiusX = Math.abs(
+              sx(view[sphereBase] + view[sphereBase + 2]) - sphereX
+            );
+            var sphereRadiusY = Math.abs(
+              sy(view[sphereBase + 1] + view[sphereBase + 2]) - sphereY
+            );
+
+            context.beginPath();
+            context.ellipse(
+              sphereX,
+              sphereY,
+              sphereRadiusX,
+              sphereRadiusY,
+              0,
+              0,
+              Math.PI * 2
+            );
+            context.fill();
+            context.stroke();
+          }
+        } else {
+          context.fillRect(
+            hitboxLeft,
+            hitboxTop,
+            hitboxRight - hitboxLeft,
+            hitboxBottom - hitboxTop
+          );
+          context.strokeRect(
+            hitboxLeft,
+            hitboxTop,
+            hitboxRight - hitboxLeft,
+            hitboxBottom - hitboxTop
+          );
+        }
       }
 
       if (state.collisionOverlayVisible && view[base + 35]) {

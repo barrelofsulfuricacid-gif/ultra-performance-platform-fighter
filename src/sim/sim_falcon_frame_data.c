@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "../../generated/data/m4_falcon_ntsc102_frame_data.inc"
+#include "../../generated/data/m4_falcon_ntsc102_hit_geometry.inc"
 
 _Static_assert(
     sizeof(pf_m4_falcon_moves) / sizeof(pf_m4_falcon_moves[0]) ==
@@ -126,6 +127,68 @@ const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect_at_frame(
         ++effect_index;
     }
     return pf_m4_falcon_reference_effect(move_index, effect_index);
+}
+
+const pf_m4_reference_hit_sphere *
+pf_m4_falcon_reference_hit_spheres_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame,
+    uint8_t *out_sphere_count)
+{
+    const pf_m4_reference_geometry_move *geometry;
+    const pf_m4_reference_hit_frame *frame;
+    uint16_t relative_frame;
+
+    if (out_sphere_count != NULL)
+    {
+        *out_sphere_count = UINT8_C(0);
+    }
+    if ((uint32_t)move_index >= (uint32_t)PF_M4_FALCON_MOVE_COUNT)
+    {
+        return NULL;
+    }
+    geometry = &pf_m4_falcon_geometry_moves[move_index];
+    if (geometry->frame_count == UINT8_C(0) ||
+        action_frame < (uint16_t)geometry->first_frame)
+    {
+        return NULL;
+    }
+    relative_frame =
+        action_frame - (uint16_t)geometry->first_frame;
+    if (relative_frame >= (uint16_t)geometry->frame_count)
+    {
+        return NULL;
+    }
+    frame = &pf_m4_falcon_hit_frames[
+        geometry->frame_offset + relative_frame];
+    if (frame->sphere_count == UINT8_C(0))
+    {
+        return NULL;
+    }
+    if (out_sphere_count != NULL)
+    {
+        *out_sphere_count = frame->sphere_count;
+    }
+    return &pf_m4_falcon_hit_spheres[frame->sphere_offset];
+}
+
+int pf_m4_falcon_reference_has_hit_geometry(
+    pf_m4_falcon_move_index move_index)
+{
+    return (uint32_t)move_index < (uint32_t)PF_M4_FALCON_MOVE_COUNT &&
+           pf_m4_falcon_geometry_moves[move_index].frame_count != UINT8_C(0);
+}
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count)
+{
+    if (out_count != NULL)
+    {
+        *out_count = (uint8_t)(
+            sizeof(pf_m4_falcon_standing_hurt_capsules) /
+            sizeof(pf_m4_falcon_standing_hurt_capsules[0]));
+    }
+    return pf_m4_falcon_standing_hurt_capsules;
 }
 
 int pf_m4_falcon_reference_move_for_action(

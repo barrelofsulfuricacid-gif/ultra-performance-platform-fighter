@@ -73,7 +73,7 @@ animation track into per-frame Q16 deltas. The small FigaTree decoder follows
 the scalar codecs and interpolation rules in HSDLib revision
 `29546ad77fdf9ebd9a9940ed44903ef309e810d6`; the resulting movement is still
 qualified against Dolphin rather than accepted from the parser alone.
-Extracted DAT files and bone-relative hitbox geometry remain temporary
+Extracted DAT files and raw executable-memory captures remain temporary
 external evidence and are not repository or build inputs.
 `tools/import_ssbm_falcon_frame_data.py` is the reproducible conversion path;
 `generated/data/m4_falcon_ntsc102_frame_data.inc` is its numeric output.
@@ -133,10 +133,47 @@ grab resolver.
 The semantic jab route remains explicitly selectable so original/custom
 content can retain its authored vector response without silently inheriting
 Falcon semantics. Other customized action records fall back when their timing
-or primary damage no longer identifies the generated default. The current
-single rectangular collision volume cannot choose among simultaneous
-bone-relative sweet and weak hitboxes, so a phase uses its first source-defined
-effect until transformed bone geometry is represented independently.
+or primary damage no longer identifies the generated default.
+
+## Executable hit geometry
+
+The complete 50-slot frame-data table above is distinct from animated spatial
+geometry. For every normal and aerial currently routed by production combat,
+an identical-input Dolphin 3.4.0 capture reads the live transformed attack
+spheres from the owner's `GALE01` NTSC 1.02 executable. The disc SHA-256 is
+`0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464`;
+the 1,719-row capture SHA-256 is
+`89fe5aa11ae96a63ba558fff097b59931b24682d013bbc0bc96a59e53bfb6dcc`.
+The memory layout and transforms were checked against `doldecomp/melee`
+revision `9509dc04406fb2028bfab01243841ba4787c0fb7`. The capture records the
+active `ftHit` spheres and converts each bone-relative point through the live
+`HSD_JObj` world matrix. The importer also verifies every sphere's damage,
+angle, KBG, weight-set knockback, and BKB against the hash-pinned full
+`meleeFrameDataExtractor` output, so a geometric sphere cannot silently select
+an unrelated effect row.
+
+`tools/import_ssbm_falcon_hit_geometry.py` converts that evidence into
+`generated/data/m4_falcon_ntsc102_hit_geometry.inc`. The compact table contains
+117 per-frame rows and 240 spheres for jab 1, jab 2, dash attack, forward/up/down
+tilt, forward/up/down smash, and all five aerials. Lookup is a move-indexed
+offset plus one frame-indexed row; collision uses fixed-capacity stack storage
+and performs no allocation. All simultaneous spheres remain independent, so
+sweet and weak hitboxes select their own generated effect. Jab 2's displayed
+frames 5-7 and up aerial's displayed frames 6-13 follow the live executable
+capture where its post-pose collision state differs from the static
+action-script boundary.
+
+The same capture reads Falcon's 11 live `FighterHurtCapsule` records from
+`fighter+0x11a0` with stride `0x4c`. Production currently uses the
+collision-evaluated standing pose for grounded idle targets and exact 2D
+circle-versus-capsule intersection. Other target actions still use the
+project's rectangular hurt volume; special/grab attack geometry has not yet
+been captured; the retained source Z coordinate is not yet part of the 2D
+collision decision; and attack-sphere versus shield uses the sphere's AABB
+against the source-derived shield ellipse. These are active fidelity gaps, not
+values to be filled by guessed frame data. Custom authored content may opt out
+of the reference geometry explicitly; default Falcon-counterpart content opts
+in and cannot silently use the old rectangle for any of the 14 covered moves.
 
 ## Coordinate conversion
 

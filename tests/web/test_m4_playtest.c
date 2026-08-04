@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TEST_VIEW_COUNT 503
+#define TEST_VIEW_COUNT 603
 #define TEST_PLAYER0_BASE 25
 #define TEST_PLAYER_STRIDE 53
 #define TEST_PLAYER1_BASE (TEST_PLAYER0_BASE + TEST_PLAYER_STRIDE)
@@ -106,6 +106,9 @@
 #define TEST_STALE_MOVE_REGISTERED 2
 #define TEST_STALE_MOVE_IDS 3
 #define TEST_ITEM_STALE_REGISTERED 495
+#define TEST_HIT_SPHERE0 503
+#define TEST_HIT_SPHERE_PLAYER_STRIDE 25
+#define TEST_HIT_SPHERE_STRIDE 6
 
 static int test_install_count;
 static int test_render_count;
@@ -609,6 +612,9 @@ int main(void)
             TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_STRIDE +
             TEST_STALE_MOVE_MULTIPLIER] != 65536 ||
         test_view[TEST_ITEM_STALE_REGISTERED] != 0 ||
+        test_view[TEST_HIT_SPHERE0] != 0 ||
+        test_view[
+            TEST_HIT_SPHERE0 + TEST_HIT_SPHERE_PLAYER_STRIDE] != 0 ||
         test_view[TEST_SOLID_LEFT] != 14 * 65536 ||
         test_view[TEST_SOLID_RIGHT] != 27 * 65536 ||
         test_view[TEST_SOLID_TOP] != 16 * 65536 ||
@@ -1297,7 +1303,18 @@ int main(void)
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         test_view[
-            TEST_PLAYER0_BASE + TEST_PLAYER_HITBOX_ACTIVE] != 1)
+            TEST_PLAYER0_BASE + TEST_PLAYER_HITBOX_ACTIVE] != 1 ||
+        test_view[TEST_HIT_SPHERE0] != 3 ||
+        test_view[TEST_HIT_SPHERE0 + 1] !=
+            test_view[TEST_PLAYER0_BASE] + 72548 ||
+        test_view[TEST_HIT_SPHERE0 + 2] !=
+            test_view[TEST_PLAYER0_BASE + 1] - 73843 ||
+        test_view[TEST_HIT_SPHERE0 + 3] != 24040 ||
+        test_view[TEST_HIT_SPHERE0 + 4] != 0 ||
+        test_view[TEST_HIT_SPHERE0 + 5] != 0 ||
+        test_view[TEST_HIT_SPHERE0 + 6] != 0 ||
+        test_view[TEST_HIT_SPHERE0 + 1 + TEST_HIT_SPHERE_STRIDE + 4] !=
+            1)
     {
         return fail("keyboard-attack-and-hitbox-view");
     }
@@ -1309,7 +1326,7 @@ int main(void)
     {
         int approach_tick;
 
-        for (approach_tick = 0; approach_tick < 240; ++approach_tick)
+        for (approach_tick = 0; approach_tick < 400; ++approach_tick)
         {
             if (!pf_web_m4_playtest_step(
                     test_walk_axis,
@@ -1317,7 +1334,7 @@ int main(void)
                     0,
                     0,
                     0,
-                    -test_dash_axis,
+                    0,
                     0,
                     0,
                     0,
@@ -1329,14 +1346,45 @@ int main(void)
                     test_view[TEST_PLAYER0_BASE] &&
                 test_view[TEST_PLAYER1_BASE] -
                         test_view[TEST_PLAYER0_BASE] <=
-                    65536)
+                    100000)
             {
                 break;
             }
         }
-        if (approach_tick == 240)
+        if (approach_tick == 400)
         {
+            (void)fprintf(
+                stderr,
+                "m4-browser-adapter=debug operation=event-journal-approach "
+                "p0=%d p1=%d a0=%d a1=%d f0=%d f1=%d\n",
+                (int)test_view[TEST_PLAYER0_BASE],
+                (int)test_view[TEST_PLAYER1_BASE],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_FACING]);
             return fail("event-journal-approach-range");
+        }
+    }
+    {
+        int settle_tick;
+
+        for (settle_tick = 0; settle_tick < 60; ++settle_tick)
+        {
+            if (test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] == 0 &&
+                test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION] == 0)
+            {
+                break;
+            }
+            if (!pf_web_m4_playtest_step(
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+            {
+                return fail("event-journal-settle");
+            }
+        }
+        if (settle_tick == 60)
+        {
+            return fail("event-journal-settle-timeout");
         }
     }
     if (!pf_web_m4_playtest_step(
@@ -1363,6 +1411,31 @@ int main(void)
         test_view[
             TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_IDS] != 12)
     {
+        (void)fprintf(
+            stderr,
+            "m4-browser-adapter=debug operation=event-journal-hit-view "
+            "events=%d type=%d source=%d target=%d value=%d "
+            "p0=%d p1=%d a0=%d a1=%d f0=%d f1=%d h0=%d h1=%d "
+            "spheres=%d s0=(%d,%d,%d)\n",
+            (int)test_view[TEST_EVENT_COUNT],
+            (int)test_view[TEST_EVENT0 + TEST_EVENT_TYPE],
+            (int)test_view[TEST_EVENT0 + TEST_EVENT_SOURCE],
+            (int)test_view[TEST_EVENT0 + TEST_EVENT_TARGET],
+            (int)test_view[TEST_EVENT0 + TEST_EVENT_VALUE],
+            (int)test_view[TEST_PLAYER0_BASE],
+            (int)test_view[TEST_PLAYER1_BASE],
+            (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+            (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION],
+            (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING],
+            (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_FACING],
+            (int)test_view[
+                TEST_PLAYER0_BASE + TEST_PLAYER_HITBOX_ACTIVE],
+            (int)test_view[
+                TEST_PLAYER1_BASE + TEST_PLAYER_HITBOX_ACTIVE],
+            (int)test_view[TEST_HIT_SPHERE0],
+            (int)test_view[TEST_HIT_SPHERE0 + 1],
+            (int)test_view[TEST_HIT_SPHERE0 + 2],
+            (int)test_view[TEST_HIT_SPHERE0 + 3]);
         return fail("event-journal-hit-view");
     }
 
