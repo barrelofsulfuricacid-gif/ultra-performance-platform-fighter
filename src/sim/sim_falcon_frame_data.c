@@ -17,10 +17,45 @@ _Static_assert(
             sizeof(pf_m4_falcon_hurt_moves[0]) ==
         (size_t)PF_M4_FALCON_MOVE_COUNT,
     "Falcon hurt-pose table must cover every indexed move");
+_Static_assert(
+    sizeof(pf_m4_falcon_common_attribute_bits) /
+            sizeof(pf_m4_falcon_common_attribute_bits[0]) ==
+        (size_t)PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT,
+    "Falcon common-attribute table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_special_attributes) == (size_t)0x8c,
+    "Falcon special-attribute view must cover the source block exactly");
 
 const uint8_t *pf_m4_falcon_reference_source_sha256(void)
 {
     return pf_m4_falcon_source_sha256;
+}
+
+const uint8_t *pf_m4_falcon_reference_complete_source_sha256(void)
+{
+    return pf_m4_falcon_complete_source_sha256;
+}
+
+const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
+    uint16_t *out_count)
+{
+    if (out_count != NULL)
+    {
+        *out_count = PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT;
+    }
+    return pf_m4_falcon_common_attribute_bits;
+}
+
+const pf_m4_falcon_common_attributes *
+pf_m4_falcon_reference_common_attributes(void)
+{
+    return &pf_m4_falcon_common_attribute_data;
+}
+
+const pf_m4_falcon_special_attributes *
+pf_m4_falcon_reference_special_attributes(void)
+{
+    return &pf_m4_falcon_special_attribute_data;
 }
 
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void)

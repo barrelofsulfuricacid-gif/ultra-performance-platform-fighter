@@ -21368,6 +21368,7 @@ static int run_ledge_attack_test(
 
 static int run_falcon_reference_table_test(void)
 {
+    uint16_t common_attribute_count = UINT16_C(0);
     static const uint8_t aerial_actions[5] = {
         (uint8_t)PF_M4_ACTION_AERIAL_ATTACK,
         (uint8_t)PF_M4_ACTION_FORWARD_AERIAL,
@@ -21391,7 +21392,8 @@ static int run_falcon_reference_table_test(void)
     const pf_m4_reference_move *special_n =
         pf_m4_falcon_reference_move(PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND);
     const pf_m4_reference_move *special_last =
-        pf_m4_falcon_reference_move(PF_M4_FALCON_UP_SPECIAL_THROW_AIR);
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_DOWN_SPECIAL_WALL_REBOUND);
     const pf_m4_reference_hit_phase *jab_phase =
         pf_m4_falcon_reference_phase(PF_M4_FALCON_JAB1, UINT16_C(0));
     const pf_m4_reference_hit_effect *jab_effect =
@@ -21428,10 +21430,16 @@ static int run_falcon_reference_table_test(void)
     uint8_t up_smash_sphere_count = UINT8_C(0);
     uint8_t grab_sphere_count = UINT8_C(0);
     uint8_t dash_grab_sphere_count = UINT8_C(0);
+    uint8_t neutral_special_sphere_count = UINT8_C(0);
+    uint8_t neutral_special_air_sphere_count = UINT8_C(0);
+    uint8_t down_special_ground_sphere_count = UINT8_C(0);
+    uint8_t down_special_air_sphere_count = UINT8_C(0);
     uint8_t standing_hurt_capsule_count = UINT8_C(0);
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
     uint8_t grab_hurt_capsule_count = UINT8_C(0);
+    uint8_t neutral_special_hurt_capsule_count = UINT8_C(0);
+    uint8_t neutral_special_air_hurt_capsule_count = UINT8_C(0);
     const pf_m4_reference_hit_sphere *jab_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_JAB1,
@@ -21457,6 +21465,26 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_DASH_GRAB,
             UINT16_C(11),
             &dash_grab_sphere_count);
+    const pf_m4_reference_hit_sphere *neutral_special_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND,
+            UINT16_C(52),
+            &neutral_special_sphere_count);
+    const pf_m4_reference_hit_sphere *neutral_special_air_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_AIR,
+            UINT16_C(52),
+            &neutral_special_air_sphere_count);
+    const pf_m4_reference_hit_sphere *down_special_ground_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_DOWN_SPECIAL_GROUND,
+            UINT16_C(25),
+            &down_special_ground_sphere_count);
+    const pf_m4_reference_hit_sphere *down_special_air_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_DOWN_SPECIAL_AIR,
+            UINT16_C(29),
+            &down_special_air_sphere_count);
     const pf_m4_reference_hurt_capsule *standing_hurt_capsules =
         pf_m4_falcon_reference_standing_hurt_capsules(
             &standing_hurt_capsule_count);
@@ -21475,8 +21503,27 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_GRAB,
             UINT16_C(29),
             &grab_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *neutral_special_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND,
+            UINT16_C(99),
+            &neutral_special_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *neutral_special_air_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_AIR,
+            UINT16_C(99),
+            &neutral_special_air_hurt_capsule_count);
     const uint8_t *geometry_sha256 =
         pf_m4_falcon_reference_geometry_sha256();
+    const uint8_t *complete_source_sha256 =
+        pf_m4_falcon_reference_complete_source_sha256();
+    const uint32_t *common_attribute_bits =
+        pf_m4_falcon_reference_common_attribute_bits(
+            &common_attribute_count);
+    const pf_m4_falcon_common_attributes *common_attributes =
+        pf_m4_falcon_reference_common_attributes();
+    const pf_m4_falcon_special_attributes *special_attributes =
+        pf_m4_falcon_reference_special_attributes();
     int32_t dash_motion_q16 = INT32_C(0);
     uint32_t present_count = UINT32_C(0);
 
@@ -21494,6 +21541,30 @@ static int run_falcon_reference_table_test(void)
         present_count += move->present != UINT8_C(0)
                              ? UINT32_C(1)
                              : UINT32_C(0);
+        if (mapped_move >= PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND)
+        {
+            uint8_t first_pose_count = UINT8_C(0);
+            uint8_t last_pose_count = UINT8_C(0);
+
+            if (move->present == UINT8_C(0) ||
+                pf_m4_falcon_reference_hurt_capsules_at_frame(
+                    mapped_move,
+                    UINT16_C(1),
+                    &first_pose_count) == NULL ||
+                pf_m4_falcon_reference_hurt_capsules_at_frame(
+                    mapped_move,
+                    move->total_frames,
+                    &last_pose_count) == NULL ||
+                first_pose_count != UINT8_C(11) ||
+                last_pose_count != UINT8_C(11) ||
+                pf_m4_falcon_reference_hurt_capsules_at_frame(
+                    mapped_move,
+                    (uint16_t)(move->total_frames + UINT16_C(1)),
+                    NULL) != NULL)
+            {
+                return fail("falcon-reference-special-pose-completeness");
+            }
+        }
     }
 
     if (jab == NULL || jab->present != UINT8_C(1) ||
@@ -21611,6 +21682,53 @@ static int run_falcon_reference_table_test(void)
         dash_grab_spheres[0].offset_y_q16 != INT32_C(-62184) ||
         dash_grab_spheres[2].offset_x_q16 != INT32_C(-15546) ||
         dash_grab_spheres[2].hitbox_id != UINT8_C(2) ||
+        neutral_special_spheres == NULL ||
+        neutral_special_sphere_count != UINT8_C(3) ||
+        neutral_special_spheres[0].effect_index != UINT8_C(0) ||
+        neutral_special_spheres[0].hitbox_id != UINT8_C(0) ||
+        neutral_special_spheres[1].effect_index != UINT8_C(1) ||
+        neutral_special_spheres[1].hitbox_id != UINT8_C(1) ||
+        neutral_special_spheres[2].effect_index != UINT8_C(2) ||
+        neutral_special_spheres[2].hitbox_id != UINT8_C(2) ||
+        neutral_special_air_spheres == NULL ||
+        neutral_special_air_sphere_count != UINT8_C(3) ||
+        neutral_special_air_spheres[0].radius_q16 != INT32_C(36060) ||
+        neutral_special_air_spheres[1].radius_q16 != INT32_C(32054) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_AIR) ||
+        down_special_ground_spheres == NULL ||
+        down_special_ground_sphere_count != UINT8_C(3) ||
+        down_special_ground_spheres[0].effect_index != UINT8_C(2) ||
+        down_special_ground_spheres[1].effect_index != UINT8_C(2) ||
+        down_special_ground_spheres[2].effect_index != UINT8_C(0) ||
+        down_special_air_spheres == NULL ||
+        down_special_air_sphere_count != UINT8_C(2) ||
+        down_special_air_spheres[0].effect_index != UINT8_C(2) ||
+        down_special_air_spheres[1].effect_index != UINT8_C(2) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_DOWN_SPECIAL_GROUND) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_DOWN_SPECIAL_AIR) ||
+        pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_SIDE_SPECIAL_START_GROUND) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_SIDE_SPECIAL_HIT_GROUND) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_SIDE_SPECIAL_HIT_AIR) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_UP_SPECIAL_GROUND) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_UP_SPECIAL_AIR) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_UP_SPECIAL_CATCH) ||
+        !pf_m4_falcon_reference_has_hit_geometry(
+            PF_M4_FALCON_DOWN_SPECIAL_LANDING_HIT) ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_DOWN_SPECIAL_LANDING_HIT,
+            UINT16_C(0),
+            NULL) == NULL ||
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_DASH_GRAB,
             UINT16_C(10),
@@ -21625,6 +21743,38 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].hurtbox_id != UINT8_C(0) ||
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
+        complete_source_sha256 == NULL ||
+        complete_source_sha256[0] != UINT8_C(0x61) ||
+        complete_source_sha256[31] != UINT8_C(0x46) ||
+        common_attribute_bits == NULL ||
+        common_attribute_count != UINT16_C(97) ||
+        common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
+        common_attribute_bits[96] != UINT32_C(0x07000000) ||
+        common_attributes == NULL ||
+        common_attributes->walk_maximum_velocity_q16 != INT32_C(5813) ||
+        common_attributes->dash_initial_velocity_q16 != INT32_C(13677) ||
+        common_attributes->ground_maximum_horizontal_velocity_q16 !=
+            INT32_C(20516) ||
+        common_attributes->jump_vertical_initial_velocity_q16 !=
+            INT32_C(36045) ||
+        common_attributes->gravity_q16 != INT32_C(1512) ||
+        common_attributes->maximum_horizontal_air_velocity_q16 !=
+            INT32_C(20516) ||
+        common_attributes->weight != UINT16_C(104) ||
+        common_attributes->down_aerial_landing_lag_ticks !=
+            UINT16_C(24) ||
+        special_attributes == NULL ||
+        special_attributes->specialn_stick_range_y_neg_q16 !=
+            INT32_C(8192) ||
+        special_attributes->specialn_vel_x_q16 != INT32_C(127795) ||
+        special_attributes->specials_miss_landing_lag_q16 !=
+            INT32_C(1310720) ||
+        special_attributes->specialhi_landing_lag_q16 !=
+            INT32_C(1966080) ||
+        special_attributes->speciallw_on_hit_spd_modifier_q16 !=
+            INT32_C(39322) ||
+        special_attributes->speciallw_air_landing_traction_q16 !=
+            INT32_C(196608) ||
         jab_hurt_capsules == NULL ||
         jab_hurt_capsule_count != UINT8_C(11) ||
         jab_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(1374) ||
@@ -21638,11 +21788,15 @@ static int run_falcon_reference_table_test(void)
         grab_hurt_capsules == NULL ||
         grab_hurt_capsule_count != UINT8_C(11) ||
         grab_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(-3099) ||
+        neutral_special_hurt_capsules == NULL ||
+        neutral_special_hurt_capsule_count != UINT8_C(11) ||
+        neutral_special_air_hurt_capsules == NULL ||
+        neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0xe0) ||
-        geometry_sha256[1] != UINT8_C(0x4c) ||
-        geometry_sha256[30] != UINT8_C(0x74) ||
-        geometry_sha256[31] != UINT8_C(0x3e) ||
+        geometry_sha256[0] != UINT8_C(0x92) ||
+        geometry_sha256[1] != UINT8_C(0xf5) ||
+        geometry_sha256[30] != UINT8_C(0xb4) ||
+        geometry_sha256[31] != UINT8_C(0xc0) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -21653,7 +21807,11 @@ static int run_falcon_reference_table_test(void)
             NULL) != NULL ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND,
-            UINT16_C(1),
+            UINT16_C(100),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_AIR,
+            UINT16_C(100),
             NULL) != NULL)
     {
         return fail("falcon-reference-hit-geometry");

@@ -23,6 +23,24 @@ import time
 import melee
 
 
+SPECIAL_GEOMETRY_SOURCE_KEYS = {
+    "neutral_ground": "0x12d",
+    "neutral_air": "0x12e",
+    "side_ground_miss": "0x12f",
+    "side_ground_hit": "0x130",
+    "side_air_miss": "0x131",
+    "side_air_hit": "0x132",
+    "up_ground_miss": "0x133",
+    "up_air_miss": "0x134",
+    "up_ground_catch": "0x135",
+    "up_air_catch": "0x135",
+    "down_ground": "0x137",
+    "down_ground_edge": "0x13b",
+    "down_air": "0x139",
+    "down_air_land": "0x13a",
+}
+
+
 def input_trace(
     platform_only: bool = False,
     push_only: bool = False,
@@ -34,7 +52,9 @@ def input_trace(
     attack_iasa_only: bool = False,
     ground_attack_iasa_only: bool = False,
     hitbox_geometry_only: bool = False,
+    special_geometry_only: bool = False,
     ground_attack_moves: tuple[str, ...] | None = None,
+    special_geometry_moves: tuple[str, ...] | None = None,
     falcon_frame_data: dict[str, object] | None = None,
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
@@ -62,6 +82,11 @@ def input_trace(
         taunt: bool = False,
         opponent_main_x: float = 0.5,
         opponent_attack: bool = False,
+        opponent_jump: bool = False,
+        fighter_x_override: float | None = None,
+        fighter_y_override: float | None = None,
+        opponent_x_override: float | None = None,
+        opponent_y_override: float | None = None,
     ) -> dict[str, object]:
         return {
             "label": label,
@@ -80,6 +105,11 @@ def input_trace(
             "taunt": taunt,
             "opponent_main_x": opponent_main_x,
             "opponent_attack": opponent_attack,
+            "opponent_jump": opponent_jump,
+            "fighter_x_override": fighter_x_override,
+            "fighter_y_override": fighter_y_override,
+            "opponent_x_override": opponent_x_override,
+            "opponent_y_override": opponent_y_override,
         }
 
     def repeat(label: str, count: int, **inputs: object) -> None:
@@ -105,9 +135,7 @@ def input_trace(
         # imported value, not a second authored timing source.
         if falcon_frame_data is None:
             raise ValueError("attack IASA capture requires Falcon frame data")
-        falcon_jab1_iasa_frame = int(
-            dict(falcon_frame_data["jab1"])["iasa"]
-        )
+        falcon_jab1_iasa_frame = int(dict(falcon_frame_data["jab1"])["iasa"])
 
         def jab_interrupt_route(
             label: str,
@@ -152,9 +180,7 @@ def input_trace(
 
     if hitbox_geometry_only:
         if falcon_frame_data is None:
-            raise ValueError(
-                "hitbox-geometry capture requires Falcon frame data"
-            )
+            raise ValueError("hitbox-geometry capture requires Falcon frame data")
 
         def move_total(move: str) -> int:
             return int(dict(falcon_frame_data[move])["totalFrames"])
@@ -298,11 +324,178 @@ def input_trace(
         aerial_starter("dair", c_y=0.0)
         return trace
 
+    if special_geometry_only:
+        if falcon_frame_data is None:
+            raise ValueError("special-geometry capture requires Falcon frame data")
+
+        special_moves = special_geometry_moves or ("neutral_ground",)
+        unsupported = set(special_moves) - set(SPECIAL_GEOMETRY_SOURCE_KEYS)
+        if unsupported:
+            raise ValueError(
+                f"unsupported special-geometry routes: {sorted(unsupported)}"
+            )
+
+        def special_total(route: str) -> int:
+            return int(
+                dict(falcon_frame_data[SPECIAL_GEOMETRY_SOURCE_KEYS[route]])[
+                    "totalFrames"
+                ]
+            )
+
+        for route in special_moves:
+            trace.append(
+                command(
+                    f"special_geometry_{route}_opponent_pose_reset",
+                    opponent_attack=True,
+                )
+            )
+            repeat(f"special_geometry_{route}_settle", 29)
+            airborne = route in {
+                "neutral_air",
+                "side_air_miss",
+                "side_air_hit",
+                "up_air_miss",
+                "up_air_catch",
+                "down_air",
+                "down_air_land",
+            }
+            low_airborne = route == "down_air_land"
+            elevated_airborne = airborne and not low_airborne
+            if airborne:
+                airborne_opponent = route in {
+                    "side_air_hit",
+                    "up_air_catch",
+                }
+
+                def airborne_setup(
+                    suffix: str, *, jump: bool = False
+                ) -> dict[str, object]:
+                    opponent_elevated = (
+                        airborne_opponent and suffix == "opponent_elevate"
+                    )
+                    return command(
+                        f"special_geometry_{route}_{suffix}",
+                        jump=jump,
+                        opponent_jump=airborne_opponent,
+                        opponent_x_override=(0.0 if airborne_opponent else None),
+                        opponent_y_override=(500.0 if opponent_elevated else None),
+                    )
+
+                airborne_commands = [
+                    airborne_setup("jump", jump=True),
+                    airborne_setup("jump_squat", jump=True),
+                    airborne_setup("jump_squat", jump=True),
+                    airborne_setup("jump_squat", jump=True),
+                    airborne_setup("jump_squat", jump=True),
+                    airborne_setup("ascent"),
+                    airborne_setup("ascent"),
+                ]
+                if not low_airborne:
+                    airborne_commands.extend(
+                        (
+                            airborne_setup("double_jump", jump=True),
+                            airborne_setup("airborne_hold"),
+                            airborne_setup("airborne_hold"),
+                            airborne_setup("opponent_elevate"),
+                        )
+                    )
+                trace.extend(airborne_commands)
+            if route == "neutral_ground":
+                trace.append(
+                    command(
+                        "special_geometry_neutral_ground_start",
+                        special=True,
+                    )
+                )
+            elif route == "neutral_air":
+                trace.append(
+                    command(
+                        "special_geometry_neutral_air_start",
+                        special=True,
+                        fighter_y_override=500.0,
+                    )
+                )
+            elif route in {
+                "side_ground_miss",
+                "side_ground_hit",
+                "side_air_miss",
+                "side_air_hit",
+            }:
+                collision_route = route.endswith("_hit")
+                trace.append(
+                    command(
+                        f"special_geometry_{route}_start",
+                        main_x=1.0,
+                        special=True,
+                        fighter_x_override=-10.0 if collision_route else None,
+                        fighter_y_override=(500.0 if elevated_airborne else None),
+                        opponent_x_override=0.0 if collision_route else None,
+                        opponent_y_override=(
+                            500.0 if collision_route and airborne else None
+                        ),
+                    )
+                )
+            elif route in {
+                "up_ground_miss",
+                "up_air_miss",
+                "up_ground_catch",
+                "up_air_catch",
+            }:
+                collision_route = route.endswith("_catch")
+                trace.append(
+                    command(
+                        f"special_geometry_{route}_start",
+                        main_y=1.0,
+                        special=True,
+                        fighter_x_override=-5.0 if collision_route else None,
+                        fighter_y_override=(500.0 if elevated_airborne else None),
+                        opponent_x_override=0.0 if collision_route else None,
+                        opponent_y_override=(
+                            500.0 if collision_route and airborne else None
+                        ),
+                    )
+                )
+            elif route in {
+                "down_ground",
+                "down_ground_edge",
+                "down_air",
+                "down_air_land",
+            }:
+                trace.append(
+                    command(
+                        f"special_geometry_{route}_start",
+                        main_y=0.0,
+                        special=True,
+                        fighter_x_override=(
+                            80.0 if route == "down_ground_edge" else None
+                        ),
+                        fighter_y_override=(500.0 if elevated_airborne else None),
+                    )
+                )
+            repeat(
+                f"special_geometry_{route}_observe",
+                special_total(route) + 100,
+                fighter_y_override=500.0 if elevated_airborne else None,
+                opponent_x_override=(
+                    0.0
+                    if route
+                    in {
+                        "side_ground_hit",
+                        "side_air_hit",
+                        "up_ground_catch",
+                        "up_air_catch",
+                    }
+                    else None
+                ),
+                opponent_y_override=(
+                    500.0 if route in {"side_air_hit", "up_air_catch"} else None
+                ),
+            )
+        return trace
+
     if ground_attack_iasa_only:
         if falcon_frame_data is None:
-            raise ValueError(
-                "ground-attack IASA capture requires Falcon frame data"
-            )
+            raise ValueError("ground-attack IASA capture requires Falcon frame data")
 
         starters: dict[str, list[dict[str, object]]] = {
             "dashattack": [
@@ -315,15 +508,9 @@ def input_trace(
                 # branch; re-flicking it with A requests forward smash.
                 command("dashattack_start", main_x=1.0, attack=True),
             ],
-            "ftilt_m": [
-                command("ftilt_m_start", main_x=0.70, attack=True)
-            ],
-            "utilt": [
-                command("utilt_start", main_y=0.65, attack=True)
-            ],
-            "dtilt": [
-                command("dtilt_start", main_y=0.35, attack=True)
-            ],
+            "ftilt_m": [command("ftilt_m_start", main_x=0.70, attack=True)],
+            "utilt": [command("utilt_start", main_y=0.65, attack=True)],
+            "dtilt": [command("dtilt_start", main_y=0.35, attack=True)],
             "fsmash_m": [command("fsmash_m_start", c_x=1.0)],
             "usmash": [command("usmash_start", c_y=1.0)],
             "dsmash": [command("dsmash_start", c_y=0.0)],
@@ -377,19 +564,13 @@ def input_trace(
                 if mirrored:
                     # libmelee's normalized controller axes use 0.5 as
                     # neutral, so reflection is 1-x rather than negation.
-                    mirrored_starter["main_x"] = (
-                        1.0 - float(mirrored_starter["main_x"])
-                    )
-                    mirrored_starter["c_x"] = (
-                        1.0 - float(mirrored_starter["c_x"])
-                    )
+                    mirrored_starter["main_x"] = 1.0 - float(mirrored_starter["main_x"])
+                    mirrored_starter["c_x"] = 1.0 - float(mirrored_starter["c_x"])
                 trace.append(mirrored_starter)
             if move in {"dashattack", "fsmash_m"}:
                 capture_facing = -1 if mirrored else 1
             repeat(f"{prefix}_before", interrupt_frame - 2)
-            trace.append(
-                command(f"{prefix}_interrupt", **interrupt_inputs)
-            )
+            trace.append(command(f"{prefix}_interrupt", **interrupt_inputs))
             repeat(
                 f"{prefix}_recover",
                 recovery_frames,
@@ -401,14 +582,18 @@ def input_trace(
         repeat("ground_iasa_opponent_settle", 60)
 
         selected_moves = set(ground_attack_moves or starters)
-        routed_moves = tuple(move for move in (
-            "dashattack",
-            "utilt",
-            "dtilt",
-            "fsmash_m",
-            "usmash",
-            "dsmash",
-        ) if move in selected_moves)
+        routed_moves = tuple(
+            move
+            for move in (
+                "dashattack",
+                "utilt",
+                "dtilt",
+                "fsmash_m",
+                "usmash",
+                "dsmash",
+            )
+            if move in selected_moves
+        )
         for move in routed_moves:
             iasa = move_value(move, "iasa")
             interrupt_route(move, "jump_early", iasa - 1, jump=True)
@@ -1263,9 +1448,7 @@ def input_trace(
     )
     repeat("face_right_settle_before_crouch_start_down_special", 15)
     repeat("crouch_start_before_down_special", 2, main_y=0.0)
-    trace.append(
-        command("crouch_start_down_special", main_y=0.0, special=True)
-    )
+    trace.append(command("crouch_start_down_special", main_y=0.0, special=True))
     repeat("crouch_start_down_special_recovery", 100)
 
     repeat("recenter_before_crouch_wait_down_special", 25, main_x=0.0)
@@ -1278,9 +1461,7 @@ def input_trace(
     )
     repeat("face_right_settle_before_crouch_wait_down_special", 15)
     repeat("crouch_wait_before_down_special", 20, main_y=0.0)
-    trace.append(
-        command("crouch_wait_down_special", main_y=0.0, special=True)
-    )
+    trace.append(command("crouch_wait_down_special", main_y=0.0, special=True))
     repeat("crouch_wait_down_special_recovery", 100)
 
     repeat("recenter_before_crouch_end_down_special", 25, main_x=0.0)
@@ -1294,9 +1475,7 @@ def input_trace(
     repeat("face_right_settle_before_crouch_end_down_special", 15)
     repeat("crouch_end_before_down_special", 20, main_y=0.0)
     trace.append(command("crouch_end_down_special_release"))
-    trace.append(
-        command("crouch_end_down_special", main_y=0.0, special=True)
-    )
+    trace.append(command("crouch_end_down_special", main_y=0.0, special=True))
     repeat("crouch_end_down_special_recovery", 100)
     return trace
 
@@ -1306,14 +1485,11 @@ def read_shield_memory_probe(memory_engine: object) -> dict[str, object]:
 
     player_slot = 0x80453080
     transformed = memory_engine.read_byte(player_slot + 0x0C)
-    fighter_gobj = memory_engine.read_word(
-        player_slot + 0xB0 + 4 * transformed
-    )
+    fighter_gobj = memory_engine.read_word(player_slot + 0xB0 + 4 * transformed)
     fighter = memory_engine.read_word(fighter_gobj + 0x2C)
     shield_joint = memory_engine.read_word(fighter + 0x19C0)
     matrix = [
-        memory_engine.read_float(shield_joint + 0x44 + 4 * index)
-        for index in range(12)
+        memory_engine.read_float(shield_joint + 0x44 + 4 * index) for index in range(12)
     ]
     return {
         "fighter_address": fighter,
@@ -1325,16 +1501,13 @@ def read_shield_memory_probe(memory_engine: object) -> dict[str, object]:
         "shield_radius": memory_engine.read_float(fighter + 0x19E0),
         "initial_shield_size": memory_engine.read_float(fighter + 0x1A0),
         "fighter_scale": [
-            memory_engine.read_float(fighter + 0x34 + 4 * index)
-            for index in range(3)
+            memory_engine.read_float(fighter + 0x34 + 4 * index) for index in range(3)
         ],
         "fighter_position": [
-            memory_engine.read_float(fighter + 0xB0 + 4 * index)
-            for index in range(3)
+            memory_engine.read_float(fighter + 0xB0 + 4 * index) for index in range(3)
         ],
         "shield_position": [
-            memory_engine.read_float(fighter + 0x19C8 + 4 * index)
-            for index in range(3)
+            memory_engine.read_float(fighter + 0x19C8 + 4 * index) for index in range(3)
         ],
         "shield_joint_scale": [
             memory_engine.read_float(shield_joint + 0x2C + 4 * index)
@@ -1353,15 +1526,11 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
 
     player_slot = 0x80453080
     transformed = memory_engine.read_byte(player_slot + 0x0C)
-    fighter_gobj = memory_engine.read_word(
-        player_slot + 0xB0 + 4 * transformed
-    )
+    fighter_gobj = memory_engine.read_word(player_slot + 0xB0 + 4 * transformed)
     fighter = memory_engine.read_word(fighter_gobj + 0x2C)
     common = memory_engine.read_word(0x804D6554)
     source_gobj = memory_engine.read_word(fighter + 0x1868)
-    source_fighter = (
-        memory_engine.read_word(source_gobj + 0x2C) if source_gobj else 0
-    )
+    source_fighter = memory_engine.read_word(source_gobj + 0x2C) if source_gobj else 0
     source_hitboxes = []
     if source_fighter:
         for index in range(4):
@@ -1374,9 +1543,7 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
                     "damage": memory_engine.read_float(hitbox + 0x0C),
                     "angle": memory_engine.read_word(hitbox + 0x20),
                     "knockback_growth": memory_engine.read_word(hitbox + 0x24),
-                    "weight_set_knockback": memory_engine.read_word(
-                        hitbox + 0x28
-                    ),
+                    "weight_set_knockback": memory_engine.read_word(hitbox + 0x28),
                     "base_knockback": memory_engine.read_word(hitbox + 0x2C),
                 }
             )
@@ -1419,12 +1586,9 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
         "source_hitboxes": source_hitboxes,
         "fighter_weight": memory_engine.read_float(fighter + 0x198),
         "knockback_velocity": [
-            memory_engine.read_float(fighter + 0x8C + 4 * index)
-            for index in range(3)
+            memory_engine.read_float(fighter + 0x8C + 4 * index) for index in range(3)
         ],
-        "ground_knockback_velocity": memory_engine.read_float(
-            fighter + 0xF0
-        ),
+        "ground_knockback_velocity": memory_engine.read_float(fighter + 0xF0),
         "damage_percent": memory_engine.read_float(fighter + 0x1830),
         "damage_this_hit": memory_engine.read_float(fighter + 0x1838),
         "knockback_angle": memory_engine.read_word(fighter + 0x1848),
@@ -1446,9 +1610,7 @@ def read_fighter_address(memory_engine: object, player_index: int) -> int:
     static_player_stride = 0xE90
     player_slot = 0x80453080 + player_index * static_player_stride
     transformed = memory_engine.read_byte(player_slot + 0x0C)
-    fighter_gobj = memory_engine.read_word(
-        player_slot + 0xB0 + 4 * transformed
-    )
+    fighter_gobj = memory_engine.read_word(player_slot + 0xB0 + 4 * transformed)
     return memory_engine.read_word(fighter_gobj + 0x2C)
 
 
@@ -1458,10 +1620,7 @@ def read_fighter_hurt_capsules(
     """Read live pose-transformed FighterHurtCapsule values."""
 
     def read_vector(address: int) -> list[float]:
-        return [
-            memory_engine.read_float(address + 4 * axis)
-            for axis in range(3)
-        ]
+        return [memory_engine.read_float(address + 4 * axis) for axis in range(3)]
 
     def transform(matrix: list[float], value: list[float]) -> list[float]:
         return [
@@ -1475,17 +1634,14 @@ def read_fighter_hurt_capsules(
     hurtboxes = []
     hurtbox_count = memory_engine.read_byte(fighter + 0x119E)
     if hurtbox_count > 15:
-        raise RuntimeError(
-            f"invalid Fighter hurt-capsule count: {hurtbox_count}"
-        )
+        raise RuntimeError(f"invalid Fighter hurt-capsule count: {hurtbox_count}")
     for index in range(hurtbox_count):
         hurtbox = fighter + 0x11A0 + index * 0x4C
         bone = memory_engine.read_word(hurtbox + 0x20)
         offset_a = read_vector(hurtbox + 0x04)
         offset_b = read_vector(hurtbox + 0x10)
         bone_matrix = [
-            memory_engine.read_float(bone + 0x44 + 4 * element)
-            for element in range(12)
+            memory_engine.read_float(bone + 0x44 + 4 * element) for element in range(12)
         ]
         hurtboxes.append(
             {
@@ -1526,9 +1682,7 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
                 "radius": memory_engine.read_float(hitbox + 0x1C),
                 "angle": memory_engine.read_word(hitbox + 0x20),
                 "knockback_growth": memory_engine.read_word(hitbox + 0x24),
-                "weight_set_knockback": memory_engine.read_word(
-                    hitbox + 0x28
-                ),
+                "weight_set_knockback": memory_engine.read_word(hitbox + 0x28),
                 "base_knockback": memory_engine.read_word(hitbox + 0x2C),
                 "element": memory_engine.read_word(hitbox + 0x30),
                 "position": [
@@ -1544,25 +1698,18 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     return {
         "fighter_address": fighter,
         "fighter_position": [
-            memory_engine.read_float(fighter + 0xB0 + 4 * axis)
-            for axis in range(3)
+            memory_engine.read_float(fighter + 0xB0 + 4 * axis) for axis in range(3)
         ],
         "fighter_scale": [
-            memory_engine.read_float(fighter + 0x34 + 4 * axis)
-            for axis in range(3)
+            memory_engine.read_float(fighter + 0x34 + 4 * axis) for axis in range(3)
         ],
         "hitboxes": hitboxes,
-        "fighter_hurtboxes": read_fighter_hurt_capsules(
-            memory_engine, fighter
-        ),
+        "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
         "opponent_fighter_address": opponent,
         "opponent_fighter_position": [
-            memory_engine.read_float(opponent + 0xB0 + 4 * axis)
-            for axis in range(3)
+            memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
         ],
-        "opponent_hurtboxes": read_fighter_hurt_capsules(
-            memory_engine, opponent
-        ),
+        "opponent_hurtboxes": read_fighter_hurt_capsules(memory_engine, opponent),
     }
 
 
@@ -1714,17 +1861,22 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 gamestate,
                 player_one,
                 player_two,
-                melee.Stage.BATTLEFIELD
-                if args.platform_only
-                else melee.Stage.FINAL_DESTINATION,
-                melee.Character.CPTFALCON
-                if (
-                    args.push_only
-                    or args.shield_hit_only
-                    or args.damage_hit_only
-                    or args.hitbox_geometry_only
-                )
-                else melee.Character.FOX,
+                (
+                    melee.Stage.BATTLEFIELD
+                    if args.platform_only
+                    else melee.Stage.FINAL_DESTINATION
+                ),
+                (
+                    melee.Character.CPTFALCON
+                    if (
+                        args.push_only
+                        or args.shield_hit_only
+                        or args.damage_hit_only
+                        or args.hitbox_geometry_only
+                        or args.special_geometry_only
+                    )
+                    else melee.Character.FOX
+                ),
             )
         else:
             state = None if gamestate is None else str(gamestate.menu_state)
@@ -1776,9 +1928,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             attack_iasa_only=args.attack_iasa_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
             hitbox_geometry_only=args.hitbox_geometry_only,
+            special_geometry_only=args.special_geometry_only,
             ground_attack_moves=(
-                tuple(args.ground_attack_move)
-                if args.ground_attack_move
+                tuple(args.ground_attack_move) if args.ground_attack_move else None
+            ),
+            special_geometry_moves=(
+                tuple(args.special_geometry_move)
+                if args.special_geometry_move
                 else None
             ),
             falcon_frame_data=falcon_frame_data,
@@ -1786,8 +1942,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         pipeline_delay = 2
         commands = trace + [
-            {**trace[0], "label": "pipeline_drain"}
-            for _ in range(pipeline_delay)
+            {**trace[0], "label": "pipeline_drain"} for _ in range(pipeline_delay)
         ]
         for command_index, sample in enumerate(commands):
             player_one.release_all()
@@ -1831,6 +1986,29 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
             if bool(sample["opponent_attack"]):
                 player_two.press_button(melee.Button.BUTTON_A)
+            if bool(sample["opponent_jump"]):
+                player_two.press_button(melee.Button.BUTTON_X)
+            position_overrides = (
+                (0, 0xB0, sample["fighter_x_override"]),
+                (0, 0xB4, sample["fighter_y_override"]),
+                (1, 0xB0, sample["opponent_x_override"]),
+                (1, 0xB4, sample["opponent_y_override"]),
+            )
+            if any(value is not None for _, _, value in position_overrides):
+                if memory_engine is None:
+                    raise RuntimeError(
+                        "fighter position override requires a memory probe"
+                    )
+                fighter_addresses = (
+                    read_fighter_address(memory_engine, 0),
+                    read_fighter_address(memory_engine, 1),
+                )
+                for fighter_index, offset, value in position_overrides:
+                    if value is not None:
+                        memory_engine.write_float(
+                            fighter_addresses[fighter_index] + offset,
+                            float(value),
+                        )
             gamestate = console.step()
             if (
                 gamestate is None
@@ -1850,12 +2028,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             observed_y = float(player.controller_state.main_stick[1])
             observed_c_x = float(player.controller_state.c_stick[0])
             observed_c_y = float(player.controller_state.c_stick[1])
-            observed_left_shoulder = float(
-                player.controller_state.l_shoulder
-            )
-            observed_right_shoulder = float(
-                player.controller_state.r_shoulder
-            )
+            observed_left_shoulder = float(player.controller_state.l_shoulder)
+            observed_right_shoulder = float(player.controller_state.r_shoulder)
             observed_digital_left = bool(
                 player.controller_state.button[melee.Button.BUTTON_L]
             )
@@ -1872,19 +2046,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             observed_special = bool(
                 player.controller_state.button[melee.Button.BUTTON_B]
             )
-            observed_grab = bool(
-                player.controller_state.button[melee.Button.BUTTON_Z]
-            )
+            observed_grab = bool(player.controller_state.button[melee.Button.BUTTON_Z])
             observed_taunt = bool(
                 player.controller_state.button[melee.Button.BUTTON_D_UP]
             )
-            observed_opponent_x = float(
-                player_two_state.controller_state.main_stick[0]
-            )
+            observed_opponent_x = float(player_two_state.controller_state.main_stick[0])
             observed_opponent_attack = bool(
-                player_two_state.controller_state.button[
-                    melee.Button.BUTTON_A
-                ]
+                player_two_state.controller_state.button[melee.Button.BUTTON_A]
             )
             requested_x = float(scheduled["main_x"])
             requested_y = float(scheduled["main_y"])
@@ -1892,18 +2060,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             requested_c_y = float(scheduled["c_y"])
             axis_aligned = (
                 (requested_x == 0.5 and abs(observed_x - 0.5) <= 0.02)
-                or (
-                    abs(requested_x - 0.5) <= 0.02
-                    and abs(observed_x - 0.5) <= 0.02
-                )
+                or (abs(requested_x - 0.5) <= 0.02 and abs(observed_x - 0.5) <= 0.02)
                 or (requested_x < 0.5 and observed_x < 0.5)
                 or (requested_x > 0.5 and observed_x > 0.5)
             ) and (
                 (requested_y == 0.5 and abs(observed_y - 0.5) <= 0.02)
-                or (
-                    abs(requested_y - 0.5) <= 0.02
-                    and abs(observed_y - 0.5) <= 0.02
-                )
+                or (abs(requested_y - 0.5) <= 0.02 and abs(observed_y - 0.5) <= 0.02)
                 or (requested_y < 0.5 and observed_y < 0.5)
                 or (requested_y > 0.5 and observed_y > 0.5)
             )
@@ -1932,9 +2094,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             expected_observed_shoulder = (
                 0.35
                 if bool(scheduled["grab"])
-                else 0.0
-                if requested_analog_shoulder <= 0.30
-                else requested_analog_shoulder
+                else (
+                    0.0
+                    if requested_analog_shoulder <= 0.30
+                    else requested_analog_shoulder
+                )
             )
             shoulder_aligned = (
                 abs(
@@ -1942,10 +2106,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     - expected_observed_shoulder
                 )
                 <= 0.10
-                and observed_digital_left
-                == bool(scheduled["digital_left"])
-                and observed_digital_right
-                == bool(scheduled["digital_right"])
+                and observed_digital_left == bool(scheduled["digital_left"])
+                and observed_digital_right == bool(scheduled["digital_right"])
                 and observed_jump == bool(scheduled["jump"])
                 and observed_attack == bool(scheduled["attack"])
                 and observed_special == bool(scheduled["special"])
@@ -1954,22 +2116,16 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
             requested_opponent_x = float(scheduled["opponent_main_x"])
             opponent_axis_aligned = (
-                requested_opponent_x == 0.5
-                and abs(observed_opponent_x - 0.5) <= 0.02
-            ) or (
-                requested_opponent_x < 0.5
-                and observed_opponent_x < 0.5
-            ) or (
-                requested_opponent_x > 0.5
-                and observed_opponent_x > 0.5
+                (requested_opponent_x == 0.5 and abs(observed_opponent_x - 0.5) <= 0.02)
+                or (requested_opponent_x < 0.5 and observed_opponent_x < 0.5)
+                or (requested_opponent_x > 0.5 and observed_opponent_x > 0.5)
             )
             aligned = (
                 axis_aligned
                 and c_axis_aligned
                 and shoulder_aligned
                 and opponent_axis_aligned
-                and observed_opponent_attack
-                == bool(scheduled["opponent_attack"])
+                and observed_opponent_attack == bool(scheduled["opponent_attack"])
             )
             if not aligned:
                 raise RuntimeError(
@@ -1991,133 +2147,100 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             if origin_two_x is None:
                 origin_two_x = player_two_state.position.x
             row = {
-                    "trace_frame": index,
-                    "game_frame": int(gamestate.frame),
-                    "label": scheduled["label"],
-                    "requested_main_x": requested_x,
-                    "requested_main_y": requested_y,
-                    "requested_c_x": requested_c_x,
-                    "requested_c_y": requested_c_y,
-                    "requested_left_shoulder": float(
-                        scheduled["left_shoulder"]
-                    ),
-                    "requested_right_shoulder": float(
-                        scheduled["right_shoulder"]
-                    ),
-                    "requested_digital_left": bool(
-                        scheduled["digital_left"]
-                    ),
-                    "requested_digital_right": bool(
-                        scheduled["digital_right"]
-                    ),
-                    "requested_jump": bool(scheduled["jump"]),
-                    "requested_attack": bool(scheduled["attack"]),
-                    "requested_special": bool(scheduled["special"]),
-                    "requested_grab": bool(scheduled["grab"]),
-                    "requested_taunt": bool(scheduled["taunt"]),
-                    "requested_opponent_main_x": requested_opponent_x,
-                    "requested_opponent_attack": bool(
-                        scheduled["opponent_attack"]
-                    ),
-                    "observed_main_x": observed_x,
-                    "observed_main_y": observed_y,
-                    "observed_c_x": observed_c_x,
-                    "observed_c_y": observed_c_y,
-                    "observed_left_shoulder": observed_left_shoulder,
-                    "observed_right_shoulder": observed_right_shoulder,
-                    "observed_analog_shoulder": max(
-                        observed_left_shoulder,
-                        observed_right_shoulder,
-                    ),
-                    "observed_digital_left": observed_digital_left,
-                    "observed_digital_right": observed_digital_right,
-                    "observed_jump": observed_jump,
-                    "observed_attack": observed_attack,
-                    "observed_special": observed_special,
-                    "observed_grab": observed_grab,
-                    "observed_taunt": observed_taunt,
-                    "observed_opponent_main_x": observed_opponent_x,
-                    "observed_opponent_attack": observed_opponent_attack,
-                    "action": player.action.name,
-                    "action_value": int(player.action.value),
-                    "action_frame": float(player.action_frame),
-                    "facing": 1 if player.facing else -1,
-                    "grounded": bool(player.on_ground),
-                    "position_x": float(player.position.x),
-                    "position_x_from_origin": float(player.position.x - origin_x),
-                    "position_y": float(player.position.y),
-                    "ground_velocity_x": float(player.speed_ground_x_self),
-                    "air_velocity_x": float(player.speed_air_x_self),
-                    "velocity_y": float(player.speed_y_self),
-                    "attack_velocity_x": float(player.speed_x_attack),
-                    "attack_velocity_y": float(player.speed_y_attack),
-                    "hitlag_left": float(player.hitlag_left),
-                    "hitstun_left": float(player.hitstun_frames_left),
-                    "damage_percent": float(player.percent),
-                    "shield_health": float(player.shield_strength),
-                    "opponent_action": player_two_state.action.name,
-                    "opponent_action_value": int(
-                        player_two_state.action.value
-                    ),
-                    "opponent_action_frame": float(
-                        player_two_state.action_frame
-                    ),
-                    "opponent_facing": (
-                        1 if player_two_state.facing else -1
-                    ),
-                    "opponent_grounded": bool(player_two_state.on_ground),
-                    "opponent_position_x": float(player_two_state.position.x),
-                    "opponent_position_x_from_origin": float(
-                        player_two_state.position.x - origin_two_x
-                    ),
-                    "opponent_position_y": float(player_two_state.position.y),
-                    "opponent_ground_velocity_x": float(
-                        player_two_state.speed_ground_x_self
-                    ),
-                    "opponent_air_velocity_x": float(
-                        player_two_state.speed_air_x_self
-                    ),
-                    "opponent_velocity_y": float(
-                        player_two_state.speed_y_self
-                    ),
-                    "opponent_attack_velocity_x": float(
-                        player_two_state.speed_x_attack
-                    ),
-                    "opponent_attack_velocity_y": float(
-                        player_two_state.speed_y_attack
-                    ),
-                    "opponent_hitlag_left": float(
-                        player_two_state.hitlag_left
-                    ),
-                    "opponent_hitstun_left": float(
-                        player_two_state.hitstun_frames_left
-                    ),
-                    "opponent_damage_percent": float(
-                        player_two_state.percent
-                    ),
-                }
+                "trace_frame": index,
+                "game_frame": int(gamestate.frame),
+                "label": scheduled["label"],
+                "requested_main_x": requested_x,
+                "requested_main_y": requested_y,
+                "requested_c_x": requested_c_x,
+                "requested_c_y": requested_c_y,
+                "requested_left_shoulder": float(scheduled["left_shoulder"]),
+                "requested_right_shoulder": float(scheduled["right_shoulder"]),
+                "requested_digital_left": bool(scheduled["digital_left"]),
+                "requested_digital_right": bool(scheduled["digital_right"]),
+                "requested_jump": bool(scheduled["jump"]),
+                "requested_attack": bool(scheduled["attack"]),
+                "requested_special": bool(scheduled["special"]),
+                "requested_grab": bool(scheduled["grab"]),
+                "requested_taunt": bool(scheduled["taunt"]),
+                "requested_opponent_main_x": requested_opponent_x,
+                "requested_opponent_attack": bool(scheduled["opponent_attack"]),
+                "requested_opponent_jump": bool(scheduled["opponent_jump"]),
+                "requested_fighter_y_override": scheduled["fighter_y_override"],
+                "requested_fighter_x_override": scheduled["fighter_x_override"],
+                "requested_opponent_x_override": scheduled["opponent_x_override"],
+                "requested_opponent_y_override": scheduled["opponent_y_override"],
+                "observed_main_x": observed_x,
+                "observed_main_y": observed_y,
+                "observed_c_x": observed_c_x,
+                "observed_c_y": observed_c_y,
+                "observed_left_shoulder": observed_left_shoulder,
+                "observed_right_shoulder": observed_right_shoulder,
+                "observed_analog_shoulder": max(
+                    observed_left_shoulder,
+                    observed_right_shoulder,
+                ),
+                "observed_digital_left": observed_digital_left,
+                "observed_digital_right": observed_digital_right,
+                "observed_jump": observed_jump,
+                "observed_attack": observed_attack,
+                "observed_special": observed_special,
+                "observed_grab": observed_grab,
+                "observed_taunt": observed_taunt,
+                "observed_opponent_main_x": observed_opponent_x,
+                "observed_opponent_attack": observed_opponent_attack,
+                "action": player.action.name,
+                "action_value": int(player.action.value),
+                "action_frame": float(player.action_frame),
+                "facing": 1 if player.facing else -1,
+                "grounded": bool(player.on_ground),
+                "position_x": float(player.position.x),
+                "position_x_from_origin": float(player.position.x - origin_x),
+                "position_y": float(player.position.y),
+                "ground_velocity_x": float(player.speed_ground_x_self),
+                "air_velocity_x": float(player.speed_air_x_self),
+                "velocity_y": float(player.speed_y_self),
+                "attack_velocity_x": float(player.speed_x_attack),
+                "attack_velocity_y": float(player.speed_y_attack),
+                "hitlag_left": float(player.hitlag_left),
+                "hitstun_left": float(player.hitstun_frames_left),
+                "damage_percent": float(player.percent),
+                "shield_health": float(player.shield_strength),
+                "opponent_action": player_two_state.action.name,
+                "opponent_action_value": int(player_two_state.action.value),
+                "opponent_action_frame": float(player_two_state.action_frame),
+                "opponent_facing": (1 if player_two_state.facing else -1),
+                "opponent_grounded": bool(player_two_state.on_ground),
+                "opponent_position_x": float(player_two_state.position.x),
+                "opponent_position_x_from_origin": float(
+                    player_two_state.position.x - origin_two_x
+                ),
+                "opponent_position_y": float(player_two_state.position.y),
+                "opponent_ground_velocity_x": float(
+                    player_two_state.speed_ground_x_self
+                ),
+                "opponent_air_velocity_x": float(player_two_state.speed_air_x_self),
+                "opponent_velocity_y": float(player_two_state.speed_y_self),
+                "opponent_attack_velocity_x": float(player_two_state.speed_x_attack),
+                "opponent_attack_velocity_y": float(player_two_state.speed_y_attack),
+                "opponent_hitlag_left": float(player_two_state.hitlag_left),
+                "opponent_hitstun_left": float(player_two_state.hitstun_frames_left),
+                "opponent_damage_percent": float(player_two_state.percent),
+            }
             if memory_engine is not None:
                 if args.memory_probe_shield:
-                    row["shield_memory"] = read_shield_memory_probe(
-                        memory_engine
-                    )
+                    row["shield_memory"] = read_shield_memory_probe(memory_engine)
                 if args.memory_probe_damage:
-                    row["damage_memory"] = read_damage_memory_probe(
-                        memory_engine
-                    )
+                    row["damage_memory"] = read_damage_memory_probe(memory_engine)
                 if args.memory_probe_hitbox:
-                    row["hitbox_memory"] = read_hitbox_memory_probe(
-                        memory_engine
-                    )
+                    row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
             rows.append(row)
 
         return {
             "schema": (
                 9
                 if args.memory_probe_hitbox
-                else 8
-                if args.memory_probe_shield or args.memory_probe_damage
-                else 7
+                else 8 if args.memory_probe_shield or args.memory_probe_damage else 7
             ),
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
@@ -2135,6 +2258,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     or args.shield_hit_only
                     or args.damage_hit_only
                     or args.hitbox_geometry_only
+                    or args.special_geometry_only
                 )
                 else "FOX"
             ),
@@ -2169,9 +2293,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     ),
                     "player_slot_address": "0x80453080",
                     "common_data_pointer_address": "0x804d6554",
-                    "decomp_revision": (
-                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
-                    ),
+                    "decomp_revision": ("9509dc04406fb2028bfab01243841ba4787c0fb7"),
                 }
                 if args.memory_probe_damage
                 else None
@@ -2192,9 +2314,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "hurtbox_stride": "0x4c",
                     "hurtbox_position_a": "hurtbox+0x28",
                     "hurtbox_position_b": "hurtbox+0x34",
-                    "decomp_revision": (
-                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
-                    ),
+                    "decomp_revision": ("9509dc04406fb2028bfab01243841ba4787c0fb7"),
                 }
                 if args.memory_probe_hitbox
                 else None
@@ -2228,13 +2348,24 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
     mode.add_argument("--hitbox-geometry-only", action="store_true")
+    mode.add_argument("--special-geometry-only", action="store_true")
     parser.add_argument(
         "--ground-attack-move",
         action="append",
         choices=(
-            "dashattack", "ftilt_m", "utilt", "dtilt", "fsmash_m",
-            "usmash", "dsmash",
+            "dashattack",
+            "ftilt_m",
+            "utilt",
+            "dtilt",
+            "fsmash_m",
+            "usmash",
+            "dsmash",
         ),
+    )
+    parser.add_argument(
+        "--special-geometry-move",
+        action="append",
+        choices=tuple(SPECIAL_GEOMETRY_SOURCE_KEYS),
     )
     parser.add_argument("--falcon-frame-data", type=Path)
     parser.add_argument("--memory-probe-shield", action="store_true")
@@ -2246,17 +2377,20 @@ def parse_args() -> argparse.Namespace:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
-    if args.memory_probe_hitbox and not args.hitbox_geometry_only:
-        parser.error(
-            "--memory-probe-hitbox requires --hitbox-geometry-only"
+    if args.memory_probe_hitbox and not (
+        args.hitbox_geometry_only or args.special_geometry_only
+    ):
+        parser.error("--memory-probe-hitbox requires a geometry-only mode")
+    if (
+        sum(
+            (
+                args.memory_probe_shield,
+                args.memory_probe_damage,
+                args.memory_probe_hitbox,
+            )
         )
-    if sum(
-        (
-            args.memory_probe_shield,
-            args.memory_probe_damage,
-            args.memory_probe_hitbox,
-        )
-    ) > 1:
+        > 1
+    ):
         parser.error("select only one memory probe")
     return args
 
@@ -2267,10 +2401,7 @@ def main() -> int:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    print(
-        "ssbm-movement-capture=pass "
-        f"frames={len(result['rows'])} output={output}"
-    )
+    print("ssbm-movement-capture=pass " f"frames={len(result['rows'])} output={output}")
     return 0
 
 

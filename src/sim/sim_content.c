@@ -497,7 +497,7 @@ static void pf_m4_hash_fighter(
 {
     pf_sha256_update(
         hash,
-        pf_m4_falcon_reference_source_sha256(),
+        pf_m4_falcon_reference_complete_source_sha256(),
         (size_t)32);
     pf_sha256_update(
         hash,
@@ -1193,6 +1193,7 @@ const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
 
 pf_status pf_m4_default_content(pf_m4_content *out_content)
 {
+    const pf_m4_falcon_common_attributes *falcon_attributes;
     pf_m4_fighter_data *fighter;
     pf_m4_stage_data *stage;
     pf_m4_item_data *item;
@@ -1204,6 +1205,12 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     if (out_content == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
+    }
+
+    falcon_attributes = pf_m4_falcon_reference_common_attributes();
+    if (falcon_attributes == NULL)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
     (void)memset(out_content, 0, sizeof(*out_content));
@@ -1226,44 +1233,60 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->player_push_half_width_q16 = PF_Q16_RATIO(42, 115);
     fighter->player_push_speed_q16 = PF_Q16_RATIO(18, 575);
     fighter->weight_q16 = PF_Q16_ONE;
-    fighter->ground_acceleration_q16 = PF_Q16_RATIO(9, 575);
+    fighter->ground_acceleration_q16 =
+        falcon_attributes->dash_run_acceleration_a_q16;
     fighter->turn_acceleration_q16 = PF_Q16_RATIO(48, 2875);
-    fighter->traction_q16 = PF_Q16_RATIO(24, 2875);
-    /* Nearest Q16 encoding; truncation loses one unit at Falcon's 0.625 walk. */
+    fighter->traction_q16 = falcon_attributes->friction_q16;
     fighter->walk_speed_q16 =
-        PF_Q16_RATIO(51, 575) + INT32_C(1);
-    fighter->run_speed_q16 = PF_Q16_RATIO(6, 25);
-    fighter->initial_dash_speed_q16 = PF_Q16_RATIO(24, 115);
-    fighter->walk_initial_velocity_q16 = PF_Q16_RATIO(9, 575);
-    fighter->walk_acceleration_q16 = PF_Q16_RATIO(6, 575);
+        falcon_attributes->walk_maximum_velocity_q16;
+    fighter->run_speed_q16 =
+        falcon_attributes->dash_run_terminal_velocity_q16;
+    fighter->initial_dash_speed_q16 =
+        falcon_attributes->dash_initial_velocity_q16;
+    fighter->walk_initial_velocity_q16 =
+        falcon_attributes->initial_walk_velocity_q16;
+    fighter->walk_acceleration_q16 =
+        falcon_attributes->walk_acceleration_q16;
     fighter->dash_run_base_acceleration_q16 =
-        PF_Q16_RATIO(3, 2875);
+        falcon_attributes->dash_run_acceleration_b_q16;
     fighter->ground_max_horizontal_speed_q16 =
-        PF_Q16_RATIO(36, 115);
+        falcon_attributes->ground_maximum_horizontal_velocity_q16;
     fighter->walk_acceleration_taper_q16 = PF_Q16_RATIO(1, 2);
     fighter->run_acceleration_taper_q16 = PF_Q16_RATIO(2, 5);
     fighter->teeter_snap_distance_q16 = PF_Q16_RATIO(2, 5);
     fighter->crouch_step_speed_q16 = INT32_C(0);
-    fighter->air_acceleration_q16 = PF_Q16_RATIO(12, 2875);
-    fighter->air_base_acceleration_q16 = PF_Q16_RATIO(6, 2875);
-    fighter->air_friction_q16 = PF_Q16_RATIO(3, 2875);
-    fighter->air_max_horizontal_speed_q16 = PF_Q16_RATIO(36, 115);
-    fighter->air_speed_q16 = PF_Q16_RATIO(336, 2875);
-    fighter->jump_horizontal_input_speed_q16 = PF_Q16_RATIO(57, 575);
+    fighter->air_acceleration_q16 = falcon_attributes->air_mobility_a_q16;
+    fighter->air_base_acceleration_q16 =
+        falcon_attributes->air_mobility_b_q16;
+    fighter->air_friction_q16 = falcon_attributes->air_friction_q16;
+    fighter->air_max_horizontal_speed_q16 =
+        falcon_attributes->maximum_horizontal_air_velocity_q16;
+    fighter->air_speed_q16 =
+        falcon_attributes->max_aerial_horizontal_velocity_q16;
+    fighter->jump_horizontal_input_speed_q16 =
+        falcon_attributes->jump_horizontal_initial_velocity_q16;
     fighter->jump_horizontal_momentum_multiplier_q16 =
-        PF_Q16_RATIO(3, 4);
-    fighter->jump_horizontal_max_speed_q16 = PF_Q16_RATIO(126, 575);
-    fighter->gravity_q16 = PF_Q16_RATIO(143, 6200);
-    fighter->fall_speed_q16 = PF_Q16_RATIO(319, 620);
-    fighter->fast_fall_speed_q16 = PF_Q16_RATIO(77, 124);
-    fighter->full_hop_speed_q16 = PF_Q16_RATIO(11, 20);
-    fighter->short_hop_speed_q16 = PF_Q16_RATIO(209, 620);
-    fighter->double_jump_speed_q16 = PF_Q16_RATIO(3069, 6200);
-    fighter->double_jump_horizontal_speed_q16 = PF_Q16_RATIO(54, 575);
+        falcon_attributes->ground_air_jump_momentum_multiplier_q16;
+    fighter->jump_horizontal_max_speed_q16 =
+        falcon_attributes->jump_horizontal_maximum_velocity_q16;
+    fighter->gravity_q16 = falcon_attributes->gravity_q16;
+    fighter->fall_speed_q16 = falcon_attributes->terminal_velocity_q16;
+    fighter->fast_fall_speed_q16 =
+        falcon_attributes->fast_fall_terminal_velocity_q16;
+    fighter->full_hop_speed_q16 =
+        falcon_attributes->jump_vertical_initial_velocity_q16;
+    fighter->short_hop_speed_q16 =
+        falcon_attributes->shorthop_vertical_initial_velocity_q16;
+    fighter->double_jump_speed_q16 =
+        falcon_attributes->double_jump_vertical_velocity_q16;
+    fighter->double_jump_horizontal_speed_q16 =
+        falcon_attributes->double_jump_horizontal_velocity_q16;
     fighter->platform_drop_nudge_q16 = PF_Q16_RATIO(1, 256);
     fighter->platform_drop_speed_y_q16 = PF_Q16_RATIO(693, 6200);
-    fighter->ledge_jump_speed_x_q16 = PF_Q16_RATIO(12, 115);
-    fighter->ledge_jump_speed_y_q16 = PF_Q16_RATIO(363, 620);
+    fighter->ledge_jump_speed_x_q16 =
+        falcon_attributes->ledge_jump_horizontal_velocity_q16;
+    fighter->ledge_jump_speed_y_q16 =
+        falcon_attributes->ledge_jump_vertical_velocity_q16;
     fighter->ledge_roll_distance_q16 = PF_Q16_RATIO(7, 4);
     fighter->drop_cancel_snap_distance_q16 = PF_Q16_RATIO(5, 8);
     fighter->air_dodge_speed_x_q16 = PF_Q16_RATIO(837, 2875);
@@ -1271,7 +1294,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
     fighter->fall_special_mobility_q16 = PF_Q16_RATIO(1008, 14375);
     fighter->shield_break_launch_speed_q16 =
-        PF_Q16_RATIO(297, 620);
+        falcon_attributes->shield_break_initial_velocity_q16;
     fighter->dash_attack_speed_q16 = PF_Q16_RATIO(7, 20);
     fighter->dash_attack_hitbox_offset_x_q16 =
         PF_Q16_RATIO(4, 5);
@@ -1530,7 +1553,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->aerial_knockback_growth_q16 = PF_Q16_RATIO(1, 1024);
     fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
     fighter->v_cancel_velocity_scale_q16 = PF_Q16_RATIO(95, 100);
-    fighter->knockback_weight = UINT16_C(104);
+    fighter->knockback_weight = falcon_attributes->weight;
     fighter->knockback_reserved = UINT16_C(0);
     fighter->crouch_cancel_max_damage_q16 =
         UINT32_C(40) * UINT32_C(65536);
@@ -1544,8 +1567,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->wall_tech_speed_q16 = PF_Q16_RATIO(6, 115);
     fighter->wall_tech_jump_speed_x_q16 = PF_Q16_RATIO(84, 575);
     fighter->wall_tech_jump_speed_y_q16 = PF_Q16_RATIO(11, 20);
-    fighter->wall_jump_speed_x_q16 = PF_Q16_RATIO(84, 575);
-    fighter->wall_jump_speed_y_q16 = PF_Q16_RATIO(11, 20);
+    fighter->wall_jump_speed_x_q16 =
+        falcon_attributes->wall_jump_horizontal_velocity_q16;
+    fighter->wall_jump_speed_y_q16 =
+        falcon_attributes->wall_jump_vertical_velocity_q16;
     fighter->ceiling_tech_speed_q16 = PF_Q16_RATIO(24, 115);
     fighter->surface_bounce_multiplier_q16 = PF_Q16_RATIO(4, 5);
     fighter->getup_roll_speed_q16 = PF_Q16_RATIO(1, 5);
@@ -1632,7 +1657,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
-    fighter->jump_squat_ticks = UINT16_C(4);
+    fighter->jump_squat_ticks = falcon_attributes->jump_startup_ticks;
     fighter->double_jump_cancel_ticks = UINT16_C(6);
     fighter->double_jump_armor_max_hitstun_ticks = UINT16_C(20);
     fighter->initial_dash_ticks = UINT16_C(29);
@@ -1701,11 +1726,16 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->aerial_hitlag_ticks = UINT16_C(5);
     fighter->aerial_landing_lag_begin_tick = UINT16_C(4);
     fighter->aerial_landing_lag_end_tick = UINT16_C(25);
-    fighter->aerial_landing_lag_ticks = UINT16_C(15);
-    fighter->forward_aerial_landing_lag_ticks = UINT16_C(19);
-    fighter->back_aerial_landing_lag_ticks = UINT16_C(18);
-    fighter->up_aerial_landing_lag_ticks = UINT16_C(15);
-    fighter->down_aerial_landing_lag_ticks = UINT16_C(24);
+    fighter->aerial_landing_lag_ticks =
+        falcon_attributes->neutral_aerial_landing_lag_ticks;
+    fighter->forward_aerial_landing_lag_ticks =
+        falcon_attributes->forward_aerial_landing_lag_ticks;
+    fighter->back_aerial_landing_lag_ticks =
+        falcon_attributes->back_aerial_landing_lag_ticks;
+    fighter->up_aerial_landing_lag_ticks =
+        falcon_attributes->up_aerial_landing_lag_ticks;
+    fighter->down_aerial_landing_lag_ticks =
+        falcon_attributes->down_aerial_landing_lag_ticks;
     fighter->strong_aerial_landing_lag_ticks = UINT16_C(30);
     fighter->l_cancel_window_ticks = UINT16_C(7);
     fighter->l_cancel_divisor = UINT16_C(2);

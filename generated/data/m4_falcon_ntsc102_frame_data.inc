@@ -6,9 +6,115 @@
 /* PlCa.dat SHA-256: 4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af */
 /* PlCaAJ.dat SHA-256: a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a */
 /* PlCa.dat JSON SHA-256: fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266 */
+/* complete Falcon source SHA-256: 616461670890a22878a37e891b848808f3633d1b9f236226f6dd35044f7a8946 */
 
 static const uint8_t pf_m4_falcon_source_sha256[32] = {
     UINT8_C(0x42), UINT8_C(0xbb), UINT8_C(0x4e), UINT8_C(0xce), UINT8_C(0xfb), UINT8_C(0x33), UINT8_C(0xe8), UINT8_C(0x7d), UINT8_C(0xc9), UINT8_C(0x78), UINT8_C(0x48), UINT8_C(0x2e), UINT8_C(0xcd), UINT8_C(0xb7), UINT8_C(0xb1), UINT8_C(0xf9), UINT8_C(0x3f), UINT8_C(0xf1), UINT8_C(0x2c), UINT8_C(0xa0), UINT8_C(0x90), UINT8_C(0xe8), UINT8_C(0x70), UINT8_C(0x43), UINT8_C(0x1f), UINT8_C(0xff), UINT8_C(0x91), UINT8_C(0x34), UINT8_C(0x80), UINT8_C(0x60), UINT8_C(0x13), UINT8_C(0x56)
+};
+
+static const uint8_t pf_m4_falcon_complete_source_sha256[32] = {
+    UINT8_C(0x61), UINT8_C(0x64), UINT8_C(0x61), UINT8_C(0x67), UINT8_C(0x08), UINT8_C(0x90), UINT8_C(0xa2), UINT8_C(0x28), UINT8_C(0x78), UINT8_C(0xa3), UINT8_C(0x7e), UINT8_C(0x89), UINT8_C(0x1b), UINT8_C(0x84), UINT8_C(0x88), UINT8_C(0x08), UINT8_C(0xf3), UINT8_C(0x63), UINT8_C(0x3d), UINT8_C(0x1b), UINT8_C(0x9f), UINT8_C(0x23), UINT8_C(0x62), UINT8_C(0x26), UINT8_C(0xf6), UINT8_C(0xdd), UINT8_C(0x35), UINT8_C(0x04), UINT8_C(0x4f), UINT8_C(0x7a), UINT8_C(0x89), UINT8_C(0x46)
+};
+
+static const uint32_t
+pf_m4_falcon_common_attribute_bits[PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT] = {
+    UINT32_C(0x3e19999a), UINT32_C(0x3dcccccd), UINT32_C(0x3f59999a), UINT32_C(0x3e28f5c3), UINT32_C(0x3ed0624e), UINT32_C(0x3f28db8c), UINT32_C(0x3da3d70a), UINT32_C(0x40000000),
+    UINT32_C(0x3e19999a), UINT32_C(0x3c23d70a), UINT32_C(0x40133333), UINT32_C(0x40151eb8), UINT32_C(0x41f00000), UINT32_C(0x40400000), UINT32_C(0x40800000), UINT32_C(0x3f733333),
+    UINT32_C(0x40466666), UINT32_C(0x3f400000), UINT32_C(0x40066666), UINT32_C(0x3ff33333), UINT32_C(0x3f666666), UINT32_C(0x3f666666), UINT32_C(0x00000002), UINT32_C(0x3e051eb8),
+    UINT32_C(0x4039999a), UINT32_C(0x3d23d70a), UINT32_C(0x3ca3d70a), UINT32_C(0x3f8f5c29), UINT32_C(0x3c23d70a), UINT32_C(0x40600000), UINT32_C(0x40400000), UINT32_C(0x41c00000),
+    UINT32_C(0x41c00000), UINT32_C(0x40c00000), UINT32_C(0x42d00000), UINT32_C(0x3f7851ec), UINT32_C(0x41700000), UINT32_C(0x402ccccd), UINT32_C(0x00000004), UINT32_C(0x41800000),
+    UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x3f800000), UINT32_C(0x40533333), UINT32_C(0x3f800000), UINT32_C(0x3f800000), UINT32_C(0x3e4ccccd), UINT32_C(0x40100000),
+    UINT32_C(0x00000000), UINT32_C(0x40c00000), UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x41100000), UINT32_C(0x00000000), UINT32_C(0x40a9999a), UINT32_C(0x401e147b),
+    UINT32_C(0x41900000), UINT32_C(0x40800000), UINT32_C(0x41700000), UINT32_C(0x41980000), UINT32_C(0x41900000), UINT32_C(0x41700000), UINT32_C(0x41c00000), UINT32_C(0x41c00000),
+    UINT32_C(0x3f000000), UINT32_C(0x3fb33333), UINT32_C(0x40466666), UINT32_C(0x40000000), UINT32_C(0x3f8ccccd), UINT32_C(0x00000000), UINT32_C(0x40400000), UINT32_C(0x3f8ccccd),
+    UINT32_C(0x00000000), UINT32_C(0x40400000), UINT32_C(0x3f8ccccd), UINT32_C(0x3f333333), UINT32_C(0x00000000), UINT32_C(0x4059999a), UINT32_C(0x3f8ccccd), UINT32_C(0x3f333333),
+    UINT32_C(0x40566666), UINT32_C(0x3f800000), UINT32_C(0x3f000000), UINT32_C(0x41100000), UINT32_C(0xc0400000), UINT32_C(0x41080000), UINT32_C(0x40133333), UINT32_C(0x3f800000),
+    UINT32_C(0x3f800000), UINT32_C(0x3f800000), UINT32_C(0x3f800000), UINT32_C(0x00000012), UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000), UINT32_C(0x00000000),
+    UINT32_C(0x07000000),
+};
+
+static const pf_m4_falcon_common_attributes
+pf_m4_falcon_common_attribute_data = {
+    .initial_walk_velocity_q16 = INT32_C(1026),
+    .walk_acceleration_q16 = INT32_C(684),
+    .walk_maximum_velocity_q16 = INT32_C(5813),
+    .friction_q16 = INT32_C(547),
+    .dash_initial_velocity_q16 = INT32_C(13677),
+    .dash_run_acceleration_a_q16 = INT32_C(1026),
+    .dash_run_acceleration_b_q16 = INT32_C(68),
+    .dash_run_terminal_velocity_q16 = INT32_C(15729),
+    .ground_maximum_horizontal_velocity_q16 = INT32_C(20516),
+    .jump_horizontal_initial_velocity_q16 = INT32_C(6497),
+    .jump_vertical_initial_velocity_q16 = INT32_C(36045),
+    .ground_air_jump_momentum_multiplier_q16 = INT32_C(49152),
+    .jump_horizontal_maximum_velocity_q16 = INT32_C(14361),
+    .shorthop_vertical_initial_velocity_q16 = INT32_C(22092),
+    .air_jump_multiplier_q16 = INT32_C(58982),
+    .double_jump_momentum_q16 = INT32_C(58982),
+    .double_jump_vertical_velocity_q16 = INT32_C(32440),
+    .double_jump_horizontal_velocity_q16 = INT32_C(6155),
+    .gravity_q16 = INT32_C(1512),
+    .terminal_velocity_q16 = INT32_C(33719),
+    .air_mobility_a_q16 = INT32_C(274),
+    .air_mobility_b_q16 = INT32_C(137),
+    .max_aerial_horizontal_velocity_q16 = INT32_C(7659),
+    .air_friction_q16 = INT32_C(68),
+    .fast_fall_terminal_velocity_q16 = INT32_C(40696),
+    .maximum_horizontal_air_velocity_q16 = INT32_C(20516),
+    .shield_break_initial_velocity_q16 = INT32_C(31394),
+    .ledge_jump_horizontal_velocity_q16 = INT32_C(6839),
+    .ledge_jump_vertical_velocity_q16 = INT32_C(38370),
+    .wall_jump_horizontal_velocity_q16 = INT32_C(9574),
+    .wall_jump_vertical_velocity_q16 = INT32_C(36045),
+    .jump_startup_ticks = UINT16_C(4),
+    .number_of_jumps = UINT16_C(2),
+    .turn_duration_ticks = UINT16_C(6),
+    .weight = UINT16_C(104),
+    .normal_landing_lag_ticks = UINT16_C(4),
+    .neutral_aerial_landing_lag_ticks = UINT16_C(15),
+    .forward_aerial_landing_lag_ticks = UINT16_C(19),
+    .back_aerial_landing_lag_ticks = UINT16_C(18),
+    .up_aerial_landing_lag_ticks = UINT16_C(15),
+    .down_aerial_landing_lag_ticks = UINT16_C(24),
+};
+
+static const pf_m4_falcon_special_attributes
+pf_m4_falcon_special_attribute_data = {
+    .specialn_stick_range_y_neg_q16 = INT32_C(8192),
+    .specialn_stick_range_y_pos_q16 = INT32_C(40960),
+    .specialn_angle_diff_q16 = INT32_C(1966080),
+    .specialn_vel_x_q16 = INT32_C(127795),
+    .specialn_vel_mul_q16 = INT32_C(60293),
+    .specials_gr_vel_x_q16 = INT32_C(11796),
+    .specials_grav_q16 = INT32_C(3277),
+    .specials_terminal_vel_q16 = INT32_C(208404),
+    .specials_unk0_q16 = INT32_C(786432),
+    .specials_unk1_q16 = INT32_C(0),
+    .specials_unk2_q16 = INT32_C(393216),
+    .specials_unk3_q16 = INT32_C(786432),
+    .specials_unk4_q16 = INT32_C(-65536),
+    .specials_unk5_q16 = INT32_C(720896),
+    .specials_miss_landing_lag_q16 = INT32_C(1310720),
+    .specials_hit_landing_lag_q16 = INT32_C(2621440),
+    .specialhi_air_friction_mul_q16 = INT32_C(72090),
+    .specialhi_horz_vel_q16 = INT32_C(55706),
+    .specialhi_freefall_air_spd_mul_q16 = INT32_C(47186),
+    .specialhi_landing_lag_q16 = INT32_C(1966080),
+    .specialhi_unk0_q16 = INT32_C(393216),
+    .specialhi_unk1_q16 = INT32_C(262144),
+    .specialhi_input_var_q16 = INT32_C(14746),
+    .specialhi_unk2_q16 = INT32_C(983040),
+    .specialhi_catch_grav_q16 = INT32_C(19661),
+    .specialhi_air_var = INT32_C(0),
+    .x68_bits = UINT32_C(2),
+    .speciallw_unk1 = UINT32_C(4),
+    .speciallw_flame_particle_angle_q16 = INT32_C(3932160),
+    .speciallw_on_hit_spd_modifier_q16 = INT32_C(39322),
+    .speciallw_unk2 = INT32_C(4),
+    .speciallw_ground_lag_mul_q16 = INT32_C(65536),
+    .speciallw_landing_lag_mul_q16 = INT32_C(65536),
+    .speciallw_ground_traction_q16 = INT32_C(104858),
+    .speciallw_air_landing_traction_q16 = INT32_C(196608),
 };
 
 static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {

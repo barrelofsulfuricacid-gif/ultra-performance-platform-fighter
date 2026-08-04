@@ -1,6 +1,7 @@
 #include "pf/m4.h"
 #include "pf/rl.h"
 #include "pf/sim.h"
+#include "../../src/sim/sim_falcon_frame_data.h"
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -2192,6 +2193,8 @@ static int run_content_contract_test(
     const pf_m4_content *default_content,
     const pf_content_view *default_view)
 {
+    const pf_m4_falcon_common_attributes *falcon_attributes =
+        pf_m4_falcon_reference_common_attributes();
     test_sim_storage rejected_storage;
     test_sim_storage default_storage;
     test_sim_storage tuned_storage;
@@ -2223,6 +2226,11 @@ static int run_content_contract_test(
     pf_m4_inspection tuned_inspection;
     uint32_t tick;
 
+    if (falcon_attributes == NULL)
+    {
+        return 0;
+    }
+
     invalid_content.fighter.full_hop_speed_q16 =
         invalid_content.fighter.short_hop_speed_q16;
     if (!expect_status(
@@ -2236,11 +2244,17 @@ static int run_content_contract_test(
     invalid_content = *default_content;
     invalid_content.fighter.jump_horizontal_input_speed_q16 = INT32_C(0);
     if (default_content->fighter.jump_horizontal_input_speed_q16 !=
-            PF_Q16_ONE * INT32_C(57) / INT32_C(575) ||
+            falcon_attributes->jump_horizontal_initial_velocity_q16 ||
+        default_content->fighter.ground_max_horizontal_speed_q16 !=
+            falcon_attributes->ground_maximum_horizontal_velocity_q16 ||
+        default_content->fighter.air_speed_q16 !=
+            falcon_attributes->max_aerial_horizontal_velocity_q16 ||
+        default_content->fighter.air_max_horizontal_speed_q16 !=
+            falcon_attributes->maximum_horizontal_air_velocity_q16 ||
         default_content->fighter.jump_horizontal_momentum_multiplier_q16 !=
-            PF_Q16_ONE * INT32_C(3) / INT32_C(4) ||
+            falcon_attributes->ground_air_jump_momentum_multiplier_q16 ||
         default_content->fighter.jump_horizontal_max_speed_q16 !=
-            PF_Q16_ONE * INT32_C(126) / INT32_C(575) ||
+            falcon_attributes->jump_horizontal_maximum_velocity_q16 ||
         !expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,

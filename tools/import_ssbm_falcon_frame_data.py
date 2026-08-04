@@ -19,9 +19,7 @@ EXPECTED_CANONICAL_SHA256 = (
 EXTRACTOR_REVISION = "0b12c5cb988da3fb9b67630b1d8347e12cd91528"
 DAT_READER_REVISION = "d4e6074aa26f388fccc7fe8e825761cf1c1bc7b0"
 HSD_READER_REVISION = "29546ad77fdf9ebd9a9940ed44903ef309e810d6"
-SOURCE_DAT_SHA256 = (
-    "4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af"
-)
+SOURCE_DAT_SHA256 = "4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af"
 SOURCE_ANIMATION_DAT_SHA256 = (
     "a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a"
 )
@@ -29,15 +27,106 @@ SOURCE_DAT_JSON_SHA256 = (
     "fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266"
 )
 
+COMMON_ATTRIBUTE_COUNT = 97
+SPECIAL_ATTRIBUTE_SIZE = 0x8C
+
+# ftCaptain_DatAttrs at doldecomp/melee revision 9509dc0. Keep the raw words
+# as the source of truth; the typed Q16 view below exists only so the runtime
+# never has to reinterpret host floats or duplicate these values by hand.
+SPECIAL_FLOAT_ATTRIBUTES = (
+    "specialn_stick_range_y_neg",
+    "specialn_stick_range_y_pos",
+    "specialn_angle_diff",
+    "specialn_vel_x",
+    "specialn_vel_mul",
+    "specials_gr_vel_x",
+    "specials_grav",
+    "specials_terminal_vel",
+    "specials_unk0",
+    "specials_unk1",
+    "specials_unk2",
+    "specials_unk3",
+    "specials_unk4",
+    "specials_unk5",
+    "specials_miss_landing_lag",
+    "specials_hit_landing_lag",
+    "specialhi_air_friction_mul",
+    "specialhi_horz_vel",
+    "specialhi_freefall_air_spd_mul",
+    "specialhi_landing_lag",
+    "specialhi_unk0",
+    "specialhi_unk1",
+    "specialhi_input_var",
+    "specialhi_unk2",
+    "specialhi_catch_grav",
+)
+
+SPECIAL_TAIL_ATTRIBUTES = (
+    ("specialhi_air_var", "i32", 0x64),
+    ("x68", "bits", 0x68),
+    ("speciallw_unk1", "u32", 0x6C),
+    ("speciallw_flame_particle_angle", "f32", 0x70),
+    ("speciallw_on_hit_spd_modifier", "f32", 0x74),
+    ("speciallw_unk2", "i32", 0x78),
+    ("speciallw_ground_lag_mul", "f32", 0x7C),
+    ("speciallw_landing_lag_mul", "f32", 0x80),
+    ("speciallw_ground_traction", "f32", 0x84),
+    ("speciallw_air_landing_traction", "f32", 0x88),
+)
+
+SPECIAL_UNSIGNED_FIELDS = frozenset({"x68_bits", "speciallw_unk1"})
+
 MOVE_KEYS = (
-    "jab1", "jab2", "jab3", "rapidjabs_start", "rapidjabs_loop",
-    "rapidjabs_end", "dashattack", "ftilt_h", "ftilt_mh", "ftilt_m",
-    "ftilt_ml", "ftilt_l", "utilt", "dtilt", "fsmash_h", "fsmash_mh",
-    "fsmash_m", "fsmash_ml", "fsmash_l", "usmash", "dsmash", "nair",
-    "fair", "bair", "uair", "dair", "grab", "dashgrab", "pummel",
-    "fthrow", "bthrow", "uthrow", "dthrow", "0x12d", "0x12e", "0x12f",
-    "0x130", "0x131", "0x132", "0x133", "0x134", "0x135", "0x136",
-    "0x137", "0x138", "0x139", "0x13a", "0x13b", "0x13c", "0x13d",
+    "jab1",
+    "jab2",
+    "jab3",
+    "rapidjabs_start",
+    "rapidjabs_loop",
+    "rapidjabs_end",
+    "dashattack",
+    "ftilt_h",
+    "ftilt_mh",
+    "ftilt_m",
+    "ftilt_ml",
+    "ftilt_l",
+    "utilt",
+    "dtilt",
+    "fsmash_h",
+    "fsmash_mh",
+    "fsmash_m",
+    "fsmash_ml",
+    "fsmash_l",
+    "usmash",
+    "dsmash",
+    "nair",
+    "fair",
+    "bair",
+    "uair",
+    "dair",
+    "grab",
+    "dashgrab",
+    "pummel",
+    "fthrow",
+    "bthrow",
+    "uthrow",
+    "dthrow",
+    "0x12d",
+    "0x12e",
+    "0x12f",
+    "0x130",
+    "0x131",
+    "0x132",
+    "0x133",
+    "0x134",
+    "0x135",
+    "0x136",
+    "0x137",
+    "0x138",
+    "0x139",
+    "0x13a",
+    "0x13b",
+    "0x13c",
+    "0x13d",
 )
 
 # The extractor uses the common five-angle forward-smash schema. Falcon's DAT
@@ -55,17 +144,83 @@ ELEMENTS = {
 
 ANIMATION_TRANSLATION_FLAG = 0x80000000
 MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
+MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
 
 
 def canonical_sha256(data: dict[str, Any]) -> str:
-    encoded = json.dumps(
-        data, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
 def u16(value: Any) -> int:
     return 0 if value is None else int(value)
+
+
+def q16(value: float) -> int:
+    return round(value * 65536.0)
+
+
+def raw_f32(words: list[int], index: int) -> float:
+    return struct.unpack(">f", words[index].to_bytes(4, "big"))[0]
+
+
+def fighter_data_offsets(source_dat: bytes) -> tuple[int, int]:
+    """Return ftDataCaptain's common- and extended-attribute offsets."""
+
+    if len(source_dat) < 0x20:
+        raise ValueError("truncated PlCa.dat header")
+    data_size, relocation_count, root_count, reference_count = struct.unpack_from(
+        ">4I", source_dat, 0x04
+    )
+    if root_count != 1 or reference_count != 0:
+        raise ValueError("unexpected PlCa.dat root/reference table")
+    root_table = 0x20 + data_size + relocation_count * 4
+    if root_table + 8 > len(source_dat):
+        raise ValueError("PlCa.dat root table is out of bounds")
+    root_offset, root_name_offset = struct.unpack_from(">2I", source_dat, root_table)
+    string_table = root_table + root_count * 8 + reference_count * 8
+    name_start = string_table + root_name_offset
+    name_end = source_dat.find(b"\0", name_start)
+    if name_end < 0 or source_dat[name_start:name_end] != b"ftDataCaptain":
+        raise ValueError("unexpected PlCa.dat root name")
+    data = source_dat[0x20 : 0x20 + data_size]
+    if root_offset + 8 > len(data):
+        raise ValueError("ftDataCaptain root is out of bounds")
+    common_offset, special_offset = struct.unpack_from(">2I", data, root_offset)
+    if common_offset + COMMON_ATTRIBUTE_COUNT * 4 > len(data):
+        raise ValueError("Falcon common attributes are out of bounds")
+    if special_offset + SPECIAL_ATTRIBUTE_SIZE > len(data):
+        raise ValueError("Falcon special attributes are out of bounds")
+    return common_offset, special_offset
+
+
+def source_attributes(source_dat: bytes) -> tuple[list[int], dict[str, int]]:
+    """Decode every common word and every decomp-defined Falcon special."""
+
+    common_offset, special_offset = fighter_data_offsets(source_dat)
+    data = source_dat[0x20:]
+    common_bits = list(struct.unpack_from(">97I", data, common_offset))
+    special: dict[str, int] = {}
+    for index, name in enumerate(SPECIAL_FLOAT_ATTRIBUTES):
+        value = struct.unpack_from(">f", data, special_offset + index * 4)[0]
+        special[f"{name}_q16"] = q16(value)
+    for name, kind, offset in SPECIAL_TAIL_ATTRIBUTES:
+        if kind == "f32":
+            value = struct.unpack_from(">f", data, special_offset + offset)[0]
+            special[f"{name}_q16"] = q16(value)
+        elif kind == "i32":
+            special[name] = struct.unpack_from(">i", data, special_offset + offset)[0]
+        elif kind == "u32":
+            special[name] = struct.unpack_from(">I", data, special_offset + offset)[0]
+        elif kind == "bits":
+            special[f"{name}_bits"] = struct.unpack_from(
+                ">I", data, special_offset + offset
+            )[0]
+        else:
+            raise AssertionError(f"unsupported special attribute kind {kind}")
+    if len(common_bits) != COMMON_ATTRIBUTE_COUNT or len(special) != 35:
+        raise ValueError("incomplete Falcon attribute decode")
+    return common_bits, special
 
 
 def throw_release_frame(
@@ -128,6 +283,118 @@ def generate(
     }
     model_scaling = float(attributes["modelScaling"])
     source_dat_block = source_dat[0x20:]
+    common_attribute_bits, special_attributes = source_attributes(source_dat)
+    common_attributes = {
+        "initial_walk_velocity_q16": round(
+            raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
+        ),
+        "walk_acceleration_q16": round(
+            raw_f32(common_attribute_bits, 1) * MELEE_X_TO_SIM_Q16
+        ),
+        "walk_maximum_velocity_q16": round(
+            raw_f32(common_attribute_bits, 2) * MELEE_X_TO_SIM_Q16
+        ),
+        "friction_q16": round(raw_f32(common_attribute_bits, 6) * MELEE_X_TO_SIM_Q16),
+        "dash_initial_velocity_q16": round(
+            raw_f32(common_attribute_bits, 7) * MELEE_X_TO_SIM_Q16
+        ),
+        "dash_run_acceleration_a_q16": round(
+            raw_f32(common_attribute_bits, 8) * MELEE_X_TO_SIM_Q16
+        ),
+        "dash_run_acceleration_b_q16": round(
+            raw_f32(common_attribute_bits, 9) * MELEE_X_TO_SIM_Q16
+        ),
+        "dash_run_terminal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 10) * MELEE_X_TO_SIM_Q16
+        ),
+        "ground_maximum_horizontal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 13) * MELEE_X_TO_SIM_Q16
+        ),
+        "jump_horizontal_initial_velocity_q16": round(
+            raw_f32(common_attribute_bits, 15) * MELEE_X_TO_SIM_Q16
+        ),
+        "jump_vertical_initial_velocity_q16": round(
+            raw_f32(common_attribute_bits, 16) * MELEE_Y_TO_SIM_Q16
+        ),
+        "ground_air_jump_momentum_multiplier_q16": q16(
+            raw_f32(common_attribute_bits, 17)
+        ),
+        "jump_horizontal_maximum_velocity_q16": round(
+            raw_f32(common_attribute_bits, 18) * MELEE_X_TO_SIM_Q16
+        ),
+        "shorthop_vertical_initial_velocity_q16": round(
+            raw_f32(common_attribute_bits, 19) * MELEE_Y_TO_SIM_Q16
+        ),
+        "air_jump_multiplier_q16": q16(raw_f32(common_attribute_bits, 20)),
+        "double_jump_momentum_q16": q16(raw_f32(common_attribute_bits, 21)),
+        "double_jump_vertical_velocity_q16": round(
+            raw_f32(common_attribute_bits, 16)
+            * raw_f32(common_attribute_bits, 20)
+            * MELEE_Y_TO_SIM_Q16
+        ),
+        "double_jump_horizontal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 21) * MELEE_X_TO_SIM_Q16
+        ),
+        "gravity_q16": round(raw_f32(common_attribute_bits, 23) * MELEE_Y_TO_SIM_Q16),
+        "terminal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 24) * MELEE_Y_TO_SIM_Q16
+        ),
+        "air_mobility_a_q16": round(
+            raw_f32(common_attribute_bits, 25) * MELEE_X_TO_SIM_Q16
+        ),
+        "air_mobility_b_q16": round(
+            raw_f32(common_attribute_bits, 26) * MELEE_X_TO_SIM_Q16
+        ),
+        "max_aerial_horizontal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 27) * MELEE_X_TO_SIM_Q16
+        ),
+        "air_friction_q16": round(
+            raw_f32(common_attribute_bits, 28) * MELEE_X_TO_SIM_Q16
+        ),
+        "fast_fall_terminal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 29) * MELEE_Y_TO_SIM_Q16
+        ),
+        "maximum_horizontal_air_velocity_q16": round(
+            raw_f32(common_attribute_bits, 30) * MELEE_X_TO_SIM_Q16
+        ),
+        "shield_break_initial_velocity_q16": round(
+            raw_f32(common_attribute_bits, 37) * MELEE_Y_TO_SIM_Q16
+        ),
+        "ledge_jump_horizontal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 42) * MELEE_X_TO_SIM_Q16
+        ),
+        "ledge_jump_vertical_velocity_q16": round(
+            raw_f32(common_attribute_bits, 43) * MELEE_Y_TO_SIM_Q16
+        ),
+        "wall_jump_horizontal_velocity_q16": round(
+            raw_f32(common_attribute_bits, 65) * MELEE_X_TO_SIM_Q16
+        ),
+        "wall_jump_vertical_velocity_q16": round(
+            raw_f32(common_attribute_bits, 66) * MELEE_Y_TO_SIM_Q16
+        ),
+        "jump_startup_ticks": round(raw_f32(common_attribute_bits, 14)),
+        "number_of_jumps": common_attribute_bits[22],
+        "turn_duration_ticks": round(raw_f32(common_attribute_bits, 33)),
+        "weight": round(raw_f32(common_attribute_bits, 34)),
+        "normal_landing_lag_ticks": round(raw_f32(common_attribute_bits, 57)),
+        "neutral_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 58)),
+        "forward_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 59)),
+        "back_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 60)),
+        "up_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 61)),
+        "down_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 62)),
+    }
+
+    complete_source_digest = hashlib.sha256(
+        bytes.fromhex(EXPECTED_CANONICAL_SHA256)
+        + bytes.fromhex(SOURCE_DAT_SHA256)
+        + bytes.fromhex(SOURCE_ANIMATION_DAT_SHA256)
+        + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
+        + json.dumps(
+            special_attributes,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    ).hexdigest()
 
     if tuple(data) != MOVE_KEYS:
         raise ValueError("unexpected move order or incomplete Falcon table")
@@ -182,15 +449,11 @@ def generate(
             animation_offset = int(subaction["animOffset"])
             animation_size = int(subaction["animSize"])
             tree = decode_figatree(
-                animation_dat[
-                    animation_offset:animation_offset + animation_size
-                ]
+                animation_dat[animation_offset : animation_offset + animation_size]
             )
             translation_node = (action_flags & 0xFF) - 1
             if not 0 <= translation_node < len(tree.nodes):
-                raise ValueError(
-                    f"{key}: invalid translation node {translation_node}"
-                )
+                raise ValueError(f"{key}: invalid translation node {translation_node}")
             translation_tracks = [
                 track
                 for track in tree.nodes[translation_node]
@@ -245,21 +508,86 @@ def generate(
         f"/* PlCa.dat SHA-256: {SOURCE_DAT_SHA256} */",
         f"/* PlCaAJ.dat SHA-256: {SOURCE_ANIMATION_DAT_SHA256} */",
         f"/* PlCa.dat JSON SHA-256: {SOURCE_DAT_JSON_SHA256} */",
+        f"/* complete Falcon source SHA-256: {complete_source_digest} */",
         "",
         "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
-        "    " + ", ".join(
+        "    "
+        + ", ".join(
             f"UINT8_C(0x{EXPECTED_CANONICAL_SHA256[index:index + 2]})"
             for index in range(0, len(EXPECTED_CANONICAL_SHA256), 2)
         ),
         "};",
         "",
-        "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",
+        "static const uint8_t pf_m4_falcon_complete_source_sha256[32] = {",
+        "    "
+        + ", ".join(
+            f"UINT8_C(0x{complete_source_digest[index:index + 2]})"
+            for index in range(0, len(complete_source_digest), 2)
+        ),
+        "};",
+        "",
+        "static const uint32_t",
+        "pf_m4_falcon_common_attribute_bits[PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT] = {",
     ]
+    lines.extend(
+        "    "
+        + ", ".join(
+            f"UINT32_C(0x{value:08x})"
+            for value in common_attribute_bits[index : index + 8]
+        )
+        + ","
+        for index in range(0, len(common_attribute_bits), 8)
+    )
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_falcon_common_attributes",
+            "pf_m4_falcon_common_attribute_data = {",
+        )
+    )
+    lines.extend(
+        (
+            f"    .{name} = UINT16_C({value}),"
+            if name.endswith("_ticks") or name in {"number_of_jumps", "weight"}
+            else f"    .{name} = INT32_C({value}),"
+        )
+        for name, value in common_attributes.items()
+    )
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_falcon_special_attributes",
+            "pf_m4_falcon_special_attribute_data = {",
+        )
+    )
+    lines.extend(
+        (
+            f"    .{name} = UINT32_C({value}),"
+            if name in SPECIAL_UNSIGNED_FIELDS
+            else f"    .{name} = INT32_C({value}),"
+        )
+        for name, value in special_attributes.items()
+    )
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",
+        )
+    )
     lines.extend(
         f"    {{ UINT16_C({start}), UINT16_C({end}), UINT16_C({mask}), UINT16_C(0) }},"
         for start, end, mask in phases
     )
-    lines.extend(("};", "", "static const pf_m4_reference_hit_effect pf_m4_falcon_hit_effects[] = {"))
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_reference_hit_effect pf_m4_falcon_hit_effects[] = {",
+        )
+    )
     for effect in effects:
         element = ELEMENTS[str(effect["element"])]
         lines.append(
@@ -276,7 +604,9 @@ def generate(
             f"UINT8_C({1 if effect['hitAirborne'] else 0}), "
             "{ UINT8_C(0), UINT8_C(0) } },"
         )
-    lines.extend(("};", "", "static const pf_m4_reference_throw pf_m4_falcon_throws[] = {"))
+    lines.extend(
+        ("};", "", "static const pf_m4_reference_throw pf_m4_falcon_throws[] = {")
+    )
     for throw in throws:
         lines.append(
             "    { "
@@ -289,7 +619,13 @@ def generate(
             f"UINT16_C({int(throw['releaseFrame'])}), "
             "UINT16_C(0) },"
         )
-    lines.extend(("};", "", "static const pf_m4_reference_move pf_m4_falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {"))
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_reference_move pf_m4_falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {",
+        )
+    )
     for move in moves:
         if move["present"] == 0:
             lines.append("    { 0 },")
@@ -310,10 +646,9 @@ def generate(
         )
     lines.extend(("};", "", "static const int32_t pf_m4_falcon_motion_x_q16[] = {"))
     lines.extend(
-        "    " + ", ".join(
-            f"INT32_C({value})"
-            for value in motion_x_q16[index:index + 8]
-        ) + ","
+        "    "
+        + ", ".join(f"INT32_C({value})" for value in motion_x_q16[index : index + 8])
+        + ","
         for index in range(0, len(motion_x_q16), 8)
     )
     lines.extend(("};", ""))
@@ -332,28 +667,19 @@ def main() -> int:
     dat_bytes = args.dat_source.read_bytes()
     dat_digest = hashlib.sha256(dat_bytes).hexdigest()
     if dat_digest != SOURCE_DAT_JSON_SHA256:
-        raise SystemExit(
-            f"unexpected Falcon DAT JSON SHA-256: {dat_digest}"
-        )
+        raise SystemExit(f"unexpected Falcon DAT JSON SHA-256: {dat_digest}")
     dat_data = json.loads(dat_bytes)
     source_dat = args.source_dat.read_bytes()
     source_dat_digest = hashlib.sha256(source_dat).hexdigest()
     if source_dat_digest != SOURCE_DAT_SHA256:
-        raise SystemExit(
-            f"unexpected PlCa.dat SHA-256: {source_dat_digest}"
-        )
+        raise SystemExit(f"unexpected PlCa.dat SHA-256: {source_dat_digest}")
     animation_dat = args.animation_dat.read_bytes()
     animation_dat_digest = hashlib.sha256(animation_dat).hexdigest()
     if animation_dat_digest != SOURCE_ANIMATION_DAT_SHA256:
-        raise SystemExit(
-            "unexpected PlCaAJ.dat SHA-256: "
-            f"{animation_dat_digest}"
-        )
+        raise SystemExit("unexpected PlCaAJ.dat SHA-256: " f"{animation_dat_digest}")
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
-        raise SystemExit(
-            f"unexpected Falcon frame-data SHA-256: {digest}"
-        )
+        raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
     output = generate(data, dat_data, source_dat, animation_dat)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

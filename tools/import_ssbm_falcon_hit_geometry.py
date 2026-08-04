@@ -25,6 +25,45 @@ EXPECTED_CAPTURE_SHA256 = (
 EXPECTED_HURT_CAPTURE_SHA256 = (
     "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
 )
+SPECIAL_CAPTURE_ACTION_VALUES = {
+    "2c8bc604024cfad745e266239dcc4d3e1b1ff1c4a07afcc6eecb9938b5f155b1": frozenset(
+        {347}
+    ),
+    "4db3840dc864b494c91b1b185e232391e54cf0572dc0bdb81ba3316b64782e84": frozenset(
+        {348}
+    ),
+    "634e04888af1048e19d63302a9ede3d21819ad253b15d944649c9d5d71145b4b": frozenset(
+        {349, 351}
+    ),
+    "6244baaf1354749a118a3577f3ca080f87dc4ba59d60f14b947077922a667a2d": frozenset(
+        {357, 358}
+    ),
+    "1b72cb23727cd0770ee2fb5c4a7c8e9e17e91c71548e45be57bbe85cb8df5990": frozenset(
+        {359, 361}
+    ),
+    "7b0a4d6a855a88fd88dd83270b9f8812df0023159e6ab95a4236e5391ba3cd3a": frozenset(
+        {350}
+    ),
+    "8eda88a578afb770af4d28a0a166413d2ee3ecf9da38fb533b45012c958e262a": frozenset(
+        {352}
+    ),
+    "c06fdb3edb1caeccdd2fe7e27b0dec3d1b62115d0b53235995d2c0b33e7ed315": frozenset(
+        {353}
+    ),
+    "a6a49ebc4f49e6bd9b8c9861b7393a002623e7090a7bbd63ba1891896a838c9d": frozenset(
+        {354}
+    ),
+    "27d869d3d9873d91690223d014cf0e7875fcd2b7138013bac1229c8512c32c60": frozenset(
+        {355, 356}
+    ),
+    "b86de007baeb6048488d4f2aaa258690ef2d09693033fd9b0f78865d81ea80d2": frozenset(
+        {360}
+    ),
+    "ae4d9c2f3cb19af35e9288d5f9dcc9a7a4a72adc1baa220bc3ffe03b8e17ddfc": frozenset(
+        {362}
+    ),
+}
+EXPECTED_SPECIAL_CAPTURE_SHA256S = frozenset(SPECIAL_CAPTURE_ACTION_VALUES)
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
 )
@@ -49,6 +88,41 @@ ACTION_BY_MOVE = {
     "bair": "BAIR",
     "uair": "UAIR",
     "dair": "DAIR",
+    "0x12d": "NEUTRAL_B_ATTACKING_AIR",
+    "0x12e": "NEUTRAL_B_FULL_CHARGE_AIR",
+    "0x12f": "SWORD_DANCE_1",
+    "0x130": "SWORD_DANCE_2_HIGH",
+    "0x131": "SWORD_DANCE_2_MID",
+    "0x132": "SWORD_DANCE_3_HIGH",
+    "0x133": "SWORD_DANCE_3_MID",
+    "0x134": "SWORD_DANCE_3_LOW",
+    "0x135": "SWORD_DANCE_4_HIGH",
+    "0x136": "SWORD_DANCE_4_MID",
+    "0x137": "SWORD_DANCE_4_LOW",
+    "0x138": "SWORD_DANCE_1_AIR",
+    "0x139": "SWORD_DANCE_2_HIGH_AIR",
+    "0x13a": "DOWN_B_GROUND_START",
+    "0x13b": "SWORD_DANCE_3_MID_AIR",
+    "0x13c": "DOWN_B_GROUND",
+}
+
+ACTION_VALUE_BY_MOVE = {
+    "0x12d": 347,
+    "0x12e": 348,
+    "0x12f": 349,
+    "0x130": 350,
+    "0x131": 351,
+    "0x132": 352,
+    "0x133": 353,
+    "0x134": 354,
+    "0x135": 355,
+    "0x136": 356,
+    "0x137": 357,
+    "0x138": 358,
+    "0x139": 359,
+    "0x13a": 360,
+    "0x13b": 362,
+    "0x13c": 361,
 }
 
 # The static action-script extractor and the executable disagree on two
@@ -61,8 +135,21 @@ EXECUTABLE_ACTIVE_FRAMES = {
     "grab": frozenset({7, 8}),
     "dashgrab": frozenset({11, 12}),
     "uair": frozenset(range(6, 14)),
+    "0x139": frozenset(range(15, 30)),
+    "0x133": frozenset(range(13, 34)),
+    "0x134": frozenset(range(13, 34)),
+    "0x135": frozenset({1, 2}),
+    "0x13a": frozenset({0, 1}),
 }
-SOURCE_FRAME_OFFSET = {"jab2": -1, "grab": -1, "dashgrab": -1}
+SOURCE_FRAME_OFFSET = {
+    "jab2": -1,
+    "grab": -1,
+    "dashgrab": -1,
+    "0x135": 2,
+    "0x13a": 2,
+}
+LIVE_EFFECT_ONLY_FRAMES = {"0x139": frozenset(range(26, 30))}
+POSE_ALIAS = {"0x13d": "0x136"}
 
 
 def file_sha256(path: Path) -> str:
@@ -94,6 +181,53 @@ def captured_effect_key(hitbox: dict[str, Any]) -> tuple[int, ...]:
     )
 
 
+def captured_collision_key(memory: dict[str, Any]) -> tuple[object, ...]:
+    fighter_position = [float(value) for value in memory["fighter_position"]]
+    return tuple(
+        (
+            index,
+            float(hitbox["damage"]),
+            tuple(
+                round(
+                    (float(hitbox["position"][axis]) - fighter_position[axis])
+                    * MELEE_TO_SIM_Q16
+                )
+                for axis in range(3)
+            ),
+            round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+            int(hitbox["angle"]),
+            int(hitbox["knockback_growth"]),
+            int(hitbox["weight_set_knockback"]),
+            int(hitbox["base_knockback"]),
+            int(hitbox["element"]),
+        )
+        for index, hitbox in enumerate(memory["hitboxes"])
+        if int(hitbox["state"]) != 0
+    )
+
+
+def collision_keys_q16_equivalent(
+    left: tuple[object, ...], right: tuple[object, ...]
+) -> bool:
+    if len(left) != len(right):
+        return False
+    for left_hitbox, right_hitbox in zip(left, right, strict=True):
+        left_values = tuple(left_hitbox)
+        right_values = tuple(right_hitbox)
+        if (
+            left_values[:2] != right_values[:2]
+            or left_values[3:] != right_values[3:]
+            or any(
+                abs(left_axis - right_axis) > 1
+                for left_axis, right_axis in zip(
+                    left_values[2], right_values[2], strict=True
+                )
+            )
+        ):
+            return False
+    return True
+
+
 def captured_hurt_capsules(
     memory: dict[str, Any],
     hurtbox_key: str,
@@ -102,9 +236,7 @@ def captured_hurt_capsules(
 ) -> tuple[tuple[int, ...], ...]:
     """Canonicalize one live pose into facing-right simulation space."""
 
-    fighter_position = [
-        float(value) for value in memory[fighter_position_key]
-    ]
+    fighter_position = [float(value) for value in memory[fighter_position_key]]
     capsules = []
     for hurtbox_id, source in enumerate(memory[hurtbox_key]):
         hurtbox = dict(source)
@@ -115,23 +247,13 @@ def captured_hurt_capsules(
         capsules.append(
             (
                 round(
-                    facing
-                    * (endpoint_a[0] - fighter_position[0])
-                    * MELEE_TO_SIM_Q16
+                    facing * (endpoint_a[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
                 ),
+                round(-(endpoint_a[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
                 round(
-                    -(endpoint_a[1] - fighter_position[1])
-                    * MELEE_TO_SIM_Q16
+                    facing * (endpoint_b[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
                 ),
-                round(
-                    facing
-                    * (endpoint_b[0] - fighter_position[0])
-                    * MELEE_TO_SIM_Q16
-                ),
-                round(
-                    -(endpoint_b[1] - fighter_position[1])
-                    * MELEE_TO_SIM_Q16
-                ),
+                round(-(endpoint_b[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
                 round(float(hurtbox["radius"]) * MELEE_TO_SIM_Q16),
                 hurtbox_id,
                 int(hurtbox["height"]),
@@ -139,6 +261,22 @@ def captured_hurt_capsules(
             )
         )
     return tuple(capsules)
+
+
+def hurt_poses_q16_equivalent(
+    left: tuple[tuple[int, ...], ...],
+    right: tuple[tuple[int, ...], ...],
+) -> bool:
+    return len(left) == len(right) and all(
+        left_capsule[5:] == right_capsule[5:]
+        and all(
+            abs(left_value - right_value) <= 1
+            for left_value, right_value in zip(
+                left_capsule[:5], right_capsule[:5], strict=True
+            )
+        )
+        for left_capsule, right_capsule in zip(left, right, strict=True)
+    )
 
 
 def validate_capture(capture: dict[str, Any], expected_schema: int) -> None:
@@ -169,6 +307,13 @@ def validate_capture(capture: dict[str, Any], expected_schema: int) -> None:
         raise ValueError("capture is missing Falcon hurt-capsule provenance")
 
 
+def row_matches_move(row: dict[str, Any], move_key: str) -> bool:
+    if row.get("action") != ACTION_BY_MOVE[move_key]:
+        return False
+    action_value = ACTION_VALUE_BY_MOVE.get(move_key)
+    return action_value is None or int(row["action_value"]) == action_value
+
+
 def active_frames(move: dict[str, Any]) -> set[int]:
     return {
         frame
@@ -177,9 +322,7 @@ def active_frames(move: dict[str, Any]) -> set[int]:
     }
 
 
-def hitboxes_for_frame(
-    move: dict[str, Any], action_frame: int
-) -> list[dict[str, Any]]:
+def hitboxes_for_frame(move: dict[str, Any], action_frame: int) -> list[dict[str, Any]]:
     phases = [
         phase
         for phase in move.get("hitFrames", [])
@@ -198,9 +341,19 @@ def generate(
     full_data: dict[str, Any],
     hit_capture: dict[str, Any],
     hurt_capture: dict[str, Any],
+    special_captures: list[dict[str, Any]],
+    special_capture_digests: list[str],
 ) -> str:
-    rows = list(hit_capture["rows"])
-    hurt_rows = list(hurt_capture["rows"])
+    special_rows = [
+        row
+        for capture, digest in zip(
+            special_captures, special_capture_digests, strict=True
+        )
+        for row in capture["rows"]
+        if int(row["action_value"]) in SPECIAL_CAPTURE_ACTION_VALUES[digest]
+    ]
+    rows = list(hit_capture["rows"]) + special_rows
+    hurt_rows = list(hurt_capture["rows"]) + special_rows
     frames: list[dict[str, int]] = []
     spheres: list[dict[str, int]] = []
     geometry_moves: list[dict[str, int]] = []
@@ -218,9 +371,7 @@ def generate(
         and int(row.get("opponent_facing", 0)) == -1
     ]
     if len(standing_rows) != 1:
-        raise ValueError(
-            "expected one collision-evaluated standing hurt-capsule pose"
-        )
+        raise ValueError("expected one collision-evaluated standing hurt-capsule pose")
     standing_memory = dict(standing_rows[0]["hitbox_memory"])
     standing_hurtboxes = captured_hurt_capsules(
         standing_memory,
@@ -232,29 +383,33 @@ def generate(
         raise ValueError("unexpected Falcon standing hurt-capsule count")
 
     for move_key in MOVE_KEYS:
-        action_name = ACTION_BY_MOVE.get(move_key)
+        capture_move_key = POSE_ALIAS.get(move_key, move_key)
+        action_name = ACTION_BY_MOVE.get(capture_move_key)
         if action_name is None:
             geometry_moves.append(
                 {"frame_offset": 0, "first_frame": 0, "frame_count": 0}
             )
-            hurt_moves.append(
-                {"frame_offset": 0, "first_frame": 0, "frame_count": 0}
-            )
+            hurt_moves.append({"frame_offset": 0, "first_frame": 0, "frame_count": 0})
             continue
 
         timing_move = dict(timing_data[move_key])
         full_move = dict(full_data[move_key])
+        if capture_move_key != move_key:
+            capture_move = dict(full_data[capture_move_key])
+            if (
+                full_move["subactionName"] != capture_move["subactionName"]
+                or full_move["totalFrames"] != capture_move["totalFrames"]
+            ):
+                raise ValueError(f"{move_key}: aliased pose source is not identical")
         total_frames = int(timing_move["totalFrames"])
         hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
         for row in hurt_rows:
-            if row.get("action") != action_name:
+            if not row_matches_move(row, capture_move_key):
                 continue
             raw_frame = float(row["action_frame"])
             action_frame = round(raw_frame)
             if abs(raw_frame - action_frame) > 0.000001:
-                raise ValueError(
-                    f"{move_key}: fractional action frame {raw_frame}"
-                )
+                raise ValueError(f"{move_key}: fractional action frame {raw_frame}")
             if action_frame < 1 or action_frame > total_frames:
                 continue
             facing = int(row["facing"])
@@ -267,10 +422,11 @@ def generate(
                 facing,
             )
             previous_pose = hurt_by_frame.get(action_frame)
-            if previous_pose is not None and previous_pose != pose:
+            if previous_pose is not None and not hurt_poses_q16_equivalent(
+                previous_pose, pose
+            ):
                 raise ValueError(
-                    f"{move_key}: inconsistent hurt pose on frame "
-                    f"{action_frame}"
+                    f"{move_key}: inconsistent hurt pose on frame " f"{action_frame}"
                 )
             hurt_by_frame[action_frame] = pose
         expected_hurt_frames = set(range(1, total_frames + 1))
@@ -305,12 +461,15 @@ def generate(
             }
         )
         source_frames = active_frames(full_move)
-        expected_frames = set(
-            EXECUTABLE_ACTIVE_FRAMES.get(move_key, source_frames)
-        )
+        expected_frames = set(EXECUTABLE_ACTIVE_FRAMES.get(move_key, source_frames))
+        if not expected_frames:
+            geometry_moves.append(
+                {"frame_offset": 0, "first_frame": 0, "frame_count": 0}
+            )
+            continue
         captured_by_frame: dict[int, dict[str, Any]] = {}
         for row in rows:
-            if row.get("action") != action_name:
+            if not row_matches_move(row, capture_move_key):
                 continue
             memory = dict(row["hitbox_memory"])
             active = [
@@ -323,18 +482,15 @@ def generate(
             raw_frame = float(row["action_frame"])
             action_frame = round(raw_frame)
             if abs(raw_frame - action_frame) > 0.000001:
-                raise ValueError(
-                    f"{move_key}: fractional action frame {raw_frame}"
-                )
+                raise ValueError(f"{move_key}: fractional action frame {raw_frame}")
             if int(row["facing"]) != 1:
                 raise ValueError(f"{move_key}: capture must face right")
             previous = captured_by_frame.get(action_frame)
             if previous is not None:
                 previous_memory = dict(previous["hitbox_memory"])
-                if (
-                    previous_memory["fighter_position"]
-                    != memory["fighter_position"]
-                    or previous_memory["hitboxes"] != memory["hitboxes"]
+                if not collision_keys_q16_equivalent(
+                    captured_collision_key(previous_memory),
+                    captured_collision_key(memory),
                 ):
                     raise ValueError(
                         f"{move_key}: inconsistent duplicate frame {action_frame}"
@@ -362,15 +518,39 @@ def generate(
                 fighter_position = [
                     float(value) for value in memory["fighter_position"]
                 ]
-                source_action_frame = (
-                    action_frame + SOURCE_FRAME_OFFSET.get(move_key, 0)
+                source_action_frame = action_frame + SOURCE_FRAME_OFFSET.get(
+                    move_key, 0
                 )
-                source_hitboxes = hitboxes_for_frame(
-                    full_move, source_action_frame
-                )
-                captured_hitboxes = [
-                    dict(hitbox) for hitbox in memory["hitboxes"]
-                ]
+                captured_hitboxes = [dict(hitbox) for hitbox in memory["hitboxes"]]
+                if action_frame in LIVE_EFFECT_ONLY_FRAMES.get(move_key, frozenset()):
+                    source_hitboxes = []
+                    for hitbox_id, captured in enumerate(captured_hitboxes):
+                        if int(captured["state"]) == 0:
+                            continue
+                        captured_key = captured_effect_key(captured)
+                        matching_effects = [
+                            effect_index
+                            for effect_index, effect in enumerate(timing_effects)
+                            if captured_key
+                            == (
+                                int(effect["damage"]),
+                                int(effect["angle"]),
+                                int(effect["kbGrowth"]),
+                                int(effect["weightDepKb"]),
+                                int(effect["baseKb"]),
+                            )
+                        ]
+                        if len(matching_effects) != 1:
+                            raise ValueError(
+                                f"{move_key} frame {action_frame}: live "
+                                f"effect match is ambiguous: {matching_effects}"
+                            )
+                        source_hitbox = dict(timing_effects[matching_effects[0]])
+                        source_hitbox["id"] = hitbox_id
+                        source_hitbox["groupId"] = matching_effects[0]
+                        source_hitboxes.append(source_hitbox)
+                else:
+                    source_hitboxes = hitboxes_for_frame(full_move, source_action_frame)
                 if len(source_hitboxes) > len(captured_hitboxes):
                     raise ValueError(
                         f"{move_key} frame {action_frame}: too many hitboxes"
@@ -403,26 +583,20 @@ def generate(
                             f"{move_key} frame {action_frame}: "
                             f"hitbox {hitbox_id} has no timing-table effect"
                         ) from error
-                    position = [
-                        float(value) for value in captured["position"]
-                    ]
+                    position = [float(value) for value in captured["position"]]
                     spheres.append(
                         {
                             "offset_x": round(
-                                (position[0] - fighter_position[0])
-                                * MELEE_TO_SIM_Q16
+                                (position[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
                             ),
                             "offset_y": round(
-                                -(position[1] - fighter_position[1])
-                                * MELEE_TO_SIM_Q16
+                                -(position[1] - fighter_position[1]) * MELEE_TO_SIM_Q16
                             ),
                             "offset_z": round(
-                                (position[2] - fighter_position[2])
-                                * MELEE_TO_SIM_Q16
+                                (position[2] - fighter_position[2]) * MELEE_TO_SIM_Q16
                             ),
                             "radius": round(
-                                float(captured["radius"])
-                                * MELEE_TO_SIM_Q16
+                                float(captured["radius"]) * MELEE_TO_SIM_Q16
                             ),
                             "effect_index": effect_index,
                             "hitbox_id": hitbox_id,
@@ -463,12 +637,17 @@ def generate(
         f"/* full source SHA-256: {EXPECTED_FULL_SOURCE_SHA256} */",
         f"/* hit-sphere capture SHA-256: {EXPECTED_CAPTURE_SHA256} */",
         f"/* hurt-pose capture SHA-256: {EXPECTED_HURT_CAPTURE_SHA256} */",
+        *(
+            f"/* special capture SHA-256: {digest} */"
+            for digest in special_capture_digests
+        ),
         f"/* disc SHA-256: {EXPECTED_DISC_SHA256} */",
         f"/* decomp revision: {EXPECTED_DECOMP_REVISION} */",
         f"/* canonical geometry SHA-256: {geometry_digest} */",
         "",
         "static const uint8_t pf_m4_falcon_geometry_sha256[32] = {",
-        "    " + ", ".join(
+        "    "
+        + ", ".join(
             f"UINT8_C(0x{geometry_digest[index:index + 2]})"
             for index in range(0, len(geometry_digest), 2)
         ),
@@ -605,45 +784,52 @@ def main() -> int:
     parser.add_argument("hit_capture", type=Path)
     parser.add_argument("hurt_capture", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--special-capture", action="append", default=[], type=Path)
     args = parser.parse_args()
 
     timing_data = json.loads(args.timing_source.read_text(encoding="utf-8"))
     timing_digest = canonical_sha256(timing_data)
     if timing_digest != EXPECTED_CANONICAL_SHA256:
-        raise SystemExit(
-            f"unexpected Falcon timing source SHA-256: {timing_digest}"
-        )
+        raise SystemExit(f"unexpected Falcon timing source SHA-256: {timing_digest}")
     full_digest = file_sha256(args.full_source)
     if full_digest != EXPECTED_FULL_SOURCE_SHA256:
-        raise SystemExit(
-            f"unexpected Falcon full source SHA-256: {full_digest}"
-        )
+        raise SystemExit(f"unexpected Falcon full source SHA-256: {full_digest}")
     hit_capture_digest = file_sha256(args.hit_capture)
     if hit_capture_digest != EXPECTED_CAPTURE_SHA256:
         raise SystemExit(
-            "unexpected Dolphin hit-sphere capture SHA-256: "
-            f"{hit_capture_digest}"
+            "unexpected Dolphin hit-sphere capture SHA-256: " f"{hit_capture_digest}"
         )
     hurt_capture_digest = file_sha256(args.hurt_capture)
     if hurt_capture_digest != EXPECTED_HURT_CAPTURE_SHA256:
         raise SystemExit(
-            "unexpected Dolphin hurt-pose capture SHA-256: "
-            f"{hurt_capture_digest}"
+            "unexpected Dolphin hurt-pose capture SHA-256: " f"{hurt_capture_digest}"
+        )
+    special_capture_digests = [file_sha256(path) for path in args.special_capture]
+    if (
+        len(special_capture_digests) != len(EXPECTED_SPECIAL_CAPTURE_SHA256S)
+        or set(special_capture_digests) != EXPECTED_SPECIAL_CAPTURE_SHA256S
+    ):
+        raise SystemExit(
+            "unexpected Dolphin special capture SHA-256 set: "
+            f"{special_capture_digests}"
         )
     full_data = json.loads(args.full_source.read_text(encoding="utf-8"))
-    hit_capture = json.loads(
-        args.hit_capture.read_text(encoding="utf-8")
-    )
-    hurt_capture = json.loads(
-        args.hurt_capture.read_text(encoding="utf-8")
-    )
+    hit_capture = json.loads(args.hit_capture.read_text(encoding="utf-8"))
+    hurt_capture = json.loads(args.hurt_capture.read_text(encoding="utf-8"))
+    special_captures = [
+        json.loads(path.read_text(encoding="utf-8")) for path in args.special_capture
+    ]
     validate_capture(hit_capture, 8)
     validate_capture(hurt_capture, 9)
+    for special_capture in special_captures:
+        validate_capture(special_capture, 9)
     output = generate(
         timing_data,
         full_data,
         hit_capture,
         hurt_capture,
+        special_captures,
+        special_capture_digests,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

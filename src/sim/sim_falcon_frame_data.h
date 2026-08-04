@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
+
 typedef enum pf_m4_falcon_move_index
 {
     PF_M4_FALCON_JAB1 = 0,
@@ -54,7 +56,7 @@ typedef enum pf_m4_falcon_move_index
     PF_M4_FALCON_DOWN_SPECIAL_LANDING_HIT,
     PF_M4_FALCON_DOWN_SPECIAL_END_AIR_FROM_GROUND,
     PF_M4_FALCON_DOWN_SPECIAL_END_AIR,
-    PF_M4_FALCON_UP_SPECIAL_THROW_AIR,
+    PF_M4_FALCON_DOWN_SPECIAL_WALL_REBOUND,
     PF_M4_FALCON_MOVE_COUNT
 } pf_m4_falcon_move_index;
 
@@ -143,6 +145,101 @@ typedef struct pf_m4_reference_hurt_frame
     uint8_t reserved;
 } pf_m4_reference_hurt_frame;
 
+/*
+ * Deterministic, unit-converted view of the gameplay fields in Falcon's
+ * complete 97-word ftCo_DatAttrs block. The generated raw-word table remains
+ * authoritative for fields that are opaque or irrelevant to this simulator.
+ */
+typedef struct pf_m4_falcon_common_attributes
+{
+    int32_t initial_walk_velocity_q16;
+    int32_t walk_acceleration_q16;
+    int32_t walk_maximum_velocity_q16;
+    int32_t friction_q16;
+    int32_t dash_initial_velocity_q16;
+    int32_t dash_run_acceleration_a_q16;
+    int32_t dash_run_acceleration_b_q16;
+    int32_t dash_run_terminal_velocity_q16;
+    int32_t ground_maximum_horizontal_velocity_q16;
+    int32_t jump_horizontal_initial_velocity_q16;
+    int32_t jump_vertical_initial_velocity_q16;
+    int32_t ground_air_jump_momentum_multiplier_q16;
+    int32_t jump_horizontal_maximum_velocity_q16;
+    int32_t shorthop_vertical_initial_velocity_q16;
+    int32_t air_jump_multiplier_q16;
+    int32_t double_jump_momentum_q16;
+    int32_t double_jump_vertical_velocity_q16;
+    int32_t double_jump_horizontal_velocity_q16;
+    int32_t gravity_q16;
+    int32_t terminal_velocity_q16;
+    int32_t air_mobility_a_q16;
+    int32_t air_mobility_b_q16;
+    int32_t max_aerial_horizontal_velocity_q16;
+    int32_t air_friction_q16;
+    int32_t fast_fall_terminal_velocity_q16;
+    int32_t maximum_horizontal_air_velocity_q16;
+    int32_t shield_break_initial_velocity_q16;
+    int32_t ledge_jump_horizontal_velocity_q16;
+    int32_t ledge_jump_vertical_velocity_q16;
+    int32_t wall_jump_horizontal_velocity_q16;
+    int32_t wall_jump_vertical_velocity_q16;
+    uint16_t jump_startup_ticks;
+    uint16_t number_of_jumps;
+    uint16_t turn_duration_ticks;
+    uint16_t weight;
+    uint16_t normal_landing_lag_ticks;
+    uint16_t neutral_aerial_landing_lag_ticks;
+    uint16_t forward_aerial_landing_lag_ticks;
+    uint16_t back_aerial_landing_lag_ticks;
+    uint16_t up_aerial_landing_lag_ticks;
+    uint16_t down_aerial_landing_lag_ticks;
+} pf_m4_falcon_common_attributes;
+
+/*
+ * Exact deterministic view of the 0x8c-byte ftCaptain_DatAttrs block. Float
+ * members are converted from the owner DAT's big-endian IEEE-754 words to
+ * Q16.16 by the pinned importer. The raw source words remain in the generated
+ * table as a completeness/provenance surface.
+ */
+typedef struct pf_m4_falcon_special_attributes
+{
+    int32_t specialn_stick_range_y_neg_q16;
+    int32_t specialn_stick_range_y_pos_q16;
+    int32_t specialn_angle_diff_q16;
+    int32_t specialn_vel_x_q16;
+    int32_t specialn_vel_mul_q16;
+    int32_t specials_gr_vel_x_q16;
+    int32_t specials_grav_q16;
+    int32_t specials_terminal_vel_q16;
+    int32_t specials_unk0_q16;
+    int32_t specials_unk1_q16;
+    int32_t specials_unk2_q16;
+    int32_t specials_unk3_q16;
+    int32_t specials_unk4_q16;
+    int32_t specials_unk5_q16;
+    int32_t specials_miss_landing_lag_q16;
+    int32_t specials_hit_landing_lag_q16;
+    int32_t specialhi_air_friction_mul_q16;
+    int32_t specialhi_horz_vel_q16;
+    int32_t specialhi_freefall_air_spd_mul_q16;
+    int32_t specialhi_landing_lag_q16;
+    int32_t specialhi_unk0_q16;
+    int32_t specialhi_unk1_q16;
+    int32_t specialhi_input_var_q16;
+    int32_t specialhi_unk2_q16;
+    int32_t specialhi_catch_grav_q16;
+    int32_t specialhi_air_var;
+    uint32_t x68_bits;
+    uint32_t speciallw_unk1;
+    int32_t speciallw_flame_particle_angle_q16;
+    int32_t speciallw_on_hit_spd_modifier_q16;
+    int32_t speciallw_unk2;
+    int32_t speciallw_ground_lag_mul_q16;
+    int32_t speciallw_landing_lag_mul_q16;
+    int32_t speciallw_ground_traction_q16;
+    int32_t speciallw_air_landing_traction_q16;
+} pf_m4_falcon_special_attributes;
+
 typedef struct pf_m4_reference_throw
 {
     uint16_t angle_degrees;
@@ -200,6 +297,17 @@ typedef enum pf_m4_reference_ground_physics
 } pf_m4_reference_ground_physics;
 
 const uint8_t *pf_m4_falcon_reference_source_sha256(void);
+
+const uint8_t *pf_m4_falcon_reference_complete_source_sha256(void);
+
+const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
+    uint16_t *out_count);
+
+const pf_m4_falcon_common_attributes *
+pf_m4_falcon_reference_common_attributes(void);
+
+const pf_m4_falcon_special_attributes *
+pf_m4_falcon_reference_special_attributes(void);
 
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void);
 

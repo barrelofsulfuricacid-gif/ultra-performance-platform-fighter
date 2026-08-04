@@ -89,6 +89,21 @@ separately by each consumer. Its canonical source SHA-256 is folded into the M4
 content hash, so changing a late phase or non-primary effect cannot retain a
 stale compatibility identity.
 
+The same importer now reads the complete 97-word `ftCo_DatAttrs` common-
+attribute payload and the complete 0x8c-byte, 35-field
+`ftCaptain_DatAttrs` special-attribute payload directly from the pinned raw
+DAT. It preserves all raw common words and exposes a typed, generated Q16.16
+view for every common field currently consumed by the simulation: walk,
+dash/run, traction, jump, double jump, gravity/fall/fast fall, air mobility,
+ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
+`pf_m4_default_content` consumes this typed view rather than repeating authored
+ratios. The raw attributes, typed view, special block, action table, and source
+hashes form complete-source SHA-256
+`616461670890a22878a37e891b848808f3633d1b9f236226f6dd35044f7a8946`.
+The special attributes are imported and queryable, but the production special
+state machine is not yet Falcon Punch/Raptor Boost/Falcon Dive/Falcon Kick;
+that runtime replacement remains an explicit M4 gate.
+
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
 forward/up tilt, and up/down smash use `ftCo_Wait_IASA`; down tilt uses its
@@ -154,9 +169,14 @@ angle, KBG, weight-set knockback, and BKB against the hash-pinned full
 an unrelated effect row.
 
 `tools/import_ssbm_falcon_hit_geometry.py` converts that evidence into
-`generated/data/m4_falcon_ntsc102_hit_geometry.inc`. The compact table contains
-121 per-frame rows and 250 spheres for jab 1, jab 2, dash attack, forward/up/down
-tilt, forward/up/down smash, all five aerials, standing grab, and dash grab.
+`generated/data/m4_falcon_ntsc102_hit_geometry.inc`. The compact table includes
+jab 1, jab 2, dash attack, forward/up/down tilt, forward/up/down smash, all five
+aerials, standing grab, dash grab, and every damaging or grabbing Falcon-
+special phase. The special capture set covers ground/air Falcon Punch;
+ground/air Raptor Boost start and hit; ground/air Falcon Dive start, catch, and
+throw; and every Falcon Kick ground, air, landing, edge-end, and wall-rebound
+subaction. Non-damaging Raptor Boost search volumes are retained as pose/state
+evidence rather than mislabeled attack spheres.
 Lookup is a move-indexed
 offset plus one frame-indexed row; collision uses fixed-capacity stack storage
 and performs no allocation. All simultaneous spheres remain independent, so
@@ -173,24 +193,28 @@ The probe reads Falcon's 11 live `FighterHurtCapsule` records from
 `d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32`,
 records the acting Falcon on every displayed frame of all 16 routed
 normal/aerial/grab actions. Its full-hop, delayed-double-jump aerial setup keeps
-Falcon airborne through neutral-air and down-air frame 44; the importer rejects
-even one missing source frame instead of cloning the previous pose. The
-generated table contains 612 frame rows and 6,732 pose capsules, while the
-phase-pinned Stand frame-18 pose remains the grounded-idle route. A single
-move/frame lookup feeds exact 2D circle-versus-capsule intersection for attacks,
-grabs, item/projectile boxes, and hitlag-frozen source actions without allocation.
+Falcon airborne through neutral-air and down-air frame 44. Additional hash-
+pinned executable captures cover every displayed frame of all 17 Falcon
+special subactions. The final wall-rebound row reuses the source-defined Falcon
+Dive throw animation exactly as the pinned DAT motion-state table does; it is
+not an invented pose. The importer rejects even one missing source frame
+instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
+remains the grounded-idle route. A single move/frame lookup feeds exact 2D
+circle-versus-capsule intersection for attacks, grabs, item/projectile boxes,
+and hitlag-frozen source actions without allocation.
 
 The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
 hash to
-`e04cb094239f43d449d95da11b84c75918354816f87f2a8ebcb7b29e09e3743e`.
+`92f5014de753bf5660e5f4eb566e4e92ac734871089f359c697fa9a3d8e6b4c0`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
-retain an old compatibility identity. Actions outside these 16 still use the
-project's rectangular hurt volume; special attack geometry has not yet been
-captured; the retained source Z coordinate is not yet part of the 2D collision
-decision; and attack-sphere versus shield uses the sphere's AABB against the
-source-derived shield ellipse. These are active fidelity gaps, not values to be
-filled by guessed frame data. Custom authored content may opt out of reference
-geometry explicitly; default Falcon-counterpart content opts in.
+retain an old compatibility identity. Production combat already queries this
+table for implemented normals, aerials, and grabs; the complete special table
+becomes runtime-active only as each source special state is routed. Hurt poses
+for common non-attack actions, the retained source Z coordinate, normal-throw
+collateral hits, and exact sphere-versus-shield intersection remain active
+fidelity gaps, not values to be filled by guessed frame data. Custom authored
+content may opt out of reference geometry explicitly; default Falcon-
+counterpart content opts in.
 
 An independent recapture produced a different raw JSON hash because unused
 single-precision memory samples vary below the retained fixed-point precision.

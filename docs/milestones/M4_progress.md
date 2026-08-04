@@ -3186,3 +3186,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   hit geometry and executable frame-rate logic, source-Z collision, exact
   sphere-versus-shield intersection, and normal-throw collateral hits remain
   active source/decomp work rather than guessed-frame placeholders.
+
+## 2026-08-04 complete Falcon source attributes and special geometry
+
+- The pinned raw `PlCa.dat` import now preserves all 97 common-attribute words
+  and the full 0x8c-byte, 35-field `ftCaptain_DatAttrs` special block alongside
+  the existing 48 concrete action records. A generated typed Q16.16 view
+  supplies every Falcon common attribute currently consumed by default content,
+  replacing the remaining duplicated movement/jump/fall/weight/landing ratios.
+  The combined action, attribute, and provenance identity is
+  `616461670890a22878a37e891b848808f3633d1b9f236226f6dd35044f7a8946`;
+  the generated frame-data include SHA-256 is
+  `f05deb23cff37fb71165e39576d4e1cbe6ddbb298fa7041fb3744275af56e832`.
+- Hash-pinned Dolphin routes now cover every displayed frame of all 17 Falcon
+  special subactions: ground/air Falcon Punch, Raptor Boost start/hit, Falcon
+  Dive start/catch/throw, and every Falcon Kick ground/air/end/rebound state.
+  Every damaging or grabbing phase has live transformed sphere geometry; the
+  non-damaging Raptor Boost search volumes are deliberately not reclassified as
+  attacks. The complete canonical geometry identity is
+  `92f5014de753bf5660e5f4eb566e4e92ac734871089f359c697fa9a3d8e6b4c0`;
+  the generated geometry include SHA-256 is
+  `d9be4319b7a416df24d9c11a23c5ac6a1f6134acbdad9afecfe22741922f6294`.
+- Importers hard-reject wrong raw DAT hashes, timing-table hashes, capture
+  hashes, action IDs, incomplete displayed-frame ranges, and non-Q16-equivalent
+  duplicate samples. The final Falcon Kick wall-rebound motion aliases the
+  Falcon Dive throw pose because the pinned DAT motion-state table itself uses
+  that animation; no replacement frame data is authored.
+- Fresh release verification passes 20/20 Windows tests and 22/22 WSL Linux
+  tests. The Emscripten client rebuilds cleanly, and native/Wasm replay output
+  is byte-identical at corpus/final/event SHA-256
+  `9d40ce0f622f748e85ebc663cc1394d531b6757ee66ef3538287a85576756a6b`,
+  `863a4ed6b2f6334f6b67c15cf8c219d93ef84c8300792d6820db304dfa2e8e23`,
+  and `6a58ca0e2ef8dd3e08308d8b8d3085c22c73530400286013f305f2343f38bf87`.
+  The eight-match verifier identity is `2b88c65c0067185c` on Windows and WSL.
+- M4 is still unfinished: production specials remain Pulse Bolt, Prism Burst,
+  Arc Reservoir, and Vector Ascent until the imported Falcon special timing,
+  attributes, and geometry are routed through source-equivalent state machines
+  and compared against identical-input Dolphin traces. Common-state poses,
+  source-Z collision, exact sphere-versus-shield intersection, and normal-throw
+  collateral hits also remain active fidelity work.

@@ -463,20 +463,30 @@ executable-oracle evidence is therefore 13,340 captured frames. Uncaptured
 pressure/time/spacing routes and the broader shared-simulation inventory remain
 active work.
 
-Falcon's complete static attack-frame source is imported as a hash-pinned 50-slot
-schema with 48 concrete subactions; the only absent rows are the two angled
-forward-smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
+Falcon's complete static source is imported as a hash-pinned 50-slot schema
+with 48 concrete subactions; the only absent rows are the two angled forward-
+smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
 ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
-character-special subactions. No implemented Falcon-counterpart move may use a
-guessed timing or effect when this table contains it. The current executable
-geometry slice adds 121 active-frame rows and 250 independent transformed hit
-spheres for the 14 production normals/aerials plus standing and dash grab. A
-separate complete-frame executable capture adds 612 animated hurt-pose rows and
-6,732 capsules for those same 16 actions, plus the 11-capsule grounded-idle
-pose. Hurt capsules for other actions, special geometry, source-Z collision
-semantics, and exact sphere-versus-shield intersection remain explicit M4 gaps
-and must be extracted or qualified rather than approximated with invented frame
-data.
+character-special subactions. The same generated source preserves all 97 raw
+common-attribute words and the complete 0x8c-byte, 35-field Falcon special-
+attribute block. A typed zero-cost view supplies the default runtime's mapped
+movement, jump, fall, weight, and landing values directly; it may not be
+replaced by hand-entered approximations. No implemented Falcon-counterpart move
+may use a guessed timing, effect, or character attribute when this source
+contains it.
+
+Hash-pinned Dolphin captures provide transformed hit geometry and complete-
+frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
+dash grab, and all 17 Falcon special subactions. Every damaging/grabbing
+special phase is represented, while non-damaging Raptor Boost search volumes
+are not misclassified as attacks. The imported special timing, attributes, and
+geometry are not by themselves an equivalence claim: production still uses the
+project's original Pulse Bolt, Prism Burst, Arc Reservoir, and Vector Ascent
+states until the source Falcon special state machines are routed and qualified.
+Hurt capsules for remaining common actions, source-Z collision semantics,
+normal-throw collateral hits, and exact sphere-versus-shield intersection
+remain explicit M4 gaps and must be extracted or qualified rather than
+approximated with invented frame data.
 These captures qualify only their sampled routes and do not reduce the
 exhaustive obligation below.
 
