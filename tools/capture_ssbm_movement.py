@@ -314,6 +314,40 @@ def input_trace() -> list[dict[str, object]]:
     trace.append(command("crouch_end_before_walk"))
     repeat("crouch_end_walk", 20, main_x=0.75)
     repeat("crouch_end_walk_recovery", 30)
+
+    # Guard input appears in every crouch-state IASA list. Use a neutral stick
+    # on the guard frame so the trace isolates guard precedence from spot dodge
+    # and platform-pass input.
+    repeat("settle_before_crouch_start_guard", 10)
+    repeat("crouch_start_before_guard", 2, main_y=0.0)
+    repeat(
+        "crouch_start_guard",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("crouch_start_guard_release", 20)
+
+    repeat("settle_before_crouch_wait_guard", 10)
+    repeat("crouch_wait_before_guard", 20, main_y=0.0)
+    repeat(
+        "crouch_wait_guard",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("crouch_wait_guard_release", 20)
+
+    repeat("settle_before_crouch_end_guard", 10)
+    repeat("crouch_end_before_guard", 20, main_y=0.0)
+    trace.append(command("crouch_end_guard_release"))
+    repeat(
+        "crouch_end_guard",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("crouch_end_guard_recovery", 20)
     return trace
 
 

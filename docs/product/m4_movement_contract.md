@@ -125,9 +125,10 @@ to the simulation.
   transitions, and boundary cases match the pinned GALE01 executable trace.
   Jump interrupts all three crouch states. Held crouch accepts a fresh dash
   (including the ordinary opposite-facing `TURN` frame), while crouch release
-  accepts forward walk immediately. Remaining attack, special, guard, taunt,
-  grab, and platform-pass routes remain part of the broader executable-oracle
-  gate.
+  accepts forward walk immediately. Fresh digital guard interrupts every
+  crouch state through the common shield-start path. Remaining attack,
+  special, taunt, grab, and platform-pass routes remain part of the broader
+  executable-oracle gate.
 - Down on a pass-through platform starts the data-defined nine-tick
   pass-through window. The drop tick applies only the authored nudge and
   ordinary gravity; it cannot also trigger fast fall. Subsequent down input may

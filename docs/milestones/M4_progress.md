@@ -2465,7 +2465,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 2,184-frame movement/defense/aerial/crouch trace is a regression
+- The passing 2,347-frame movement/defense/aerial/crouch trace is a regression
   slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
@@ -2475,7 +2475,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## 2026-08-04 Falcon crouch executable-oracle slice
 
-- The identical-input Dolphin route now contains 2,184 frames. The added
+- The identical-input Dolphin route now contains 2,347 frames. The added
   full-down grounded sequence observes seven displayed `CROUCH_START`/`Squat`
   frames, a held `CROUCH`/`SquatWait`, ten displayed
   `CROUCH_END`/`SquatRv` frames, then ground idle. Native comparison passes
@@ -2489,10 +2489,14 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `Turn` frame before `Dash`; and forward horizontal input during `SquatRv`
   enters `Walk` immediately. The simulator routes those transitions through
   its already-pinned common jump, turn/dash, and walk machinery.
+- Fresh digital guard from `Squat`, `SquatWait`, and `SquatRv` enters the same
+  `GuardReflect`/shield-start path and then ordinary held shield/release. The
+  existing common guard router passes all three executable routes; focused
+  deterministic assertions now pin that availability.
 - Decomp review at pinned revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` confirms that `Squat` and
   `SquatWait` are crouch-cancel eligible while `SquatRv` is not. Attack,
-  special, guard, taunt, grab, and platform-pass portions of the interrupt
+  special, taunt, grab, and platform-pass portions of the interrupt
   matrix remain uncovered and therefore remain active work under the
   whole-simulation gate.
 - Content schema 60/fighter schema 52 append, validate, hash, and default the

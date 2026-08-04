@@ -63,6 +63,9 @@ POSITION_ANCHOR_LABELS = {
     "settle_before_crouch_end_jump",
     "settle_before_crouch_wait_dash",
     "settle_before_crouch_end_walk",
+    "settle_before_crouch_start_guard",
+    "settle_before_crouch_wait_guard",
+    "settle_before_crouch_end_guard",
 }
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
