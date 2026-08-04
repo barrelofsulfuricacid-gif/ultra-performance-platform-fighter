@@ -451,10 +451,12 @@ def main() -> int:
                 f"expected={expected_shield_health} actual={actual_shield_health} "
                 f"delta={actual_shield_health - expected_shield_health}"
             )
-        if actual_shield_strength != expected_shield_strength:
+        if abs(actual_shield_strength - expected_shield_strength) > 1:
             differences.append(
                 "shield_strength "
-                f"expected={expected_shield_strength} actual={actual_shield_strength}"
+                f"expected={expected_shield_strength} "
+                f"actual={actual_shield_strength} "
+                f"delta={actual_shield_strength - expected_shield_strength}"
             )
         if push_mode:
             opponent_action_name = str(oracle["opponent_action"])

@@ -406,7 +406,12 @@ materially different route.
 Current regression evidence consists of an 8,675-frame Final Destination
 movement/defense/crouch corpus, a separate 348-frame Battlefield platform
 corpus, and a separate 540-frame Final Destination Falcon-versus-Falcon
-grounded-player-push corpus. The player-push route compares both players'
+grounded-player-push corpus, plus a separate 500-frame Final Destination
+analog-shield-pressure corpus. The shield route covers sub-threshold, light,
+intermediate, near-dense, both-shoulder, digital-full, release, and regeneration
+samples while comparing action/state, health, and normalized pressure; its
+normalized-pressure allowance is one 16-bit unit. The player-push route
+compares both players'
 actions, action frames, facing, grounded state, positions, and self-induced
 velocities in both approach directions and from both controller ports. It pins
 Falcon's 3.5-unit push radius, the common 0.3-unit nudge, strict overlap

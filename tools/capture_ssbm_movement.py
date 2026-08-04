@@ -23,6 +23,7 @@ import melee
 def input_trace(
     platform_only: bool = False,
     push_only: bool = False,
+    shield_only: bool = False,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
 
@@ -79,6 +80,60 @@ def input_trace(
             opponent_main_x=0.3,
         )
         repeat("push_opponent_recovery", 60)
+        return trace
+
+    if shield_only:
+        repeat("shield_formula_settle", 60)
+        repeat(
+            "shield_formula_below_dead_zone",
+            8,
+            left_shoulder=0.29,
+        )
+        repeat("shield_formula_below_release", 8)
+        repeat(
+            "shield_formula_threshold_sample",
+            12,
+            left_shoulder=0.30,
+        )
+        repeat("shield_formula_threshold_release", 12)
+        repeat(
+            "shield_formula_light",
+            30,
+            left_shoulder=0.35,
+        )
+        repeat("shield_formula_light_release", 20)
+        repeat(
+            "shield_formula_low_mid",
+            30,
+            left_shoulder=0.40,
+        )
+        repeat("shield_formula_low_mid_release", 20)
+        repeat(
+            "shield_formula_high_mid",
+            30,
+            left_shoulder=0.65,
+        )
+        repeat("shield_formula_high_mid_release", 20)
+        repeat(
+            "shield_formula_near_dense",
+            30,
+            right_shoulder=0.99,
+        )
+        repeat("shield_formula_near_dense_release", 20)
+        repeat(
+            "shield_formula_both_shoulders",
+            30,
+            left_shoulder=0.40,
+            right_shoulder=0.70,
+        )
+        repeat("shield_formula_both_release", 20)
+        repeat(
+            "shield_formula_digital_full",
+            30,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        repeat("shield_formula_regeneration", 120)
         return trace
 
     if platform_only:
@@ -918,6 +973,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         trace = input_trace(
             platform_only=args.platform_only,
             push_only=args.push_only,
+            shield_only=args.shield_only,
         )
         pipeline_delay = 2
         commands = trace + [
@@ -1235,6 +1291,7 @@ def parse_args() -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
+    mode.add_argument("--shield-only", action="store_true")
     return parser.parse_args()
 
 

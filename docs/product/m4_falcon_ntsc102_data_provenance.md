@@ -21,7 +21,8 @@ Behavior and field meanings were checked against `doldecomp/melee` revision
 `ft/inlines.h`, `ftCo_Dash.c`, `ftCo_Run.c`, `ftCo_RunBrake.c`,
 `ftCo_TurnRun.c`, `ftCo_KneeBend.c`, `ftCo_Jump.c`, `ftCo_JumpAerial.c`, and
 `ftCo_Squat.c`, `ftCo_SquatWait.c`, `ftCo_SquatRv.c`, `ftCo_Damage.c`, and the
-common fall/air-physics routines.
+common fall/air-physics routines, plus `ftCo_Guard.c` and `fighter.c` for the
+shield-health and pressure formulas.
 
 ## Coordinate conversion
 
@@ -60,6 +61,26 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | post-air-dodge drift cap | 1.12 x 0.6 | 1008/14375 |
 | grounded player-push center offset / radius | 0.0 / 3.5 | 0 / 42/115 |
 | grounded player-push nudge per overlap | 0.3 | 18/575 |
+
+## Imported common shield values
+
+| Source field/formula | NTSC 1.02 raw | Simulation mapping |
+|---|---:|---:|
+| start / reset shield health (`x260` / `x280`) | 60 / 30 | 60 / 30 Q16 HP |
+| analog dead zone (`x10`) | 0.30 | first project threshold 19,661 of 65,535 |
+| base hold drain (`x278`) | 0.14 | interpolated through the next row |
+| hold-density endpoints (`x2EC` / `x2F0`) | 0.1 / 2.0 | 0.014 light to 0.28 dense HP per tick |
+| regeneration (`x27C`) | 0.07 | 7/100 Q16 HP per unshielded tick |
+| minimum size floor (`x264`) | 0.15 | 3/20 |
+| pressure size endpoints (`x2D4` / `x2D8`) | 1.0 / 0.5 | light density 1 to dense density 1/2 |
+| guard-stick smoothing (`x44C`) | 0.5 | recorded; exact tilt route remains unqualified |
+
+For normalized analog amount `a=(pressure-0.30)/(1-0.30)`, the common hold
+drain is `0.14 * (0.1 + 1.9*a)`. The non-Yoshi shield size is
+`initial_size * (0.15 + 0.85*(health/60)*(1.0 - 0.5*a))`. The 500-frame
+pressure-only executable capture qualifies input, health depletion, release,
+and regeneration. It does not by itself qualify the rendered/collision radius,
+stick smoothing, or shield-hit formulas.
 
 ## Imported common-input values
 

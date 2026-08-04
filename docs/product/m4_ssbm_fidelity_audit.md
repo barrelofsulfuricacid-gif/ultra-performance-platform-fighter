@@ -40,7 +40,7 @@ threshold, and route differences are not.
 | Wall jump / wall and ceiling tech velocities | equivalent | Falcon passive-wall, wall-jump, and passive-ceiling attributes are mapped. |
 | Normal landing lag and shared IASA | equivalent for captured routes | Falcon's four-frame value is mapped. Identical-input taunt, jump, dash/turn, guard, walk, direct-crouch, late-down-lockout, and ordinary-turn routes open or remain locked on the executable's exact boundary. First-frame down enters `SquatWait` directly; down one displayed frame later remains `Landing`. Character attack/special/grab content remains outside this row. |
 | Aerial landing lag | equivalent | Distinct neutral/forward/back/up/down landing states select Falcon's 15/19/18/15/24 table; L-cancel states halve the selected value. |
-| Shield input, light shield, shield size | partial | Separate analog triggers, no light-shield air dodge, shield health scaling, and rendering exist; full common shield formulas/tables are not yet imported. |
+| Shield input, light shield, shield size | partial | A separate 500-frame identical-input pressure sweep matches sub-threshold, light, intermediate, near-dense, both-shoulder, digital-full, release, and regeneration action/health behavior with a one-unit 16-bit pressure allowance. Decomp/disc health, hold-drain, regeneration, and health/density size terms are recorded. Exact tilt smoothing and executable shield geometry are not yet compared; collision damage, stun, and pushback formulas remain partial. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
 | Damage, knockback, hitlag, hitstun, DI/SDI | partial | Deterministic systems exist, but formulas and common constants have not completed a field-by-field decomp equivalence review. |
 | Attacks, grabs, throws, stale moves | divergent | They are original M4 fixtures, not Falcon's action, hitbox, damage, or frame tables. |
@@ -107,3 +107,10 @@ one-tick strict-boundary transient. The other captures retain the 640-Q16
 position gate; action, facing, velocity, and applicable action ticks use their
 tighter independent gates. This remains a regression slice, not evidence that
 the whole shared simulation has completed the binding equivalence gate.
+
+A separate 500-frame Final Destination analog-shield capture covers both sides
+of the common dead zone, four accepted pressure bands across both shoulder
+inputs, simultaneous shoulders, digital full shield, release, and regeneration.
+It compares action/state, shield health, and normalized pressure; the pressure
+gate accepts only one unit of 16-bit conversion error. It does not claim to
+qualify shield-hit collision formulas or geometry.

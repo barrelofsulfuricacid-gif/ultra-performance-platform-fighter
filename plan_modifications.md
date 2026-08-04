@@ -111,6 +111,15 @@ action frames, facing, grounded state, positions, and self-induced velocities,
 and allows no more than one 0.3-unit push nudge plus the ordinary Q16.16
 position envelope at the strict overlap boundary.
 
+The analog shield-input/health route is qualified separately by a 500-frame
+Final Destination capture. It samples both sides of the common dead zone,
+light, intermediate, near-dense, simultaneous-shoulder, and digital-full input,
+then release and regeneration. Action/state and shield health remain strict
+within the existing 64-Q16 health gate; normalized shield pressure allows only
+one unit of 16-bit conversion error. Shield collision damage, stun, pushback,
+tilt smoothing, and exact collision geometry remain active work rather than
+being inferred from this pressure-only route.
+
 The platform routes are qualified separately by a 348-frame Battlefield
 capture. A neutral jump passes upward through the platform, crosses it on
 descent for one final airborne frame, then enters `Landing` on the same frame

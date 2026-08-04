@@ -2748,3 +2748,27 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   output; the rebuilt live port-8002 playtest and headless Chrome DOM/Wasm smoke
   pass. M4 remains unfinished because other unqualified shared-simulation
   routes remain active under the exhaustive exact-equivalence gate.
+
+## 2026-08-04 Falcon analog shield-pressure executable-oracle slice
+
+- A separate 500-frame identical-input Final Destination capture samples
+  requested shoulder pressures 0.29, 0.30, 0.35, 0.40, 0.65, and 0.99, both
+  shoulder ports, simultaneous 0.40/0.70 shoulders, a digital full click,
+  release, and regeneration. The first reliably represented light sample is
+  requested 0.35 and reported by Slippi as 0.3214286. Its SHA-256 is
+  `051c6fdb9185b513a6505c6cd93a6b3de6659455613e68ae21f4c8bd5eaa0572`.
+- The pinned decomp `ftCo_Guard.c` route and freshly extracted owner-disc
+  `PlCo.dat` values record 60 start health, 30 reset health, 0.30 analog dead
+  zone, 0.14 base hold drain, 0.1/2.0 drain-density endpoints, 0.07
+  regeneration, 0.15 minimum size, 1.0/0.5 pressure-size endpoints, and 0.5
+  guard-stick smoothing. No extracted DAT is retained in the repository.
+- Windows and WSL comparators agree for action/state, shield health, and
+  normalized pressure across all 500 frames. Health retains its existing
+  64-Q16 conversion bound; normalized pressure accepts one 16-bit unit. The
+  pre-existing 8,675-, 348-, and 540-frame captures continue to pass with
+  their documented bounds.
+- This slice introduces no production or schema change because the input,
+  hold-depletion, regeneration, and health/density size constants were already
+  data-defined. Exact tilt smoothing, executable shield geometry, collision
+  damage, shield stun, and attacker/defender pushback remain uncovered and M4
+  remains unfinished.
