@@ -247,6 +247,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->double_jump_speed_q16);
     pf_m4_hash_i32(hash, fighter->double_jump_horizontal_speed_q16);
     pf_m4_hash_i32(hash, fighter->platform_drop_nudge_q16);
+    pf_m4_hash_i32(hash, fighter->platform_drop_speed_y_q16);
     pf_m4_hash_i32(hash, fighter->ledge_jump_speed_x_q16);
     pf_m4_hash_i32(hash, fighter->ledge_jump_speed_y_q16);
     pf_m4_hash_i32(hash, fighter->ledge_roll_distance_q16);
@@ -445,6 +446,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->landing_ticks);
     pf_m4_hash_u16(hash, fighter->landing_interruptible_tick);
     pf_m4_hash_u16(hash, fighter->platform_drop_ticks);
+    pf_m4_hash_u16(hash, fighter->platform_drop_startup_ticks);
     pf_m4_hash_u16(hash, fighter->air_dodge_ticks);
     pf_m4_hash_u16(
         hash,
@@ -923,6 +925,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->double_jump_speed_q16 = PF_Q16_RATIO(3069, 6200);
     fighter->double_jump_horizontal_speed_q16 = PF_Q16_RATIO(54, 575);
     fighter->platform_drop_nudge_q16 = PF_Q16_RATIO(1, 256);
+    fighter->platform_drop_speed_y_q16 = PF_Q16_RATIO(693, 6200);
     fighter->ledge_jump_speed_x_q16 = PF_Q16_RATIO(12, 115);
     fighter->ledge_jump_speed_y_q16 = PF_Q16_RATIO(363, 620);
     fighter->ledge_roll_distance_q16 = PF_Q16_RATIO(7, 4);
@@ -1343,6 +1346,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->landing_ticks = UINT16_C(30);
     fighter->landing_interruptible_tick = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(9);
+    fighter->platform_drop_startup_ticks = UINT16_C(3);
     fighter->air_dodge_ticks = UINT16_C(49);
     fighter->air_dodge_invulnerability_begin_tick = UINT16_C(3);
     fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
@@ -1937,6 +1941,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->double_jump_horizontal_speed_q16 >
             fighter->air_max_horizontal_speed_q16 ||
         fighter->platform_drop_nudge_q16 <= INT32_C(0) ||
+        fighter->platform_drop_speed_y_q16 <= fighter->gravity_q16 ||
+        fighter->platform_drop_speed_y_q16 > fighter->fall_speed_q16 ||
         fighter->ledge_jump_speed_x_q16 <= INT32_C(0) ||
         fighter->ledge_jump_speed_y_q16 <= fighter->gravity_q16 ||
         fighter->ledge_roll_distance_q16 <=
@@ -2341,6 +2347,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->landing_interruptible_tick >= fighter->landing_ticks ||
         fighter->platform_drop_ticks == UINT16_C(0) ||
         fighter->platform_drop_ticks > UINT16_C(120) ||
+        fighter->platform_drop_startup_ticks == UINT16_C(0) ||
+        fighter->platform_drop_startup_ticks >=
+            fighter->crouch_start_ticks ||
         fighter->air_dodge_ticks == UINT16_C(0) ||
         fighter->air_dodge_ticks > UINT16_C(240) ||
         fighter->air_dodge_invulnerability_begin_tick >=

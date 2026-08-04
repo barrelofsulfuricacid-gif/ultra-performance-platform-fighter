@@ -2531,9 +2531,10 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   special, grab, and platform-pass portions of the interrupt
   matrix remain uncovered and therefore remain active work under the
   whole-simulation gate.
-- Content schema 61/fighter schema 53 validate, hash, and default the seven-tick
+- Content schema 62/fighter schema 54 validate, hash, and default the seven-tick
   crouch entry, ten-tick reverse timing, distinct crouch release threshold,
-  and independent tap-jump threshold/window fields.
+  independent tap-jump threshold/window fields, three-tick platform-pass
+  startup, and executable-derived pass-entry speed.
   State schema 55 names the replay-visible action vocabulary; save format 52
   remains 787 bytes.
 - A deterministic trace exposed and fixed an independent transition invariant:
@@ -2643,8 +2644,8 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   corpus. Each route first lands and settles, creates space away from the FD
   edge, and faces back toward center. The project oracle runner enables its
   original reflector counterpart on a widened plain floor, then compares only
-  entry eligibility. No tolerance was widened. Platform-pass remains the sole
-  uncovered crouch-IASA route.
+  entry eligibility. No tolerance was widened. Platform-pass was the sole
+  crouch-IASA route still uncovered by this particular capture.
 - Attack and special bodies remain original project content. The differential
   runner therefore compares their common semantic eligibility at entry,
   advances past the character-specific body, and resumes exact action, facing,
@@ -2654,3 +2655,44 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   GCC binaries. All 22 CTest targets pass on both platforms. Replay corpus,
   final-state, event-journal, and verifier expectations remain unchanged
   because the fixed eligibility routes are outside the pinned 240-tick replay.
+
+## 2026-08-04 Falcon platform-pass executable-oracle slice
+
+- A separate 212-frame identical-input capture selects Battlefield, where
+  Captain Falcon starts on the left pass-through platform. It is intentionally
+  isolated from the 8,675-frame Final Destination corpus and from the original
+  laboratory-stage geometry.
+- The negative control applies down for one frame and then releases. Dolphin
+  remains grounded through ordinary `Squat`/`SquatRv` and never latches a
+  delayed pass; production now follows the same route.
+- The positive control holds down. Dolphin exposes displayed `Squat` frames
+  1-3 and enters `Pass` frame 0 on the following sample. Production previously
+  dropped immediately from pass-through support; the authored three-tick
+  startup now reproduces the executable transition.
+- Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+  confirms `ftCo_8009A228` assigns common-data field `x46C` on Pass entry. The
+  executable value 0.63 converts to Q16.16 value 7,325 in the laboratory scale.
+  Entry applies that velocity without an additional gravity or fast-fall step.
+- With the Battlefield platform-to-floor displacement represented exactly in
+  the comparison fixture, held-down Pass lands on the solid floor on Dolphin's
+  frame 140. The comparator does not widen action, velocity, or position
+  tolerance to obtain this result.
+- Content schema 62/fighter schema 54 hash and validate the platform-pass
+  startup and speed. State schema 55/save format 52 remain unchanged. Focused
+  deterministic tests pin validation, content-hash sensitivity, release and
+  held controls, upper-platform behavior, and shield-drop reuse of the pass
+  speed.
+- The 240-tick replay corpus, final-state, and event-journal hashes remain
+  `93e60fef3c6afcac94d66b96ac4a29dd5257c39617700969447e47fe51c8278f`,
+  `61160ef3e40848b4e5e529a27f81a0658938152bf6e3e4b0acb7395d32d2890e`,
+  and `f574b8063f8339b8495ec44eaea0a0c09395c1bf5f545dc5e4454248baeb62ba`.
+  The content-sensitive repeated-match verifier digest is
+  `dda94fe7dce1be1d`.
+- The 212-frame Battlefield comparator and the 8,675-frame Final Destination
+  comparator pass on Windows MSVC and WSL Linux GCC. All 22 CTest targets pass
+  on both platforms; strict movement/combat, standalone kernel/replay, and
+  native-versus-Wasm replay checks pass. A clean pinned Emscripten 6.0.3 build,
+  the rebuilt live port-8002 playtest, and headless Chrome DOM/Wasm smoke also
+  pass. M4 remains unfinished because player push collision and the other
+  unqualified shared-simulation routes remain active under the exhaustive
+  exact-equivalence gate.

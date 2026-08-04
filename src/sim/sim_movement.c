@@ -4310,7 +4310,7 @@ pf_status pf_m4_step_player(
             platform_drop_ticks =
                 (uint8_t)fighter->platform_drop_ticks;
             position_y += fighter->platform_drop_nudge_q16;
-            velocity_y = fighter->gravity_q16;
+            velocity_y = fighter->platform_drop_speed_y_q16;
             short_hop_latched = UINT8_C(0);
             fast_fall = UINT8_C(0);
             dash_direction = INT8_C(0);
@@ -5346,25 +5346,44 @@ pf_status pf_m4_step_player(
              action_state ==
                  (uint8_t)PF_M4_ACTION_CROUCH_START)
     {
-        velocity_x = pf_m4_approach(
-            velocity_x,
-            INT32_C(0),
-            velocity_x > fighter->walk_speed_q16 ||
-                    velocity_x < -fighter->walk_speed_q16
-                ? fighter->turn_acceleration_q16
-                : fighter->traction_q16);
-        if (action_ticks >= fighter->crouch_start_ticks)
+        if (pf_m4_surface_is_pass_through(support) != 0 &&
+            input->main_stick_y >=
+                (int16_t)fighter->crouch_axis_threshold &&
+            action_ticks >= fighter->platform_drop_startup_ticks)
         {
-            action_state =
-                input->main_stick_y <
-                        (int16_t)fighter->crouch_release_axis_threshold
-                    ? (uint8_t)PF_M4_ACTION_CROUCH_END
-                    : (uint8_t)PF_M4_ACTION_CROUCH;
-            action_ticks = UINT16_C(1);
+            grounded = UINT8_C(0);
+            support = (uint8_t)PF_M4_SURFACE_NONE;
+            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+            action_ticks = UINT16_C(0);
+            platform_drop_ticks =
+                (uint8_t)fighter->platform_drop_ticks;
+            position_y += fighter->platform_drop_nudge_q16;
+            velocity_y = fighter->platform_drop_speed_y_q16;
+            fast_fall = UINT8_C(0);
+            dropped_platform_this_tick = 1;
         }
         else
         {
-            ++action_ticks;
+            velocity_x = pf_m4_approach(
+                velocity_x,
+                INT32_C(0),
+                velocity_x > fighter->walk_speed_q16 ||
+                        velocity_x < -fighter->walk_speed_q16
+                    ? fighter->turn_acceleration_q16
+                    : fighter->traction_q16);
+            if (action_ticks >= fighter->crouch_start_ticks)
+            {
+                action_state =
+                    input->main_stick_y <
+                            (int16_t)fighter->crouch_release_axis_threshold
+                        ? (uint8_t)PF_M4_ACTION_CROUCH_END
+                        : (uint8_t)PF_M4_ACTION_CROUCH;
+                action_ticks = UINT16_C(1);
+            }
+            else
+            {
+                ++action_ticks;
+            }
         }
     }
     else if (!ledge_motion_handled &&
@@ -5486,20 +5505,7 @@ pf_status pf_m4_step_player(
                  action_state,
                  input->main_stick_y))
     {
-        if (pf_m4_surface_is_pass_through(support) != 0)
-        {
-            grounded = UINT8_C(0);
-            support = (uint8_t)PF_M4_SURFACE_NONE;
-            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
-            action_ticks = UINT16_C(0);
-            platform_drop_ticks =
-                (uint8_t)fighter->platform_drop_ticks;
-            position_y += fighter->platform_drop_nudge_q16;
-            velocity_y = fighter->gravity_q16;
-            fast_fall = UINT8_C(0);
-            dropped_platform_this_tick = 1;
-        }
-        else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
+        if (action_state == (uint8_t)PF_M4_ACTION_RUN)
         {
             action_state = (uint8_t)PF_M4_ACTION_CROUCH_START;
             action_ticks = UINT16_C(1);
@@ -6760,6 +6766,10 @@ pf_status pf_m4_step_player(
         {
             fast_fall = UINT8_C(0);
         }
+        else if (dropped_platform_this_tick)
+        {
+            fast_fall = UINT8_C(0);
+        }
         else if (!hitstun_locked &&
             !dropped_platform_this_tick &&
             action_state !=
@@ -6866,6 +6876,9 @@ pf_status pf_m4_step_player(
                 position_x <= stage->floor_right_q16 &&
                 ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
                   (previous_bottom > stage->floor_y_q16 ||
+                   (down_held &&
+                    previous_bottom <= stage->floor_y_q16 &&
+                    new_bottom >= stage->floor_y_q16) ||
                    (fast_fall != UINT8_C(0) &&
                     previous_bottom <= stage->floor_y_q16 &&
                     new_bottom >= stage->floor_y_q16))) ||

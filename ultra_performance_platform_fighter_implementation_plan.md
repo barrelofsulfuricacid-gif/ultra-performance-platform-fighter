@@ -393,6 +393,13 @@ trace, coordinate conversion, and first divergent frame. Internal deterministic
 tests remain required, but cannot substitute for this executable-oracle
 comparison.
 
+Current regression evidence consists of an 8,675-frame Final Destination
+movement/defense/crouch corpus plus a separate 212-frame Battlefield
+platform-pass corpus. The Battlefield route includes a one-frame-down negative
+control, held-down `Squat` frames 1-3, `Pass` entry at the executable's 0.63
+downward speed, and same-frame solid-floor landing. These captures qualify only
+their sampled routes and do not reduce the exhaustive obligation below.
+
 This gate is not limited to locomotion. It also covers every implemented shared
 simulation path for which SSBM supplies the intended behavior, including
 shield and light-shield input/health/size, roll, spot dodge, air dodge, jump

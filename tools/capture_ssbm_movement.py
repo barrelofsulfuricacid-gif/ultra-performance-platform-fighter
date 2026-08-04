@@ -20,7 +20,7 @@ import time
 import melee
 
 
-def input_trace() -> list[dict[str, object]]:
+def input_trace(platform_only: bool = False) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
 
     def extend(label: str, xs: list[float]) -> None:
@@ -63,6 +63,16 @@ def input_trace() -> list[dict[str, object]]:
 
     def repeat(label: str, count: int, **inputs: object) -> None:
         trace.extend(command(label, **inputs) for _ in range(count))
+
+    if platform_only:
+        repeat("platform_settle", 60)
+        trace.append(command("platform_tap_down_entry", main_y=0.0))
+        repeat("platform_tap_down_release", 30)
+        repeat("platform_before_held_down", 30)
+        trace.append(command("platform_held_down_entry", main_y=0.0))
+        repeat("platform_held_down", 30, main_y=0.0)
+        repeat("platform_held_down_recovery", 60)
+        return trace
 
     extend("settle", [0.5] * 10)
     extend("held_dash_right", [1.0] * 25)
@@ -775,6 +785,7 @@ def choose_match(
     gamestate: melee.GameState,
     player_one: melee.Controller,
     player_two: melee.Controller,
+    stage: melee.Stage,
 ) -> None:
     if gamestate.menu_state in (
         melee.Menu.CHARACTER_SELECT,
@@ -799,7 +810,7 @@ def choose_match(
     elif gamestate.menu_state == melee.Menu.STAGE_SELECT:
         player_two.release_all()
         melee.MenuHelper.choose_stage(
-            melee.Stage.FINAL_DESTINATION,
+            stage,
             gamestate,
             player_one,
         )
@@ -862,7 +873,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and gamestate.players[1].character == melee.Character.CPTFALCON
             ):
                 break
-            choose_match(gamestate, player_one, player_two)
+            choose_match(
+                gamestate,
+                player_one,
+                player_two,
+                melee.Stage.BATTLEFIELD
+                if args.platform_only
+                else melee.Stage.FINAL_DESTINATION,
+            )
         else:
             state = None if gamestate is None else str(gamestate.menu_state)
             raise TimeoutError(f"Dolphin match setup timed out in {state}")
@@ -871,7 +889,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         player_two.release_all()
         rows: list[dict[str, object]] = []
         origin_x: float | None = None
-        trace = input_trace()
+        trace = input_trace(platform_only=args.platform_only)
         pipeline_delay = 2
         commands = trace + [
             {
@@ -1107,7 +1125,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "sha256": sha256(iso),
             },
             "fighter": "CPTFALCON",
-            "stage": "FINAL_DESTINATION",
+            "stage": "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION",
             "controller_postframe_pipeline_delay": pipeline_delay,
             "rows": rows,
         }
@@ -1124,6 +1142,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--menu-timeout", type=float, default=120.0)
     parser.add_argument("--start-frame", type=int, default=120)
+    parser.add_argument("--platform-only", action="store_true")
     return parser.parse_args()
 
 

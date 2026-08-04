@@ -614,6 +614,12 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+Content schema 62/fighter schema 54 append, validate, default, and hash the
+platform-pass downward speed and grounded crouch-start delay. The default
+values are the GALE01 common 0.63 downward speed converted to Q16.16 and three
+displayed `Squat` ticks before `Pass`. These are immutable content identity;
+state schema 55 and save format 52 remain unchanged.
+
 State schema 52/save format 51 retains the 647-byte canonical payload and
 787-byte checkpoint while adding fail-closed action semantics for distinct
 forward, back, up, and down aerial landing and L-cancel states. Content schema

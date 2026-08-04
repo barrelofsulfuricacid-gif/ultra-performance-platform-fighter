@@ -48,6 +48,7 @@ SSBM_TO_M4_ACTION = {
     "LANDING": 7,
     "TAUNT_RIGHT": 75,
     "TAUNT_LEFT": 75,
+    "PLATFORM_DROP": 6,
 }
 
 M4_DELAYED_AIR_JUMP = 61
@@ -270,8 +271,11 @@ def main() -> int:
             f"{left_trigger},{right_trigger},{buttons}\n"
         )
     input_text = "".join(input_lines)
+    runner_command = [str(args.runner)]
+    if capture.get("stage") == "BATTLEFIELD":
+        runner_command.append("--platform")
     completed = subprocess.run(
-        [str(args.runner)],
+        runner_command,
         input=input_text,
         text=True,
         capture_output=True,
@@ -292,7 +296,11 @@ def main() -> int:
     previous_oracle: dict[str, object] | None = None
     previous_native: dict[str, str] | None = None
     oracle_anchor_x = 0.0
-    oracle_anchor_y = 0.0
+    oracle_anchor_y = (
+        float(oracle_rows[0]["position_y"])
+        if capture.get("stage") == "BATTLEFIELD"
+        else 0.0
+    )
     native_anchor_x = 0
     native_anchor_y = 0
     previous_label: str | None = None

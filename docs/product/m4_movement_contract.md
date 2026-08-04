@@ -144,12 +144,16 @@ to the simulation.
   not run the common catch check, the same packet falls back to
   `GROUND ATTACK`. These are common transition-eligibility claims only: the
   selected attack and special content remains project-authored. Down-special
-  is accepted from all three crouch states. The platform-pass route remains
-  part of the broader executable-oracle gate.
-- Down on a pass-through platform starts the data-defined nine-tick
-  pass-through window. The drop tick applies only the authored nudge and
-  ordinary gravity; it cannot also trigger fast fall. Subsequent down input may
-  fast-fall normally.
+  is accepted from all three crouch states.
+- Ordinary down on pass-through support first enters `CROUCH START`. A
+  one-frame tap follows the ordinary crouch-release route and does not latch a
+  later drop. If down remains held, displayed `CROUCH START` ticks 1-3 remain
+  grounded and the following sample enters the airborne platform-pass route.
+  Entry uses the authored platform nudge and the executable's 0.63 downward
+  speed converted to the laboratory scale; entry cannot also apply gravity or
+  fast fall. A solid floor is swept and landed on during the first crossing,
+  including while down remains held. Reduced-down shield platform dropping
+  remains an immediate independent route and uses the same authored pass speed.
 
 ## Jump rule
 
@@ -468,8 +472,10 @@ bounds, and blast zones.
   double-jump trajectory/action tick through armored hitlag and immediate
   aerial cancel after resume, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
-- exact nine-tick platform-drop entry, timer exposure, and the same-tick
-  fast-fall exclusion used by the drop-cancel combat route;
+- the separate Battlefield executable-oracle platform-pass route: one-frame
+  down release control, three displayed grounded `CROUCH START` ticks, exact
+  0.63 pass-entry speed, same-tick gravity/fast-fall exclusion, and solid-floor
+  crossing; plus timer exposure used by the drop-cancel combat route;
 - validated shield-drop input-band boundaries, same-tick shield-entry and
   solid-floor exclusions, full-down spot-dodge priority, ordinary shield
   release, and mid-route save/load with 24 future-hash comparisons;

@@ -27,7 +27,7 @@ static int fail_status(const char *operation, pf_status status)
     return 1;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     pf_trace_storage storage;
     pf_m4_content content;
@@ -46,6 +46,17 @@ int main(void)
     unsigned int right_trigger;
     uint64_t buttons;
     pf_status status;
+    int platform_mode = 0;
+
+    if (argc == 2 && strcmp(argv[1], "--platform") == 0)
+    {
+        platform_mode = 1;
+    }
+    else if (argc != 1)
+    {
+        (void)fprintf(stderr, "usage: pf_m4_movement_trace [--platform]\n");
+        return 1;
+    }
 
     (void)memset(&storage, 0, sizeof(storage));
     status = pf_m4_default_content(&content);
@@ -76,8 +87,16 @@ int main(void)
     content.stage.blast_left_q16 = -INT32_C(160) * PF_Q16_ONE;
     content.stage.blast_right_q16 = INT32_C(160) * PF_Q16_ONE;
     content.stage.platform_center_x_q16 =
-        -INT32_C(28) * PF_Q16_ONE;
-    content.stage.platform_half_width_q16 = PF_Q16_ONE;
+        (platform_mode != 0 ? -INT32_C(8) : -INT32_C(28)) *
+        PF_Q16_ONE;
+    content.stage.platform_half_width_q16 =
+        (platform_mode != 0 ? INT32_C(6) : INT32_C(1)) *
+        PF_Q16_ONE;
+    if (platform_mode != 0)
+    {
+        content.stage.platform_y_q16 =
+            content.stage.floor_y_q16 - INT32_C(316264);
+    }
     content.stage.platform_motion_amplitude_q16 = INT32_C(0);
     content.stage.solid_left_q16 = -INT32_C(22) * PF_Q16_ONE;
     content.stage.solid_right_q16 = -INT32_C(21) * PF_Q16_ONE;
@@ -124,6 +143,58 @@ int main(void)
     if (status != PF_STATUS_OK)
     {
         return fail_status("inspect-origin", status);
+    }
+    if (platform_mode != 0)
+    {
+        uint32_t pre_roll_tick;
+        int platform_ready = 0;
+
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(205);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            if (pre_roll_tick < UINT32_C(5))
+            {
+                inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+            }
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("platform-pre-roll-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("platform-pre-roll-inspect", status);
+            }
+            if (pre_roll_tick >= UINT32_C(5) &&
+                inspection.players[0].grounded != UINT8_C(0) &&
+                inspection.players[0].support ==
+                    (uint8_t)PF_M4_SURFACE_PLATFORM &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+            {
+                platform_ready = 1;
+                break;
+            }
+        }
+        if (platform_ready == 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=platform-pre-roll\n");
+            return 1;
+        }
     }
     origin_x_q16 = inspection.players[0].position_x_q16;
     origin_y_q16 = inspection.players[0].position_y_q16;
