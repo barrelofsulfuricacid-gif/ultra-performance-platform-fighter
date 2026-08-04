@@ -323,8 +323,13 @@ static int run_cancel_and_resume_contract(
     {
         return fail("charge-early-store-cancel");
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(32); ++tick)
     {
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
         if (!step_sim(
                 sim,
                 (test_command){0},

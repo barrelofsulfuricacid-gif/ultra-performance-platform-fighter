@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output_dir=${1:-/tmp/pf-m4-reflector}
 compiler=${CC:-cc}
-expected='m4-reflector=pass content_schema=65 state_schema=57 save_bytes=803 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1'
+expected='m4-reflector=pass content_schema=66 state_schema=57 save_bytes=803 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1'
 
 mkdir -p "$output_dir"
 

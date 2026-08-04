@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
 #include "sim_sha256.h"
 
 #include <stddef.h>
@@ -12,6 +13,105 @@
 static const uint8_t pf_m4_content_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x4d), UINT8_C(0x34),
     UINT8_C(0x44), UINT8_C(0x41), UINT8_C(0x54), UINT8_C(0x31)};
+
+typedef struct pf_m4_reference_timing
+{
+    uint16_t startup_ticks;
+    uint16_t active_ticks;
+    uint16_t recovery_ticks;
+} pf_m4_reference_timing;
+
+static pf_m4_reference_timing pf_m4_falcon_reference_timing(
+    pf_m4_falcon_move_index move_index)
+{
+    const pf_m4_reference_move *move = &pf_m4_falcon_moves[move_index];
+    pf_m4_reference_timing timing = {0};
+
+    if (move->present != UINT8_C(0) && move->phase_count != UINT8_C(0))
+    {
+        const pf_m4_reference_hit_phase *first =
+            &pf_m4_falcon_hit_phases[move->phase_offset];
+        const pf_m4_reference_hit_phase *last =
+            &pf_m4_falcon_hit_phases[
+                move->phase_offset + move->phase_count - UINT16_C(1)];
+
+        timing.startup_ticks = first->first_frame - UINT16_C(1);
+        timing.active_ticks = (uint16_t)(
+            (uint32_t)last->last_frame -
+            (uint32_t)first->first_frame + UINT32_C(1));
+        timing.recovery_ticks = move->total_frames - last->last_frame;
+    }
+    return timing;
+}
+
+static const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect(
+    pf_m4_falcon_move_index move_index)
+{
+    const pf_m4_reference_move *move = &pf_m4_falcon_moves[move_index];
+    const pf_m4_reference_hit_phase *phase;
+    uint16_t mask;
+    uint16_t effect_index = UINT16_C(0);
+
+    if (move->present == UINT8_C(0) || move->phase_count == UINT8_C(0) ||
+        move->effect_count == UINT8_C(0))
+    {
+        return NULL;
+    }
+    phase = &pf_m4_falcon_hit_phases[move->phase_offset];
+    mask = phase->effect_mask;
+    while ((mask & UINT16_C(1)) == UINT16_C(0))
+    {
+        mask >>= 1U;
+        ++effect_index;
+    }
+    return &pf_m4_falcon_hit_effects[move->effect_offset + effect_index];
+}
+
+static uint16_t pf_m4_falcon_reference_hitlag_ticks(uint8_t damage)
+{
+    return (uint16_t)(damage / UINT8_C(3) + UINT8_C(3));
+}
+
+static void pf_m4_apply_falcon_reference_attack(
+    pf_m4_attack_data *attack,
+    pf_m4_falcon_move_index move_index)
+{
+    const pf_m4_reference_hit_effect *effect =
+        pf_m4_falcon_reference_effect(move_index);
+    const pf_m4_reference_timing timing =
+        pf_m4_falcon_reference_timing(move_index);
+
+    attack->damage_q16 = (uint32_t)effect->damage * UINT32_C(65536);
+    attack->startup_ticks = timing.startup_ticks;
+    attack->active_ticks = timing.active_ticks;
+    attack->recovery_ticks = timing.recovery_ticks;
+    attack->hitlag_ticks =
+        pf_m4_falcon_reference_hitlag_ticks(effect->damage);
+}
+
+static void pf_m4_apply_falcon_reference_jab(
+    pf_m4_fighter_data *fighter)
+{
+    const pf_m4_reference_hit_effect *effect =
+        pf_m4_falcon_reference_effect(PF_M4_FALCON_JAB1);
+    pf_m4_attack_data attack = {0};
+
+    pf_m4_apply_falcon_reference_attack(
+        &attack,
+        PF_M4_FALCON_JAB1);
+    fighter->jab_damage_q16 = attack.damage_q16;
+    fighter->jab_startup_ticks = attack.startup_ticks;
+    fighter->jab_active_ticks = attack.active_ticks;
+    fighter->jab_recovery_ticks = attack.recovery_ticks;
+    fighter->jab_hitlag_ticks = attack.hitlag_ticks;
+    fighter->jab_combo_input_begin_tick =
+        attack.startup_ticks + attack.active_ticks;
+    fighter->jab_melee_knockback.angle_degrees = effect->angle_degrees;
+    fighter->jab_melee_knockback.growth = effect->growth;
+    fighter->jab_melee_knockback.weight_set = effect->weight_set;
+    fighter->jab_melee_knockback.base = effect->base;
+    fighter->jab_melee_knockback.enabled = UINT8_C(1);
+}
 
 static void pf_m4_hash_u8(pf_sha256 *hash, uint8_t value)
 {
@@ -292,6 +392,14 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->jab_base_knockback_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_base_knockback_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_knockback_growth_q16);
+    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.angle_degrees);
+    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.growth);
+    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.weight_set);
+    pf_m4_hash_u16(hash, fighter->jab_melee_knockback.base);
+    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.enabled);
+    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.reserved[0]);
+    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.reserved[1]);
+    pf_m4_hash_u8(hash, fighter->jab_melee_knockback.reserved[2]);
     pf_m4_hash_i32(hash, fighter->jab_final_hitbox_offset_x_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_hitbox_offset_y_q16);
     pf_m4_hash_i32(hash, fighter->jab_final_hitbox_half_width_q16);
@@ -334,6 +442,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->aerial_knockback_growth_q16);
     pf_m4_hash_i32(hash, fighter->hitstun_velocity_per_tick_q16);
     pf_m4_hash_i32(hash, fighter->v_cancel_velocity_scale_q16);
+    pf_m4_hash_u16(hash, fighter->knockback_weight);
+    pf_m4_hash_u16(hash, fighter->knockback_reserved);
     pf_m4_hash_u32(hash, fighter->crouch_cancel_max_damage_q16);
     pf_m4_hash_i32(hash, fighter->crouch_cancel_velocity_scale_q16);
     pf_m4_hash_i32(hash, fighter->crouch_cancel_hitstun_scale_q16);
@@ -976,7 +1086,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jab_hitbox_offset_y_q16 = INT32_C(0);
     fighter->jab_hitbox_half_width_q16 = PF_Q16_RATIO(3, 5);
     fighter->jab_hitbox_half_height_q16 = PF_Q16_RATIO(9, 20);
-    fighter->jab_damage_q16 = UINT32_C(6) * UINT32_C(65536);
     fighter->jab_base_knockback_x_q16 = PF_Q16_RATIO(9, 50);
     fighter->jab_base_knockback_y_q16 = PF_Q16_RATIO(11, 50);
     fighter->jab_knockback_growth_q16 = PF_Q16_RATIO(1, 512);
@@ -1215,6 +1324,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->aerial_knockback_growth_q16 = PF_Q16_RATIO(1, 1024);
     fighter->hitstun_velocity_per_tick_q16 = PF_Q16_RATIO(1, 25);
     fighter->v_cancel_velocity_scale_q16 = PF_Q16_RATIO(95, 100);
+    fighter->knockback_weight = UINT16_C(104);
+    fighter->knockback_reserved = UINT16_C(0);
     fighter->crouch_cancel_max_damage_q16 =
         UINT32_C(40) * UINT32_C(65536);
     fighter->crouch_cancel_velocity_scale_q16 = PF_Q16_RATIO(2, 3);
@@ -1406,10 +1517,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->dash_attack_hitlag_ticks = UINT16_C(5);
     fighter->boost_grab_cancel_begin_tick = UINT16_C(1);
     fighter->boost_grab_cancel_end_tick = UINT16_C(3);
-    fighter->jab_startup_ticks = UINT16_C(2);
-    fighter->jab_active_ticks = UINT16_C(2);
-    fighter->jab_recovery_ticks = UINT16_C(8);
-    fighter->jab_hitlag_ticks = UINT16_C(4);
     fighter->jab_combo_input_begin_tick = UINT16_C(4);
     fighter->jab_combo_input_end_tick = UINT16_C(7);
     fighter->jab_final_startup_ticks = UINT16_C(2);
@@ -1528,6 +1635,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->crouch_start_ticks = UINT16_C(7);
     fighter->crouch_end_ticks = UINT16_C(10);
     fighter->crouch_release_axis_threshold = UINT16_C(20479);
+    pf_m4_apply_falcon_reference_jab(fighter);
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -2034,6 +2142,15 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->jab_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->jab_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->jab_knockback_growth_q16 <= INT32_C(0) ||
+        fighter->jab_melee_knockback.angle_degrees > UINT16_C(361) ||
+        fighter->jab_melee_knockback.growth == UINT16_C(0) ||
+        fighter->jab_melee_knockback.growth > UINT16_C(1000) ||
+        fighter->jab_melee_knockback.weight_set > UINT16_C(1000) ||
+        fighter->jab_melee_knockback.base > UINT16_C(1000) ||
+        fighter->jab_melee_knockback.enabled > UINT8_C(1) ||
+        fighter->jab_melee_knockback.reserved[0] != UINT8_C(0) ||
+        fighter->jab_melee_knockback.reserved[1] != UINT8_C(0) ||
+        fighter->jab_melee_knockback.reserved[2] != UINT8_C(0) ||
         fighter->jab_final_hitbox_offset_x_q16 <
             -maximum_fighter_extent_q16 ||
         fighter->jab_final_hitbox_offset_x_q16 >
@@ -2134,6 +2251,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->hitstun_velocity_per_tick_q16 <= INT32_C(0) ||
         fighter->v_cancel_velocity_scale_q16 <= INT32_C(0) ||
         fighter->v_cancel_velocity_scale_q16 >= PF_Q16_ONE ||
+        fighter->knockback_weight == UINT16_C(0) ||
+        fighter->knockback_weight > UINT16_C(1000) ||
+        fighter->knockback_reserved != UINT16_C(0) ||
         fighter->crouch_cancel_max_damage_q16 == UINT32_C(0) ||
         fighter->crouch_cancel_max_damage_q16 >
             UINT32_C(300) * UINT32_C(65536) ||

@@ -28,6 +28,38 @@ Shield tilt and geometry additionally follow `ftCo_80091BC4`,
 `ftCo_80091E78`, `ftAnim_80070108`, `ftColl_8007B1B8`, and the transformed
 sphere path in `lbcollision.c` at the same pinned revision.
 
+## Complete attack-frame table
+
+The complete Falcon attack table is generated from the owner's same NTSC 1.02
+disc rather than transcribed move by move. `gciso` revision
+`01b8a938331e3e07623d5284f31a7794d1c81ef4` extracted temporary `PlCa.dat`
+(SHA-256 `4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af`)
+and `PlCaAJ.dat`
+(SHA-256 `a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a`).
+`meleeDat2Json` revision
+`d4e6074aa26f388fccc7fe8e825761cf1c1bc7b0` and
+`meleeFrameDataExtractor` revision
+`0b12c5cb988da3fb9b67630b1d8347e12cd91528` then produced all 50 ordinary,
+grab/throw, and special subactions. Full-hitbox output was byte-identical when
+generated from the owner files and the extractor project's published Falcon
+source: 120,634 bytes with SHA-256
+`287d53686aedb7469e455600cd749001b2f1a04081158236f26b1fae205f6dde`.
+
+The repository importer canonicalizes the geometry-free timing/effect view to
+SHA-256 `42bb4ecefb33e87dc978482ecdb7b1f93ff12ca090e870431fff913480601356`
+and rejects any other input. Its generated table retains every subaction,
+total/IASA/charge/autocancel/landing frame, active phase, damage, angle, KBG,
+weight-set knockback, BKB, shield damage, interaction class, element, target
+kind, and throw effect. Extracted DAT files and bone-relative hitbox geometry
+remain temporary external evidence and are not repository or build inputs.
+`tools/import_ssbm_falcon_frame_data.py` is the reproducible conversion path;
+`generated/data/m4_falcon_ntsc102_frame_data.inc` is its numeric output.
+The default jab-1 content and production ordinary-hit response consume that
+generated record directly. The semantic route is explicitly selectable so
+original/custom content can retain its authored vector response without
+silently inheriting Falcon semantics. Remaining Falcon records stay in the
+same compact immutable table while their multi-phase runtime routing is built.
+
 ## Coordinate conversion
 
 The simulation's original stage uses different coordinate units. Horizontal

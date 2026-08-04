@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(65)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(57)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(66)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(58)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -249,6 +249,16 @@ typedef struct pf_m4_attack_data
     uint16_t hitlag_ticks;
 } pf_m4_attack_data;
 
+typedef struct pf_m4_melee_knockback_data
+{
+    uint16_t angle_degrees;
+    uint16_t growth;
+    uint16_t weight_set;
+    uint16_t base;
+    uint8_t enabled;
+    uint8_t reserved[3];
+} pf_m4_melee_knockback_data;
+
 typedef enum pf_m4_item_state
 {
     PF_M4_ITEM_STATE_INACTIVE = 0,
@@ -413,6 +423,7 @@ typedef struct pf_m4_fighter_data
     int32_t jab_base_knockback_x_q16;
     int32_t jab_base_knockback_y_q16;
     int32_t jab_knockback_growth_q16;
+    pf_m4_melee_knockback_data jab_melee_knockback;
     int32_t jab_final_hitbox_offset_x_q16;
     int32_t jab_final_hitbox_offset_y_q16;
     int32_t jab_final_hitbox_half_width_q16;
@@ -455,6 +466,8 @@ typedef struct pf_m4_fighter_data
     int32_t aerial_knockback_growth_q16;
     int32_t hitstun_velocity_per_tick_q16;
     int32_t v_cancel_velocity_scale_q16;
+    uint16_t knockback_weight;
+    uint16_t knockback_reserved;
     uint32_t crouch_cancel_max_damage_q16;
     int32_t crouch_cancel_velocity_scale_q16;
     int32_t crouch_cancel_hitstun_scale_q16;

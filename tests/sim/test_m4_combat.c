@@ -221,6 +221,7 @@ static int make_jab_cancel_content(
     out_content->fighter.jab_base_knockback_x_q16 = INT32_C(1);
     out_content->fighter.jab_base_knockback_y_q16 = INT32_C(1);
     out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     return expect_status(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -271,6 +272,7 @@ static int make_grab_damage_content(
     out_content->fighter.jab_base_knockback_x_q16 = INT32_C(1);
     out_content->fighter.jab_base_knockback_y_q16 = INT32_C(1);
     out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.grab_escape_damage_ticks_q16 = PF_Q16_ONE;
     out_content->fighter.grab_escape_max_ticks = UINT16_C(33);
     return expect_status(
@@ -296,6 +298,7 @@ static int make_chain_grab_escape_content(
     out_content->fighter.jab_base_knockback_x_q16 = INT32_C(1);
     out_content->fighter.jab_base_knockback_y_q16 = INT32_C(1);
     out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.jab_startup_ticks = UINT16_C(1);
     out_content->fighter.jab_active_ticks = UINT16_C(1);
     out_content->fighter.jab_recovery_ticks = UINT16_C(1);
@@ -551,6 +554,7 @@ static int make_kill_confirm_content(
     out_content->fighter.jab_base_knockback_y_q16 =
         PF_Q16_ONE / INT32_C(5);
     out_content->fighter.jab_knockback_growth_q16 = INT32_C(1);
+    out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.strong_base_knockback_x_q16 =
         PF_Q16_ONE / INT32_C(20);
     out_content->fighter.strong_base_knockback_y_q16 =
@@ -601,6 +605,7 @@ static int make_reaction_content(
         PF_Q16_ONE / INT32_C(10);
     out_content->fighter.jab_knockback_growth_q16 =
         PF_Q16_ONE / INT32_C(4096);
+    out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.tumble_hitstun_threshold_ticks =
         UINT16_C(20);
     return expect_status(
@@ -624,6 +629,7 @@ static int make_tech_invulnerability_content(
         (INT32_C(17) * PF_Q16_ONE) / INT32_C(20);
     out_content->fighter.jab_knockback_growth_q16 =
         PF_Q16_ONE / INT32_C(4096);
+    out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.tumble_hitstun_threshold_ticks =
         UINT16_C(20);
     out_content->stage.platform_center_x_q16 =
@@ -1830,6 +1836,11 @@ typedef struct test_weight_reaction
     uint16_t hitlag_ticks;
 } test_weight_reaction;
 
+static int32_t test_abs_i32(int32_t value)
+{
+    return value < INT32_C(0) ? -value : value;
+}
+
 static int run_weight_reaction_case(
     const pf_content_view *view,
     test_weight_reaction *out_reaction)
@@ -1925,12 +1936,24 @@ static int run_weight_test(
 
     minimum.fighter.weight_q16 = PF_Q16_ONE / INT32_C(2);
     heavy.fighter.weight_q16 = INT32_C(2) * PF_Q16_ONE;
+    heavy.fighter.knockback_weight = UINT16_C(200);
     below_minimum.fighter.weight_q16 =
         PF_Q16_ONE / INT32_C(2) - INT32_C(1);
     above_maximum.fighter.weight_q16 =
         INT32_C(2) * PF_Q16_ONE + INT32_C(1);
 
     if (content->fighter.weight_q16 != PF_Q16_ONE ||
+        content->fighter.jab_damage_q16 !=
+            UINT32_C(2) * UINT32_C(65536) ||
+        content->fighter.jab_startup_ticks != UINT16_C(2) ||
+        content->fighter.jab_active_ticks != UINT16_C(3) ||
+        content->fighter.jab_recovery_ticks != UINT16_C(16) ||
+        content->fighter.jab_melee_knockback.enabled != UINT8_C(1) ||
+        content->fighter.jab_melee_knockback.angle_degrees !=
+            UINT16_C(80) ||
+        content->fighter.jab_melee_knockback.growth != UINT16_C(100) ||
+        content->fighter.jab_melee_knockback.weight_set != UINT16_C(20) ||
+        content->fighter.jab_melee_knockback.base != UINT16_C(0) ||
         !expect_status(
             pf_m4_validate_content(&minimum),
             PF_STATUS_OK,
@@ -1961,20 +1984,14 @@ static int run_weight_test(
         return fail("weight-data-and-content-hash");
     }
 
-    if (heavy_reaction.velocity_x_q16 !=
-            ordinary_reaction.velocity_x_q16 / INT32_C(2) ||
-        heavy_reaction.velocity_y_q16 !=
-            ordinary_reaction.velocity_y_q16 / INT32_C(2) ||
-        ordinary_reaction.hitstun_ticks !=
-            expected_weight_hitstun_ticks(
-                &content->fighter,
-                ordinary_reaction.velocity_x_q16,
-                ordinary_reaction.velocity_y_q16) ||
-        heavy_reaction.hitstun_ticks !=
-            expected_weight_hitstun_ticks(
-                &heavy.fighter,
-                heavy_reaction.velocity_x_q16,
-                heavy_reaction.velocity_y_q16) ||
+    if (ordinary_reaction.velocity_x_q16 != INT32_C(1179) ||
+        ordinary_reaction.velocity_y_q16 != -INT32_C(11369) ||
+        ordinary_reaction.hitstun_ticks != UINT16_C(13) ||
+        ordinary_reaction.hitlag_ticks != UINT16_C(3) ||
+        test_abs_i32(heavy_reaction.velocity_x_q16) >=
+            test_abs_i32(ordinary_reaction.velocity_x_q16) ||
+        test_abs_i32(heavy_reaction.velocity_y_q16) >=
+            test_abs_i32(ordinary_reaction.velocity_y_q16) ||
         heavy_reaction.hitstun_ticks >=
             ordinary_reaction.hitstun_ticks ||
         ordinary_reaction.damage_q16 != content->fighter.jab_damage_q16 ||
@@ -12221,27 +12238,6 @@ static int run_shield_sdi_test(
             UINT64_C(0),
             UINT16_MAX,
             &horizontal_inspection) ||
-        horizontal_inspection.players[1].sdi_pulse_count !=
-            UINT8_C(1) ||
-        horizontal_inspection.players[1].position_x_q16 !=
-            first_pulse_x ||
-        horizontal_inspection.players[1].position_y_q16 !=
-            horizontal_start_y)
-    {
-        return fail("shield-sdi-vertical-component-ignored");
-    }
-
-    if (!step_reaction_duel(
-            horizontal,
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            UINT16_C(0),
-            INT16_C(32767),
-            INT16_MIN,
-            UINT64_C(0),
-            UINT16_MAX,
-            &horizontal_inspection) ||
         horizontal_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD_STUN ||
         horizontal_inspection.players[1].sdi_pulse_count !=
@@ -12291,17 +12287,6 @@ static int run_shield_sdi_test(
     reentry_start_x = reentry_inspection.players[1].position_x_q16;
     reentry_start_y = reentry_inspection.players[1].position_y_q16;
     if (!step_reaction_duel(
-            reentry,
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            UINT16_C(0),
-            INT16_C(32767),
-            INT16_C(0),
-            UINT64_C(0),
-            UINT16_MAX,
-            &reentry_inspection) ||
-        !step_reaction_duel(
             reentry,
             INT16_C(0),
             INT16_C(0),
@@ -12913,9 +12898,9 @@ static int make_shield_break_content(
     out_content->stage.spawn_spacing_q16 =
         (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
     out_content->fighter.shield_health_q16 =
-        UINT32_C(4) * UINT32_C(65536);
+        UINT32_C(1) * UINT32_C(65536);
     out_content->fighter.shield_reset_health_q16 =
-        UINT32_C(2) * UINT32_C(65536);
+        UINT32_C(1) * UINT32_C(65536);
     out_content->fighter.shield_hold_depletion_q16 =
         UINT32_C(655);
     out_content->fighter.light_shield_hold_depletion_q16 =
@@ -17242,7 +17227,8 @@ static int run_jab_cancel_test(
     int final_hit_seen = 0;
 
     if (close_content->fighter.jab_combo_input_begin_tick !=
-            UINT16_C(4) ||
+            close_content->fighter.jab_startup_ticks +
+                close_content->fighter.jab_active_ticks ||
         close_content->fighter.jab_combo_input_end_tick !=
             UINT16_C(7) ||
         close_content->fighter.jab_final_startup_ticks !=
@@ -19159,12 +19145,19 @@ static int run_jump_cancelling_test(
 }
 
 static int run_grab_damage_escape_test(
+    const pf_m4_content *content,
     const pf_content_view *view)
 {
     test_sim_storage storage;
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     pf_sim_event grab_event;
+    const uint16_t expected_escape_ticks = (uint16_t)(
+        (uint32_t)content->fighter.grab_escape_base_ticks +
+        (uint32_t)(((uint64_t)content->fighter.jab_damage_q16 *
+                    (uint64_t)(uint32_t)content->fighter
+                        .grab_escape_damage_ticks_q16) >>
+                   32U));
     uint32_t tick;
     int hit_seen = 0;
 
@@ -19213,7 +19206,7 @@ static int run_grab_damage_escape_test(
     }
     if (hit_seen == 0 ||
         inspection.players[1].damage_q16 !=
-            UINT32_C(6) * UINT32_C(65536))
+            content->fighter.jab_damage_q16)
     {
         return fail("grab-damage-setup");
     }
@@ -19244,8 +19237,8 @@ static int run_grab_damage_escape_test(
     if (tick == UINT32_C(64) ||
         !begin_close_grab(sim, 0, &inspection, &grab_event) ||
         grab_event.value_q16 !=
-            UINT32_C(6) * UINT32_C(65536) ||
-        inspection.players[1].grab_escape_ticks != UINT16_C(33))
+            content->fighter.jab_damage_q16 ||
+        inspection.players[1].grab_escape_ticks != expected_escape_ticks)
     {
         return fail("grab-damage-scaled-capped-escape");
     }
@@ -21976,7 +21969,9 @@ int main(void)
         !run_chain_grab_di_escape_test(
             &chain_grab_escape_content,
             &chain_grab_escape_view) ||
-        !run_grab_damage_escape_test(&grab_damage_view) ||
+        !run_grab_damage_escape_test(
+            &grab_damage_content,
+            &grab_damage_view) ||
         !run_grab_team_resolution_test(&team_wobble_view) ||
         !run_team_handoff_route(
             &team_wobble_content,

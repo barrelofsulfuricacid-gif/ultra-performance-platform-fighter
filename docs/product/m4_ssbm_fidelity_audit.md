@@ -42,8 +42,8 @@ threshold, and route differences are not.
 | Aerial landing lag | equivalent | Distinct neutral/forward/back/up/down landing states select Falcon's 15/19/18/15/24 table; L-cancel states halve the selected value. |
 | Shield input, light shield, size, tilt, and volume | equivalent for captured routes | A 500-frame pressure sweep matches sub-threshold through digital-full input, health, release, and regeneration. Three 283-frame light/intermediate/dense physical-hit captures additionally match integer shield-hit conversion, pressure-dependent health/stun, post-hitlag ordering, defender pushback, and separately decaying attacker recoil. New 270- and 2,158-frame memory-probed executable captures qualify guard-angle and magnitude smoothing, all eight linear direction-animation keys, Falcon's joint-derived center, health/pressure radius, facing reflection, and the anisotropically mapped elliptical volume. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
-| Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands, including exact hitlag and inferred separate attacker recoil. Ordinary damage, launch, knockback, hitstun, and broader DI/SDI formulas have not completed a field-by-field equivalence review. |
-| Attacks, grabs, throws, stale moves | divergent | They are original M4 fixtures, not Falcon's action, hitbox, damage, or frame tables. |
+| Damage, knockback, hitlag, hitstun, DI/SDI | partial | The physical shield-hit subset is decomp-mapped and qualified at three pressure bands. Falcon jab 1 now uses the imported 2-damage, angle-80, KBG-100, set-weight-20, BKB-0 record and Melee's fixed-point knockback/hitlag/hitstun path; its zero-percent Dolphin capture reports three hitlag frames, 13 hitstun frames, and the expected launch. Knockback decay, DI and broader move coverage remain incomplete. |
+| Attacks, grabs, throws, stale moves | partial | A pinned importer now retains the complete 50-subaction Falcon timing/effect/throw table, and jab 1 consumes it in production. Other production actions still use the original single-volume fixtures until all imported phases/effects can be routed without disc-derived hitbox geometry or lossy first-effect selection. |
 | Special moves and recovery | divergent | Pulse Bolt, Prism Burst, Arc Reservoir, and Vector Ascent are original fixtures, not Falcon specials. |
 | Items, projectiles, reflector, charge | divergent | These are original technique-support fixtures rather than SSBM content tables. |
 | Stage geometry, blast zones, spawns | divergent | The Relay Rod laboratory is an original test stage, not an SSBM stage. |
@@ -56,8 +56,8 @@ threshold, and route differences are not.
    shield, dodges, ledges, techs, landing, and unaudited brake interrupts.
 2. Audit common damage, knockback, shield, hitlag, hitstun, DI, SDI, stale-move,
    crouch-cancel, and collision formulas field by field.
-3. Replace original combat fixtures with separately approved counterpart data
-   before making character-wide equivalence claims.
+3. Route every supported combat action through the imported multi-phase Falcon
+   table without duplicating constants or collapsing distinct effects.
 4. Validate native Windows, WSL Linux, Wasm/browser, replay, save/load, and
    rollback results from the same content hash.
 
@@ -133,6 +133,16 @@ Their SHA-256 values are
 `563cabf633126656b80a0351b67fdffb35f664774e052e85c04ff7b20fd2e4f5`,
 `84b462f717074b2a2984b6901ed33a2abd2b9f98527f1c52db400c98ace411ab`,
 and `2d95549b7ffe6ac950c339fe9dcd346b4e6c401324d2cce0e8414d2677a3489f`.
+
+A separate 271-frame Falcon jab capture reads the source fighter's live
+hitboxes and the target's ordinary damage state. All three active hitboxes
+report damage 2, angle 80, KBG 100, set weight 20, and BKB 0. At zero percent,
+the target receives three hitlag frames and 13 hitstun frames; captured Melee
+velocity is -0.17242245 x and 0.97785604 y before the documented coordinate
+conversion. Capture schema 8 SHA-256 is
+`2660274136b77aef393db391c85582be7795bee7360ebd6607325e437ac9af04`.
 Across the main and isolated corpora, the current aggregate executable-oracle
-evidence is 10,912 captured frames. This does not qualify exact shield tilt or
-geometry, nor any uncaptured pressure/time/spacing route.
+evidence is 13,611 captured frames. The memory-probed routes qualify the
+sampled Falcon shield tilt and geometry surface; they do not qualify broader
+uncaptured pressure/time/spacing routes or the other partial/divergent systems
+listed above.

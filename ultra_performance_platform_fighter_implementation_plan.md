@@ -399,6 +399,13 @@ divergences are not deferrable acceptance notes, and M4 work does not stop while
 one remains. Numeric frame-data tables may be imported under the recorded
 fidelity exception, while protected audiovisual, stage,
 character-expression, and executable assets remain outside the project.
+Before implementing combat content with a Captain Falcon counterpart, import
+and validate the complete version-pinned numeric table from the owner's NTSC
+1.02 data. Do not guess routine move timing, damage, angle, knockback growth,
+set weight, base knockback, shield damage, interaction flags, or landing data
+when that authoritative table contains the value. Identical-input Dolphin
+captures verify the imported table and runtime behavior and remain the oracle
+for dynamic semantics that a static frame-data table cannot express.
 
 The verifier must drive Dolphin and this simulation with the same ordered,
 per-frame controller samples and compare at least action/state transitions,

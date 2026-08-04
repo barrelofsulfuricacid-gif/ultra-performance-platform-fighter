@@ -30,6 +30,7 @@ def input_trace(
     shield_geometry_only: bool = False,
     shield_geometry_sweep_only: bool = False,
     shield_hit_only: bool = False,
+    damage_hit_only: bool = False,
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
@@ -225,6 +226,19 @@ def input_trace(
             left_shoulder=shield_hit_pressure,
         )
         repeat("shield_hit_release", 30)
+        return trace
+
+    if damage_hit_only:
+        repeat("damage_hit_settle", 60)
+        repeat(
+            "damage_hit_close_distance",
+            115,
+            main_x=0.7,
+            opponent_main_x=0.3,
+        )
+        repeat("damage_hit_neutral_settle", 20)
+        trace.append(command("damage_hit_jab", opponent_attack=True))
+        repeat("damage_hit_recovery", 75)
         return trace
 
     if platform_only:
@@ -966,6 +980,98 @@ def read_shield_memory_probe(memory_engine: object) -> dict[str, object]:
     }
 
 
+def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
+    """Read Falcon's live damage state and the common damage constants."""
+
+    player_slot = 0x80453080
+    transformed = memory_engine.read_byte(player_slot + 0x0C)
+    fighter_gobj = memory_engine.read_word(
+        player_slot + 0xB0 + 4 * transformed
+    )
+    fighter = memory_engine.read_word(fighter_gobj + 0x2C)
+    common = memory_engine.read_word(0x804D6554)
+    source_gobj = memory_engine.read_word(fighter + 0x1868)
+    source_fighter = (
+        memory_engine.read_word(source_gobj + 0x2C) if source_gobj else 0
+    )
+    source_hitboxes = []
+    if source_fighter:
+        for index in range(4):
+            hitbox = source_fighter + 0x914 + index * 0x138
+            source_hitboxes.append(
+                {
+                    "state": memory_engine.read_word(hitbox),
+                    "hit_id": memory_engine.read_word(hitbox + 0x04),
+                    "damage_count": memory_engine.read_word(hitbox + 0x08),
+                    "damage": memory_engine.read_float(hitbox + 0x0C),
+                    "angle": memory_engine.read_word(hitbox + 0x20),
+                    "knockback_growth": memory_engine.read_word(hitbox + 0x24),
+                    "weight_set_knockback": memory_engine.read_word(
+                        hitbox + 0x28
+                    ),
+                    "base_knockback": memory_engine.read_word(hitbox + 0x2C),
+                }
+            )
+    common_float_offsets = {
+        "weight_scale": 0x0F4,
+        "weight_base": 0x0F8,
+        "launch_velocity_scale": 0x100,
+        "minimum_knockback": 0x104,
+        "maximum_knockback": 0x108,
+        "damage_term_a": 0x110,
+        "damage_term_b": 0x114,
+        "weight_set_damage": 0x118,
+        "weight_term_scale": 0x11C,
+        "base_term": 0x120,
+        "crouch_knockback_scale": 0x124,
+        "collision_knockback_threshold": 0x12C,
+        "sakurai_air_angle_radians": 0x144,
+        "sakurai_max_ground_angle": 0x148,
+        "sakurai_low_knockback": 0x14C,
+        "sakurai_high_knockback": 0x150,
+        "hitstun_scale": 0x154,
+        "air_motion_knockback_scale": 0x190,
+        "maximum_hitlag": 0x194,
+        "hitlag_damage_scale": 0x198,
+        "hitlag_base": 0x19C,
+        "crouch_hitlag_scale": 0x1A0,
+        "di_max_angle_degrees": 0x1A8,
+        "v_cancel_scale": 0x1AC,
+        "ground_knockback_friction_scale": 0x200,
+        "air_knockback_decay": 0x204,
+        "sdi_minimum_stick_magnitude": 0x4B0,
+        "sdi_position_scale": 0x4B8,
+        "asdi_position_scale": 0x4BC,
+    }
+    return {
+        "fighter_address": fighter,
+        "common_data_address": common,
+        "source_gobj_address": source_gobj,
+        "source_fighter_address": source_fighter,
+        "source_hitboxes": source_hitboxes,
+        "fighter_weight": memory_engine.read_float(fighter + 0x198),
+        "knockback_velocity": [
+            memory_engine.read_float(fighter + 0x8C + 4 * index)
+            for index in range(3)
+        ],
+        "ground_knockback_velocity": memory_engine.read_float(
+            fighter + 0xF0
+        ),
+        "damage_percent": memory_engine.read_float(fighter + 0x1830),
+        "damage_this_hit": memory_engine.read_float(fighter + 0x1838),
+        "knockback_angle": memory_engine.read_word(fighter + 0x1848),
+        "knockback_applied": memory_engine.read_float(fighter + 0x1850),
+        "knockback_magnitude": memory_engine.read_float(fighter + 0x18A4),
+        "knockback_applied_latched": memory_engine.read_float(fighter + 0x18A8),
+        "hitlag_frames": memory_engine.read_float(fighter + 0x195C),
+        "common": {
+            name: memory_engine.read_float(common + offset)
+            for name, offset in common_float_offsets.items()
+        },
+        "sdi_stick_window": memory_engine.read_word(common + 0x4B4),
+    }
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -1118,19 +1224,23 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.platform_only
                 else melee.Stage.FINAL_DESTINATION,
                 melee.Character.CPTFALCON
-                if args.push_only or args.shield_hit_only
+                if (
+                    args.push_only
+                    or args.shield_hit_only
+                    or args.damage_hit_only
+                )
                 else melee.Character.FOX,
             )
         else:
             state = None if gamestate is None else str(gamestate.menu_state)
             raise TimeoutError(f"Dolphin match setup timed out in {state}")
 
-        if args.memory_probe_shield:
+        if args.memory_probe_shield or args.memory_probe_damage:
             try:
                 import dolphin_memory_engine as memory_engine_module
             except ImportError as error:
                 raise RuntimeError(
-                    "--memory-probe-shield requires dolphin-memory-engine"
+                    "memory probes require dolphin-memory-engine"
                 ) from error
             memory_engine_module.hook()
             hook_deadline = time.monotonic() + 10.0
@@ -1158,6 +1268,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_geometry_only=args.shield_geometry_only,
             shield_geometry_sweep_only=args.shield_geometry_sweep_only,
             shield_hit_only=args.shield_hit_only,
+            damage_hit_only=args.damage_hit_only,
             shield_hit_pressure=args.shield_hit_pressure,
         )
         pipeline_delay = 2
@@ -1426,7 +1537,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "air_velocity_x": float(player.speed_air_x_self),
                     "velocity_y": float(player.speed_y_self),
                     "attack_velocity_x": float(player.speed_x_attack),
+                    "attack_velocity_y": float(player.speed_y_attack),
                     "hitlag_left": float(player.hitlag_left),
+                    "hitstun_left": float(player.hitstun_frames_left),
+                    "damage_percent": float(player.percent),
                     "shield_health": float(player.shield_strength),
                     "opponent_action": player_two_state.action.name,
                     "opponent_action_value": int(
@@ -1456,16 +1570,36 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "opponent_attack_velocity_x": float(
                         player_two_state.speed_x_attack
                     ),
+                    "opponent_attack_velocity_y": float(
+                        player_two_state.speed_y_attack
+                    ),
                     "opponent_hitlag_left": float(
                         player_two_state.hitlag_left
                     ),
+                    "opponent_hitstun_left": float(
+                        player_two_state.hitstun_frames_left
+                    ),
+                    "opponent_damage_percent": float(
+                        player_two_state.percent
+                    ),
                 }
             if memory_engine is not None:
-                row["shield_memory"] = read_shield_memory_probe(memory_engine)
+                if args.memory_probe_shield:
+                    row["shield_memory"] = read_shield_memory_probe(
+                        memory_engine
+                    )
+                if args.memory_probe_damage:
+                    row["damage_memory"] = read_damage_memory_probe(
+                        memory_engine
+                    )
             rows.append(row)
 
         return {
-            "schema": 6 if args.memory_probe_shield else 5,
+            "schema": (
+                8
+                if args.memory_probe_shield or args.memory_probe_damage
+                else 7
+            ),
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
             "libmelee_version": importlib.metadata.version("melee"),
@@ -1477,13 +1611,18 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "fighter": "CPTFALCON",
             "opponent": (
                 "CPTFALCON"
-                if args.push_only or args.shield_hit_only
+                if (
+                    args.push_only
+                    or args.shield_hit_only
+                    or args.damage_hit_only
+                )
                 else "FOX"
             ),
             "stage": "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION",
             "shield_hit_requested_pressure": (
                 args.shield_hit_pressure if args.shield_hit_only else None
             ),
+            "damage_hit_route": bool(args.damage_hit_only),
             "controller_postframe_pipeline_delay": pipeline_delay,
             "shield_memory_probe": (
                 {
@@ -1501,6 +1640,20 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     },
                 }
                 if args.memory_probe_shield
+                else None
+            ),
+            "damage_memory_probe": (
+                {
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "common_data_pointer_address": "0x804d6554",
+                    "decomp_revision": (
+                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
+                    ),
+                }
+                if args.memory_probe_damage
                 else None
             ),
             "rows": rows,
@@ -1528,11 +1681,17 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-geometry-only", action="store_true")
     mode.add_argument("--shield-geometry-sweep-only", action="store_true")
     mode.add_argument("--shield-hit-only", action="store_true")
+    mode.add_argument("--damage-hit-only", action="store_true")
     parser.add_argument("--memory-probe-shield", action="store_true")
+    parser.add_argument("--memory-probe-damage", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args()
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
+    if args.memory_probe_damage and not args.damage_hit_only:
+        parser.error("--memory-probe-damage requires --damage-hit-only")
+    if args.memory_probe_damage and args.memory_probe_shield:
+        parser.error("select only one memory probe")
     return args
 
 

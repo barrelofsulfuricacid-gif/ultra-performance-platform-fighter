@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_melee.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -394,6 +395,7 @@ typedef struct pf_m4_attack_runtime
     uint16_t active_begin_tick;
     uint16_t active_end_tick;
     uint16_t hitlag_ticks;
+    const pf_m4_melee_knockback_data *melee_knockback;
     int8_t direction;
     int8_t vertical_direction;
     uint8_t action_state;
@@ -456,6 +458,7 @@ static int pf_m4_attack_for_action(
         return 0;
     }
     fighter = &content->fighter;
+    out_attack->melee_knockback = NULL;
 
     if (action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK)
     {
@@ -538,6 +541,10 @@ static int pf_m4_attack_for_action(
             fighter->jab_startup_ticks +
             fighter->jab_active_ticks;
         out_attack->hitlag_ticks = fighter->jab_hitlag_ticks;
+        out_attack->melee_knockback =
+            fighter->jab_melee_knockback.enabled != UINT8_C(0)
+                ? &fighter->jab_melee_knockback
+                : NULL;
         out_attack->direction = INT8_C(1);
         out_attack->vertical_direction = INT8_C(-1);
         out_attack->action_state =
@@ -1678,6 +1685,8 @@ static pf_status pf_m4_apply_hit_reaction(
     int32_t launch_velocity_x_q16,
     int32_t launch_velocity_y_q16,
     uint16_t hitlag_ticks,
+    uint16_t resolved_hitstun_ticks,
+    int velocity_is_weighted,
     pf_sim_event_type event_type,
     uint16_t event_detail)
 {
@@ -1691,12 +1700,15 @@ static pf_status pf_m4_apply_hit_reaction(
     uint16_t event_flags;
     uint16_t hitstun_ticks;
 
-    launch_velocity_x_q16 = pf_m4_apply_weight_q16(
-        launch_velocity_x_q16,
-        content->fighter.weight_q16);
-    launch_velocity_y_q16 = pf_m4_apply_weight_q16(
-        launch_velocity_y_q16,
-        content->fighter.weight_q16);
+    if (velocity_is_weighted == 0)
+    {
+        launch_velocity_x_q16 = pf_m4_apply_weight_q16(
+            launch_velocity_x_q16,
+            content->fighter.weight_q16);
+        launch_velocity_y_q16 = pf_m4_apply_weight_q16(
+            launch_velocity_y_q16,
+            content->fighter.weight_q16);
+    }
 
     if (previous_action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
         previous_action ==
@@ -1714,10 +1726,13 @@ static pf_status pf_m4_apply_hit_reaction(
     scratch->damage_q16[target_index] = pf_m4_saturating_damage(
         scratch->damage_q16[target_index],
         damage_q16);
-    hitstun_ticks = pf_m4_hitstun_ticks(
-        &content->fighter,
-        launch_velocity_x_q16,
-        launch_velocity_y_q16);
+    hitstun_ticks =
+        resolved_hitstun_ticks != UINT16_MAX
+            ? resolved_hitstun_ticks
+            : pf_m4_hitstun_ticks(
+                  &content->fighter,
+                  launch_velocity_x_q16,
+                  launch_velocity_y_q16);
     armored = pf_m4_event_is_physical_hit(event_type) &&
               previous_action ==
                   (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
@@ -2055,6 +2070,8 @@ static pf_status pf_m4_resolve_grabs(
                         launch_velocity_x,
                         launch_velocity_y,
                         throw_data->hitlag_ticks,
+                        UINT16_MAX,
+                        0,
                         PF_SIM_EVENT_THROW,
                         (uint16_t)holder_action) != PF_STATUS_OK)
                 {
@@ -2378,6 +2395,8 @@ static pf_status pf_m4_resolve_item_combat(
                     (int32_t)launch_direction * knockback_x,
                     -knockback_y,
                     item->hitlag_ticks,
+                    UINT16_MAX,
+                    0,
                     PF_SIM_EVENT_ITEM_HIT,
                     (uint16_t)scratch->item_throw_direction) !=
                 PF_STATUS_OK)
@@ -2659,6 +2678,8 @@ static pf_status pf_m4_resolve_projectile_combat(
                     (int32_t)launch_direction * knockback_x,
                     -knockback_y,
                     projectile->hitlag_ticks,
+                    UINT16_MAX,
+                    0,
                     PF_SIM_EVENT_PROJECTILE_HIT,
                     (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND) !=
                 PF_STATUS_OK)
@@ -2894,17 +2915,47 @@ pf_status pf_m4_resolve_combat(
                 pf_m4_saturating_damage(
                     scratch->damage_q16[target_index],
                     attack.damage_q16);
+            int32_t launch_velocity_x;
+            int32_t launch_velocity_y;
+            uint16_t resolved_hitlag_ticks = attack.hitlag_ticks;
+            uint16_t resolved_hitstun_ticks = UINT16_MAX;
+            int velocity_is_weighted = 0;
 
-            knockback_x = pf_m4_scaled_knockback(
-                attack.base_knockback_x_q16,
-                attack.knockback_growth_q16,
-                resulting_damage,
-                0);
-            knockback_y = pf_m4_scaled_knockback(
-                attack.base_knockback_y_q16,
-                attack.knockback_growth_q16,
-                resulting_damage,
-                1);
+            if (attack.melee_knockback != NULL)
+            {
+                const pf_m4_melee_knockback_result result =
+                    pf_m4_melee_knockback(
+                        attack.melee_knockback,
+                        content->fighter.knockback_weight,
+                        attack.damage_q16,
+                        resulting_damage);
+
+                launch_velocity_x =
+                    (int32_t)scratch->facing[owner] *
+                    (int32_t)attack.direction * result.velocity_x_q16;
+                launch_velocity_y = -result.velocity_y_q16;
+                resolved_hitlag_ticks = result.hitlag_ticks;
+                resolved_hitstun_ticks = result.hitstun_ticks;
+                velocity_is_weighted = 1;
+            }
+            else
+            {
+                knockback_x = pf_m4_scaled_knockback(
+                    attack.base_knockback_x_q16,
+                    attack.knockback_growth_q16,
+                    resulting_damage,
+                    0);
+                knockback_y = pf_m4_scaled_knockback(
+                    attack.base_knockback_y_q16,
+                    attack.knockback_growth_q16,
+                    resulting_damage,
+                    1);
+                launch_velocity_x =
+                    (int32_t)scratch->facing[owner] *
+                    (int32_t)attack.direction * knockback_x;
+                launch_velocity_y =
+                    (int32_t)attack.vertical_direction * knockback_y;
+            }
             if (pf_m4_apply_hit_reaction(
                     content,
                     world,
@@ -2912,10 +2963,11 @@ pf_status pf_m4_resolve_combat(
                     owner,
                     target_index,
                     attack.damage_q16,
-                    (int32_t)scratch->facing[owner] *
-                        (int32_t)attack.direction * knockback_x,
-                    (int32_t)attack.vertical_direction * knockback_y,
-                    attack.hitlag_ticks,
+                    launch_velocity_x,
+                    launch_velocity_y,
+                    resolved_hitlag_ticks,
+                    resolved_hitstun_ticks,
+                    velocity_is_weighted,
                     PF_SIM_EVENT_HIT,
                     (uint16_t)attacker_action[owner]) != PF_STATUS_OK)
             {

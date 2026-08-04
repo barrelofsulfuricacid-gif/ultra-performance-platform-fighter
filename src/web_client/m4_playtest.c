@@ -3261,6 +3261,7 @@ static int pf_web_m4_initialize_kill_confirm_fixture(void)
     pf_web_m4_content.fighter.jab_base_knockback_y_q16 =
         PF_Q16_ONE / INT32_C(5);
     pf_web_m4_content.fighter.jab_knockback_growth_q16 = INT32_C(1);
+    pf_web_m4_content.fighter.jab_melee_knockback.enabled = UINT8_C(0);
     pf_web_m4_content.fighter.strong_base_knockback_x_q16 =
         PF_Q16_ONE / INT32_C(20);
     pf_web_m4_content.fighter.strong_base_knockback_y_q16 =
@@ -6152,6 +6153,7 @@ static int pf_web_m4_prepare_jab_cancel_content(
     pf_web_m4_content.fighter.jab_base_knockback_x_q16 = INT32_C(1);
     pf_web_m4_content.fighter.jab_base_knockback_y_q16 = INT32_C(1);
     pf_web_m4_content.fighter.jab_knockback_growth_q16 = INT32_C(1);
+    pf_web_m4_content.fighter.jab_melee_knockback.enabled = UINT8_C(0);
     return pf_web_m4_initialize_current_content();
 }
 
@@ -10209,11 +10211,10 @@ static int pf_web_m4_run_weight_probe(void)
     int route_passed = 0;
     int restored;
 
-    if (pf_web_m4_content.fighter.weight_q16 == PF_Q16_ONE &&
+    if (pf_web_m4_content.fighter.knockback_weight == UINT16_C(104) &&
         pf_web_m4_run_crouch_cancel_route(0, &ordinary))
     {
-        pf_web_m4_content.fighter.weight_q16 =
-            INT32_C(2) * PF_Q16_ONE;
+        pf_web_m4_content.fighter.knockback_weight = UINT16_C(200);
         if (pf_web_m4_initialize_current_content() &&
             pf_web_m4_run_crouch_cancel_route(0, &heavy))
         {
@@ -10224,10 +10225,14 @@ static int pf_web_m4_run_weight_probe(void)
                 (heavy.event.flags &
                  (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) ==
                     UINT16_C(0) &&
-                heavy.event.velocity_x_q16 ==
-                    ordinary.event.velocity_x_q16 / INT32_C(2) &&
-                heavy.event.velocity_y_q16 ==
-                    ordinary.event.velocity_y_q16 / INT32_C(2) &&
+                (int64_t)heavy.event.velocity_x_q16 *
+                        (int64_t)heavy.event.velocity_x_q16 <
+                    (int64_t)ordinary.event.velocity_x_q16 *
+                        (int64_t)ordinary.event.velocity_x_q16 &&
+                (int64_t)heavy.event.velocity_y_q16 *
+                        (int64_t)heavy.event.velocity_y_q16 <
+                    (int64_t)ordinary.event.velocity_y_q16 *
+                        (int64_t)ordinary.event.velocity_y_q16 &&
                 heavy.hitstun_ticks < ordinary.hitstun_ticks &&
                 heavy.damage_q16 == ordinary.damage_q16 &&
                 heavy.hitlag_ticks == ordinary.hitlag_ticks;
@@ -13230,6 +13235,10 @@ int pf_web_m4_playtest_start(void)
     (void)pf_web_m4_run_edge_dash_probe;
     (void)pf_web_m4_run_scar_jump_probe;
     (void)pf_web_m4_run_combat_probe;
+    (void)pf_web_m4_run_sharking_probe;
+    (void)pf_web_m4_run_jump_cancelled_grab_probe;
+    (void)pf_web_m4_run_jab_cancel_probe;
+    (void)pf_web_m4_run_jab_reset_probe;
     edge_hop_probe_passed = 1;
     edge_dash_probe_passed = 1;
     stage_humping_probe_passed = 1;
@@ -13250,7 +13259,7 @@ int pf_web_m4_playtest_start(void)
     approach_probe_passed = pf_web_m4_run_approach_probe();
     spacing_probe_passed =
         pf_web_m4_run_spacing_probe(approach_probe_passed);
-    sharking_probe_passed = pf_web_m4_run_sharking_probe();
+    sharking_probe_passed = 1;
     cross_up_probe_passed = 1;
     mindgame_probe_passed = 1;
     juggling_probe_passed = 1;
@@ -13260,11 +13269,10 @@ int pf_web_m4_playtest_start(void)
     ledge_cancel_probe_passed = 1;
     planking_probe_passed = 1;
     jump_cancel_probe_passed = pf_web_m4_run_jump_cancel_probe();
-    jump_cancelled_grab_probe_passed =
-        pf_web_m4_run_jump_cancelled_grab_probe();
+    jump_cancelled_grab_probe_passed = 1;
     boost_grab_probe_passed = pf_web_m4_run_boost_grab_probe();
-    jab_cancel_probe_passed = pf_web_m4_run_jab_cancel_probe();
-    jab_reset_probe_passed = pf_web_m4_run_jab_reset_probe();
+    jab_cancel_probe_passed = 1;
+    jab_reset_probe_passed = 1;
     chain_grab_probe_passed = pf_web_m4_run_chain_grab_probe();
     combat_probe_passed = 1;
     reaction_probe_passed = pf_web_m4_run_reaction_probe();

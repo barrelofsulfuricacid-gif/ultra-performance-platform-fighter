@@ -2888,3 +2888,34 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished: these captures qualify only sampled Falcon shield
   routes, and the exhaustive decomp/inventory gate still contains broader
   shared collision, damage, defensive-action, ledge, and match-state work.
+
+## 2026-08-04 complete Falcon frame-data import and jab response slice
+
+- The owner NTSC 1.02 `PlCa.dat` and `PlCaAJ.dat` were processed with pinned
+  `meleeDat2Json` and `meleeFrameDataExtractor` revisions. The resulting
+  geometry-free canonical table has SHA-256
+  `42bb4ecefb33e87dc978482ecdb7b1f93ff12ca090e870431fff913480601356`
+  and covers all 50 ordinary, grab/throw, and special subactions, including
+  every active phase and effect. A hash-checking importer generates the compact
+  immutable C table; raw DAT and hitbox geometry remain outside the repository.
+- The default jab-1 route now consumes the generated damage, timing, angle,
+  KBG, set-weight, and BKB values. Its deterministic fixed-point Melee response
+  produces 1,179 x and -11,369 y Q16 simulation velocity, three hitlag frames,
+  and 13 hitstun frames, corresponding to the captured zero-percent Dolphin
+  velocity after the documented independent coordinate conversions. Custom
+  content selects semantic or authored-vector knockback explicitly.
+- The final 271-frame live-hitbox/damage capture has SHA-256
+  `2660274136b77aef393db391c85582be7795bee7360ebd6607325e437ac9af04`.
+  Aggregate owner-executable evidence is now 13,611 captured frames.
+- Content schema 66 and fighter schema 58 fail closed on the semantic data.
+  The refreshed 41,575-byte replay SHA-256 is
+  `430f8ce21ac7c8326e9adb3eb41d9d59973cd15cf66afacd0cc12eb73aeb3504`;
+  final-state SHA-256 is
+  `d9d47e250920373653ff0906a42cf3806004c4347726a9ed91213f2975f4e640`;
+  event-journal SHA-256 is
+  `3ac6da05eb0d45cbc5944ee94d00f053f122d6099236b1e1b80fa7738b0ce9f0`,
+  and the repeated-match verifier digest is `b29a97d14458a9a9`.
+- Windows MSVC Release and WSL Linux GCC each pass all 22 CTest targets. M4
+  remains unfinished: the remaining imported phases/effects still need direct
+  production routing, and ordinary knockback decay, DI, stale scaling, throws,
+  and bone-independent collision coverage remain active fidelity gaps.
