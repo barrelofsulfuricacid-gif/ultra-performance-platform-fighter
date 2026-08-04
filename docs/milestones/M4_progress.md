@@ -2466,7 +2466,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 2,753-frame movement/defense/aerial/crouch trace is a regression
+- The passing 2,875-frame movement/defense/aerial/crouch trace is a regression
   slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
@@ -2476,7 +2476,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## 2026-08-04 Falcon crouch executable-oracle slice
 
-- The identical-input Dolphin route now contains 2,753 frames. The added
+- The identical-input Dolphin route now contains 2,875 frames. The added
   full-down grounded sequence observes seven displayed `CROUCH_START`/`Squat`
   frames, a held `CROUCH`/`SquatWait`, ten displayed
   `CROUCH_END`/`SquatRv` frames, then ground idle. Native comparison passes
@@ -2498,6 +2498,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   displayed frame 1. Dolphin holds Captain Falcon in that action for exactly
   60 displayed frames; production now uses terminal counter 61 to account for
   its input-tick action update, and focused assertions pin all three entries.
+- Fresh D-pad-up on displayed frame 2 of an ordinary `Turn` first applies the
+  executable's facing flip and then enters `AppealS`. Production's existing
+  pre-router facing update already had the correct order; the common taunt
+  eligibility list now includes `STANDING_TURN` and a focused assertion pins
+  the action, tick, and facing result.
 - Decomp review at pinned revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` confirms that `Squat` and
   `SquatWait` are crouch-cancel eligible while `SquatRv` is not. Attack,

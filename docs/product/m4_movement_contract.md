@@ -63,7 +63,9 @@ to the simulation.
 - A non-smash opposite horizontal tilt from idle or walk enters the basic
   standing turn. Falcon keeps the rendered old facing through displayed frame
   7, flips on frame 8, remains `STANDING TURN` through frame 11, and returns to
-  idle on the next frame.
+  idle on the next frame. A fresh taunt on displayed frame 2 first applies
+  that frame's facing flip, then enters `TAUNT`, matching the common Turn IASA
+  ordering.
 - Full direction plus the ordinary light-attack edge enters the production
   forward strong attack directly from idle. Holding that same direction for
   one through the data-defined three initial-dash ticks before pressing light

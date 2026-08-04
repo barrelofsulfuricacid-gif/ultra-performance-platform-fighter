@@ -369,6 +369,13 @@ def input_trace() -> list[dict[str, object]]:
     trace.append(command("crouch_end_taunt_release"))
     trace.append(command("crouch_end_taunt", taunt=True))
     repeat("crouch_end_taunt_recovery", 110)
+
+    # Turn's common IASA list also dispatches AppealS. Enter an ordinary
+    # standing turn for one frame, then press D-pad up before the turn ends.
+    repeat("settle_before_standing_turn_taunt", 10)
+    trace.append(command("standing_turn_before_taunt", main_x=0.0))
+    trace.append(command("standing_turn_taunt", taunt=True))
+    repeat("standing_turn_taunt_recovery", 110)
     return trace
 
 

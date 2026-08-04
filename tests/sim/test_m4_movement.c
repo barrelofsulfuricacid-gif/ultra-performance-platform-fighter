@@ -3597,6 +3597,42 @@ static int run_ground_control_test(
             "m4-movement=fail operation=crouch-end-taunt-interrupt\n");
         return 0;
     }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "standing-turn-taunt-reset") ||
+        !step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=standing-turn-taunt-setup\n");
+        return 0;
+    }
+    crouch_facing = inspection.players[0].facing;
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].facing != (int8_t)-crouch_facing)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=standing-turn-taunt-interrupt\n");
+        return 0;
+    }
     return 1;
 }
 

@@ -2283,6 +2283,7 @@ static int pf_m4_action_can_start_taunt(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
+           action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
            action_state == (uint8_t)PF_M4_ACTION_TEETER;
