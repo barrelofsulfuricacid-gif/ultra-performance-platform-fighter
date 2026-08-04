@@ -128,7 +128,8 @@ restoration fail closed. Save format 34/state schema 35 retained the prior
 690-byte layout while making the explicit `WALL_JUMP` action ID, authored
 speeds, 24-tick recovery, four-tick invulnerability, preserved air jump, exact
 wall contact, and legal jump/aerial cancels fail closed. Save format 33/state schema 34 made
-the grounded `TAUNT` action ID, authored 90-tick recovery, inherited dash
+the grounded `TAUNT` action ID, a 61-count terminal counter yielding Falcon's
+60 observable recovery frames, inherited dash
 momentum, locked controls, held-input non-repetition, and support-edge
 cancellation fail closed. State
 schema 31 / save format 30 retained the same layout while making the two

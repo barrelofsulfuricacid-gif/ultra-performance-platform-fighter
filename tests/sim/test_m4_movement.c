@@ -2456,7 +2456,7 @@ static int run_content_contract_test(
 
     invalid_content = *default_content;
     invalid_content.fighter.taunt_ticks = UINT16_C(0);
-    if (default_content->fighter.taunt_ticks != UINT16_C(90) ||
+    if (default_content->fighter.taunt_ticks != UINT16_C(61) ||
         !expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
@@ -3462,6 +3462,139 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-end-guard-interrupt\n");
+        return 0;
+    }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "crouch-start-taunt-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_START ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-start-taunt-interrupt\n");
+        return 0;
+    }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "crouch-wait-taunt-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_start_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                (int16_t)content->fighter.crouch_axis_threshold,
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-taunt-interrupt\n");
+        return 0;
+    }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "crouch-end-taunt-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_start_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                (int16_t)content->fighter.crouch_axis_threshold,
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_END ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-end-taunt-interrupt\n");
         return 0;
     }
     return 1;

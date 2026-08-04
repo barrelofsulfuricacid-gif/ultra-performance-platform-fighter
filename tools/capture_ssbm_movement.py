@@ -39,6 +39,7 @@ def input_trace() -> list[dict[str, object]]:
         digital_left: bool = False,
         digital_right: bool = False,
         jump: bool = False,
+        taunt: bool = False,
     ) -> dict[str, object]:
         return {
             "label": label,
@@ -51,6 +52,7 @@ def input_trace() -> list[dict[str, object]]:
             "digital_left": digital_left,
             "digital_right": digital_right,
             "jump": jump,
+            "taunt": taunt,
         }
 
     def repeat(label: str, count: int, **inputs: object) -> None:
@@ -348,6 +350,25 @@ def input_trace() -> list[dict[str, object]]:
         digital_left=True,
     )
     repeat("crouch_end_guard_recovery", 20)
+
+    # Taunt is dispatched by ftCo_800DE9D8 from Squat, SquatWait, and
+    # SquatRv. D-pad up is held for one scheduled sample only so each route
+    # proves fresh-input eligibility without depending on input repetition.
+    repeat("settle_before_crouch_start_taunt", 10)
+    repeat("crouch_start_before_taunt", 2, main_y=0.0)
+    trace.append(command("crouch_start_taunt", taunt=True))
+    repeat("crouch_start_taunt_recovery", 110)
+
+    repeat("settle_before_crouch_wait_taunt", 10)
+    repeat("crouch_wait_before_taunt", 20, main_y=0.0)
+    trace.append(command("crouch_wait_taunt", taunt=True))
+    repeat("crouch_wait_taunt_recovery", 110)
+
+    repeat("settle_before_crouch_end_taunt", 10)
+    repeat("crouch_end_before_taunt", 20, main_y=0.0)
+    trace.append(command("crouch_end_taunt_release"))
+    trace.append(command("crouch_end_taunt", taunt=True))
+    repeat("crouch_end_taunt_recovery", 110)
     return trace
 
 
@@ -494,6 +515,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "digital_left": False,
                 "digital_right": False,
                 "jump": False,
+                "taunt": False,
             }
             for _ in range(pipeline_delay)
         ]
@@ -524,6 +546,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player_one.press_button(melee.Button.BUTTON_R)
             if bool(sample["jump"]):
                 player_one.press_button(melee.Button.BUTTON_X)
+            if bool(sample["taunt"]):
+                player_one.press_button(melee.Button.BUTTON_D_UP)
             gamestate = console.step()
             if gamestate is None or 1 not in gamestate.players:
                 raise RuntimeError(
@@ -553,6 +577,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             observed_jump = bool(
                 player.controller_state.button[melee.Button.BUTTON_X]
                 or player.controller_state.button[melee.Button.BUTTON_Y]
+            )
+            observed_taunt = bool(
+                player.controller_state.button[melee.Button.BUTTON_D_UP]
             )
             requested_x = float(scheduled["main_x"])
             requested_y = float(scheduled["main_y"])
@@ -600,6 +627,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and observed_digital_right
                 == bool(scheduled["digital_right"])
                 and observed_jump == bool(scheduled["jump"])
+                and observed_taunt == bool(scheduled["taunt"])
             )
             aligned = axis_aligned and c_axis_aligned and shoulder_aligned
             if not aligned:
@@ -611,7 +639,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     f"cx={observed_c_x} cy={observed_c_y} "
                     f"l={observed_left_shoulder}/{observed_digital_left} "
                     f"r={observed_right_shoulder}/{observed_digital_right} "
-                    f"jump={observed_jump}"
+                    f"jump={observed_jump} taunt={observed_taunt}"
                 )
             if origin_x is None:
                 origin_x = player.position.x
@@ -637,6 +665,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         scheduled["digital_right"]
                     ),
                     "requested_jump": bool(scheduled["jump"]),
+                    "requested_taunt": bool(scheduled["taunt"]),
                     "observed_main_x": observed_x,
                     "observed_main_y": observed_y,
                     "observed_c_x": observed_c_x,
@@ -650,6 +679,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "observed_digital_left": observed_digital_left,
                     "observed_digital_right": observed_digital_right,
                     "observed_jump": observed_jump,
+                    "observed_taunt": observed_taunt,
                     "action": player.action.name,
                     "action_value": int(player.action.value),
                     "action_frame": float(player.action_frame),

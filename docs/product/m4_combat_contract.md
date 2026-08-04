@@ -1594,8 +1594,10 @@ the positive route and all controls and exports an independent
 ## Taunt-cancel contract
 
 Input schema 5 assigns bit 4 to a dedicated Taunt button. The original fighter
-authors `taunt_ticks=90`. A fresh grounded Taunt edge from ordinary idle, walk,
-initial dash, run, crouch, run turnaround/brake, or teeter enters explicit
+authors `taunt_ticks=61`; because entry exposes action tick 1 immediately, this
+produces Captain Falcon's 60 observed GALE01 1.02 AppealS frames. A fresh
+grounded Taunt edge from ordinary idle, walk, initial dash,
+run, crouch start/wait/end, run turnaround/brake, or teeter enters explicit
 `TAUNT`; inherited horizontal velocity decelerates under ordinary traction,
 while attack, jump, shield, dodge, grab, movement, and held-Taunt retriggering
 remain locked until the exact recovery boundary.

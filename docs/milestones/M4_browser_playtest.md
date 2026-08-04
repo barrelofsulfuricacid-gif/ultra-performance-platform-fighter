@@ -337,7 +337,7 @@ For a Taunt cancel, dash toward the floor edge, release the horizontal key,
 and freshly press Taunt just before retained momentum crosses the support
 bound. The inspector briefly routes the authored action through the canonical
 edge check and ends that tick in `TEETER`, far earlier than the normal
-90-tick taunt recovery. Reset and press Taunt near center stage to compare the
+60-frame Falcon taunt recovery. Reset and press Taunt near center stage to compare the
 full duration; attack, jump, and direction inputs remain locked, and holding
 Taunt cannot retrigger it without a release. On a standard gamepad, Back/View
 is Taunt.
@@ -1264,7 +1264,7 @@ through:
   and early-release negatives;
 - eight release-gated diagonal-down crouch steps with exact displacement, plus
   held-diagonal, neutral-down, and horizontal-only negative routes;
-- a 90-tick grounded Taunt retaining dash momentum and rejecting held
+- a 60-frame grounded Falcon Taunt retaining dash momentum and rejecting held
   retriggering, plus support-edge cancellation into `TEETER`;
 - an ordinary right-ledge jump reaching the raised-block wall, fresh-away
   entry into `WALL JUMP` with the saved air jump intact, jump/aerial cancels,

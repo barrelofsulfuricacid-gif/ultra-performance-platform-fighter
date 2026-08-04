@@ -46,6 +46,8 @@ SSBM_TO_M4_ACTION = {
     "AIRDODGE": 32,
     "LANDING_SPECIAL": 34,
     "LANDING": 7,
+    "TAUNT_RIGHT": 75,
+    "TAUNT_LEFT": 75,
 }
 
 M4_DELAYED_AIR_JUMP = 61
@@ -66,6 +68,9 @@ POSITION_ANCHOR_LABELS = {
     "settle_before_crouch_start_guard",
     "settle_before_crouch_wait_guard",
     "settle_before_crouch_end_guard",
+    "settle_before_crouch_start_taunt",
+    "settle_before_crouch_wait_taunt",
+    "settle_before_crouch_end_taunt",
 }
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
@@ -122,6 +127,8 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
         "CROUCH_START",
         "CROUCHING",
         "CROUCH_END",
+        "TAUNT_RIGHT",
+        "TAUNT_LEFT",
     }:
         return frame
     if action == "TURNING_RUN":
@@ -177,6 +184,8 @@ def main() -> int:
             else 0
         )
         buttons = 1 if bool(row.get("observed_jump", False)) else 0
+        if bool(row.get("observed_taunt", False)):
+            buttons |= 16
         input_lines.append(
             f"{controller_axis(float(row['observed_main_x']))},"
             f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"

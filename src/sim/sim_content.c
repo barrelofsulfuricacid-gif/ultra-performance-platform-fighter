@@ -1331,7 +1331,12 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->moonwalk_setup_ticks = UINT16_C(2);
     fighter->teeter_ticks = UINT16_C(30);
     fighter->crouch_step_ticks = UINT16_C(1);
-    fighter->taunt_ticks = UINT16_C(90);
+    /*
+     * Entry is processed on the input tick and exposes action tick 1. A
+     * terminal counter of 61 therefore reproduces Falcon's 60 observable
+     * AppealS frames from GALE01 1.02.
+     */
+    fighter->taunt_ticks = UINT16_C(61);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
     fighter->landing_ticks = UINT16_C(30);
     fighter->landing_interruptible_tick = UINT16_C(4);
