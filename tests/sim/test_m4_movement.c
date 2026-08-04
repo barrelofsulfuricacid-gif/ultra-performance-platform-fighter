@@ -2691,6 +2691,295 @@ static int run_content_contract_test(
     return 1;
 }
 
+static int reset_to_run_brake(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "run-brake-iasa-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content->fighter.dash_run_transition_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+        out_inspection->players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-iasa-setup\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_run_brake_iasa_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    typedef struct rejected_run_brake_input
+    {
+        const char *name;
+        int16_t main_stick_x;
+        int16_t main_stick_y;
+        uint64_t buttons;
+        uint16_t trigger;
+    } rejected_run_brake_input;
+    static const rejected_run_brake_input rejected_inputs[] = {
+        { "attack", INT16_C(0), INT16_C(0),
+          PF_INPUT_BUTTON_ATTACK, UINT16_C(0) },
+        { "strong-attack", INT16_C(0), INT16_C(0),
+          PF_INPUT_BUTTON_STRONG_ATTACK, UINT16_C(0) },
+        { "special", INT16_C(0), INT16_C(0),
+          PF_INPUT_BUTTON_SPECIAL, UINT16_C(0) },
+        { "taunt", INT16_C(0), INT16_C(0),
+          PF_INPUT_BUTTON_TAUNT, UINT16_C(0) },
+        { "guard", INT16_C(0), INT16_C(0),
+          UINT64_C(0), UINT16_MAX },
+        { "grab", INT16_C(0), INT16_C(0),
+          PF_INPUT_BUTTON_ATTACK, UINT16_MAX },
+        { "roll", INT16_MAX, INT16_C(0),
+          UINT64_C(0), UINT16_MAX },
+    };
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t velocity_before;
+    int8_t facing_before;
+    size_t input_index;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim))
+    {
+        return 0;
+    }
+
+    if (!reset_to_run_brake(sim, content, &inspection))
+    {
+        return 0;
+    }
+    velocity_before = inspection.players[0].velocity_x_q16;
+    if (!step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_START ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].velocity_x_q16 !=
+            velocity_before - content->fighter.turn_acceleration_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-crouch-iasa\n");
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_start_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_CROUCH_START ||
+            inspection.players[0].action_ticks != (uint16_t)tick)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=run-brake-tap-crouch-start\n");
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_END ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-tap-crouch-release\n");
+        return 0;
+    }
+
+    if (!reset_to_run_brake(sim, content, &inspection))
+    {
+        return 0;
+    }
+    velocity_before = inspection.players[0].velocity_x_q16;
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        inspection.players[0].velocity_x_q16 !=
+            velocity_before - content->fighter.turn_acceleration_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-jump-iasa\n");
+        return 0;
+    }
+
+    if (!reset_to_run_brake(sim, content, &inspection))
+    {
+        return 0;
+    }
+    velocity_before = inspection.players[0].velocity_x_q16;
+    facing_before = inspection.players[0].facing;
+    if (!step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        inspection.players[0].action_ticks != UINT16_C(2) ||
+        inspection.players[0].facing != facing_before ||
+        inspection.players[0].dash_direction != -facing_before ||
+        inspection.players[0].velocity_x_q16 !=
+            velocity_before - content->fighter.turn_acceleration_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-turnrun-iasa\n");
+        return 0;
+    }
+
+    for (input_index = (size_t)0;
+         input_index < sizeof(rejected_inputs) / sizeof(rejected_inputs[0]);
+         ++input_index)
+    {
+        const rejected_run_brake_input *candidate =
+            &rejected_inputs[input_index];
+
+        if (!reset_to_run_brake(sim, content, &inspection))
+        {
+            return 0;
+        }
+        velocity_before = inspection.players[0].velocity_x_q16;
+        if (!step_duel_trigger(
+                sim,
+                candidate->main_stick_x,
+                candidate->main_stick_y,
+                candidate->buttons,
+                candidate->trigger,
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+            inspection.players[0].action_ticks != UINT16_C(2) ||
+            inspection.players[0].velocity_x_q16 !=
+                velocity_before - content->fighter.traction_q16)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=run-brake-reject-%s\n",
+                candidate->name);
+            return 0;
+        }
+    }
+
+    if (!reset_to_run_brake(sim, content, &inspection))
+    {
+        return 0;
+    }
+    velocity_before = inspection.players[0].velocity_x_q16;
+    if (!step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+        inspection.players[0].action_ticks != UINT16_C(2) ||
+        inspection.players[0].velocity_x_q16 !=
+            velocity_before - content->fighter.traction_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-reject-c-stick-roll\n");
+        return 0;
+    }
+
+    if (!reset_to_run_brake(sim, content, &inspection))
+    {
+        return 0;
+    }
+    velocity_before = inspection.players[0].velocity_x_q16;
+    if (!step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
+        inspection.players[0].action_ticks != UINT16_C(2) ||
+        inspection.players[0].velocity_x_q16 !=
+            velocity_before - content->fighter.traction_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-brake-reject-c-stick-spot\n");
+        return 0;
+    }
+    return 1;
+}
+
 static int run_ground_control_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -3065,46 +3354,12 @@ static int run_ground_control_test(
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_RUN_BRAKE)
+            (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        inspection.players[0].action_ticks != UINT16_C(2))
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=run-brake-horizontal-lockout\n");
-        return 0;
-    }
-    for (tick = UINT32_C(2);
-         tick + UINT32_C(1) <
-             (uint32_t)content->fighter.run_brake_ticks;
-         ++tick)
-    {
-        if (!step_duel(
-                sim,
-                INT16_MIN,
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection) ||
-            inspection.players[0].action_state !=
-                (uint8_t)PF_M4_ACTION_RUN_BRAKE)
-        {
-            (void)fprintf(
-                stderr,
-                "m4-movement=fail operation=run-brake-full-lockout\n");
-            return 0;
-        }
-    }
-    if (!step_duel(
-            sim,
-            INT16_MIN,
-            INT16_C(0),
-            UINT64_C(0),
-            &inspection) ||
-        inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
-        inspection.players[0].action_ticks != UINT16_C(1))
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=run-brake-expiry-turn\n");
+            "m4-movement=fail operation=run-brake-turnrun-entry\n");
         return 0;
     }
 
@@ -12837,6 +13092,7 @@ int main(void)
             PF_STATUS_OK,
             "content-view") ||
         !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_tap_jump_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(

@@ -58,7 +58,10 @@ int main(void)
      * The production laboratory stage retains its original moving platforms
      * and solid block, but those unrelated fixtures must not intercept a
      * Final-Destination locomotion trace after hundreds of accumulated frames.
+     * Disable the original Relay Rod as well: Dolphin's oracle match has items
+     * off, and this tool compares common movement rather than original content.
      */
+    content.item.enabled = UINT8_C(0);
     content.stage.platform_center_x_q16 =
         -INT32_C(28) * PF_Q16_ONE;
     content.stage.platform_half_width_q16 = PF_Q16_ONE;

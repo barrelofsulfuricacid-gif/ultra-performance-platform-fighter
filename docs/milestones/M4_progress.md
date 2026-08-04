@@ -2466,8 +2466,8 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 5,311-frame movement/defense/aerial/crouch trace is a regression
-  slice,
+- The passing 7,128-frame movement/defense/aerial/crouch/RunBrake trace is a
+  regression slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
   reproducer. M4 remains unfinished, and fidelity work continues without
@@ -2545,13 +2545,13 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion. Player push collision remains an explicit uncovered shared-
   simulation route rather than being silently accepted as movement drift.
 - The current 240-tick replay corpus SHA-256 is
-  `41c5f767c01a728a4633a09af2e69c44c0c2aa292e3214c2dff87575a5ab8cca`,
+  `93e60fef3c6afcac94d66b96ac4a29dd5257c39617700969447e47fe51c8278f`,
   final-state SHA-256 is
-  `71d182d5536c3129c3ce79e978cc119eca9a90b04789d9749d1e4c665590fbba`,
+  `61160ef3e40848b4e5e529a27f81a0658938152bf6e3e4b0acb7395d32d2890e`,
   and event-journal SHA-256 is
-  `6894dc902cde9f95468041086e665ce8da590f9d3b8a8940aed5ddde98683e52`.
-  The repeated-match verifier digest is `46bcfcd0bebd0e6f` after the pinned
-  Falcon tap-jump content-schema correction.
+  `f574b8063f8339b8495ec44eaea0a0c09395c1bf5f545dc5e4454248baeb62ba`.
+  The repeated-match verifier digest is `b6a774204dedd4a7` after the pinned
+  Falcon RunBrake executable-oracle correction.
 - Windows MSVC and WSL Linux GCC each pass all 22 CTest targets after the
   schema/fixture refresh. The clean Emscripten 6.0.3 build has byte-identical
   native/Wasm replay output, the rebuilt live browser page reports every
@@ -2559,3 +2559,55 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   replay/kernel workflows pass. M4 remains
   unfinished after publication because the executable-oracle corpus still has
   uncovered applicable routes.
+
+## 2026-08-04 Falcon RunBrake common-IASA executable-oracle slice
+
+- The identical-input Dolphin route now contains 7,128 frames. Its RunBrake
+  matrix follows pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`: common RunBrake IASA contains
+  jump, animation-command TurnRun, and crouch only.
+- Neutral from terminal run enters displayed RunBrake frame 1 at Falcon ground
+  velocity 2.22. Jump or main-stick down on the next sample enters displayed
+  `KneeBend` or `Squat` frame 1 at velocity 2.06. A one-frame down tap now
+  proceeds directly from displayed `Squat` frame 7 to `SquatRv` frame 1 when
+  released; production previously exposed one extra `SquatWait` tick.
+- Opposite stick on displayed RunBrake frame 2 enters displayed TurnRun frame
+  1, preserves the old facing, resumes the brake animation cursor, and applies
+  Falcon's 0.16 TurnRun acceleration. Production previously held RunBrake
+  until animation expiry and entered ordinary `Turn`.
+- Fresh neutral guard, C-stick roll, C-stick spot-dodge, D-pad taunt, A, Z, and
+  B do not interrupt RunBrake. Full guard plus main-stick down still enters
+  `Squat`, because crouch is the independent third IASA branch. Focused native
+  assertions additionally reject strong attack, canonical grab, main-stick
+  roll, and both C-stick defensive directions.
+- Capture schema 3 records A, B, Z, and their post-frame observations. It also
+  records Slippi's implicit 0.35 analog shoulder value for physical Z, while
+  the comparator reproduces the project's device-normalized full-trigger-plus-
+  A canonical grab packet. Every non-neutral C-stick sample similarly carries
+  the production strong-attack bit.
+- Two independently exposed physics gaps are corrected in the same expanded
+  trace. Released-dash completion selects Wait's high-speed friction from the
+  velocity entering the frame, and normal Landing uses Falcon's high-speed
+  grounded friction while absolute velocity remains above walk maximum.
+- The plain-FD comparison runner now disables the original Relay Rod, matching
+  the Dolphin match's items-off setup and preventing original content from
+  contaminating common-movement evidence. The separately tracked player-push
+  collision gap remains uncovered rather than being hidden by a position
+  tolerance or fabricated landing root motion.
+- Browser reaction, crouch-cancel, weight, shield-hit, and powershield probes
+  no longer attempt their attacks from RunBrake. They use a bounded walk to
+  jab range, settle in Wait, and then exercise the same combat invariants from
+  a legal SSBM action route. The live smoke now makes reaction, shield,
+  shield-break, and powershield-cancel probe success mandatory.
+- Windows MSVC Release and WSL Linux GCC each pass all 22 CTest targets. The
+  strict movement, combat, M2 kernel, and standalone replay workflows pass;
+  the 7,128-frame comparator passes exactly against both native binaries.
+  Pinned Emscripten 6.0.3 produces byte-identical replay output, and the
+  rebuilt live Chrome DOM/Wasm smoke passes with all startup probes green.
+- The refreshed 240-tick replay corpus SHA-256 is
+  `93e60fef3c6afcac94d66b96ac4a29dd5257c39617700969447e47fe51c8278f`,
+  final-state SHA-256 is
+  `61160ef3e40848b4e5e529a27f81a0658938152bf6e3e4b0acb7395d32d2890e`,
+  event-journal SHA-256 is
+  `f574b8063f8339b8495ec44eaea0a0c09395c1bf5f545dc5e4454248baeb62ba`,
+  and the repeated-match verifier digest is `b6a774204dedd4a7`.

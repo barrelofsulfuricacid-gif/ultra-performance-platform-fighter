@@ -520,6 +520,8 @@ int main(void)
         test_approach_probe != 1 ||
         test_spacing_probe != 1 ||
         test_ladder_probe != 1 ||
+        test_reaction_probe != 1 ||
+        test_shield_probe != 1 ||
         test_shield_break_probe != 1 ||
         test_tumble_probe != 1 ||
         test_air_dodge_probe != 1 ||

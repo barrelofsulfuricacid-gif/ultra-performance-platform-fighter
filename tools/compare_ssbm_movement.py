@@ -89,6 +89,17 @@ POSITION_ANCHOR_LABELS = {
     "settle_before_tap_jump_above_threshold",
     "settle_before_tap_jump_slow_sweep",
     "settle_before_tap_jump_two_sample",
+    "recenter_before_run_brake_jump",
+    "recenter_before_run_brake_crouch",
+    "recenter_before_run_brake_guard",
+    "recenter_before_run_brake_spot_dodge",
+    "recenter_before_run_brake_cstick_roll",
+    "recenter_before_run_brake_cstick_spot",
+    "recenter_before_run_brake_taunt",
+    "recenter_before_run_brake_attack",
+    "recenter_before_run_brake_grab",
+    "recenter_before_run_brake_special",
+    "recenter_before_run_brake_reverse",
 }
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
@@ -187,9 +198,13 @@ def main() -> int:
     input_lines: list[str] = []
     for row in oracle_rows:
         observed_analog = float(row.get("observed_analog_shoulder", 0.0))
+        # The project action packet has no device-specific Z bit. Its input
+        # normalizer represents GameCube Z as the canonical full-shield-plus-A
+        # grab chord, so replay the same physical sample through that mapping.
         left_trigger = (
             65535
-            if bool(row.get("requested_digital_left"))
+            if bool(row.get("observed_grab", False))
+            or bool(row.get("requested_digital_left"))
             else controller_trigger(observed_analog)
             if float(row.get("requested_left_shoulder", 0.0)) > 0.0
             else 0
@@ -202,6 +217,19 @@ def main() -> int:
             else 0
         )
         buttons = 1 if bool(row.get("observed_jump", False)) else 0
+        if bool(row.get("observed_attack", False)) or bool(
+            row.get("observed_grab", False)
+        ):
+            buttons |= 2
+        if bool(row.get("observed_special", False)):
+            buttons |= 8
+        if (
+            abs(float(row.get("observed_c_x", 0.5)) - 0.5) > 0.02
+            or abs(float(row.get("observed_c_y", 0.5)) - 0.5) > 0.02
+        ):
+            # Device normalization emits the canonical strong-attack bit with
+            # every non-neutral C-stick sample.
+            buttons |= 4
         if bool(row.get("observed_taunt", False)):
             buttons |= 16
         input_lines.append(

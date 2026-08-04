@@ -39,6 +39,9 @@ def input_trace() -> list[dict[str, object]]:
         digital_left: bool = False,
         digital_right: bool = False,
         jump: bool = False,
+        attack: bool = False,
+        special: bool = False,
+        grab: bool = False,
         taunt: bool = False,
     ) -> dict[str, object]:
         return {
@@ -52,6 +55,9 @@ def input_trace() -> list[dict[str, object]]:
             "digital_left": digital_left,
             "digital_right": digital_right,
             "jump": jump,
+            "attack": attack,
+            "special": special,
+            "grab": grab,
             "taunt": taunt,
         }
 
@@ -511,6 +517,124 @@ def input_trace() -> list[dict[str, object]]:
     for y in (0.63, 0.835):
         trace.append(command("tap_jump_two_sample", main_y=y))
     repeat("tap_jump_two_sample_recovery", 110)
+
+    # RunBrake's common IASA is intentionally narrow: jump and crouch are
+    # immediate, while guard and taunt are absent. Each route enters terminal
+    # run, releases to RunBrake frame 1, then applies one fresh candidate input
+    # on the following sample.
+    # Keep the three grounded routes away from P2, then put the airborne route
+    # last and end before landing. This prevents the still-unqualified player
+    # push interaction from contaminating the RunBrake IASA comparison.
+    repeat("recenter_before_run_brake_crouch", 25, main_x=0.0)
+    repeat("run_brake_crouch_settle", 30)
+    repeat("run_brake_crouch_run", 25, main_x=1.0)
+    trace.append(command("run_brake_crouch_entry"))
+    trace.append(command("run_brake_crouch", main_y=0.0))
+    repeat("run_brake_crouch_recovery", 90)
+
+    repeat("recenter_before_run_brake_guard", 25, main_x=0.0)
+    repeat("run_brake_guard_settle", 30)
+    repeat("run_brake_guard_run", 25, main_x=1.0)
+    trace.append(command("run_brake_guard_entry"))
+    trace.append(
+        command(
+            "run_brake_guard",
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("run_brake_guard_recovery", 90)
+
+    repeat("recenter_before_run_brake_spot_dodge", 25, main_x=0.0)
+    repeat("run_brake_spot_dodge_settle", 30)
+    repeat("run_brake_spot_dodge_run", 25, main_x=1.0)
+    trace.append(command("run_brake_spot_dodge_entry"))
+    trace.append(
+        command(
+            "run_brake_spot_dodge",
+            main_y=0.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("run_brake_spot_dodge_recovery", 90)
+
+    # The preceding shield-plus-down route crouches and therefore finishes its
+    # recovery 13.5 units earlier than a rejected input. Nineteen leftward frames
+    # restore the same safe setup reached by the ordinary 25-frame recenter.
+    repeat("recenter_before_run_brake_cstick_roll", 19, main_x=0.0)
+    repeat("run_brake_cstick_roll_settle", 30)
+    repeat("run_brake_cstick_roll_run", 25, main_x=1.0)
+    trace.append(command("run_brake_cstick_roll_entry"))
+    trace.append(
+        command(
+            "run_brake_cstick_roll",
+            c_x=1.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("run_brake_cstick_roll_recovery", 90)
+
+    repeat("recenter_before_run_brake_cstick_spot", 25, main_x=0.0)
+    repeat("run_brake_cstick_spot_settle", 30)
+    repeat("run_brake_cstick_spot_run", 25, main_x=1.0)
+    trace.append(command("run_brake_cstick_spot_entry"))
+    trace.append(
+        command(
+            "run_brake_cstick_spot",
+            c_y=0.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("run_brake_cstick_spot_recovery", 90)
+
+    repeat("recenter_before_run_brake_taunt", 25, main_x=0.0)
+    repeat("run_brake_taunt_settle", 30)
+    repeat("run_brake_taunt_run", 25, main_x=1.0)
+    trace.append(command("run_brake_taunt_entry"))
+    trace.append(command("run_brake_taunt", taunt=True))
+    repeat("run_brake_taunt_recovery", 90)
+
+    repeat("recenter_before_run_brake_attack", 25, main_x=0.0)
+    repeat("run_brake_attack_settle", 30)
+    repeat("run_brake_attack_run", 25, main_x=1.0)
+    trace.append(command("run_brake_attack_entry"))
+    trace.append(command("run_brake_attack", attack=True))
+    repeat("run_brake_attack_recovery", 90)
+
+    repeat("recenter_before_run_brake_grab", 25, main_x=0.0)
+    repeat("run_brake_grab_settle", 30)
+    repeat("run_brake_grab_run", 25, main_x=1.0)
+    trace.append(command("run_brake_grab_entry"))
+    trace.append(command("run_brake_grab", grab=True))
+    repeat("run_brake_grab_recovery", 90)
+
+    repeat("recenter_before_run_brake_special", 25, main_x=0.0)
+    repeat("run_brake_special_settle", 30)
+    repeat("run_brake_special_run", 25, main_x=1.0)
+    trace.append(command("run_brake_special_entry"))
+    trace.append(command("run_brake_special", special=True))
+    repeat("run_brake_special_recovery", 90)
+
+    # RunBrake's command-variable gate eventually admits held opposite stick
+    # into TurnRun. Hold through the full animation so the executable reveals
+    # the first legal displayed frame and the resumed TurnRun animation frame.
+    repeat("recenter_before_run_brake_reverse", 25, main_x=0.0)
+    repeat("run_brake_reverse_settle", 30)
+    repeat("run_brake_reverse_run", 25, main_x=1.0)
+    trace.append(command("run_brake_reverse_entry"))
+    repeat("run_brake_reverse_hold", 35, main_x=0.0)
+    repeat("run_brake_reverse_recovery", 90)
+
+    # TurnRun's neutral recovery already finishes at center-left. Settle there
+    # instead of applying the ordinary leftward recenter, which would leave FD.
+    repeat("recenter_before_run_brake_jump", 30)
+    repeat("run_brake_jump_run", 25, main_x=1.0)
+    trace.append(command("run_brake_jump_entry"))
+    trace.append(command("run_brake_jump", jump=True))
+    repeat("run_brake_jump_recovery", 12)
     return trace
 
 
@@ -657,6 +781,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "digital_left": False,
                 "digital_right": False,
                 "jump": False,
+                "attack": False,
+                "special": False,
+                "grab": False,
                 "taunt": False,
             }
             for _ in range(pipeline_delay)
@@ -688,6 +815,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player_one.press_button(melee.Button.BUTTON_R)
             if bool(sample["jump"]):
                 player_one.press_button(melee.Button.BUTTON_X)
+            if bool(sample["attack"]):
+                player_one.press_button(melee.Button.BUTTON_A)
+            if bool(sample["special"]):
+                player_one.press_button(melee.Button.BUTTON_B)
+            if bool(sample["grab"]):
+                player_one.press_button(melee.Button.BUTTON_Z)
             if bool(sample["taunt"]):
                 player_one.press_button(melee.Button.BUTTON_D_UP)
             gamestate = console.step()
@@ -719,6 +852,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             observed_jump = bool(
                 player.controller_state.button[melee.Button.BUTTON_X]
                 or player.controller_state.button[melee.Button.BUTTON_Y]
+            )
+            observed_attack = bool(
+                player.controller_state.button[melee.Button.BUTTON_A]
+            )
+            observed_special = bool(
+                player.controller_state.button[melee.Button.BUTTON_B]
+            )
+            observed_grab = bool(
+                player.controller_state.button[melee.Button.BUTTON_Z]
             )
             observed_taunt = bool(
                 player.controller_state.button[melee.Button.BUTTON_D_UP]
@@ -754,7 +896,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 float(scheduled["right_shoulder"]),
             )
             expected_observed_shoulder = (
-                0.0
+                0.35
+                if bool(scheduled["grab"])
+                else 0.0
                 if requested_analog_shoulder <= 0.30
                 else requested_analog_shoulder
             )
@@ -769,6 +913,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and observed_digital_right
                 == bool(scheduled["digital_right"])
                 and observed_jump == bool(scheduled["jump"])
+                and observed_attack == bool(scheduled["attack"])
+                and observed_special == bool(scheduled["special"])
+                and observed_grab == bool(scheduled["grab"])
                 and observed_taunt == bool(scheduled["taunt"])
             )
             aligned = axis_aligned and c_axis_aligned and shoulder_aligned
@@ -781,7 +928,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     f"cx={observed_c_x} cy={observed_c_y} "
                     f"l={observed_left_shoulder}/{observed_digital_left} "
                     f"r={observed_right_shoulder}/{observed_digital_right} "
-                    f"jump={observed_jump} taunt={observed_taunt}"
+                    f"jump={observed_jump} attack={observed_attack} "
+                    f"special={observed_special} grab={observed_grab} "
+                    f"taunt={observed_taunt}"
                 )
             if origin_x is None:
                 origin_x = player.position.x
@@ -807,6 +956,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         scheduled["digital_right"]
                     ),
                     "requested_jump": bool(scheduled["jump"]),
+                    "requested_attack": bool(scheduled["attack"]),
+                    "requested_special": bool(scheduled["special"]),
+                    "requested_grab": bool(scheduled["grab"]),
                     "requested_taunt": bool(scheduled["taunt"]),
                     "observed_main_x": observed_x,
                     "observed_main_y": observed_y,
@@ -821,6 +973,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "observed_digital_left": observed_digital_left,
                     "observed_digital_right": observed_digital_right,
                     "observed_jump": observed_jump,
+                    "observed_attack": observed_attack,
+                    "observed_special": observed_special,
+                    "observed_grab": observed_grab,
                     "observed_taunt": observed_taunt,
                     "action": player.action.name,
                     "action_value": int(player.action.value),
@@ -838,7 +993,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
 
         return {
-            "schema": 2,
+            "schema": 3,
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
             "libmelee_version": importlib.metadata.version("melee"),

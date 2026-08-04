@@ -10085,6 +10085,9 @@ typedef struct pf_web_m4_crouch_cancel_result
     uint16_t hitstun_ticks;
 } pf_web_m4_crouch_cancel_result;
 
+static int pf_web_m4_walk_to_jab_range(
+    pf_m4_inspection *out_inspection);
+
 static int pf_web_m4_run_crouch_cancel_route(
     int target_crouches,
     pf_web_m4_crouch_cancel_result *out_result)
@@ -10094,25 +10097,10 @@ static int pf_web_m4_run_crouch_cancel_route(
         target_crouches != 0 ? INT16_MAX : INT16_C(0);
     uint32_t tick;
 
-    if (out_result == NULL || !pf_web_m4_reset_internal())
-    {
-        return 0;
-    }
-    for (tick = UINT32_C(0); tick < UINT32_C(27); ++tick)
-    {
-        if (!pf_web_m4_tick(
-                PF_WEB_M4_DASH_AXIS,
-                INT16_C(0),
-                UINT64_C(0),
-                -PF_WEB_M4_DASH_AXIS,
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection))
-        {
-            return 0;
-        }
-    }
-    if (!pf_web_m4_tick(
+    if (out_result == NULL ||
+        !pf_web_m4_reset_internal() ||
+        !pf_web_m4_walk_to_jab_range(&inspection) ||
+        !pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -10252,38 +10240,61 @@ static int pf_web_m4_run_weight_probe(void)
     return route_passed != 0 && restored != 0;
 }
 
-static int pf_web_m4_run_reaction_probe(void)
+static int pf_web_m4_walk_to_jab_range(
+    pf_m4_inspection *out_inspection)
 {
-    pf_m4_inspection inspection;
-    int32_t target_x_before_sdi;
+    const int32_t jab_reach_q16 =
+        pf_web_m4_content.fighter.jab_hitbox_offset_x_q16 +
+        pf_web_m4_content.fighter.jab_hitbox_half_width_q16 +
+        pf_web_m4_content.fighter.half_width_q16;
     uint32_t tick;
 
-    if (!pf_web_m4_reset_internal())
+    if (out_inspection == NULL ||
+        pf_m4_inspect(pf_web_m4_sim, out_inspection) != PF_STATUS_OK)
     {
         return 0;
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(27); ++tick)
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(600) &&
+         out_inspection->players[1].position_x_q16 -
+                 out_inspection->players[0].position_x_q16 >
+             jab_reach_q16;
+         ++tick)
     {
         if (!pf_web_m4_tick(
-                PF_WEB_M4_DASH_AXIS,
+                PF_WEB_M4_WALK_AXIS,
                 INT16_C(0),
                 UINT64_C(0),
-                -PF_WEB_M4_DASH_AXIS,
+                -PF_WEB_M4_WALK_AXIS,
                 INT16_C(0),
                 UINT64_C(0),
-                &inspection))
+                out_inspection))
         {
             return 0;
         }
     }
-    if (!pf_web_m4_tick(
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            &inspection) ||
+    return tick < UINT32_C(600) &&
+           pf_web_m4_tick(
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+           out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+}
+
+static int pf_web_m4_run_reaction_probe(void)
+{
+    pf_m4_inspection inspection;
+    int32_t target_x_before_sdi;
+
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_walk_to_jab_range(&inspection) ||
         !pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
@@ -10422,28 +10433,18 @@ static int pf_web_m4_run_shield_probe(void)
         return 0;
     }
 
-    if (!pf_web_m4_reset_internal())
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_walk_to_jab_range(&inspection))
     {
         return 0;
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(24); ++tick)
-    {
-        if (!pf_web_m4_tick(
-                PF_WEB_M4_DASH_AXIS,
-                INT16_C(0),
-                UINT64_C(0),
-                -PF_WEB_M4_DASH_AXIS,
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection))
-        {
-            return 0;
-        }
-    }
-    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+    for (tick = UINT32_C(0);
+         tick <= (uint32_t)pf_web_m4_content.fighter
+                     .powershield_window_ticks;
+         ++tick)
     {
         if (!pf_web_m4_tick_with_triggers(
-                PF_WEB_M4_DASH_AXIS,
+                INT16_C(0),
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
@@ -10457,16 +10458,6 @@ static int pf_web_m4_run_shield_probe(void)
         }
     }
     if (!pf_web_m4_tick_with_triggers(
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            UINT16_C(0),
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            UINT16_MAX,
-            &inspection) ||
-        !pf_web_m4_tick_with_triggers(
             INT16_C(0),
             INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
@@ -10545,33 +10536,8 @@ static int pf_web_m4_run_shield_probe(void)
         return 0;
     }
 
-    if (!pf_web_m4_reset_internal())
-    {
-        return 0;
-    }
-    for (tick = UINT32_C(0); tick < UINT32_C(29); ++tick)
-    {
-        if (!pf_web_m4_tick(
-                PF_WEB_M4_DASH_AXIS,
-                INT16_C(0),
-                UINT64_C(0),
-                -PF_WEB_M4_DASH_AXIS,
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection))
-        {
-            return 0;
-        }
-    }
-    if (
-        !pf_web_m4_tick(
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            INT16_C(0),
-            INT16_C(0),
-            UINT64_C(0),
-            &inspection) ||
+    if (!pf_web_m4_reset_internal() ||
+        !pf_web_m4_walk_to_jab_range(&inspection) ||
         !pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),

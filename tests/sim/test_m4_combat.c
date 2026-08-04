@@ -12252,7 +12252,7 @@ static int run_shield_sdi_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < UINT32_C(200) &&
+         tick < UINT32_C(1000) &&
          edge_inspection.players[1].position_x_q16 <
              edge_content.stage.floor_right_q16 -
                  INT32_C(2) * PF_Q16_ONE;
@@ -12260,11 +12260,11 @@ static int run_shield_sdi_test(
     {
         if (!step_reaction_duel(
                 edge,
-                INT16_MAX,
+                INT16_C(12000),
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
-                INT16_MAX,
+                INT16_C(12000),
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
@@ -12273,7 +12273,7 @@ static int run_shield_sdi_test(
             return fail("shield-sdi-edge-approach");
         }
     }
-    if (tick == UINT32_C(200) ||
+    if (tick == UINT32_C(1000) ||
         edge_inspection.players[1].grounded == UINT8_C(0) ||
         edge_inspection.players[1].support !=
             (uint8_t)PF_M4_SURFACE_FLOOR ||
@@ -12311,6 +12311,20 @@ static int run_shield_sdi_test(
         edge_inspection.players[1].position_y_q16 != edge_start_y ||
         edge_inspection.players[1].sdi_pulse_count != UINT8_C(1))
     {
+        (void)fprintf(
+            stderr,
+            "m4-combat=trace operation=shield-sdi-edge-clamp"
+            " action=%u grounded=%u support=%u x=%" PRId32
+            " expected_x=%" PRId32 " y=%" PRId32
+            " expected_y=%" PRId32 " pulses=%u\n",
+            (unsigned int)edge_inspection.players[1].action_state,
+            (unsigned int)edge_inspection.players[1].grounded,
+            (unsigned int)edge_inspection.players[1].support,
+            edge_inspection.players[1].position_x_q16,
+            edge_content.stage.floor_right_q16,
+            edge_inspection.players[1].position_y_q16,
+            edge_start_y,
+            (unsigned int)edge_inspection.players[1].sdi_pulse_count);
         return fail("shield-sdi-edge-clamp");
     }
     return 1;

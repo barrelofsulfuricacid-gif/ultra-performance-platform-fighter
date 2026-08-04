@@ -84,6 +84,13 @@ to the simulation.
 - Neutral, sub-threshold, or weak backward input from an unlocked run enters
   `RUN BRAKE`. A turnaround-completed run has a data-defined ten-tick window
   during which another run turnaround or run brake cannot begin.
+- `RUN BRAKE` exposes only the common jump, animation-command TurnRun, and
+  crouch branches. Jump enters `JUMP SQUAT`; full down enters `CROUCH START`;
+  and opposite input at or above the TurnRun threshold enters
+  `RUN TURNAROUND` while preserving the brake animation cursor and old facing.
+  Guard, roll, spot-dodge, C-stick escape, attack, grab, special, and taunt
+  inputs do not interrupt it. Shield-plus-main-stick-down still takes the
+  crouch branch because crouch has independent priority.
 - Down from an unlocked `RUN` cancels directly into `CROUCH`, retaining a
   traction-reduced forward slide and exposing immediate grounded actions.
   Jump and shield provide the other current production dash-cancel routes.
