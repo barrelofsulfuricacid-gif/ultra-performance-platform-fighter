@@ -2597,6 +2597,9 @@ static int run_ground_control_test(
     int16_t ramp_low;
     int16_t ramp_middle;
     int16_t ramp_high;
+    int16_t crouch_walk_axis;
+    int16_t crouch_dash_axis;
+    int8_t crouch_facing;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -3227,6 +3230,105 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch-release-threshold\n");
+        return 0;
+    }
+    crouch_facing = inspection.players[0].facing;
+    crouch_walk_axis =
+        (int16_t)(
+            ((uint32_t)content->fighter.axis_dead_zone +
+             (uint32_t)content->fighter.dash_axis_threshold) /
+            UINT32_C(2));
+    if (crouch_facing < INT8_C(0))
+    {
+        crouch_walk_axis = (int16_t)-crouch_walk_axis;
+    }
+    if (!step_duel(
+            sim,
+            crouch_walk_axis,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_WALK ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-end-walk-interrupt\n");
+        return 0;
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_start_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                (int16_t)content->fighter.crouch_axis_threshold,
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-dash-setup\n");
+        return 0;
+    }
+    crouch_facing = inspection.players[0].facing;
+    crouch_dash_axis =
+        crouch_facing > INT8_C(0) ? INT16_MIN : INT16_MAX;
+    if (!step_duel(
+            sim,
+            crouch_dash_axis,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].facing != crouch_facing ||
+        !step_duel(
+            sim,
+            crouch_dash_axis,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].facing != (int8_t)-crouch_facing)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-dash-interrupt\n");
         return 0;
     }
     return 1;

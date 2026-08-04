@@ -282,6 +282,38 @@ def input_trace() -> list[dict[str, object]]:
     repeat("crouch_entry_beyond", 20, main_y=72.0 / 255.0)
     repeat("crouch_release_boundary", 10, main_y=78.0 / 255.0)
     repeat("crouch_release_beyond", 20, main_y=79.0 / 255.0)
+
+    # Crouch IASA routes are state-specific in ftCo_Squat*, even when they
+    # return to the ordinary movement vocabulary. Pin the common jump route
+    # in all three states, SquatWait's direct dash, and SquatRv's direct walk.
+    repeat("settle_before_crouch_start_jump", 10)
+    repeat("crouch_start_before_jump", 2, main_y=0.0)
+    trace.append(command("crouch_start_jump", main_y=0.0, jump=True))
+    repeat("crouch_start_jump_landing", 80)
+
+    repeat("settle_before_crouch_wait_jump", 10)
+    repeat("crouch_wait_before_jump", 20, main_y=0.0)
+    trace.append(command("crouch_wait_jump", main_y=0.0, jump=True))
+    repeat("crouch_wait_jump_landing", 80)
+
+    repeat("settle_before_crouch_end_jump", 10)
+    repeat("crouch_end_before_jump", 20, main_y=0.0)
+    trace.append(command("crouch_end_release", main_y=0.5))
+    trace.append(command("crouch_end_jump", jump=True))
+    repeat("crouch_end_jump_landing", 80)
+
+    repeat("recenter_before_crouch_wait_dash", 18, main_x=0.0)
+    repeat("recenter_before_crouch_wait_dash_brake", 35)
+    repeat("settle_before_crouch_wait_dash", 10)
+    repeat("crouch_wait_before_dash", 20, main_y=0.0)
+    repeat("crouch_wait_dash", 20, main_x=1.0)
+    repeat("crouch_wait_dash_recovery", 35)
+
+    repeat("settle_before_crouch_end_walk", 10)
+    repeat("crouch_wait_before_end_walk", 20, main_y=0.0)
+    trace.append(command("crouch_end_before_walk"))
+    repeat("crouch_end_walk", 20, main_x=0.75)
+    repeat("crouch_end_walk_recovery", 30)
     return trace
 
 

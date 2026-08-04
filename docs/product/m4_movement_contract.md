@@ -123,7 +123,11 @@ to the simulation.
   accepted signed-axis value is 22528); held crouch releases strictly below
   0.625 down (the exact signed-axis boundary 20479 remains held). These timings,
   transitions, and boundary cases match the pinned GALE01 executable trace.
-  Every interrupt route remains part of the broader executable-oracle gate.
+  Jump interrupts all three crouch states. Held crouch accepts a fresh dash
+  (including the ordinary opposite-facing `TURN` frame), while crouch release
+  accepts forward walk immediately. Remaining attack, special, guard, taunt,
+  grab, and platform-pass routes remain part of the broader executable-oracle
+  gate.
 - Down on a pass-through platform starts the data-defined nine-tick
   pass-through window. The drop tick applies only the authored nudge and
   ordinary gravity; it cannot also trigger fast fall. Subsequent down input may

@@ -2465,7 +2465,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 1,649-frame movement/defense/aerial/crouch trace is a regression
+- The passing 2,184-frame movement/defense/aerial/crouch trace is a regression
   slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
@@ -2475,7 +2475,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## 2026-08-04 Falcon crouch executable-oracle slice
 
-- The identical-input Dolphin route now contains 1,649 frames. The added
+- The identical-input Dolphin route now contains 2,184 frames. The added
   full-down grounded sequence observes seven displayed `CROUCH_START`/`Squat`
   frames, a held `CROUCH`/`SquatWait`, ten displayed
   `CROUCH_END`/`SquatRv` frames, then ground idle. Native comparison passes
@@ -2484,11 +2484,17 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   deterministic thresholds. The corpus proves that exact entry does not squat,
   just-beyond entry does, exact release remains held, and just-beyond release
   starts `SquatRv`.
+- The route now also proves jump interruption from `Squat`, `SquatWait`, and
+  `SquatRv`; a fresh opposite dash from `SquatWait` produces one displayed
+  `Turn` frame before `Dash`; and forward horizontal input during `SquatRv`
+  enters `Walk` immediately. The simulator routes those transitions through
+  its already-pinned common jump, turn/dash, and walk machinery.
 - Decomp review at pinned revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` confirms that `Squat` and
-  `SquatWait` are crouch-cancel eligible while `SquatRv` is not. The full
-  interrupt matrix remains uncovered and therefore remains active work under
-  the whole-simulation gate.
+  `SquatWait` are crouch-cancel eligible while `SquatRv` is not. Attack,
+  special, guard, taunt, grab, and platform-pass portions of the interrupt
+  matrix remain uncovered and therefore remain active work under the
+  whole-simulation gate.
 - Content schema 60/fighter schema 52 append, validate, hash, and default the
   seven-tick entry, ten-tick reverse timing, and distinct release threshold.
   State schema 55 names the replay-visible action vocabulary; save format 52
@@ -2496,6 +2502,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - A deterministic trace exposed and fixed an independent transition invariant:
   entering `GRABBED` now clears charge and smash-charge counters so action-local
   state cannot leak across capture.
+- An initially contaminated dash route also exposed Falcon/Fox ground push
+  displacement near X=+60. The route was relocated and recaptured away from
+  both Fox and the ledge so it does not misattribute push displacement to
+  locomotion. Player push collision remains an explicit uncovered shared-
+  simulation route rather than being silently accepted as movement drift.
 - The current 240-tick replay corpus SHA-256 is
   `a7be7272ed74f5c409edfbb62670d3b79396e33552c037b8f67ef459416997fe`,
   final-state SHA-256 is
