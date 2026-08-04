@@ -2919,3 +2919,9 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   remains unfinished: the remaining imported phases/effects still need direct
   production routing, and ordinary knockback decay, DI, stale scaling, throws,
   and bone-independent collision coverage remain active fidelity gaps.
+- A clean alternating Windows comparison against pre-import commit `4b6ea8c`
+  used 100 ms samples and 15 repetitions. Candidate run 4 in
+  `performance/local/falcon-frame-data-alternating-20260804.sqlite3` passes all
+  10 measurable scenarios with zero invalid, suspected, or confirmed
+  regressions; the first pair's isolated empty-tick suspicion did not reproduce
+  while the candidate binary remained unchanged.
