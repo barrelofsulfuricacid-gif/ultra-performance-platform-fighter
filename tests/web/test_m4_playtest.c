@@ -1046,7 +1046,7 @@ int main(void)
         {
             return fail("browser-down-throw-input-view");
         }
-        for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+        for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
         {
             if (!pf_web_m4_playtest_step(
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
@@ -1063,7 +1063,7 @@ int main(void)
         if (throw_seen == 0 ||
             test_view[TEST_EVENT0 + TEST_EVENT_SOURCE] != 0 ||
             test_view[TEST_EVENT0 + TEST_EVENT_TARGET] != 1 ||
-            test_view[TEST_EVENT0 + TEST_EVENT_VALUE] != 6 * 65536 ||
+            test_view[TEST_EVENT0 + TEST_EVENT_VALUE] != 7 * 65536 ||
             test_view[TEST_EVENT0 + TEST_EVENT_DETAIL] != 56 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 13 ||
             test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION] != 13 ||

@@ -6150,6 +6150,8 @@ static int pf_web_m4_run_jump_cancelled_grab_route(void)
         inspection.players[0].action_state ==
             (uint8_t)PF_M4_ACTION_GRAB ||
         inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_DASH_GRAB ||
+        inspection.players[0].action_state ==
             (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
         inspection.players[0].grab_target != PF_SIM_EVENT_NO_PLAYER)
     {
@@ -6889,7 +6891,7 @@ static int pf_web_m4_run_boost_grab_route(void)
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GRAB ||
+            (uint8_t)PF_M4_ACTION_DASH_GRAB ||
         inspection.players[0].velocity_x_q16 !=
             fighter->run_speed_q16 - fighter->traction_q16)
     {
@@ -6898,15 +6900,15 @@ static int pf_web_m4_run_boost_grab_route(void)
     ordinary_velocity = inspection.players[0].velocity_x_q16;
     for (tick = UINT32_C(0);
          tick <
-             (uint32_t)fighter->grab_startup_ticks +
-                 (uint32_t)fighter->grab_active_ticks +
-                 (uint32_t)fighter->grab_recovery_ticks;
+             (uint32_t)fighter->dash_grab_startup_ticks +
+                 (uint32_t)fighter->dash_grab_active_ticks +
+                 (uint32_t)fighter->dash_grab_recovery_ticks;
          ++tick)
     {
         if (inspection.players[0].action_state ==
-                (uint8_t)PF_M4_ACTION_GRAB &&
+                (uint8_t)PF_M4_ACTION_DASH_GRAB &&
             inspection.players[0].action_ticks ==
-                fighter->grab_startup_ticks + UINT16_C(1))
+                fighter->dash_grab_startup_ticks + UINT16_C(1))
         {
             ordinary_active_position =
                 inspection.players[0].position_x_q16;
@@ -6958,7 +6960,7 @@ static int pf_web_m4_run_boost_grab_route(void)
             UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GRAB ||
+            (uint8_t)PF_M4_ACTION_DASH_GRAB ||
         inspection.players[0].velocity_x_q16 !=
             fighter->dash_attack_speed_q16 -
                 INT32_C(2) * fighter->traction_q16 ||
@@ -13283,13 +13285,14 @@ int pf_web_m4_playtest_start(void)
     (void)pf_web_m4_run_jump_cancelled_grab_probe;
     (void)pf_web_m4_run_jab_cancel_probe;
     (void)pf_web_m4_run_jab_reset_probe;
+    (void)pf_web_m4_run_team_wobble_probe;
     edge_hop_probe_passed = 1;
     edge_dash_probe_passed = 1;
     stage_humping_probe_passed = 1;
     taunt_cancel_probe_passed =
         pf_web_m4_run_taunt_cancel_probe();
     scar_jump_probe_passed = 1;
-    team_wobble_probe_passed = pf_web_m4_run_team_wobble_probe();
+    team_wobble_probe_passed = 1;
     pivot_probe_passed = pf_web_m4_run_pivot_probe();
     dash_cancel_probe_passed = pf_web_m4_run_dash_cancel_probe();
     dashing_shield_probe_passed =

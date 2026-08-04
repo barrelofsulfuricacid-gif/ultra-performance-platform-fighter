@@ -4,6 +4,7 @@
 /* DAT reader revision: d4e6074aa26f388fccc7fe8e825761cf1c1bc7b0 */
 /* PlCa.dat SHA-256: 4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af */
 /* PlCaAJ.dat SHA-256: a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a */
+/* PlCa.dat JSON SHA-256: fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266 */
 
 static const uint8_t pf_m4_falcon_source_sha256[32] = {
     UINT8_C(0x42), UINT8_C(0xbb), UINT8_C(0x4e), UINT8_C(0xce), UINT8_C(0xfb), UINT8_C(0x33), UINT8_C(0xe8), UINT8_C(0x7d), UINT8_C(0xc9), UINT8_C(0x78), UINT8_C(0x48), UINT8_C(0x2e), UINT8_C(0xcd), UINT8_C(0xb7), UINT8_C(0xb1), UINT8_C(0xf9), UINT8_C(0x3f), UINT8_C(0xf1), UINT8_C(0x2c), UINT8_C(0xa0), UINT8_C(0x90), UINT8_C(0xe8), UINT8_C(0x70), UINT8_C(0x43), UINT8_C(0x1f), UINT8_C(0xff), UINT8_C(0x91), UINT8_C(0x34), UINT8_C(0x80), UINT8_C(0x60), UINT8_C(0x13), UINT8_C(0x56)
@@ -152,11 +153,11 @@ static const pf_m4_reference_hit_effect pf_m4_falcon_hit_effects[] = {
 };
 
 static const pf_m4_reference_throw pf_m4_falcon_throws[] = {
-    { UINT16_C(45), UINT16_C(105), UINT16_C(0), UINT16_C(11), UINT8_C(4), UINT8_C(4), { UINT8_C(0), UINT8_C(0) } },
-    { UINT16_C(135), UINT16_C(130), UINT16_C(0), UINT16_C(7), UINT8_C(4), UINT8_C(8), { UINT8_C(0), UINT8_C(0) } },
-    { UINT16_C(85), UINT16_C(105), UINT16_C(0), UINT16_C(17), UINT8_C(3), UINT8_C(8), { UINT8_C(0), UINT8_C(0) } },
-    { UINT16_C(65), UINT16_C(34), UINT16_C(0), UINT16_C(18), UINT8_C(7), UINT8_C(12), { UINT8_C(0), UINT8_C(0) } },
-    { UINT16_C(361), UINT16_C(82), UINT16_C(0), UINT16_C(10), UINT8_C(12), UINT8_C(0), { UINT8_C(0), UINT8_C(0) } },
+    { UINT16_C(45), UINT16_C(105), UINT16_C(0), UINT16_C(11), UINT8_C(4), UINT8_C(4), UINT16_C(18), UINT16_C(0) },
+    { UINT16_C(135), UINT16_C(130), UINT16_C(0), UINT16_C(7), UINT8_C(4), UINT8_C(8), UINT16_C(20), UINT16_C(0) },
+    { UINT16_C(85), UINT16_C(105), UINT16_C(0), UINT16_C(17), UINT8_C(3), UINT8_C(8), UINT16_C(15), UINT16_C(0) },
+    { UINT16_C(65), UINT16_C(34), UINT16_C(0), UINT16_C(18), UINT8_C(7), UINT8_C(12), UINT16_C(20), UINT16_C(0) },
+    { UINT16_C(361), UINT16_C(82), UINT16_C(0), UINT16_C(10), UINT8_C(12), UINT8_C(0), UINT16_C(0), UINT16_C(0) },
 };
 
 static const pf_m4_reference_move pf_m4_falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {

@@ -2923,10 +2923,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and the repeated-match verifier digest is `aa6e1a0e6ba20a35`.
 - Windows MSVC Release and WSL Linux GCC each pass all 22 CTest targets. M4
   remains unfinished: simultaneous bone-relative sweet/weak geometry,
-  separate standing/dash grab states, production throw effects, ordinary
-  knockback decay, DI, and broader collision coverage remain active fidelity
-  gaps. Original generic strong-aerial and special fixtures are not presented
-  as Falcon-equivalent behavior.
+  separate standing/dash grab states, then-unrouted production throw effects,
+  ordinary knockback decay, DI, and broader collision coverage remain active
+  fidelity gaps. The following source-decoded throw slice resolves the throw
+  response item. Original generic strong-aerial and special fixtures are not
+  presented as Falcon-equivalent behavior.
 - A clean alternating Windows comparison against pre-import commit `4b6ea8c`
   used 100 ms samples and 15 repetitions. Candidate run 4 in
   `performance/local/falcon-frame-data-alternating-20260804.sqlite3` passes all
@@ -2941,3 +2942,49 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   per second. The separate unsampled 64-environment Python boundary reports
   321,157 repeated-call ticks/s versus 1,688,386 batched ticks/s, a 5.2572x
   boundary speedup.
+
+## 2026-08-04 source-decoded Falcon throw slice
+
+- The full owner DAT JSON is now a second pinned importer input with SHA-256
+  `fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266`.
+  The importer decodes the original action-script waits and encoded opcode
+  `0x14` argument rather than trusting the upstream `reverseDirection` label.
+  The NTSC 1.02 decomp shows argument zero raises the victim-release flag.
+- Forward, back, up, and down throw therefore release on exact action frames
+  18, 20, 15, and 20 and finish on frames 39, 49, 43, and 39. Their production
+  damage and angle/KBG/WDKB/BKB records are 4/45/105/0/11,
+  4/135/130/0/7, 3/85/105/0/17, and 7/65/34/0/18 respectively.
+  Defaults and runtime response query the generated table; no throw value is
+  transcribed into `sim_content.c`.
+- One shared `pf_m4_melee_knockback_data` value selects the zero-allocation
+  integer Melee response for attacks and throws. Explicit custom content can
+  disable it and use the pre-existing vector response. Content schema 68 and
+  fighter schema 60 hash and validate the choice without a hot-loop lookup or
+  duplicate formula.
+- The focused 20,000-tick combat verifier passes with exact throw startup,
+  hitlag, recovery, stale-move, chain-grab, and ordinary team resolution.
+  Emergent team-handoff/wobble testing remains skipped by owner direction. The
+  repeated-match digest changes to `138363409704b533`. Remaining Falcon gaps
+  include throw collateral hitboxes, transformed bone geometry, specials, and
+  the broader audit inventory.
+
+## 2026-08-04 table-routed standing and dash grab slice
+
+- The importer already retained Falcon's separate `Catch` and `CatchDash`
+  subactions. Production now consumes their exact 5/2/22 and 9/2/28
+  startup/active/recovery schedules instead of the former guessed 4/2/10
+  compromise.
+- `DASH_GRAB` is a distinct action state. The decomp's Dash IASA routes grab to
+  `CatchDash`, so initial dash and run inputs, plus the existing boost-grab
+  cancel, select it; ordinary grounded and jump-cancel grabs retain `GRAB`.
+  One branch selects the immutable timing fields for action completion and
+  grabbox activation, with no per-tick allocation or duplicated frame table.
+- The generated table test fixes both source schedules, the content hash covers
+  all six timing fields, and validation rejects incomplete schedules. Basic
+  team targeting remains covered; emergent team wobble/handoff is deliberately
+  not maintained as a regression test.
+- The new action identifier raises state schema 57 to 58 while retaining save
+  format 54 and the 803-byte layout. The refreshed 41,575-byte replay SHA-256
+  is `617e8a8503be61670f7683f4478baf0699d49d21182346edb1d80003b130f86e`;
+  final-state SHA-256 is
+  `80e4140554f0ca0b797d5056049768128cdcd08487341464835a1909812ad4c7`.

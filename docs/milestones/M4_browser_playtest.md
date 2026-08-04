@@ -374,21 +374,20 @@ and tap light attack during `JUMP SQUAT`. The fighter enters the standing
 grabbox, and contact enters reciprocal `GRAB HOLD` / `GRABBED` states. The
 victim card displays `MASH OUT · Nf`; alternate fresh full-left/right/down or
 button edges to reduce it faster than waiting. The feed records both `GRABBED` and
-escape events. Light-plus-shield directly during initial dash is rejected, as
-is the same combination after takeoff. From idle, light-plus-shield remains
-the ordinary standing-grab route, while the same combination from `RUN` is the
-ordinary dash-grab route.
+escape events. Light-plus-shield directly during initial dash or `RUN` enters
+the distinct `DASH GRAB`; the same combination after takeoff is rejected. From
+idle, light-plus-shield remains the ordinary standing-grab route.
 
 For a boost grab, first hold a full direction until `RUN`, press and keep
 holding light attack to enter `DASH ATTACK`, then freshly press shield on the
 next, second, or third stored action tick. Those inputs correspond to
-dash-attack frames 2–4 and cancel into the same standing `GRAB` while retaining
+dash-attack frames 2–4 and cancel into `DASH GRAB` while retaining
 the faster dash-attack slide. Compare light plus shield together directly from
 `RUN`: that ordinary dash grab carries only run momentum and whiffs at the
 focused route's extended spacing. Waiting one more tick before adding shield
-leaves `DASH ATTACK` intact. If uncanceled, the default attack has four startup
-ticks, three active ticks, deals 8%, and appears as `DASH ATTACK` in both the
-state card and typed hit feed.
+leaves `DASH ATTACK` intact. If uncanceled, Falcon's imported move has six
+startup ticks, 10% frames 7-12, 7% frames 13-16, and 23 recovery ticks; it
+appears as `DASH ATTACK` in both the state card and typed hit feed.
 
 For a jab cancel, press light from standing to enter `GROUND ATTACK`. Freshly
 press shield while the state card shows action tick 4 through 7; the first jab

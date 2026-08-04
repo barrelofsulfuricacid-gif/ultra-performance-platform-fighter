@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(67)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(59)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(68)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(60)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -134,7 +134,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING = 102,
     PF_M4_ACTION_STANDING_TURN = 103,
     PF_M4_ACTION_CROUCH_START = 104,
-    PF_M4_ACTION_CROUCH_END = 105
+    PF_M4_ACTION_CROUCH_END = 105,
+    PF_M4_ACTION_DASH_GRAB = 106
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -220,6 +221,16 @@ typedef struct pf_m4_recovery_data
     uint16_t reserved2;
 } pf_m4_recovery_data;
 
+typedef struct pf_m4_melee_knockback_data
+{
+    uint16_t angle_degrees;
+    uint16_t growth;
+    uint16_t weight_set;
+    uint16_t base;
+    uint8_t enabled;
+    uint8_t reserved[3];
+} pf_m4_melee_knockback_data;
+
 typedef struct pf_m4_throw_data
 {
     uint32_t damage_q16;
@@ -231,6 +242,7 @@ typedef struct pf_m4_throw_data
     uint16_t recovery_ticks;
     uint16_t hitlag_ticks;
     uint16_t reserved;
+    pf_m4_melee_knockback_data melee_knockback;
 } pf_m4_throw_data;
 
 typedef struct pf_m4_attack_data
@@ -248,16 +260,6 @@ typedef struct pf_m4_attack_data
     uint16_t recovery_ticks;
     uint16_t hitlag_ticks;
 } pf_m4_attack_data;
-
-typedef struct pf_m4_melee_knockback_data
-{
-    uint16_t angle_degrees;
-    uint16_t growth;
-    uint16_t weight_set;
-    uint16_t base;
-    uint8_t enabled;
-    uint8_t reserved[3];
-} pf_m4_melee_knockback_data;
 
 typedef enum pf_m4_item_state
 {
@@ -666,6 +668,9 @@ typedef struct pf_m4_fighter_data
     uint16_t grab_startup_ticks;
     uint16_t grab_active_ticks;
     uint16_t grab_recovery_ticks;
+    uint16_t dash_grab_startup_ticks;
+    uint16_t dash_grab_active_ticks;
+    uint16_t dash_grab_recovery_ticks;
     uint16_t grab_escape_base_ticks;
     uint16_t grab_escape_max_ticks;
     uint16_t grab_mash_reduction_ticks;

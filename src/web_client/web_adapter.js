@@ -3284,6 +3284,7 @@ mergeInto(LibraryManager.library, {
       "STANDING TURN",
       "CROUCH START",
       "CROUCH END",
+      "DASH GRAB",
     ];
 
     if (view[1] < previousTick) {

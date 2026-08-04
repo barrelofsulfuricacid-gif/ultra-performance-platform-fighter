@@ -1339,6 +1339,7 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_ROLL_BACKWARD ||
            action_state == (uint8_t)PF_M4_ACTION_SPOT_DODGE ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+           action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
            action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
            action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
            action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
@@ -2446,6 +2447,7 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
+           action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
@@ -4248,7 +4250,14 @@ pf_status pf_m4_step_player(
         scratch->grab_target_slot[player_index] == UINT8_C(0) &&
         scratch->grab_owner_slot[player_index] == UINT8_C(0))
     {
-        action_state = (uint8_t)PF_M4_ACTION_GRAB;
+        action_state =
+            boost_grab_pressed != 0 ||
+                    world->action_state[player_index] ==
+                        (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+                    world->action_state[player_index] ==
+                        (uint8_t)PF_M4_ACTION_RUN
+                ? (uint8_t)PF_M4_ACTION_DASH_GRAB
+                : (uint8_t)PF_M4_ACTION_GRAB;
         action_ticks = UINT16_C(0);
         scratch->attack_hit_mask[player_index] = UINT8_C(0);
         scratch->attack_stale_registered[player_index] = UINT8_C(0);
@@ -4743,6 +4752,7 @@ pf_status pf_m4_step_player(
     else if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
         (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+         action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
          action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
          action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
          action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
@@ -4754,12 +4764,21 @@ pf_status pf_m4_step_player(
             INT32_C(0),
             fighter->traction_q16);
         velocity_y = INT32_C(0);
-        if (action_state == (uint8_t)PF_M4_ACTION_GRAB)
+        if (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+            action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB)
         {
+            const int dash_grab =
+                action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB;
             const uint32_t grab_ticks =
-                (uint32_t)fighter->grab_startup_ticks +
-                (uint32_t)fighter->grab_active_ticks +
-                (uint32_t)fighter->grab_recovery_ticks;
+                (uint32_t)(dash_grab != 0
+                               ? fighter->dash_grab_startup_ticks
+                               : fighter->grab_startup_ticks) +
+                (uint32_t)(dash_grab != 0
+                               ? fighter->dash_grab_active_ticks
+                               : fighter->grab_active_ticks) +
+                (uint32_t)(dash_grab != 0
+                               ? fighter->dash_grab_recovery_ticks
+                               : fighter->grab_recovery_ticks);
 
             ++action_ticks;
             if ((uint32_t)action_ticks >= grab_ticks)

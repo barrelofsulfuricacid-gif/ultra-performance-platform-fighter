@@ -98,7 +98,8 @@ typedef struct pf_m4_reference_throw
     uint16_t base;
     uint8_t damage;
     uint8_t element;
-    uint8_t reserved[2];
+    uint16_t release_frame;
+    uint16_t reserved;
 } pf_m4_reference_throw;
 
 typedef struct pf_m4_reference_move

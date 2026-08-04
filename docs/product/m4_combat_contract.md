@@ -1110,20 +1110,21 @@ vulnerability boundary.
 ## Grab, capture, escape, and jump-canceled grab
 
 A fresh light-attack edge while a shield trigger is held selects the standing
-grab from idle, walk, crouch, shield, `RUN`, or `JUMP_SQUAT`. It does not select
-grab from `INITIAL_DASH` or an airborne action. A direct selection from `RUN`
-is the ordinary dash grab. The jump-canceled advanced route instead begins in
-initial dash, enters jump squat with jump, and selects grab on the next tick.
+grab from idle, walk, crouch start/step, teeter, shield, or `JUMP_SQUAT`.
+`INITIAL_DASH` and `RUN` select the distinct dash grab; airborne actions reject
+both. The jump-canceled advanced route begins in initial dash, enters jump
+squat with jump, and selects standing grab on the next tick.
 The standing grab preserves inherited horizontal velocity and applies normal
 traction, matching the documented
 [jump-canceled-grab](https://www.ssbwiki.com/Jump-canceled_grab) behavior of
 interrupting dash with jump and entering standing grab during jump startup.
-No technique-only input bit or action exists; direct initial-dash
-light-plus-shield and post-takeoff light-plus-shield are explicit negative
-routes.
+No technique-only input bit exists. Direct initial-dash light-plus-shield is
+the ordinary `DASH_GRAB` route; post-takeoff light-plus-shield remains the
+explicit negative route.
 
-The authored grab has four startup ticks, two active grabbox ticks, and ten
-recovery ticks. Capture is deterministic by controller port, bypasses shield,
+The imported Falcon standing grab has five startup ticks, two active grabbox
+ticks, and 22 recovery ticks. Dash grab has nine startup ticks, two active
+ticks, and 28 recovery ticks. Capture is deterministic by controller port, bypasses shield,
 rejects invulnerable or same-team targets, clears incompatible attack/reaction
 state, and links one attacker to one victim. `GRAB_HOLD` tethers the victim at
 the authored offset while `GRABBED` suppresses normal movement and attacks.
@@ -1136,11 +1137,11 @@ clears both reciprocal links, and gives both fighters eight ticks of
 
 The native oracle covers shielded and ordinary capture, exact active frames,
 natural and mash escape boundaries, invulnerable spot-dodge rejection,
-direct-initial-dash and airborne negatives, retained dash momentum, typed
-events, and
+direct initial-dash routing, the airborne negative, retained dash momentum,
+typed events, and
 mid-hold save/load with equal future hashes. Browser startup repeats the
 jump-cancel route and both negatives; browser view schema 18 retains the cyan
-grabbox, `GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
+grabbox, `GRAB`/`DASH GRAB`/`GRAB HOLD`/`GRABBED`/`GRAB RELEASE`, reciprocal owner/target
 links, and the victim's `MASH OUT · Nf` countdown.
 
 ## Jump-cancelling attack
@@ -1165,18 +1166,18 @@ readiness semantic without changing the 290-value view layout.
 ## Dash attack and boost grab
 
 A fresh light-attack edge from `RUN` enters the production `DASH_ATTACK` and
-sets horizontal velocity to the authored `7/20` unit-per-tick speed before
-ordinary fighter traction. Its independent forward hitbox deals 8%, has four
-startup ticks, three active ticks, 12 recovery ticks, and five hitlag ticks,
-and emits the ordinary typed `HIT` event with `DASH_ATTACK` in `detail`.
-Damage, signed launch, hitbox geometry, speed, phase durations, and hitlag are
-all hashed and validated fighter content rather than technique-only fixtures.
+sets horizontal velocity to the separately authored `7/20` unit-per-tick
+speed before ordinary fighter traction. Falcon's imported move table supplies
+six startup ticks, early 10% frames 7-12, late 7% frames 13-16, and 23 recovery
+ticks for a 39-frame action; damage, angle, knockback, and hitlag select the
+active source phase. The remaining rectangular geometry and movement speed are
+explicitly separate content, not claims extracted from the frame table.
 
 The documented [boost grab](https://www.ssbwiki.com/Boost_grab) route adds a
 fresh shield while the attack button remains held, or a fresh light attack
 while shield remains held, during stored action ticks 1–3. Those inputs are
 the second through fourth dash-attack frames: the initiation frame cannot
-cancel. The legal cancel enters the existing standing `GRAB` without replacing
+cancel. The legal cancel enters `DASH_GRAB` without replacing
 the dash-attack velocity, so the faster forward slide reaches a target that
 the ordinary run-to-grab route misses. Light plus shield together on the
 initial `RUN` tick selects the ordinary dash grab, not boost grab. Input after

@@ -47,7 +47,14 @@ source: 120,634 bytes with SHA-256
 
 The repository importer canonicalizes the geometry-free timing/effect view to
 SHA-256 `42bb4ecefb33e87dc978482ecdb7b1f93ff12ca090e870431fff913480601356`
-and rejects any other input. Its generated table retains every subaction,
+and rejects any other input. It also verifies the owner DAT JSON SHA-256
+`fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266`.
+That original action-script dump is required because the upstream converter
+labels opcode `0x14` as `reverseDirection`; the NTSC 1.02 decomp dispatches
+argument zero of that opcode to the throw-release flag. The importer decodes
+the command bytes and action-script waits directly, yielding exact normal
+throw release frames 18/20/15/20 for forward/back/up/down throw. Its generated
+table retains every subaction,
 total/IASA/charge/autocancel/landing frame, active phase, damage, angle, KBG,
 weight-set knockback, BKB, shield damage, interaction class, element, target
 kind, and throw effect. Extracted DAT files and bone-relative hitbox geometry
@@ -65,16 +72,28 @@ consumer. Its canonical source SHA-256 is folded into the M4 content hash, so
 changing a late phase or non-primary effect cannot retain a stale compatibility
 identity.
 
+Standing grab and dash grab are distinct production states. Their generated
+startup/active/recovery schedules are 5/2/22 and 9/2/28 respectively (active
+frames 6-7 and 10-11; total animations 29 and 39). Direct grabs from Dash or
+Run and the existing boost-grab cancel select dash grab; idle, walk, shield,
+crouch, and jump-squat routes select standing grab. No grab frame count is
+transcribed in the default fighter.
+
+All four production throws consume the imported damage, release frame, total
+animation duration, angle, KBG, weight-set knockback, and BKB. They use the
+shared integer Melee knockback calculation; custom content can explicitly
+disable semantic knockback and retain the original vector response. The
+source-defined collateral hitboxes on forward/back/up throw remain represented
+in the complete table but cannot yet hit bystanders through the single-target
+grab resolver.
+
 The semantic jab route remains explicitly selectable so original/custom
 content can retain its authored vector response without silently inheriting
 Falcon semantics. Other customized action records fall back when their timing
 or primary damage no longer identifies the generated default. The current
 single rectangular collision volume cannot choose among simultaneous
 bone-relative sweet and weak hitboxes, so a phase uses its first source-defined
-effect until transformed bone geometry is represented independently. Standing
-and dash grab also remain separate source records but need separate simulation
-states before either timing can be selected without a compromise; throw
-effects are imported but are not yet the production throw response.
+effect until transformed bone geometry is represented independently.
 
 ## Coordinate conversion
 

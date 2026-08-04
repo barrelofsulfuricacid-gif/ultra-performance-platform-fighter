@@ -1320,16 +1320,24 @@ int pf_m4_grabbox(
     int32_t *out_bottom_q16)
 {
     const pf_m4_fighter_data *fighter;
+    const int dash_grab =
+        action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB;
+    const uint16_t startup_ticks =
+        content == NULL
+            ? UINT16_C(0)
+            : (dash_grab != 0
+                   ? content->fighter.dash_grab_startup_ticks
+                   : content->fighter.grab_startup_ticks);
+    const uint16_t active_ticks =
+        content == NULL
+            ? UINT16_C(0)
+            : (dash_grab != 0
+                   ? content->fighter.dash_grab_active_ticks
+                   : content->fighter.grab_active_ticks);
     const uint16_t active_begin =
-        content != NULL
-            ? (uint16_t)(content->fighter.grab_startup_ticks +
-                         UINT16_C(1))
-            : UINT16_C(0);
+        (uint16_t)(startup_ticks + UINT16_C(1));
     const uint16_t active_end =
-        content != NULL
-            ? (uint16_t)(content->fighter.grab_startup_ticks +
-                         content->fighter.grab_active_ticks)
-            : UINT16_C(0);
+        (uint16_t)(startup_ticks + active_ticks);
     int64_t center_x;
     int64_t center_y;
 
@@ -1338,7 +1346,8 @@ int pf_m4_grabbox(
         out_right_q16 == NULL ||
         out_top_q16 == NULL ||
         out_bottom_q16 == NULL ||
-        action_state != (uint8_t)PF_M4_ACTION_GRAB ||
+        (action_state != (uint8_t)PF_M4_ACTION_GRAB &&
+         action_state != (uint8_t)PF_M4_ACTION_DASH_GRAB) ||
         action_ticks < active_begin ||
         action_ticks > active_end)
     {
@@ -2191,17 +2200,44 @@ static pf_status pf_m4_resolve_grabs(
                     pf_m4_saturating_damage(
                         scratch->damage_q16[target_index],
                         damage_q16);
-                const int32_t launch_velocity_x =
-                    (int32_t)scratch->facing[holder_index] *
-                    pf_m4_scaled_throw_velocity(
-                        throw_data->base_velocity_x_q16,
-                        throw_data->velocity_growth_x_q16,
-                        resulting_damage);
-                const int32_t launch_velocity_y =
-                    pf_m4_scaled_throw_velocity(
-                        throw_data->base_velocity_y_q16,
-                        throw_data->velocity_growth_y_q16,
-                        resulting_damage);
+                int32_t launch_velocity_x;
+                int32_t launch_velocity_y;
+                uint16_t resolved_hitlag_ticks =
+                    throw_data->hitlag_ticks;
+                uint16_t resolved_hitstun_ticks = UINT16_MAX;
+                int velocity_is_weighted = 0;
+
+                if (throw_data->melee_knockback.enabled != UINT8_C(0))
+                {
+                    const pf_m4_melee_knockback_result result =
+                        pf_m4_melee_knockback(
+                            &throw_data->melee_knockback,
+                            content->fighter.knockback_weight,
+                            damage_q16,
+                            resulting_damage);
+
+                    launch_velocity_x =
+                        (int32_t)scratch->facing[holder_index] *
+                        result.velocity_x_q16;
+                    launch_velocity_y = -result.velocity_y_q16;
+                    resolved_hitlag_ticks = result.hitlag_ticks;
+                    resolved_hitstun_ticks = result.hitstun_ticks;
+                    velocity_is_weighted = 1;
+                }
+                else
+                {
+                    launch_velocity_x =
+                        (int32_t)scratch->facing[holder_index] *
+                        pf_m4_scaled_throw_velocity(
+                            throw_data->base_velocity_x_q16,
+                            throw_data->velocity_growth_x_q16,
+                            resulting_damage);
+                    launch_velocity_y =
+                        pf_m4_scaled_throw_velocity(
+                            throw_data->base_velocity_y_q16,
+                            throw_data->velocity_growth_y_q16,
+                            resulting_damage);
+                }
 
                 pf_m4_clear_grab_links(
                     scratch,
@@ -2216,16 +2252,16 @@ static pf_status pf_m4_resolve_grabs(
                         damage_q16,
                         launch_velocity_x,
                         launch_velocity_y,
-                        throw_data->hitlag_ticks,
-                        UINT16_MAX,
-                        0,
+                        resolved_hitlag_ticks,
+                        resolved_hitstun_ticks,
+                        velocity_is_weighted,
                         PF_SIM_EVENT_THROW,
                         (uint16_t)holder_action) != PF_STATUS_OK)
                 {
                     return PF_STATUS_DETERMINISTIC_FAULT;
                 }
                 scratch->hitlag_ticks[holder_index] =
-                    throw_data->hitlag_ticks;
+                    resolved_hitlag_ticks;
                 scratch->hitlag_resume_action[holder_index] =
                     holder_action;
                 pf_m4_set_action_state(
@@ -2375,7 +2411,7 @@ static pf_status pf_m4_resolve_grabs(
                     INT32_C(0),
                     INT32_C(0),
                     UINT16_C(0),
-                    (uint16_t)PF_M4_ACTION_GRAB,
+                    (uint16_t)scratch->action_state[attacker_index],
                     NULL) != PF_STATUS_OK)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;

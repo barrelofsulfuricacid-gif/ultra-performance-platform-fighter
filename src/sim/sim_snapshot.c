@@ -2136,7 +2136,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->shield_recoil_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_CROUCH_END ||
+                action > (uint8_t)PF_M4_ACTION_DASH_GRAB ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2526,6 +2526,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   action ==
                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
                   action == (uint8_t)PF_M4_ACTION_GRAB ||
+                  action == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
                   action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
                   action == (uint8_t)PF_M4_ACTION_PUMMEL ||
                   action == (uint8_t)PF_M4_ACTION_GRABBED ||

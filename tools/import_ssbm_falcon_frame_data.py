@@ -21,6 +21,9 @@ SOURCE_DAT_SHA256 = (
 SOURCE_ANIMATION_DAT_SHA256 = (
     "a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a"
 )
+SOURCE_DAT_JSON_SHA256 = (
+    "fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266"
+)
 
 MOVE_KEYS = (
     "jab1", "jab2", "jab3", "rapidjabs_start", "rapidjabs_loop",
@@ -53,7 +56,46 @@ def u16(value: Any) -> int:
     return 0 if value is None else int(value)
 
 
-def generate(data: dict[str, Any]) -> str:
+def throw_release_frame(
+    dat_data: dict[str, Any], subaction_index: int, subaction_name: str
+) -> int:
+    """Read the release flag's exact action-script frame.
+
+    meleeDat2Json calls opcode 0x14 (encoded first byte 0x50)
+    ``reverseDirection``. The NTSC 1.02 decomp dispatches that opcode to
+    ftAction_800718A4: argument zero raises throw_flags_b3, which
+    ftCo_800DD724 consumes to release the victim. Argument one reverses
+    facing instead. Reading the encoded argument avoids relying on the
+    upstream display label.
+    """
+    subactions = dat_data["nodes"][0]["data"]["subactions"]
+    subaction = subactions[subaction_index]
+    if str(subaction["name"]) != subaction_name:
+        raise ValueError(f"subaction {subaction_index}: name mismatch")
+
+    frame = 0
+    releases: list[int] = []
+    for event in subaction.get("events", []):
+        command_id = int(str(event["commandId"]), 16)
+        fields = event.get("fields") or {}
+        if command_id == 0x08:
+            frame = int(fields["frame"])
+        elif command_id == 0x04:
+            frame += int(fields["frames"])
+        elif command_id == 0x50:
+            encoded = bytes.fromhex(str(event["bytes"]))
+            argument = int.from_bytes(encoded, "big") & ((1 << 26) - 1)
+            if argument == 0:
+                releases.append(frame)
+    if len(releases) != 1:
+        raise ValueError(
+            f"subaction {subaction_index}: expected one throw release, "
+            f"found {releases}"
+        )
+    return releases[0]
+
+
+def generate(data: dict[str, Any], dat_data: dict[str, Any]) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
     throws: list[dict[str, Any]] = []
@@ -85,7 +127,17 @@ def generate(data: dict[str, Any]) -> str:
         throw_index = 0xFFFF
         if "throw" in move:
             throw_index = len(throws)
-            throws.append(move["throw"])
+            throw = dict(move["throw"])
+            throw["releaseFrame"] = (
+                throw_release_frame(
+                    dat_data,
+                    int(move["subactionIndex"]),
+                    str(move["subactionName"]),
+                )
+                if key in {"fthrow", "bthrow", "uthrow", "dthrow"}
+                else 0
+            )
+            throws.append(throw)
         moves.append(
             {
                 "present": 1,
@@ -112,6 +164,7 @@ def generate(data: dict[str, Any]) -> str:
         f"/* DAT reader revision: {DAT_READER_REVISION} */",
         f"/* PlCa.dat SHA-256: {SOURCE_DAT_SHA256} */",
         f"/* PlCaAJ.dat SHA-256: {SOURCE_ANIMATION_DAT_SHA256} */",
+        f"/* PlCa.dat JSON SHA-256: {SOURCE_DAT_JSON_SHA256} */",
         "",
         "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
         "    " + ", ".join(
@@ -153,7 +206,8 @@ def generate(data: dict[str, Any]) -> str:
             f"UINT16_C({int(throw['baseKb'])}), "
             f"UINT8_C({int(throw['damage'])}), "
             f"UINT8_C({int(throw['element'])}), "
-            "{ UINT8_C(0), UINT8_C(0) } },"
+            f"UINT16_C({int(throw['releaseFrame'])}), "
+            "UINT16_C(0) },"
         )
     lines.extend(("};", "", "static const pf_m4_reference_move pf_m4_falcon_moves[PF_M4_FALCON_MOVE_COUNT] = {"))
     for move in moves:
@@ -178,15 +232,23 @@ def generate(data: dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", type=Path)
+    parser.add_argument("dat_source", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     data = json.loads(args.source.read_text(encoding="utf-8"))
+    dat_bytes = args.dat_source.read_bytes()
+    dat_digest = hashlib.sha256(dat_bytes).hexdigest()
+    if dat_digest != SOURCE_DAT_JSON_SHA256:
+        raise SystemExit(
+            f"unexpected Falcon DAT JSON SHA-256: {dat_digest}"
+        )
+    dat_data = json.loads(dat_bytes)
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(
             f"unexpected Falcon frame-data SHA-256: {digest}"
         )
-    output = generate(data)
+    output = generate(data, dat_data)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")
     print(
