@@ -3107,3 +3107,39 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the independently sampled 13-scenario profile workload passes with ten
   scenarios available. These local numbers are evidence for this build, not a
   canonical historical comparison because the compiler contract differs.
+
+## 2026-08-04 source-qualified standing and dash grab geometry
+
+- The full owner-extracted Falcon source remains the authority: all 50 schema
+  slots are validated, all 48 DAT-defined subactions are retained, and only
+  Falcon's genuinely absent mid-high/mid-low forward-smash variants are empty.
+  The production reference path does not synthesize missing timing or effects.
+- A new 1,933-row Dolphin 3.4.0 memory capture, SHA-256
+  `5a7ac3a35775b0352d48566d622860c846fa2907c4bef03f760080f2a18ba3e8`,
+  adds the live standing-grab and dash-grab routes. The generated geometry now
+  contains 121 frame rows and 250 spheres: standing grab has two spheres on
+  executable frames 7-8 and dash grab has three on frames 11-12.
+- Both attacks and grabs reuse one fixed-capacity source-sphere transform and
+  one bounds reducer. Grab narrow phase uses exact sphere-versus-capsule
+  intersection and rejects live Falcon hurt capsules whose source `grabbable`
+  bit is clear. The authored rectangle remains only the explicit custom-content
+  fallback.
+- Every isolated geometry route resets the opponent through the same short
+  action and settle sequence before capture, pinning the standing pose instead
+  of inheriting an arbitrary menu/match idle phase. An independent recapture
+  produced byte-identical converted numeric rows after the provenance comments;
+  unused raw float variation therefore does not enter the Q16.16 tables.
+- The generated include regenerates byte-for-byte with SHA-256
+  `fbfd5184ea7b67917d09ec125283ebba5228e383bd09f190fceaa1d3f1b652f9`.
+  The focused WSL combat verifier passes its 20,000-tick deterministic run and
+  all combat fixtures. Fresh Windows GCC and WSL GCC builds pass 20/20 and
+  22/22 configured tests respectively; the Emscripten web client and browser
+  adapter verifier pass as well. Native/Wasm replay output remains identical at
+  corpus/final/event SHA-256
+  `4f38617b574c30088ff374283918ddf5e89111d417d638bf164120908126caed`,
+  `34d2019a582d081cce10b8c7053909b8b5153d45cfe3d889f41bd7f135fc29ac`,
+  and `6a58ca0e2ef8dd3e08308d8b8d3085c22c73530400286013f305f2343f38bf87`.
+  The 13-scenario sampled workload passes with ten scenarios available. A
+  separate unsampled WSL run reports 992,316 single-world and 997,311 batched
+  ticks per second with identical state; these local compiler results are not
+  substituted for the repository's canonical performance history.

@@ -463,16 +463,16 @@ executable-oracle evidence is therefore 13,340 captured frames. Uncaptured
 pressure/time/spacing routes and the broader shared-simulation inventory remain
 active work.
 
-Falcon's complete attack-frame source is imported as a hash-pinned 50-slot
+Falcon's complete static attack-frame source is imported as a hash-pinned 50-slot
 schema with 48 concrete subactions; the only absent rows are the two angled
 forward-smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
 ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
 character-special subactions. No implemented Falcon-counterpart move may use a
 guessed timing or effect when this table contains it. The current executable
-geometry slice adds 117 active-frame rows and 240 independent transformed hit
-spheres for the 14 production normals/aerials, plus the 11-capsule grounded
-idle hurt pose. Animated hurt capsules for every other action,
-special/grab geometry, source-Z collision semantics, and exact sphere-versus-
+geometry slice adds 121 active-frame rows and 250 independent transformed hit
+spheres for the 14 production normals/aerials plus standing and dash grab, and
+the 11-capsule grounded-idle hurt pose. Animated hurt capsules for every other
+action, special geometry, source-Z collision semantics, and exact sphere-versus-
 shield intersection remain explicit M4 gaps and must be extracted or qualified
 rather than approximated with invented frame data.
 These captures qualify only their sampled routes and do not reduce the

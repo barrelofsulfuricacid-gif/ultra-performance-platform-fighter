@@ -1256,6 +1256,54 @@ static pf_status pf_m4_apply_shield_hit(
         NULL);
 }
 
+static uint8_t pf_m4_reference_hit_spheres_at_world(
+    pf_m4_falcon_move_index move_index,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint16_t action_ticks,
+    pf_m4_hit_sphere_inspection
+        out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY])
+{
+    const pf_m4_reference_hit_sphere *source;
+    uint8_t sphere_count;
+    uint8_t sphere_index;
+
+    if (out_spheres == NULL)
+    {
+        return UINT8_C(0);
+    }
+    source = pf_m4_falcon_reference_hit_spheres_at_frame(
+        move_index,
+        action_ticks,
+        &sphere_count);
+    if (source == NULL || sphere_count == UINT8_C(0) ||
+        sphere_count > UINT8_C(PF_M4_INSPECTION_HIT_SPHERE_CAPACITY))
+    {
+        return UINT8_C(0);
+    }
+    for (sphere_index = UINT8_C(0);
+         sphere_index < sphere_count;
+         ++sphere_index)
+    {
+        out_spheres[sphere_index].center_x_q16 =
+            position_x_q16 +
+            (int32_t)facing * source[sphere_index].offset_x_q16;
+        out_spheres[sphere_index].center_y_q16 =
+            position_y_q16 + source[sphere_index].offset_y_q16;
+        out_spheres[sphere_index].radius_q16 =
+            source[sphere_index].radius_q16;
+        out_spheres[sphere_index].effect_index =
+            source[sphere_index].effect_index;
+        out_spheres[sphere_index].hitbox_id =
+            source[sphere_index].hitbox_id;
+        out_spheres[sphere_index].group_id =
+            source[sphere_index].group_id;
+        out_spheres[sphere_index].reserved = UINT8_C(0);
+    }
+    return sphere_count;
+}
+
 static int pf_m4_falcon_geometry_move_for_attack(
     const pf_m4_content *content,
     uint8_t action_state,
@@ -1312,9 +1360,6 @@ uint8_t pf_m4_attack_hit_spheres(
         out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY])
 {
     pf_m4_falcon_move_index move_index;
-    const pf_m4_reference_hit_sphere *source;
-    uint8_t sphere_count;
-    uint8_t sphere_index;
 
     if (out_spheres == NULL ||
         !pf_m4_falcon_geometry_move_for_attack(
@@ -1324,35 +1369,72 @@ uint8_t pf_m4_attack_hit_spheres(
     {
         return UINT8_C(0);
     }
-    source = pf_m4_falcon_reference_hit_spheres_at_frame(
+    return pf_m4_reference_hit_spheres_at_world(
         move_index,
+        position_x_q16,
+        position_y_q16,
+        facing,
         action_ticks,
-        &sphere_count);
-    if (source == NULL || sphere_count == UINT8_C(0) ||
-        sphere_count > UINT8_C(PF_M4_INSPECTION_HIT_SPHERE_CAPACITY))
+        out_spheres);
+}
+
+static int pf_m4_hit_sphere_bounds(
+    const pf_m4_hit_sphere_inspection
+        spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY],
+    uint8_t sphere_count,
+    int32_t *out_left_q16,
+    int32_t *out_right_q16,
+    int32_t *out_top_q16,
+    int32_t *out_bottom_q16)
+{
+    uint8_t sphere_index;
+
+    if (spheres == NULL || sphere_count == UINT8_C(0) ||
+        sphere_count > UINT8_C(PF_M4_INSPECTION_HIT_SPHERE_CAPACITY) ||
+        out_left_q16 == NULL || out_right_q16 == NULL ||
+        out_top_q16 == NULL || out_bottom_q16 == NULL)
     {
-        return UINT8_C(0);
+        return 0;
     }
-    for (sphere_index = UINT8_C(0);
+    *out_left_q16 = spheres[0].center_x_q16 - spheres[0].radius_q16;
+    *out_right_q16 = spheres[0].center_x_q16 + spheres[0].radius_q16;
+    *out_top_q16 = spheres[0].center_y_q16 - spheres[0].radius_q16;
+    *out_bottom_q16 = spheres[0].center_y_q16 + spheres[0].radius_q16;
+    for (sphere_index = UINT8_C(1);
          sphere_index < sphere_count;
          ++sphere_index)
     {
-        out_spheres[sphere_index].center_x_q16 =
-            position_x_q16 +
-            (int32_t)facing * source[sphere_index].offset_x_q16;
-        out_spheres[sphere_index].center_y_q16 =
-            position_y_q16 + source[sphere_index].offset_y_q16;
-        out_spheres[sphere_index].radius_q16 =
-            source[sphere_index].radius_q16;
-        out_spheres[sphere_index].effect_index =
-            source[sphere_index].effect_index;
-        out_spheres[sphere_index].hitbox_id =
-            source[sphere_index].hitbox_id;
-        out_spheres[sphere_index].group_id =
-            source[sphere_index].group_id;
-        out_spheres[sphere_index].reserved = UINT8_C(0);
+        const int32_t left =
+            spheres[sphere_index].center_x_q16 -
+            spheres[sphere_index].radius_q16;
+        const int32_t right =
+            spheres[sphere_index].center_x_q16 +
+            spheres[sphere_index].radius_q16;
+        const int32_t top =
+            spheres[sphere_index].center_y_q16 -
+            spheres[sphere_index].radius_q16;
+        const int32_t bottom =
+            spheres[sphere_index].center_y_q16 +
+            spheres[sphere_index].radius_q16;
+
+        if (left < *out_left_q16)
+        {
+            *out_left_q16 = left;
+        }
+        if (right > *out_right_q16)
+        {
+            *out_right_q16 = right;
+        }
+        if (top < *out_top_q16)
+        {
+            *out_top_q16 = top;
+        }
+        if (bottom > *out_bottom_q16)
+        {
+            *out_bottom_q16 = bottom;
+        }
     }
-    return sphere_count;
+    return 1;
 }
 
 int pf_m4_attack_hitbox(
@@ -1372,7 +1454,6 @@ int pf_m4_attack_hitbox(
     pf_m4_hit_sphere_inspection
         spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
     uint8_t sphere_count;
-    uint8_t sphere_index;
     int64_t center_x;
     int64_t center_y;
 
@@ -1390,62 +1471,24 @@ int pf_m4_attack_hitbox(
             action_state,
             &geometry_move_index))
     {
-        (void)geometry_move_index;
-        sphere_count = pf_m4_attack_hit_spheres(
-            content,
+        sphere_count = pf_m4_reference_hit_spheres_at_world(
+            geometry_move_index,
             position_x_q16,
             position_y_q16,
             facing,
-            action_state,
             action_ticks,
             spheres);
         if (sphere_count == UINT8_C(0))
         {
             return 0;
         }
-        *out_left_q16 =
-            spheres[0].center_x_q16 - spheres[0].radius_q16;
-        *out_right_q16 =
-            spheres[0].center_x_q16 + spheres[0].radius_q16;
-        *out_top_q16 =
-            spheres[0].center_y_q16 - spheres[0].radius_q16;
-        *out_bottom_q16 =
-            spheres[0].center_y_q16 + spheres[0].radius_q16;
-        for (sphere_index = UINT8_C(1);
-             sphere_index < sphere_count;
-             ++sphere_index)
-        {
-            const int32_t left =
-                spheres[sphere_index].center_x_q16 -
-                spheres[sphere_index].radius_q16;
-            const int32_t right =
-                spheres[sphere_index].center_x_q16 +
-                spheres[sphere_index].radius_q16;
-            const int32_t top =
-                spheres[sphere_index].center_y_q16 -
-                spheres[sphere_index].radius_q16;
-            const int32_t bottom =
-                spheres[sphere_index].center_y_q16 +
-                spheres[sphere_index].radius_q16;
-
-            if (left < *out_left_q16)
-            {
-                *out_left_q16 = left;
-            }
-            if (right > *out_right_q16)
-            {
-                *out_right_q16 = right;
-            }
-            if (top < *out_top_q16)
-            {
-                *out_top_q16 = top;
-            }
-            if (bottom > *out_bottom_q16)
-            {
-                *out_bottom_q16 = bottom;
-            }
-        }
-        return 1;
+        return pf_m4_hit_sphere_bounds(
+            spheres,
+            sphere_count,
+            out_left_q16,
+            out_right_q16,
+            out_top_q16,
+            out_bottom_q16);
     }
 
     if (!pf_m4_attack_for_action(
@@ -1500,6 +1543,83 @@ static int pf_m4_event_is_physical_hit(pf_sim_event_type event_type)
            event_type == PF_SIM_EVENT_PROJECTILE_HIT;
 }
 
+static int pf_m4_falcon_geometry_move_for_grab(
+    const pf_m4_content *content,
+    uint8_t action_state,
+    pf_m4_falcon_move_index *out_move_index)
+{
+    pf_m4_falcon_move_index move_index;
+    pf_m4_reference_timing reference;
+    uint16_t startup_ticks;
+    uint16_t active_ticks;
+    uint16_t recovery_ticks;
+
+    if (content == NULL ||
+        content->fighter.reference_frame_data_enabled == UINT8_C(0))
+    {
+        return 0;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_GRAB)
+    {
+        move_index = PF_M4_FALCON_GRAB;
+        startup_ticks = content->fighter.grab_startup_ticks;
+        active_ticks = content->fighter.grab_active_ticks;
+        recovery_ticks = content->fighter.grab_recovery_ticks;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB)
+    {
+        move_index = PF_M4_FALCON_DASH_GRAB;
+        startup_ticks = content->fighter.dash_grab_startup_ticks;
+        active_ticks = content->fighter.dash_grab_active_ticks;
+        recovery_ticks = content->fighter.dash_grab_recovery_ticks;
+    }
+    else
+    {
+        return 0;
+    }
+    reference = pf_m4_falcon_reference_timing(move_index);
+    if (!pf_m4_falcon_reference_has_hit_geometry(move_index) ||
+        startup_ticks != reference.startup_ticks ||
+        active_ticks != reference.active_ticks ||
+        recovery_ticks != reference.recovery_ticks)
+    {
+        return 0;
+    }
+    if (out_move_index != NULL)
+    {
+        *out_move_index = move_index;
+    }
+    return 1;
+}
+
+static uint8_t pf_m4_grab_hit_spheres(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    pf_m4_hit_sphere_inspection
+        out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY])
+{
+    pf_m4_falcon_move_index move_index;
+
+    if (!pf_m4_falcon_geometry_move_for_grab(
+            content,
+            action_state,
+            &move_index))
+    {
+        return UINT8_C(0);
+    }
+    return pf_m4_reference_hit_spheres_at_world(
+        move_index,
+        position_x_q16,
+        position_y_q16,
+        facing,
+        action_ticks,
+        out_spheres);
+}
+
 int pf_m4_grabbox(
     const pf_m4_content *content,
     int32_t position_x_q16,
@@ -1513,6 +1633,10 @@ int pf_m4_grabbox(
     int32_t *out_bottom_q16)
 {
     const pf_m4_fighter_data *fighter;
+    pf_m4_falcon_move_index geometry_move_index;
+    pf_m4_hit_sphere_inspection
+        spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
+    uint8_t sphere_count;
     const int dash_grab =
         action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB;
     const uint16_t startup_ticks =
@@ -1540,9 +1664,32 @@ int pf_m4_grabbox(
         out_top_q16 == NULL ||
         out_bottom_q16 == NULL ||
         (action_state != (uint8_t)PF_M4_ACTION_GRAB &&
-         action_state != (uint8_t)PF_M4_ACTION_DASH_GRAB) ||
-        action_ticks < active_begin ||
-        action_ticks > active_end)
+         action_state != (uint8_t)PF_M4_ACTION_DASH_GRAB))
+    {
+        return 0;
+    }
+
+    if (pf_m4_falcon_geometry_move_for_grab(
+            content,
+            action_state,
+            &geometry_move_index))
+    {
+        sphere_count = pf_m4_reference_hit_spheres_at_world(
+            geometry_move_index,
+            position_x_q16,
+            position_y_q16,
+            facing,
+            action_ticks,
+            spheres);
+        return pf_m4_hit_sphere_bounds(
+            spheres,
+            sphere_count,
+            out_left_q16,
+            out_right_q16,
+            out_top_q16,
+            out_bottom_q16);
+    }
+    if (action_ticks < active_begin || action_ticks > active_end)
     {
         return 0;
     }
@@ -1942,6 +2089,85 @@ static int pf_m4_hitbox_overlaps_player_or_shield(
                hitbox_bottom_q16);
 }
 
+static int pf_m4_hit_sphere_overlaps_reference_standing(
+    const pf_sim_scratch *scratch,
+    uint32_t target_index,
+    const pf_m4_hit_sphere_inspection *sphere,
+    int grabbable_only)
+{
+    const pf_m4_reference_hurt_capsule *capsules;
+    uint8_t capsule_count;
+    uint8_t capsule_index;
+
+    capsules = pf_m4_falcon_reference_standing_hurt_capsules(
+        &capsule_count);
+    for (capsule_index = UINT8_C(0);
+         capsule_index < capsule_count;
+         ++capsule_index)
+    {
+        const pf_m4_world_hurt_capsule capsule =
+            pf_m4_world_hurt_capsule_from_reference(
+                scratch,
+                target_index,
+                &capsules[capsule_index]);
+        const int64_t segment_x =
+            capsule.endpoint_b_x_q16 - capsule.endpoint_a_x_q16;
+        const int64_t segment_y =
+            capsule.endpoint_b_y_q16 - capsule.endpoint_a_y_q16;
+        const int64_t sphere_from_a_x =
+            (int64_t)sphere->center_x_q16 -
+            capsule.endpoint_a_x_q16;
+        const int64_t sphere_from_a_y =
+            (int64_t)sphere->center_y_q16 -
+            capsule.endpoint_a_y_q16;
+        const int64_t segment_length_squared =
+            segment_x * segment_x + segment_y * segment_y;
+        int64_t projection =
+            sphere_from_a_x * segment_x +
+            sphere_from_a_y * segment_y;
+        int64_t nearest_x;
+        int64_t nearest_y;
+        int64_t delta_x;
+        int64_t delta_y;
+        const int64_t combined_radius =
+            (int64_t)sphere->radius_q16 + capsule.radius_q16;
+
+        if (grabbable_only != 0 &&
+            capsules[capsule_index].grabbable == UINT8_C(0))
+        {
+            continue;
+        }
+        if (projection < INT64_C(0))
+        {
+            projection = INT64_C(0);
+        }
+        else if (projection > segment_length_squared)
+        {
+            projection = segment_length_squared;
+        }
+        if (segment_length_squared == INT64_C(0))
+        {
+            nearest_x = capsule.endpoint_a_x_q16;
+            nearest_y = capsule.endpoint_a_y_q16;
+        }
+        else
+        {
+            nearest_x = capsule.endpoint_a_x_q16 +
+                segment_x * projection / segment_length_squared;
+            nearest_y = capsule.endpoint_a_y_q16 +
+                segment_y * projection / segment_length_squared;
+        }
+        delta_x = (int64_t)sphere->center_x_q16 - nearest_x;
+        delta_y = (int64_t)sphere->center_y_q16 - nearest_y;
+        if (delta_x * delta_x + delta_y * delta_y <=
+            combined_radius * combined_radius)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int pf_m4_hit_sphere_overlaps_player(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
@@ -1953,73 +2179,11 @@ static int pf_m4_hit_sphere_overlaps_player(
             scratch,
             target_index))
     {
-        const pf_m4_reference_hurt_capsule *capsules;
-        uint8_t capsule_count;
-        uint8_t capsule_index;
-
-        capsules = pf_m4_falcon_reference_standing_hurt_capsules(
-            &capsule_count);
-        for (capsule_index = UINT8_C(0);
-             capsule_index < capsule_count;
-             ++capsule_index)
-        {
-            const pf_m4_world_hurt_capsule capsule =
-                pf_m4_world_hurt_capsule_from_reference(
-                    scratch,
-                    target_index,
-                    &capsules[capsule_index]);
-            const int64_t segment_x =
-                capsule.endpoint_b_x_q16 - capsule.endpoint_a_x_q16;
-            const int64_t segment_y =
-                capsule.endpoint_b_y_q16 - capsule.endpoint_a_y_q16;
-            const int64_t sphere_from_a_x =
-                (int64_t)sphere->center_x_q16 -
-                capsule.endpoint_a_x_q16;
-            const int64_t sphere_from_a_y =
-                (int64_t)sphere->center_y_q16 -
-                capsule.endpoint_a_y_q16;
-            const int64_t segment_length_squared =
-                segment_x * segment_x + segment_y * segment_y;
-            int64_t projection =
-                sphere_from_a_x * segment_x +
-                sphere_from_a_y * segment_y;
-            int64_t nearest_x;
-            int64_t nearest_y;
-            int64_t delta_x;
-            int64_t delta_y;
-            const int64_t combined_radius =
-                (int64_t)sphere->radius_q16 +
-                capsule.radius_q16;
-
-            if (projection < INT64_C(0))
-            {
-                projection = INT64_C(0);
-            }
-            else if (projection > segment_length_squared)
-            {
-                projection = segment_length_squared;
-            }
-            if (segment_length_squared == INT64_C(0))
-            {
-                nearest_x = capsule.endpoint_a_x_q16;
-                nearest_y = capsule.endpoint_a_y_q16;
-            }
-            else
-            {
-                nearest_x = capsule.endpoint_a_x_q16 +
-                    segment_x * projection / segment_length_squared;
-                nearest_y = capsule.endpoint_a_y_q16 +
-                    segment_y * projection / segment_length_squared;
-            }
-            delta_x = (int64_t)sphere->center_x_q16 - nearest_x;
-            delta_y = (int64_t)sphere->center_y_q16 - nearest_y;
-            if (delta_x * delta_x + delta_y * delta_y <=
-                combined_radius * combined_radius)
-            {
-                return 1;
-            }
-        }
-        return 0;
+        return pf_m4_hit_sphere_overlaps_reference_standing(
+            scratch,
+            target_index,
+            sphere,
+            0);
     }
     const int32_t hurtbox_left =
         scratch->position_x_q16[target_index] -
@@ -2053,6 +2217,30 @@ static int pf_m4_hit_sphere_overlaps_player(
     return delta_x * delta_x + delta_y * delta_y <=
            (int64_t)sphere->radius_q16 *
                (int64_t)sphere->radius_q16;
+}
+
+static int pf_m4_grab_sphere_overlaps_player(
+    const pf_m4_fighter_data *fighter,
+    const pf_sim_scratch *scratch,
+    uint32_t target_index,
+    const pf_m4_hit_sphere_inspection *sphere)
+{
+    if (pf_m4_use_reference_standing_hurt_pose(
+            fighter,
+            scratch,
+            target_index))
+    {
+        return pf_m4_hit_sphere_overlaps_reference_standing(
+            scratch,
+            target_index,
+            sphere,
+            1);
+    }
+    return pf_m4_hit_sphere_overlaps_player(
+        fighter,
+        scratch,
+        target_index,
+        sphere);
 }
 
 static int pf_m4_hit_sphere_overlaps_shield(
@@ -2704,22 +2892,50 @@ static pf_status pf_m4_resolve_grabs(
         int32_t grabbox_right;
         int32_t grabbox_top;
         int32_t grabbox_bottom;
+        pf_m4_falcon_move_index geometry_move_index;
+        pf_m4_hit_sphere_inspection
+            grab_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
+        uint8_t grab_sphere_count = UINT8_C(0);
+        const int reference_grab_geometry =
+            pf_m4_falcon_geometry_move_for_grab(
+                content,
+                scratch->action_state[attacker_index],
+                &geometry_move_index);
         uint32_t target_index;
 
         if (scratch->active[attacker_index] == UINT8_C(0) ||
             scratch->grab_target_slot[attacker_index] != UINT8_C(0) ||
-            scratch->grab_owner_slot[attacker_index] != UINT8_C(0) ||
-            !pf_m4_grabbox(
+            scratch->grab_owner_slot[attacker_index] != UINT8_C(0))
+        {
+            continue;
+        }
+        if (reference_grab_geometry != 0)
+        {
+            (void)geometry_move_index;
+            grab_sphere_count = pf_m4_grab_hit_spheres(
                 content,
                 scratch->position_x_q16[attacker_index],
                 scratch->position_y_q16[attacker_index],
                 scratch->facing[attacker_index],
                 scratch->action_state[attacker_index],
                 scratch->action_ticks[attacker_index],
-                &grabbox_left,
-                &grabbox_right,
-                &grabbox_top,
-                &grabbox_bottom))
+                grab_spheres);
+            if (grab_sphere_count == UINT8_C(0))
+            {
+                continue;
+            }
+        }
+        else if (!pf_m4_grabbox(
+                     content,
+                     scratch->position_x_q16[attacker_index],
+                     scratch->position_y_q16[attacker_index],
+                     scratch->facing[attacker_index],
+                     scratch->action_state[attacker_index],
+                     scratch->action_ticks[attacker_index],
+                     &grabbox_left,
+                     &grabbox_right,
+                     &grabbox_top,
+                     &grabbox_bottom))
         {
             continue;
         }
@@ -2746,15 +2962,42 @@ static pf_status pf_m4_resolve_grabs(
                     scratch->facing[target_index]) ||
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[attacker_index] ==
-                     world->team[target_index]) ||
-                !pf_m4_hitbox_overlaps_player(
-                    &content->fighter,
-                    scratch,
-                    target_index,
-                    grabbox_left,
-                    grabbox_right,
-                    grabbox_top,
-                    grabbox_bottom))
+                     world->team[target_index]))
+            {
+                continue;
+            }
+            if (reference_grab_geometry != 0)
+            {
+                uint8_t sphere_index;
+                int overlaps_target = 0;
+
+                for (sphere_index = UINT8_C(0);
+                     sphere_index < grab_sphere_count;
+                     ++sphere_index)
+                {
+                    if (pf_m4_grab_sphere_overlaps_player(
+                            &content->fighter,
+                            scratch,
+                            target_index,
+                            &grab_spheres[sphere_index]))
+                    {
+                        overlaps_target = 1;
+                        break;
+                    }
+                }
+                if (overlaps_target == 0)
+                {
+                    continue;
+                }
+            }
+            else if (!pf_m4_hitbox_overlaps_player(
+                         &content->fighter,
+                         scratch,
+                         target_index,
+                         grabbox_left,
+                         grabbox_right,
+                         grabbox_top,
+                         grabbox_bottom))
             {
                 continue;
             }

@@ -20,7 +20,7 @@ EXPECTED_FULL_SOURCE_SHA256 = (
     "287d53686aedb7469e455600cd749001b2f1a04081158236f26b1fae205f6dde"
 )
 EXPECTED_CAPTURE_SHA256 = (
-    "89fe5aa11ae96a63ba558fff097b59931b24682d013bbc0bc96a59e53bfb6dcc"
+    "5a7ac3a35775b0352d48566d622860c846fa2907c4bef03f760080f2a18ba3e8"
 )
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
@@ -39,6 +39,8 @@ ACTION_BY_MOVE = {
     "fsmash_m": "FSMASH_MID",
     "usmash": "UPSMASH",
     "dsmash": "DOWNSMASH",
+    "grab": "GRAB",
+    "dashgrab": "GRAB_RUNNING",
     "nair": "NAIR",
     "fair": "FAIR",
     "bair": "BAIR",
@@ -53,9 +55,11 @@ ACTION_BY_MOVE = {
 # frame 14. Every other routed move matches the static active-frame set.
 EXECUTABLE_ACTIVE_FRAMES = {
     "jab2": frozenset({5, 6, 7}),
+    "grab": frozenset({7, 8}),
+    "dashgrab": frozenset({11, 12}),
     "uair": frozenset(range(6, 14)),
 }
-SOURCE_FRAME_OFFSET = {"jab2": -1}
+SOURCE_FRAME_OFFSET = {"jab2": -1, "grab": -1, "dashgrab": -1}
 
 
 def file_sha256(path: Path) -> str:
@@ -154,6 +158,7 @@ def generate(
         if row.get("action") == "FTILT_MID"
         and float(row.get("action_frame", 0.0)) == 9.0
         and row.get("opponent_action") == "STANDING"
+        and float(row.get("opponent_action_frame", 0.0)) == 18.0
         and int(row.get("opponent_facing", 0)) == -1
     ]
     if len(standing_rows) != 1:
@@ -409,7 +414,7 @@ def generate(
         (
             "};",
             "",
-            "/* Opponent Stand pose 36, collision-evaluated during Ftilt frame 9. */",
+            "/* Opponent Stand pose 18, collision-evaluated during Ftilt frame 9. */",
             "static const pf_m4_reference_hurt_capsule",
             "pf_m4_falcon_standing_hurt_capsules[] = {",
         )

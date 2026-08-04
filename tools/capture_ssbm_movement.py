@@ -164,7 +164,17 @@ def input_trace(
             starter: list[dict[str, object]],
             recovery_padding: int = 40,
         ) -> None:
-            repeat(f"hitbox_geometry_{move}_settle", 30)
+            # Reset the remote Falcon's idle animation phase without moving
+            # either fighter. Its 21-frame Jab 1 completes inside this fixed
+            # settle window, making every later hurt-capsule pose independent
+            # of nondeterministic menu-entry timing.
+            trace.append(
+                command(
+                    f"hitbox_geometry_{move}_opponent_pose_reset",
+                    opponent_attack=True,
+                )
+            )
+            repeat(f"hitbox_geometry_{move}_settle", 29)
             trace.extend(starter)
             repeat(
                 f"hitbox_geometry_{move}_observe",
@@ -226,6 +236,24 @@ def input_trace(
         isolated_route(
             "dsmash",
             [command("hitbox_geometry_dsmash_start", c_y=0.0)],
+        )
+        isolated_route(
+            "grab",
+            [command("hitbox_geometry_grab_start", grab=True)],
+        )
+        isolated_route(
+            "dashgrab",
+            [
+                command("hitbox_geometry_dashgrab_dash", main_x=1.0),
+                command("hitbox_geometry_dashgrab_hold", main_x=1.0),
+                command("hitbox_geometry_dashgrab_hold", main_x=1.0),
+                command("hitbox_geometry_dashgrab_hold", main_x=1.0),
+                command(
+                    "hitbox_geometry_dashgrab_start",
+                    main_x=1.0,
+                    grab=True,
+                ),
+            ],
         )
 
         def aerial_starter(move: str, **attack_input: object) -> None:

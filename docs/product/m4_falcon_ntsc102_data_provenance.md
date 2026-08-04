@@ -139,11 +139,12 @@ or primary damage no longer identifies the generated default.
 
 The complete 50-slot frame-data table above is distinct from animated spatial
 geometry. For every normal and aerial currently routed by production combat,
+plus standing and dash grab,
 an identical-input Dolphin 3.4.0 capture reads the live transformed attack
 spheres from the owner's `GALE01` NTSC 1.02 executable. The disc SHA-256 is
 `0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464`;
-the 1,719-row capture SHA-256 is
-`89fe5aa11ae96a63ba558fff097b59931b24682d013bbc0bc96a59e53bfb6dcc`.
+the 1,933-row capture SHA-256 is
+`5a7ac3a35775b0352d48566d622860c846fa2907c4bef03f760080f2a18ba3e8`.
 The memory layout and transforms were checked against `doldecomp/melee`
 revision `9509dc04406fb2028bfab01243841ba4787c0fb7`. The capture records the
 active `ftHit` spheres and converts each bone-relative point through the live
@@ -154,26 +155,36 @@ an unrelated effect row.
 
 `tools/import_ssbm_falcon_hit_geometry.py` converts that evidence into
 `generated/data/m4_falcon_ntsc102_hit_geometry.inc`. The compact table contains
-117 per-frame rows and 240 spheres for jab 1, jab 2, dash attack, forward/up/down
-tilt, forward/up/down smash, and all five aerials. Lookup is a move-indexed
+121 per-frame rows and 250 spheres for jab 1, jab 2, dash attack, forward/up/down
+tilt, forward/up/down smash, all five aerials, standing grab, and dash grab.
+Lookup is a move-indexed
 offset plus one frame-indexed row; collision uses fixed-capacity stack storage
 and performs no allocation. All simultaneous spheres remain independent, so
 sweet and weak hitboxes select their own generated effect. Jab 2's displayed
 frames 5-7 and up aerial's displayed frames 6-13 follow the live executable
 capture where its post-pose collision state differs from the static
-action-script boundary.
+action-script boundary. Standing grab's two spheres are live on executable
+frames 7-8; dash grab's three spheres are live on frames 11-12. Grab collision
+uses the same fixed-capacity sphere path as attacks and considers only source
+hurt capsules whose live `grabbable` flag is set.
 
 The same capture reads Falcon's 11 live `FighterHurtCapsule` records from
 `fighter+0x11a0` with stride `0x4c`. Production currently uses the
-collision-evaluated standing pose for grounded idle targets and exact 2D
+phase-pinned Stand frame-18 pose for grounded idle targets and exact 2D
 circle-versus-capsule intersection. Other target actions still use the
-project's rectangular hurt volume; special/grab attack geometry has not yet
+project's rectangular hurt volume; special attack geometry has not yet
 been captured; the retained source Z coordinate is not yet part of the 2D
 collision decision; and attack-sphere versus shield uses the sphere's AABB
 against the source-derived shield ellipse. These are active fidelity gaps, not
 values to be filled by guessed frame data. Custom authored content may opt out
 of the reference geometry explicitly; default Falcon-counterpart content opts
-in and cannot silently use the old rectangle for any of the 14 covered moves.
+in and cannot silently use the old rectangle for any of the 16 covered moves.
+
+An independent recapture produced a different raw JSON hash because unused
+single-precision memory samples vary below the retained fixed-point precision.
+After conversion, every numeric table row was byte-identical to the pinned
+capture (apart from the provenance hash comment), bounding that recapture
+difference to discarded/Q16.16-level data rather than gameplay geometry.
 
 ## Coordinate conversion
 
