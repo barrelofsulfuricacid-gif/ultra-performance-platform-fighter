@@ -626,6 +626,8 @@ static void pf_m4_hash_fighter(
             hash,
             fighter->stale_move_slot_reduction_q16[stale_index]);
     }
+    pf_m4_hash_u16(hash, fighter->crouch_start_ticks);
+    pf_m4_hash_u16(hash, fighter->crouch_end_ticks);
 }
 
 static void pf_m4_hash_stage(
@@ -1481,6 +1483,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->stale_move_slot_reduction_q16[6] = UINT16_C(1536);
     fighter->stale_move_slot_reduction_q16[7] = UINT16_C(1024);
     fighter->stale_move_slot_reduction_q16[8] = UINT16_C(512);
+    /* GALE01 Captain Falcon Squat and SquatRv animation lengths. */
+    fighter->crouch_start_ticks = UINT16_C(7);
+    fighter->crouch_end_ticks = UINT16_C(10);
 
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
@@ -2310,6 +2315,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->teeter_ticks > UINT16_C(120) ||
         fighter->crouch_step_ticks == UINT16_C(0) ||
         fighter->crouch_step_ticks > UINT16_C(30) ||
+        fighter->crouch_start_ticks == UINT16_C(0) ||
+        fighter->crouch_start_ticks > UINT16_C(120) ||
+        fighter->crouch_end_ticks == UINT16_C(0) ||
+        fighter->crouch_end_ticks > UINT16_C(120) ||
         fighter->taunt_ticks == UINT16_C(0) ||
         fighter->taunt_ticks > UINT16_C(600) ||
         fighter->forward_smash_input_window_ticks == UINT16_C(0) ||

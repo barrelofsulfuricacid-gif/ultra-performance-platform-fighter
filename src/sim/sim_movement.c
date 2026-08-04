@@ -2266,6 +2266,7 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
     return action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
            action_state == (uint8_t)PF_M4_ACTION_TEETER ||
@@ -2279,6 +2280,7 @@ static int pf_m4_action_can_start_taunt(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
            action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_BRAKE ||
@@ -2668,7 +2670,9 @@ static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
            action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
            action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE;
 }
@@ -5272,10 +5276,82 @@ pf_status pf_m4_step_player(
     }
     else if (!ledge_motion_handled &&
              grounded != UINT8_C(0) &&
+             action_state ==
+                 (uint8_t)PF_M4_ACTION_CROUCH_START)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            velocity_x > fighter->walk_speed_q16 ||
+                    velocity_x < -fighter->walk_speed_q16
+                ? fighter->turn_acceleration_q16
+                : fighter->traction_q16);
+        if (action_ticks >= fighter->crouch_start_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH;
+            action_ticks = UINT16_C(1);
+        }
+        else
+        {
+            ++action_ticks;
+        }
+    }
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
+             action_state == (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            velocity_x > fighter->walk_speed_q16 ||
+                    velocity_x < -fighter->walk_speed_q16
+                ? fighter->turn_acceleration_q16
+                : fighter->traction_q16);
+        if (input->main_stick_y <
+            (int16_t)fighter->crouch_axis_threshold)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH_END;
+            action_ticks = UINT16_C(1);
+        }
+        else if (action_ticks < UINT16_C(600))
+        {
+            ++action_ticks;
+        }
+    }
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
+             action_state ==
+                 (uint8_t)PF_M4_ACTION_CROUCH_END)
+    {
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            velocity_x > fighter->walk_speed_q16 ||
+                    velocity_x < -fighter->walk_speed_q16
+                ? fighter->turn_acceleration_q16
+                : fighter->traction_q16);
+        if (action_ticks >= fighter->crouch_end_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+        }
+        else
+        {
+            ++action_ticks;
+        }
+    }
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
              action_state !=
                  (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
              action_state !=
                  (uint8_t)PF_M4_ACTION_STANDING_TURN &&
+             action_state !=
+                 (uint8_t)PF_M4_ACTION_CROUCH_START &&
+             action_state !=
+                 (uint8_t)PF_M4_ACTION_CROUCH &&
+             action_state !=
+                 (uint8_t)PF_M4_ACTION_CROUCH_END &&
              input->main_stick_y >=
                  (int16_t)fighter->crouch_axis_threshold &&
              !pf_m4_is_moonwalk_lower_sweep(
@@ -5298,8 +5374,8 @@ pf_status pf_m4_step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_RUN)
         {
-            action_state = (uint8_t)PF_M4_ACTION_CROUCH;
-            action_ticks = UINT16_C(0);
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH_START;
+            action_ticks = UINT16_C(1);
             velocity_x = pf_m4_approach(
                 velocity_x,
                 INT32_C(0),
@@ -5308,8 +5384,8 @@ pf_status pf_m4_step_player(
         }
         else
         {
-            action_state = (uint8_t)PF_M4_ACTION_CROUCH;
-            action_ticks = UINT16_C(0);
+            action_state = (uint8_t)PF_M4_ACTION_CROUCH_START;
+            action_ticks = UINT16_C(1);
             velocity_x = pf_m4_approach(
                 velocity_x,
                 INT32_C(0),

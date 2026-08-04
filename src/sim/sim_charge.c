@@ -9,7 +9,9 @@ static int pf_m4_charge_action_can_start(
             action_state == (uint8_t)PF_M4_ACTION_WALK ||
             action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
             action_state == (uint8_t)PF_M4_ACTION_RUN ||
-            action_state == (uint8_t)PF_M4_ACTION_CROUCH);
+            action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
+            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+            action_state == (uint8_t)PF_M4_ACTION_CROUCH_END);
 }
 
 void pf_m4_prepare_charge_input(

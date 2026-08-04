@@ -114,10 +114,18 @@ to the simulation.
   acceleration only. It does not change facing. Facing is inherited at
   takeoff and can change only through an explicit action transition, never
   from ordinary aerial drift.
-- Down on the floor enters crouch. Down on a pass-through platform starts the
-  data-defined nine-tick pass-through window. The drop tick applies only the
-  authored nudge and ordinary gravity; it cannot also trigger fast fall.
-  Subsequent down input may fast-fall normally.
+- Down on the floor enters `CROUCH START` at displayed action tick 1. Falcon's
+  authored entry lasts through tick 7; continued down then enters held
+  `CROUCH` at tick 1. Releasing down from the held state enters `CROUCH END` at
+  tick 1, remains there through tick 10, then returns to ground idle on the
+  following tick. `CROUCH START` and held `CROUCH` are crouch-cancel eligible;
+  `CROUCH END` is not. These timings and transitions match the pinned GALE01
+  executable trace. Analog threshold hysteresis and every interrupt route
+  remain part of the broader executable-oracle gate.
+- Down on a pass-through platform starts the data-defined nine-tick
+  pass-through window. The drop tick applies only the authored nudge and
+  ordinary gravity; it cannot also trigger fast fall. Subsequent down input may
+  fast-fall normally.
 
 ## Jump rule
 

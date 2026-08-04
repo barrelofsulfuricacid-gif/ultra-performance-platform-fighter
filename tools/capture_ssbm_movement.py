@@ -263,6 +263,14 @@ def input_trace() -> list[dict[str, object]]:
     repeat("rise_before_fast_fall", 35)
     repeat("fast_fall_down_press", 4, main_y=0.0)
     repeat("fast_fall_landing", 65)
+
+    # Basic grounded vertical-stick transitions are part of ordinary movement,
+    # and must retain Melee's authored squat-start/hold/release sequencing.
+    # Keep the stick fully down long enough to observe the complete entry and
+    # held states, then release to neutral through the complete exit state.
+    repeat("settle_before_crouch", 20)
+    repeat("crouch_hold", 30, main_y=0.0)
+    repeat("crouch_release", 20)
     return trace
 
 

@@ -1624,6 +1624,12 @@ static int pf_m4_snapshot_content_state_consistent(
               world->velocity_x_q16[player_index] != INT32_C(0))) ||
             (action == (uint8_t)PF_M4_ACTION_CROUCH_STEP &&
              action_ticks >= content->fighter.crouch_step_ticks) ||
+            (action == (uint8_t)PF_M4_ACTION_CROUCH_START &&
+             (action_ticks == UINT16_C(0) ||
+              action_ticks > content->fighter.crouch_start_ticks)) ||
+            (action == (uint8_t)PF_M4_ACTION_CROUCH_END &&
+             (action_ticks == UINT16_C(0) ||
+              action_ticks > content->fighter.crouch_end_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_TAUNT &&
              action_ticks >= content->fighter.taunt_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
@@ -2100,7 +2106,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+                action > (uint8_t)PF_M4_ACTION_CROUCH_END ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks

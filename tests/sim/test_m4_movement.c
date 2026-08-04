@@ -2136,6 +2136,7 @@ static int run_content_contract_test(
     pf_m4_content dash_window_tuned_content = *default_content;
     pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
+    pf_m4_content crouch_tuned_content = *default_content;
     pf_m4_content crouch_step_tuned_content = *default_content;
     pf_m4_content taunt_tuned_content = *default_content;
     pf_m4_content tuned_content = *default_content;
@@ -2144,6 +2145,7 @@ static int run_content_contract_test(
     pf_content_view dash_window_tuned_view;
     pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
+    pf_content_view crouch_tuned_view;
     pf_content_view crouch_step_tuned_view;
     pf_content_view taunt_tuned_view;
     pf_content_view tuned_view;
@@ -2346,6 +2348,44 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=teeter-content-hash\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.crouch_start_ticks = UINT16_C(0);
+    if (default_content->fighter.crouch_start_ticks != UINT16_C(7) ||
+        default_content->fighter.crouch_end_ticks != UINT16_C(10) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-crouch-start-duration"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.crouch_end_ticks = UINT16_C(121);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-long-crouch-end-duration"))
+    {
+        return 0;
+    }
+    crouch_tuned_content.fighter.crouch_start_ticks = UINT16_C(8);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &crouch_tuned_content,
+                &crouch_tuned_view),
+            PF_STATUS_OK,
+            "crouch-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            crouch_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-content-hash\n");
         return 0;
     }
 
@@ -3018,12 +3058,91 @@ static int run_ground_control_test(
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_CROUCH ||
+            (uint8_t)PF_M4_ACTION_CROUCH_START ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
         inspection.players[0].grounded != UINT8_C(1))
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=crouch\n");
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_start_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_MAX,
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_CROUCH_START ||
+            inspection.players[0].action_ticks != (uint16_t)tick)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=crouch-start-duration\n");
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_MAX,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        inspection.players[0].action_ticks != UINT16_C(1) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_END ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-release-entry\n");
+        return 0;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_end_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_CROUCH_END ||
+            inspection.players[0].action_ticks != (uint16_t)tick)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=crouch-end-duration\n");
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-end-exit\n");
         return 0;
     }
     return 1;
@@ -5233,8 +5352,8 @@ static int run_dash_cancel_test(
             UINT64_C(0),
             &source_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_CROUCH ||
-        source_inspection.players[0].action_ticks != UINT16_C(0) ||
+            (uint8_t)PF_M4_ACTION_CROUCH_START ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
         source_inspection.players[0].dash_direction != INT8_C(0) ||
         source_inspection.players[0].facing != INT8_C(1) ||
         source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
@@ -5248,13 +5367,16 @@ static int run_dash_cancel_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=dash-cancel-crouch"
-            " action=%u ticks=%u facing=%d velocity_x=%" PRId32
-            " run_velocity=%" PRId32 "\n",
+            " action=%u ticks=%u dash_direction=%d facing=%d"
+            " velocity_x=%" PRId32 " run_velocity=%" PRId32
+            " save_size=%zu\n",
             (unsigned int)source_inspection.players[0].action_state,
             (unsigned int)source_inspection.players[0].action_ticks,
+            (int)source_inspection.players[0].dash_direction,
             (int)source_inspection.players[0].facing,
             source_inspection.players[0].velocity_x_q16,
-            run_velocity);
+            run_velocity,
+            save_size);
         return 0;
     }
     crouch_velocity = source_inspection.players[0].velocity_x_q16;

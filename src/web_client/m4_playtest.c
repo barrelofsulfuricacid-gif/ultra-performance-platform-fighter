@@ -1118,7 +1118,7 @@ static int pf_web_m4_run_dash_cancel_probe(void)
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_CROUCH ||
+            (uint8_t)PF_M4_ACTION_CROUCH_START ||
         inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         inspection.players[0].velocity_x_q16 >= run_velocity ||
         !pf_web_m4_tick(
@@ -2024,6 +2024,8 @@ static int16_t pf_web_m4_sharking_axis(
 static int pf_web_m4_prepare_sharking_target(
     pf_m4_inspection *out_inspection)
 {
+    const int32_t target_distance_q16 =
+        PF_Q16_ONE / INT32_C(2);
     uint32_t tick;
 
     if (!pf_web_m4_prepare_drop_cancel_platform(out_inspection) ||
@@ -2075,7 +2077,7 @@ static int pf_web_m4_prepare_sharking_target(
         const int32_t distance_x =
             delta_x < INT32_C(0) ? -delta_x : delta_x;
         const int16_t walk_axis =
-            distance_x > PF_Q16_ONE
+            distance_x > target_distance_q16
                 ? pf_web_m4_sharking_axis(out_inspection)
                 : INT16_C(0);
 
@@ -2107,7 +2109,7 @@ static int pf_web_m4_prepare_sharking_target(
         const int32_t distance_x =
             delta_x < INT32_C(0) ? -delta_x : delta_x;
 
-        return distance_x <= PF_Q16_ONE &&
+        return distance_x <= target_distance_q16 &&
                out_inspection->players[0].support ==
                    (uint8_t)PF_M4_SURFACE_FLOOR &&
                out_inspection->players[1].support ==
@@ -10120,7 +10122,7 @@ static int pf_web_m4_run_crouch_cancel_route(
             &inspection) ||
         (target_crouches != 0 &&
          inspection.players[1].action_state !=
-             (uint8_t)PF_M4_ACTION_CROUCH) ||
+             (uint8_t)PF_M4_ACTION_CROUCH_START) ||
         !pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
@@ -12717,7 +12719,7 @@ static int pf_web_m4_run_stage_humping_probe(void)
                 UINT64_C(0),
                 &inspection) &&
             inspection.players[0].action_state ==
-                (uint8_t)PF_M4_ACTION_CROUCH &&
+                (uint8_t)PF_M4_ACTION_CROUCH_START &&
             inspection.players[0].position_x_q16 ==
                 start_position_q16)
         {

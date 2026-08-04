@@ -20,7 +20,8 @@ Behavior and field meanings were checked against `doldecomp/melee` revision
 `9509dc04406fb2028bfab01243841ba4787c0fb7`, especially `ft/types.h`,
 `ft/inlines.h`, `ftCo_Dash.c`, `ftCo_Run.c`, `ftCo_RunBrake.c`,
 `ftCo_TurnRun.c`, `ftCo_KneeBend.c`, `ftCo_Jump.c`, `ftCo_JumpAerial.c`, and
-the common fall/air-physics routines.
+`ftCo_Squat.c`, `ftCo_SquatWait.c`, `ftCo_SquatRv.c`, `ftCo_Damage.c`, and the
+common fall/air-physics routines.
 
 ## Coordinate conversion
 
@@ -51,6 +52,7 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | shield-break launch | 2.7 | 297/620 |
 | ledge jump horizontal / vertical | 1.0 / 3.3 | 12/115 / 363/620 |
 | normal landing lag | 4 | 4 ticks |
+| squat entry / reverse animation | 7 / 10 displayed frames | `CROUCH START` ticks 1-7 / `CROUCH END` ticks 1-10 |
 | neutral / forward / back / up / down aerial landing lag | 15 / 19 / 18 / 15 / 24 | distinct deterministic landing states |
 | passive wall / wall-jump X / wall-jump Y / passive ceiling | 0.5 / 1.4 / 3.1 / 2.0 | 6/115 / 84/575 / 11/20 / 24/115 |
 | air-dodge force X / Y | 3.1 / 3.1 | 186/575 / 11/20 |

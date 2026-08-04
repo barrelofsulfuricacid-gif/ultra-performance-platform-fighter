@@ -1547,7 +1547,8 @@ static pf_status pf_m4_apply_hit_reaction(
     crouch_cancelled =
         armored == 0 && reset == 0 &&
         pf_m4_event_is_physical_hit(event_type) &&
-        previous_action == (uint8_t)PF_M4_ACTION_CROUCH &&
+        (previous_action == (uint8_t)PF_M4_ACTION_CROUCH_START ||
+         previous_action == (uint8_t)PF_M4_ACTION_CROUCH) &&
         scratch->grounded[target_index] != UINT8_C(0) &&
         scratch->damage_q16[target_index] <=
             content->fighter.crouch_cancel_max_damage_q16;
@@ -1971,6 +1972,8 @@ static pf_status pf_m4_resolve_grabs(
                 target_index,
                 (uint8_t)PF_M4_ACTION_GRABBED);
             scratch->action_ticks[target_index] = UINT16_C(0);
+            scratch->charge_ticks[target_index] = UINT16_C(0);
+            scratch->smash_charge_ticks[target_index] = UINT16_C(0);
             scratch->position_x_q16[target_index] =
                 scratch->position_x_q16[attacker_index] +
                 (int32_t)scratch->facing[attacker_index] *

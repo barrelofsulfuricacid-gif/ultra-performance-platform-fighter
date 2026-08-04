@@ -386,10 +386,12 @@ action frame, facing, grounded state, position, self-induced velocity, and
 relevant timers. Its corpus must cover neutral and nonzero starting momentum,
 both directions, analog threshold boundaries, slow walk entry, direct and
 two-sample dash entry, repeated dash-dance reversals, fox-trot, run, run brake,
-standing turn, and run turnaround. Captures must identify the Dolphin build,
-disc revision/hash, fighter, stage/setup, input trace, coordinate conversion,
-and first divergent frame. Internal deterministic tests remain required, but
-cannot substitute for this executable-oracle comparison.
+standing turn, run turnaround, and crouch entry/hold/release including its
+distinct start/reverse timings and analog threshold boundaries. Captures must
+identify the Dolphin build, disc revision/hash, fighter, stage/setup, input
+trace, coordinate conversion, and first divergent frame. Internal deterministic
+tests remain required, but cannot substitute for this executable-oracle
+comparison.
 
 This gate is not limited to locomotion. It also covers every implemented shared
 simulation path for which SSBM supplies the intended behavior, including

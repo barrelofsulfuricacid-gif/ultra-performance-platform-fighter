@@ -3959,7 +3959,7 @@ static int start_crouch_cancel_hit(
             out_inspection) ||
         (target_crouches != 0 &&
          out_inspection->players[1].action_state !=
-             (uint8_t)PF_M4_ACTION_CROUCH) ||
+             (uint8_t)PF_M4_ACTION_CROUCH_START) ||
         !step_reaction_duel(
             sim,
             INT16_C(0),
@@ -4177,13 +4177,14 @@ static int run_crouch_cancel_test(
     {
         return fail("crouch-cancel-scaled-reaction");
     }
+    /* Squat remains crouch-cancel eligible even after down is released. */
     if ((released.event.flags &
-         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) != UINT16_C(0) ||
-        released.event.velocity_x_q16 != ordinary.event.velocity_x_q16 ||
-        released.event.velocity_y_q16 != ordinary.event.velocity_y_q16 ||
-        released.hitstun_ticks != ordinary.hitstun_ticks)
+         (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) == UINT16_C(0) ||
+        released.event.velocity_x_q16 != crouched.event.velocity_x_q16 ||
+        released.event.velocity_y_q16 != crouched.event.velocity_y_q16 ||
+        released.hitstun_ticks != crouched.hitstun_ticks)
     {
-        return fail("crouch-cancel-released-down");
+        return fail("crouch-cancel-squat-release");
     }
     if ((exact.event.flags &
          (uint16_t)PF_SIM_EVENT_FLAG_CROUCH_CANCEL) == UINT16_C(0) ||

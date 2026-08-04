@@ -1179,7 +1179,7 @@ int main(void)
             0,
             0,
             0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 4 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 104 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] <= 0 ||
         !pf_web_m4_playtest_step(
             0, test_dash_axis, 0, 1, 0, 0, 0, 0, 0, 0) ||

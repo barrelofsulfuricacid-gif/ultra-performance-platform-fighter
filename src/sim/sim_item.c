@@ -56,7 +56,9 @@ static int pf_m4_item_action_can_throw(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
            action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
+           action_state == (uint8_t)PF_M4_ACTION_CROUCH_END ||
            action_state == (uint8_t)PF_M4_ACTION_JUMP_SQUAT ||
            action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
            action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||

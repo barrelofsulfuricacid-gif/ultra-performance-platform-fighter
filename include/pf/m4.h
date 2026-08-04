@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(58)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(50)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(59)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(51)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -132,7 +132,9 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_BACK_AERIAL_L_CANCEL_LANDING = 100,
     PF_M4_ACTION_UP_AERIAL_L_CANCEL_LANDING = 101,
     PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING = 102,
-    PF_M4_ACTION_STANDING_TURN = 103
+    PF_M4_ACTION_STANDING_TURN = 103,
+    PF_M4_ACTION_CROUCH_START = 104,
+    PF_M4_ACTION_CROUCH_END = 105
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -649,6 +651,8 @@ typedef struct pf_m4_fighter_data
     uint8_t reserved2;
     uint16_t stale_move_slot_reduction_q16[
         PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
+    uint16_t crouch_start_ticks;
+    uint16_t crouch_end_ticks;
 } pf_m4_fighter_data;
 
 typedef struct pf_m4_stage_data

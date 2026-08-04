@@ -3282,6 +3282,8 @@ mergeInto(LibraryManager.library, {
       "UP AERIAL L-CANCEL LANDING",
       "DOWN AERIAL L-CANCEL LANDING",
       "STANDING TURN",
+      "CROUCH START",
+      "CROUCH END",
     ];
 
     if (view[1] < previousTick) {
@@ -3905,7 +3907,9 @@ mergeInto(LibraryManager.library, {
       var respawning = actionState === 44;
       var onRevival = actionState === 94;
       var eliminated = actionState === 45;
-      var crouched = actionState === 4 || actionState === 74;
+      var crouched =
+        actionState === 4 || actionState === 74 ||
+        actionState === 104 || actionState === 105;
       var tumbling =
         view[base + 22] !== 0 && actionState !== 13;
       var prone =

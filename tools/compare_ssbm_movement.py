@@ -30,6 +30,9 @@ SSBM_TO_M4_ACTION = {
     "ROLL_FORWARD": 38,
     "ROLL_BACKWARD": 39,
     "SPOTDODGE": 40,
+    "CROUCH_START": 104,
+    "CROUCHING": 4,
+    "CROUCH_END": 105,
     "KNEE_BEND": 5,
     "JUMPING_FORWARD": 6,
     "JUMPING_BACKWARD": 6,
@@ -102,7 +105,16 @@ def normalized_shield_strength(row: dict[str, object]) -> int:
 
 def expected_action_ticks(action: str, action_frame: float) -> int | None:
     frame = round(action_frame)
-    if action in {"DASHING", "RUN_BRAKE", "ROLL_FORWARD", "ROLL_BACKWARD", "SPOTDODGE"}:
+    if action in {
+        "DASHING",
+        "RUN_BRAKE",
+        "ROLL_FORWARD",
+        "ROLL_BACKWARD",
+        "SPOTDODGE",
+        "CROUCH_START",
+        "CROUCHING",
+        "CROUCH_END",
+    }:
         return frame
     if action == "TURNING_RUN":
         return frame + 1

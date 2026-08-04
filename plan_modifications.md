@@ -58,11 +58,12 @@ M4 remains unfinished while any applicable divergence or uncovered route
 remains.
 
 Current qualification evidence is deliberately narrower than this acceptance
-gate. The pinned 1,519-frame Captain Falcon trace currently agrees for its
+gate. The pinned 1,589-frame Captain Falcon trace currently agrees for its
 locomotion, shield/light-shield, forward/backward/C-stick roll, spot-dodge,
 jump-from-shield, fresh-opposite-trigger air-dodge, analog-trigger-in-air,
 nonzero-velocity dash/turn, jump-squat reversal, short/full-hop, neutral-stick
-double-jump, fast-fall, and landing routes. That passing trace is a regression
-slice, not evidence that every applicable movement or shared-simulation route
-is equivalent; the remaining routes still require identical-input Dolphin
-reproducers and comparable-state assertions.
+double-jump, fast-fall, landing, and full-down crouch start/hold/release routes.
+That passing trace is a regression slice, not evidence that every applicable
+movement or shared-simulation route is equivalent; crouch threshold hysteresis,
+interrupt routes, and the other remaining systems still require identical-input
+Dolphin reproducers and comparable-state assertions.
