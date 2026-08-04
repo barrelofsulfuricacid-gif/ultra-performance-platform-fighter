@@ -386,6 +386,68 @@ def input_trace() -> list[dict[str, object]]:
     repeat("landing_taunt_setup", 38)
     trace.append(command("landing_taunt", taunt=True))
     repeat("landing_taunt_recovery", 110)
+
+    # Systematically qualify more entries from ftCo_Landing_IASA on the same
+    # first legal displayed-frame boundary. Jump, dash, guard (the decomp's
+    # ftCo_80091A4C call), crouch, turn, and walk all appear in the common IASA
+    # list; character attacks, specials, and grabs are outside this shared
+    # movement trace.
+    repeat("settle_before_landing_jump", 10)
+    trace.append(command("landing_jump_jump", jump=True))
+    repeat("landing_jump_setup", 38)
+    trace.append(command("landing_jump", jump=True))
+    repeat("landing_jump_recovery", 110)
+
+    repeat("settle_before_landing_dash", 10)
+    trace.append(command("landing_dash_jump", jump=True))
+    repeat("landing_dash_setup", 38)
+    trace.append(command("landing_dash", main_x=1.0))
+    repeat("landing_dash_recovery", 110)
+
+    repeat("settle_before_landing_guard", 10)
+    trace.append(command("landing_guard_jump", jump=True))
+    repeat("landing_guard_setup", 38)
+    trace.append(
+        command(
+            "landing_guard",
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat(
+        "landing_guard_held",
+        12,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("landing_guard_recovery", 110)
+
+    repeat("settle_before_landing_walk", 10)
+    trace.append(command("landing_walk_jump", jump=True))
+    repeat("landing_walk_setup", 38)
+    trace.append(command("landing_walk", main_x=0.75))
+    repeat("landing_walk_recovery", 110)
+
+    repeat("settle_before_landing_crouch", 10)
+    trace.append(command("landing_crouch_jump", jump=True))
+    repeat("landing_crouch_setup", 38)
+    trace.append(command("landing_crouch", main_y=0.0))
+    repeat("landing_crouch_recovery", 110)
+
+    # SquatWait_CheckInput is gated to the one-frame window ending at
+    # normal_landing_lag + frame_speed_mul. Down one displayed frame later
+    # must leave Landing active rather than replaying the ordinary Squat entry.
+    repeat("settle_before_landing_late_crouch", 10)
+    trace.append(command("landing_late_crouch_jump", jump=True))
+    repeat("landing_late_crouch_setup", 39)
+    trace.append(command("landing_late_crouch", main_y=0.0))
+    repeat("landing_late_crouch_recovery", 110)
+
+    repeat("settle_before_landing_turn", 10)
+    trace.append(command("landing_turn_jump", jump=True))
+    repeat("landing_turn_setup", 38)
+    trace.append(command("landing_turn", main_x=0.25))
+    repeat("landing_turn_recovery", 110)
     return trace
 
 

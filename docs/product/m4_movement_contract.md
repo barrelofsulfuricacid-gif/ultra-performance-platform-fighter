@@ -191,8 +191,11 @@ state.
 A deliberate down input after the apex enters the fixed fast-fall speed.
 Landing enters a finite landing state. Falcon's first common interrupt is
 available after displayed `LANDING` frame 4; the internal zero-based timer is
-compared as the following displayed frame so movement, jump, attack, shield,
-special, and taunt all share that exact boundary.
+compared as the following displayed frame. Identical-input routes pin taunt,
+jump, dash/turn, guard, walk, crouch, and ordinary turn on that boundary. The
+landing-specific crouch check enters held `CROUCH`/`SquatWait` directly only on
+that first legal frame; down one displayed frame later remains locked in
+`LANDING` rather than starting the ordinary seven-frame crouch entry.
 
 ## Grounded rolls and spot dodge
 

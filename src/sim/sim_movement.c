@@ -3993,11 +3993,31 @@ pf_status pf_m4_step_player(
             fighter,
             action_state,
             action_ticks) &&
+        input->main_stick_y >=
+            (int16_t)fighter->crouch_axis_threshold &&
+        (uint32_t)action_ticks + UINT32_C(1) ==
+            (uint32_t)fighter->landing_interruptible_tick &&
+        jump_pressed == 0 && attack_pressed == 0 &&
+        grab_pressed == 0 && shield_held == 0 &&
+        special_pressed == 0 && taunt_pressed == 0 &&
+        !(strong_direction != INT8_C(0) &&
+          tilt_x_age < fighter->dash_input_window_ticks))
+    {
+        action_state = (uint8_t)PF_M4_ACTION_CROUCH;
+        action_ticks = UINT16_C(0);
+    }
+    else if (!ledge_motion_handled &&
+        !hitstun_locked &&
+        grounded != UINT8_C(0) &&
+        action_state == (uint8_t)PF_M4_ACTION_LANDING &&
+        pf_m4_normal_landing_is_interruptible(
+            fighter,
+            action_state,
+            action_ticks) &&
         (horizontal_magnitude > fighter->axis_dead_zone ||
-         vertical_magnitude > fighter->axis_dead_zone ||
          jump_pressed != 0 || attack_pressed != 0 ||
-         shield_held != 0 || special_pressed != 0 ||
-         taunt_pressed != 0))
+         grab_pressed != 0 || shield_held != 0 ||
+         special_pressed != 0 || taunt_pressed != 0))
     {
         action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
         action_ticks = UINT16_C(0);

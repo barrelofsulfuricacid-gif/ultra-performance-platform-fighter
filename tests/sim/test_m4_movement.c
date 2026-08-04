@@ -169,6 +169,70 @@ static int step_duel(
         out_inspection);
 }
 
+static int reset_to_normal_landing_frame_four(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "normal-landing-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(240) &&
+         out_inspection->players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_LANDING;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(240) ||
+        out_inspection->players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=normal-landing-setup\n");
+        return 0;
+    }
+    for (tick = UINT32_C(1); tick <= UINT32_C(3); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection) ||
+            out_inspection->players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_LANDING ||
+            out_inspection->players[0].action_ticks != (uint16_t)tick)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=normal-landing-frame-four\n");
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int step_duel_triggers(
     pf_sim *sim,
     int16_t main_stick_x,
@@ -3633,62 +3697,8 @@ static int run_ground_control_test(
             "m4-movement=fail operation=standing-turn-taunt-interrupt\n");
         return 0;
     }
-    if (!expect_status(
-            pf_sim_reset(sim, UINT64_C(2)),
-            PF_STATUS_OK,
-            "landing-taunt-reset") ||
+    if (!reset_to_normal_landing_frame_four(sim, &inspection) ||
         !step_duel(
-            sim,
-            INT16_C(0),
-            INT16_C(0),
-            PF_INPUT_BUTTON_JUMP,
-            &inspection))
-    {
-        return 0;
-    }
-    for (tick = UINT32_C(0);
-         tick < UINT32_C(240) &&
-         inspection.players[0].action_state !=
-             (uint8_t)PF_M4_ACTION_LANDING;
-         ++tick)
-    {
-        if (!step_duel(
-                sim,
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection))
-        {
-            return 0;
-        }
-    }
-    if (tick == UINT32_C(240) ||
-        inspection.players[0].action_ticks != UINT16_C(0))
-    {
-        (void)fprintf(
-            stderr,
-            "m4-movement=fail operation=landing-taunt-setup\n");
-        return 0;
-    }
-    for (tick = UINT32_C(1); tick <= UINT32_C(3); ++tick)
-    {
-        if (!step_duel(
-                sim,
-                INT16_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                &inspection) ||
-            inspection.players[0].action_state !=
-                (uint8_t)PF_M4_ACTION_LANDING ||
-            inspection.players[0].action_ticks != (uint16_t)tick)
-        {
-            (void)fprintf(
-                stderr,
-                "m4-movement=fail operation=landing-taunt-frame-four\n");
-            return 0;
-        }
-    }
-    if (!step_duel(
             sim,
             INT16_C(0),
             INT16_C(0),
@@ -3701,6 +3711,47 @@ static int run_ground_control_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=landing-taunt-interrupt\n");
+        return 0;
+    }
+    if (!reset_to_normal_landing_frame_four(sim, &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=landing-direct-crouch\n");
+        return 0;
+    }
+    if (!reset_to_normal_landing_frame_four(sim, &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LANDING ||
+        inspection.players[0].action_ticks != UINT16_C(4) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_LANDING ||
+        inspection.players[0].action_ticks != UINT16_C(5))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=landing-late-crouch-locked\n");
         return 0;
     }
     return 1;

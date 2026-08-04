@@ -2466,7 +2466,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 3,035-frame movement/defense/aerial/crouch trace is a regression
+- The passing 4,168-frame movement/defense/aerial/crouch trace is a regression
   slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
@@ -2481,7 +2481,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## 2026-08-04 Falcon crouch executable-oracle slice
 
-- The identical-input Dolphin route now contains 3,035 frames. The added
+- The identical-input Dolphin route now contains 4,168 frames. The added
   full-down grounded sequence observes seven displayed `CROUCH_START`/`Squat`
   frames, a held `CROUCH`/`SquatWait`, ten displayed
   `CROUCH_END`/`SquatRv` frames, then ground idle. Native comparison passes
@@ -2511,8 +2511,14 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Falcon's normal `Landing` exposes the common interrupt router immediately
   after displayed frame 4. The zero-based production timer previously waited
   one extra frame; one shared predicate now translates it to the displayed
-  boundary for movement, jump, attack, shield, special, and taunt. A short-hop
-  route pins `Landing` frames 1-4 followed by frame-1 `AppealS`.
+  boundary. Short-hop routes pin `Landing` frames 1-4 followed by frame-1
+  `AppealS`, `KneeBend`, dash/turn, guard, walk, direct `SquatWait`, or ordinary
+  `Turn`, as selected by the executable's common IASA ordering.
+- The landing crouch route found and corrected a distinct transition: down on
+  the first legal frame enters `SquatWait` directly, without replaying the
+  seven-frame `Squat` animation. The decomp permits that check only while the
+  current frame is below `normal_landing_lag + frame_speed_mul`; an explicit
+  negative route proves down one displayed frame later remains in `Landing`.
 - Decomp review at pinned revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` confirms that `Squat` and
   `SquatWait` are crouch-cancel eligible while `SquatRv` is not. Attack,
