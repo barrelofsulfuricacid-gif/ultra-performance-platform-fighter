@@ -3028,3 +3028,43 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `1bcf9444a66610479106ff4bc0782e891365a1a36e4561513fe47e1777b5272a`,
   and `61d93989ea9c831cd2cf562787fd978cb9e7bd05f694c87671e9520ec26ae280`.
   The repeated-match verifier digest is `1bbde902bfb8d7ce`.
+
+## 2026-08-04 complete grounded-normal data and callback slice
+
+- The pinned Falcon importer now verifies raw `PlCa.dat` and `PlCaAJ.dat` in
+  addition to both JSON views. It retains all 48 concrete subactions' action flags and
+  decodes every compressed translation-N animation track into an immutable
+  per-frame Q16 table; no attack movement speed is guessed or copied into
+  authored defaults.
+- Grounded normal physics follows the pinned decomp callback split. Jab, dash
+  attack, and forward smash consume animation root motion, while tilts and
+  up/down smash apply ground friction. Dash attack is legal after Falcon's
+  early forward-smash dash window and its focused 511-frame identical-input
+  Dolphin trace now matches action, position, and velocity.
+- Imported IASA frames select four compact callback policies: Jab chain, Wait,
+  down tilt, and forward smash without escape. The policies reuse existing
+  zero-allocation action handlers and also cover down tilt's crouch exit and
+  the neutral-special preprocessor boundary. The full executable matrix and
+  refreshed replay hashes are recorded after final qualification below.
+- The refreshed 41,575-byte replay, final-state, and event-journal SHA-256
+  values are `478547e440e1fcc274760a9d6c0bdfbd62286438f27b2f448702cb6af9a3f03e`,
+  `eda4430b3f2623afe857cafbf39929e81d87ae05d7b2128c68ceace2803f6c4b`,
+  and `ffe86482a586401206fc75c01d8ecc959ab48e6ed053350d261352a19ddc25ca`.
+  The repeated-match verifier digest is `35292518eb393fa2`.
+- The completed grounded-normal/IASA executable matrix is a 5,450-frame
+  identical-input Dolphin capture with SHA-256
+  `3596f20946bc6e8bd629ec875442857e8986fca6a69fc7a530a8ed6630cc24b1`.
+  Action, position, and velocity all match within the fixed-point-only position
+  allowance of 640 Q16 units. Qualification exposed and corrected two real
+  state-machine gaps: forward-smash recognition now uses main-stick input age
+  rather than Dash action age, and a backwards horizontal A press falls through
+  to Jab instead of becoming a reverse forward tilt. Neither result is encoded
+  as a trace-specific exception.
+- This raises aggregate owner-executable evidence from 14,154 to 19,604
+  captured frames. Windows MSVC and WSL Linux GCC each pass all 22 CTest
+  targets, the Emscripten web client rebuilds cleanly, and both native builds
+  pass the complete 13-scenario profiler workload. The WSL unsampled headless
+  run reports 1,531,353 single-world and 1,638,910 batched ticks per second
+  with identical state. Canonical performance-history qualification is still
+  pending because this local WSL compiler is GCC 13.4 while the repository's
+  measurement contract requires GCC 13.3 exactly.

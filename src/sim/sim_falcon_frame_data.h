@@ -119,6 +119,9 @@ typedef struct pf_m4_reference_move
     uint8_t effect_count;
     uint8_t present;
     uint8_t reserved;
+    uint32_t animation_flags;
+    uint16_t motion_offset;
+    uint16_t motion_count;
 } pf_m4_reference_move;
 
 typedef struct pf_m4_reference_timing
@@ -127,6 +130,21 @@ typedef struct pf_m4_reference_timing
     uint16_t active_ticks;
     uint16_t recovery_ticks;
 } pf_m4_reference_timing;
+
+typedef enum pf_m4_reference_iasa_policy
+{
+    PF_M4_REFERENCE_IASA_NONE = 0,
+    PF_M4_REFERENCE_IASA_JAB_CHAIN,
+    PF_M4_REFERENCE_IASA_WAIT,
+    PF_M4_REFERENCE_IASA_DOWN_TILT,
+    PF_M4_REFERENCE_IASA_FORWARD_SMASH
+} pf_m4_reference_iasa_policy;
+
+typedef enum pf_m4_reference_ground_physics
+{
+    PF_M4_REFERENCE_GROUND_PHYSICS_FRICTION = 0,
+    PF_M4_REFERENCE_GROUND_PHYSICS_ROOT_MOTION
+} pf_m4_reference_ground_physics;
 
 const uint8_t *pf_m4_falcon_reference_source_sha256(void);
 
@@ -171,6 +189,21 @@ int pf_m4_falcon_reference_attack_matches(
     uint8_t action_state,
     pf_m4_reference_timing authored_timing,
     uint32_t authored_damage_q16);
+
+pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
+    uint8_t action_state);
+
+pf_m4_reference_ground_physics
+pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state);
+
+int pf_m4_falcon_reference_special_iasa_active(
+    uint8_t action_state,
+    uint16_t action_ticks);
+
+int pf_m4_falcon_reference_motion_x_q16(
+    uint8_t action_state,
+    uint16_t action_frame,
+    int32_t *out_motion_x_q16);
 
 /*
  * Returns one while an aerial's source-defined landing-lag flag is active,

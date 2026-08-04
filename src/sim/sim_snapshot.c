@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
 #include "sim_sha256.h"
 
 #include <limits.h>
@@ -1551,6 +1552,19 @@ static int pf_m4_snapshot_content_state_consistent(
             pf_m4_snapshot_ground_attack_data(
                 &content->fighter,
                 resume_action);
+        const pf_m4_reference_timing ground_attack_timing =
+            ground_attack != NULL
+                ? (pf_m4_reference_timing){
+                      ground_attack->startup_ticks,
+                      ground_attack->active_ticks,
+                      ground_attack->recovery_ticks}
+                : (pf_m4_reference_timing){0};
+        const int falcon_ground_attack =
+            ground_attack != NULL &&
+            pf_m4_falcon_reference_attack_matches(
+                action,
+                ground_attack_timing,
+                ground_attack->damage_q16);
         const uint16_t smash_charge_ticks =
             world->smash_charge_ticks[player_index];
         const int smash_charge_action =
@@ -1645,10 +1659,15 @@ static int pf_m4_snapshot_content_state_consistent(
             (action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
              (uint32_t)action_ticks >= ledge_attack_ticks) ||
             (ground_attack != NULL &&
-             (uint32_t)action_ticks >=
-                 (uint32_t)ground_attack->startup_ticks +
-                     (uint32_t)ground_attack->active_ticks +
-                     (uint32_t)ground_attack->recovery_ticks) ||
+             (falcon_ground_attack != 0
+                  ? (uint32_t)action_ticks >
+                        (uint32_t)ground_attack->startup_ticks +
+                            (uint32_t)ground_attack->active_ticks +
+                            (uint32_t)ground_attack->recovery_ticks
+                  : (uint32_t)action_ticks >=
+                        (uint32_t)ground_attack->startup_ticks +
+                            (uint32_t)ground_attack->active_ticks +
+                            (uint32_t)ground_attack->recovery_ticks)) ||
             (resume_action == (uint8_t)PF_M4_ACTION_WALL_JUMP &&
              action_ticks >= content->fighter.wall_jump_ticks) ||
             (resume_action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&

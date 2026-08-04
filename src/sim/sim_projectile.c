@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
 
 #include <limits.h>
 
@@ -122,9 +123,12 @@ pf_m4_projectile_input_intent pf_m4_prepare_projectile_input(
         world->tumble[player_index] != UINT8_C(0) ||
         (scratch->item_state == (uint8_t)PF_M4_ITEM_STATE_HELD &&
          scratch->item_holder_slot == player_slot) ||
-        !pf_m4_projectile_action_can_fire(
-            world->grounded[player_index],
-            world->action_state[player_index]))
+        (!pf_m4_projectile_action_can_fire(
+             world->grounded[player_index],
+             world->action_state[player_index]) &&
+         !pf_m4_falcon_reference_special_iasa_active(
+             world->action_state[player_index],
+             world->action_ticks[player_index])))
     {
         effective_input->buttons &= ~PF_INPUT_BUTTON_SPECIAL;
         return PF_M4_PROJECTILE_INPUT_NONE;

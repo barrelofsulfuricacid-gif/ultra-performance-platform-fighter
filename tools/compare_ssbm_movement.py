@@ -29,6 +29,22 @@ SSBM_TO_M4_ACTION = {
     "SHIELD_RELEASE": 20,
     "SHIELD_STUN": 19,
     "NEUTRAL_ATTACK_1": 12,
+    "NEUTRAL_ATTACK_2": 58,
+    "DASH_ATTACK": 57,
+    "FTILT_HIGH": 87,
+    "FTILT_HIGH_MID": 87,
+    "FTILT_MID": 87,
+    "FTILT_LOW_MID": 87,
+    "FTILT_LOW": 87,
+    "UPTILT": 79,
+    "DOWNTILT": 80,
+    "FSMASH_HIGH": 88,
+    "FSMASH_MID_HIGH": 88,
+    "FSMASH_MID": 88,
+    "FSMASH_MID_LOW": 88,
+    "FSMASH_LOW": 88,
+    "UPSMASH": 89,
+    "DOWNSMASH": 90,
     "ROLL_FORWARD": 38,
     "ROLL_BACKWARD": 39,
     "SPOTDODGE": 40,
@@ -133,6 +149,10 @@ CONTENT_ROUTE_ENTRY_ACTIONS = {
     "crouch_start_grab": 49,
     "crouch_wait_grab": 12,
     "crouch_end_grab": 12,
+    "ground_iasa_utilt_special_interrupt": 64,
+    "ground_iasa_utilt_grab_interrupt": 49,
+    "ground_iasa_fsmash_m_special_interrupt": 64,
+    "ground_iasa_fsmash_m_grab_interrupt": 49,
 }
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
@@ -161,7 +181,9 @@ def controller_trigger(value: float) -> int:
     return round(max(0.0, min(1.0, value)) * 65535.0)
 
 
-def normalized_shield_strength(row: dict[str, object]) -> int:
+def normalized_shield_strength(
+    row: dict[str, object], retained_strength: int = 0
+) -> int:
     if str(row.get("action")) not in {
         "SHIELD_START",
         "SHIELD_REFLECT",
@@ -175,6 +197,11 @@ def normalized_shield_strength(row: dict[str, object]) -> int:
         return 65535
     analog = float(row.get("observed_analog_shoulder", 0.0))
     if analog <= 0.30:
+        # GuardOn/GuardReflect keep the trigger magnitude which created the
+        # shield until their locked animation ends. libmelee exposes current
+        # controller pressure, not that retained fighter field.
+        if str(row.get("action")) in {"SHIELD_START", "SHIELD_REFLECT"}:
+            return retained_strength
         return 0
     return round(((analog - 0.30) / 0.70) * 65535.0)
 
@@ -224,6 +251,14 @@ def main() -> int:
     parser.add_argument(
         "--velocity-tolerance-q16", type=int, default=32,
         help="allowed float-to-fixed velocity quantization difference",
+    )
+    parser.add_argument(
+        "--native-output", type=Path,
+        help="optionally preserve the native CSV trace for diagnostics",
+    )
+    parser.add_argument(
+        "--native-input-output", type=Path,
+        help="optionally preserve the normalized native input trace",
     )
     args = parser.parse_args()
 
@@ -295,6 +330,8 @@ def main() -> int:
             f"{opponent_buttons}\n"
         )
     input_text = "".join(input_lines)
+    if args.native_input_output is not None:
+        args.native_input_output.write_text(input_text, encoding="utf-8")
     runner_command = [str(args.runner)]
     if capture.get("stage") == "BATTLEFIELD":
         runner_command.append("--platform")
@@ -312,6 +349,8 @@ def main() -> int:
     if completed.returncode != 0:
         sys.stderr.write(completed.stderr)
         return completed.returncode
+    if args.native_output is not None:
+        args.native_output.write_text(completed.stdout, encoding="utf-8")
     native_rows = list(csv.DictReader(io.StringIO(completed.stdout)))
     if len(native_rows) != len(oracle_rows):
         print(
@@ -335,6 +374,7 @@ def main() -> int:
     skip_character_content = False
     shield_contact_seen = False
     shield_numeric_ticks = 0
+    expected_shield_strength = 0
     for oracle_index, (oracle, native) in enumerate(
         zip(oracle_rows, native_rows, strict=True)
     ):
@@ -342,7 +382,10 @@ def main() -> int:
         label = str(oracle["label"])
         entering_anchor = (
             label != previous_label
-            and label in POSITION_ANCHOR_LABELS
+            and (
+                label in POSITION_ANCHOR_LABELS
+                or label.endswith("_settle")
+            )
             and previous_oracle is not None
         )
         if skip_character_content and not entering_anchor:
@@ -420,7 +463,9 @@ def main() -> int:
         actual_grounded = int(native["grounded"])
         expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)
         actual_shield_health = int(native["shield_health_q16"])
-        expected_shield_strength = normalized_shield_strength(oracle)
+        expected_shield_strength = normalized_shield_strength(
+            oracle, expected_shield_strength
+        )
         actual_shield_strength = int(native["shield_strength"])
         expected_hitlag = round(float(oracle.get("hitlag_left", 0.0)))
         actual_hitlag = int(native["hitlag_ticks"])

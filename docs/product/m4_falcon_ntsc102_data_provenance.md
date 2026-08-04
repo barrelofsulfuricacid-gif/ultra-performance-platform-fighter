@@ -39,15 +39,25 @@ and `PlCaAJ.dat`
 `meleeDat2Json` revision
 `d4e6074aa26f388fccc7fe8e825761cf1c1bc7b0` and
 `meleeFrameDataExtractor` revision
-`0b12c5cb988da3fb9b67630b1d8347e12cd91528` then produced all 50 ordinary,
-grab/throw, and special subactions. Full-hitbox output was byte-identical when
+`0b12c5cb988da3fb9b67630b1d8347e12cd91528` then produced Falcon's complete
+50-slot ordinary, grab/throw, and special schema. It contains 48 concrete
+subactions: the common extractor schema's `fsmash_mh` and `fsmash_ml` slots are
+absent because Falcon's DAT defines only high, straight, and low forward-smash
+angles. Full-hitbox output was byte-identical when
 generated from the owner files and the extractor project's published Falcon
 source: 120,634 bytes with SHA-256
 `287d53686aedb7469e455600cd749001b2f1a04081158236f26b1fae205f6dde`.
+The extractor's default list omits character specials, so the Falcon run
+explicitly includes the contiguous `0x12d` through `0x13d` rows (DAT
+subactions 301 through 317): ground/air neutral special, side-special start
+and hit, up-special start/catch/throw, and every down-special ground/air/end
+variant. They are part of the same pinned generated table, not later authored
+timing constants.
 
 The repository importer canonicalizes the geometry-free timing/effect view to
 SHA-256 `42bb4ecefb33e87dc978482ecdb7b1f93ff12ca090e870431fff913480601356`
-and rejects any other input. It also verifies the owner DAT JSON SHA-256
+and rejects any other input, move ordering, or absent row beyond those two
+source-defined slots. It also verifies the owner DAT JSON SHA-256
 `fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266`.
 That original action-script dump is required because the upstream converter
 labels opcode `0x14` as `reverseDirection`; the NTSC 1.02 decomp dispatches
@@ -57,8 +67,14 @@ throw release frames 18/20/15/20 for forward/back/up/down throw. Its generated
 table retains every subaction,
 total/IASA/charge/autocancel/landing frame, active phase, damage, angle, KBG,
 weight-set knockback, BKB, shield damage, interaction class, element, target
-kind, and throw effect. Extracted DAT files and bone-relative hitbox geometry
-remain temporary external evidence and are not repository or build inputs.
+kind, and throw effect. It also hash-verifies raw `PlCa.dat` and `PlCaAJ.dat`,
+reads every action's packed flags, and decodes every source translation-N
+animation track into per-frame Q16 deltas. The small FigaTree decoder follows
+the scalar codecs and interpolation rules in HSDLib revision
+`29546ad77fdf9ebd9a9940ed44903ef309e810d6`; the resulting movement is still
+qualified against Dolphin rather than accepted from the parser alone.
+Extracted DAT files and bone-relative hitbox geometry remain temporary
+external evidence and are not repository or build inputs.
 `tools/import_ssbm_falcon_frame_data.py` is the reproducible conversion path;
 `generated/data/m4_falcon_ntsc102_frame_data.inc` is its numeric output.
 The default production routes for jab 1, jab 2, dash attack, all three tilts,
@@ -73,15 +89,31 @@ separately by each consumer. Its canonical source SHA-256 is folded into the M4
 content hash, so changing a late phase or non-primary effect cannot retain a
 stale compatibility identity.
 
-Ground-attack interruption is being routed from the same generated rows rather
-than from authored frame guesses. The first completed route is Jab 1: imported
-IASA frame 16 enables the jump/dash/crouch/turn/walk intersection present in
-the pinned `ftCo_Attack11_IASA` callback, while guard, grab, special, and taunt
-remain locked because that callback does not test them. A held horizontal stick
-therefore follows the source callback's Dash-then-Walk ordering, and the source
-animation retains displayed frame 21 before returning to Wait. Customized
-timing or primary damage fails the compact reference-match guard and keeps the
-project's authored fallback semantics.
+Ground-attack interruption is routed from the same generated rows rather than
+from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
+forward/up tilt, and up/down smash use `ftCo_Wait_IASA`; down tilt uses its
+restricted common-plus-attack callback; and forward smash uses the Wait set
+without escape. Imported IASA frames gate each policy. A held horizontal stick
+therefore follows the source callbacks' Dash-then-Walk ordering, down tilt
+returns through crouch state, and each source animation retains its final
+displayed frame. Neutral-special preprocessing shares the same source IASA
+query, so it cannot consume B before the movement state machine sees a legal
+interrupt. Customized timing or primary damage fails the compact
+reference-match guard and keeps the project's authored fallback semantics.
+
+Animation translation is data, but whether it moves the fighter is decomp
+behavior. Jab, dash attack, and forward smash use the common root-motion
+physics callbacks; tilts and up/down smash use ordinary ground friction even
+when their animation files contain translation tracks. Falcon dash attack's
+first source delta is 8,930 Q16 simulation units and the complete Dolphin
+replay matches position and velocity without the former authored speed guess.
+The final grounded-normal/IASA matrix covers 5,450 identical-input Dolphin
+frames, hashes to
+`3596f20946bc6e8bd629ec875442857e8986fca6a69fc7a530a8ed6630cc24b1`,
+and passes the comparator's 640-Q16 position allowance. Its forward-smash
+selection is driven by the source main-stick input-age timer, not action age;
+facing-relative tilt selection likewise preserves the source backward-A
+fallthrough to Jab.
 
 Standing grab and dash grab are distinct production states. Their generated
 startup/active/recovery schedules are 5/2/22 and 9/2/28 respectively (active

@@ -5706,7 +5706,6 @@ static int run_small_step_forward_smash_test(
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
     int32_t standing_x;
-    uint32_t attack_ticks;
     uint32_t one_tick_damage_q16;
     uint32_t tick;
 
@@ -5792,30 +5791,6 @@ static int run_small_step_forward_smash_test(
     {
         return fail("small-step-standing-forward-smash-entry");
     }
-    attack_ticks =
-        (uint32_t)content->fighter.forward_strong_attack.startup_ticks +
-        (uint32_t)content->fighter.forward_strong_attack.active_ticks +
-        (uint32_t)content->fighter.forward_strong_attack.recovery_ticks;
-    for (tick = UINT32_C(1); tick <= attack_ticks; ++tick)
-    {
-        if (!step_duel(
-                standing,
-                INT16_C(0),
-                UINT64_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                &standing_inspection))
-        {
-            return fail("small-step-standing-forward-smash-step");
-        }
-    }
-    if (standing_inspection.players[1].damage_q16 != UINT32_C(0) ||
-        standing_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
-    {
-        return fail("small-step-standing-forward-smash-range");
-    }
-
     for (tick = UINT32_C(0);
          tick <
              (uint32_t)content->fighter
@@ -5968,9 +5943,48 @@ static int run_small_step_forward_smash_test(
             UINT64_C(0),
             &negative_inspection) ||
         negative_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_FORWARD_ATTACK)
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK)
     {
-        return fail("small-step-forward-smash-late-negative");
+        return fail("small-step-forward-smash-window-to-dash-attack");
+    }
+    if (!expect_status(
+            pf_sim_reset(negative, UINT64_C(0x5f5f5f47)),
+            PF_STATUS_OK,
+            "small-step-forward-smash-turn-aged-reset") ||
+        !step_duel(
+            negative,
+            (int16_t)-INT16_MAX,
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &negative_inspection))
+    {
+        return fail("small-step-forward-smash-turn-aged-entry");
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(3); ++tick)
+    {
+        if (!step_duel(
+                negative,
+                (int16_t)-INT16_MAX,
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &negative_inspection))
+        {
+            return fail("small-step-forward-smash-turn-aged-hold");
+        }
+    }
+    if (!step_duel(
+            negative,
+            (int16_t)-INT16_MAX,
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &negative_inspection) ||
+        negative_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK)
+    {
+        return fail("small-step-forward-smash-turn-aged-dash-attack");
     }
     if (!expect_status(
             pf_sim_reset(negative, UINT64_C(0x5f5f5f48)),
@@ -6025,10 +6039,10 @@ static int run_small_step_forward_smash_test(
             UINT64_C(0),
             &negative_inspection) ||
         negative_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_FORWARD_ATTACK ||
-        negative_inspection.players[0].facing != INT8_C(-1))
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        negative_inspection.players[0].facing != INT8_C(1))
     {
-        return fail("small-step-forward-smash-late-pivot-negative");
+        return fail("small-step-forward-smash-late-pivot-jab");
     }
     if (!expect_status(
             pf_sim_reset(negative, UINT64_C(0x5f5f5f47)),
@@ -6062,9 +6076,26 @@ static int run_small_step_forward_smash_test(
             UINT64_C(0),
             &negative_inspection) ||
         negative_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK)
     {
-        return fail("small-step-forward-smash-direction-negative");
+        return fail("small-step-forward-smash-aged-neutral-dash-attack");
+    }
+    if (!expect_status(
+            pf_sim_reset(negative, UINT64_C(0x5f5f5f46)),
+            PF_STATUS_OK,
+            "small-step-backward-tilt-jab-reset") ||
+        !step_duel(
+            negative,
+            (int16_t)-(content->fighter.axis_dead_zone + UINT16_C(1)),
+            PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            UINT64_C(0),
+            &negative_inspection) ||
+        negative_inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+        negative_inspection.players[0].facing != INT8_C(1))
+    {
+        return fail("small-step-backward-tilt-falls-through-to-jab");
     }
     return 1;
 }
@@ -21402,8 +21433,16 @@ static int run_falcon_reference_table_test(void)
     pf_m4_falcon_move_index mapped_move = PF_M4_FALCON_MOVE_COUNT;
     const pf_m4_reference_move *jab =
         pf_m4_falcon_reference_move(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_move *dash =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_DASH_ATTACK);
     const pf_m4_reference_move *missing =
         pf_m4_falcon_reference_move(PF_M4_FALCON_FORWARD_SMASH_MID_HIGH);
+    const pf_m4_reference_move *missing_low =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_FORWARD_SMASH_MID_LOW);
+    const pf_m4_reference_move *special_n =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND);
+    const pf_m4_reference_move *special_last =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_UP_SPECIAL_THROW_AIR);
     const pf_m4_reference_hit_phase *jab_phase =
         pf_m4_falcon_reference_phase(PF_M4_FALCON_JAB1, UINT16_C(0));
     const pf_m4_reference_hit_effect *jab_effect =
@@ -21435,6 +21474,24 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_effect_at_frame(
             PF_M4_FALCON_NEUTRAL_AERIAL,
             UINT16_C(20));
+    int32_t dash_motion_q16 = INT32_C(0);
+    uint32_t present_count = UINT32_C(0);
+
+    for (mapped_move = PF_M4_FALCON_JAB1;
+         mapped_move < PF_M4_FALCON_MOVE_COUNT;
+         mapped_move = (pf_m4_falcon_move_index)(mapped_move + 1))
+    {
+        const pf_m4_reference_move *move =
+            pf_m4_falcon_reference_move(mapped_move);
+
+        if (move == NULL)
+        {
+            return fail("falcon-reference-complete-table-null");
+        }
+        present_count += move->present != UINT8_C(0)
+                             ? UINT32_C(1)
+                             : UINT32_C(0);
+    }
 
     if (jab == NULL || jab->present != UINT8_C(1) ||
         jab->total_frames != UINT16_C(21) ||
@@ -21463,7 +21520,22 @@ static int run_falcon_reference_table_test(void)
     {
         return fail("falcon-reference-jab");
     }
-    if (dash_timing.startup_ticks != UINT16_C(6) ||
+    if (dash == NULL || dash->animation_flags != UINT32_C(0x80000002) ||
+        dash->motion_count != UINT16_C(39) ||
+        !pf_m4_falcon_reference_motion_x_q16(
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK,
+            UINT16_C(1),
+            &dash_motion_q16) ||
+        dash_motion_q16 != INT32_C(8930) ||
+        pf_m4_falcon_reference_motion_x_q16(
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK,
+            UINT16_C(0),
+            NULL) ||
+        pf_m4_falcon_reference_motion_x_q16(
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK,
+            UINT16_C(40),
+            NULL) ||
+        dash_timing.startup_ticks != UINT16_C(6) ||
         dash_timing.active_ticks != UINT16_C(10) ||
         dash_timing.recovery_ticks != UINT16_C(23) ||
         standing_grab_timing.startup_ticks != UINT16_C(5) ||
@@ -21473,6 +21545,15 @@ static int run_falcon_reference_table_test(void)
         dash_grab_timing.active_ticks != UINT16_C(2) ||
         dash_grab_timing.recovery_ticks != UINT16_C(28) ||
         missing == NULL || missing->present != UINT8_C(0) ||
+        missing_low == NULL || missing_low->present != UINT8_C(0) ||
+        present_count != UINT32_C(48) ||
+        special_n == NULL || special_n->present != UINT8_C(1) ||
+        special_n->subaction_index != UINT16_C(301) ||
+        special_n->total_frames != UINT16_C(99) ||
+        special_n->iasa_frame != UINT16_C(65) ||
+        special_last == NULL || special_last->present != UINT8_C(1) ||
+        special_last->subaction_index != UINT16_C(317) ||
+        special_last->total_frames != UINT16_C(59) ||
         missing_timing.startup_ticks != UINT16_C(0) ||
         missing_timing.active_ticks != UINT16_C(0) ||
         missing_timing.recovery_ticks != UINT16_C(0))
@@ -21533,7 +21614,40 @@ static int run_falcon_reference_table_test(void)
             NULL) ||
         pf_m4_falcon_reference_move_for_action(
             (uint8_t)PF_M4_ACTION_STRONG_ATTACK,
-            &mapped_move))
+            &mapped_move) ||
+        pf_m4_falcon_reference_iasa_policy_for_action(
+            (uint8_t)PF_M4_ACTION_GROUND_ATTACK) !=
+            PF_M4_REFERENCE_IASA_JAB_CHAIN ||
+        pf_m4_falcon_reference_iasa_policy_for_action(
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK) !=
+            PF_M4_REFERENCE_IASA_WAIT ||
+        pf_m4_falcon_reference_iasa_policy_for_action(
+            (uint8_t)PF_M4_ACTION_FORWARD_ATTACK) !=
+            PF_M4_REFERENCE_IASA_WAIT ||
+        pf_m4_falcon_reference_iasa_policy_for_action(
+            (uint8_t)PF_M4_ACTION_DOWN_ATTACK) !=
+            PF_M4_REFERENCE_IASA_DOWN_TILT ||
+        pf_m4_falcon_reference_iasa_policy_for_action(
+            (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK) !=
+            PF_M4_REFERENCE_IASA_FORWARD_SMASH ||
+        pf_m4_falcon_reference_iasa_policy_for_action(
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK) !=
+            PF_M4_REFERENCE_IASA_NONE ||
+        pf_m4_falcon_reference_ground_physics_for_action(
+            (uint8_t)PF_M4_ACTION_DASH_ATTACK) !=
+            PF_M4_REFERENCE_GROUND_PHYSICS_ROOT_MOTION ||
+        pf_m4_falcon_reference_ground_physics_for_action(
+            (uint8_t)PF_M4_ACTION_UP_ATTACK) !=
+            PF_M4_REFERENCE_GROUND_PHYSICS_FRICTION ||
+        pf_m4_falcon_reference_special_iasa_active(
+            (uint8_t)PF_M4_ACTION_UP_ATTACK,
+            UINT16_C(36)) ||
+        !pf_m4_falcon_reference_special_iasa_active(
+            (uint8_t)PF_M4_ACTION_UP_ATTACK,
+            UINT16_C(37)) ||
+        pf_m4_falcon_reference_special_iasa_active(
+            (uint8_t)PF_M4_ACTION_DOWN_ATTACK,
+            UINT16_C(34)))
     {
         return fail("falcon-reference-phase-and-action-route");
     }
@@ -21839,6 +21953,220 @@ static int run_falcon_jab1_iasa_test(void)
     return 1;
 }
 
+static int prepare_falcon_ground_action_frame(
+    test_sim_storage *storage,
+    const pf_content_view *view,
+    int16_t input_x,
+    int16_t input_y,
+    uint64_t input_buttons,
+    pf_m4_action_state expected_action,
+    uint16_t target_frame,
+    pf_sim **out_sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!initialize_sim(
+            storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            out_sim) ||
+        !step_reaction_duel(
+            *out_sim,
+            input_x,
+            input_y,
+            input_buttons,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)expected_action &&
+        (out_inspection->players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE ||
+         expected_action != PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
+         !step_reaction_duel(
+             *out_sim,
+             INT16_C(0),
+             INT16_C(0),
+             UINT64_C(0),
+             UINT16_C(0),
+             INT16_C(0),
+             INT16_C(0),
+             UINT64_C(0),
+             UINT16_C(0),
+             out_inspection)))
+    {
+        return 0;
+    }
+    if (out_inspection->players[0].action_state !=
+            (uint8_t)expected_action ||
+        out_inspection->players[0].action_ticks == UINT16_C(0) ||
+        out_inspection->players[0].action_ticks > target_frame)
+    {
+        return 0;
+    }
+    for (tick = out_inspection->players[0].action_ticks;
+         tick < (uint32_t)target_frame;
+         ++tick)
+    {
+        if (!step_duel(
+                *out_sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    return out_inspection->players[0].action_state ==
+               (uint8_t)expected_action &&
+           out_inspection->players[0].action_ticks == target_frame;
+}
+
+static int run_falcon_ground_iasa_policy_test(void)
+{
+    typedef struct falcon_ground_iasa_case
+    {
+        int16_t start_x;
+        int16_t start_y;
+        uint64_t start_buttons;
+        pf_m4_action_state start_action;
+        uint16_t start_frame;
+        int16_t interrupt_x;
+        int16_t interrupt_y;
+        uint64_t interrupt_buttons;
+        uint16_t interrupt_shield;
+        pf_m4_action_state expected_action;
+        uint16_t expected_frame;
+        uint8_t expected_next_action;
+        const char *failure;
+    } falcon_ground_iasa_case;
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    falcon_ground_iasa_case cases[6];
+    int16_t up_tilt_y;
+    uint32_t case_index;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "falcon-ground-iasa-default-content"))
+    {
+        return 0;
+    }
+    up_tilt_y =
+        (int16_t)-(
+            (int32_t)content.fighter.dash_axis_threshold - INT32_C(1));
+    content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
+    content.item.enabled = UINT8_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "falcon-ground-iasa-content-view"))
+    {
+        return 0;
+    }
+
+    cases[0] = (falcon_ground_iasa_case){
+        INT16_C(0), up_tilt_y, PF_INPUT_BUTTON_ATTACK,
+        PF_M4_ACTION_UP_ATTACK, UINT16_C(36),
+        INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_MAX,
+        PF_M4_ACTION_UP_ATTACK, UINT16_C(37), UINT8_MAX,
+        "falcon-utilt-frame37-guard-lock"};
+    cases[1] = (falcon_ground_iasa_case){
+        INT16_C(0), up_tilt_y, PF_INPUT_BUTTON_ATTACK,
+        PF_M4_ACTION_UP_ATTACK, UINT16_C(37),
+        INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_MAX,
+        PF_M4_ACTION_SHIELD, UINT16_MAX, UINT8_MAX,
+        "falcon-utilt-frame38-guard-iasa"};
+    cases[2] = (falcon_ground_iasa_case){
+        INT16_C(0), up_tilt_y, PF_INPUT_BUTTON_ATTACK,
+        PF_M4_ACTION_UP_ATTACK, UINT16_C(37),
+        INT16_C(0), INT16_MAX, UINT64_C(0), UINT16_MAX,
+        PF_M4_ACTION_SPOT_DODGE, UINT16_MAX, UINT8_MAX,
+        "falcon-utilt-frame38-escape-iasa"};
+    cases[3] = (falcon_ground_iasa_case){
+        INT16_C(0),
+        (int16_t)(content.fighter.dash_axis_threshold - UINT16_C(1)),
+        PF_INPUT_BUTTON_ATTACK, PF_M4_ACTION_DOWN_ATTACK, UINT16_C(34),
+        INT16_C(0), INT16_C(0), PF_INPUT_BUTTON_SPECIAL, UINT16_C(0),
+        PF_M4_ACTION_DOWN_ATTACK, UINT16_C(35), UINT8_MAX,
+        "falcon-dtilt-frame35-special-lock"};
+    cases[4] = (falcon_ground_iasa_case){
+        INT16_MAX, INT16_C(0), PF_INPUT_BUTTON_ATTACK,
+        PF_M4_ACTION_FORWARD_STRONG_ATTACK, UINT16_C(59),
+        INT16_C(0), INT16_MAX, UINT64_C(0), UINT16_MAX,
+        PF_M4_ACTION_SHIELD, UINT16_MAX, UINT8_MAX,
+        "falcon-fsmash-frame60-escape-excluded"};
+    cases[5] = (falcon_ground_iasa_case){
+        (int16_t)(content.fighter.axis_dead_zone + UINT16_C(1)),
+        INT16_C(0), PF_INPUT_BUTTON_ATTACK, PF_M4_ACTION_FORWARD_ATTACK,
+        UINT16_C(28), INT16_C(0), INT16_C(0), PF_INPUT_BUTTON_JUMP,
+        UINT16_C(0), PF_M4_ACTION_FORWARD_ATTACK, UINT16_C(29),
+        (uint8_t)PF_M4_ACTION_GROUND_IDLE,
+        "falcon-ftilt-no-iasa-and-total"};
+
+    for (case_index = UINT32_C(0);
+         case_index < sizeof(cases) / sizeof(cases[0]);
+         ++case_index)
+    {
+        const falcon_ground_iasa_case *test = &cases[case_index];
+
+        if (!prepare_falcon_ground_action_frame(
+                &storage,
+                &view,
+                test->start_x,
+                test->start_y,
+                test->start_buttons,
+                test->start_action,
+                test->start_frame,
+                &sim,
+                &inspection) ||
+            !step_reaction_duel(
+                sim,
+                test->interrupt_x,
+                test->interrupt_y,
+                test->interrupt_buttons,
+                test->interrupt_shield,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)test->expected_action ||
+            (test->expected_frame != UINT16_MAX &&
+             inspection.players[0].action_ticks != test->expected_frame) ||
+            (test->expected_next_action != UINT8_MAX &&
+             (!step_duel(
+                  sim,
+                  INT16_C(0),
+                  UINT64_C(0),
+                  INT16_C(0),
+                  UINT64_C(0),
+                  &inspection) ||
+              inspection.players[0].action_state !=
+                  test->expected_next_action)))
+        {
+            return fail(test->failure);
+        }
+    }
+    return 1;
+}
+
 int main(void)
 {
     pf_m4_content content;
@@ -21947,6 +22275,7 @@ int main(void)
 
     if (!run_falcon_reference_table_test() ||
         !run_falcon_jab1_iasa_test() ||
+        !run_falcon_ground_iasa_policy_test() ||
         !make_combat_content(&content, &view) ||
         !make_shield_poke_content(
             &shield_poke_content,

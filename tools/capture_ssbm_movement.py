@@ -32,6 +32,9 @@ def input_trace(
     shield_hit_only: bool = False,
     damage_hit_only: bool = False,
     attack_iasa_only: bool = False,
+    ground_attack_iasa_only: bool = False,
+    ground_attack_moves: tuple[str, ...] | None = None,
+    falcon_frame_data: dict[str, object] | None = None,
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
@@ -99,7 +102,11 @@ def input_trace(
         # that boundary; a held stick route independently exposes the first
         # continuous-input transition. These are oracle assertions over the
         # imported value, not a second authored timing source.
-        falcon_jab1_iasa_frame = 16
+        if falcon_frame_data is None:
+            raise ValueError("attack IASA capture requires Falcon frame data")
+        falcon_jab1_iasa_frame = int(
+            dict(falcon_frame_data["jab1"])["iasa"]
+        )
 
         def jab_interrupt_route(
             label: str,
@@ -140,6 +147,168 @@ def input_trace(
         trace.append(command("attack_iasa_walk_jab", attack=True))
         repeat("attack_iasa_walk_hold", 30, main_x=1.0)
         repeat("attack_iasa_walk_recover", 60)
+        return trace
+
+    if ground_attack_iasa_only:
+        if falcon_frame_data is None:
+            raise ValueError(
+                "ground-attack IASA capture requires Falcon frame data"
+            )
+
+        starters: dict[str, list[dict[str, object]]] = {
+            "dashattack": [
+                command("dashattack_dash", main_x=1.0),
+                command("dashattack_hold", main_x=1.0),
+                command("dashattack_hold", main_x=1.0),
+                command("dashattack_hold", main_x=1.0),
+                # Keep the already-aged dash direction held while A arrives.
+                # Releasing it drops the controller below the dash-attack
+                # branch; re-flicking it with A requests forward smash.
+                command("dashattack_start", main_x=1.0, attack=True),
+            ],
+            "ftilt_m": [
+                command("ftilt_m_start", main_x=0.70, attack=True)
+            ],
+            "utilt": [
+                command("utilt_start", main_y=0.65, attack=True)
+            ],
+            "dtilt": [
+                command("dtilt_start", main_y=0.35, attack=True)
+            ],
+            "fsmash_m": [command("fsmash_m_start", c_x=1.0)],
+            "usmash": [command("usmash_start", c_y=1.0)],
+            "dsmash": [command("dsmash_start", c_y=0.0)],
+        }
+
+        def move_value(move: str, field: str) -> int:
+            return int(dict(falcon_frame_data[move])[field])
+
+        route_index = 0
+        capture_facing = 1
+
+        def interrupt_route(
+            move: str,
+            route: str,
+            interrupt_frame: int,
+            **interrupt_inputs: object,
+        ) -> None:
+            nonlocal capture_facing, route_index
+            prefix = f"ground_iasa_{move}_{route}"
+            if route == "special" and capture_facing < 0:
+                # Falcon Punch carries substantial facing-relative root
+                # motion. Face back toward stage center before testing a
+                # special IASA branch so the isolated character-specific body
+                # cannot walk later routes into an edge clamp.
+                trace.append(command(f"{prefix}_face_center", main_x=1.0))
+                capture_facing = 1
+            # Mirror every other route.  Long matrix captures otherwise push
+            # Falcon onto Final Destination's x=85.5657 edge, where Melee
+            # retains the authored root velocity but collision correctly
+            # clamps world position.  Alternation keeps this timing oracle
+            # away from stage geometry without resetting game state.
+            mirrored = bool(route_index & 1)
+            if move == "ftilt_m":
+                # Melee's forward-tilt input is facing-relative; an opposite
+                # horizontal A press falls through to Jab 1 instead of
+                # turning the fighter. Preserve the facing left by the last
+                # horizontal route.
+                mirrored = capture_facing < 0
+            elif move == "fsmash_m" and route == "special":
+                mirrored = False
+            route_index += 1
+            recovery_frames = move_value(move, "totalFrames") + 45
+            if route == "special":
+                recovery_frames = max(
+                    recovery_frames,
+                    move_value("0x12d", "totalFrames") + 45,
+                )
+            repeat(f"{prefix}_settle", 40)
+            for starter in starters[move]:
+                mirrored_starter = dict(starter)
+                if mirrored:
+                    # libmelee's normalized controller axes use 0.5 as
+                    # neutral, so reflection is 1-x rather than negation.
+                    mirrored_starter["main_x"] = (
+                        1.0 - float(mirrored_starter["main_x"])
+                    )
+                    mirrored_starter["c_x"] = (
+                        1.0 - float(mirrored_starter["c_x"])
+                    )
+                trace.append(mirrored_starter)
+            if move in {"dashattack", "fsmash_m"}:
+                capture_facing = -1 if mirrored else 1
+            repeat(f"{prefix}_before", interrupt_frame - 2)
+            trace.append(
+                command(f"{prefix}_interrupt", **interrupt_inputs)
+            )
+            repeat(
+                f"{prefix}_recover",
+                recovery_frames,
+            )
+
+        # Match setup already places the target on the opposite side. Keep it
+        # there: running farther right walks it off Final Destination and its
+        # later respawn beside Falcon would inject hitlag into timing routes.
+        repeat("ground_iasa_opponent_settle", 60)
+
+        selected_moves = set(ground_attack_moves or starters)
+        routed_moves = tuple(move for move in (
+            "dashattack",
+            "utilt",
+            "dtilt",
+            "fsmash_m",
+            "usmash",
+            "dsmash",
+        ) if move in selected_moves)
+        for move in routed_moves:
+            iasa = move_value(move, "iasa")
+            interrupt_route(move, "jump_early", iasa - 1, jump=True)
+            interrupt_route(move, "jump_exact", iasa, jump=True)
+
+        # Forward tilt has no IASA command. A late jump must remain locked
+        # through its penultimate displayed animation frame.
+        if "ftilt_m" in selected_moves:
+            interrupt_route(
+                "ftilt_m",
+                "jump_no_iasa",
+                move_value("ftilt_m", "totalFrames") - 1,
+                jump=True,
+            )
+
+        wait_inputs = {
+            "guard": {"left_shoulder": 1.0, "digital_left": True},
+            "special": {"special": True},
+            "grab": {"grab": True},
+            "taunt": {"taunt": True},
+            "spot": {
+                "main_y": 0.0,
+                "left_shoulder": 1.0,
+                "digital_left": True,
+            },
+        }
+        if "utilt" in selected_moves:
+            for route, inputs in wait_inputs.items():
+                interrupt_route(
+                    "utilt",
+                    route,
+                    move_value("utilt", "iasa"),
+                    **inputs,
+                )
+
+        restricted_inputs = {
+            **wait_inputs,
+            "up_attack": {"main_y": 0.65, "attack": True},
+        }
+        for move in ("dtilt", "fsmash_m"):
+            if move not in selected_moves:
+                continue
+            for route, inputs in restricted_inputs.items():
+                interrupt_route(
+                    move,
+                    route,
+                    move_value(move, "iasa"),
+                    **inputs,
+                )
         return trace
 
     if shield_only:
@@ -1311,6 +1480,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         rows: list[dict[str, object]] = []
         origin_x: float | None = None
         origin_two_x: float | None = None
+        falcon_frame_data = (
+            json.loads(args.falcon_frame_data.read_text(encoding="utf-8"))
+            if args.falcon_frame_data is not None
+            else None
+        )
         trace = input_trace(
             platform_only=args.platform_only,
             push_only=args.push_only,
@@ -1320,6 +1494,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_hit_only=args.shield_hit_only,
             damage_hit_only=args.damage_hit_only,
             attack_iasa_only=args.attack_iasa_only,
+            ground_attack_iasa_only=args.ground_attack_iasa_only,
+            ground_attack_moves=(
+                tuple(args.ground_attack_move)
+                if args.ground_attack_move
+                else None
+            ),
+            falcon_frame_data=falcon_frame_data,
             shield_hit_pressure=args.shield_hit_pressure,
         )
         pipeline_delay = 2
@@ -1734,6 +1915,16 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-hit-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
+    mode.add_argument("--ground-attack-iasa-only", action="store_true")
+    parser.add_argument(
+        "--ground-attack-move",
+        action="append",
+        choices=(
+            "dashattack", "ftilt_m", "utilt", "dtilt", "fsmash_m",
+            "usmash", "dsmash",
+        ),
+    )
+    parser.add_argument("--falcon-frame-data", type=Path)
     parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--memory-probe-damage", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)

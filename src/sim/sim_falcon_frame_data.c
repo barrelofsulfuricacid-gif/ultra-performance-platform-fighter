@@ -274,6 +274,104 @@ int pf_m4_falcon_reference_attack_matches(
                authored_damage_q16) != NULL;
 }
 
+pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
+    uint8_t action_state)
+{
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_GROUND_ATTACK:
+        case PF_M4_ACTION_JAB_FINAL:
+            return PF_M4_REFERENCE_IASA_JAB_CHAIN;
+        case PF_M4_ACTION_DASH_ATTACK:
+        case PF_M4_ACTION_FORWARD_ATTACK:
+        case PF_M4_ACTION_UP_ATTACK:
+        case PF_M4_ACTION_UP_STRONG_ATTACK:
+        case PF_M4_ACTION_DOWN_STRONG_ATTACK:
+            return PF_M4_REFERENCE_IASA_WAIT;
+        case PF_M4_ACTION_DOWN_ATTACK:
+            return PF_M4_REFERENCE_IASA_DOWN_TILT;
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+            return PF_M4_REFERENCE_IASA_FORWARD_SMASH;
+        default:
+            return PF_M4_REFERENCE_IASA_NONE;
+    }
+}
+
+pf_m4_reference_ground_physics
+pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state)
+{
+    /*
+     * These are the common-action callbacks which call ft_80084FA8 or
+     * ft_80085030. The other grounded normals use ft_80084F3C and therefore
+     * apply ground friction without consuming animation translation.
+     */
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_GROUND_ATTACK:
+        case PF_M4_ACTION_JAB_FINAL:
+        case PF_M4_ACTION_DASH_ATTACK:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+            return PF_M4_REFERENCE_GROUND_PHYSICS_ROOT_MOTION;
+        default:
+            return PF_M4_REFERENCE_GROUND_PHYSICS_FRICTION;
+    }
+}
+
+int pf_m4_falcon_reference_special_iasa_active(
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+    const pf_m4_reference_iasa_policy policy =
+        pf_m4_falcon_reference_iasa_policy_for_action(action_state);
+
+    if (policy != PF_M4_REFERENCE_IASA_WAIT &&
+        policy != PF_M4_REFERENCE_IASA_FORWARD_SMASH)
+    {
+        return 0;
+    }
+    if (!pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return 0;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    return move != NULL && move->iasa_frame != UINT16_C(0) &&
+           (uint32_t)action_ticks + UINT32_C(1) >=
+               (uint32_t)move->iasa_frame;
+}
+
+int pf_m4_falcon_reference_motion_x_q16(
+    uint8_t action_state,
+    uint16_t action_frame,
+    int32_t *out_motion_x_q16)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+
+    if (action_frame == UINT16_C(0) ||
+        !pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return 0;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    if (move == NULL || action_frame > move->motion_count)
+    {
+        return 0;
+    }
+    if (out_motion_x_q16 != NULL)
+    {
+        *out_motion_x_q16 =
+            pf_m4_falcon_motion_x_q16[
+                move->motion_offset + action_frame - UINT16_C(1)];
+    }
+    return 1;
+}
+
 int pf_m4_falcon_reference_landing_lag_active(
     uint8_t action_state,
     uint16_t action_frame)

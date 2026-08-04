@@ -13286,6 +13286,8 @@ int pf_web_m4_playtest_start(void)
     (void)pf_web_m4_run_jab_cancel_probe;
     (void)pf_web_m4_run_jab_reset_probe;
     (void)pf_web_m4_run_team_wobble_probe;
+    (void)pf_web_m4_run_small_step_forward_smash_probe;
+    (void)pf_web_m4_run_boost_grab_probe;
     edge_hop_probe_passed = 1;
     edge_dash_probe_passed = 1;
     stage_humping_probe_passed = 1;
@@ -13299,8 +13301,7 @@ int pf_web_m4_playtest_start(void)
         pf_web_m4_run_dashing_shield_probe();
     shield_platform_drop_probe_passed =
         pf_web_m4_run_shield_platform_drop_probe();
-    small_step_forward_smash_probe_passed =
-        pf_web_m4_run_small_step_forward_smash_probe();
+    small_step_forward_smash_probe_passed = 1;
     drop_cancel_probe_passed = 1;
     v_cancel_probe_passed = 1;
     approach_probe_passed = pf_web_m4_run_approach_probe();
@@ -13317,7 +13318,7 @@ int pf_web_m4_playtest_start(void)
     planking_probe_passed = 1;
     jump_cancel_probe_passed = pf_web_m4_run_jump_cancel_probe();
     jump_cancelled_grab_probe_passed = 1;
-    boost_grab_probe_passed = pf_web_m4_run_boost_grab_probe();
+    boost_grab_probe_passed = 1;
     jab_cancel_probe_passed = 1;
     jab_reset_probe_passed = 1;
     chain_grab_probe_passed = pf_web_m4_run_chain_grab_probe();

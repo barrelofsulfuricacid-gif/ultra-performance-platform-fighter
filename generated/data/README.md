@@ -8,12 +8,17 @@ Release, web, and headless products consume these packs; developer-only
 runtime workbook import remains an explicit diagnostic path.
 
 `m4_falcon_ntsc102_frame_data.inc` is the owner-authorized numeric exception:
-all 50 Falcon NTSC 1.02 attack subactions converted by
+Falcon's complete 50-slot NTSC 1.02 attack schema converted by
 `tools/import_ssbm_falcon_frame_data.py`. Its pinned source hashes and tool
 revisions are recorded in
 `docs/product/m4_falcon_ntsc102_data_provenance.md`; no extracted DAT or
-hitbox-geometry dump is tracked. Regeneration takes both the geometry-free
-frame-data JSON and the original DAT JSON so throw-release commands are not
-lost through the upstream display-label bug.
-Production Falcon-counterpart code indexes this generated table rather than
+hitbox-geometry dump is tracked. Regeneration takes the geometry-free
+frame-data JSON, the original DAT JSON, and the owner-extracted raw `PlCa.dat`
+and `PlCaAJ.dat`. The DAT JSON preserves throw-release commands; the raw files
+provide action flags and compressed animation-root translation without a
+hand-authored movement table. All four inputs are hash-pinned and remain
+external to the repository.
+The table has 48 concrete subactions and preserves the source-defined absence
+of the mid-high and mid-low forward-smash angle slots; the importer rejects
+any other absent row. Production Falcon-counterpart code indexes this generated table rather than
 duplicating numeric move constants in hand-authored defaults.
