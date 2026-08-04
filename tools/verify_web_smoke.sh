@@ -132,7 +132,10 @@ pf_require_dom \
     'match_probe=pass short_hop_laser_probe=pass'
 pf_require_dom \
     "M4 charge and controller status" \
-    'charge_storage_probe=pass vector_ascent_probe=pass gamepad_probe=pass gamepad_api=available controls=keyboard-gamepad-two-controller-duel-team-lab'
+    'charge_storage_probe=pass vector_ascent_probe=pass gamepad_probe=pass gamepad_api=available wii_u_adapter_probe=pass wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab'
+pf_require_dom \
+    "native Wii U GameCube adapter control" \
+    'id="pf-m4-wii-u-adapter"'
 pf_require_dom \
     "M4 playtest surface" \
     'id="pf-m4-playtest"'

@@ -548,7 +548,16 @@ grep -Fq \
     'function mapMayflashGameCubeAdapter(gamepad)' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'section.dataset.gamepadProfiles = "standard-mayflash-0079-1843"' \
+    '"standard-mayflash-0079-1843-webusb-057e-0337"' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'function parseWiiUAdapterReport(report)' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'navigator.usb.requestDevice' \
+    "$root/src/web_client/web_adapter.js"
+grep -Fq \
+    'new Uint8Array([0x13])' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     'section.dataset.crouchCue = "squat-chevron-label"' \
@@ -584,7 +593,7 @@ grep -Fq \
     '"FULL SHIELD "' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'controls=keyboard-gamepad-two-controller-duel-team-lab' \
+    'controls=keyboard-gamepad-webusb-two-controller-duel-team-lab' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 adapter_core=pass gamepad_polling=1 standard_mapping=1 team_lab=1 owner_checklist=61 legacy_emergent_probes=skipped"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 adapter_core=pass gamepad_polling=1 standard_mapping=1 wii_u_webusb=1 team_lab=1 owner_checklist=61 legacy_emergent_probes=skipped"

@@ -29,6 +29,26 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the native Wii U adapter follow-up
+
+- Windows identified the owner's switched adapter as `WUP-028` USB
+  `057e:0337`. That mode intentionally does not expose the four ports through
+  the Gamepad API, which explained the complete controller loss after moving
+  the hardware switch away from PC mode.
+- The browser playtest now offers `Connect Wii U Adapter`, claims the native
+  interface with WebUSB after an explicit owner gesture, sends `0x13`, and
+  continuously decodes the adapter's 37-byte reports. Raw main stick, C-stick,
+  analog triggers, buttons, and all four occupied-port indicators are retained;
+  the first two occupied ports map to the two local players.
+- The former PC-mode `0079:1843` Gamepad path remains supported. Wii U mode
+  avoids the DirectInput normalization boundary that made a full physical
+  cardinal flick difficult to distinguish from the fastest walk on this
+  hardware.
+- A deterministic native-report mapping probe covers axes, D-pad override,
+  A/X/Start/Z/L, C-stick, and analog R. The Chrome smoke requires the WebUSB
+  control and mapping-probe result, while granting real USB access remains an
+  owner interaction.
+
 ## Implemented in the gradual-stick fast-walk follow-up
 
 - The midpoint-based follow-up also overcorrected: unlike Melee, it committed a

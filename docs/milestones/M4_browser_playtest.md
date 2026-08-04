@@ -136,10 +136,12 @@ visible. The legend and `data-collision-overlay-semantics` attribute expose
 these meanings to the browser verifier. Toggling while paused redraws the
 captured frame without consuming a simulation tick.
 
-Up to two gamepads using either the
+Up to two controllers using either the
 [W3C Standard Gamepad layout](https://www.w3.org/TR/gamepad/#remapping) or the
 [Mayflash W012 four-port GameCube adapter](https://www.mayflash.com/product/W012.html)
-in PC mode are assigned in browser index order. On a Standard Gamepad, the left stick supplies analog
+are assigned in browser order. PC mode uses the Gamepad API; Wii U mode uses
+the adapter's native `057e:0337` USB interface after the owner clicks
+`Connect Wii U Adapter` and grants access. On a Standard Gamepad, the left stick supplies analog
 movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack, directional tilt, or charged
 smash, the right face button is an immediate uncharged directional strong, the left face button
@@ -164,6 +166,13 @@ recognized explicitly and all other unknown non-standard mappings remain
 ignored. The adapter can expose multiple browser devices even when some of its
 four sockets are empty; empty sockets are filtered before the first two
 attached controllers are assigned.
+
+In Wii U mode, the browser claims USB interface 0, writes the adapter's `0x13`
+start command, and continuously decodes its 37-byte reports. Each of the four
+nine-byte port records preserves the GameCube main stick, C-stick, analog L/R,
+digital buttons, and connection type. The first two occupied ports become P1
+and P2; unplugged ports do not consume a player slot. Previously authorized
+devices reconnect on page reload without another picker.
 
 The DirectInput main-stick and C-stick profiles saturate their physical 0.75
 cardinal range to the simulation's full axis, so real adapter values cross the
@@ -996,11 +1005,12 @@ broader acceptance evidence.
     `TECH IN PLACE` ends. Repeat with a right tech roll and chase the observed
     movement before jabbing. Finally reset, leave Player 1 at the original
     spacing, and jab at the same target action tick; confirm the roll escapes.
-36. Connect one standard-mapped gamepad, or put a Mayflash `0079:1843`
-    GameCube adapter in PC mode and connect a controller. Press or move it once
-    so the browser exposes it, and confirm the toolbar says `controllers 1/2`
-    (with `GameCube 1/N` for the adapter ports currently exposed by the
-    browser). Verify
+36. Connect one standard-mapped gamepad, or use a Mayflash GameCube adapter.
+    In PC mode, press or move it once so the browser exposes `0079:1843`. In
+    Wii U mode, release both sticks, click `Connect Wii U Adapter`, select the
+    `WUP-028` `057e:0337` device, and grant access. Confirm the toolbar says
+    `controllers 1/2` and identifies either the PC-mode or Wii U-mode adapter.
+    Verify
     analog walk versus dash, D-pad full input, both attacks, jump, shield, tech,
     air dodge, and L-cancel. For GameCube, also verify C-stick strong attacks
     and Z grab/item. Hot-plug a second pad and confirm it controls

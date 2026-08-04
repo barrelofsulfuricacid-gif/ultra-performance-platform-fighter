@@ -1113,6 +1113,344 @@ mergeInto(LibraryManager.library, {
       return input;
     }
 
+    var wiiUAdapterState = {
+      available:
+        typeof navigator !== "undefined" &&
+        navigator.usb !== undefined &&
+        typeof navigator.usb.requestDevice === "function",
+      connectedPorts: 0,
+      device: null,
+      error: "",
+      generation: 0,
+      inputEndpoint: 0,
+      inputs: [
+        emptyGamepadInput(),
+        emptyGamepadInput(),
+        emptyGamepadInput(),
+        emptyGamepadInput(),
+      ],
+      outputEndpoint: 0,
+      portConnected: [false, false, false, false],
+      status: "disconnected",
+    };
+
+    function wiiUAdapterAxis(rawValue, invert) {
+      var delta = Number(rawValue) - 128;
+      if (invert) {
+        delta = -delta;
+      }
+      if (Math.abs(delta) < 16) {
+        return 0;
+      }
+      var magnitude = Math.round(
+        Math.min(1, Math.abs(delta) / 80) * dashAxis
+      );
+      return delta < 0 ? -magnitude : magnitude;
+    }
+
+    function wiiUAdapterTrigger(rawValue) {
+      var value = Math.max(0, Math.min(255, Number(rawValue))) / 255;
+      if (value <= 0.15) {
+        return 0;
+      }
+      return Math.round(((value - 0.15) / 0.85) * 65535);
+    }
+
+    function parseWiiUAdapterReport(report) {
+      var parsed = {
+        connectedPorts: 0,
+        inputs: [
+          emptyGamepadInput(),
+          emptyGamepadInput(),
+          emptyGamepadInput(),
+          emptyGamepadInput(),
+        ],
+        portConnected: [false, false, false, false],
+        valid: false,
+      };
+      if (!report || report.length < 37 || report[0] !== 0x21) {
+        return parsed;
+      }
+
+      parsed.valid = true;
+      for (var port = 0; port < 4; ++port) {
+        var base = 1 + port * 9;
+        var controllerType = report[base] >> 4;
+        if (controllerType === 0) {
+          continue;
+        }
+
+        var input = parsed.inputs[port];
+        var buttons1 = report[base + 1];
+        var buttons2 = report[base + 2];
+        var dpadLeft = (buttons1 & 0x10) !== 0;
+        var dpadRight = (buttons1 & 0x20) !== 0;
+        var dpadDown = (buttons1 & 0x40) !== 0;
+        var dpadUp = (buttons1 & 0x80) !== 0;
+        var zPressed = (buttons2 & 0x02) !== 0;
+        var digitalRight = (buttons2 & 0x04) !== 0;
+        var digitalLeft = (buttons2 & 0x08) !== 0;
+
+        input.horizontal = wiiUAdapterAxis(report[base + 3], false);
+        input.vertical = wiiUAdapterAxis(report[base + 4], true);
+        if (dpadLeft || dpadRight) {
+          input.horizontal =
+            dpadLeft === dpadRight ? 0 : dpadLeft ? -dashAxis : dashAxis;
+        }
+        if (dpadUp || dpadDown) {
+          input.vertical =
+            dpadUp === dpadDown ? 0 : dpadUp ? -dashAxis : dashAxis;
+        }
+
+        input.secondaryHorizontal = wiiUAdapterAxis(
+          report[base + 5],
+          false
+        );
+        input.secondaryVertical = wiiUAdapterAxis(
+          report[base + 6],
+          true
+        );
+        input.strongAttack =
+          input.secondaryHorizontal !== 0 ||
+          input.secondaryVertical !== 0;
+        input.attack = (buttons1 & 0x01) !== 0 || zPressed;
+        input.special = (buttons1 & 0x02) !== 0;
+        input.jump = (buttons1 & 0x0c) !== 0;
+        input.taunt = (buttons2 & 0x01) !== 0;
+        input.leftShieldStrength =
+          digitalLeft || zPressed
+            ? 65535
+            : wiiUAdapterTrigger(report[base + 7]);
+        input.rightShieldStrength = digitalRight
+          ? 65535
+          : wiiUAdapterTrigger(report[base + 8]);
+        input.shieldStrength = Math.max(
+          input.leftShieldStrength,
+          input.rightShieldStrength
+        );
+        input.shield = input.shieldStrength !== 0;
+        parsed.portConnected[port] = true;
+        ++parsed.connectedPorts;
+      }
+      return parsed;
+    }
+
+    function runWiiUAdapterMappingProbe() {
+      var report = new Uint8Array(37);
+      report[0] = 0x21;
+      report[1] = 0x10;
+      report[2] = 0x85;
+      report[3] = 0x0b;
+      report[4] = 208;
+      report[5] = 48;
+      report[6] = 48;
+      report[7] = 208;
+      report[8] = 128;
+      report[9] = 64;
+      var parsed = parseWiiUAdapterReport(report);
+      var input = parsed.inputs[0];
+      return (
+        parsed.valid &&
+        parsed.connectedPorts === 1 &&
+        parsed.portConnected[0] &&
+        input.horizontal === dashAxis &&
+        input.vertical === -dashAxis &&
+        input.secondaryHorizontal === -dashAxis &&
+        input.secondaryVertical === -dashAxis &&
+        input.attack &&
+        !input.special &&
+        input.jump &&
+        input.taunt &&
+        input.strongAttack &&
+        input.shield &&
+        input.leftShieldStrength === 65535 &&
+        input.rightShieldStrength > 0 &&
+        input.rightShieldStrength < 65535
+      );
+    }
+
+    function updateWiiUAdapterReport(report) {
+      var parsed = parseWiiUAdapterReport(report);
+      if (!parsed.valid) {
+        return;
+      }
+      wiiUAdapterState.connectedPorts = parsed.connectedPorts;
+      wiiUAdapterState.inputs = parsed.inputs;
+      wiiUAdapterState.portConnected = parsed.portConnected;
+    }
+
+    async function readWiiUAdapter(device, generation) {
+      while (
+        wiiUAdapterState.device === device &&
+        wiiUAdapterState.generation === generation &&
+        device.opened
+      ) {
+        try {
+          var result = await device.transferIn(
+            wiiUAdapterState.inputEndpoint,
+            37
+          );
+          if (result.status === "ok" && result.data) {
+            updateWiiUAdapterReport(
+              new Uint8Array(
+                result.data.buffer,
+                result.data.byteOffset,
+                result.data.byteLength
+              )
+            );
+          }
+        } catch (error) {
+          if (
+            wiiUAdapterState.device === device &&
+            wiiUAdapterState.generation === generation
+          ) {
+            wiiUAdapterState.status = "error";
+            wiiUAdapterState.error = String(
+              error && error.message ? error.message : error
+            );
+            wiiUAdapterState.connectedPorts = 0;
+            wiiUAdapterState.inputs = [
+              emptyGamepadInput(),
+              emptyGamepadInput(),
+              emptyGamepadInput(),
+              emptyGamepadInput(),
+            ];
+            wiiUAdapterState.portConnected = [false, false, false, false];
+          }
+          return;
+        }
+      }
+    }
+
+    async function openWiiUAdapter(device) {
+      wiiUAdapterState.status = "connecting";
+      wiiUAdapterState.error = "";
+      try {
+        if (!device.opened) {
+          await device.open();
+        }
+        if (!device.configuration) {
+          await device.selectConfiguration(1);
+        }
+        var usbInterface = device.configuration.interfaces.find(function (
+          candidate
+        ) {
+          return candidate.interfaceNumber === 0;
+        });
+        if (!usbInterface) {
+          throw new Error("adapter USB interface 0 is unavailable");
+        }
+        await device.claimInterface(usbInterface.interfaceNumber);
+        var alternate = usbInterface.alternate;
+        var inputEndpoint = alternate.endpoints.find(function (endpoint) {
+          return endpoint.direction === "in";
+        });
+        var outputEndpoint = alternate.endpoints.find(function (endpoint) {
+          return endpoint.direction === "out";
+        });
+        if (!inputEndpoint || !outputEndpoint) {
+          throw new Error("adapter interrupt endpoints are unavailable");
+        }
+
+        wiiUAdapterState.device = device;
+        wiiUAdapterState.inputEndpoint = inputEndpoint.endpointNumber;
+        wiiUAdapterState.outputEndpoint = outputEndpoint.endpointNumber;
+        ++wiiUAdapterState.generation;
+        await device.transferOut(
+          wiiUAdapterState.outputEndpoint,
+          new Uint8Array([0x13])
+        );
+        wiiUAdapterState.status = "connected";
+        void readWiiUAdapter(device, wiiUAdapterState.generation);
+        return true;
+      } catch (error) {
+        if (device.opened) {
+          try {
+            await device.close();
+          } catch (closeError) {
+            void closeError;
+          }
+        }
+        wiiUAdapterState.device = null;
+        wiiUAdapterState.status = "error";
+        wiiUAdapterState.error = String(
+          error && error.message ? error.message : error
+        );
+        return false;
+      }
+    }
+
+    async function requestWiiUAdapter() {
+      if (!wiiUAdapterState.available) {
+        wiiUAdapterState.status = "unsupported";
+        return false;
+      }
+      try {
+        var device = await navigator.usb.requestDevice({
+          filters: [{ vendorId: 0x057e, productId: 0x0337 }],
+        });
+        return await openWiiUAdapter(device);
+      } catch (error) {
+        if (error && error.name === "NotFoundError") {
+          wiiUAdapterState.status = "disconnected";
+          wiiUAdapterState.error = "";
+          return false;
+        }
+        wiiUAdapterState.status = "error";
+        wiiUAdapterState.error = String(
+          error && error.message ? error.message : error
+        );
+        return false;
+      }
+    }
+
+    async function reconnectAuthorizedWiiUAdapter() {
+      if (
+        !wiiUAdapterState.available ||
+        typeof navigator.usb.getDevices !== "function"
+      ) {
+        return false;
+      }
+      try {
+        var devices = await navigator.usb.getDevices();
+        var device = devices.find(function (candidate) {
+          return (
+            candidate.vendorId === 0x057e &&
+            candidate.productId === 0x0337
+          );
+        });
+        return device ? await openWiiUAdapter(device) : false;
+      } catch (error) {
+        wiiUAdapterState.status = "error";
+        wiiUAdapterState.error = String(
+          error && error.message ? error.message : error
+        );
+        return false;
+      }
+    }
+
+    function mergeWiiUAdapterInputs(result) {
+      result.wiiUAvailable = wiiUAdapterState.available;
+      result.wiiUStatus = wiiUAdapterState.status;
+      result.wiiUError = wiiUAdapterState.error;
+      result.wiiUPorts = wiiUAdapterState.connectedPorts;
+      if (wiiUAdapterState.status !== "connected") {
+        return result;
+      }
+      for (
+        var port = 0;
+        port < 4 && result.connected < result.inputs.length;
+        ++port
+      ) {
+        if (!wiiUAdapterState.portConnected[port]) {
+          continue;
+        }
+        result.inputs[result.connected] = wiiUAdapterState.inputs[port];
+        ++result.connected;
+      }
+      return result;
+    }
+
     function isSupportedGamepad(gamepad) {
       return (
         gamepad &&
@@ -1161,12 +1499,14 @@ mergeInto(LibraryManager.library, {
         typeof navigator === "undefined" ||
         typeof navigator.getGamepads !== "function"
       ) {
-        return collectSupportedGamepads([]);
+        return mergeWiiUAdapterInputs(collectSupportedGamepads([]));
       }
       try {
-        return collectSupportedGamepads(navigator.getGamepads());
+        return mergeWiiUAdapterInputs(
+          collectSupportedGamepads(navigator.getGamepads())
+        );
       } catch (error) {
-        return collectSupportedGamepads([]);
+        return mergeWiiUAdapterInputs(collectSupportedGamepads([]));
       }
     }
 
@@ -1189,7 +1529,25 @@ mergeInto(LibraryManager.library, {
           ? cStickVertical + "-" + cStickHorizontal
           : cStickVertical || cStickHorizontal || "neutral";
       if (!gamepadApiAvailable) {
-        return "gamepad API unavailable";
+        return gamepads.wiiUStatus === "connected"
+          ? "Wii U GameCube " + gamepads.wiiUPorts + "/4"
+          : "gamepad API unavailable";
+      }
+      if (gamepads.wiiUStatus === "connected") {
+        return (
+          "controllers " +
+          gamepads.connected +
+          "/2 · Wii U GameCube " +
+          gamepads.wiiUPorts +
+          "/4 · C " +
+          cStickLabel
+        );
+      }
+      if (gamepads.wiiUStatus === "connecting") {
+        return "connecting Wii U GameCube adapter…";
+      }
+      if (gamepads.wiiUStatus === "error") {
+        return "Wii U adapter error · " + gamepads.wiiUError;
       }
       if (gamepads.mayflashPorts > 0) {
         return (
@@ -1339,6 +1697,9 @@ mergeInto(LibraryManager.library, {
       typeof navigator !== "undefined" &&
       typeof navigator.getGamepads === "function";
     var gamepadProbePassed = runGamepadMappingProbe();
+    var wiiUAdapterProbePassed = runWiiUAdapterMappingProbe();
+    var controllerApiAvailable =
+      gamepadApiAvailable || wiiUAdapterState.available;
     var status = document.getElementById("pf-status");
     var replayInspector = document.getElementById("pf-replay-inspector");
     var previous = document.getElementById("pf-m4-playtest");
@@ -1496,11 +1857,23 @@ mergeInto(LibraryManager.library, {
     var section = document.createElement("section");
     section.id = "pf-m4-playtest";
     section.dataset.ready =
-      gamepadApiAvailable && gamepadProbePassed ? "true" : "false";
+      controllerApiAvailable &&
+      gamepadProbePassed &&
+      wiiUAdapterProbePassed
+        ? "true"
+        : "false";
     section.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
-    section.dataset.gamepadProfiles = "standard-mayflash-0079-1843";
+    section.dataset.gamepadProfiles =
+      "standard-mayflash-0079-1843-webusb-057e-0337";
+    section.dataset.wiiUAdapterApi = wiiUAdapterState.available
+      ? "available"
+      : "unavailable";
+    section.dataset.wiiUAdapterProbe = wiiUAdapterProbePassed
+      ? "pass"
+      : "fail";
+    section.dataset.wiiUAdapter = "disconnected";
     section.dataset.crouchCue = "squat-chevron-label";
     section.dataset.lightShieldCue = "expanded-translucent-percent-label";
     section.dataset.shieldCue = "readable-margin-strength-label";
@@ -1549,7 +1922,7 @@ mergeInto(LibraryManager.library, {
     var subtitle = document.createElement("p");
     subtitle.textContent =
       "Keyboard, Standard Gamepads, and the Mayflash four-port GameCube " +
-      "adapter drive the same deterministic " +
+      "adapter in PC or native Wii U mode drive the same deterministic " +
       "Q16.16 simulation used by native, replay, rollback, and headless " +
       "execution. The collision inspector draws production stage surfaces, " +
       "hurtboxes, shield volumes, attack and grab boxes, item/projectile " +
@@ -1615,8 +1988,9 @@ mergeInto(LibraryManager.library, {
       campingProbePassed &&
       shineSpikeProbePassed &&
       chargeStorageProbePassed &&
-      gamepadApiAvailable &&
-      gamepadProbePassed
+      controllerApiAvailable &&
+      gamepadProbePassed &&
+      wiiUAdapterProbePassed
         ? "ALL M4 INPUT + GAMEPAD + COMBAT PROBES PASSED"
         : "RUNTIME PROBE FAILED";
     heading.appendChild(headingCopy);
@@ -1692,6 +2066,14 @@ mergeInto(LibraryManager.library, {
     collisionOverlayButton.textContent = "Collision Inspector: On";
     collisionOverlayButton.setAttribute("aria-pressed", "true");
     collisionOverlayButton.setAttribute("aria-controls", "pf-m4-canvas");
+    var wiiUAdapterButton = document.createElement("button");
+    wiiUAdapterButton.id = "pf-m4-wii-u-adapter";
+    wiiUAdapterButton.type = "button";
+    wiiUAdapterButton.textContent = "Connect Wii U Adapter";
+    wiiUAdapterButton.disabled = !wiiUAdapterState.available;
+    wiiUAdapterButton.title = wiiUAdapterState.available
+      ? "Release the sticks, then grant access to the 057e:0337 adapter"
+      : "WebUSB is unavailable in this browser";
     var tickLabel = document.createElement("span");
     tickLabel.className = "pf-m4-tick";
     tickLabel.textContent = "tick 0 · fixed 60 Hz";
@@ -1704,6 +2086,7 @@ mergeInto(LibraryManager.library, {
     toolbar.appendChild(setupButton);
     toolbar.appendChild(teamLabButton);
     toolbar.appendChild(collisionOverlayButton);
+    toolbar.appendChild(wiiUAdapterButton);
     toolbar.appendChild(gamepadLabel);
     toolbar.appendChild(tickLabel);
     section.appendChild(toolbar);
@@ -1755,11 +2138,13 @@ mergeInto(LibraryManager.library, {
       "stick magnitude preserves analog walk/dash thresholds; the D-pad emits " +
       "full magnitude. A normal quick flick may reach full horizontal over two " +
       "samples and still dash. A slower sweep that takes three or more samples " +
-      "to reach the dash threshold becomes the fastest walk. The Mayflash " +
-      "0079:1843 adapter must be in PC mode; its main-stick and C-stick cardinal " +
-      "gate values are normalized to full magnitude, and " +
-      "empty adapter ports are skipped. Keyboard and gamepad buttons may be mixed per player. " +
-      "Tap jump and release during the three-tick jump squat for the fixed " +
+      "to reach the dash threshold becomes the fastest walk. In PC mode, the " +
+      "Mayflash 0079:1843 main-stick and C-stick cardinal gate values are " +
+      "normalized to full magnitude. In Wii U mode, click Connect Wii U Adapter " +
+      "once and grant access to the WUP-028 057e:0337 device; its native stick, " +
+      "trigger, button, and four-port reports are read directly. Empty adapter " +
+      "ports are skipped. Keyboard and controller buttons may be mixed per player. " +
+      "Tap jump and release during the four-tick jump squat for the fixed " +
       "short hop; hold through takeoff for the fixed full hop. Releasing after " +
       "takeoff never changes either apex. Run, press jump while holding " +
       "forward, then immediately hold backward through jump squat to nearly " +
@@ -1996,6 +2381,7 @@ mergeInto(LibraryManager.library, {
       eventFeed: eventFeed,
       eventLog: [],
       gamepadLabel: gamepadLabel,
+      wiiUAdapterButton: wiiUAdapterButton,
       keys: Object.create(null),
       itemState: itemState,
       projectileState: projectileState,
@@ -2062,10 +2448,25 @@ mergeInto(LibraryManager.library, {
       var player1Gamepad = gamepads.inputs[1];
       state.gamepadLabel.textContent = gamepadStatusLabel(gamepads);
       section.dataset.gamecubeAdapter =
-        gamepads.mayflashPorts > 0 ? "detected" : "not-detected";
+        gamepads.mayflashPorts > 0 || gamepads.wiiUStatus === "connected"
+          ? "detected"
+          : "not-detected";
       section.dataset.gamecubeControllers = String(
-        gamepads.mayflashControllers
+        gamepads.mayflashControllers + gamepads.wiiUPorts
       );
+      section.dataset.wiiUAdapter = gamepads.wiiUStatus;
+      state.wiiUAdapterButton.textContent =
+        gamepads.wiiUStatus === "connected"
+          ? "Wii U Adapter Connected"
+          : gamepads.wiiUStatus === "connecting"
+          ? "Connecting Wii U Adapter…"
+          : gamepads.wiiUStatus === "error"
+          ? "Retry Wii U Adapter"
+          : "Connect Wii U Adapter";
+      state.wiiUAdapterButton.disabled =
+        !wiiUAdapterState.available ||
+        gamepads.wiiUStatus === "connected" ||
+        gamepads.wiiUStatus === "connecting";
       var player0Jump =
         held("KeyW") ||
         held("Space") ||
@@ -2344,6 +2745,37 @@ mergeInto(LibraryManager.library, {
     startMatchButton.addEventListener("click", startConfiguredDuel);
     teamLabButton.addEventListener("click", toggleTeamLab);
     collisionOverlayButton.addEventListener("click", toggleCollisionOverlay);
+    wiiUAdapterButton.addEventListener("click", async function () {
+      await requestWiiUAdapter();
+      if (!state.running) {
+        step();
+      }
+    });
+
+    if (wiiUAdapterState.available) {
+      navigator.usb.addEventListener("disconnect", function (event) {
+        if (event.device !== wiiUAdapterState.device) {
+          return;
+        }
+        ++wiiUAdapterState.generation;
+        wiiUAdapterState.device = null;
+        wiiUAdapterState.status = "disconnected";
+        wiiUAdapterState.error = "";
+        wiiUAdapterState.connectedPorts = 0;
+        wiiUAdapterState.inputs = [
+          emptyGamepadInput(),
+          emptyGamepadInput(),
+          emptyGamepadInput(),
+          emptyGamepadInput(),
+        ];
+        wiiUAdapterState.portConnected = [false, false, false, false];
+      });
+      void reconnectAuthorizedWiiUAdapter().then(function (connected) {
+        if (connected && !state.running) {
+          step();
+        }
+      });
+    }
 
     window.addEventListener(
       "keydown",
@@ -2455,7 +2887,11 @@ mergeInto(LibraryManager.library, {
     if (status) {
       status.textContent +=
         " playtest=" +
-        (gamepadApiAvailable && gamepadProbePassed ? "ready" : "fail") +
+        (controllerApiAvailable &&
+        gamepadProbePassed &&
+        wiiUAdapterProbePassed
+          ? "ready"
+          : "fail") +
         " input_probe=" +
         (inputProbePassed ? "pass" : "fail") +
         " air_facing_probe=" +
@@ -2580,11 +3016,19 @@ mergeInto(LibraryManager.library, {
         (gamepadProbePassed ? "pass" : "fail") +
         " gamepad_api=" +
         (gamepadApiAvailable ? "available" : "unavailable") +
-        " controls=keyboard-gamepad-two-controller-duel-team-lab" +
+        " wii_u_adapter_probe=" +
+        (wiiUAdapterProbePassed ? "pass" : "fail") +
+        " wii_u_adapter_api=" +
+        (wiiUAdapterState.available ? "available" : "unavailable") +
+        " controls=keyboard-gamepad-webusb-two-controller-duel-team-lab" +
         " owner_checklist=" +
         (ownerChecklistReady ? "ready-61" : "fail");
       status.dataset.playtest =
-        gamepadApiAvailable && gamepadProbePassed ? "ready" : "fail";
+        controllerApiAvailable &&
+        gamepadProbePassed &&
+        wiiUAdapterProbePassed
+          ? "ready"
+          : "fail";
       status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
       status.dataset.airFacingProbe =
         airFacingProbePassed ? "pass" : "fail";
@@ -2693,7 +3137,14 @@ mergeInto(LibraryManager.library, {
       status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
-      status.dataset.controls = "keyboard-gamepad-two-controller-duel-team-lab";
+      status.dataset.wiiUAdapterProbe = wiiUAdapterProbePassed
+        ? "pass"
+        : "fail";
+      status.dataset.wiiUAdapterApi = wiiUAdapterState.available
+        ? "available"
+        : "unavailable";
+      status.dataset.controls =
+        "keyboard-gamepad-webusb-two-controller-duel-team-lab";
       status.dataset.matchFlow = "setup-duel-results-rematch";
       status.dataset.ownerChecklist = ownerChecklistReady ? "ready-61" : "fail";
     }

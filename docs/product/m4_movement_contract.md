@@ -28,7 +28,11 @@ connected standard mappings are assigned in browser index order; non-standard
 mappings are ignored rather than guessed, except for the explicitly identified
 Mayflash `0079:1843` GameCube adapter. Its main stick and C-stick normalize the
 adapter's approximately 0.75 cardinal gate report to full magnitude, and empty
-adapter ports are skipped. Hot-plugging does not add state to the simulation.
+adapter ports are skipped. The same adapter in Wii U mode is supported through
+WebUSB as `057e:0337`: an explicit owner gesture grants access, the browser sends
+the native `0x13` start command, and four-port 37-byte reports preserve raw
+sticks, C-stick, buttons, and analog triggers. Hot-plugging does not add state
+to the simulation.
 
 - Main-stick magnitude below the dash threshold produces proportional walking.
   Reaching the dash threshold before the data-defined X-tilt timer expires
@@ -444,10 +448,11 @@ bounds, and blast zones.
   hashable after every tick.
 
 `tools/verify_m4_browser.sh` and the generated-page Chrome smoke additionally
-cover the standard-gamepad mapping probe, Gamepad API availability, live
-per-tick polling, analog quantization/dead zone, D-pad override, face and
-shoulder routes, non-standard rejection, and two-slot assignment. Real hardware
-and browser-specific device exposure remain part of the owner playtest.
+cover the standard-gamepad and native Wii U adapter mapping probes, controller
+API availability, live per-tick polling, analog quantization/dead zone, D-pad
+override, face and shoulder routes, non-standard rejection, and two-slot
+assignment. Real USB permission, hardware reports, and browser-specific device
+exposure remain part of the owner playtest.
 
 The focused movement oracle currently reports 243 invariants. The focused
 combat oracle reports 584 invariants, including the jump-cancelling attack
