@@ -393,12 +393,25 @@ trace, coordinate conversion, and first divergent frame. Internal deterministic
 tests remain required, but cannot substitute for this executable-oracle
 comparison.
 
+Exact equivalence here is behavioral rather than a demand that Q16.16 fixed
+point reproduce every least-significant bit of Dolphin's single-precision
+positions. Small numeric differences are accepted only when they are bounded,
+recorded by the verifier, and attributable to Q16.16 representation or
+accumulation. State/action transitions, action timing, facing, grounded state,
+input thresholds, and other discrete outcomes remain strict. A collision
+boundary may tolerate at most the corresponding one-tick fixed-point
+quantization transient; tolerances must not hide cumulative drift or a
+materially different route.
+
 Current regression evidence consists of an 8,675-frame Final Destination
 movement/defense/crouch corpus, a separate 348-frame Battlefield platform
-corpus, and a separate 360-frame Final Destination Falcon-versus-Falcon
+corpus, and a separate 540-frame Final Destination Falcon-versus-Falcon
 grounded-player-push corpus. The player-push route compares both players'
-positions and pins Falcon's 3.5-unit push radius, the common 0.3-unit nudge,
-strict overlap boundary, and unchanged self-induced velocity. The Battlefield
+actions, action frames, facing, grounded state, positions, and self-induced
+velocities in both approach directions and from both controller ports. It pins
+Falcon's 3.5-unit push radius, the common 0.3-unit nudge, strict overlap
+boundary, and a bounded one-nudge positional allowance for a Q16.16-delayed
+boundary crossing. The Battlefield
 route includes ordinary jump-through and landing,
 a one-frame-down negative control, held-down `Squat` frames 1-3, `Pass` entry
 at the executable's 0.63 downward speed, and same-frame solid-floor landing.

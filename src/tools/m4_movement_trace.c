@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     int input_y;
     int input_c_x;
     int input_c_y;
+    int opponent_input_x;
     unsigned int left_trigger;
     unsigned int right_trigger;
     uint64_t buttons;
@@ -229,14 +230,15 @@ int main(int argc, char **argv)
         "opponent_position_y_q16_from_origin,"
         "opponent_velocity_x_q16,opponent_velocity_y_q16");
     while (scanf(
-               "%d,%d,%d,%d,%u,%u,%" SCNu64,
+               "%d,%d,%d,%d,%u,%u,%" SCNu64 ",%d",
                &input_x,
                &input_y,
                &input_c_x,
                &input_c_y,
                &left_trigger,
                &right_trigger,
-               &buttons) == 7)
+               &buttons,
+               &opponent_input_x) == 8)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
@@ -245,6 +247,8 @@ int main(int argc, char **argv)
             input_y < (int)INT16_MIN || input_y > (int)INT16_MAX ||
             input_c_x < (int)INT16_MIN || input_c_x > (int)INT16_MAX ||
             input_c_y < (int)INT16_MIN || input_c_y > (int)INT16_MAX ||
+            opponent_input_x < (int)INT16_MIN ||
+            opponent_input_x > (int)INT16_MAX ||
             left_trigger > (unsigned int)UINT16_MAX ||
             right_trigger > (unsigned int)UINT16_MAX)
         {
@@ -275,6 +279,7 @@ int main(int argc, char **argv)
         inputs[1].tick = inspection.tick;
         inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[1].player_slot = UINT8_C(1);
+        inputs[1].main_stick_x = (int16_t)opponent_input_x;
         status = pf_sim_tick(sim, inputs, (size_t)2, &result);
         if (status != PF_STATUS_OK)
         {

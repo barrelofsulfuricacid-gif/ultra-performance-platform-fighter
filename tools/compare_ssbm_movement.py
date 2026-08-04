@@ -229,6 +229,13 @@ def main() -> int:
     push_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("push_")
+    # Q16.16 accumulation can move a strict float overlap across the boundary
+    # by one tick. Accept at most one 0.3-unit Melee push nudge per fighter in
+    # this route, in addition to the ordinary position quantization envelope;
+    # action, facing, grounded state, and self-induced velocity remain strict.
+    position_tolerance_q16 = args.position_tolerance_q16
+    if push_mode:
+        position_tolerance_q16 += abs(scaled_q16(0.3))
     input_lines: list[str] = []
     for row in oracle_rows:
         observed_analog = float(row.get("observed_analog_shoulder", 0.0))
@@ -266,12 +273,15 @@ def main() -> int:
             buttons |= 4
         if bool(row.get("observed_taunt", False)):
             buttons |= 16
+        opponent_input_x = controller_axis(
+            float(row.get("observed_opponent_main_x", 0.5))
+        )
         input_lines.append(
             f"{controller_axis(float(row['observed_main_x']))},"
             f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
             f"{controller_axis(float(row.get('observed_c_x', 0.5)))},"
             f"{controller_axis_y(float(row.get('observed_c_y', 0.5)))},"
-            f"{left_trigger},{right_trigger},{buttons}\n"
+            f"{left_trigger},{right_trigger},{buttons},{opponent_input_x}\n"
         )
     input_text = "".join(input_lines)
     runner_command = [str(args.runner)]
@@ -410,7 +420,7 @@ def main() -> int:
             differences.append(
                 f"grounded expected={expected_grounded} actual={actual_grounded}"
             )
-        if abs(actual_position - expected_position) > args.position_tolerance_q16:
+        if abs(actual_position - expected_position) > position_tolerance_q16:
             differences.append(
                 f"position_q16 expected={expected_position} actual={actual_position} "
                 f"delta={actual_position - expected_position}"
@@ -447,6 +457,19 @@ def main() -> int:
                 f"expected={expected_shield_strength} actual={actual_shield_strength}"
             )
         if push_mode:
+            opponent_action_name = str(oracle["opponent_action"])
+            expected_opponent_action = expected_action_state(
+                opponent_action_name,
+                float(oracle["opponent_action_frame"]),
+            )
+            actual_opponent_action = int(native["opponent_action_state"])
+            expected_opponent_ticks = expected_action_ticks(
+                opponent_action_name,
+                float(oracle["opponent_action_frame"]),
+            )
+            actual_opponent_ticks = int(native["opponent_action_ticks"])
+            expected_opponent_facing = int(oracle["opponent_facing"])
+            actual_opponent_facing = int(native["opponent_facing"])
             expected_opponent_position = scaled_q16(
                 float(oracle["opponent_position_x_from_origin"])
             )
@@ -457,12 +480,41 @@ def main() -> int:
                 1 if bool(oracle["opponent_grounded"]) else 0
             )
             actual_opponent_grounded = int(native["opponent_grounded"])
+            expected_opponent_velocity = scaled_q16(
+                float(oracle["opponent_ground_velocity_x"])
+            )
+            actual_opponent_velocity = int(native["opponent_velocity_x_q16"])
+            if expected_opponent_action is None:
+                differences.append(
+                    f"unsupported_opponent_action={opponent_action_name}"
+                )
+            elif actual_opponent_action != expected_opponent_action:
+                differences.append(
+                    "opponent_action "
+                    f"expected={opponent_action_name}/{expected_opponent_action} "
+                    f"actual={actual_opponent_action}"
+                )
+            elif (
+                expected_opponent_ticks is not None
+                and actual_opponent_ticks != expected_opponent_ticks
+            ):
+                differences.append(
+                    "opponent_action_ticks "
+                    f"expected={expected_opponent_ticks} "
+                    f"actual={actual_opponent_ticks}"
+                )
+            if actual_opponent_facing != expected_opponent_facing:
+                differences.append(
+                    "opponent_facing "
+                    f"expected={expected_opponent_facing} "
+                    f"actual={actual_opponent_facing}"
+                )
             if (
                 abs(
                     actual_opponent_position -
                     expected_opponent_position
                 )
-                > args.position_tolerance_q16
+                > position_tolerance_q16
             ):
                 differences.append(
                     "opponent_position_q16 "
@@ -477,6 +529,17 @@ def main() -> int:
                     f"expected={expected_opponent_grounded} "
                     f"actual={actual_opponent_grounded}"
                 )
+            if (
+                abs(actual_opponent_velocity - expected_opponent_velocity)
+                > args.velocity_tolerance_q16
+            ):
+                differences.append(
+                    "opponent_velocity_q16 "
+                    f"expected={expected_opponent_velocity} "
+                    f"actual={actual_opponent_velocity} "
+                    "delta="
+                    f"{actual_opponent_velocity - expected_opponent_velocity}"
+                )
         if differences:
             print(
                 "ssbm-movement-compare=fail "
@@ -490,7 +553,10 @@ def main() -> int:
         if label in CONTENT_ROUTE_ENTRY_ACTIONS:
             skip_character_content = True
 
-    print(f"ssbm-movement-compare=pass frames={len(oracle_rows)}")
+    print(
+        f"ssbm-movement-compare=pass frames={len(oracle_rows)} "
+        f"position_tolerance_q16={position_tolerance_q16}"
+    )
     return 0
 
 

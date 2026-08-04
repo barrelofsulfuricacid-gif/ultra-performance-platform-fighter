@@ -64,6 +64,15 @@ input thresholds, timers, and momentum conditions from the decomp, then replay
 the same ordered per-frame inputs in Dolphin and the simulator for every
 applicable route. A passing current corpus proves only its captured routes.
 
+The owner explicitly accepts very small differences caused by the simulator's
+Q16.16 representation. The oracle therefore treats exact equivalence as
+behavioral: discrete state/action/timing, facing, grounded state, thresholds,
+and route selection remain strict, while numeric position or velocity
+tolerances must be narrow, recorded, and justified as fixed-point
+quantization. For strict collision boundaries, a single bounded one-tick
+fixed-point transient is acceptable; cumulative drift or a different
+behavioral result is not.
+
 Current qualification evidence is deliberately narrower than this acceptance
 gate. The pinned 8,675-frame Captain Falcon trace currently agrees for its
 locomotion, shield/light-shield, forward/backward/C-stick roll, spot-dodge,
@@ -94,6 +103,14 @@ comparison only after the route settles.
 Down-special entry is accepted from all three crouch states, matching their
 shared `ftCo_800D68C0` check. Those character-specific bodies are isolated at
 the end of the corpus and receive the same semantic-entry treatment.
+
+The grounded-player-push route is qualified separately by a 540-frame
+Final Destination Falcon-versus-Falcon capture. It drives the approach from
+both controller ports and in both directions, compares both fighters' actions,
+action frames, facing, grounded state, positions, and self-induced velocities,
+and allows no more than one 0.3-unit push nudge plus the ordinary Q16.16
+position envelope at the strict overlap boundary.
+
 The platform routes are qualified separately by a 348-frame Battlefield
 capture. A neutral jump passes upward through the platform, crosses it on
 descent for one final airborne frame, then enters `Landing` on the same frame
@@ -103,13 +120,9 @@ downward speed, and lands on the solid floor on the same frame as Dolphin.
 The ordinary laboratory-stage runner remains isolated from this Battlefield
 fixture.
 
-Grounded player push is qualified by a separate 360-frame Final Destination
-Falcon-versus-Falcon capture. It compares both player positions while Falcon
-walks into an idle Falcon and reproduces the executable's strict 7.0-unit
-combined-radius boundary, fixed 0.3-unit per-player nudge, alternating
-push/no-push cadence, and unchanged self-induced velocities. The production
-implementation follows pinned `ftCommon_8007DD7C`/`ftCommon_8007E0E4`
-behavior for active grounded players on the same project support. These passing
-traces are regression slices, not evidence that every applicable movement or
-shared-simulation route is equivalent; the other remaining systems still
-require identical-input Dolphin reproducers and comparable-state assertions.
+The production player-push implementation follows pinned
+`ftCommon_8007DD7C`/`ftCommon_8007E0E4` behavior for active grounded players on
+the same project support. These passing traces are regression slices, not
+evidence that every applicable movement or shared-simulation route is
+equivalent; the other remaining systems still require identical-input Dolphin
+reproducers and comparable-state assertions.

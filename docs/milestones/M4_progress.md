@@ -2704,26 +2704,31 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## 2026-08-04 Falcon grounded player-push executable-oracle slice
 
-- A separate 360-frame identical-input Final Destination capture places
-  Captain Falcon against an idle Captain Falcon. Its SHA-256 is
-  `3e2e95c857926b623f3250b6bc994d845f8192637e0430970297e2b7217339cb`;
+- A separate 540-frame identical-input Final Destination capture has each
+  Captain Falcon approach the other in turn, covering both horizontal
+  directions and both controller ports. Its SHA-256 is
+  `fae58079659be55a5e74f57a9772cf2c51c244b79ba6ebbf7fe92fe9721a8f09`;
   the reproducible capture remains outside the repository with the extracted
-  disc data.
+  disc data. Capture schema 5 records the second port's ordered per-frame
+  horizontal input.
 - Pinned decomp revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` identifies
   `ftCommon_8007DD7C`/`ftCommon_8007E0E4` as the grounded-fighter nudge path.
   The owner's NTSC 1.02 `PlCa.dat` gives Falcon `x2C4=(0.0, 3.5)`, and
   `PlCo.dat` common field `x450` is 0.3. Production converts the radius to
   `42/115` and nudge to `18/575` project units.
-- The comparator now records and checks both players. It matches the first
-  contact frame, fixed 0.3-unit displacements, unchanged self-induced
-  velocities, strict combined-radius boundary, alternating push/no-push
-  cadence, release, and final positions for all 360 frames.
+- The comparator records and checks both players' action/state, action frame,
+  facing, grounded state, position, and self-induced velocity. Discrete values
+  remain strict. Per owner direction, the push route accepts the ordinary 640
+  Q16.16 position envelope plus at most one mapped 0.3-unit nudge (2,052), for
+  a reported 2,692-Q16 bound when fixed-point accumulation delays the strict
+  float overlap by one tick. It does not widen action or velocity comparison.
 - Falcon's `51/575` walk maximum now uses nearest Q16 encoding, and normalized
   axis multiplication rounds to nearest. The prior truncation accumulated a
   one-unit-per-tick deficit and selected the wrong strict-overlap branch after
   a long held walk. The 8,675-frame movement/defense/crouch corpus and
-  348-frame platform corpus continue to pass without wider tolerances.
+  348-frame platform corpus continue to pass with their unchanged 640-Q16
+  position bound.
 - Content schema 63/fighter schema 55 hash, validate, and default the player
   push radius and speed. State schema 55/save format 52 remain unchanged.
   Focused deterministic coverage pins symmetric displacement, unchanged

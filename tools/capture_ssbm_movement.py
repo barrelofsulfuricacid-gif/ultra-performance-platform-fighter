@@ -46,6 +46,7 @@ def input_trace(
         special: bool = False,
         grab: bool = False,
         taunt: bool = False,
+        opponent_main_x: float = 0.5,
     ) -> dict[str, object]:
         return {
             "label": label,
@@ -62,6 +63,7 @@ def input_trace(
             "special": special,
             "grab": grab,
             "taunt": taunt,
+            "opponent_main_x": opponent_main_x,
         }
 
     def repeat(label: str, count: int, **inputs: object) -> None:
@@ -71,6 +73,12 @@ def input_trace(
         repeat("push_settle", 60)
         repeat("push_walk_right", 240, main_x=0.7)
         repeat("push_recovery", 60)
+        repeat(
+            "push_opponent_walk_left",
+            120,
+            opponent_main_x=0.3,
+        )
+        repeat("push_opponent_recovery", 60)
         return trace
 
     if platform_only:
@@ -928,6 +936,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "special": False,
                 "grab": False,
                 "taunt": False,
+                "opponent_main_x": 0.5,
             }
             for _ in range(pipeline_delay)
         ]
@@ -966,6 +975,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player_one.press_button(melee.Button.BUTTON_Z)
             if bool(sample["taunt"]):
                 player_one.press_button(melee.Button.BUTTON_D_UP)
+            player_two.tilt_analog(
+                melee.Button.BUTTON_MAIN,
+                float(sample["opponent_main_x"]),
+                0.5,
+            )
             gamestate = console.step()
             if (
                 gamestate is None
@@ -1012,6 +1026,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
             observed_taunt = bool(
                 player.controller_state.button[melee.Button.BUTTON_D_UP]
+            )
+            observed_opponent_x = float(
+                player_two_state.controller_state.main_stick[0]
             )
             requested_x = float(scheduled["main_x"])
             requested_y = float(scheduled["main_y"])
@@ -1066,7 +1083,23 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and observed_grab == bool(scheduled["grab"])
                 and observed_taunt == bool(scheduled["taunt"])
             )
-            aligned = axis_aligned and c_axis_aligned and shoulder_aligned
+            requested_opponent_x = float(scheduled["opponent_main_x"])
+            opponent_axis_aligned = (
+                requested_opponent_x == 0.5
+                and abs(observed_opponent_x - 0.5) <= 0.02
+            ) or (
+                requested_opponent_x < 0.5
+                and observed_opponent_x < 0.5
+            ) or (
+                requested_opponent_x > 0.5
+                and observed_opponent_x > 0.5
+            )
+            aligned = (
+                axis_aligned
+                and c_axis_aligned
+                and shoulder_aligned
+                and opponent_axis_aligned
+            )
             if not aligned:
                 raise RuntimeError(
                     "controller/post-frame alignment failed at trace frame "
@@ -1078,7 +1111,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     f"r={observed_right_shoulder}/{observed_digital_right} "
                     f"jump={observed_jump} attack={observed_attack} "
                     f"special={observed_special} grab={observed_grab} "
-                    f"taunt={observed_taunt}"
+                    f"taunt={observed_taunt} "
+                    f"opponent_x={observed_opponent_x}"
                 )
             if origin_x is None:
                 origin_x = player.position.x
@@ -1110,6 +1144,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "requested_special": bool(scheduled["special"]),
                     "requested_grab": bool(scheduled["grab"]),
                     "requested_taunt": bool(scheduled["taunt"]),
+                    "requested_opponent_main_x": requested_opponent_x,
                     "observed_main_x": observed_x,
                     "observed_main_y": observed_y,
                     "observed_c_x": observed_c_x,
@@ -1127,6 +1162,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "observed_special": observed_special,
                     "observed_grab": observed_grab,
                     "observed_taunt": observed_taunt,
+                    "observed_opponent_main_x": observed_opponent_x,
                     "action": player.action.name,
                     "action_value": int(player.action.value),
                     "action_frame": float(player.action_frame),
@@ -1168,7 +1204,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
 
         return {
-            "schema": 4,
+            "schema": 5,
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
             "libmelee_version": importlib.metadata.version("melee"),
