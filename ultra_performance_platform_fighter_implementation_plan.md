@@ -4,7 +4,7 @@
 
 **Plan basis:** `game(3).txt` plus fresh primary-source technical research performed on 2026-07-27. No previous game analysis is incorporated.
 
-**Status:** Owner decisions resolved on 2026-07-27; ready to execute M0.
+**Status:** Execution active in M4; owner decisions and subsequent binding plan modifications are recorded in `plan_modifications.md`.
 
 ---
 
@@ -26,6 +26,7 @@ Build an original 2D platform fighting game that:
 - Functions as an exceptionally fast deterministic reinforcement-learning environment.
 - Keeps authored simulation, gameplay, client orchestration, tools, and public APIs in C. Unavoidable third-party C++ implementations are isolated behind narrow C ABIs, and online services use the best separately researched language.
 - Makes single-thread simulation throughput the first performance priority. Human-facing clients may use auxiliary threads outside the deterministic simulation.
+- Requires production code to be beautifully structured as well as ultra-fast: use the correct zero-cost abstractions, keep each mechanic and invariant under one canonical authority, and reduce code duplication to the minimum unavoidable at external boundaries.
 - Stores game-design values in well-designed Excel workbooks. Developer builds import `.xlsx` at startup or reload; release, web, and headless builds consume a validated packed artifact generated from the same workbooks, with an explicit diagnostic runtime-import option.
 - Minimizes hardcoded design data, duplicated logic, per-tick allocation, indirection, and unnecessary work.
 - Uses SDL3 for native platform and graphics integration, and Dear ImGui through a C-facing boundary for the developer/debug GUI.
@@ -67,6 +68,7 @@ These are constraints on implementation, not premature choices about data repres
 10. **Excel is authoritative design data, not a per-tick format.** Imported values are validated once and transformed into compact immutable runtime tables.
 11. **Version every deterministic input.** Builds, design-data packs, stages, fighters, controller normalization rules, replays, save states, and network handshakes carry compatible version/content hashes.
 12. **Original expression throughout.** SSBM is a system/feel reference, never an asset source. Every name, image, animation, sound, composition, story element, UI asset, stage layout, and written description must be original or properly licensed.
+13. **Beautiful zero-cost implementation.** Express shared mechanics, formulas, state transitions, validation, serialization, and platform-independent policy once through cohesive C APIs, immutable data, and compile-time or `static inline` composition. An abstraction on a simulation hot path must add no allocation, ownership ambiguity, avoidable data movement, indirect dispatch, branch, or call overhead versus its direct equivalent in optimized builds. Where zero cost is not evident, inspect optimized code or measure it. Authoritative gameplay logic may not be copied among runtime, replay, RL, verifier, native, and web paths; unavoidable adapter or test duplication must be small, explicit, and kept outside the deterministic authority.
 
 ---
 
@@ -116,6 +118,24 @@ Execution stops at each marked point until the owner playtests or explicitly wai
 ---
 
 ## 6. Detailed milestones and acceptance criteria
+
+The architecture guardrails are acceptance gates at every milestone, not a
+later refactoring phase. A behaviorally correct or faster change is incomplete
+if it duplicates an authoritative formula or transition, creates parallel
+simulation policy, obscures state ownership or invariants, or introduces an
+avoidable runtime abstraction cost. Review each material implementation for:
+
+- one canonical owner for each mechanic, formula, state transition, and data conversion;
+- reusable, cohesive C interfaces and data-driven composition instead of copied branches;
+- zero per-tick allocation and no abstraction overhead in optimized hot paths;
+- minimal boundary/test scaffolding duplication, with any unavoidable duplication documented; and
+- readable names, explicit invariants, bounded responsibilities, and removal of superseded paths.
+
+When performance and structure appear to conflict, compare equivalent correct
+implementations with the canonical benchmark/profile workflow. Select the
+fastest design that still preserves one clear authority and the smallest
+reasonable duplication; do not accept speculative indirection or speculative
+copying.
 
 ### M0 — Product contract and measured architecture decisions
 
@@ -1135,6 +1155,7 @@ The plan is not treated as ground truth when measurements or implementation real
 | Single-thread engine; client may multithread | Section 3, M1.1, M2 |
 | Excel design data imported at runtime | D6-A, M5.1 |
 | Minimize hardcodes and duplication | Section 3, M5.1, verifier rules |
+| Beautiful implementation, correct zero-cost abstractions, and minimal-to-nonexistent logic duplication | Sections 1, 3, and 6; every milestone code review; M11.1–M11.2 |
 | SDL3 native graphics | Section 4, M7.1 |
 | Reproducible setup scripts | M1.2, M11.1 |
 | Comprehensive performance suite | M3.1 |

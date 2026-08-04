@@ -1,5 +1,29 @@
 # Plan modifications
 
+## 2026-08-04 - Beautiful zero-cost implementation gate
+
+The owner added implementation quality as a binding requirement alongside
+ultra-high throughput and near-SSBM behavioral equivalence. Correct behavior
+and benchmark speed are necessary but no longer sufficient: production code
+must use the correct zero-cost abstractions, make ownership and invariants
+clear, and reduce duplication to the minimum unavoidable at external adapters
+and test boundaries.
+
+Every mechanic, formula, state transition, and representation conversion must
+have one canonical runtime authority shared by local play, netplay, replay,
+verification, RL, native, and web execution. Hot-path abstractions must compile
+to the direct equivalent without avoidable allocations, copies, branches,
+indirect calls, or call overhead. If that property is not evident, optimized
+code inspection or a compatible benchmark must demonstrate it. A faster patch
+that forks gameplay policy or a clean-looking abstraction that adds measurable
+hot-path cost is not acceptable.
+
+This is a cross-cutting milestone gate and not deferred cleanup. Material
+changes require review for cohesive C interfaces, data-driven reuse, explicit
+state ownership, readable invariants, removal of superseded paths, and minimal
+adapter/test duplication. The requirement applies immediately to ongoing M4
+SSBM-fidelity work and to all later milestones.
+
 ## 2026-08-03 - M4 SSBM frame-data fidelity exception
 
 The owner explicitly authorized importing frame-data tables while requesting

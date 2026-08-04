@@ -2456,6 +2456,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 ## Active exact-equivalence gate
 
+- M4 fidelity work is simultaneously subject to the 2026-08-04 implementation-
+  quality gate: each shared SSBM formula and transition must have one canonical
+  zero-cost C implementation. A route-specific duplicate used only to make a
+  Dolphin comparison pass is not acceptable production architecture.
+
 - The owner requires all implemented movement and shared-simulation behavior
   with an intended SSBM counterpart to be exactly equivalent to the NTSC 1.02
   executable behavior. Decomp review and imported frame-data tables guide the
