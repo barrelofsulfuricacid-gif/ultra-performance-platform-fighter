@@ -80,6 +80,15 @@ POSITION_ANCHOR_LABELS = {
     "settle_before_landing_crouch",
     "settle_before_landing_late_crouch",
     "settle_before_landing_turn",
+    "settle_before_ground_tap_full_hop",
+    "settle_before_ground_tap_short_hop",
+    "settle_before_air_tap_jump",
+    "settle_before_landing_tap_jump",
+    "settle_before_shield_tap_jump",
+    "settle_before_tap_jump_below_threshold",
+    "settle_before_tap_jump_above_threshold",
+    "settle_before_tap_jump_slow_sweep",
+    "settle_before_tap_jump_two_sample",
 }
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to

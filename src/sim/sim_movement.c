@@ -2700,9 +2700,25 @@ pf_status pf_m4_step_player(
     const pf_m4_stage_data *stage = &content->stage;
     const uint64_t previous_buttons =
         world->previous_buttons[player_index];
-    const int jump_pressed =
+    int8_t input_tilt_y_direction;
+    const uint8_t input_tilt_y_age = pf_m4_tilt_age(
+        input->main_stick_y,
+        fighter->tilt_axis_threshold,
+        world->previous_tilt_y_direction[player_index],
+        world->tilt_y_age[player_index],
+        &input_tilt_y_direction);
+    const int button_jump_pressed =
         (input->buttons & PF_INPUT_BUTTON_JUMP) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0);
+    const int tap_jump_pressed =
+        input->main_stick_y <=
+            -(int16_t)fighter->tap_jump_axis_threshold &&
+        input_tilt_y_age < fighter->tap_jump_input_window_ticks;
+    const int jump_pressed =
+        button_jump_pressed != 0 || tap_jump_pressed != 0;
+    const int main_jump_up_held =
+        input->main_stick_y <=
+        -(int16_t)fighter->tap_jump_axis_threshold;
     const int light_attack_pressed =
         (input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&
         (previous_buttons & PF_INPUT_BUTTON_ATTACK) == UINT64_C(0);
@@ -2959,19 +2975,14 @@ pf_status pf_m4_step_player(
     uint8_t previous_dodge_down =
         dodge_down_held != 0 ? UINT8_C(1) : UINT8_C(0);
     int8_t tilt_x_direction;
-    int8_t tilt_y_direction;
+    int8_t tilt_y_direction = input_tilt_y_direction;
     uint8_t tilt_x_age = pf_m4_tilt_age(
         input->main_stick_x,
         fighter->tilt_axis_threshold,
         world->previous_tilt_x_direction[player_index],
         world->tilt_x_age[player_index],
         &tilt_x_direction);
-    uint8_t tilt_y_age = pf_m4_tilt_age(
-        input->main_stick_y,
-        fighter->tilt_axis_threshold,
-        world->previous_tilt_y_direction[player_index],
-        world->tilt_y_age[player_index],
-        &tilt_y_direction);
+    uint8_t tilt_y_age = input_tilt_y_age;
     int launched_this_tick = 0;
     int dropped_platform_this_tick = 0;
     int ledge_motion_handled = 0;
@@ -5181,7 +5192,8 @@ pf_status pf_m4_step_player(
         }
         if (short_hop_latched != UINT8_C(2) &&
             (input->buttons & PF_INPUT_BUTTON_JUMP) == UINT64_C(0) &&
-            secondary_jump_up_held == 0)
+            secondary_jump_up_held == 0 &&
+            main_jump_up_held == 0)
         {
             short_hop_latched = UINT8_C(1);
         }

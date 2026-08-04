@@ -16,14 +16,14 @@ movement placeholder on the original laboratory stage.
 
 | System | Status | Evidence and remaining gap |
 |---|---|---|
-| Stick aging, dead zones, dash recognition | equivalent | Fresh horizontal tilt age, reversal reset, 0.80 dash threshold, and two-tick dash window follow the common input/decomp route. |
+| Stick aging, dead zones, dash/jump recognition | equivalent | Fresh horizontal/vertical tilt age, reversal reset, 0.80 dash threshold with two-tick dash window, and 0.6625 tap-jump threshold with four-tick window follow the common input/decomp routes. Just-below/above and slow/two-sample tap-jump controls match the executable. |
 | Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse with no entry-frame displacement, full A/B dash acceleration from the next frame, held transition after 15 displayed dash frames, and released completion after 28 displayed dash frames match the executable oracle. |
 | Walk/run acceleration and friction | equivalent | Falcon attributes and the friction-aware target/overshoot formulas are mapped; slow stick motion enters walk rather than dash. |
 | Dash dance and backward dash acceleration | equivalent | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. |
 | Run braking | equivalent for captured route | Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing, matching the executable oracle. Other animation-command interrupts remain unaudited. |
 | Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. A fresh second-frame taunt applies the turn's facing flip first and then enters Falcon's 60-frame taunt. Timing and friction routes match the executable oracle. |
 | Run turnaround | equivalent for captured route | Full reversal from terminal run retains the old facing, applies full TurnRun acceleration, freezes displayed frame 9 until velocity crosses the common 0.01 threshold, flips facing on the following physics tick, resumes through displayed frame 21, and enters the ten-tick locked run route. The identical-input oracle covers the complete held reversal and neutral brake after exit. |
-| Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. |
+| Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. X/Y and main-stick tap jump match from idle, Landing, shield, and air. |
 | Short/full hop | equivalent | Falcon 1.9 and 3.1 vertical velocities are converted to stage units. |
 | Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. |
 | Gravity, terminal velocity, air drift | equivalent | Falcon A/B acceleration, drift target, friction, gravity, terminal, and absolute horizontal cap are mapped. |
@@ -64,7 +64,7 @@ position, velocity, and observed controller sample. `pf_m4_movement_trace`
 replays those observed samples through the native simulator, and
 `tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
 
-The current comparison passes 4,168 identical input frames covering held
+The current comparison passes 5,311 identical input frames covering held
 dash/run, complete run turnaround and post-turnaround lockout, released dash
 and run brake, direct dash dancing, moving dashbacks, two-sample dash
 recognition, smash and empty pivots, basic standing turn including its
@@ -76,7 +76,9 @@ crouch state, held-crouch opposite dash/turn, crouch-release walk, and fresh
 digital guard and fresh taunt from every crouch state, including Falcon's
 complete 60-frame taunt duration, and first-legal-frame normal-Landing taunt,
 jump, dash/turn, guard, walk, direct crouch, and ordinary turn plus the
-one-frame-late down-input lockout.
+one-frame-late down-input lockout. It additionally covers main-stick tap-jump
+full/short hop, aerial jump, Landing and shield entry, threshold boundaries,
+slow-sweep age rejection, and two-sample in-window recognition.
 Position
 comparison allows only the documented accumulated float-to-Q16.16 conversion
 tolerance; action, facing, velocity, and applicable action ticks use their

@@ -73,7 +73,7 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | turn threshold | -0.375 | -12288 of 32767 |
 | TurnRun animation / velocity-crossing hold | displayed frames 0 through 21 / hold displayed frame 9 until old-facing ground velocity is at most 0.01 | 22 animation ticks with a deterministic frame-9 hold and 68-Q16 converted threshold |
 | post-TurnRun run lockout | 10 | 10 ticks |
-| tap-jump threshold / window | 0.6625 / 4 | 21709 / 4 ticks |
+| tap-jump threshold / window | 0.6625 / 4 | `tap_jump_axis_threshold=21709`; `tap_jump_input_window_ticks=4` |
 | fast-fall threshold / window | 0.6625 / 4 | 21709 / 4 ticks |
 | crouch entry / release threshold | 0.6875 / 0.625 | first accepted entry axis 22528 / exact held boundary 20479 |
 | analog shield common dead zone / first accepted raw value | 0.30 / 0.30 | threshold 19661 of 65535; a digital click is 65535 |

@@ -12458,7 +12458,14 @@ static int run_shield_geometry_and_poke_test(
     test_shield_box poke_box;
     const uint16_t dense =
         content->fighter.digital_trigger_threshold;
-    const int16_t upward_tilt = INT16_MIN;
+    const int16_t upward_tilt =
+        -(int16_t)(
+            content->fighter.tap_jump_axis_threshold - UINT16_C(1));
+    const int32_t upward_tilt_offset_q16 =
+        (int32_t)(
+            ((int64_t)content->fighter.shield_tilt_max_y_q16 *
+             (int64_t)upward_tilt) /
+            INT64_C(32768));
     int32_t attack_left_q16;
     int32_t attack_right_q16;
     int32_t attack_top_q16;
@@ -12555,11 +12562,9 @@ static int run_shield_geometry_and_poke_test(
         poke_box.left_q16 != control_box.left_q16 ||
         poke_box.right_q16 != control_box.right_q16 ||
         poke_box.top_q16 !=
-            control_box.top_q16 -
-                content->fighter.shield_tilt_max_y_q16 ||
+            control_box.top_q16 + upward_tilt_offset_q16 ||
         poke_box.bottom_q16 !=
-            control_box.bottom_q16 -
-                content->fighter.shield_tilt_max_y_q16 ||
+            control_box.bottom_q16 + upward_tilt_offset_q16 ||
         attack_left_q16 > control_box.right_q16 ||
         attack_right_q16 < control_box.left_q16 ||
         attack_top_q16 > control_box.bottom_q16 ||

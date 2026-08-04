@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(60)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(52)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(61)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(53)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -547,6 +547,8 @@ typedef struct pf_m4_fighter_data
     uint16_t run_continue_axis_threshold;
     uint16_t run_turnaround_lockout_ticks;
     uint16_t tilt_axis_threshold;
+    uint16_t tap_jump_axis_threshold;
+    uint16_t tap_jump_input_window_ticks;
     uint16_t fast_fall_axis_threshold;
     uint16_t fast_fall_input_window_ticks;
     uint16_t air_dodge_dead_zone;

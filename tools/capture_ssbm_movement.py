@@ -448,6 +448,69 @@ def input_trace() -> list[dict[str, object]]:
     repeat("landing_turn_setup", 38)
     trace.append(command("landing_turn", main_x=0.25))
     repeat("landing_turn_recovery", 110)
+
+    # ftCo_Jump_GetInput checks a fresh main-stick up tilt before X/Y. Hold
+    # through Falcon's four-frame KneeBend for the full-hop route, then repeat
+    # with a one-sample tap to pin the stick-release short-hop path.
+    repeat("settle_before_ground_tap_full_hop", 10)
+    repeat("ground_tap_full_hop", 5, main_y=1.0)
+    repeat("ground_tap_full_hop_recovery", 110)
+
+    repeat("settle_before_ground_tap_short_hop", 10)
+    trace.append(command("ground_tap_short_hop", main_y=1.0))
+    repeat("ground_tap_short_hop_recovery", 110)
+
+    repeat("settle_before_air_tap_jump", 10)
+    trace.append(command("air_tap_jump_first_jump", jump=True))
+    repeat("air_tap_jump_squat", 5)
+    repeat("air_tap_jump_before_second", 10)
+    trace.append(command("air_tap_jump", main_y=1.0))
+    repeat("air_tap_jump_recovery", 90)
+
+    repeat("settle_before_landing_tap_jump", 10)
+    trace.append(command("landing_tap_jump_first_jump", jump=True))
+    repeat("landing_tap_jump_setup", 38)
+    trace.append(command("landing_tap_jump", main_y=1.0))
+    repeat("landing_tap_jump_recovery", 110)
+
+    repeat("settle_before_shield_tap_jump", 10)
+    repeat(
+        "shield_tap_jump_setup",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    trace.append(
+        command(
+            "shield_tap_jump",
+            main_y=1.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("shield_tap_jump_recovery", 110)
+
+    # Common-data boundary and age controls. Controller-pipe values 0.83 and
+    # 0.835 normalize just below and just above the 0.6625 tap-jump threshold.
+    # The slow sweep ages four samples after first vertical tilt and must not
+    # jump; the two-sample route reaches the same terminal value in-window.
+    repeat("settle_before_tap_jump_below_threshold", 10)
+    trace.append(command("tap_jump_below_threshold", main_y=0.83))
+    repeat("tap_jump_below_threshold_recovery", 110)
+
+    repeat("settle_before_tap_jump_above_threshold", 10)
+    trace.append(command("tap_jump_above_threshold", main_y=0.835))
+    repeat("tap_jump_above_threshold_recovery", 110)
+
+    repeat("settle_before_tap_jump_slow_sweep", 10)
+    for y in (0.63, 0.68, 0.74, 0.79, 0.835):
+        trace.append(command("tap_jump_slow_sweep", main_y=y))
+    repeat("tap_jump_slow_sweep_recovery", 110)
+
+    repeat("settle_before_tap_jump_two_sample", 10)
+    for y in (0.63, 0.835):
+        trace.append(command("tap_jump_two_sample", main_y=y))
+    repeat("tap_jump_two_sample_recovery", 110)
     return trace
 
 

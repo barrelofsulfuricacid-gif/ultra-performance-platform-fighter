@@ -2197,6 +2197,7 @@ static int run_content_contract_test(
     test_sim_storage tuned_storage;
     pf_m4_content invalid_content = *default_content;
     pf_m4_content jump_tuned_content = *default_content;
+    pf_m4_content tap_jump_tuned_content = *default_content;
     pf_m4_content dash_window_tuned_content = *default_content;
     pf_m4_content moonwalk_tuned_content = *default_content;
     pf_m4_content teeter_tuned_content = *default_content;
@@ -2206,6 +2207,7 @@ static int run_content_contract_test(
     pf_m4_content tuned_content = *default_content;
     pf_content_view damaged_view = *default_view;
     pf_content_view jump_tuned_view;
+    pf_content_view tap_jump_tuned_view;
     pf_content_view dash_window_tuned_view;
     pf_content_view moonwalk_tuned_view;
     pf_content_view teeter_tuned_view;
@@ -2283,6 +2285,48 @@ static int run_content_contract_test(
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=jump-horizontal-content-hash\n");
+        return 0;
+    }
+
+    invalid_content = *default_content;
+    invalid_content.fighter.tap_jump_axis_threshold =
+        invalid_content.fighter.axis_dead_zone;
+    if (default_content->fighter.tap_jump_axis_threshold !=
+            UINT16_C(21709) ||
+        default_content->fighter.tap_jump_input_window_ticks !=
+            UINT16_C(4) ||
+        !expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-low-tap-jump-axis-threshold"))
+    {
+        return 0;
+    }
+    invalid_content = *default_content;
+    invalid_content.fighter.tap_jump_input_window_ticks = UINT16_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&invalid_content),
+            PF_STATUS_INVALID_CONFIG,
+            "reject-zero-tap-jump-window"))
+    {
+        return 0;
+    }
+    tap_jump_tuned_content.fighter.tap_jump_axis_threshold +=
+        UINT16_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &tap_jump_tuned_content,
+                &tap_jump_tuned_view),
+            PF_STATUS_OK,
+            "tap-jump-tuned-content-view") ||
+        memcmp(
+            default_view->content_hash.bytes,
+            tap_jump_tuned_view.content_hash.bytes,
+            sizeof(default_view->content_hash.bytes)) == 0)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-jump-content-hash\n");
         return 0;
     }
 
@@ -3838,6 +3882,249 @@ static int run_jump_takeoff_momentum_route(
         return 0;
     }
     *out_velocity_x = inspection.players[0].velocity_x_q16;
+    return 1;
+}
+
+static int run_tap_jump_test(
+    const pf_m4_content *content,
+    const pf_content_view *view)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const int16_t tap_axis =
+        -(int16_t)content->fighter.tap_jump_axis_threshold;
+    const int16_t below_axis =
+        -(int16_t)(content->fighter.tap_jump_axis_threshold - UINT16_C(1));
+    const int16_t mild_axis =
+        -(int16_t)(content->fighter.tilt_axis_threshold + UINT16_C(1));
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9100)),
+            PF_STATUS_OK,
+            "tap-jump-below-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            below_axis,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-jump-below-threshold\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9101)),
+            PF_STATUS_OK,
+            "tap-jump-two-sample-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            mild_axis,
+            UINT64_C(0),
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            tap_axis,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-jump-two-sample\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9102)),
+            PF_STATUS_OK,
+            "tap-jump-slow-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                mild_axis,
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=tap-jump-slow-setup\n");
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            tap_axis,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-jump-aged-out\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9103)),
+            PF_STATUS_OK,
+            "tap-jump-full-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            tap_axis,
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         inspection.players[0].grounded != UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                tap_axis,
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].velocity_y_q16 !=
+            -content->fighter.full_hop_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-jump-full-hop\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9104)),
+            PF_STATUS_OK,
+            "tap-jump-short-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            tap_axis,
+            UINT64_C(0),
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         inspection.players[0].grounded != UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        inspection.players[0].velocity_y_q16 !=
+            -content->fighter.short_hop_speed_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-jump-short-hop\n");
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9105)),
+            PF_STATUS_OK,
+            "tap-air-jump-reset") ||
+        !launch_player0(sim, 1, &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            tap_axis,
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        inspection.players[0].air_jumps_remaining != UINT8_C(0) ||
+        inspection.players[0].velocity_y_q16 !=
+            -content->fighter.double_jump_speed_q16 +
+                content->fighter.gravity_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-air-jump action=%u "
+            "jumps=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].air_jumps_remaining,
+            inspection.players[0].velocity_y_q16,
+            -content->fighter.double_jump_speed_q16 +
+                content->fighter.gravity_q16);
+        return 0;
+    }
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(0x7a9106)),
+            PF_STATUS_OK,
+            "tap-shield-jump-reset") ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        !step_duel_trigger(
+            sim,
+            INT16_C(0),
+            tap_axis,
+            UINT64_C(0),
+            UINT16_MAX,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=tap-shield-jump\n");
+        return 0;
+    }
     return 1;
 }
 
@@ -12551,6 +12838,7 @@ int main(void)
             "content-view") ||
         !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_tap_jump_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(
             run_jump_takeoff_momentum_test(&content, &view)) ||
         (0 && !run_fox_trot_test(&content, &view)) ||
@@ -12590,7 +12878,7 @@ int main(void)
 
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
-        "movement_core=pass jump_takeoff_momentum=1 "
+        "movement_core=pass tap_jump=1 jump_takeoff_momentum=1 "
         "teeter_cancel=1 "
         "taunt_cancel=1 "
         "double_jump_cancel=1 vector_ascent=1 "

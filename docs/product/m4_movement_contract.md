@@ -141,19 +141,24 @@ to the simulation.
 
 Short hop and full hop are two discrete launches:
 
-1. Pressing jump enters a data-defined jump-squat state.
-2. Releasing jump before jump squat completes selects the short-hop launch
-   speed.
-3. Holding jump through jump squat selects the full-hop launch speed.
+1. A fresh X/Y edge or fresh main-stick up tilt at or above the data-defined
+   0.6625 threshold within the four-tick tilt window enters jump squat.
+2. Releasing the selected jump input before jump squat completes selects the
+   short-hop launch speed.
+3. Holding the selected jump input through jump squat selects the full-hop
+   launch speed.
 4. Once launched, continuing to hold or releasing jump cannot alter that
    launch speed or apex.
 
-Therefore key duration chooses between two heights; it never continuously
-scales jump height. The mechanical oracle compares early and late releases
-within each category and requires exact matching apexes.
+Therefore jump-input duration chooses between two heights; it never
+continuously scales jump height. Slowly sweeping the main stick through the up
+threshold after the four-tick window does not jump, while a two-sample sweep
+inside it does. The mechanical oracle compares early and late releases within
+each category and requires exact matching apexes.
 
-An airborne fresh jump press consumes one configured air jump without changing
-facing, even when the horizontal stick points opposite that facing. Instant
+An airborne fresh X/Y or in-window main-stick-up jump consumes one configured
+air jump without changing facing, even when the horizontal stick points
+opposite that facing. Instant
 double jump is the earliest legal case: release the first jump during jump
 squat, then send a fresh jump edge on the first airborne tick. The takeoff tick
 is explicitly excluded, holding one jump input cannot retrigger it, and an

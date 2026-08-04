@@ -468,6 +468,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->run_continue_axis_threshold);
     pf_m4_hash_u16(hash, fighter->run_turnaround_lockout_ticks);
     pf_m4_hash_u16(hash, fighter->tilt_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->tap_jump_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->tap_jump_input_window_ticks);
     pf_m4_hash_u16(hash, fighter->fast_fall_axis_threshold);
     pf_m4_hash_u16(hash, fighter->fast_fall_input_window_ticks);
     pf_m4_hash_u16(hash, fighter->air_dodge_dead_zone);
@@ -1360,6 +1362,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->run_continue_axis_threshold = UINT16_C(20480);
     fighter->run_turnaround_lockout_ticks = UINT16_C(10);
     fighter->tilt_axis_threshold = UINT16_C(8192);
+    fighter->tap_jump_axis_threshold = UINT16_C(21709);
+    fighter->tap_jump_input_window_ticks = UINT16_C(4);
     fighter->fast_fall_axis_threshold = UINT16_C(21709);
     fighter->fast_fall_input_window_ticks = UINT16_C(4);
     fighter->air_dodge_dead_zone = UINT16_C(8192);
@@ -2380,6 +2384,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->run_turnaround_lockout_ticks > UINT16_C(120) ||
         fighter->tilt_axis_threshold == UINT16_C(0) ||
         fighter->tilt_axis_threshold >= fighter->axis_dead_zone ||
+        fighter->tap_jump_axis_threshold <= fighter->axis_dead_zone ||
+        fighter->tap_jump_axis_threshold > UINT16_C(32767) ||
+        fighter->tap_jump_input_window_ticks == UINT16_C(0) ||
+        fighter->tap_jump_input_window_ticks > UINT16_C(120) ||
         fighter->fast_fall_axis_threshold <=
             fighter->crouch_release_axis_threshold ||
         fighter->fast_fall_axis_threshold > UINT16_C(32767) ||

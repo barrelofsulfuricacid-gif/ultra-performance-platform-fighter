@@ -65,7 +65,7 @@ the same ordered per-frame inputs in Dolphin and the simulator for every
 applicable route. A passing current corpus proves only its captured routes.
 
 Current qualification evidence is deliberately narrower than this acceptance
-gate. The pinned 4,168-frame Captain Falcon trace currently agrees for its
+gate. The pinned 5,311-frame Captain Falcon trace currently agrees for its
 locomotion, shield/light-shield, forward/backward/C-stick roll, spot-dodge,
 jump-from-shield, fresh-opposite-trigger air-dodge, analog-trigger-in-air,
 nonzero-velocity dash/turn, jump-squat reversal, short/full-hop, neutral-stick
@@ -76,6 +76,9 @@ crouch-release walk, guard interruption from all three crouch states, and
 fresh taunt from all three crouch states, standing turn, and normal-Landing
 taunt, jump, dash/turn, guard, walk, exact-frame direct crouch, late-down
 lockout, and ordinary-turn routes through Falcon's complete 60-frame taunt.
+It also covers main-stick tap-jump full/short hop, aerial jump, Landing and
+shield entry, just-below/just-above 0.6625 threshold samples, a four-tick-aged
+slow-sweep rejection, and an in-window two-sample acceptance.
 That passing trace is a regression slice, not
 evidence that every applicable movement or shared-simulation route is
 equivalent; the remaining crouch attack/special/grab/platform-pass IASA routes,
