@@ -65,12 +65,13 @@ The default production routes for jab 1, jab 2, dash attack, all three tilts,
 all three smashes, and all five aerials consume this generated table directly.
 Each action uses the imported total timing, and an exact frame lookup preserves
 disjoint active windows and selects that phase's damage, angle, KBG,
-weight-set knockback, BKB, and hitlag. The five aerial landing-lag values and
-pummel damage/timing also come from the same table. The generated data is
-compiled once behind a small query API rather than included separately by each
-consumer. Its canonical source SHA-256 is folded into the M4 content hash, so
-changing a late phase or non-primary effect cannot retain a stale compatibility
-identity.
+weight-set knockback, BKB, and hitlag. The five aerial landing-lag values,
+their distinct source-defined autocancel intervals, their explicit L-cancelled
+landing durations, and pummel damage/timing also come from the same table. The
+generated data is compiled once behind a small query API rather than included
+separately by each consumer. Its canonical source SHA-256 is folded into the M4
+content hash, so changing a late phase or non-primary effect cannot retain a
+stale compatibility identity.
 
 Standing grab and dash grab are distinct production states. Their generated
 startup/active/recovery schedules are 5/2/22 and 9/2/28 respectively (active

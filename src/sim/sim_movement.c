@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_falcon_frame_data.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -1575,6 +1576,76 @@ static uint32_t pf_m4_light_aerial_ticks(
            (uint32_t)attack->recovery_ticks;
 }
 
+static uint16_t pf_m4_aerial_landing_lag_for_action(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_FORWARD_AERIAL:
+            return fighter->forward_aerial_landing_lag_ticks;
+        case PF_M4_ACTION_BACK_AERIAL:
+            return fighter->back_aerial_landing_lag_ticks;
+        case PF_M4_ACTION_UP_AERIAL:
+            return fighter->up_aerial_landing_lag_ticks;
+        case PF_M4_ACTION_DOWN_AERIAL:
+            return fighter->down_aerial_landing_lag_ticks;
+        default:
+            return fighter->aerial_landing_lag_ticks;
+    }
+}
+
+static int pf_m4_falcon_aerial_reference_matches(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+    const pf_m4_reference_hit_effect *effect;
+    const pf_m4_attack_data *attack =
+        pf_m4_directional_aerial_data(fighter, action_state);
+    const uint32_t damage_q16 =
+        attack != NULL ? attack->damage_q16 : fighter->aerial_damage_q16;
+
+    if (!pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return 0;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    effect = pf_m4_falcon_reference_primary_effect(move_index);
+    return move != NULL && effect != NULL &&
+           move->landing_lag != UINT16_C(0) &&
+           pf_m4_light_aerial_ticks(fighter, action_state) ==
+               (uint32_t)move->total_frames &&
+           damage_q16 ==
+               (uint32_t)effect->damage * UINT32_C(65536) &&
+           pf_m4_aerial_landing_lag_for_action(
+               fighter,
+               action_state) == move->landing_lag;
+}
+
+static int pf_m4_light_aerial_landing_lag_active(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint16_t action_frame)
+{
+    const int reference_lag_active =
+        pf_m4_falcon_aerial_reference_matches(fighter, action_state)
+            ? pf_m4_falcon_reference_landing_lag_active(
+                  action_state,
+                  action_frame)
+            : -1;
+
+    return reference_lag_active >= 0
+               ? reference_lag_active
+               : (action_frame >=
+                      fighter->aerial_landing_lag_begin_tick &&
+                  action_frame <
+                      fighter->aerial_landing_lag_end_tick);
+}
+
 static uint8_t pf_m4_select_light_aerial_action(
     const pf_m4_fighter_data *fighter,
     int16_t stick_x,
@@ -1703,26 +1774,68 @@ static uint16_t pf_m4_aerial_landing_ticks(
     const pf_m4_fighter_data *fighter,
     uint8_t landing_action)
 {
+    pf_m4_falcon_move_index move_index = PF_M4_FALCON_MOVE_COUNT;
+    uint8_t aerial_action = UINT8_MAX;
+    uint16_t authored_ticks;
+    int l_cancelled = pf_m4_action_is_l_cancel_landing(landing_action);
+
     switch ((pf_m4_action_state)landing_action)
     {
         case PF_M4_ACTION_FORWARD_AERIAL_LANDING:
         case PF_M4_ACTION_FORWARD_AERIAL_L_CANCEL_LANDING:
-            return fighter->forward_aerial_landing_lag_ticks;
+            aerial_action = (uint8_t)PF_M4_ACTION_FORWARD_AERIAL;
+            authored_ticks = fighter->forward_aerial_landing_lag_ticks;
+            break;
         case PF_M4_ACTION_BACK_AERIAL_LANDING:
         case PF_M4_ACTION_BACK_AERIAL_L_CANCEL_LANDING:
-            return fighter->back_aerial_landing_lag_ticks;
+            aerial_action = (uint8_t)PF_M4_ACTION_BACK_AERIAL;
+            authored_ticks = fighter->back_aerial_landing_lag_ticks;
+            break;
         case PF_M4_ACTION_UP_AERIAL_LANDING:
         case PF_M4_ACTION_UP_AERIAL_L_CANCEL_LANDING:
-            return fighter->up_aerial_landing_lag_ticks;
+            aerial_action = (uint8_t)PF_M4_ACTION_UP_AERIAL;
+            authored_ticks = fighter->up_aerial_landing_lag_ticks;
+            break;
         case PF_M4_ACTION_DOWN_AERIAL_LANDING:
         case PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING:
-            return fighter->down_aerial_landing_lag_ticks;
+            aerial_action = (uint8_t)PF_M4_ACTION_DOWN_AERIAL;
+            authored_ticks = fighter->down_aerial_landing_lag_ticks;
+            break;
         case PF_M4_ACTION_STRONG_AERIAL_LANDING:
         case PF_M4_ACTION_STRONG_L_CANCEL_LANDING:
-            return fighter->strong_aerial_landing_lag_ticks;
+            authored_ticks = fighter->strong_aerial_landing_lag_ticks;
+            break;
         default:
-            return fighter->aerial_landing_lag_ticks;
+            aerial_action = (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+            authored_ticks = fighter->aerial_landing_lag_ticks;
+            break;
     }
+    if (aerial_action != UINT8_MAX &&
+        pf_m4_falcon_aerial_reference_matches(fighter, aerial_action) &&
+        pf_m4_falcon_reference_move_for_action(
+            aerial_action,
+            &move_index))
+    {
+        const pf_m4_reference_move *move =
+            pf_m4_falcon_reference_move(move_index);
+
+        if (move != NULL)
+        {
+            return l_cancelled != 0
+                       ? move->l_cancelled_landing_lag
+                       : move->landing_lag;
+        }
+    }
+    if (l_cancelled != 0)
+    {
+        authored_ticks =
+            (uint16_t)(authored_ticks / fighter->l_cancel_divisor);
+        if (authored_ticks == UINT16_C(0))
+        {
+            authored_ticks = UINT16_C(1);
+        }
+    }
+    return authored_ticks;
 }
 
 static int pf_m4_action_is_recovery_invulnerable(
@@ -2309,10 +2422,10 @@ static void pf_m4_land_from_air(
             (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK;
         const int landing_lag_active =
             strong_aerial != 0 ||
-            (*action_ticks >=
-                 fighter->aerial_landing_lag_begin_tick &&
-             *action_ticks <
-                 fighter->aerial_landing_lag_end_tick);
+            pf_m4_light_aerial_landing_lag_active(
+                fighter,
+                aerial_action,
+                *action_ticks);
 
         pf_m4_land(
             fighter,
@@ -5492,22 +5605,9 @@ pf_status pf_m4_step_player(
              grounded != UINT8_C(0) &&
              pf_m4_action_is_aerial_landing(action_state))
     {
-        const int l_cancel_landing =
-            pf_m4_action_is_l_cancel_landing(action_state);
         uint16_t landing_ticks = pf_m4_aerial_landing_ticks(
             fighter,
             action_state);
-
-        if (l_cancel_landing != 0)
-        {
-            landing_ticks =
-                (uint16_t)(
-                    landing_ticks / fighter->l_cancel_divisor);
-            if (landing_ticks == UINT16_C(0))
-            {
-                landing_ticks = UINT16_C(1);
-            }
-        }
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),

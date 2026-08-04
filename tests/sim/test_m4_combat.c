@@ -21388,6 +21388,17 @@ static int run_ledge_attack_test(
 
 static int run_falcon_reference_table_test(void)
 {
+    static const uint8_t aerial_actions[5] = {
+        (uint8_t)PF_M4_ACTION_AERIAL_ATTACK,
+        (uint8_t)PF_M4_ACTION_FORWARD_AERIAL,
+        (uint8_t)PF_M4_ACTION_BACK_AERIAL,
+        (uint8_t)PF_M4_ACTION_UP_AERIAL,
+        (uint8_t)PF_M4_ACTION_DOWN_AERIAL};
+    static const uint16_t autocancel_before[5] = {
+        UINT16_C(4), UINT16_C(7), UINT16_C(7), UINT16_C(1), UINT16_C(4)};
+    static const uint16_t autocancel_after[5] = {
+        UINT16_C(33), UINT16_C(34), UINT16_C(20), UINT16_C(21), UINT16_C(35)};
+    uint32_t aerial_index;
     pf_m4_falcon_move_index mapped_move = PF_M4_FALCON_MOVE_COUNT;
     const pf_m4_reference_move *jab =
         pf_m4_falcon_reference_move(PF_M4_FALCON_JAB1);
@@ -21516,6 +21527,35 @@ static int run_falcon_reference_table_test(void)
             &mapped_move))
     {
         return fail("falcon-reference-phase-and-action-route");
+    }
+    for (aerial_index = UINT32_C(0);
+         aerial_index < UINT32_C(5);
+         ++aerial_index)
+    {
+        const uint16_t before = autocancel_before[aerial_index];
+        const uint16_t after = autocancel_after[aerial_index];
+
+        if (pf_m4_falcon_reference_landing_lag_active(
+                aerial_actions[aerial_index],
+                (uint16_t)(before - UINT16_C(1))) != 0 ||
+            pf_m4_falcon_reference_landing_lag_active(
+                aerial_actions[aerial_index],
+                before) != 1 ||
+            pf_m4_falcon_reference_landing_lag_active(
+                aerial_actions[aerial_index],
+                after) != 1 ||
+            pf_m4_falcon_reference_landing_lag_active(
+                aerial_actions[aerial_index],
+                (uint16_t)(after + UINT16_C(1))) != 0)
+        {
+            return fail("falcon-reference-aerial-autocancel");
+        }
+    }
+    if (pf_m4_falcon_reference_landing_lag_active(
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE,
+            UINT16_C(1)) != -1)
+    {
+        return fail("falcon-reference-aerial-autocancel-bounds");
     }
     return 1;
 }

@@ -231,3 +231,27 @@ pf_m4_reference_timing pf_m4_falcon_reference_timing(
     timing.recovery_ticks = move->total_frames - last->last_frame;
     return timing;
 }
+
+int pf_m4_falcon_reference_landing_lag_active(
+    uint8_t action_state,
+    uint16_t action_frame)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+
+    if (!pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return -1;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    if (move == NULL || move->landing_lag == UINT16_C(0) ||
+        move->autocancel_before == UINT16_C(0) ||
+        move->autocancel_after == UINT16_C(0))
+    {
+        return -1;
+    }
+    return action_frame >= move->autocancel_before &&
+           action_frame <= move->autocancel_after;
+}

@@ -162,4 +162,13 @@ const pf_m4_reference_throw *pf_m4_falcon_reference_throw(
 pf_m4_reference_timing pf_m4_falcon_reference_timing(
     pf_m4_falcon_move_index move_index);
 
+/*
+ * Returns one while an aerial's source-defined landing-lag flag is active,
+ * zero while the source action auto-cancels, and -1 when the action/frame has
+ * no imported aerial landing data.
+ */
+int pf_m4_falcon_reference_landing_lag_active(
+    uint8_t action_state,
+    uint16_t action_frame);
+
 #endif

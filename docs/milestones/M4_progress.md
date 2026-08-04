@@ -2988,3 +2988,19 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   is `617e8a8503be61670f7683f4478baf0699d49d21182346edb1d80003b130f86e`;
   final-state SHA-256 is
   `80e4140554f0ca0b797d5056049768128cdcd08487341464835a1909812ad4c7`.
+
+## 2026-08-04 table-routed Falcon aerial landing slice
+
+- Neutral, forward, back, up, and down aerial now query their distinct imported
+  NTSC 1.02 autocancel intervals rather than sharing the placeholder's authored
+  interval. Their landing-lag-active intervals are frames 4-33, 7-34, 7-20,
+  1-21, and 4-35 respectively.
+- L-cancelled landings use the table's explicit 7/9/9/7/12-frame durations.
+  A compact reference-match guard preserves the original content fallback for
+  customized fighters; there is no duplicated per-aerial runtime table and no
+  allocation or search in the tick path.
+- The refreshed 41,575-byte replay, final-state, and event-journal SHA-256
+  values are `47bb7eb24cf96c2a5bc46b2b11a83e451226fa0308fdc8d5cdaa43c6a38a9acd`,
+  `9fef35cd32abe0fa98013bf32c1f98d953289551465aa5f2dffec60834bb5f56`,
+  and `b92e065007f6794dc1d26bb38313c185775ac14833f02d2f951fe9ba3a2aab18`.
+  The repeated-match verifier digest is `957a947eaff53872`.

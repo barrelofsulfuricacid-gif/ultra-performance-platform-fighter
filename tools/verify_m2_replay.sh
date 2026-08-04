@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=240 players=4 bytes=41575 corpus_sha256=617e8a8503be61670f7683f4478baf0699d49d21182346edb1d80003b130f86e final_sha256=80e4140554f0ca0b797d5056049768128cdcd08487341464835a1909812ad4c7 events_sha256=c9b0f348b2ca91d83ced7c5e2c290847c118ec8c8da936db4fad7a1639660206'
+expected='sim-replay=pass ticks=240 players=4 bytes=41575 corpus_sha256=47bb7eb24cf96c2a5bc46b2b11a83e451226fa0308fdc8d5cdaa43c6a38a9acd final_sha256=9fef35cd32abe0fa98013bf32c1f98d953289551465aa5f2dffec60834bb5f56 events_sha256=b92e065007f6794dc1d26bb38313c185775ac14833f02d2f951fe9ba3a2aab18'
 
 mkdir -p "$output_dir"
 
