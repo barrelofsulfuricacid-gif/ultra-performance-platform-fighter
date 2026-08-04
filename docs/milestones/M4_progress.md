@@ -2933,3 +2933,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   10 measurable scenarios with zero invalid, suspected, or confirmed
   regressions; the first pair's isolated empty-tick suspicion did not reproduce
   while the candidate binary remained unchanged.
+- Clean table-routed commit `6eb6d2302f196b6e1a25c59ceabc16dfd88ba55a`
+  is run 5 in the same database, again using 100 ms samples and 15
+  repetitions. All 10 measurable scenarios compare compatibly with zero
+  invalid, suspected, or confirmed regressions. Representative 1v1, 2v2, and
+  maximum-combat medians are 1,694,588, 1,111,536, and 993,063 logical ticks
+  per second. The separate unsampled 64-environment Python boundary reports
+  321,157 repeated-call ticks/s versus 1,688,386 batched ticks/s, a 5.2572x
+  boundary speedup.
