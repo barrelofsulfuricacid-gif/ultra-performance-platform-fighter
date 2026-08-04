@@ -2656,12 +2656,17 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   final-state, event-journal, and verifier expectations remain unchanged
   because the fixed eligibility routes are outside the pinned 240-tick replay.
 
-## 2026-08-04 Falcon platform-pass executable-oracle slice
+## 2026-08-04 Falcon platform collision/pass executable-oracle slice
 
-- A separate 212-frame identical-input capture selects Battlefield, where
+- A separate 348-frame identical-input capture selects Battlefield, where
   Captain Falcon starts on the left pass-through platform. It is intentionally
   isolated from the 8,675-frame Final Destination corpus and from the original
   laboratory-stage geometry.
+- A neutral jump first proves upward pass-through, the complete Falcon arc, and
+  ordinary descending collision. Dolphin remains in `JumpF` for one frame after
+  the first descending crossing, then enters `Landing` for 30 displayed frames.
+  Production previously landed on the crossing frame; ordinary-airborne
+  platform collision now preserves the executable's final airborne frame.
 - The negative control applies down for one frame and then releases. Dolphin
   remains grounded through ordinary `Squat`/`SquatRv` and never latches a
   delayed pass; production now follows the same route.
@@ -2687,8 +2692,8 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `61160ef3e40848b4e5e529a27f81a0658938152bf6e3e4b0acb7395d32d2890e`,
   and `f574b8063f8339b8495ec44eaea0a0c09395c1bf5f545dc5e4454248baeb62ba`.
   The content-sensitive repeated-match verifier digest is
-  `dda94fe7dce1be1d`.
-- The 212-frame Battlefield comparator and the 8,675-frame Final Destination
+  `d3b2847f6de12e56` after the ordinary platform-landing correction.
+- The 348-frame Battlefield comparator and the 8,675-frame Final Destination
   comparator pass on Windows MSVC and WSL Linux GCC. All 22 CTest targets pass
   on both platforms; strict movement/combat, standalone kernel/replay, and
   native-versus-Wasm replay checks pass. A clean pinned Emscripten 6.0.3 build,

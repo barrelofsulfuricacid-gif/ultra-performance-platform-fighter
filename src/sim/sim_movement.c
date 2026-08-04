@@ -6852,8 +6852,14 @@ pf_status pf_m4_step_player(
                 platform_drop_ticks == UINT8_C(0) &&
                 position_x >= platform_left &&
                 position_x <= platform_right &&
-                previous_bottom <= stage->platform_y_q16 &&
-                new_bottom >= stage->platform_y_q16 &&
+                ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                  (previous_bottom > stage->platform_y_q16 ||
+                   (fast_fall != UINT8_C(0) &&
+                    previous_bottom <= stage->platform_y_q16 &&
+                    new_bottom >= stage->platform_y_q16))) ||
+                 (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                  previous_bottom <= stage->platform_y_q16 &&
+                  new_bottom >= stage->platform_y_q16)) &&
                 stage->platform_y_q16 < landing_y_q16)
             {
                 landing_y_q16 = stage->platform_y_q16;
@@ -6864,8 +6870,14 @@ pf_status pf_m4_step_player(
                 platform_drop_ticks == UINT8_C(0) &&
                 position_x >= upper_platform_left &&
                 position_x <= upper_platform_right &&
-                previous_bottom <= stage->upper_platform_y_q16 &&
-                new_bottom >= stage->upper_platform_y_q16 &&
+                ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                  (previous_bottom > stage->upper_platform_y_q16 ||
+                   (fast_fall != UINT8_C(0) &&
+                    previous_bottom <= stage->upper_platform_y_q16 &&
+                    new_bottom >= stage->upper_platform_y_q16))) ||
+                 (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                  previous_bottom <= stage->upper_platform_y_q16 &&
+                  new_bottom >= stage->upper_platform_y_q16)) &&
                 stage->upper_platform_y_q16 < landing_y_q16)
             {
                 landing_y_q16 = stage->upper_platform_y_q16;

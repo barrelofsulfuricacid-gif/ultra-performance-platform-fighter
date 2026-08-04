@@ -401,6 +401,11 @@ The initial stage table defines:
 - top, bottom, left, and right blast boundaries.
 
 A supported fighter inherits the moving platform's exact per-tick displacement.
+Ordinary airborne descent through a pass-through platform preserves the
+executable's final crossing frame: the first sample that crosses the platform
+remains airborne, and the following sample enters `LANDING`. Fast-fall and
+non-ordinary airborne actions retain their separately routed swept-collision
+boundaries.
 The block's top is a normal support surface, its sides stop horizontal body
 motion, and its underside stops upward body motion. The floor-level clearance
 under the default block remains traversable. Top and underside sweeps use the
@@ -472,10 +477,11 @@ bounds, and blast zones.
   double-jump trajectory/action tick through armored hitlag and immediate
   aerial cancel after resume, aerial drift, airborne-facing lock
   across opposite drift and air-jump input, fast fall, and landing;
-- the separate Battlefield executable-oracle platform-pass route: one-frame
-  down release control, three displayed grounded `CROUCH START` ticks, exact
-  0.63 pass-entry speed, same-tick gravity/fast-fall exclusion, and solid-floor
-  crossing; plus timer exposure used by the drop-cancel combat route;
+- the separate 348-frame Battlefield executable oracle: jump-through ascent,
+  one delayed ordinary-airborne descending crossing before `LANDING`,
+  one-frame down release control, three displayed grounded `CROUCH START`
+  ticks, exact 0.63 pass-entry speed, same-tick gravity/fast-fall exclusion,
+  and solid-floor crossing; plus timer exposure used by the drop-cancel route;
 - validated shield-drop input-band boundaries, same-tick shield-entry and
   solid-floor exclusions, full-down spot-dodge priority, ordinary shield
   release, and mid-route save/load with 24 future-hash comparisons;

@@ -8842,6 +8842,7 @@ static int run_platform_test(const pf_m4_content *default_content)
     pf_m4_inspection inspection;
     int32_t previous_player_x;
     int32_t previous_platform_left;
+    int saw_delayed_platform_crossing = 0;
     uint32_t tick;
 
     if (default_content->fighter.platform_drop_startup_ticks !=
@@ -8938,6 +8939,10 @@ static int run_platform_test(const pf_m4_content *default_content)
     }
     for (tick = UINT32_C(0); tick < UINT32_C(160); ++tick)
     {
+        const int32_t previous_bottom_q16 =
+            inspection.players[0].position_y_q16 +
+            platform_content.fighter.half_height_q16;
+
         if (!step_duel(
                 sim,
                 INT16_C(0),
@@ -8946,6 +8951,16 @@ static int run_platform_test(const pf_m4_content *default_content)
                 &inspection))
         {
             return 0;
+        }
+        if (previous_bottom_q16 <=
+                platform_content.stage.platform_y_q16 &&
+            inspection.players[0].position_y_q16 +
+                    platform_content.fighter.half_height_q16 >
+                platform_content.stage.platform_y_q16 &&
+            inspection.players[0].velocity_y_q16 > INT32_C(0) &&
+            inspection.players[0].grounded == UINT8_C(0))
+        {
+            saw_delayed_platform_crossing = 1;
         }
         if (inspection.players[0].grounded != UINT8_C(0) &&
             inspection.players[0].support ==
@@ -8956,7 +8971,8 @@ static int run_platform_test(const pf_m4_content *default_content)
     }
     if (inspection.players[0].support !=
             (uint8_t)PF_M4_SURFACE_PLATFORM ||
-        inspection.players[0].grounded == UINT8_C(0))
+        inspection.players[0].grounded == UINT8_C(0) ||
+        saw_delayed_platform_crossing == 0)
     {
         (void)fprintf(
             stderr,

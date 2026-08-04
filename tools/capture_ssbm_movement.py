@@ -66,6 +66,10 @@ def input_trace(platform_only: bool = False) -> list[dict[str, object]]:
 
     if platform_only:
         repeat("platform_settle", 60)
+        trace.append(command("platform_jump", jump=True))
+        repeat("platform_jump_squat", 5)
+        repeat("platform_landing_setup", 100)
+        repeat("platform_landing_settle", 30)
         trace.append(command("platform_tap_down_entry", main_y=0.0))
         repeat("platform_tap_down_release", 30)
         repeat("platform_before_held_down", 30)

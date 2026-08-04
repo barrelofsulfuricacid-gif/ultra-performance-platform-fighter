@@ -29,7 +29,7 @@ movement placeholder on the original laboratory stage.
 | Gravity, terminal velocity, air drift | equivalent | Falcon A/B acceleration, drift target, friction, gravity, terminal, and absolute horizontal cap are mapped. |
 | Fast fall | equivalent | Requires a fresh downward tilt within four ticks after descent begins; holding down before the apex does not trigger it. |
 | Crouch/crawl | equivalent for captured routes | Full-down input produces Falcon's seven displayed `Squat` frames, held `SquatWait`, ten displayed `SquatRv` frames, then standing. Exact 0.6875 entry and 0.625 release boundaries preserve the decomp's hysteresis. Jump, fresh guard, fresh taunt, neutral A, and down-special from all three states match, as do held-crouch dash/turn and release-state walk. Neutral B is accepted only from `Squat`. Physical Z enters `Catch` from `Squat`, but its A component falls back to `Attack11` from `SquatWait`/`SquatRv`, where catch is absent. `Squat` and `SquatWait` are crouch-cancel eligible while `SquatRv` is not; crawl entry remains disabled because Falcon cannot crawl. A separate Battlefield route proves the one-frame-down negative control and held-down `Squat` frames 1-3 into `Pass`. |
-| Ground and platform collision | partial | The isolated Battlefield pass route matches 212 identical input frames, including 0.63 entry speed and same-frame solid-floor landing. Deterministic swept collision and corner-overlap recovery are present, but general stage collision primitives, ECB evolution, and the executable-observed grounded player-push displacement do not yet reproduce Melee's engine. |
+| Ground and platform collision | partial | The isolated 348-frame Battlefield route matches neutral jump-through ascent, the final ordinary-airborne descending crossing before `Landing`, 0.63 Pass entry speed, and same-frame solid-floor landing. Deterministic swept collision and corner-overlap recovery are present, but general stage collision primitives, broader ECB evolution, and the executable-observed grounded player-push displacement do not yet reproduce Melee's engine. |
 | Ledge jump velocities | equivalent | Falcon 1.0 horizontal and 3.3 vertical attributes are mapped. |
 | Other ledge actions | partial | Hang, drop, climb, roll, attack, regrab lockout, and invulnerability exist, but exact animation-command and percent-dependent ledge tables are not imported. |
 | Wall jump / wall and ceiling tech velocities | equivalent | Falcon passive-wall, wall-jump, and passive-ceiling attributes are mapped. |
@@ -87,10 +87,12 @@ content, those routes compare semantic eligibility at entry, skip the
 character-specific action body, then resume exact comparison at the next
 stationary anchor. Down-special entry from all three crouch states is also
 covered with its character-specific bodies isolated at the end of the corpus.
-A separate 212-frame Battlefield capture covers the final crouch platform-pass
-route: one-frame down release does not drop; held down exposes `Squat` frames
-1-3, enters `Pass` frame 0 at 0.63 downward speed, and lands on the solid floor
-on the executable's frame.
+A separate 348-frame Battlefield capture covers ordinary jump-through and
+platform landing plus the final crouch platform-pass route. The neutral jump
+retains Dolphin's final airborne crossing before `Landing`; one-frame down
+release does not drop; held down exposes `Squat` frames 1-3, enters `Pass`
+frame 0 at 0.63 downward speed, and lands on the solid floor on the
+executable's frame.
 Position
 comparison allows only the documented accumulated float-to-Q16.16 conversion
 tolerance; action, facing, velocity, and applicable action ticks use their
