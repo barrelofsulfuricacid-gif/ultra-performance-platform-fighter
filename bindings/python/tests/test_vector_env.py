@@ -88,7 +88,21 @@ class PlatformFighterVectorEnvTests(unittest.TestCase):
                 second_step[4]["player_rewards_q16"],
             )
         )
-        self.assertTrue(np.all(first_step[1] > 0.0))
+        self.assertTrue(np.all(first_step[1] == 0.0))
+
+        first_movement_step = first.step(actions)
+        second_movement_step = second.step(actions)
+        for first_value, second_value in zip(
+            first_movement_step[:4], second_movement_step[:4], strict=True
+        ):
+            self.assertTrue(np.array_equal(first_value, second_value))
+        self.assertTrue(
+            np.array_equal(
+                first_movement_step[4]["player_rewards_q16"],
+                second_movement_step[4]["player_rewards_q16"],
+            )
+        )
+        self.assertTrue(np.all(first_movement_step[1] > 0.0))
 
     def test_duel_reward_and_next_step_autoreset(self) -> None:
         environment = PlatformFighterVectorEnv(
