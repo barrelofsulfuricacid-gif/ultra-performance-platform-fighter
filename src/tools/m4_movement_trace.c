@@ -62,6 +62,14 @@ int main(void)
      * off, and this tool compares common movement rather than original content.
      */
     content.item.enabled = UINT8_C(0);
+    /*
+     * Keep one inert, one-tick projectile definition available so neutral-B
+     * samples can qualify common-state special IASA without introducing the
+     * original live projectile into later movement/collision frames.
+     */
+    content.projectile.enabled = UINT8_C(1);
+    content.projectile.speed_q16 = INT32_C(1);
+    content.projectile.lifetime_ticks = UINT16_C(1);
     content.stage.platform_center_x_q16 =
         -INT32_C(28) * PF_Q16_ONE;
     content.stage.platform_half_width_q16 = PF_Q16_ONE;

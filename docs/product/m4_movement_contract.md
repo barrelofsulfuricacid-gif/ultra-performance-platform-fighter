@@ -137,8 +137,14 @@ to the simulation.
   accepts forward walk immediately. Fresh digital guard interrupts every
   crouch state through the common shield-start path. Fresh taunt also
   interrupts every crouch state and remains active for Falcon's 60 observed
-  AppealS frames. Remaining attack, special, grab, and platform-pass routes
-  remain part of the broader executable-oracle gate.
+  AppealS frames. Neutral A interrupts all three states. Neutral B is accepted
+  from `CROUCH START`, but not from held `CROUCH` or `CROUCH END`. Physical Z,
+  which supplies both the catch signal and an A component in the executable,
+  enters `GRAB` from `CROUCH START`; because held `CROUCH` and `CROUCH END` do
+  not run the common catch check, the same packet falls back to
+  `GROUND ATTACK`. These are common transition-eligibility claims only: the
+  selected attack and special content remains project-authored. Down-special
+  and platform-pass routes remain part of the broader executable-oracle gate.
 - Down on a pass-through platform starts the data-defined nine-tick
   pass-through window. The drop tick applies only the authored nudge and
   ordinary gravity; it cannot also trigger fast fall. Subsequent down input may

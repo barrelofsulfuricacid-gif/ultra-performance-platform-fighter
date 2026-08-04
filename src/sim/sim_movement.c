@@ -2267,7 +2267,6 @@ static int pf_m4_action_can_start_grab(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_WALK ||
            action_state == (uint8_t)PF_M4_ACTION_RUN ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_START ||
-           action_state == (uint8_t)PF_M4_ACTION_CROUCH ||
            action_state == (uint8_t)PF_M4_ACTION_CROUCH_STEP ||
            action_state == (uint8_t)PF_M4_ACTION_TEETER ||
            action_state == (uint8_t)PF_M4_ACTION_SHIELD ||
@@ -2752,6 +2751,12 @@ pf_status pf_m4_step_player(
         dense_shield_pressed != 0;
     const int grab_pressed =
         shield_held != 0 && light_attack_pressed != 0;
+    const int grab_blocks_attack =
+        grab_pressed != 0 &&
+        pf_m4_action_can_start_grab(
+            world->action_state[player_index]);
+    const int grab_fallback_attack_pressed =
+        grab_pressed != 0 && grab_blocks_attack == 0;
     const int boost_grab_pressed =
         world->grounded[player_index] != UINT8_C(0) &&
         world->action_state[player_index] ==
@@ -2817,7 +2822,7 @@ pf_status pf_m4_step_player(
             input->secondary_stick_x,
             fighter->dash_axis_threshold);
     const int forward_smash_pressed =
-        grab_pressed == 0 && light_attack_pressed != 0 &&
+        grab_blocks_attack == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
         strong_direction != INT8_C(0) &&
         horizontal_magnitude >= vertical_magnitude &&
@@ -2837,7 +2842,7 @@ pf_status pf_m4_step_player(
                 -world->dash_direction[player_index] &&
            world->action_ticks[player_index] == UINT16_C(1)))));
     const int vertical_smash_pressed =
-        grab_pressed == 0 && light_attack_pressed != 0 &&
+        grab_blocks_attack == 0 && light_attack_pressed != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
         (world->action_state[player_index] ==
              (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
@@ -2854,7 +2859,7 @@ pf_status pf_m4_step_player(
                    ? (uint8_t)PF_M4_ACTION_UP_STRONG_CHARGE
                    : (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE);
     const int ground_strong_attack_pressed =
-        grab_pressed == 0 && strong_attack_pressed != 0;
+        grab_blocks_attack == 0 && strong_attack_pressed != 0;
     const uint8_t ground_light_attack_action =
         pf_m4_select_ground_light_attack_action(
             fighter,
@@ -2866,11 +2871,11 @@ pf_status pf_m4_step_player(
             strong_attack_stick_x,
             strong_attack_stick_y);
     const int dash_attack_pressed =
-        grab_pressed == 0 && light_attack_pressed != 0 &&
+        grab_blocks_attack == 0 && light_attack_pressed != 0 &&
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_RUN;
     const int attack_pressed =
-        grab_pressed == 0 &&
+        grab_blocks_attack == 0 &&
         (light_attack_pressed != 0 || strong_attack_pressed != 0);
     const int jump_cancel_attack_pressed =
         world->grounded[player_index] != UINT8_C(0) &&
@@ -4127,6 +4132,7 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         shield_held != 0 &&
+        grab_fallback_attack_pressed == 0 &&
         !pf_m4_action_is_shield(action_state) &&
         action_state != (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
         !pf_m4_action_is_ground_attack(action_state) &&

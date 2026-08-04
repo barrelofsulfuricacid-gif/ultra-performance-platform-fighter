@@ -376,6 +376,59 @@ def input_trace() -> list[dict[str, object]]:
     trace.append(command("crouch_end_taunt", taunt=True))
     repeat("crouch_end_taunt_recovery", 110)
 
+    # Core crouch IASA beyond movement/guard/taunt. Neutral A is eligible in
+    # Squat, SquatWait, and SquatRv. Physical Z enters Catch from Squat but
+    # must reveal its A-component fallback from SquatWait and SquatRv. Neutral B is
+    # eligible during Squat; SquatWait and SquatRv list only the down-special
+    # dispatcher, so a neutral B sample must not start Falcon Punch there.
+    repeat("settle_before_crouch_start_attack", 10)
+    repeat("crouch_start_before_attack", 2, main_y=0.0)
+    trace.append(command("crouch_start_attack", attack=True))
+    repeat("crouch_start_attack_recovery", 60)
+
+    repeat("settle_before_crouch_wait_attack", 10)
+    repeat("crouch_wait_before_attack", 20, main_y=0.0)
+    trace.append(command("crouch_wait_attack", attack=True))
+    repeat("crouch_wait_attack_recovery", 60)
+
+    repeat("settle_before_crouch_end_attack", 10)
+    repeat("crouch_end_before_attack", 20, main_y=0.0)
+    trace.append(command("crouch_end_attack_release"))
+    trace.append(command("crouch_end_attack", attack=True))
+    repeat("crouch_end_attack_recovery", 60)
+
+    repeat("settle_before_crouch_wait_neutral_special", 10)
+    repeat("crouch_wait_before_neutral_special", 20, main_y=0.0)
+    trace.append(command("crouch_wait_neutral_special", special=True))
+    repeat("crouch_wait_neutral_special_recovery", 40)
+
+    repeat("settle_before_crouch_end_neutral_special", 10)
+    repeat("crouch_end_before_neutral_special", 20, main_y=0.0)
+    trace.append(command("crouch_end_neutral_special_release"))
+    trace.append(command("crouch_end_neutral_special", special=True))
+    repeat("crouch_end_neutral_special_recovery", 40)
+
+    repeat("settle_before_crouch_start_neutral_special", 10)
+    repeat("crouch_start_before_neutral_special", 2, main_y=0.0)
+    trace.append(command("crouch_start_neutral_special", special=True))
+    repeat("crouch_start_neutral_special_recovery", 130)
+
+    repeat("settle_before_crouch_start_grab", 10)
+    repeat("crouch_start_before_grab", 2, main_y=0.0)
+    trace.append(command("crouch_start_grab", grab=True))
+    repeat("crouch_start_grab_recovery", 90)
+
+    repeat("settle_before_crouch_wait_grab", 10)
+    repeat("crouch_wait_before_grab", 20, main_y=0.0)
+    trace.append(command("crouch_wait_grab", grab=True))
+    repeat("crouch_wait_grab_recovery", 90)
+
+    repeat("settle_before_crouch_end_grab", 10)
+    repeat("crouch_end_before_grab", 20, main_y=0.0)
+    trace.append(command("crouch_end_grab_release"))
+    trace.append(command("crouch_end_grab", grab=True))
+    repeat("crouch_end_grab_recovery", 90)
+
     # Turn's common IASA list also dispatches AppealS. Enter an ordinary
     # standing turn for one frame, then press D-pad up before the turn ends.
     repeat("settle_before_standing_turn_taunt", 10)

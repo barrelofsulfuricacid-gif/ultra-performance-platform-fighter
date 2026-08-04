@@ -71,6 +71,15 @@ POSITION_ANCHOR_LABELS = {
     "settle_before_crouch_start_taunt",
     "settle_before_crouch_wait_taunt",
     "settle_before_crouch_end_taunt",
+    "settle_before_crouch_start_attack",
+    "settle_before_crouch_wait_attack",
+    "settle_before_crouch_end_attack",
+    "settle_before_crouch_wait_neutral_special",
+    "settle_before_crouch_end_neutral_special",
+    "settle_before_crouch_start_neutral_special",
+    "settle_before_crouch_start_grab",
+    "settle_before_crouch_wait_grab",
+    "settle_before_crouch_end_grab",
     "settle_before_standing_turn_taunt",
     "settle_before_landing_taunt",
     "settle_before_landing_jump",
@@ -100,6 +109,20 @@ POSITION_ANCHOR_LABELS = {
     "recenter_before_run_brake_grab",
     "recenter_before_run_brake_special",
     "recenter_before_run_brake_reverse",
+}
+
+# These samples qualify common-state IASA eligibility, not the execution of
+# character-specific moves. Compare the transition sample against the
+# project's semantic counterpart, then resume exact shared-state comparison at
+# the next stationary anchor after both character-specific actions recover.
+CONTENT_ROUTE_ENTRY_ACTIONS = {
+    "crouch_start_attack": 12,
+    "crouch_wait_attack": 12,
+    "crouch_end_attack": 12,
+    "crouch_start_neutral_special": 64,
+    "crouch_start_grab": 49,
+    "crouch_wait_grab": 12,
+    "crouch_end_grab": 12,
 }
 
 # M4's Falcon movement values use a 12/115 world-unit scale relative to
@@ -266,25 +289,42 @@ def main() -> int:
     native_anchor_x = 0
     native_anchor_y = 0
     previous_label: str | None = None
+    skip_character_content = False
     for oracle, native in zip(oracle_rows, native_rows, strict=True):
         frame = int(oracle["trace_frame"])
         label = str(oracle["label"])
-        if (
+        entering_anchor = (
             label != previous_label
             and label in POSITION_ANCHOR_LABELS
             and previous_oracle is not None
+        )
+        if skip_character_content and not entering_anchor:
+            previous_oracle = oracle
+            previous_native = native
+            previous_label = label
+            continue
+        if entering_anchor:
+            skip_character_content = False
+        if (
+            entering_anchor
         ):
             oracle_anchor_x = float(previous_oracle["position_x_from_origin"])
             oracle_anchor_y = float(previous_oracle["position_y"])
             native_anchor_x = int(previous_native["position_x_q16_from_origin"])
             native_anchor_y = int(previous_native["position_y_q16_from_origin"])
         action_name = str(oracle["action"])
-        expected_action = expected_action_state(
-            action_name, float(oracle["action_frame"])
-        )
+        expected_action = CONTENT_ROUTE_ENTRY_ACTIONS.get(label)
+        if expected_action is None:
+            expected_action = expected_action_state(
+                action_name, float(oracle["action_frame"])
+            )
         actual_action = int(native["action_state"])
-        expected_ticks = expected_action_ticks(
-            action_name, float(oracle["action_frame"])
+        expected_ticks = (
+            None
+            if label in CONTENT_ROUTE_ENTRY_ACTIONS
+            else expected_action_ticks(
+                action_name, float(oracle["action_frame"])
+            )
         )
         actual_ticks = int(native["action_ticks"])
         expected_facing = int(oracle["facing"])
@@ -396,6 +436,8 @@ def main() -> int:
         previous_oracle = oracle
         previous_native = native
         previous_label = label
+        if label in CONTENT_ROUTE_ENTRY_ACTIONS:
+            skip_character_content = True
 
     print(f"ssbm-movement-compare=pass frames={len(oracle_rows)}")
     return 0

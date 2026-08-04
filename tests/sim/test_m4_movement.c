@@ -2980,6 +2980,227 @@ static int run_run_brake_iasa_test(
     return 1;
 }
 
+static int reset_to_crouch_action(
+    pf_sim *sim,
+    const pf_m4_content *content,
+    uint8_t target_action,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "crouch-common-iasa-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            out_inspection))
+    {
+        return 0;
+    }
+    if (target_action == (uint8_t)PF_M4_ACTION_CROUCH_START)
+    {
+        return step_duel(
+                   sim,
+                   INT16_C(0),
+                   (int16_t)content->fighter.crouch_axis_threshold,
+                   UINT64_C(0),
+                   out_inspection) &&
+               out_inspection->players[0].action_state == target_action;
+    }
+    for (tick = UINT32_C(2);
+         tick <= (uint32_t)content->fighter.crouch_start_ticks;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                (int16_t)content->fighter.crouch_axis_threshold,
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            (int16_t)content->fighter.crouch_axis_threshold,
+            UINT64_C(0),
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        return 0;
+    }
+    if (target_action == (uint8_t)PF_M4_ACTION_CROUCH)
+    {
+        return 1;
+    }
+    return step_duel(
+               sim,
+               INT16_C(0),
+               INT16_C(0),
+               UINT64_C(0),
+               out_inspection) &&
+           out_inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_CROUCH_END;
+}
+
+static int run_crouch_common_iasa_test(
+    const pf_m4_content *content)
+{
+    static const uint8_t crouch_actions[] = {
+        (uint8_t)PF_M4_ACTION_CROUCH_START,
+        (uint8_t)PF_M4_ACTION_CROUCH,
+        (uint8_t)PF_M4_ACTION_CROUCH_END,
+    };
+    test_sim_storage storage;
+    pf_m4_content route_content = *content;
+    pf_content_view route_view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    size_t action_index;
+
+    route_content.projectile.enabled = UINT8_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(&route_content, &route_view),
+            PF_STATUS_OK,
+            "crouch-common-iasa-content") ||
+        !initialize_sim(
+            &storage,
+            &route_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim))
+    {
+        return 0;
+    }
+    for (action_index = (size_t)0;
+         action_index <
+             sizeof(crouch_actions) / sizeof(crouch_actions[0]);
+         ++action_index)
+    {
+        const uint8_t crouch_action = crouch_actions[action_index];
+
+        if (!reset_to_crouch_action(
+                sim,
+                &route_content,
+                crouch_action,
+                &inspection) ||
+            !step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_GROUND_ATTACK)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=crouch-common-attack-%u\n",
+                (unsigned int)crouch_action);
+            return 0;
+        }
+    }
+
+    if (!reset_to_crouch_action(
+            sim,
+            &route_content,
+            (uint8_t)PF_M4_ACTION_CROUCH_START,
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-start-neutral-special\n");
+        return 0;
+    }
+    if (!reset_to_crouch_action(
+            sim,
+            &route_content,
+            (uint8_t)PF_M4_ACTION_CROUCH,
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_END)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-wait-neutral-special-rejected\n");
+        return 0;
+    }
+    if (!reset_to_crouch_action(
+            sim,
+            &route_content,
+            (uint8_t)PF_M4_ACTION_CROUCH_END,
+            &inspection) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_CROUCH_END)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=crouch-end-neutral-special-rejected\n");
+        return 0;
+    }
+
+    for (action_index = (size_t)0;
+         action_index <
+             sizeof(crouch_actions) / sizeof(crouch_actions[0]);
+         ++action_index)
+    {
+        const uint8_t crouch_action = crouch_actions[action_index];
+        const uint8_t expected_action =
+            crouch_action == (uint8_t)PF_M4_ACTION_CROUCH_START
+                ? (uint8_t)PF_M4_ACTION_GRAB
+                : (uint8_t)PF_M4_ACTION_GROUND_ATTACK;
+
+        if (!reset_to_crouch_action(
+                sim,
+                &route_content,
+                crouch_action,
+                &inspection) ||
+            !step_duel_trigger(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                PF_INPUT_BUTTON_ATTACK,
+                UINT16_MAX,
+                &inspection) ||
+            inspection.players[0].action_state != expected_action)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=crouch-z-fallback-%u\n",
+                (unsigned int)crouch_action);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int run_ground_control_test(
     const pf_m4_content *content,
     const pf_content_view *view)
@@ -13093,6 +13314,7 @@ int main(void)
             "content-view") ||
         !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_tap_jump_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(
