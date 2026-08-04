@@ -73,7 +73,7 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | post-TurnRun run lockout | 10 | 10 ticks |
 | tap-jump threshold / window | 0.6625 / 4 | 21709 / 4 ticks |
 | fast-fall threshold / window | 0.6625 / 4 | 21709 / 4 ticks |
-| analog shield minimum / trigger press | 0.35 / 0.25 | 22937 / 16384 of 65535 |
+| analog shield common dead zone / first accepted raw value | 0.30 / 0.30 | threshold 19661 of 65535; a digital click is 65535 |
 | air-dodge X/Y dead zone | 0.25 / 0.25 | 8192 of 32767 |
 
 ## Repository controls

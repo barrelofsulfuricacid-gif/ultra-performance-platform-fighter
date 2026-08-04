@@ -1229,6 +1229,8 @@ int main(void)
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 6 ||
         !pf_web_m4_playtest_step(
             test_dash_axis,
@@ -1371,6 +1373,8 @@ int main(void)
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
+        !pf_web_m4_playtest_step(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 6 ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
@@ -1411,7 +1415,7 @@ int main(void)
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_WINDOW] != 20 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_TECH_LOCKOUT] != 40 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_HEALTH] >=
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_HEALTH] !=
             60 * 65536 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STUN] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_POWERSHIELD] != 0 ||
@@ -1427,21 +1431,21 @@ int main(void)
 
     if (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step_special(
-            0, 0, 0, 0, 0, 8191,
+            0, 0, 0, 0, 0, 19660,
             0, 0, 0, 0, 0, 0,
             0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STRENGTH] != 0 ||
         !pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step_special(
-            0, 0, 0, 0, 0, 8192,
+            0, 0, 0, 0, 0, 19661,
             0, 0, 0, 0, 0, 0,
             0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_STRENGTH] !=
-            8192 ||
+            1 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_HEALTH] !=
-            60 * 65536 - 7 * 65536 / 100 ||
+            60 * 65536 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_POWERSHIELD] != 0 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_ACTIVE] != 1 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_TILT_X] != 0 ||
@@ -1464,7 +1468,7 @@ int main(void)
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_SHIELD_RIGHT];
 
         if (!pf_web_m4_playtest_step_special(
-                10000, 0, 0, 0, 0, 8192,
+                10000, 0, 0, 0, 0, 19661,
                 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0) ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||

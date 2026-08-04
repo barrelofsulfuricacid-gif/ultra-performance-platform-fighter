@@ -1419,6 +1419,22 @@ static int pf_m4_snapshot_action_is_ground_attack(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_JAB_FINAL;
 }
 
+static int pf_m4_snapshot_action_is_landing(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_LANDING ||
+           action == (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
+           action == (uint8_t)PF_M4_ACTION_AERIAL_LANDING ||
+           action == (uint8_t)PF_M4_ACTION_L_CANCEL_LANDING ||
+           action ==
+               (uint8_t)PF_M4_ACTION_STRONG_AERIAL_LANDING ||
+           action ==
+               (uint8_t)PF_M4_ACTION_STRONG_L_CANCEL_LANDING ||
+           (action >=
+                (uint8_t)PF_M4_ACTION_FORWARD_AERIAL_LANDING &&
+            action <=
+                (uint8_t)PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING);
+}
+
 static int pf_m4_snapshot_action_is_smash_charge(uint8_t action)
 {
     return action ==
@@ -1572,9 +1588,6 @@ static int pf_m4_snapshot_content_state_consistent(
             (smash_charge_ticks != UINT16_C(0) &&
              !smash_charge_action && !smash_release_action &&
              !smash_release_resume) ||
-            (shield_strength != UINT16_C(0) &&
-             shield_strength <
-                 content->fighter.light_shield_trigger_threshold) ||
             ((shield_strength != UINT16_C(0)) !=
              (shield_strength_action != 0)) ||
             ((world->shield_tilt_x[player_index] != INT16_C(0) ||
@@ -1582,8 +1595,7 @@ static int pf_m4_snapshot_content_state_consistent(
              shield_strength == UINT16_C(0)) ||
             (world->powershield[player_index] != UINT8_C(0) &&
              shield_strength_action != 0 &&
-             shield_strength <
-                 content->fighter.digital_trigger_threshold) ||
+             shield_strength != UINT16_MAX) ||
             (charge->enabled == UINT8_C(0) &&
              (world->charge_ticks[player_index] != UINT16_C(0) ||
               charge_action || release_resume)) ||
@@ -1751,7 +1763,10 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
-               world->velocity_y_q16[player_index] == INT32_C(0) &&
+               (world->velocity_y_q16[player_index] == INT32_C(0) ||
+                action == (uint8_t)PF_M4_ACTION_HITLAG ||
+                (pf_m4_snapshot_action_is_landing(action) &&
+                 world->action_ticks[player_index] == UINT16_C(0))) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                world->recovery_available[player_index] == UINT8_C(1);
     }
@@ -2113,7 +2128,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
                 world->recovery_available[player_index] > UINT8_C(1) ||
-                world->short_hop_latched[player_index] > UINT8_C(1) ||
+                world->short_hop_latched[player_index] > UINT8_C(2) ||
                 world->platform_drop_ticks[player_index] > UINT8_C(120) ||
                 world->fast_fall[player_index] > UINT8_C(1) ||
                 (world->facing[player_index] != INT8_C(-1) &&
@@ -2229,7 +2244,28 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
                  action !=
                      (uint8_t)PF_M4_ACTION_MOONWALK &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_ROLL_FORWARD &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_ROLL_BACKWARD &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+                 !(action ==
+                       (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                   world->action_ticks[player_index] == UINT16_C(0) &&
+                   (world->dash_direction[player_index] == INT8_C(-2) ||
+                    world->dash_direction[player_index] == INT8_C(2))) &&
                  world->dash_direction[player_index] != INT8_C(0)) ||
+                ((action ==
+                       (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
+                  action ==
+                       (uint8_t)PF_M4_ACTION_ROLL_BACKWARD) &&
+                 world->dash_direction[player_index] == INT8_C(0)) ||
+                (action ==
+                     (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
+                 world->dash_direction[player_index] != INT8_C(-1) &&
+                 world->dash_direction[player_index] != INT8_C(0) &&
+                 world->dash_direction[player_index] != INT8_C(1)) ||
                 (world->short_hop_latched[player_index] != UINT8_C(0) &&
                  action !=
                      (uint8_t)PF_M4_ACTION_JUMP_SQUAT) ||

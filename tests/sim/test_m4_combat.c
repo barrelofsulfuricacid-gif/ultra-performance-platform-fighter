@@ -1225,6 +1225,17 @@ static int run_v_cancel_jump_case(
             sim,
             INT16_C(0),
             INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
             PF_INPUT_BUTTON_ATTACK,
             UINT16_C(0),
             INT16_C(0),
@@ -4302,6 +4313,31 @@ static int run_crouch_cancel_test(
                 "hash-crouch-cancel-loaded-continuation") ||
             !hash_equal(&source_hash, &loaded_hash))
         {
+            (void)fprintf(
+                stderr,
+                "m4-combat=debug operation=crouch-cancel-continuation"
+                " tick=%" PRIu32
+                " p0=(action=%u ticks=%u grounded=%u dash=%d"
+                " velocity=%" PRId32 "/%" PRId32 ")"
+                " p1=(action=%u ticks=%u grounded=%u dash=%d"
+                " velocity=%" PRId32 "/%" PRId32
+                " hitstun=%u hitlag=%u tumble=%u)\n",
+                tick,
+                (unsigned int)source_inspection.players[0].action_state,
+                (unsigned int)source_inspection.players[0].action_ticks,
+                (unsigned int)source_inspection.players[0].grounded,
+                (int)source_inspection.players[0].dash_direction,
+                source_inspection.players[0].velocity_x_q16,
+                source_inspection.players[0].velocity_y_q16,
+                (unsigned int)source_inspection.players[1].action_state,
+                (unsigned int)source_inspection.players[1].action_ticks,
+                (unsigned int)source_inspection.players[1].grounded,
+                (int)source_inspection.players[1].dash_direction,
+                source_inspection.players[1].velocity_x_q16,
+                source_inspection.players[1].velocity_y_q16,
+                (unsigned int)source_inspection.players[1].hitstun_ticks,
+                (unsigned int)source_inspection.players[1].hitlag_ticks,
+                (unsigned int)source_inspection.players[1].tumble);
             return fail("crouch-cancel-snapshot-continuation");
         }
     }
@@ -10219,12 +10255,11 @@ static int run_shield_state_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD ||
-        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
         inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         inspection.players[0].velocity_x_q16 >= run_velocity ||
         inspection.players[0].shield_health_q16 !=
-            content->fighter.shield_health_q16 -
-                content->fighter.shield_hold_depletion_q16)
+            content->fighter.shield_health_q16)
     {
         return fail("shield-stop-and-entry");
     }
@@ -10323,25 +10358,13 @@ static uint32_t expected_shield_depletion_q16(
     const pf_m4_fighter_data *fighter,
     uint16_t shield_strength)
 {
-    if (shield_strength <= fighter->light_shield_trigger_threshold)
-    {
-        return fighter->light_shield_hold_depletion_q16;
-    }
-    if (shield_strength >= fighter->digital_trigger_threshold)
-    {
-        return fighter->shield_hold_depletion_q16;
-    }
     return fighter->light_shield_hold_depletion_q16 +
            (uint32_t)(
                ((uint64_t)(
                     fighter->shield_hold_depletion_q16 -
                     fighter->light_shield_hold_depletion_q16) *
-                (uint64_t)(
-                    shield_strength -
-                    fighter->light_shield_trigger_threshold)) /
-               (uint64_t)(
-                    fighter->digital_trigger_threshold -
-                    fighter->light_shield_trigger_threshold));
+                (uint64_t)shield_strength) /
+               (uint64_t)UINT16_MAX);
 }
 
 typedef struct test_shield_box
@@ -10370,31 +10393,14 @@ static test_shield_box expected_shield_box(
     int32_t offset_x_q16;
     int32_t offset_y_q16;
 
-    if (player->shield_strength <=
-        fighter->light_shield_trigger_threshold)
-    {
-        density_scale_q16 = PF_Q16_ONE;
-    }
-    else if (player->shield_strength >=
-             fighter->digital_trigger_threshold)
-    {
-        density_scale_q16 = fighter->dense_shield_size_scale_q16;
-    }
-    else
-    {
-        density_scale_q16 =
-            PF_Q16_ONE -
-            (int32_t)(
-                ((int64_t)(
-                     PF_Q16_ONE -
-                     fighter->dense_shield_size_scale_q16) *
-                 (int64_t)(
-                     player->shield_strength -
-                     fighter->light_shield_trigger_threshold)) /
-                (int64_t)(
-                    fighter->digital_trigger_threshold -
-                    fighter->light_shield_trigger_threshold));
-    }
+    density_scale_q16 =
+        PF_Q16_ONE -
+        (int32_t)(
+            ((int64_t)(
+                 PF_Q16_ONE -
+                 fighter->dense_shield_size_scale_q16) *
+             (int64_t)player->shield_strength) /
+            (int64_t)UINT16_MAX);
     combined_scale_q16 =
         (int32_t)(
             ((int64_t)health_scale_q16 *
@@ -10465,15 +10471,23 @@ static int run_light_shield_state_test(
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
-    const uint16_t light =
+    const uint16_t light_input =
         content->fighter.light_shield_trigger_threshold;
+    const uint16_t light = UINT16_C(1);
     const uint16_t dense_threshold =
         content->fighter.digital_trigger_threshold;
+    const uint16_t middle_input =
+        (uint16_t)(
+            (uint32_t)light_input +
+            ((uint32_t)dense_threshold - (uint32_t)light_input) /
+                UINT32_C(2));
     const uint16_t middle =
         (uint16_t)(
-            (uint32_t)light +
-            ((uint32_t)dense_threshold - (uint32_t)light) /
-                UINT32_C(2));
+            ((uint32_t)middle_input -
+             ((uint32_t)light_input - UINT32_C(1))) *
+            (uint32_t)UINT16_MAX /
+            ((uint32_t)UINT16_MAX -
+             ((uint32_t)light_input - UINT32_C(1))));
     const uint32_t middle_depletion =
         expected_shield_depletion_q16(&content->fighter, middle);
     const int16_t tilt_x =
@@ -10518,7 +10532,7 @@ static int run_light_shield_state_test(
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
-            (uint16_t)(light - UINT16_C(1)),
+            (uint16_t)(light_input - UINT16_C(1)),
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -10542,7 +10556,7 @@ static int run_light_shield_state_test(
             tilt_x,
             tilt_y,
             UINT64_C(0),
-            light,
+            light_input,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -10566,8 +10580,7 @@ static int run_light_shield_state_test(
         inspection.players[0].shield_top_q16 != expected_box.top_q16 ||
         inspection.players[0].shield_bottom_q16 != expected_box.bottom_q16 ||
         inspection.players[0].shield_health_q16 !=
-            content->fighter.shield_health_q16 -
-                content->fighter.light_shield_hold_depletion_q16 ||
+            content->fighter.shield_health_q16 ||
         !expect_status(
             pf_sim_observe(source, &observation),
             PF_STATUS_OK,
@@ -10630,7 +10643,7 @@ static int run_light_shield_state_test(
             tilt_x,
             tilt_y,
             UINT64_C(0),
-            light,
+            light_input,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -10641,7 +10654,7 @@ static int run_light_shield_state_test(
             tilt_x,
             tilt_y,
             UINT64_C(0),
-            light,
+            light_input,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -10665,7 +10678,7 @@ static int run_light_shield_state_test(
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
-            middle,
+            middle_input,
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
@@ -10673,7 +10686,7 @@ static int run_light_shield_state_test(
             &inspection) ||
         inspection.players[0].shield_strength != middle ||
         inspection.players[0].shield_health_q16 !=
-            content->fighter.shield_health_q16 - middle_depletion ||
+            content->fighter.shield_health_q16 ||
         middle_depletion <=
             content->fighter.light_shield_hold_depletion_q16 ||
         middle_depletion >=
@@ -10695,8 +10708,7 @@ static int run_light_shield_state_test(
                 inspection.players[0].shield_left_q16 >=
             light_width_q16 ||
         inspection.players[0].shield_health_q16 !=
-            content->fighter.shield_health_q16 -
-                content->fighter.shield_hold_depletion_q16)
+            content->fighter.shield_health_q16)
     {
         return fail("light-shield-interpolation");
     }
@@ -10824,7 +10836,7 @@ static int run_dashing_shield_test(
             &held_inspection) ||
         tap_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD ||
-        tap_inspection.players[0].action_ticks != UINT16_C(1) ||
+        tap_inspection.players[0].action_ticks != UINT16_C(0) ||
         tap_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         tap_inspection.players[0].position_x_q16 <= run_start_x ||
         !expect_status(
@@ -10866,7 +10878,7 @@ static int run_dashing_shield_test(
         return 0;
     }
 
-    for (tick = UINT32_C(1);
+    for (tick = UINT32_C(0);
          tick < (uint32_t)content->fighter.shield_minimum_hold_ticks;
          ++tick)
     {
@@ -11612,12 +11624,11 @@ static int run_shield_block_test(
                    16U);
     const uint32_t normal_expected_health =
         content->fighter.shield_health_q16 -
-        UINT32_C(8) *
+        UINT32_C(7) *
             content->fighter.shield_hold_depletion_q16 -
         shield_damage;
     const uint32_t power_expected_health =
-        content->fighter.shield_health_q16 -
-        content->fighter.shield_hold_depletion_q16;
+        content->fighter.shield_health_q16;
     int32_t normal_pushback;
     uint16_t normal_shield_stun;
     int8_t normal_facing;
@@ -11743,7 +11754,7 @@ static int run_shield_block_test(
         normal_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
         normal_inspection.players[1].facing !=
-            (int8_t)-normal_facing)
+            normal_facing)
     {
         return fail("c-stick-roll-buffer-through-shield-stun");
     }
@@ -12317,8 +12328,9 @@ static int run_light_shield_block_test(
     pf_m4_inspection light_inspection;
     pf_m4_inspection dense_inspection;
     pf_m4_inspection window_inspection;
-    const uint16_t light_strength =
+    const uint16_t light_input =
         content->fighter.light_shield_trigger_threshold;
+    const uint16_t light_strength = UINT16_C(1);
     const uint16_t dense_strength =
         content->fighter.digital_trigger_threshold;
     const uint32_t shield_damage =
@@ -12329,17 +12341,15 @@ static int run_light_shield_block_test(
             16U);
     const uint32_t light_expected_health =
         content->fighter.shield_health_q16 -
-        UINT32_C(8) *
+        UINT32_C(7) *
             content->fighter.light_shield_hold_depletion_q16 -
         shield_damage;
     const uint32_t dense_expected_health =
         content->fighter.shield_health_q16 -
-        UINT32_C(8) * content->fighter.shield_hold_depletion_q16 -
+        UINT32_C(7) * content->fighter.shield_hold_depletion_q16 -
         shield_damage;
     const uint32_t window_expected_health =
-        content->fighter.shield_health_q16 -
-        content->fighter.light_shield_hold_depletion_q16 -
-        shield_damage;
+        content->fighter.shield_health_q16 - shield_damage;
     int32_t light_pushback;
     uint16_t light_stun;
 
@@ -12370,7 +12380,7 @@ static int run_light_shield_block_test(
 
     if (!start_held_shield_block(
             light,
-            light_strength,
+            light_input,
             &light_inspection) ||
         light_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
@@ -12412,7 +12422,7 @@ static int run_light_shield_block_test(
 
     if (!start_window_shield_block(
             window,
-            light_strength,
+            light_input,
             &window_inspection) ||
         window_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITLAG ||
@@ -17043,7 +17053,7 @@ static int run_jab_cancel_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_SHIELD ||
-        inspection.players[0].action_ticks != UINT16_C(1) ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
         inspection.players[1].damage_q16 !=
             close_content->fighter.jab_damage_q16)
     {
@@ -20707,8 +20717,7 @@ static int make_player0_ledge_actionable_combat(
     pf_m4_inspection *out_inspection)
 {
     const uint32_t catch_ticks =
-        (uint32_t)content->fighter.landing_ticks +
-        (uint32_t)content->fighter.jump_squat_ticks;
+        (uint32_t)content->fighter.ledge_transition_ticks;
 
     while ((uint32_t)out_inspection->players[0].action_ticks <
            catch_ticks)

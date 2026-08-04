@@ -2405,17 +2405,20 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the owner's NTSC 1.02 `GALE01` data and pinned `doldecomp/melee` revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7`; extracted files remain outside
   the repository.
-- Content schema 57/fighter schema 49 maps Falcon walk, dash, run, jump,
+- Content schema 58/fighter schema 50 maps Falcon walk, dash, run, jump,
   double-jump, gravity, air-drift, fast-fall, run-brake, shield-break,
   ledge-jump, wall-jump/tech, ceiling-tech, and landing values into the
   laboratory stage coordinate scale.
 - State schema 51/save format 50 added canonical X/Y tilt directions and ages.
-  State schema 52/save format 51 retains the 787-byte save while adding the
+  State schema 52/save format 51 added the
   distinct directional aerial-landing and L-cancel action semantics needed for
   Falcon's 15/19/18/15/24 landing-lag table.
 - State schema 53 retains save format 51 and 787 bytes while adding the
   Dolphin-measured held-dash transition, released-dash completion, smash-turn,
   basic-standing-turn, and run-brake timing state.
+- State schema 54/save format 52 carries the subsequent shield-input,
+  shield-health, defensive-route, ledge-transition, and replay-visible state
+  needed by the expanded executable-oracle corpus.
 - Ground and air acceleration follow the decomp's friction-aware target and
   overshoot branches, including its conditional absolute-speed cap. Initial
   dash applies Falcon's impulse once, and double jump replaces horizontal
@@ -2424,18 +2427,21 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   deterministic mechanics, save/load, replay, browser, and cross-platform
   checks remain required. The live fidelity audit records partial and divergent
   systems; no whole-simulation equivalence claim is made.
-- The schema-53 replay has corpus SHA-256
-  `13c4b843ec224bc936039fb64c8dedd36cfa2ddf23528120d12c9524107b22ee`,
+- The current 240-tick replay has corpus SHA-256
+  `cee8d6fa7b625d745fb927e62bb512ebe1722e6127d1fa076d85a94ccb77ea5d`,
   final-state SHA-256
-  `b6f949614065bcb68fbbfe1d364cbebc34fb3b3282b7bade56288745e4d64eaa`,
+  `6758ad700cd0dab99c30a97d32d663e05eb4061f90cae6719b3d4e133c5284a4`,
   and event-journal SHA-256
-  `9ee69c2aceb5a2f2eb9b547dc86bcddf424b88fb4d1c4453a059c72eccec80f6`.
+  `be839fb07f9c44eb30d1ef7391b004f84a1dcf9bbb047ab5f49f7fac7d6454a1`.
 - Local Windows MSVC and WSL Linux GCC each pass all 22 CTest targets. The
-  repeated-match verifier digest is `37ffa8643696bc40`.
-- The 287-frame Dolphin/Slippi capture and native comparator pass exact action,
+  repeated-match verifier digest is `127f7dcb041e7b37` after the shield-fidelity
+  correction.
+- The 894-frame Dolphin/Slippi capture and native comparator pass exact action,
   facing, and velocity gates plus the documented accumulated float-to-Q16.16
-  position tolerance. The corpus now covers the complete held run-turnaround
-  freeze, velocity crossing, facing flip, exit, and post-turn lockout.
+  position tolerance. The corpus covers the locomotion regression routes plus
+  full/light shield, trigger dead-zone rejection, forward/backward/C-stick
+  rolls, spot dodge, C-stick spot-dodge and jump buffers, jump from held L into
+  a fresh-R air dodge, and analog light shield in air without air dodge.
 - PC-mode Mayflash detection accepts neutral controllers whose unpressed
   trigger axes report `-1`, and the browser advances at most one simulation
   tick per animation frame so one physical Gamepad sample cannot age through
@@ -2443,3 +2449,22 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Pinned Emscripten 6.0.3 rebuild and live Chrome requalification pass for this
   exact revision. Native and Wasm replay outputs are byte-identical, and the
   page on port 8002 reports every readiness field as pass with no page error.
+
+## Active exact-equivalence gate
+
+- The owner requires all implemented movement and shared-simulation behavior
+  with an intended SSBM counterpart to be exactly equivalent to the NTSC 1.02
+  executable behavior. Decomp review and imported frame-data tables guide the
+  implementation, but do not replace executable comparison.
+- Qualification replays the same ordered, per-frame controller samples in
+  Dolphin and this simulator and compares corresponding state and motion. This
+  applies to nonzero as well as zero starting momentum and extends beyond
+  locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
+  dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
+  respawn, and match-state behavior wherever an SSBM counterpart is intended.
+- The passing 894-frame movement/defense trace is a regression slice, not
+  completion of this gate. Every uncovered applicable route and every
+  owner-observed divergence must become a pinned identical-input differential
+  reproducer.
+  M4 remains unfinished, and fidelity work continues without waiting for CI,
+  until the complete applicable corpus has no unresolved divergence.

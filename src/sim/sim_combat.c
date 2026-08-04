@@ -943,24 +943,19 @@ static int32_t pf_m4_shield_defender_pushback_q16(
             pushback *
             (int64_t)fighter->shield_defender_pushback_scale_q16 /
             (int64_t)PF_Q16_ONE;
-        if (shield_strength >= fighter->digital_trigger_threshold)
+        if (shield_strength == UINT16_MAX)
         {
             light_scale_q16 = (int64_t)PF_Q16_ONE;
         }
-        else if (shield_strength >
-                 fighter->light_shield_trigger_threshold)
+        else
         {
             light_scale_q16 -=
                 ((int64_t)(
                      fighter
                          ->light_shield_defender_pushback_scale_q16 -
                      PF_Q16_ONE) *
-                 (int64_t)(
-                     shield_strength -
-                     fighter->light_shield_trigger_threshold)) /
-                (int64_t)(
-                    fighter->digital_trigger_threshold -
-                    fighter->light_shield_trigger_threshold);
+                 (int64_t)shield_strength) /
+                (int64_t)UINT16_MAX;
         }
         pushback =
             pushback * light_scale_q16 / (int64_t)PF_Q16_ONE;
@@ -1158,29 +1153,14 @@ int pf_m4_shield_box(
         return 0;
     }
 
-    if (shield_strength <= fighter->light_shield_trigger_threshold)
-    {
-        density_scale_q16 = PF_Q16_ONE;
-    }
-    else if (shield_strength >= fighter->digital_trigger_threshold)
-    {
-        density_scale_q16 = fighter->dense_shield_size_scale_q16;
-    }
-    else
-    {
-        density_scale_q16 =
-            PF_Q16_ONE -
-            (int32_t)(
-                ((int64_t)(
-                     PF_Q16_ONE -
-                     fighter->dense_shield_size_scale_q16) *
-                 (int64_t)(
-                     shield_strength -
-                     fighter->light_shield_trigger_threshold)) /
-                (int64_t)(
-                    fighter->digital_trigger_threshold -
-                    fighter->light_shield_trigger_threshold));
-    }
+    density_scale_q16 =
+        PF_Q16_ONE -
+        (int32_t)(
+            ((int64_t)(
+                 PF_Q16_ONE -
+                 fighter->dense_shield_size_scale_q16) *
+             (int64_t)shield_strength) /
+            (int64_t)UINT16_MAX);
     health_scale_q16 =
         (int32_t)(
             ((uint64_t)shield_health_q16 *

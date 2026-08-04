@@ -443,6 +443,7 @@ static void pf_m4_hash_fighter(
         hash,
         fighter->forward_smash_input_window_ticks);
     pf_m4_hash_u16(hash, fighter->landing_ticks);
+    pf_m4_hash_u16(hash, fighter->landing_interruptible_tick);
     pf_m4_hash_u16(hash, fighter->platform_drop_ticks);
     pf_m4_hash_u16(hash, fighter->air_dodge_ticks);
     pf_m4_hash_u16(
@@ -453,6 +454,7 @@ static void pf_m4_hash_fighter(
         fighter->air_dodge_invulnerability_end_tick);
     pf_m4_hash_u16(hash, fighter->ledge_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_regrab_lockout_ticks);
+    pf_m4_hash_u16(hash, fighter->ledge_transition_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_roll_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_roll_movement_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_roll_invulnerability_ticks);
@@ -920,8 +922,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->ledge_jump_speed_y_q16 = PF_Q16_RATIO(363, 620);
     fighter->ledge_roll_distance_q16 = PF_Q16_RATIO(7, 4);
     fighter->drop_cancel_snap_distance_q16 = PF_Q16_RATIO(5, 8);
-    fighter->air_dodge_speed_x_q16 = PF_Q16_RATIO(186, 575);
-    fighter->air_dodge_speed_y_q16 = PF_Q16_RATIO(11, 20);
+    fighter->air_dodge_speed_x_q16 = PF_Q16_RATIO(837, 2875);
+    fighter->air_dodge_speed_y_q16 = PF_Q16_RATIO(3069, 6200);
     fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
     fighter->fall_special_mobility_q16 = PF_Q16_RATIO(1008, 14375);
     fighter->shield_break_launch_speed_q16 =
@@ -1228,7 +1230,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->shield_hold_depletion_q16 =
         (uint32_t)PF_Q16_RATIO(7, 25);
     fighter->light_shield_hold_depletion_q16 =
-        (uint32_t)PF_Q16_RATIO(7, 100);
+        (uint32_t)PF_Q16_RATIO(7, 500);
     fighter->shield_regeneration_q16 =
         (uint32_t)PF_Q16_RATIO(7, 100);
     fighter->shield_damage_multiplier_q16 =
@@ -1328,13 +1330,15 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->crouch_step_ticks = UINT16_C(1);
     fighter->taunt_ticks = UINT16_C(90);
     fighter->forward_smash_input_window_ticks = UINT16_C(3);
-    fighter->landing_ticks = UINT16_C(4);
+    fighter->landing_ticks = UINT16_C(30);
+    fighter->landing_interruptible_tick = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(9);
     fighter->air_dodge_ticks = UINT16_C(49);
     fighter->air_dodge_invulnerability_begin_tick = UINT16_C(3);
     fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
     fighter->ledge_invulnerability_ticks = UINT16_C(37);
     fighter->ledge_regrab_lockout_ticks = UINT16_C(29);
+    fighter->ledge_transition_ticks = UINT16_C(8);
     fighter->ledge_roll_ticks = UINT16_C(30);
     fighter->ledge_roll_movement_ticks = UINT16_C(20);
     fighter->ledge_roll_invulnerability_ticks = UINT16_C(22);
@@ -1392,8 +1396,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->l_cancel_divisor = UINT16_C(2);
     fighter->v_cancel_window_ticks = UINT16_C(3);
     fighter->sdi_axis_threshold = UINT16_C(16384);
-    fighter->light_shield_trigger_threshold = UINT16_C(8192);
-    fighter->digital_trigger_threshold = UINT16_C(32768);
+    fighter->light_shield_trigger_threshold = UINT16_C(19661);
+    fighter->digital_trigger_threshold = UINT16_MAX;
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
     fighter->tech_window_ticks = UINT16_C(20);
     fighter->tech_lockout_ticks = UINT16_C(40);
@@ -1438,16 +1442,16 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->getup_attack_back_active_end_tick = UINT16_C(26);
     fighter->getup_attack_hitlag_ticks = UINT16_C(3);
     fighter->forward_roll_ticks = UINT16_C(31);
-    fighter->backward_roll_ticks = UINT16_C(35);
+    fighter->backward_roll_ticks = UINT16_C(31);
     fighter->roll_movement_begin_tick = UINT16_C(3);
     fighter->roll_movement_end_tick = UINT16_C(20);
     fighter->roll_invulnerability_begin_tick = UINT16_C(4);
     fighter->roll_invulnerability_end_tick = UINT16_C(17);
-    fighter->spot_dodge_ticks = UINT16_C(25);
+    fighter->spot_dodge_ticks = UINT16_C(32);
     fighter->spot_dodge_invulnerability_begin_tick = UINT16_C(3);
     fighter->spot_dodge_invulnerability_end_tick = UINT16_C(16);
     fighter->shield_minimum_hold_ticks = UINT16_C(8);
-    fighter->shield_release_ticks = UINT16_C(15);
+    fighter->shield_release_ticks = UINT16_C(16);
     fighter->powershield_window_ticks = UINT16_C(4);
     fighter->powershield_cancel_delay_ticks = UINT16_C(1);
     fighter->shield_break_stun_ticks = UINT16_C(490);
@@ -2313,6 +2317,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->initial_dash_ticks ||
         fighter->landing_ticks == UINT16_C(0) ||
         fighter->landing_ticks > UINT16_C(120) ||
+        fighter->landing_interruptible_tick == UINT16_C(0) ||
+        fighter->landing_interruptible_tick >= fighter->landing_ticks ||
         fighter->platform_drop_ticks == UINT16_C(0) ||
         fighter->platform_drop_ticks > UINT16_C(120) ||
         fighter->air_dodge_ticks == UINT16_C(0) ||
@@ -2325,6 +2331,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->ledge_invulnerability_ticks > UINT16_C(600) ||
         fighter->ledge_regrab_lockout_ticks == UINT16_C(0) ||
         fighter->ledge_regrab_lockout_ticks > UINT16_C(600) ||
+        fighter->ledge_transition_ticks == UINT16_C(0) ||
+        fighter->ledge_transition_ticks > UINT16_C(120) ||
         fighter->ledge_roll_ticks == UINT16_C(0) ||
         fighter->ledge_roll_ticks > UINT16_C(240) ||
         fighter->ledge_roll_movement_ticks == UINT16_C(0) ||

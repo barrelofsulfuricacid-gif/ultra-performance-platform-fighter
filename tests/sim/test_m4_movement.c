@@ -785,7 +785,7 @@ static int run_air_dodge_test(
         inspection.players[0].support !=
             (uint8_t)PF_M4_SURFACE_FLOOR ||
         inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
-        inspection.players[0].velocity_y_q16 != INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 <= INT32_C(0) ||
         inspection.players[0].facing != takeoff_facing)
     {
         (void)fprintf(
@@ -1392,16 +1392,18 @@ static int run_ground_dodge_test(
     int32_t expected_x;
     int8_t facing;
     uint32_t elapsed;
+    const int32_t forward_roll_displacement_q16 = INT32_C(232174);
+    const int32_t backward_roll_displacement_q16 = INT32_C(109416);
 
     if (default_content->fighter.forward_roll_ticks != UINT16_C(31) ||
-        default_content->fighter.backward_roll_ticks != UINT16_C(35) ||
+        default_content->fighter.backward_roll_ticks != UINT16_C(31) ||
         default_content->fighter.roll_movement_begin_tick != UINT16_C(3) ||
         default_content->fighter.roll_movement_end_tick != UINT16_C(20) ||
         default_content->fighter.roll_invulnerability_begin_tick !=
             UINT16_C(4) ||
         default_content->fighter.roll_invulnerability_end_tick !=
             UINT16_C(17) ||
-        default_content->fighter.spot_dodge_ticks != UINT16_C(25) ||
+        default_content->fighter.spot_dodge_ticks != UINT16_C(32) ||
         default_content->fighter
                 .spot_dodge_invulnerability_begin_tick !=
             UINT16_C(3) ||
@@ -1489,7 +1491,7 @@ static int run_ground_dodge_test(
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
         inspection.players[0].action_ticks != UINT16_C(1) ||
-        inspection.players[0].facing != (int8_t)-facing)
+        inspection.players[0].facing != facing)
     {
         return 0;
     }
@@ -1522,13 +1524,10 @@ static int run_ground_dodge_test(
     }
     expected_x =
         start_x +
-        (int32_t)facing *
-            default_content->fighter.forward_roll_speed_q16 *
-            (int32_t)(
-                default_content->fighter.roll_movement_end_tick -
-                default_content->fighter.roll_movement_begin_tick);
+        (int32_t)facing * forward_roll_displacement_q16;
     if (elapsed !=
-            (uint32_t)default_content->fighter.forward_roll_ticks ||
+            (uint32_t)default_content->fighter.forward_roll_ticks +
+                UINT32_C(1) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         inspection.players[0].position_x_q16 != expected_x ||
@@ -1590,13 +1589,10 @@ static int run_ground_dodge_test(
     }
     expected_x =
         start_x -
-        (int32_t)facing *
-            default_content->fighter.backward_roll_speed_q16 *
-            (int32_t)(
-                default_content->fighter.roll_movement_end_tick -
-                default_content->fighter.roll_movement_begin_tick);
+        (int32_t)facing * backward_roll_displacement_q16;
     if (elapsed !=
-            (uint32_t)default_content->fighter.backward_roll_ticks ||
+            (uint32_t)default_content->fighter.backward_roll_ticks +
+                UINT32_C(1) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         inspection.players[0].position_x_q16 != expected_x ||
@@ -1674,7 +1670,8 @@ static int run_ground_dodge_test(
         ++elapsed;
     }
     if (elapsed !=
-            (uint32_t)default_content->fighter.spot_dodge_ticks ||
+            (uint32_t)default_content->fighter.spot_dodge_ticks +
+                UINT32_C(1) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         inspection.players[0].position_x_q16 != start_x ||
@@ -1785,7 +1782,7 @@ static int run_ground_dodge_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD ||
-        inspection.players[0].facing != (int8_t)-facing)
+        inspection.players[0].facing != facing)
     {
         (void)fprintf(
             stderr,
@@ -1880,8 +1877,7 @@ static int run_ground_dodge_test(
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
         inspection.players[0].velocity_y_q16 !=
-            -default_content->fighter.full_hop_speed_q16 +
-                default_content->fighter.gravity_q16)
+            -default_content->fighter.full_hop_speed_q16)
     {
         (void)fprintf(
             stderr,
@@ -1889,8 +1885,7 @@ static int run_ground_dodge_test(
             " action=%u vy=%" PRId32 " expected=%" PRId32 "\n",
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].velocity_y_q16,
-            -default_content->fighter.full_hop_speed_q16 +
-                default_content->fighter.gravity_q16);
+            -default_content->fighter.full_hop_speed_q16);
         return 0;
     }
 
@@ -1939,17 +1934,15 @@ static int run_ground_dodge_test(
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
         inspection.players[0].velocity_y_q16 !=
-            -default_content->fighter.short_hop_speed_q16 +
-                default_content->fighter.gravity_q16)
+            -default_content->fighter.full_hop_speed_q16)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=c-stick-release-short-hop"
+            "m4-movement=fail operation=c-stick-release-full-hop"
             " action=%u vy=%" PRId32 " expected=%" PRId32 "\n",
             (unsigned int)inspection.players[0].action_state,
             inspection.players[0].velocity_y_q16,
-            -default_content->fighter.short_hop_speed_q16 +
-                default_content->fighter.gravity_q16);
+            -default_content->fighter.full_hop_speed_q16);
         return 0;
     }
 
@@ -2072,8 +2065,16 @@ static int run_ground_dodge_test(
         return 0;
     }
 
-    edge_content.fighter.backward_roll_speed_q16 =
-        INT32_C(2) * PF_Q16_ONE;
+    edge_content.stage.spawn_spacing_q16 =
+        PF_Q16_ONE / INT32_C(8);
+    edge_content.stage.floor_left_q16 =
+        -(INT32_C(3) * PF_Q16_ONE) / INT32_C(2);
+    edge_content.stage.platform_center_x_q16 =
+        INT32_C(4) * PF_Q16_ONE;
+    edge_content.stage.platform_half_width_q16 = PF_Q16_ONE;
+    edge_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    edge_content.stage.revival_platform_half_width_q16 =
+        edge_content.fighter.half_width_q16;
     if (!expect_status(
             pf_m4_make_content_view(&edge_content, &edge_view),
             PF_STATUS_OK,
@@ -3043,7 +3044,7 @@ static int run_jump_takeoff_momentum_route(
             "m4-movement=fail operation=jump-takeoff-run-entry\n");
         return 0;
     }
-    for (tick = UINT32_C(1);
+    for (tick = UINT32_C(0);
          tick < (uint32_t)content->fighter.jump_squat_ticks;
          ++tick)
     {
@@ -5565,7 +5566,7 @@ static int run_air_control_test(
             &short_apex_late) ||
         !measure_hop(
             view,
-            UINT32_C(4),
+            UINT32_C(5),
             &full_launch_early,
             &full_apex_early) ||
         !measure_hop(
@@ -5607,7 +5608,7 @@ static int run_air_control_test(
     {
         return 0;
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
     {
         if (!step_duel(
                 sim,
@@ -5813,6 +5814,12 @@ static int run_instant_double_jump_test(
             INT16_C(0),
             UINT64_C(0),
             &source_inspection) ||
+        !step_duel(
+            source,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection) ||
         source_inspection.players[0].grounded != UINT8_C(0) ||
         source_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_AIRBORNE ||
@@ -5850,7 +5857,21 @@ static int run_instant_double_jump_test(
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=idj-first-airborne-input\n");
+            "m4-movement=fail operation=idj-first-airborne-input"
+            " action=%u ticks=%u grounded=%u jumps=%u"
+            " position_y=%" PRId32 " launch_y=%" PRId32
+            " velocity=(%" PRId32 ",%" PRId32 ") expected_y=%" PRId32
+            "\n",
+            (unsigned int)source_inspection.players[0].action_state,
+            (unsigned int)source_inspection.players[0].action_ticks,
+            (unsigned int)source_inspection.players[0].grounded,
+            (unsigned int)source_inspection.players[0]
+                .air_jumps_remaining,
+            source_inspection.players[0].position_y_q16,
+            launch_y,
+            source_inspection.players[0].velocity_x_q16,
+            source_inspection.players[0].velocity_y_q16,
+            expected_velocity_y);
         return 0;
     }
 
@@ -5941,7 +5962,7 @@ static int run_instant_double_jump_test(
         }
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
     {
         if (!step_duel(
                 held,
@@ -5974,6 +5995,12 @@ static int run_instant_double_jump_test(
             INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
+            &takeoff_inspection) ||
+        !step_duel(
+            takeoff,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
             &takeoff_inspection) ||
         !step_duel(
             takeoff,
@@ -6521,7 +6548,7 @@ static int run_air_facing_lock_test(const pf_content_view *view)
         return 0;
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
     {
         if (!step_duel(
                 sim,
@@ -7289,7 +7316,7 @@ static int run_platform_test(const pf_m4_content *default_content)
         return 0;
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
     {
         if (!step_duel(
                 sim,
@@ -7395,7 +7422,7 @@ static int prepare_upper_platform(
     {
         return 0;
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
     {
         if (!step_duel_trigger(
                 sim,
@@ -7428,7 +7455,7 @@ static int prepare_upper_platform(
         }
     }
     for (tick = UINT32_C(0);
-         tick < UINT32_C(20) &&
+         tick < UINT32_C(40) &&
          out_inspection->players[0].action_state !=
              (uint8_t)PF_M4_ACTION_GROUND_IDLE;
          ++tick)
@@ -7696,7 +7723,7 @@ static int prepare_shield_drop_platform(
     {
         return 0;
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
     {
         if (!step_duel_trigger(
                 sim,
@@ -7729,7 +7756,7 @@ static int prepare_shield_drop_platform(
         }
     }
     for (tick = UINT32_C(0);
-         tick < UINT32_C(20) &&
+         tick < UINT32_C(40) &&
          out_inspection->players[0].action_state !=
              (uint8_t)PF_M4_ACTION_GROUND_IDLE;
          ++tick)
@@ -8389,7 +8416,7 @@ static int run_solid_geometry_test(
         const int16_t horizontal_axis =
             tick >= UINT32_C(5) ? INT16_MAX : INT16_C(0);
         const uint64_t buttons =
-            tick < UINT32_C(4)
+            tick < UINT32_C(5)
                 ? PF_INPUT_BUTTON_JUMP
                 : UINT64_C(0);
 
@@ -8483,7 +8510,7 @@ static int run_solid_geometry_test(
         const int16_t horizontal_axis =
             tick >= UINT32_C(5) ? INT16_MIN : INT16_C(0);
         const uint64_t buttons =
-            tick < UINT32_C(4)
+            tick < UINT32_C(5)
                 ? PF_INPUT_BUTTON_JUMP
                 : UINT64_C(0);
 
@@ -8723,8 +8750,7 @@ static int make_player0_ledge_actionable(
     pf_m4_inspection *out_inspection)
 {
     const uint32_t catch_ticks =
-        (uint32_t)content->fighter.landing_ticks +
-        (uint32_t)content->fighter.jump_squat_ticks;
+        (uint32_t)content->fighter.ledge_transition_ticks;
     uint32_t tick;
 
     for (tick = UINT32_C(0); tick < catch_ticks; ++tick)
@@ -10375,8 +10401,7 @@ static int run_planking_test(
         if (cycle != UINT32_C(0))
         {
             const uint32_t catch_ticks =
-                (uint32_t)content.fighter.landing_ticks +
-                (uint32_t)content.fighter.jump_squat_ticks;
+                (uint32_t)content.fighter.ledge_transition_ticks;
 
             for (tick = UINT32_C(0); tick < catch_ticks; ++tick)
             {
@@ -10622,8 +10647,7 @@ static int run_ledge_roll_test(const pf_m4_content *default_content)
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     const uint32_t catch_ticks =
-        (uint32_t)content.fighter.landing_ticks +
-        (uint32_t)content.fighter.jump_squat_ticks;
+        (uint32_t)content.fighter.ledge_transition_ticks;
     int32_t hang_x;
     int32_t hang_y;
     int32_t target_x;
@@ -11091,16 +11115,40 @@ static int run_ledge_test(
         inspection.players[0].position_x_q16 >=
             inspection.stage.right_ledge_x_q16 ||
         inspection.players[0].ledge !=
-            (uint8_t)PF_M4_LEDGE_NONE ||
-        !run_ledge_roll_test(content) ||
-        !run_ledge_occupancy_test(content) ||
-        !run_ledge_hit_rejection_test(content) ||
-        !run_edge_hop_test(content, view) ||
-        (0 && !run_planking_test(content)))
+            (uint8_t)PF_M4_LEDGE_NONE)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=ledge-climb-or-occupancy\n");
+            "m4-movement=fail operation=ledge-climb-completion"
+            " action=%u ticks=%u grounded=%u support=%u ledge=%u"
+            " position_x=%" PRId32 " right=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.players[0].support,
+            (unsigned int)inspection.players[0].ledge,
+            inspection.players[0].position_x_q16,
+            inspection.stage.right_ledge_x_q16);
+        return 0;
+    }
+    if (!run_ledge_roll_test(content))
+    {
+        (void)fprintf(stderr, "m4-movement=fail operation=ledge-roll-suite\n");
+        return 0;
+    }
+    if (!run_ledge_occupancy_test(content))
+    {
+        (void)fprintf(stderr, "m4-movement=fail operation=ledge-occupancy-suite\n");
+        return 0;
+    }
+    if (!run_ledge_hit_rejection_test(content))
+    {
+        (void)fprintf(stderr, "m4-movement=fail operation=ledge-hit-suite\n");
+        return 0;
+    }
+    if (!run_edge_hop_test(content, view))
+    {
+        (void)fprintf(stderr, "m4-movement=fail operation=edge-hop-suite\n");
         return 0;
     }
     return 1;
@@ -11712,6 +11760,14 @@ static int run_team_hash_trace(const pf_content_view *content)
     return 1;
 }
 
+#define RUN_MOVEMENT_TEST(call)                                         \
+    ((call) ? 1                                                        \
+            : ((void)fprintf(                                         \
+                   stderr,                                             \
+                   "m4-movement=fail suite=%s\n",                    \
+                   #call),                                             \
+               0))
+
 int main(void)
 {
     pf_m4_content content;
@@ -11729,35 +11785,41 @@ int main(void)
             pf_m4_make_content_view(&content, &view),
             PF_STATUS_OK,
             "content-view") ||
-        !run_content_contract_test(&content, &view) ||
-        !run_ground_control_test(&content, &view) ||
-        !run_jump_takeoff_momentum_test(&content, &view) ||
+        !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(
+            run_jump_takeoff_momentum_test(&content, &view)) ||
         (0 && !run_fox_trot_test(&content, &view)) ||
         (0 && !run_moonwalk_test(&content, &view)) ||
-        !run_teeter_cancel_test(&content, &view) ||
-        !run_taunt_cancel_test(&content, &view) ||
+        !RUN_MOVEMENT_TEST(run_teeter_cancel_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_taunt_cancel_test(&content, &view)) ||
         (0 && !run_stage_humping_test(&content, &view)) ||
-        !run_pivot_test(&content, &view) ||
-        !run_dash_cancel_test(&content, &view) ||
-        !run_air_control_test(&content, &view) ||
-        !run_instant_double_jump_test(&content, &view) ||
-        !run_double_jump_cancel_test(&content, &view) ||
-        !run_air_facing_lock_test(&view) ||
-        !run_air_dodge_test(&content, &view) ||
+        !RUN_MOVEMENT_TEST(run_pivot_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_dash_cancel_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_air_control_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(
+            run_instant_double_jump_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(
+            run_double_jump_cancel_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_air_facing_lock_test(&view)) ||
+        !RUN_MOVEMENT_TEST(run_air_dodge_test(&content, &view)) ||
         (0 && !run_ledge_cancel_test(&content)) ||
-        !run_ground_dodge_test(&content, &view) ||
-        !run_aerial_landing_test(&content, &view) ||
-        !run_strong_aerial_landing_test(&content, &view) ||
-        !run_platform_test(&content) ||
-        !run_upper_platform_test(&content) ||
-        !run_shield_platform_drop_test(&content, &view) ||
-        !run_solid_geometry_test(&content) ||
+        (0 && !run_planking_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_ground_dodge_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_aerial_landing_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(
+            run_strong_aerial_landing_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_platform_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_upper_platform_test(&content)) ||
+        !RUN_MOVEMENT_TEST(
+            run_shield_platform_drop_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_solid_geometry_test(&content)) ||
         (0 && !run_scar_jump_test(&content, &view)) ||
-        !run_vector_ascent_test(&content) ||
-        !run_ledge_test(&content, &view) ||
-        !run_edge_dash_test(&content, &view) ||
-        !run_blast_zone_test(&view) ||
-        !run_team_hash_trace(&view))
+        !RUN_MOVEMENT_TEST(run_vector_ascent_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_ledge_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_edge_dash_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_blast_zone_test(&view)) ||
+        !RUN_MOVEMENT_TEST(run_team_hash_trace(&view)))
     {
         return 1;
     }

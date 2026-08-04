@@ -391,6 +391,17 @@ disc revision/hash, fighter, stage/setup, input trace, coordinate conversion,
 and first divergent frame. Internal deterministic tests remain required, but
 cannot substitute for this executable-oracle comparison.
 
+This gate is not limited to locomotion. It also covers every implemented shared
+simulation path for which SSBM supplies the intended behavior, including
+shield and light-shield input/health/size, roll, spot dodge, air dodge, jump
+and landing transitions, ledge and collision interaction, hitlag, hitstun,
+knockback, DI/SDI, teching, stale moves, stocks, respawn, and match-state
+transitions. Each applicable route must gain an identical-input Dolphin
+reproducer and comparable-state assertions before it may be called equivalent.
+Project-specific infrastructure and explicitly original content mechanics have
+no SSBM-equivalence claim, but they do not weaken the equivalence requirement
+for the shared engine behavior they use.
+
 #### M4.2 — Combat system
 
 Implement:

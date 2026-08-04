@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=180 players=4 bytes=31479 corpus_sha256=6a898284ea4273b633f10c05e0956d2a161752467458afd2fe045aa7fd1d6259 final_sha256=12d114300ad716e48a422e302228a13b5ff39ed5711263ef538b103f327faf37 events_sha256=726ba7e815663eed26c6a6adfab6012e4214c393aabeb7e0a468f395fd4aa224'
+expected='sim-replay=pass ticks=240 players=4 bytes=41559 corpus_sha256=cee8d6fa7b625d745fb927e62bb512ebe1722e6127d1fa076d85a94ccb77ea5d final_sha256=6758ad700cd0dab99c30a97d32d663e05eb4061f90cae6719b3d4e133c5284a4 events_sha256=be839fb07f9c44eb30d1ef7391b004f84a1dcf9bbb047ab5f49f7fac7d6454a1'
 
 mkdir -p "$output_dir"
 
@@ -63,9 +63,9 @@ if [ "${PF_REQUIRE_WEB_REPLAY:-0}" = "1" ]; then
     node "$web_corpus" >"$output_dir/wasm.txt"
     grep -Fqx "$expected" "$output_dir/wasm.txt"
     cmp "$output_dir/native.txt" "$output_dir/wasm.txt"
-    echo "m2-replay-cross-target=pass native=1 wasm=1 ticks=180"
+    echo "m2-replay-cross-target=pass native=1 wasm=1 ticks=240"
 else
-    echo "m2-replay-cross-target=partial native=1 wasm=deferred ticks=180"
+    echo "m2-replay-cross-target=partial native=1 wasm=deferred ticks=240"
 fi
 
-echo "m2-replay-verification=pass bytes=31479 ticks=180 players=4"
+echo "m2-replay-verification=pass bytes=41559 ticks=240 players=4"

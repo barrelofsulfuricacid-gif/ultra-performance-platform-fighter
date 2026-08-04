@@ -36,8 +36,15 @@ int main(void)
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     int32_t origin_x_q16;
+    int32_t origin_y_q16;
     uint32_t trace_frame = UINT32_C(0);
     int input_x;
+    int input_y;
+    int input_c_x;
+    int input_c_y;
+    unsigned int left_trigger;
+    unsigned int right_trigger;
+    uint64_t buttons;
     pf_status status;
 
     (void)memset(&storage, 0, sizeof(storage));
@@ -84,24 +91,47 @@ int main(void)
         return fail_status("inspect-origin", status);
     }
     origin_x_q16 = inspection.players[0].position_x_q16;
+    origin_y_q16 = inspection.players[0].position_y_q16;
 
     (void)puts(
-        "trace_frame,input_x,tick,action_state,action_ticks,facing,grounded,"
+        "trace_frame,input_x,input_y,input_c_x,input_c_y,left_trigger,"
+        "right_trigger,buttons,tick,"
+        "action_state,action_ticks,facing,grounded,"
         "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
-        "velocity_x_q16");
-    while (scanf("%d", &input_x) == 1)
+        "position_y_q16_from_origin,"
+        "velocity_x_q16,velocity_y_q16,shield_health_q16,shield_strength,"
+        "powershield");
+    while (scanf(
+               "%d,%d,%d,%d,%u,%u,%" SCNu64,
+               &input_x,
+               &input_y,
+               &input_c_x,
+               &input_c_y,
+               &left_trigger,
+               &right_trigger,
+               &buttons) == 7)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
 
-        if (input_x < (int)INT16_MIN || input_x > (int)INT16_MAX)
+        if (input_x < (int)INT16_MIN || input_x > (int)INT16_MAX ||
+            input_y < (int)INT16_MIN || input_y > (int)INT16_MAX ||
+            input_c_x < (int)INT16_MIN || input_c_x > (int)INT16_MAX ||
+            input_c_y < (int)INT16_MIN || input_c_y > (int)INT16_MAX ||
+            left_trigger > (unsigned int)UINT16_MAX ||
+            right_trigger > (unsigned int)UINT16_MAX)
         {
             (void)fprintf(
                 stderr,
                 "m4-movement-trace=fail operation=input-range frame=%" PRIu32
-                " value=%d\n",
+                " x=%d y=%d cx=%d cy=%d left=%u right=%u\n",
                 trace_frame,
-                input_x);
+                input_x,
+                input_y,
+                input_c_x,
+                input_c_y,
+                left_trigger,
+                right_trigger);
             return 1;
         }
         (void)memset(inputs, 0, sizeof(inputs));
@@ -109,6 +139,12 @@ int main(void)
         inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[0].player_slot = UINT8_C(0);
         inputs[0].main_stick_x = (int16_t)input_x;
+        inputs[0].main_stick_y = (int16_t)input_y;
+        inputs[0].secondary_stick_x = (int16_t)input_c_x;
+        inputs[0].secondary_stick_y = (int16_t)input_c_y;
+        inputs[0].left_trigger = (uint16_t)left_trigger;
+        inputs[0].right_trigger = (uint16_t)right_trigger;
+        inputs[0].buttons = buttons;
         inputs[1].tick = inspection.tick;
         inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
         inputs[1].player_slot = UINT8_C(1);
@@ -123,10 +159,17 @@ int main(void)
             return fail_status("inspect", status);
         }
         (void)printf(
-            "%" PRIu32 ",%d,%" PRIu64 ",%u,%u,%d,%u,%d,%d,%" PRId32
-            ",%" PRId32 "\n",
+            "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
+            ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
+            ",%" PRIu32 ",%u,%u\n",
             trace_frame,
             input_x,
+            input_y,
+            input_c_x,
+            input_c_y,
+            left_trigger,
+            right_trigger,
+            buttons,
             inspection.tick,
             (unsigned int)inspection.players[0].action_state,
             (unsigned int)inspection.players[0].action_ticks,
@@ -135,7 +178,12 @@ int main(void)
             (int)inspection.players[0].dash_direction,
             (int)inspection.players[0].previous_strong_direction,
             inspection.players[0].position_x_q16 - origin_x_q16,
-            inspection.players[0].velocity_x_q16);
+            inspection.players[0].position_y_q16 - origin_y_q16,
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16,
+            inspection.players[0].shield_health_q16,
+            (unsigned int)inspection.players[0].shield_strength,
+            (unsigned int)inspection.players[0].powershield);
         ++trace_frame;
     }
     if (ferror(stdin) != 0)

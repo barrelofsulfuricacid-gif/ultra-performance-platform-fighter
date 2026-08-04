@@ -45,3 +45,23 @@ extracted archives, executable code, audiovisual expression, and stage assets
 stay outside the repository; only authorized gameplay data, independently
 written behavior, input traces, metadata, and numeric comparison evidence may
 be retained.
+
+"Movement or shared-simulation behavior" includes all implemented common
+engine routes with an intended SSBM counterpart, not only ground locomotion.
+The gate therefore includes jump/landing, shields and light shields, defensive
+escapes, ledges and collision, hitlag/hitstun/knockback, DI/SDI, teching, stale
+moves, stocks, respawn, and match-state transitions. The currently passing
+movement trace is evidence for only the routes it captures; it cannot satisfy
+this broader gate until identical-input Dolphin traces cover the remaining
+applicable systems. Work continues after any individual capture or CI run, and
+M4 remains unfinished while any applicable divergence or uncovered route
+remains.
+
+Current qualification evidence is deliberately narrower than this acceptance
+gate. The pinned 894-frame Captain Falcon trace currently agrees for its
+locomotion, shield/light-shield, forward/backward/C-stick roll, spot-dodge,
+jump-from-shield, fresh-opposite-trigger air-dodge, and analog-trigger-in-air
+routes. That passing trace is a regression slice, not evidence that every
+applicable movement or shared-simulation route is equivalent; the remaining
+routes still require identical-input Dolphin reproducers and comparable-state
+assertions.

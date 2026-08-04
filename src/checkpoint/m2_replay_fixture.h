@@ -5,15 +5,15 @@
 
 #include <stdint.h>
 
-#define PF_M2_REPLAY_TICKS UINT64_C(180)
+#define PF_M2_REPLAY_TICKS UINT64_C(240)
 #define PF_M2_REPLAY_PLAYERS UINT8_C(4)
 #define PF_M2_REPLAY_SEED UINT64_C(0x0123456789abcdef)
 #define PF_M2_REPLAY_CORPUS_SHA256                                      \
-    "13c4b843ec224bc936039fb64c8dedd36cfa2ddf23528120d12c9524107b22ee"
+    "cee8d6fa7b625d745fb927e62bb512ebe1722e6127d1fa076d85a94ccb77ea5d"
 #define PF_M2_REPLAY_FINAL_SHA256                                       \
-    "b6f949614065bcb68fbbfe1d364cbebc34fb3b3282b7bade56288745e4d64eaa"
+    "6758ad700cd0dab99c30a97d32d663e05eb4061f90cae6719b3d4e133c5284a4"
 #define PF_M2_REPLAY_EVENTS_SHA256                                      \
-    "9ee69c2aceb5a2f2eb9b547dc86bcddf424b88fb4d1c4453a059c72eccec80f6"
+    "be839fb07f9c44eb30d1ef7391b004f84a1dcf9bbb047ab5f49f7fac7d6454a1"
 
 pf_content_view pf_m2_replay_make_content(void);
 

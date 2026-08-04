@@ -2220,9 +2220,10 @@ mergeInto(LibraryManager.library, {
       "show a result banner and turn Reset into Rematch. Simultaneous final-stock " +
       "KOs enter the deterministic 300% sudden-death fixture. " +
       "Hold G or . on the ground for a full draining shield; Standard Gamepad " +
-      "analog triggers provide light shield from 12.5% pressure and become dense " +
-      "at 50%. A light shield has a dashed ring and live percentage label. " +
-      "Only fresh dense shields powershield during their four-tick window, " +
+      "analog triggers activate above 30% pressure and continuously vary light " +
+      "shield density; a digital click or full pressure produces a full shield. " +
+      "A light shield has a dashed ring and live percentage label. " +
+      "Only fresh digital shields powershield during their four-tick window, " +
       "while releases have 15 ticks of lag. During shield hitlag, cross the " +
       "horizontal threshold once for 0.66-scaled shield SDI; holding it or adding " +
       "vertical does not repeat, and the final horizontal input supplies one " +
@@ -2239,7 +2240,7 @@ mergeInto(LibraryManager.library, {
       "and invulnerability windows. Tap the " +
       "same trigger shortly before a tumble landing to tech in " +
       "place; hold left or right to tech-roll. " +
-      "While airborne, only a fresh dense trigger performs a directional air dodge; " +
+      "While airborne, only a fresh digital trigger performs a directional air dodge; " +
       "hold a direction with it, or leave the stick neutral to stop in place. " +
       "For a wavedash, short hop, then press down-left or down-right plus the " +
       "trigger on the first airborne frame. AIR DODGE becomes FALL SPECIAL if " +
@@ -4009,7 +4010,7 @@ mergeInto(LibraryManager.library, {
           Math.min(1, view[base + 45] / 65535)
         );
         var lightShielding =
-          view[base + 27] === 0 && view[base + 45] < 32768;
+          view[base + 27] === 0 && view[base + 45] < 65535;
         var shieldLeft = sx(view[base + 47]);
         var shieldRight = sx(view[base + 48]);
         var shieldTop = sy(view[base + 49]);
@@ -4023,14 +4024,7 @@ mergeInto(LibraryManager.library, {
           0,
           Math.min(1, view[base + 25] / (60 * 65536))
         );
-        var shieldDensityScale =
-          view[base + 45] <= 8192
-            ? 1
-            : view[base + 45] >= 32768
-              ? 0.5
-              : 1 -
-                0.5 *
-                  ((view[base + 45] - 8192) / (32768 - 8192));
+        var shieldDensityScale = 1 - 0.5 * shieldInputFraction;
         var shieldMinimumScale = 0.15;
         var shieldFullHealthScale =
           shieldMinimumScale +

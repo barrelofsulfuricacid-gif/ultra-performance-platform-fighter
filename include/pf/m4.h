@@ -10,15 +10,15 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(57)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(49)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(58)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(50)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(46)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(47)
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -524,12 +524,14 @@ typedef struct pf_m4_fighter_data
     uint16_t taunt_ticks;
     uint16_t forward_smash_input_window_ticks;
     uint16_t landing_ticks;
+    uint16_t landing_interruptible_tick;
     uint16_t platform_drop_ticks;
     uint16_t air_dodge_ticks;
     uint16_t air_dodge_invulnerability_begin_tick;
     uint16_t air_dodge_invulnerability_end_tick;
     uint16_t ledge_invulnerability_ticks;
     uint16_t ledge_regrab_lockout_ticks;
+    uint16_t ledge_transition_ticks;
     uint16_t ledge_roll_ticks;
     uint16_t ledge_roll_movement_ticks;
     uint16_t ledge_roll_invulnerability_ticks;

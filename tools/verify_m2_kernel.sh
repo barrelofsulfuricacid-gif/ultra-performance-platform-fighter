@@ -99,7 +99,7 @@ grep -Fqx \
 
 "$output_dir/rl_api_test" >"$output_dir/rl_api.txt"
 grep -Fqx \
-    'rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=13' \
+    'rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=14' \
     "$output_dir/rl_api.txt"
 
 # shellcheck disable=SC2086
@@ -127,7 +127,7 @@ grep -Fqx \
 
 "$output_dir/replay_corpus" >"$output_dir/replay_corpus.txt"
 grep -Fqx \
-    'sim-replay=pass ticks=180 players=4 bytes=31479 corpus_sha256=6a898284ea4273b633f10c05e0956d2a161752467458afd2fe045aa7fd1d6259 final_sha256=12d114300ad716e48a422e302228a13b5ff39ed5711263ef538b103f327faf37 events_sha256=726ba7e815663eed26c6a6adfab6012e4214c393aabeb7e0a468f395fd4aa224' \
+    'sim-replay=pass ticks=240 players=4 bytes=41559 corpus_sha256=cee8d6fa7b625d745fb927e62bb512ebe1722e6127d1fa076d85a94ccb77ea5d final_sha256=6758ad700cd0dab99c30a97d32d663e05eb4061f90cae6719b3d4e133c5284a4 events_sha256=be839fb07f9c44eb30d1ef7391b004f84a1dcf9bbb047ab5f49f7fac7d6454a1' \
     "$output_dir/replay_corpus.txt"
 
 # shellcheck disable=SC2086
@@ -246,4 +246,4 @@ else
     echo "m2-forbidden-symbol-validation=skipped reason=nm-not-on-path"
 fi
 
-echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=180 rl_batch=6 players=4 abi=4"
+echo "m2-kernel-verification=pass deterministic_ticks=180 replay_ticks=240 rl_batch=6 players=4 abi=4"

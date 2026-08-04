@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 from pathlib import Path
 import socket
@@ -24,7 +25,36 @@ def input_trace() -> list[dict[str, object]]:
 
     def extend(label: str, xs: list[float]) -> None:
         for x in xs:
-            trace.append({"label": label, "main_x": x, "main_y": 0.5})
+            trace.append(command(label, main_x=x))
+
+    def command(
+        label: str,
+        *,
+        main_x: float = 0.5,
+        main_y: float = 0.5,
+        c_x: float = 0.5,
+        c_y: float = 0.5,
+        left_shoulder: float = 0.0,
+        right_shoulder: float = 0.0,
+        digital_left: bool = False,
+        digital_right: bool = False,
+        jump: bool = False,
+    ) -> dict[str, object]:
+        return {
+            "label": label,
+            "main_x": main_x,
+            "main_y": main_y,
+            "c_x": c_x,
+            "c_y": c_y,
+            "left_shoulder": left_shoulder,
+            "right_shoulder": right_shoulder,
+            "digital_left": digital_left,
+            "digital_right": digital_right,
+            "jump": jump,
+        }
+
+    def repeat(label: str, count: int, **inputs: object) -> None:
+        trace.extend(command(label, **inputs) for _ in range(count))
 
     extend("settle", [0.5] * 10)
     extend("held_dash_right", [1.0] * 25)
@@ -48,6 +78,158 @@ def input_trace() -> list[dict[str, object]]:
     extend("pivot_neutral", [0.5] * 15)
     extend("slow_sweep_walk", [0.62, 0.70, 1.0, 1.0, 1.0])
     extend("settle_after_walk", [0.5] * 20)
+
+    # Shield routes deliberately retain analog shoulders and digital clicks as
+    # separate inputs. Melee turns an analog shoulder above the common 0.30
+    # dead zone into HSD_PAD_LR, while EscapeAir checks only a fresh digital
+    # HSD_PAD_L/HSD_PAD_R click.
+    repeat("run_for_full_shield", 25, main_x=1.0)
+    repeat(
+        "run_to_full_shield",
+        12,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("release_full_shield", 20)
+    repeat("settle_before_light_shield", 20)
+    repeat("light_shield_half_press", 20, left_shoulder=0.5)
+    repeat("release_light_shield", 20)
+    repeat("below_analog_shield_dead_zone", 4, left_shoulder=0.29)
+    repeat("settle_before_escapes", 20)
+    repeat(
+        "shield_before_forward_roll",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    trace.append(
+        command(
+            "forward_roll_entry",
+            main_x=1.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("forward_roll_recovery", 40)
+    repeat(
+        "shield_before_spot_dodge",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    trace.append(
+        command(
+            "spot_dodge_entry",
+            main_y=0.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("spot_dodge_recovery", 35)
+
+    repeat(
+        "shield_before_jump",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    trace.append(
+        command(
+            "jump_from_held_left_shield",
+            left_shoulder=1.0,
+            digital_left=True,
+            jump=True,
+        )
+    )
+    repeat(
+        "held_left_during_jump_squat",
+        5,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    trace.append(
+        command(
+            "fresh_right_air_dodge_while_left_held",
+            main_x=1.0,
+            main_y=0.0,
+            left_shoulder=1.0,
+            right_shoulder=1.0,
+            digital_left=True,
+            digital_right=True,
+        )
+    )
+    repeat("air_dodge_progress", 12)
+    repeat("air_dodge_landing_recovery", 50)
+
+    trace.append(command("jump_for_analog_air_control", jump=True))
+    repeat("jump_squat_for_analog_air_control", 5)
+    repeat(
+        "analog_light_shield_does_not_air_dodge",
+        8,
+        left_shoulder=0.5,
+    )
+    repeat("analog_air_control_landing", 70)
+
+    repeat(
+        "shield_before_backward_roll",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    trace.append(
+        command(
+            "backward_roll_entry",
+            main_x=1.0,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+    )
+    repeat("backward_roll_recovery", 45)
+
+    repeat(
+        "shield_before_cstick_roll",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat(
+        "cstick_roll_buffer",
+        4,
+        c_x=0.0,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("cstick_roll_recovery", 40)
+
+    repeat(
+        "shield_before_cstick_spot_dodge",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat(
+        "cstick_spot_dodge_buffer",
+        4,
+        c_y=0.0,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("cstick_spot_dodge_recovery", 36)
+
+    repeat(
+        "shield_before_cstick_jump",
+        10,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat(
+        "cstick_jump_buffer",
+        4,
+        c_y=1.0,
+        left_shoulder=1.0,
+        digital_left=True,
+    )
+    repeat("cstick_jump_recovery", 32)
     return trace
 
 
@@ -183,7 +365,18 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         trace = input_trace()
         pipeline_delay = 2
         commands = trace + [
-            {"label": "pipeline_drain", "main_x": 0.5, "main_y": 0.5}
+            {
+                "label": "pipeline_drain",
+                "main_x": 0.5,
+                "main_y": 0.5,
+                "c_x": 0.5,
+                "c_y": 0.5,
+                "left_shoulder": 0.0,
+                "right_shoulder": 0.0,
+                "digital_left": False,
+                "digital_right": False,
+                "jump": False,
+            }
             for _ in range(pipeline_delay)
         ]
         for command_index, sample in enumerate(commands):
@@ -194,6 +387,25 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 float(sample["main_x"]),
                 float(sample["main_y"]),
             )
+            player_one.tilt_analog(
+                melee.Button.BUTTON_C,
+                float(sample["c_x"]),
+                float(sample["c_y"]),
+            )
+            player_one.press_shoulder(
+                melee.Button.BUTTON_L,
+                float(sample["left_shoulder"]),
+            )
+            player_one.press_shoulder(
+                melee.Button.BUTTON_R,
+                float(sample["right_shoulder"]),
+            )
+            if bool(sample["digital_left"]):
+                player_one.press_button(melee.Button.BUTTON_L)
+            if bool(sample["digital_right"]):
+                player_one.press_button(melee.Button.BUTTON_R)
+            if bool(sample["jump"]):
+                player_one.press_button(melee.Button.BUTTON_X)
             gamestate = console.step()
             if gamestate is None or 1 not in gamestate.players:
                 raise RuntimeError(
@@ -205,16 +417,83 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             scheduled = trace[index]
             player = gamestate.players[1]
             observed_x = float(player.controller_state.main_stick[0])
+            observed_y = float(player.controller_state.main_stick[1])
+            observed_c_x = float(player.controller_state.c_stick[0])
+            observed_c_y = float(player.controller_state.c_stick[1])
+            observed_left_shoulder = float(
+                player.controller_state.l_shoulder
+            )
+            observed_right_shoulder = float(
+                player.controller_state.r_shoulder
+            )
+            observed_digital_left = bool(
+                player.controller_state.button[melee.Button.BUTTON_L]
+            )
+            observed_digital_right = bool(
+                player.controller_state.button[melee.Button.BUTTON_R]
+            )
+            observed_jump = bool(
+                player.controller_state.button[melee.Button.BUTTON_X]
+                or player.controller_state.button[melee.Button.BUTTON_Y]
+            )
             requested_x = float(scheduled["main_x"])
-            aligned = (
+            requested_y = float(scheduled["main_y"])
+            requested_c_x = float(scheduled["c_x"])
+            requested_c_y = float(scheduled["c_y"])
+            axis_aligned = (
                 (requested_x == 0.5 and abs(observed_x - 0.5) <= 0.02)
                 or (requested_x < 0.5 and observed_x < 0.5)
                 or (requested_x > 0.5 and observed_x > 0.5)
+            ) and (
+                (requested_y == 0.5 and abs(observed_y - 0.5) <= 0.02)
+                or (requested_y < 0.5 and observed_y < 0.5)
+                or (requested_y > 0.5 and observed_y > 0.5)
             )
+            c_axis_aligned = (
+                (requested_c_x == 0.5 and abs(observed_c_x - 0.5) <= 0.02)
+                or (requested_c_x < 0.5 and observed_c_x < 0.5)
+                or (requested_c_x > 0.5 and observed_c_x > 0.5)
+            ) and (
+                (requested_c_y == 0.5 and abs(observed_c_y - 0.5) <= 0.02)
+                or (requested_c_y < 0.5 and observed_c_y < 0.5)
+                or (requested_c_y > 0.5 and observed_c_y > 0.5)
+            )
+            # The Slippi post-frame payload exposes the aggregate analog
+            # shoulder pressure on both ControllerState shoulder fields. The
+            # digital L/R bits remain independent, so validate the aggregate
+            # analog amount and both digital clicks separately.
+            requested_analog_shoulder = max(
+                float(scheduled["left_shoulder"]),
+                float(scheduled["right_shoulder"]),
+            )
+            expected_observed_shoulder = (
+                0.0
+                if requested_analog_shoulder <= 0.30
+                else requested_analog_shoulder
+            )
+            shoulder_aligned = (
+                abs(
+                    max(observed_left_shoulder, observed_right_shoulder)
+                    - expected_observed_shoulder
+                )
+                <= 0.10
+                and observed_digital_left
+                == bool(scheduled["digital_left"])
+                and observed_digital_right
+                == bool(scheduled["digital_right"])
+                and observed_jump == bool(scheduled["jump"])
+            )
+            aligned = axis_aligned and c_axis_aligned and shoulder_aligned
             if not aligned:
                 raise RuntimeError(
                     "controller/post-frame alignment failed at trace frame "
-                    f"{index}: requested={requested_x} observed={observed_x}"
+                    f"{index}: requested={scheduled} "
+                    "observed="
+                    f"x={observed_x} y={observed_y} "
+                    f"cx={observed_c_x} cy={observed_c_y} "
+                    f"l={observed_left_shoulder}/{observed_digital_left} "
+                    f"r={observed_right_shoulder}/{observed_digital_right} "
+                    f"jump={observed_jump}"
                 )
             if origin_x is None:
                 origin_x = player.position.x
@@ -224,7 +503,35 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "game_frame": int(gamestate.frame),
                     "label": scheduled["label"],
                     "requested_main_x": requested_x,
+                    "requested_main_y": requested_y,
+                    "requested_c_x": requested_c_x,
+                    "requested_c_y": requested_c_y,
+                    "requested_left_shoulder": float(
+                        scheduled["left_shoulder"]
+                    ),
+                    "requested_right_shoulder": float(
+                        scheduled["right_shoulder"]
+                    ),
+                    "requested_digital_left": bool(
+                        scheduled["digital_left"]
+                    ),
+                    "requested_digital_right": bool(
+                        scheduled["digital_right"]
+                    ),
+                    "requested_jump": bool(scheduled["jump"]),
                     "observed_main_x": observed_x,
+                    "observed_main_y": observed_y,
+                    "observed_c_x": observed_c_x,
+                    "observed_c_y": observed_c_y,
+                    "observed_left_shoulder": observed_left_shoulder,
+                    "observed_right_shoulder": observed_right_shoulder,
+                    "observed_analog_shoulder": max(
+                        observed_left_shoulder,
+                        observed_right_shoulder,
+                    ),
+                    "observed_digital_left": observed_digital_left,
+                    "observed_digital_right": observed_digital_right,
+                    "observed_jump": observed_jump,
                     "action": player.action.name,
                     "action_value": int(player.action.value),
                     "action_frame": float(player.action_frame),
@@ -236,13 +543,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "ground_velocity_x": float(player.speed_ground_x_self),
                     "air_velocity_x": float(player.speed_air_x_self),
                     "velocity_y": float(player.speed_y_self),
+                    "shield_health": float(player.shield_strength),
                 }
             )
 
         return {
-            "schema": 1,
+            "schema": 2,
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
+            "libmelee_version": importlib.metadata.version("melee"),
             "disc": {
                 "game_id": "GALE01",
                 "revision": 2,

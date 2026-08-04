@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0x37ffa8643696bc40)
+    UINT64_C(0x127f7dcb041e7b37)
 
 typedef struct pf_verifier_storage
 {
@@ -823,12 +823,49 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
             if (replay_query_status != PF_STATUS_OK ||
                 replay_size > sizeof(pf_verifier_m4_match_replay))
             {
+                uint32_t event_index;
+
                 (void)fprintf(
                     stderr,
-                    "m4-match-replay-query=%s size=%zu tick=%" PRIu64 "\n",
+                    "m4-match-replay-query=%s size=%zu tick=%" PRIu64
+                    " completed=%" PRIu64 " faults=%" PRIu32
+                    " terminated=%u truncated=%u winner=%u events=%u\n",
                     pf_status_name(replay_query_status),
                     replay_size,
-                    tick_count);
+                    tick_count,
+                    primary_result.completed_tick,
+                    primary_result.fault_flags,
+                    (unsigned int)primary_result.terminated,
+                    (unsigned int)primary_result.truncated,
+                    (unsigned int)primary_result.winner_mask,
+                    (unsigned int)primary_result.event_count);
+                for (event_index = UINT32_C(0);
+                     event_index <
+                         (uint32_t)primary_result.event_count;
+                     ++event_index)
+                {
+                    const pf_sim_event *event =
+                        &primary_result.events[event_index];
+
+                    (void)fprintf(
+                        stderr,
+                        "m4-match-replay-event index=%" PRIu32
+                        " tick=%" PRIu64 " sequence=%" PRIu32
+                        " type=%u source=%u target=%u value=%" PRIu32
+                        " vx=%" PRId32 " vy=%" PRId32
+                        " flags=%u detail=%u\n",
+                        event_index,
+                        event->tick,
+                        event->sequence,
+                        (unsigned int)event->type,
+                        (unsigned int)event->source_player,
+                        (unsigned int)event->target_player,
+                        event->value_q16,
+                        event->velocity_x_q16,
+                        event->velocity_y_q16,
+                        (unsigned int)event->flags,
+                        (unsigned int)event->detail);
+                }
                 passed = 0;
                 break;
             }

@@ -12,6 +12,7 @@
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_BATCH_ENVIRONMENTS 6U
 #define TEST_LIGHT_SHIELD_TRIGGER UINT16_C(32768)
+#define TEST_LIGHT_SHIELD_STRENGTH UINT16_C(18725)
 #define TEST_SHIELD_TILT_AXIS INT16_C(10000)
 
 typedef struct test_sim_storage
@@ -350,10 +351,10 @@ static int run_duel_test(const pf_content_view *content)
             UINT8_C(2),
             UINT64_C(1)) ||
         transition.structured_observation.players[0]
-                .shield_strength != TEST_LIGHT_SHIELD_TRIGGER ||
+                .shield_strength != TEST_LIGHT_SHIELD_STRENGTH ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SHIELD_STRENGTH_BASE] !=
-            (int32_t)TEST_LIGHT_SHIELD_TRIGGER ||
+            (int32_t)TEST_LIGHT_SHIELD_STRENGTH ||
         transition.structured_observation.players[0].shield_tilt_x !=
             TEST_SHIELD_TILT_AXIS ||
         transition.structured_observation.players[0].shield_tilt_y !=
@@ -428,7 +429,7 @@ static int run_duel_test(const pf_content_view *content)
     actions[0].main_stick_x = INT16_MAX;
     actions[1].main_stick_x = INT16_MIN;
     for (movement_tick = UINT64_C(1);
-         movement_tick <= UINT64_C(4);
+         movement_tick <= UINT64_C(5);
          ++movement_tick)
     {
         if (!expect_status(
@@ -475,7 +476,7 @@ static int run_duel_test(const pf_content_view *content)
             PF_STATUS_INVALID_ARGUMENT,
             "duel-invalid-action") ||
         transition.status != (uint32_t)PF_STATUS_INVALID_ARGUMENT ||
-        transition.structured_observation.tick != UINT64_C(4) ||
+        transition.structured_observation.tick != UINT64_C(5) ||
         !expect_status(
             pf_sim_hash(sim, &after_invalid),
             PF_STATUS_OK,
@@ -494,7 +495,7 @@ static int run_duel_test(const pf_content_view *content)
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
             "duel-forfeit") ||
-        transition.tick_result.completed_tick != UINT64_C(5) ||
+        transition.tick_result.completed_tick != UINT64_C(6) ||
         transition.tick_result.terminated != UINT8_C(1) ||
         transition.tick_result.winner_mask != UINT8_C(2) ||
         transition.reward_q16[1] - transition.reward_q16[0] !=
@@ -504,7 +505,17 @@ static int run_duel_test(const pf_content_view *content)
     {
         (void)fprintf(
             stderr,
-            "rl-api=fail operation=duel-terminal-reward\n");
+            "rl-api=fail operation=duel-terminal-reward"
+            " completed=%" PRIu64 " terminated=%u winner=%u"
+            " reward=(%" PRId32 ",%" PRId32 ") legal=(%" PRIu64
+            ",%" PRIu64 ")\n",
+            transition.tick_result.completed_tick,
+            (unsigned int)transition.tick_result.terminated,
+            (unsigned int)transition.tick_result.winner_mask,
+            transition.reward_q16[0],
+            transition.reward_q16[1],
+            transition.legal_buttons[0],
+            transition.legal_buttons[1]);
         return 0;
     }
 
