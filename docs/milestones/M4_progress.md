@@ -2216,15 +2216,17 @@ The exact first-primitive behavior and intentional remaining scope are fixed in
 - On the ground, trigger plus a fresh full horizontal direction enters a
   forward/backward roll relative to facing; trigger plus fresh down enters
   spot dodge and takes priority. Neither option changes facing.
-- Opposite input during initial dash remains a dash-dance reversal. Opposite
+- Opposite input during initial dash enters the measured one-frame smash
+  `STANDING TURN`; holding it then enters the opposite initial dash. Opposite
   input after entering `RUN` must instead enter `RUN TURNAROUND`; neutral or
   sub-threshold run input enters `RUN BRAKE`.
 - Repeated same-direction full-input edges separated by neutral releases remain
   initial-dash fox-trot bursts. Holding the direction reaches `RUN`, and using
   the reduced walk magnitude after release cannot restart the dash.
 - A one-tick opposite full input followed by neutral or a ground action remains
-  the pivot route. Holding the reversal continues initial dash, while waiting
-  until `RUN` produces `RUN TURNAROUND` rather than an empty pivot.
+  the pivot route in `STANDING TURN`. Holding the reversal enters opposite
+  initial dash, while waiting until `RUN` produces `RUN TURNAROUND` rather than
+  an empty pivot.
 - Down from an unlocked run remains the sliding crouch-cancel route; jump and
   shield remain the other live dash cancels. Initial-dash shield and
   run-turnaround crouch input remain rejected.
@@ -2403,7 +2405,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the owner's NTSC 1.02 `GALE01` data and pinned `doldecomp/melee` revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7`; extracted files remain outside
   the repository.
-- Content schema 56/fighter schema 48 maps Falcon walk, dash, run, jump,
+- Content schema 57/fighter schema 49 maps Falcon walk, dash, run, jump,
   double-jump, gravity, air-drift, fast-fall, run-brake, shield-break,
   ledge-jump, wall-jump/tech, ceiling-tech, and landing values into the
   laboratory stage coordinate scale.
@@ -2411,6 +2413,9 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   State schema 52/save format 51 retains the 787-byte save while adding the
   distinct directional aerial-landing and L-cancel action semantics needed for
   Falcon's 15/19/18/15/24 landing-lag table.
+- State schema 53 retains save format 51 and 787 bytes while adding the
+  Dolphin-measured held-dash transition, released-dash completion, smash-turn,
+  basic-standing-turn, and run-brake timing state.
 - Ground and air acceleration follow the decomp's friction-aware target and
   overshoot branches, including its conditional absolute-speed cap. Initial
   dash applies Falcon's impulse once, and double jump replaces horizontal
@@ -2419,16 +2424,21 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   deterministic mechanics, save/load, replay, browser, and cross-platform
   checks remain required. The live fidelity audit records partial and divergent
   systems; no whole-simulation equivalence claim is made.
-- The schema-52 replay is 31,479 bytes with corpus SHA-256
-  `6a898284ea4273b633f10c05e0956d2a161752467458afd2fe045aa7fd1d6259`,
+- The schema-53 replay has corpus SHA-256
+  `4e5a99751df55cee2900d5d777e2fc727593c795cf984aed2a2b7d8abf3ad478`,
   final-state SHA-256
-  `12d114300ad716e48a422e302228a13b5ff39ed5711263ef538b103f327faf37`,
+  `a4dcf5ecfd9b77068156d6deb4e26c8fdfff0036f0d4d395ed2d22e97a1b32af`,
   and event-journal SHA-256
-  `726ba7e815663eed26c6a6adfab6012e4214c393aabeb7e0a468f395fd4aa224`.
-- Windows MinGW GCC 15.2 and WSL Linux GCC each pass all 15 CTest targets.
-  A local MSVC run is unavailable because Visual Studio/MSVC is not installed
-  on the workstation; Windows behavior was still exercised natively rather
-  than through WSL.
-- The pinned Emscripten build and Chrome smoke pass. A live in-app-browser check
-  at `http://127.0.0.1:8002/web_client.html` reports WebGL2, replay, input,
-  gamepad, and playtest readiness as pass with no console errors.
+  `9ee69c2aceb5a2f2eb9b547dc86bcddf424b88fb4d1c4453a059c72eccec80f6`.
+- Local Windows MSVC and WSL Linux GCC each pass all 22 CTest targets. The
+  repeated-match verifier digest is `db6f2618a6c68d0e`.
+- The 312-frame Dolphin/Slippi capture and native comparator pass exact action,
+  facing, and velocity gates plus the documented accumulated float-to-Q16.16
+  position tolerance.
+- PC-mode Mayflash detection accepts neutral controllers whose unpressed
+  trigger axes report `-1`, and the browser advances at most one simulation
+  tick per animation frame so one physical Gamepad sample cannot age through
+  several catch-up ticks before it is rendered.
+- Pinned Emscripten 6.0.3 rebuild and live Chrome requalification pass for this
+  exact revision. Native and Wasm replay outputs are byte-identical, and the
+  page on port 8002 reports every readiness field as pass with no page error.

@@ -295,7 +295,7 @@ startup scripts.
 For a fox-trot, tap and release one full direction, then repeat that same
 direction. Every fresh tap returns the inspector to tick 1 of `INITIAL DASH`
 and the neutral tick preserves a short traction slide. Holding the direction
-instead reaches `RUN` after the data-defined ten-tick window; using the
+instead reaches `RUN` after 15 displayed dash frames; using the
 `Shift`/reduced-magnitude input after release produces `WALK`, not another dash.
 
 For analog walk timing, move the main stick from neutral toward a horizontal
@@ -343,11 +343,11 @@ Taunt cannot retrigger it without a release. On a standard gamepad, Back/View
 is Taunt.
 
 For a pivot, begin an initial dash, tap the opposite full direction for one
-tick, then return to neutral and immediately press the attack key. The attack
-uses the reversed facing while residual reversal momentum slides under
-traction. Omitting the attack produces an empty pivot; holding the reversal
-continues the opposite dash, and attempting the route after `RUN` instead
-enters `RUN TURNAROUND`.
+tick, confirm the one-frame `STANDING TURN`, then return to neutral and
+immediately press the attack key. The attack uses the reversed facing while
+residual reversal momentum slides under traction. Omitting the attack remains
+in the empty standing turn; holding the reversal enters the opposite dash, and
+attempting the route after `RUN` instead enters `RUN TURNAROUND`.
 
 For a dash cancel, press jump during `INITIAL DASH` to enter `JUMP SQUAT`, or
 reach `RUN` and either press down for a sliding `CROUCH` or hold shield for a
@@ -796,11 +796,12 @@ broader acceptance evidence.
 
 ## Focused owner checks
 
-1. Tap left and right rapidly without `Shift`. Confirm each reversal occurs
-   during `INITIAL DASH` without a neutral key press. Then dash right, tap left
+1. Tap left and right rapidly without `Shift`. Confirm each reversal shows one
+   frame of `STANDING TURN` and then opposite `INITIAL DASH` without a neutral
+   key press. Then dash right, tap left
    for exactly one tick, release to neutral, and immediately press `F`. Confirm
    the attack faces left while the fighter still slides left. Repeat without
-   `F` for grounded idle, with left held for continued dash, and after reaching
+   `F` for an empty standing turn, with left held for opposite dash, and after reaching
    `RUN` for the `RUN TURNAROUND` negative case.
 2. Hold `Shift+A` and `Shift+D`. Confirm the state inspector says `WALK` and
    movement is visibly slower than unmodified `A`/`D`.
@@ -1131,7 +1132,8 @@ through:
   and stable assignment of the first two connected pads; live input polls
   `navigator.getGamepads()` every simulation tick for hot-plug behavior;
 - full magnitude producing `INITIAL DASH`;
-- an opposite full magnitude producing an immediate dash-dance reversal;
+- an opposite full magnitude producing `STANDING TURN` followed by opposite
+  initial dash when held;
 - an opposite full magnitude after `RUN` producing `RUN TURNAROUND`, never a
   new initial dash;
 - four same-direction full-input tap/release bursts each restarting tick 1 of
@@ -1353,3 +1355,18 @@ gamepad_api=available
 controls=keyboard-gamepad-two-controller-duel-team-lab
 owner_checklist=ready-61` only after all checks pass.
 Clean-machine Chrome CI also requires that status and the live playtest DOM.
+
+## 2026-08-03 PC-mode GameCube adapter correction
+
+Mayflash-compatible PC-mode ports are considered occupied when at least two
+stick axes report a centered/controller range. Detection no longer requires an
+analog trigger axis above `-0.95`, because valid adapters may report exactly
+`-1` for both unpressed triggers. Empty ports still report the all-`-1` stick
+sentinel and remain excluded.
+
+The page processes at most one 60 Hz simulation step per animation frame.
+After a slow browser frame it drops excess wall-clock backlog instead of
+replaying the same physical Gamepad sample through several simulation ticks.
+This preserves fresh main-stick and C-stick edges for dashes, dash dances,
+buffered rolls/spot dodges, and jump. Keyboard full-shield queues now also pass
+the full 16-bit trigger value (`65535`) rather than `1`.

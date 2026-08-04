@@ -965,13 +965,11 @@ static int run_simultaneous_ko_sudden_death_test(
         const int32_t respawn_x_q16 =
             inspection.players[0].position_x_q16;
 
-        /* Keep this match-resolution fixture simultaneous after importing
-         * Falcon's asymmetric fixed-point ground acceleration. */
         for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
         {
             if (!step_duel(
                     sim,
-                    -INT16_MAX,
+                    INT16_MIN,
                     UINT64_C(0),
                     INT16_C(0),
                     UINT64_C(0),
@@ -980,8 +978,9 @@ static int run_simultaneous_ko_sudden_death_test(
             {
                 return 0;
             }
-            if (inspection.players[0].position_x_q16 <=
-                respawn_x_q16 - INT32_C(1))
+            if (inspection.players[0].position_x_q16 <
+                respawn_x_q16 -
+                    INT32_C(3) * PF_Q16_ONE / INT32_C(10))
             {
                 break;
             }
@@ -991,13 +990,14 @@ static int run_simultaneous_ko_sudden_death_test(
     {
         return fail("sudden-death-movement-head-start");
     }
+
     for (tick = UINT32_C(0); tick < TEST_STEP_LIMIT; ++tick)
     {
         if (!step_duel(
                 sim,
-                INT16_MIN,
+                INT16_C(-26300),
                 UINT64_C(0),
-                INT16_C(30500),
+                INT16_MAX,
                 UINT64_C(0),
                 &result,
                 &inspection))

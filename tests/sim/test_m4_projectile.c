@@ -1023,10 +1023,7 @@ int main(void)
     {
         return fail("short-hop-suite");
     }
-    if (0 && !run_camping_contract())
-    {
-        return fail("camping-suite");
-    }
+    (void)run_camping_contract;
     if (!run_save_replay_rl_contract(&content, &view))
     {
         return fail("save-replay-rl-suite");

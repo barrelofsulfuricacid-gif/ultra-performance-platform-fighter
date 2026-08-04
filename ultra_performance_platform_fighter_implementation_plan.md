@@ -369,6 +369,28 @@ Implement one original placeholder fighter and one original test stage with:
 - Deterministic collision with floors, pass-through platforms, walls/ceilings where the stage requires them, ledges, and platform motion.
 - Data-driven movement parameters and state transitions.
 
+SSBM executable-oracle equivalence is a binding M4 gate. Every implemented M4
+movement or shared-simulation behavior with an SSBM counterpart must match the
+owner's `GALE01` NTSC 1.02 image in Dolphin, not merely resemble it or pass tests
+derived from this implementation. The only exclusions are explicitly original
+mechanics with no intended SSBM counterpart. Work on fidelity continues until
+the complete applicable identical-input differential corpus agrees; unresolved
+divergences are not deferrable acceptance notes, and M4 work does not stop while
+one remains. Numeric frame-data tables may be imported under the recorded
+fidelity exception, while protected audiovisual, stage,
+character-expression, and executable assets remain outside the project.
+
+The verifier must drive Dolphin and this simulation with the same ordered,
+per-frame controller samples and compare at least action/state transitions,
+action frame, facing, grounded state, position, self-induced velocity, and
+relevant timers. Its corpus must cover neutral and nonzero starting momentum,
+both directions, analog threshold boundaries, slow walk entry, direct and
+two-sample dash entry, repeated dash-dance reversals, fox-trot, run, run brake,
+standing turn, and run turnaround. Captures must identify the Dolphin build,
+disc revision/hash, fighter, stage/setup, input trace, coordinate conversion,
+and first divergent frame. Internal deterministic tests remain required, but
+cannot substitute for this executable-oracle comparison.
+
 #### M4.2 — Combat system
 
 Implement:
@@ -528,6 +550,10 @@ all M4.4 techniques:
 
 - A complete local 1v1 match can be played from start to result with two supported inputs.
 - The selected M0 “Melee-feel” mechanics for the vertical slice are implemented and have invariant tests.
+- The pinned identical-input Dolphin differential corpus has no unresolved
+  divergence for any implemented movement or shared-simulation behavior with
+  an SSBM counterpart. A newly observed owner-playtest divergence adds a
+  reproducer to this corpus and blocks M4 acceptance until resolved.
 - Collision, knockback, hitlag, hitstun, DI, stocks, ledges, and recovery are deterministic and replayable.
 - Performance remains within the M0 1v1 budget with profiling evidence.
 - The owner rates control responsiveness and core combat acceptable on the M0 playtest rubric.

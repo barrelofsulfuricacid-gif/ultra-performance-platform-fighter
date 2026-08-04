@@ -22,3 +22,26 @@ the imported gameplay tables and the degree of behavioral equivalence.
 M4 validation will distinguish `equivalent`, `partial`, `divergent`, and
 `missing` behavior. A passing deterministic test proves the implemented
 contract; it does not by itself prove complete SSBM equivalence.
+
+## 2026-08-03 - Dolphin identical-input equivalence gate
+
+The owner requires every implemented movement or shared-simulation behavior
+with an SSBM counterpart to be exactly equivalent to SSBM rather than tuned
+approximately. Only explicitly original mechanics with no intended SSBM
+counterpart are excluded. M4 must use the owner's `GALE01` NTSC 1.02 image in
+Dolphin as an executable oracle: the verifier supplies the same per-frame
+controller trace to Dolphin and the project, captures comparable state and
+motion fields, and reports the first divergent frame. This applies with nonzero
+as well as zero starting velocity and explicitly includes ordinary dash entry
+and repeated dash dancing. Fidelity work continues until the complete
+applicable differential corpus agrees; work does not stop and an unresolved
+divergence cannot be deferred while accepting M4.
+
+Implementation-authored tests and decomp review remain necessary but are not
+sufficient evidence for equivalence. Any owner-observed movement divergence
+must become a pinned differential reproducer and blocks M4 acceptance until the
+capture agrees. The existing originality boundaries remain in force: the disc,
+extracted archives, executable code, audiovisual expression, and stage assets
+stay outside the repository; only authorized gameplay data, independently
+written behavior, input traces, metadata, and numeric comparison evidence may
+be retained.

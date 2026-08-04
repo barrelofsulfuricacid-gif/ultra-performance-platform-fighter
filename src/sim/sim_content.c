@@ -431,6 +431,9 @@ static void pf_m4_hash_fighter(
         hash,
         fighter->double_jump_armor_max_hitstun_ticks);
     pf_m4_hash_u16(hash, fighter->initial_dash_ticks);
+    pf_m4_hash_u16(hash, fighter->dash_run_transition_ticks);
+    pf_m4_hash_u16(hash, fighter->standing_turn_ticks);
+    pf_m4_hash_u16(hash, fighter->standing_turn_facing_tick);
     pf_m4_hash_u16(hash, fighter->dash_input_window_ticks);
     pf_m4_hash_u16(hash, fighter->moonwalk_setup_ticks);
     pf_m4_hash_u16(hash, fighter->teeter_ticks);
@@ -1315,7 +1318,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->jump_squat_ticks = UINT16_C(4);
     fighter->double_jump_cancel_ticks = UINT16_C(6);
     fighter->double_jump_armor_max_hitstun_ticks = UINT16_C(20);
-    fighter->initial_dash_ticks = UINT16_C(10);
+    fighter->initial_dash_ticks = UINT16_C(29);
+    fighter->dash_run_transition_ticks = UINT16_C(16);
+    fighter->standing_turn_ticks = UINT16_C(12);
+    fighter->standing_turn_facing_tick = UINT16_C(8);
     fighter->dash_input_window_ticks = UINT16_C(2);
     fighter->moonwalk_setup_ticks = UINT16_C(2);
     fighter->teeter_ticks = UINT16_C(30);
@@ -1335,7 +1341,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->ledge_attack_invulnerability_ticks = UINT16_C(10);
     fighter->special_landing_ticks = UINT16_C(10);
     fighter->run_turnaround_ticks = UINT16_C(12);
-    fighter->run_brake_ticks = UINT16_C(30);
+    fighter->run_brake_ticks = UINT16_C(29);
     fighter->axis_dead_zone = UINT16_C(9175);
     fighter->dash_axis_threshold = UINT16_C(26214);
     fighter->run_turnaround_axis_threshold = UINT16_C(12288);
@@ -2282,6 +2288,14 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
              UINT16_C(0)) ||
         fighter->initial_dash_ticks == UINT16_C(0) ||
         fighter->initial_dash_ticks > UINT16_C(120) ||
+        fighter->dash_run_transition_ticks < UINT16_C(2) ||
+        fighter->dash_run_transition_ticks >=
+            fighter->initial_dash_ticks ||
+        fighter->standing_turn_ticks < UINT16_C(2) ||
+        fighter->standing_turn_ticks > UINT16_C(120) ||
+        fighter->standing_turn_facing_tick < UINT16_C(2) ||
+        fighter->standing_turn_facing_tick >=
+            fighter->standing_turn_ticks ||
         fighter->dash_input_window_ticks == UINT16_C(0) ||
         fighter->dash_input_window_ticks >
             fighter->initial_dash_ticks ||

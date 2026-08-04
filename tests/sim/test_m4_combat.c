@@ -2775,10 +2775,33 @@ static int start_directional_aerial_case(
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
-                out_inspection) ||
-            out_inspection->players[0].facing != INT8_C(-1))
+                out_inspection))
         {
             return fail("directional-aerial-turn-setup");
+        }
+        for (tick = UINT32_C(1);
+             tick <
+                 (uint32_t)content->fighter.standing_turn_facing_tick;
+             ++tick)
+        {
+            if (!step_reaction_duel(
+                    sim,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    out_inspection))
+            {
+                return fail("directional-aerial-turn-timing");
+            }
+        }
+        if (out_inspection->players[0].facing != INT8_C(-1))
+        {
+            return fail("directional-aerial-turn-facing");
         }
     }
     if (!step_reaction_duel(
@@ -9115,6 +9138,7 @@ static int run_whiff_and_trade_test(
     test_sim_storage storage;
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
+    uint32_t tick;
 
     if (!initialize_sim(
             &storage,
@@ -9130,7 +9154,28 @@ static int run_whiff_and_trade_test(
             INT16_C(0),
             UINT64_C(0),
             &inspection) ||
-        inspection.players[0].facing != INT8_C(-1) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_STANDING_TURN)
+    {
+        return fail("facing-away-turn-entry");
+    }
+    for (tick = UINT32_C(1);
+         tick <
+             (uint32_t)content->fighter.standing_turn_facing_tick;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return fail("facing-away-turn-timing");
+        }
+    }
+    if (inspection.players[0].facing != INT8_C(-1) ||
         !step_duel(
             sim,
             INT16_C(0),
@@ -10137,7 +10182,10 @@ static int run_shield_state_test(
     {
         return fail("initial-dash-cannot-shield");
     }
-    for (tick = UINT32_C(0); tick < UINT32_C(11); ++tick)
+    for (tick = UINT32_C(0);
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
+         ++tick)
     {
         if (!step_reaction_duel(
                 sim,
@@ -10714,7 +10762,8 @@ static int run_dashing_shield_test(
     }
 
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_reaction_duel(
@@ -13473,6 +13522,8 @@ static int prepare_floor_orientation(
 {
     if (prone_orientation == (uint8_t)PF_M4_PRONE_STOMACH)
     {
+        uint16_t tick;
+
         if (!step_reaction_duel(
                 sim,
                 INT16_C(0),
@@ -13483,8 +13534,30 @@ static int prepare_floor_orientation(
                 INT16_C(0),
                 UINT64_C(0),
                 UINT16_C(0),
-                out_inspection) ||
-            out_inspection->players[1].facing != INT8_C(1))
+                out_inspection))
+        {
+            return 0;
+        }
+        for (tick = UINT16_C(1);
+             tick < content->fighter.standing_turn_facing_tick;
+             ++tick)
+        {
+            if (!step_reaction_duel(
+                    sim,
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    INT16_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    UINT16_C(0),
+                    out_inspection))
+            {
+                return 0;
+            }
+        }
+        if (out_inspection->players[1].facing != INT8_C(1))
         {
             return 0;
         }
@@ -14776,7 +14849,7 @@ static int run_getup_attack_hit_test(
         return fail("getup-attack-front-hit");
     }
 
-    for (tick = UINT16_C(0); tick < UINT16_C(8); ++tick)
+    for (tick = UINT16_C(0); tick < UINT16_C(9); ++tick)
     {
         if (!step_reaction_duel(
                 back,

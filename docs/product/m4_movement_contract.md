@@ -44,21 +44,26 @@ to the simulation.
   [`ftCo_Dash_CheckInput`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/chara/ftCommon/ftCo_Dash.c#L30-L48)
   and
   [X-tilt timer update](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/fighter.c#L1898-L1949).
-- Reversing the full horizontal value during initial dash starts a new initial
-  dash in the opposite direction without requiring a neutral tick. This is the
-  invariant used by keyboard and controller dash-dance tests.
-- Releasing horizontal input during initial dash returns to grounded idle and
-  clears the strong-direction edge while traction preserves a short forward
-  slide. A fresh full input in the same direction can therefore restart tick 1
-  of the data-defined initial dash. Repeating that tap/release rhythm fox-trots;
-  holding through the full initial-dash window reaches `RUN`, while a fresh
-  reduced-magnitude input enters `WALK` instead.
+- Reversing the full horizontal value during initial dash enters `STANDING
+  TURN` for one displayed frame with the old facing. Holding the reversal on
+  the next frame flips facing and enters tick 1 of the opposite initial dash;
+  no neutral sample is required. The reversal frame applies Melee's dash IASA
+  damping followed by Falcon traction before the opposite dash impulse.
+- Releasing horizontal input does not truncate Falcon's dash animation. A held
+  direction transitions to `RUN` after 15 displayed dash frames; a released
+  dash remains `INITIAL DASH` through displayed frame 28 and becomes grounded
+  idle on the next frame. A fresh full input after completion can start another
+  dash, while a slowly aged input enters `WALK`.
 - A one-tick full reversal during initial dash is the pivot window. Returning
-  to neutral on the next tick produces an empty pivot in grounded idle while
-  preserving the reversed facing and a traction-reduced backward slide;
-  pressing a ground action on that tick acts with the same facing and
-  momentum. Holding the reversal continues the opposite initial dash, and a
-  reversal after `RUN` has begun uses `RUN TURNAROUND` instead.
+  to neutral on the next tick remains in `STANDING TURN`, flips to the reversed
+  facing, and preserves the traction-reduced backward slide; pressing a ground
+  action on that tick acts with the same facing and momentum. Holding the
+  reversal enters tick 1 of the opposite initial dash. A reversal after `RUN`
+  has begun uses `RUN TURNAROUND` instead.
+- A non-smash opposite horizontal tilt from idle or walk enters the basic
+  standing turn. Falcon keeps the rendered old facing through displayed frame
+  7, flips on frame 8, remains `STANDING TURN` through frame 11, and returns to
+  idle on the next frame.
 - Full direction plus the ordinary light-attack edge enters the production
   forward strong attack directly from idle. Holding that same direction for
   one through the data-defined three initial-dash ticks before pressing light

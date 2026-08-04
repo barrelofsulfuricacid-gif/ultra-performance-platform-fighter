@@ -964,12 +964,7 @@ mergeInto(LibraryManager.library, {
       var centeredStickAxes = [0, 1, 2, 5].filter(function (axisIndex) {
         return Math.abs(gamepadRawAxis(gamepad, axisIndex)) < 0.85;
       }).length;
-      var triggerReportActive =
-        Math.max(
-          gamepadRawAxis(gamepad, 3),
-          gamepadRawAxis(gamepad, 4)
-        ) > -0.95;
-      return centeredStickAxes >= 2 && triggerReportActive;
+      return centeredStickAxes >= 2;
     }
 
     function mayflashTriggerValue(gamepad, index) {
@@ -2503,13 +2498,13 @@ mergeInto(LibraryManager.library, {
         held("Comma") || state.tauntQueued[1] || player1Gamepad.taunt;
       var player0LeftShieldStrength =
         held("KeyG") || state.shieldQueued[0]
-          ? 1
+          ? 65535
           : player0Gamepad.leftShieldStrength;
       var player0RightShieldStrength =
         player0Gamepad.rightShieldStrength;
       var player1LeftShieldStrength =
         held("Period") || held("Numpad1") || state.shieldQueued[1]
-          ? 1
+          ? 65535
           : player1Gamepad.leftShieldStrength;
       var player1RightShieldStrength =
         player1Gamepad.rightShieldStrength;
@@ -2722,9 +2717,12 @@ mergeInto(LibraryManager.library, {
         var elapsed = Math.min(time - state.lastTime, 100);
         state.lastTime = time;
         state.accumulator += elapsed;
-        while (state.accumulator >= 1000 / 60) {
+        if (state.accumulator >= 1000 / 60) {
           step();
-          state.accumulator -= 1000 / 60;
+          state.accumulator = Math.min(
+            state.accumulator - 1000 / 60,
+            1000 / 60
+          );
         }
       } else {
         state.lastTime = time;
@@ -3282,6 +3280,7 @@ mergeInto(LibraryManager.library, {
       "BACK AERIAL L-CANCEL LANDING",
       "UP AERIAL L-CANCEL LANDING",
       "DOWN AERIAL L-CANCEL LANDING",
+      "STANDING TURN",
     ];
 
     if (view[1] < previousTick) {

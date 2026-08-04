@@ -625,6 +625,14 @@ static int run_engagement_shaping_test(
     if (!expect_status(
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
+            "shaping-dash-entry") ||
+        !expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
+            "shaping-dash-impulse") ||
+        !expect_status(
+            pf_rl_step(sim, actions, (size_t)2, &transition),
+            PF_STATUS_OK,
             "shaping-separate") ||
         transition.reward_q16[0] >= INT32_C(0) ||
         transition.reward_q16[0] != transition.reward_q16[1] ||

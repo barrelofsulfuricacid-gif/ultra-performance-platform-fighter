@@ -17,11 +17,12 @@ movement placeholder on the original laboratory stage.
 | System | Status | Evidence and remaining gap |
 |---|---|---|
 | Stick aging, dead zones, dash recognition | equivalent | Fresh horizontal tilt age, reversal reset, 0.80 dash threshold, and two-tick dash window follow the common input/decomp route. |
-| Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse, first-frame physics skip, then A/B acceleration toward stick-scaled terminal velocity. |
+| Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse with no entry-frame displacement, full A/B dash acceleration from the next frame, held transition after 15 displayed dash frames, and released completion after 28 displayed dash frames match the executable oracle. |
 | Walk/run acceleration and friction | equivalent | Falcon attributes and the friction-aware target/overshoot formulas are mapped; slow stick motion enters walk rather than dash. |
-| Dash dance and backward dash acceleration | equivalent | Fresh reversal re-enters dash; aged opposite input remains dash and produces the decomp's emergent backward acceleration. |
-| Run braking | partial | Falcon's 30-frame maximum is imported; animation-script commands and variable animation completion are not represented. |
-| Standing turn / run turnaround | partial | Directional routing exists, but the sim uses authored fixed action durations rather than the exact animation-command table. |
+| Dash dance and backward dash acceleration | equivalent | A fresh reversal enters one displayed frame of smash `TURNING` with the old facing and damped velocity; a held reversal then enters opposite dash with the measured residual momentum plus Falcon's impulse. |
+| Run braking | equivalent for captured route | Neutral from terminal run produces 28 displayed `RUN_BRAKE` frames with Falcon's 0.08 friction before standing, matching the executable oracle. Other animation-command interrupts remain unaudited. |
+| Standing turn | equivalent for captured routes | Smash turn flips on the following frame and can enter dash; basic turn flips on displayed frame 8 and completes after displayed frame 11. Both timing and friction routes match the executable oracle. |
+| Run turnaround | partial | Directional routing exists, but the complete `TurnRun` animation-command, velocity-crossing, and lockout route has not yet passed the identical-input oracle. |
 | Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. |
 | Short/full hop | equivalent | Falcon 1.9 and 3.1 vertical velocities are converted to stage units. |
 | Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. |
@@ -54,3 +55,18 @@ movement placeholder on the original laboratory stage.
    before making character-wide equivalence claims.
 4. Validate native Windows, WSL Linux, Wasm/browser, replay, save/load, and
    rollback results from the same content hash.
+
+## Executable-oracle evidence
+
+`tools/capture_ssbm_movement.py` drives an owner-supplied GALE01 NTSC-U 1.02
+image through Dolphin/Slippi and records the post-frame action, facing,
+position, velocity, and observed controller sample. `pf_m4_movement_trace`
+replays those observed samples through the native simulator, and
+`tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
+
+The 2026-08-03 Windows comparison passes 312 identical input frames covering
+held dash/run, released dash and run brake, direct dash dancing, moving
+dashbacks, two-sample dash recognition, smash and empty pivots, basic standing
+turn, and slow-stick sweep. Position comparison allows only the documented
+accumulated float-to-Q16.16 conversion tolerance; action, facing, and velocity
+use their tighter independent gates.

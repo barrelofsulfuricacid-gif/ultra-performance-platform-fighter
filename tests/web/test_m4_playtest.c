@@ -449,7 +449,7 @@ static int test_player0_reach_run(void)
 {
     uint32_t tick;
 
-    for (tick = UINT32_C(0); tick < UINT32_C(10); ++tick)
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
     {
         if (!pf_web_m4_playtest_step(
                 test_dash_axis,
@@ -1113,43 +1113,23 @@ int main(void)
             0,
             0,
             0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 103 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != 1 ||
+        !pf_web_m4_playtest_step(
+            -test_dash_axis,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1)
     {
         return fail("keyboard-dash-dance");
-    }
-
-    if (0 && (!pf_web_m4_playtest_reset() ||
-        !pf_web_m4_playtest_step(
-            test_dash_axis,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
-        !pf_web_m4_playtest_step(
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ||
-        !pf_web_m4_playtest_step(
-            test_dash_axis,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 1 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != 1))
-    {
-        return fail("keyboard-fox-trot");
     }
 
     if (!pf_web_m4_playtest_reset() ||
@@ -1175,13 +1155,13 @@ int main(void)
             0,
             0,
             0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 103 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != 1 ||
         !pf_web_m4_playtest_step(
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 12 ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_FACING] != -1 ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] > 0)
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] <= 0)
     {
         return fail("keyboard-pivot-attack");
     }

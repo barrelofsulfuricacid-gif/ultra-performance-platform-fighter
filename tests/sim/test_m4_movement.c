@@ -2744,10 +2744,10 @@ static int run_ground_control_test(
             UINT64_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         inspection.players[0].dash_direction != INT8_C(-1) ||
-        inspection.players[0].facing != INT8_C(-1) ||
-        inspection.players[0].velocity_x_q16 != INT32_C(0))
+        inspection.players[0].facing != INT8_C(1) ||
+        inspection.players[0].velocity_x_q16 <= INT32_C(0))
     {
         (void)fprintf(
             stderr,
@@ -2755,7 +2755,28 @@ static int run_ground_control_test(
         return 0;
     }
 
-    for (tick = UINT32_C(0); tick < UINT32_C(11); ++tick)
+    if (!step_duel(
+            sim,
+            INT16_MIN,
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        inspection.players[0].dash_direction != INT8_C(-1) ||
+        inspection.players[0].facing != INT8_C(-1) ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=dash-dance-turn-exit\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(1);
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
+         ++tick)
     {
         if (!step_duel(
                 sim,
@@ -2819,11 +2840,41 @@ static int run_ground_control_test(
     }
     if (inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_RUN ||
-        inspection.players[0].velocity_x_q16 <= INT32_C(0))
+        inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        absolute_i32(inspection.players[0].velocity_x_q16) >=
+            absolute_i32(run_velocity))
     {
         (void)fprintf(
             stderr,
             "m4-movement=fail operation=run-turnaround-exit\n");
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(8) &&
+         inspection.players[0].velocity_x_q16 <= INT32_C(0);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RUN)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=run-turnaround-acceleration\n");
+            return 0;
+        }
+    }
+    if (inspection.players[0].velocity_x_q16 <= INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=run-turnaround-direction\n");
         return 0;
     }
 
@@ -2889,7 +2940,8 @@ static int run_ground_control_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -2984,7 +3036,8 @@ static int run_jump_takeoff_momentum_route(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -3089,7 +3142,7 @@ static int run_jump_takeoff_momentum_test(
     if (neutral_velocity_x <= reverse_velocity_x ||
         forward_velocity_x <= neutral_velocity_x ||
         absolute_i32(reverse_velocity_x) >
-            neutral_velocity_x / INT32_C(4))
+            neutral_velocity_x / INT32_C(2))
     {
         (void)fprintf(
             stderr,
@@ -3333,7 +3386,8 @@ static int run_fox_trot_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -4137,7 +4191,7 @@ static int run_teeter_cancel_test(
         source_inspection.players[0].velocity_x_q16 !=
             -content->fighter.initial_dash_speed_q16 ||
         source_inspection.players[0].grounded == UINT8_C(0) ||
-        source_inspection.players[0].position_x_q16 >=
+        source_inspection.players[0].position_x_q16 !=
             content->stage.floor_right_q16)
     {
         (void)fprintf(
@@ -4851,11 +4905,13 @@ static int run_pivot_test(
             UINT64_C(0),
             &source_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         source_inspection.players[0].action_ticks != UINT16_C(1) ||
         source_inspection.players[0].dash_direction != INT8_C(-1) ||
-        source_inspection.players[0].facing != INT8_C(-1) ||
-        source_inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        source_inspection.players[0].facing != INT8_C(1) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 >=
+            content->fighter.initial_dash_speed_q16 ||
         !expect_status(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
@@ -4907,7 +4963,7 @@ static int run_pivot_test(
             (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
         source_inspection.players[0].facing != INT8_C(-1) ||
         source_inspection.players[0].dash_direction != INT8_C(0) ||
-        source_inspection.players[0].velocity_x_q16 > INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         absolute_i32(source_inspection.players[0].velocity_x_q16) >=
             content->fighter.initial_dash_speed_q16 ||
         !expect_status(
@@ -4993,10 +5049,10 @@ static int run_pivot_test(
             UINT64_C(0),
             &source_inspection) ||
         source_inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+            (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         source_inspection.players[0].facing != INT8_C(-1) ||
         source_inspection.players[0].dash_direction != INT8_C(-1) ||
-        source_inspection.players[0].velocity_x_q16 > INT32_C(0) ||
+        source_inspection.players[0].velocity_x_q16 <= INT32_C(0) ||
         absolute_i32(source_inspection.players[0].velocity_x_q16) >=
             content->fighter.initial_dash_speed_q16)
     {
@@ -5036,7 +5092,7 @@ static int run_pivot_test(
             &source_inspection) ||
         source_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
-        source_inspection.players[0].action_ticks != UINT16_C(2) ||
+        source_inspection.players[0].action_ticks != UINT16_C(1) ||
         source_inspection.players[0].dash_direction != INT8_C(-1) ||
         source_inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
         source_inspection.players[0].velocity_x_q16 <=
@@ -5056,7 +5112,8 @@ static int run_pivot_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -5140,7 +5197,8 @@ static int run_dash_cancel_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -5319,7 +5377,8 @@ static int run_dash_cancel_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -5388,7 +5447,8 @@ static int run_dash_cancel_test(
         return 0;
     }
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.initial_dash_ticks;
+         tick <
+             (uint32_t)content->fighter.dash_run_transition_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -11129,6 +11189,14 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             &loaded_inspection) ||
         loaded_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
+        loaded_inspection.players[0].position_x_q16 !=
+            grounded_recovery_x ||
+        !step_duel(
+            loaded,
+            INT16_MAX,
+            INT16_C(0),
+            UINT64_C(0),
+            &loaded_inspection) ||
         loaded_inspection.players[0].position_x_q16 <=
             grounded_recovery_x ||
         !expect_status(

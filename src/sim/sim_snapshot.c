@@ -2085,9 +2085,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action >
-                    (uint8_t)
-                        PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING ||
+                action > (uint8_t)PF_M4_ACTION_STANDING_TURN ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2120,8 +2118,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->fast_fall[player_index] > UINT8_C(1) ||
                 (world->facing[player_index] != INT8_C(-1) &&
                  world->facing[player_index] != INT8_C(1)) ||
-                world->dash_direction[player_index] < INT8_C(-1) ||
-                world->dash_direction[player_index] > INT8_C(1) ||
+                world->dash_direction[player_index] < INT8_C(-2) ||
+                world->dash_direction[player_index] > INT8_C(2) ||
                 world->previous_strong_direction[player_index] <
                     INT8_C(-1) ||
                 world->previous_strong_direction[player_index] >
@@ -2207,6 +2205,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   action ==
                       (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
                   action ==
+                      (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+                  action ==
                       (uint8_t)PF_M4_ACTION_MOONWALK_SETUP ||
                   action ==
                       (uint8_t)PF_M4_ACTION_MOONWALK) &&
@@ -2225,6 +2225,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
                  action !=
                      (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_STANDING_TURN &&
                  action !=
                      (uint8_t)PF_M4_ACTION_MOONWALK_SETUP &&
                  action !=
