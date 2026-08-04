@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(62)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(54)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(63)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(55)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -353,6 +353,8 @@ typedef struct pf_m4_fighter_data
     uint16_t reserved;
     int32_t half_width_q16;
     int32_t half_height_q16;
+    int32_t player_push_half_width_q16;
+    int32_t player_push_speed_q16;
     int32_t weight_q16;
     int32_t ground_acceleration_q16;
     int32_t turn_acceleration_q16;

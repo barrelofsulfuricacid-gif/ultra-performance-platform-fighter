@@ -14879,7 +14879,12 @@ static int run_getup_attack_hit_test(
         return fail("getup-attack-front-hit");
     }
 
-    for (tick = UINT16_C(0); tick < UINT16_C(9); ++tick)
+    for (tick = UINT16_C(0);
+         tick < UINT16_C(30) &&
+         back_inspection.players[0].position_x_q16 <=
+             back_inspection.players[1].position_x_q16 +
+                 content->fighter.half_width_q16;
+         ++tick)
     {
         if (!step_reaction_duel(
                 back,

@@ -20,7 +20,10 @@ import time
 import melee
 
 
-def input_trace(platform_only: bool = False) -> list[dict[str, object]]:
+def input_trace(
+    platform_only: bool = False,
+    push_only: bool = False,
+) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
 
     def extend(label: str, xs: list[float]) -> None:
@@ -63,6 +66,12 @@ def input_trace(platform_only: bool = False) -> list[dict[str, object]]:
 
     def repeat(label: str, count: int, **inputs: object) -> None:
         trace.extend(command(label, **inputs) for _ in range(count))
+
+    if push_only:
+        repeat("push_settle", 60)
+        repeat("push_walk_right", 240, main_x=0.7)
+        repeat("push_recovery", 60)
+        return trace
 
     if platform_only:
         repeat("platform_settle", 60)
@@ -790,13 +799,14 @@ def choose_match(
     player_one: melee.Controller,
     player_two: melee.Controller,
     stage: melee.Stage,
+    opponent: melee.Character = melee.Character.FOX,
 ) -> None:
     if gamestate.menu_state in (
         melee.Menu.CHARACTER_SELECT,
         melee.Menu.SLIPPI_ONLINE_CSS,
     ):
         melee.MenuHelper.choose_character(
-            melee.Character.FOX,
+            opponent,
             gamestate,
             player_two,
             costume=0,
@@ -884,6 +894,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 melee.Stage.BATTLEFIELD
                 if args.platform_only
                 else melee.Stage.FINAL_DESTINATION,
+                melee.Character.CPTFALCON
+                if args.push_only
+                else melee.Character.FOX,
             )
         else:
             state = None if gamestate is None else str(gamestate.menu_state)
@@ -893,7 +906,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         player_two.release_all()
         rows: list[dict[str, object]] = []
         origin_x: float | None = None
-        trace = input_trace(platform_only=args.platform_only)
+        origin_two_x: float | None = None
+        trace = input_trace(
+            platform_only=args.platform_only,
+            push_only=args.push_only,
+        )
         pipeline_delay = 2
         commands = trace + [
             {
@@ -950,7 +967,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             if bool(sample["taunt"]):
                 player_one.press_button(melee.Button.BUTTON_D_UP)
             gamestate = console.step()
-            if gamestate is None or 1 not in gamestate.players:
+            if (
+                gamestate is None
+                or 1 not in gamestate.players
+                or 2 not in gamestate.players
+            ):
                 raise RuntimeError(
                     f"missing player state at command frame {command_index}"
                 )
@@ -959,6 +980,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             index = command_index - pipeline_delay
             scheduled = trace[index]
             player = gamestate.players[1]
+            player_two_state = gamestate.players[2]
             observed_x = float(player.controller_state.main_stick[0])
             observed_y = float(player.controller_state.main_stick[1])
             observed_c_x = float(player.controller_state.c_stick[0])
@@ -1060,6 +1082,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 )
             if origin_x is None:
                 origin_x = player.position.x
+            if origin_two_x is None:
+                origin_two_x = player_two_state.position.x
             rows.append(
                 {
                     "trace_frame": index,
@@ -1115,11 +1139,36 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "air_velocity_x": float(player.speed_air_x_self),
                     "velocity_y": float(player.speed_y_self),
                     "shield_health": float(player.shield_strength),
+                    "opponent_action": player_two_state.action.name,
+                    "opponent_action_value": int(
+                        player_two_state.action.value
+                    ),
+                    "opponent_action_frame": float(
+                        player_two_state.action_frame
+                    ),
+                    "opponent_facing": (
+                        1 if player_two_state.facing else -1
+                    ),
+                    "opponent_grounded": bool(player_two_state.on_ground),
+                    "opponent_position_x": float(player_two_state.position.x),
+                    "opponent_position_x_from_origin": float(
+                        player_two_state.position.x - origin_two_x
+                    ),
+                    "opponent_position_y": float(player_two_state.position.y),
+                    "opponent_ground_velocity_x": float(
+                        player_two_state.speed_ground_x_self
+                    ),
+                    "opponent_air_velocity_x": float(
+                        player_two_state.speed_air_x_self
+                    ),
+                    "opponent_velocity_y": float(
+                        player_two_state.speed_y_self
+                    ),
                 }
             )
 
         return {
-            "schema": 3,
+            "schema": 4,
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
             "libmelee_version": importlib.metadata.version("melee"),
@@ -1129,6 +1178,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "sha256": sha256(iso),
             },
             "fighter": "CPTFALCON",
+            "opponent": "CPTFALCON" if args.push_only else "FOX",
             "stage": "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION",
             "controller_postframe_pipeline_delay": pipeline_delay,
             "rows": rows,
@@ -1146,7 +1196,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--menu-timeout", type=float, default=120.0)
     parser.add_argument("--start-frame", type=int, default=120)
-    parser.add_argument("--platform-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--platform-only", action="store_true")
+    mode.add_argument("--push-only", action="store_true")
     return parser.parse_args()
 
 

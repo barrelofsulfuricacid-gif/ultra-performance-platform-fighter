@@ -226,6 +226,9 @@ def main() -> int:
 
     capture = json.loads(args.capture.read_text(encoding="utf-8"))
     oracle_rows = capture["rows"]
+    push_mode = bool(oracle_rows) and str(
+        oracle_rows[0].get("label", "")
+    ).startswith("push_")
     input_lines: list[str] = []
     for row in oracle_rows:
         observed_analog = float(row.get("observed_analog_shoulder", 0.0))
@@ -274,6 +277,8 @@ def main() -> int:
     runner_command = [str(args.runner)]
     if capture.get("stage") == "BATTLEFIELD":
         runner_command.append("--platform")
+    elif push_mode:
+        runner_command.append("--push")
     completed = subprocess.run(
         runner_command,
         input=input_text,
@@ -441,6 +446,37 @@ def main() -> int:
                 "shield_strength "
                 f"expected={expected_shield_strength} actual={actual_shield_strength}"
             )
+        if push_mode:
+            expected_opponent_position = scaled_q16(
+                float(oracle["opponent_position_x_from_origin"])
+            )
+            actual_opponent_position = int(
+                native["opponent_position_x_q16_from_origin"]
+            )
+            expected_opponent_grounded = (
+                1 if bool(oracle["opponent_grounded"]) else 0
+            )
+            actual_opponent_grounded = int(native["opponent_grounded"])
+            if (
+                abs(
+                    actual_opponent_position -
+                    expected_opponent_position
+                )
+                > args.position_tolerance_q16
+            ):
+                differences.append(
+                    "opponent_position_q16 "
+                    f"expected={expected_opponent_position} "
+                    f"actual={actual_opponent_position} "
+                    "delta="
+                    f"{actual_opponent_position - expected_opponent_position}"
+                )
+            if actual_opponent_grounded != expected_opponent_grounded:
+                differences.append(
+                    "opponent_grounded "
+                    f"expected={expected_opponent_grounded} "
+                    f"actual={actual_opponent_grounded}"
+                )
         if differences:
             print(
                 "ssbm-movement-compare=fail "

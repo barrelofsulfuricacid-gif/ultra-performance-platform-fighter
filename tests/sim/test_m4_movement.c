@@ -10656,7 +10656,8 @@ static int run_ledge_occupancy_test(
     pf_m4_inspection inspection;
     uint32_t tick;
 
-    content.stage.spawn_spacing_q16 = INT32_C(1);
+    content.stage.spawn_spacing_q16 =
+        content.fighter.player_push_half_width_q16;
     if (!expect_status(
             pf_m4_make_content_view(&content, &view),
             PF_STATUS_OK,
@@ -13406,6 +13407,102 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
     return ((player_bits >> 18U) & UINT32_C(1)) == UINT32_C(0);
 }
 
+static int run_player_push_test(const pf_m4_content *default_content)
+{
+    test_sim_storage storage;
+    pf_m4_content content = *default_content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection before;
+    pf_m4_inspection after;
+    int32_t expected_left;
+    int32_t expected_right;
+
+    content.stage.spawn_spacing_q16 =
+        content.fighter.player_push_half_width_q16 - INT32_C(1);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "player-push-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0x50555348)),
+            PF_STATUS_OK,
+            "player-push-reset") ||
+        !expect_status(
+            pf_m4_inspect(sim, &before),
+            PF_STATUS_OK,
+            "player-push-inspect-before"))
+    {
+        return 0;
+    }
+
+    expected_left =
+        before.players[0].position_x_q16 -
+        content.fighter.player_push_speed_q16;
+    expected_right =
+        before.players[1].position_x_q16 +
+        content.fighter.player_push_speed_q16;
+    if (!step_duel_players(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &after) ||
+        after.players[0].position_x_q16 != expected_left ||
+        after.players[1].position_x_q16 != expected_right ||
+        after.players[0].velocity_x_q16 != INT32_C(0) ||
+        after.players[1].velocity_x_q16 != INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=player-push-displacement\n");
+        return 0;
+    }
+
+    if (!step_duel_players(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &after) ||
+        after.players[0].position_x_q16 != expected_left ||
+        after.players[1].position_x_q16 != expected_right)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=player-push-strict-boundary\n");
+        return 0;
+    }
+
+    content = *default_content;
+    content.fighter.player_push_half_width_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_validate_content(&content),
+            PF_STATUS_INVALID_CONFIG,
+            "player-push-invalid-radius"))
+    {
+        return 0;
+    }
+    content = *default_content;
+    content.fighter.player_push_speed_q16 = INT32_C(0);
+    return expect_status(
+        pf_m4_validate_content(&content),
+        PF_STATUS_INVALID_CONFIG,
+        "player-push-invalid-speed");
+}
+
 static int run_team_hash_trace(const pf_content_view *content)
 {
     test_sim_storage storage;
@@ -13546,6 +13643,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_player_push_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_tap_jump_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(
             run_jump_takeoff_momentum_test(&content, &view)) ||
@@ -13587,6 +13685,7 @@ int main(void)
     (void)printf(
         "m4-movement=pass content_schema=%u deterministic_ticks=20000 "
         "movement_core=pass tap_jump=1 jump_takeoff_momentum=1 "
+        "player_push=1 "
         "teeter_cancel=1 "
         "taunt_cancel=1 "
         "double_jump_cancel=1 vector_ascent=1 "

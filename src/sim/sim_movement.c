@@ -196,7 +196,15 @@ static int32_t pf_m4_scale_axis_q16(
 {
     const int64_t denominator =
         axis < INT16_C(0) ? INT64_C(32768) : INT64_C(32767);
-    return (int32_t)(((int64_t)axis * (int64_t)magnitude_q16) /
+    const int64_t product =
+        (int64_t)axis * (int64_t)magnitude_q16;
+
+    return product < INT64_C(0)
+               ? (int32_t)(
+                     -((-product + denominator / INT64_C(2)) /
+                       denominator))
+               : (int32_t)(
+                     (product + denominator / INT64_C(2)) /
                      denominator);
 }
 
@@ -2692,7 +2700,8 @@ pf_status pf_m4_step_player(
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
-    uint32_t player_index)
+    uint32_t player_index,
+    int32_t player_nudge_x_q16)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
     const pf_m4_stage_data *stage = &content->stage;
@@ -6551,6 +6560,7 @@ pf_status pf_m4_step_player(
     previous_position_x = position_x;
     next_position =
         (int64_t)position_x +
+        (int64_t)player_nudge_x_q16 +
         (int64_t)(initial_dash_entered_this_tick != 0
                       ? initial_dash_entry_motion_velocity_x
                       : velocity_x) +

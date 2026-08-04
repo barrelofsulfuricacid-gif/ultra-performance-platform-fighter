@@ -399,7 +399,8 @@ pf_status pf_m4_step_player(
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
-    uint32_t player_index);
+    uint32_t player_index,
+    int32_t player_nudge_x_q16);
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,

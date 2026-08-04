@@ -135,6 +135,86 @@ static pf_status pf_m4_begin_sudden_death(
     return PF_STATUS_OK;
 }
 
+static int32_t pf_m4_player_nudge_x_q16(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    uint32_t player_index)
+{
+    const pf_m4_fighter_data *fighter = &content->fighter;
+    const int64_t overlap_distance_q16 =
+        INT64_C(2) * fighter->player_push_half_width_q16;
+    int32_t nudge_x_q16 = INT32_C(0);
+    uint32_t other_index;
+
+    if (world->active[player_index] == UINT8_C(0) ||
+        world->grounded[player_index] == UINT8_C(0) ||
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_ELIMINATED ||
+        world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+        world->support[player_index] ==
+            (uint8_t)PF_M4_SURFACE_NONE ||
+        world->support[player_index] ==
+            (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM)
+    {
+        return INT32_C(0);
+    }
+
+    /*
+     * SSBM ftCommon_8007DD7C accumulates one fixed horizontal nudge for
+     * every grounded fighter whose character push radii overlap on the same
+     * (or an adjacent) floor. The current M4 stages expose each disconnected
+     * floor as a distinct support, so equality is the applicable topology.
+     */
+    for (other_index = UINT32_C(0);
+         other_index < (uint32_t)world->player_count;
+         ++other_index)
+    {
+        int64_t delta_x_q16;
+
+        if (other_index == player_index ||
+            world->active[other_index] == UINT8_C(0) ||
+            world->grounded[other_index] == UINT8_C(0) ||
+            world->action_state[other_index] ==
+                (uint8_t)PF_M4_ACTION_RESPAWN_WAIT ||
+            world->action_state[other_index] ==
+                (uint8_t)PF_M4_ACTION_ELIMINATED ||
+            world->action_state[other_index] ==
+                (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM ||
+            world->support[other_index] !=
+                world->support[player_index] ||
+            world->grab_target_slot[other_index] !=
+                UINT8_C(0))
+        {
+            continue;
+        }
+
+        delta_x_q16 =
+            (int64_t)world->position_x_q16[player_index] -
+            (int64_t)world->position_x_q16[other_index];
+        if (delta_x_q16 <= -overlap_distance_q16 ||
+            delta_x_q16 >= overlap_distance_q16)
+        {
+            continue;
+        }
+
+        if (delta_x_q16 < INT64_C(0) ||
+            (delta_x_q16 == INT64_C(0) &&
+             player_index < other_index))
+        {
+            nudge_x_q16 -= fighter->player_push_speed_q16;
+        }
+        else
+        {
+            nudge_x_q16 += fighter->player_push_speed_q16;
+        }
+    }
+
+    return nudge_x_q16;
+}
+
 static pf_status pf_m4_resolve_stock_result(
     pf_sim *sim,
     pf_sim_scratch *scratch,
@@ -289,6 +369,7 @@ pf_status pf_sim_tick_impl(
     pf_sim_scratch *scratch;
     pf_status status;
     uint64_t forfeit_mask = UINT64_C(0);
+    int32_t player_nudge_x_q16[PF_SIM_MAX_PLAYERS] = {INT32_C(0)};
     uint32_t player_index;
 
     if (out_result == NULL)
@@ -359,6 +440,16 @@ pf_status pf_sim_tick_impl(
          player_index < (uint32_t)world->player_count;
          ++player_index)
     {
+        player_nudge_x_q16[player_index] =
+            pf_m4_player_nudge_x_q16(
+                &sim->content,
+                world,
+                player_index);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)world->player_count;
+         ++player_index)
+    {
         const pf_input_frame *input = &inputs[player_index];
         pf_input_frame charge_input;
         pf_input_frame reflector_input;
@@ -403,7 +494,8 @@ pf_status pf_sim_tick_impl(
             world,
             scratch,
             &effective_input,
-            player_index);
+            player_index,
+            player_nudge_x_q16[player_index]);
         if (status != PF_STATUS_OK)
         {
             pf_write_result(world, NULL, out_result);

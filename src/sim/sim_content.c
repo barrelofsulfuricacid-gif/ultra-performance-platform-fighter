@@ -214,6 +214,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->schema_version);
     pf_m4_hash_i32(hash, fighter->half_width_q16);
     pf_m4_hash_i32(hash, fighter->half_height_q16);
+    pf_m4_hash_i32(hash, fighter->player_push_half_width_q16);
+    pf_m4_hash_i32(hash, fighter->player_push_speed_q16);
     pf_m4_hash_i32(hash, fighter->weight_q16);
     pf_m4_hash_i32(hash, fighter->ground_acceleration_q16);
     pf_m4_hash_i32(hash, fighter->turn_acceleration_q16);
@@ -891,11 +893,15 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->schema_version = PF_M4_FIGHTER_SCHEMA_VERSION;
     fighter->half_width_q16 = PF_Q16_RATIO(9, 20);
     fighter->half_height_q16 = PF_Q16_RATIO(4, 5);
+    fighter->player_push_half_width_q16 = PF_Q16_RATIO(42, 115);
+    fighter->player_push_speed_q16 = PF_Q16_RATIO(18, 575);
     fighter->weight_q16 = PF_Q16_ONE;
     fighter->ground_acceleration_q16 = PF_Q16_RATIO(9, 575);
     fighter->turn_acceleration_q16 = PF_Q16_RATIO(48, 2875);
     fighter->traction_q16 = PF_Q16_RATIO(24, 2875);
-    fighter->walk_speed_q16 = PF_Q16_RATIO(51, 575);
+    /* Nearest Q16 encoding; truncation loses one unit at Falcon's 0.625 walk. */
+    fighter->walk_speed_q16 =
+        PF_Q16_RATIO(51, 575) + INT32_C(1);
     fighter->run_speed_q16 = PF_Q16_RATIO(6, 25);
     fighter->initial_dash_speed_q16 = PF_Q16_RATIO(24, 115);
     fighter->walk_initial_velocity_q16 = PF_Q16_RATIO(9, 575);
@@ -1898,6 +1904,12 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->half_height_q16 <= INT32_C(0) ||
         fighter->half_width_q16 > maximum_fighter_extent_q16 ||
         fighter->half_height_q16 > maximum_fighter_extent_q16 ||
+        fighter->player_push_half_width_q16 <= INT32_C(0) ||
+        fighter->player_push_half_width_q16 >
+            maximum_fighter_extent_q16 ||
+        fighter->player_push_speed_q16 <= INT32_C(0) ||
+        fighter->player_push_speed_q16 >
+            maximum_fighter_extent_q16 ||
         fighter->weight_q16 < PF_Q16_ONE / INT32_C(2) ||
         fighter->weight_q16 > INT32_C(2) * PF_Q16_ONE ||
         fighter->ground_acceleration_q16 <= INT32_C(0) ||

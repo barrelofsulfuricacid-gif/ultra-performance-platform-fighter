@@ -58,6 +58,8 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | air-dodge force X / Y | 3.1 / 3.1 | 186/575 / 11/20 |
 | air-dodge decay | 0.9 | 9/10 |
 | post-air-dodge drift cap | 1.12 x 0.6 | 1008/14375 |
+| grounded player-push center offset / radius | 0.0 / 3.5 | 0 / 42/115 |
+| grounded player-push nudge per overlap | 0.3 | 18/575 |
 
 ## Imported common-input values
 
@@ -78,6 +80,15 @@ without scaling. Values are stored in deterministic Q16 fixed point.
 | crouch entry / release threshold | 0.6875 / 0.625 | first accepted entry axis 22528 / exact held boundary 20479 |
 | analog shield common dead zone / first accepted raw value | 0.30 / 0.30 | threshold 19661 of 65535; a digital click is 65535 |
 | air-dodge X/Y dead zone | 0.25 / 0.25 | 8192 of 32767 |
+
+The player-push values come from Falcon's `ftDataCaptain` `x2C4` vector in
+`PlCa.dat` and common-data field `x450` in `PlCo.dat`. The independently
+written implementation follows pinned decomp routines `ftCommon_8007DD7C` and
+`ftCommon_8007E0E4`: active grounded fighters on the same connected support
+receive the nudge only while the strict sum-of-radii overlap test succeeds.
+Falcon's walk maximum uses the nearest Q16 encoding of `51/575`; truncating it
+by one Q16 unit accumulates enough error to select the wrong executable push
+boundary after a long held walk.
 
 ## Repository controls
 

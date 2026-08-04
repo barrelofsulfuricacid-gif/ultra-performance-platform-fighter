@@ -101,7 +101,15 @@ as Dolphin. A one-frame down tap is a negative control; held down produces
 displayed `Squat` frames 1-3, then `Pass` frame 0 with the executable's 0.63
 downward speed, and lands on the solid floor on the same frame as Dolphin.
 The ordinary laboratory-stage runner remains isolated from this Battlefield
-fixture. These passing traces are regression slices, not evidence that every
-applicable movement or shared-simulation route is equivalent; player push
-collision and the other remaining systems still require identical-input
-Dolphin reproducers and comparable-state assertions.
+fixture.
+
+Grounded player push is qualified by a separate 360-frame Final Destination
+Falcon-versus-Falcon capture. It compares both player positions while Falcon
+walks into an idle Falcon and reproduces the executable's strict 7.0-unit
+combined-radius boundary, fixed 0.3-unit per-player nudge, alternating
+push/no-push cadence, and unchanged self-induced velocities. The production
+implementation follows pinned `ftCommon_8007DD7C`/`ftCommon_8007E0E4`
+behavior for active grounded players on the same project support. These passing
+traces are regression slices, not evidence that every applicable movement or
+shared-simulation route is equivalent; the other remaining systems still
+require identical-input Dolphin reproducers and comparable-state assertions.

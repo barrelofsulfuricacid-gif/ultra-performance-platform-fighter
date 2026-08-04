@@ -37,6 +37,8 @@ int main(int argc, char **argv)
     pf_m4_inspection inspection;
     int32_t origin_x_q16;
     int32_t origin_y_q16;
+    int32_t opponent_origin_x_q16;
+    int32_t opponent_origin_y_q16;
     uint32_t trace_frame = UINT32_C(0);
     int input_x;
     int input_y;
@@ -47,14 +49,21 @@ int main(int argc, char **argv)
     uint64_t buttons;
     pf_status status;
     int platform_mode = 0;
+    int push_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
         platform_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--push") == 0)
+    {
+        push_mode = 1;
+    }
     else if (argc != 1)
     {
-        (void)fprintf(stderr, "usage: pf_m4_movement_trace [--platform]\n");
+        (void)fprintf(
+            stderr,
+            "usage: pf_m4_movement_trace [--platform|--push]\n");
         return 1;
     }
 
@@ -105,6 +114,12 @@ int main(int argc, char **argv)
     content.stage.upper_platform_center_x_q16 =
         -INT32_C(25) * PF_Q16_ONE;
     content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
+    if (push_mode != 0)
+    {
+        /* Final Destination starts ports one and two at -60/+60. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
+    }
     status = pf_m4_make_content_view(&content, &view);
     if (status != PF_STATUS_OK)
     {
@@ -198,6 +213,8 @@ int main(int argc, char **argv)
     }
     origin_x_q16 = inspection.players[0].position_x_q16;
     origin_y_q16 = inspection.players[0].position_y_q16;
+    opponent_origin_x_q16 = inspection.players[1].position_x_q16;
+    opponent_origin_y_q16 = inspection.players[1].position_y_q16;
 
     (void)puts(
         "trace_frame,input_x,input_y,input_c_x,input_c_y,left_trigger,"
@@ -206,7 +223,11 @@ int main(int argc, char **argv)
         "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
         "position_y_q16_from_origin,"
         "velocity_x_q16,velocity_y_q16,shield_health_q16,shield_strength,"
-        "powershield");
+        "powershield,opponent_action_state,opponent_action_ticks,"
+        "opponent_facing,opponent_grounded,"
+        "opponent_position_x_q16_from_origin,"
+        "opponent_position_y_q16_from_origin,"
+        "opponent_velocity_x_q16,opponent_velocity_y_q16");
     while (scanf(
                "%d,%d,%d,%d,%u,%u,%" SCNu64,
                &input_x,
@@ -267,7 +288,8 @@ int main(int argc, char **argv)
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
             ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRIu32 ",%u,%u\n",
+            ",%" PRIu32 ",%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
+            ",%" PRId32 ",%" PRId32 "\n",
             trace_frame,
             input_x,
             input_y,
@@ -289,7 +311,17 @@ int main(int argc, char **argv)
             inspection.players[0].velocity_y_q16,
             inspection.players[0].shield_health_q16,
             (unsigned int)inspection.players[0].shield_strength,
-            (unsigned int)inspection.players[0].powershield);
+            (unsigned int)inspection.players[0].powershield,
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].action_ticks,
+            (int)inspection.players[1].facing,
+            (unsigned int)inspection.players[1].grounded,
+            inspection.players[1].position_x_q16 -
+                opponent_origin_x_q16,
+            inspection.players[1].position_y_q16 -
+                opponent_origin_y_q16,
+            inspection.players[1].velocity_x_q16,
+            inspection.players[1].velocity_y_q16);
         ++trace_frame;
     }
     if (ferror(stdin) != 0)
