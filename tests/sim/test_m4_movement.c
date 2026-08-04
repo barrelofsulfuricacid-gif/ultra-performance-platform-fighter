@@ -3633,6 +3633,76 @@ static int run_ground_control_test(
             "m4-movement=fail operation=standing-turn-taunt-interrupt\n");
         return 0;
     }
+    if (!expect_status(
+            pf_sim_reset(sim, UINT64_C(2)),
+            PF_STATUS_OK,
+            "landing-taunt-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(240) &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_LANDING;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(240) ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=landing-taunt-setup\n");
+        return 0;
+    }
+    for (tick = UINT32_C(1); tick <= UINT32_C(3); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_LANDING ||
+            inspection.players[0].action_ticks != (uint16_t)tick)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=landing-taunt-frame-four\n");
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_TAUNT,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_TAUNT ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=landing-taunt-interrupt\n");
+        return 0;
+    }
     return 1;
 }
 

@@ -2466,17 +2466,22 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion to jump/landing, shield/light shield, rolls, spot dodge, air
   dodge, collision/ledges, hit reactions, DI/SDI, teching, stale moves, stocks,
   respawn, and match-state behavior wherever an SSBM counterpart is intended.
-- The passing 2,875-frame movement/defense/aerial/crouch trace is a regression
+- The passing 3,035-frame movement/defense/aerial/crouch trace is a regression
   slice,
   not completion of this gate. Every uncovered applicable route and every
   owner-observed divergence must become a pinned identical-input differential
   reproducer. M4 remains unfinished, and fidelity work continues without
   waiting for CI, until the complete applicable corpus has no unresolved
   divergence.
+- Completion is not bounded by the current corpus or by owner-reported bugs.
+  The active audit must systematically discover every remaining applicable
+  state, transition, analog threshold, timer, and momentum condition from the
+  decomp, then qualify it by replaying the same ordered per-frame inputs in
+  Dolphin and the simulator. Passing captures prove only the routes they cover.
 
 ## 2026-08-04 Falcon crouch executable-oracle slice
 
-- The identical-input Dolphin route now contains 2,875 frames. The added
+- The identical-input Dolphin route now contains 3,035 frames. The added
   full-down grounded sequence observes seven displayed `CROUCH_START`/`Squat`
   frames, a held `CROUCH`/`SquatWait`, ten displayed
   `CROUCH_END`/`SquatRv` frames, then ground idle. Native comparison passes
@@ -2503,6 +2508,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   pre-router facing update already had the correct order; the common taunt
   eligibility list now includes `STANDING_TURN` and a focused assertion pins
   the action, tick, and facing result.
+- Falcon's normal `Landing` exposes the common interrupt router immediately
+  after displayed frame 4. The zero-based production timer previously waited
+  one extra frame; one shared predicate now translates it to the displayed
+  boundary for movement, jump, attack, shield, special, and taunt. A short-hop
+  route pins `Landing` frames 1-4 followed by frame-1 `AppealS`.
 - Decomp review at pinned revision
   `9509dc04406fb2028bfab01243841ba4787c0fb7` confirms that `Squat` and
   `SquatWait` are crouch-cancel eligible while `SquatRv` is not. Attack,
@@ -2522,13 +2532,13 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   locomotion. Player push collision remains an explicit uncovered shared-
   simulation route rather than being silently accepted as movement drift.
 - The current 240-tick replay corpus SHA-256 is
-  `a7be7272ed74f5c409edfbb62670d3b79396e33552c037b8f67ef459416997fe`,
+  `a62e9ee777bc4571f38fe7019e0c7016cdf0e4a3681afbfbfd640f103b714904`,
   final-state SHA-256 is
-  `9bfff0050dec26d578658301b99d52644a142617d99d7c00e22b7c4a43c7b225`,
-  and event-journal SHA-256 remains
-  `12c446555a8e4b81e544d762a9c066003f509f9859a7d8ba6afb5b5fab95db71`.
-  The repeated-match verifier digest is `afe738a9676344d7` after the pinned
-  Falcon taunt-duration correction.
+  `d4327bbaa0b8a681ce87076f6db48367502497051376b298cb48da018d3d5c83`,
+  and event-journal SHA-256 is
+  `07cf2309c1da3ce73cddbee2a651698e3f6cdb2a1295c231863e7fe11d4e2d1f`.
+  The repeated-match verifier digest is `9dc2488914acae78` after the pinned
+  Falcon landing-interrupt correction.
 - Windows MSVC and WSL Linux GCC each pass all 22 CTest targets after the
   schema/fixture refresh. The clean Emscripten 6.0.3 build has byte-identical
   native/Wasm replay output, the rebuilt live browser page reports every

@@ -189,7 +189,10 @@ oracles are defined in the combat contract; movement adds no counter-only
 state.
 
 A deliberate down input after the apex enters the fixed fast-fall speed.
-Landing enters a finite landing state.
+Landing enters a finite landing state. Falcon's first common interrupt is
+available after displayed `LANDING` frame 4; the internal zero-based timer is
+compared as the following displayed frame so movement, jump, attack, shield,
+special, and taunt all share that exact boundary.
 
 ## Grounded rolls and spot dodge
 

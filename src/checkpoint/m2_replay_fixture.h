@@ -9,11 +9,11 @@
 #define PF_M2_REPLAY_PLAYERS UINT8_C(4)
 #define PF_M2_REPLAY_SEED UINT64_C(0x0123456789abcdef)
 #define PF_M2_REPLAY_CORPUS_SHA256                                      \
-    "a7be7272ed74f5c409edfbb62670d3b79396e33552c037b8f67ef459416997fe"
+    "a62e9ee777bc4571f38fe7019e0c7016cdf0e4a3681afbfbfd640f103b714904"
 #define PF_M2_REPLAY_FINAL_SHA256                                       \
-    "9bfff0050dec26d578658301b99d52644a142617d99d7c00e22b7c4a43c7b225"
+    "d4327bbaa0b8a681ce87076f6db48367502497051376b298cb48da018d3d5c83"
 #define PF_M2_REPLAY_EVENTS_SHA256                                      \
-    "12c446555a8e4b81e544d762a9c066003f509f9859a7d8ba6afb5b5fab95db71"
+    "07cf2309c1da3ce73cddbee2a651698e3f6cdb2a1295c231863e7fe11d4e2d1f"
 
 pf_content_view pf_m2_replay_make_content(void);
 

@@ -57,8 +57,15 @@ applicable systems. Work continues after any individual capture or CI run, and
 M4 remains unfinished while any applicable divergence or uncovered route
 remains.
 
+This is an exhaustive coverage obligation, not a finite bug list. Owner reports
+add mandatory reproducers but do not define the boundary of the work. The M4
+audit must systematically enumerate the remaining shared states, transitions,
+input thresholds, timers, and momentum conditions from the decomp, then replay
+the same ordered per-frame inputs in Dolphin and the simulator for every
+applicable route. A passing current corpus proves only its captured routes.
+
 Current qualification evidence is deliberately narrower than this acceptance
-gate. The pinned 2,875-frame Captain Falcon trace currently agrees for its
+gate. The pinned 3,035-frame Captain Falcon trace currently agrees for its
 locomotion, shield/light-shield, forward/backward/C-stick roll, spot-dodge,
 jump-from-shield, fresh-opposite-trigger air-dodge, analog-trigger-in-air,
 nonzero-velocity dash/turn, jump-squat reversal, short/full-hop, neutral-stick
@@ -66,8 +73,8 @@ double-jump, fast-fall, landing, full-down crouch start/hold/release, exact
 crouch entry/release threshold boundaries, jump interrupts from all three
 crouch states, held-crouch opposite dash through `Turn`, and
 crouch-release walk, guard interruption from all three crouch states, and
-fresh taunt from all three crouch states and standing turn through Falcon's
-complete 60-frame animation.
+fresh taunt from all three crouch states, standing turn, and the first legal
+normal-landing interrupt through Falcon's complete 60-frame animation.
 That passing trace is a regression slice, not
 evidence that every applicable movement or shared-simulation route is
 equivalent; the remaining crouch attack/special/grab/platform-pass IASA routes,

@@ -68,11 +68,11 @@ used by the native/WebAssembly corpus test and browser inspector:
   special-landing state in the production combat path. The verified event
   stream includes packed per-player action transitions.
 - Replay SHA-256
-  `a7be7272ed74f5c409edfbb62670d3b79396e33552c037b8f67ef459416997fe`.
+  `a62e9ee777bc4571f38fe7019e0c7016cdf0e4a3681afbfbfd640f103b714904`.
 - Final state SHA-256
-  `9bfff0050dec26d578658301b99d52644a142617d99d7c00e22b7c4a43c7b225`.
+  `d4327bbaa0b8a681ce87076f6db48367502497051376b298cb48da018d3d5c83`.
 - Per-tick event-journal SHA-256 under domain `PFEVT001`
-  `12c446555a8e4b81e544d762a9c066003f509f9859a7d8ba6afb5b5fab95db71`.
+  `07cf2309c1da3ce73cddbee2a651698e3f6cdb2a1295c231863e7fe11d4e2d1f`.
 
 The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,

@@ -2289,6 +2289,16 @@ static int pf_m4_action_can_start_taunt(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_TEETER;
 }
 
+static int pf_m4_normal_landing_is_interruptible(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    return action_state != (uint8_t)PF_M4_ACTION_LANDING ||
+           (uint32_t)action_ticks + UINT32_C(1) >=
+               (uint32_t)fighter->landing_interruptible_tick;
+}
+
 static int pf_m4_drop_cancel_hitlag_is_eligible(
     const pf_m4_fighter_data *fighter,
     uint16_t action_ticks,
@@ -3979,7 +3989,10 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_LANDING &&
-        action_ticks >= fighter->landing_interruptible_tick &&
+        pf_m4_normal_landing_is_interruptible(
+            fighter,
+            action_state,
+            action_ticks) &&
         (horizontal_magnitude > fighter->axis_dead_zone ||
          vertical_magnitude > fighter->axis_dead_zone ||
          jump_pressed != 0 || attack_pressed != 0 ||
@@ -4041,8 +4054,10 @@ pf_status pf_m4_step_player(
           action_state != (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
           !pf_m4_action_is_ground_attack(action_state) &&
           action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
-          !(action_state == (uint8_t)PF_M4_ACTION_LANDING &&
-            action_ticks < fighter->landing_interruptible_tick) &&
+          pf_m4_normal_landing_is_interruptible(
+              fighter,
+              action_state,
+              action_ticks) &&
           action_state !=
               (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
           !pf_m4_action_is_aerial_landing(action_state) &&
@@ -4084,8 +4099,10 @@ pf_status pf_m4_step_player(
         action_state != (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
         !pf_m4_action_is_ground_attack(action_state) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
-        !(action_state == (uint8_t)PF_M4_ACTION_LANDING &&
-          action_ticks < fighter->landing_interruptible_tick) &&
+        pf_m4_normal_landing_is_interruptible(
+            fighter,
+            action_state,
+            action_ticks) &&
         action_state != (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
         !pf_m4_action_is_aerial_landing(action_state) &&
         !pf_m4_action_locks_ground_control(action_state))
@@ -4101,8 +4118,10 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
-        !(action_state == (uint8_t)PF_M4_ACTION_LANDING &&
-          action_ticks < fighter->landing_interruptible_tick) &&
+        pf_m4_normal_landing_is_interruptible(
+            fighter,
+            action_state,
+            action_ticks) &&
         action_state != (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
         !pf_m4_action_is_aerial_landing(action_state) &&
         !pf_m4_action_is_ground_attack(action_state) &&
@@ -4149,8 +4168,10 @@ pf_status pf_m4_step_player(
         !hitstun_locked &&
         grounded != UINT8_C(0) &&
         action_state != (uint8_t)PF_M4_ACTION_JUMP_SQUAT &&
-        !(action_state == (uint8_t)PF_M4_ACTION_LANDING &&
-          action_ticks < fighter->landing_interruptible_tick) &&
+        pf_m4_normal_landing_is_interruptible(
+            fighter,
+            action_state,
+            action_ticks) &&
         action_state != (uint8_t)PF_M4_ACTION_SPECIAL_LANDING &&
         !pf_m4_action_is_aerial_landing(action_state) &&
         !pf_m4_action_is_ground_attack(action_state) &&

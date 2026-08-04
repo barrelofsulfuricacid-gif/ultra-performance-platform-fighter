@@ -404,6 +404,13 @@ Project-specific infrastructure and explicitly original content mechanics have
 no SSBM-equivalence claim, but they do not weaken the equivalence requirement
 for the shared engine behavior they use.
 
+Coverage of this gate is exhaustive over the applicable M4 behavior surface;
+it is not limited to owner-reported bugs, the routes in the current corpus, or
+behavior already named in this plan. Passing a finite differential capture is
+only evidence for the sampled routes. Decomp review and systematic route
+inventory must continue to discover and qualify every other applicable state,
+transition, threshold, timer, and momentum condition before M4 can pass.
+
 #### M4.2 — Combat system
 
 Implement:

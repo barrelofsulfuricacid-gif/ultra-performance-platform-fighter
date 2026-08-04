@@ -33,7 +33,7 @@ movement placeholder on the original laboratory stage.
 | Ledge jump velocities | equivalent | Falcon 1.0 horizontal and 3.3 vertical attributes are mapped. |
 | Other ledge actions | partial | Hang, drop, climb, roll, attack, regrab lockout, and invulnerability exist, but exact animation-command and percent-dependent ledge tables are not imported. |
 | Wall jump / wall and ceiling tech velocities | equivalent | Falcon passive-wall, wall-jump, and passive-ceiling attributes are mapped. |
-| Normal landing lag | equivalent | Falcon's four-frame value is mapped. |
+| Normal landing lag | equivalent | Falcon's four-frame value is mapped. A fresh taunt after displayed frame 4 proves the common interrupt router opens on the executable's exact boundary rather than one frame late. |
 | Aerial landing lag | equivalent | Distinct neutral/forward/back/up/down landing states select Falcon's 15/19/18/15/24 table; L-cancel states halve the selected value. |
 | Shield input, light shield, shield size | partial | Separate analog triggers, no light-shield air dodge, shield health scaling, and rendering exist; full common shield formulas/tables are not yet imported. |
 | Roll, spot dodge, air dodge buffering | partial | Production paths and per-trigger edge tracking exist. Air-dodge force, dead zone, decay, and post-dodge drift cap are imported with axis-specific unit conversion; exact action/animation tables remain authored. |
@@ -64,7 +64,7 @@ position, velocity, and observed controller sample. `pf_m4_movement_trace`
 replays those observed samples through the native simulator, and
 `tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
 
-The current comparison passes 2,875 identical input frames covering held
+The current comparison passes 3,035 identical input frames covering held
 dash/run, complete run turnaround and post-turnaround lockout, released dash
 and run brake, direct dash dancing, moving dashbacks, two-sample dash
 recognition, smash and empty pivots, basic standing turn including its
@@ -74,7 +74,8 @@ Falcon's complete full-down crouch start/hold/release sequence, exact and
 just-beyond entry/release threshold samples, jump interruption from every
 crouch state, held-crouch opposite dash/turn, crouch-release walk, and fresh
 digital guard and fresh taunt from every crouch state, including Falcon's
-complete 60-frame taunt duration. Position
+complete 60-frame taunt duration, and first-legal-frame normal-landing taunt.
+Position
 comparison allows only the documented accumulated float-to-Q16.16 conversion
 tolerance; action, facing, velocity, and applicable action ticks use their
 tighter independent gates. This remains a regression slice, not evidence that

@@ -376,6 +376,16 @@ def input_trace() -> list[dict[str, object]]:
     trace.append(command("standing_turn_before_taunt", main_x=0.0))
     trace.append(command("standing_turn_taunt", taunt=True))
     repeat("standing_turn_taunt_recovery", 110)
+
+    # Falcon's normal-landing IASA becomes available once the displayed
+    # animation reaches the four-frame common landing-lag value. A short hop
+    # reaches Landing frame 1 after 35 scheduled samples, so 38 neutral
+    # samples leave frame 4 visible immediately before this fresh taunt.
+    repeat("settle_before_landing_taunt", 10)
+    trace.append(command("landing_taunt_jump", jump=True))
+    repeat("landing_taunt_setup", 38)
+    trace.append(command("landing_taunt", taunt=True))
+    repeat("landing_taunt_recovery", 110)
     return trace
 
 
