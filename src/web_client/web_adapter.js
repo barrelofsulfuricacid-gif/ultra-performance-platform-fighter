@@ -3287,6 +3287,14 @@ mergeInto(LibraryManager.library, {
       "DASH GRAB",
       "FALCON PUNCH GROUND",
       "FALCON PUNCH AIR",
+      "RAPTOR BOOST START GROUND",
+      "RAPTOR BOOST HIT GROUND",
+      "RAPTOR BOOST START AIR",
+      "RAPTOR BOOST HIT AIR",
+      "RAPTOR BOOST FALL MISS",
+      "RAPTOR BOOST FALL HIT",
+      "RAPTOR BOOST LANDING MISS",
+      "RAPTOR BOOST LANDING HIT",
     ];
 
     if (view[1] < previousTick) {

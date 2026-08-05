@@ -16,10 +16,24 @@
 /* special capture SHA-256: ae4d9c2f3cb19af35e9288d5f9dcc9a7a4a72adc1baa220bc3ffe03b8e17ddfc */
 /* disc SHA-256: 0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464 */
 /* decomp revision: 9509dc04406fb2028bfab01243841ba4787c0fb7 */
-/* canonical geometry SHA-256: 92f5014de753bf5660e5f4eb566e4e92ac734871089f359c697fa9a3d8e6b4c0 */
+/* canonical geometry SHA-256: f7bb98902431ed7c7bb80b689cb3e954b5e8c2f40a7793b8dd8a81deafe75052 */
 
 static const uint8_t pf_m4_falcon_geometry_sha256[32] = {
-    UINT8_C(0x92), UINT8_C(0xf5), UINT8_C(0x01), UINT8_C(0x4d), UINT8_C(0xe7), UINT8_C(0x53), UINT8_C(0xbf), UINT8_C(0x56), UINT8_C(0x60), UINT8_C(0xe5), UINT8_C(0xf4), UINT8_C(0xeb), UINT8_C(0x56), UINT8_C(0x6e), UINT8_C(0x4e), UINT8_C(0x92), UINT8_C(0xac), UINT8_C(0x73), UINT8_C(0x48), UINT8_C(0x71), UINT8_C(0x08), UINT8_C(0x9f), UINT8_C(0x35), UINT8_C(0x9c), UINT8_C(0x69), UINT8_C(0x7f), UINT8_C(0xa9), UINT8_C(0xa3), UINT8_C(0xd8), UINT8_C(0xe6), UINT8_C(0xb4), UINT8_C(0xc0)
+    UINT8_C(0xf7), UINT8_C(0xbb), UINT8_C(0x98), UINT8_C(0x90), UINT8_C(0x24), UINT8_C(0x31), UINT8_C(0xed), UINT8_C(0x7c), UINT8_C(0x7b), UINT8_C(0xb8), UINT8_C(0x0b), UINT8_C(0x68), UINT8_C(0x9c), UINT8_C(0xb3), UINT8_C(0xe9), UINT8_C(0x54), UINT8_C(0xb5), UINT8_C(0xe8), UINT8_C(0xc2), UINT8_C(0xf4), UINT8_C(0x0a), UINT8_C(0x77), UINT8_C(0x93), UINT8_C(0xb8), UINT8_C(0xdd), UINT8_C(0x8a), UINT8_C(0x81), UINT8_C(0xde), UINT8_C(0xaf), UINT8_C(0xe7), UINT8_C(0x50), UINT8_C(0x52)
+};
+
+static const uint16_t pf_m4_falcon_side_special_ground_search_offset = UINT16_C(0);
+static const uint8_t pf_m4_falcon_side_special_ground_search_count = UINT8_C(3);
+static const uint16_t pf_m4_falcon_side_special_air_search_offset = UINT16_C(3);
+static const uint8_t pf_m4_falcon_side_special_air_search_count = UINT8_C(3);
+static const pf_m4_reference_search_sphere
+pf_m4_falcon_side_special_search_spheres[] = {
+    { INT32_C(41456), INT32_C(-21039), INT32_C(0), INT32_C(27352) },
+    { INT32_C(41456), INT32_C(-53064), INT32_C(0), INT32_C(27352) },
+    { INT32_C(41456), INT32_C(-98354), INT32_C(0), INT32_C(27352) },
+    { INT32_C(38865), INT32_C(-21039), INT32_C(0), INT32_C(27352) },
+    { INT32_C(38865), INT32_C(-66330), INT32_C(0), INT32_C(27352) },
+    { INT32_C(38865), INT32_C(32025), INT32_C(0), INT32_C(27352) },
 };
 
 static const pf_m4_reference_geometry_move

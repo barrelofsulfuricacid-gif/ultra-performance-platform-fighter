@@ -59,6 +59,9 @@ uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state)
         case PF_M4_ACTION_FALCON_PUNCH_GROUND:
         case PF_M4_ACTION_FALCON_PUNCH_AIR:
             return (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND;
+        case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
+        case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
+            return (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND;
         default:
             return UINT8_C(0);
     }
@@ -3637,6 +3640,126 @@ static pf_status pf_m4_resolve_projectile_combat(
     return PF_STATUS_OK;
 }
 
+static pf_status pf_m4_resolve_falcon_side_special_searches(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch)
+{
+    const pf_m4_falcon_side_special_timing *timing =
+        pf_m4_falcon_reference_side_special_timing();
+    const pf_m4_falcon_special_attributes *attributes =
+        pf_m4_falcon_reference_special_attributes();
+    uint32_t attacker_index;
+
+    if (timing == NULL || attributes == NULL)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    for (attacker_index = UINT32_C(0);
+         attacker_index < (uint32_t)world->player_count;
+         ++attacker_index)
+    {
+        const uint8_t action = scratch->action_state[attacker_index];
+        const int airborne =
+            action == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR;
+        const uint16_t action_frame = scratch->action_ticks[attacker_index];
+        const uint16_t first_frame = airborne != 0
+                                         ? timing->air_search_begin_frame
+                                         : timing->ground_search_begin_frame;
+        const uint16_t last_frame = airborne != 0
+                                        ? timing->air_search_end_frame
+                                        : timing->ground_search_end_frame;
+        const pf_m4_reference_search_sphere *source_spheres;
+        uint8_t sphere_count;
+        uint32_t target_index;
+
+        if (scratch->active[attacker_index] == UINT8_C(0) ||
+            (action !=
+                 (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND &&
+             airborne == 0) ||
+            action_frame < first_frame || action_frame > last_frame)
+        {
+            continue;
+        }
+        source_spheres =
+            pf_m4_falcon_reference_side_special_search_spheres(
+                airborne,
+                &sphere_count);
+        if (source_spheres == NULL || sphere_count == UINT8_C(0) ||
+            sphere_count > UINT8_C(PF_M4_INSPECTION_HIT_SPHERE_CAPACITY))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        for (target_index = UINT32_C(0);
+             target_index < (uint32_t)world->player_count;
+             ++target_index)
+        {
+            uint8_t sphere_index;
+            int detected = 0;
+
+            if (target_index == attacker_index ||
+                scratch->active[target_index] == UINT8_C(0) ||
+                (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
+                 world->team[attacker_index] == world->team[target_index]))
+            {
+                continue;
+            }
+            for (sphere_index = UINT8_C(0);
+                 sphere_index < sphere_count;
+                 ++sphere_index)
+            {
+                const pf_m4_reference_search_sphere *source =
+                    &source_spheres[sphere_index];
+                const pf_m4_hit_sphere_inspection sphere = {
+                    scratch->position_x_q16[attacker_index] +
+                        (int32_t)scratch->facing[attacker_index] *
+                            source->offset_x_q16,
+                    scratch->position_y_q16[attacker_index] +
+                        source->offset_y_q16,
+                    source->radius_q16,
+                    UINT8_C(0),
+                    sphere_index,
+                    UINT8_C(0),
+                    UINT8_C(0)};
+
+                if (pf_m4_hit_sphere_overlaps_player(
+                        &content->fighter,
+                        scratch,
+                        target_index,
+                        &sphere))
+                {
+                    detected = 1;
+                    break;
+                }
+            }
+            if (detected != 0)
+            {
+                pf_m4_set_action_state(
+                    world,
+                    scratch,
+                    attacker_index,
+                    airborne != 0
+                        ? (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR
+                        : (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND);
+                scratch->action_ticks[attacker_index] = UINT16_C(0);
+                scratch->attack_hit_mask[attacker_index] = UINT8_C(0);
+                scratch->attack_stale_registered[attacker_index] =
+                    UINT8_C(0);
+                if (airborne == 0)
+                {
+                    scratch->velocity_x_q16[attacker_index] =
+                        pf_m4_multiply_q16(
+                            scratch->velocity_x_q16[attacker_index],
+                            attributes->specials_gr_vel_x_q16);
+                    scratch->velocity_y_q16[attacker_index] = INT32_C(0);
+                }
+                break;
+            }
+        }
+    }
+    return PF_STATUS_OK;
+}
+
 pf_status pf_m4_resolve_combat(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -3662,6 +3785,15 @@ pf_status pf_m4_resolve_combat(
     if (content == NULL || world == NULL || scratch == NULL)
     {
         return PF_STATUS_INVALID_ARGUMENT;
+    }
+
+    if (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+        pf_m4_resolve_falcon_side_special_searches(
+            content,
+            world,
+            scratch) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
     }
 
     if (pf_m4_resolve_grabs(content, world, scratch) != PF_STATUS_OK)

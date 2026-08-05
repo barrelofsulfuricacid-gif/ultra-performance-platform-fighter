@@ -12,7 +12,9 @@ from typing import Any
 from import_ssbm_falcon_frame_data import (
     EXPECTED_CANONICAL_SHA256,
     MOVE_KEYS,
+    SOURCE_DAT_JSON_SHA256,
     canonical_sha256,
+    command_variable_assignments,
 )
 
 
@@ -206,6 +208,42 @@ def captured_collision_key(memory: dict[str, Any]) -> tuple[object, ...]:
     )
 
 
+def captured_search_spheres(
+    memory: dict[str, Any], facing: int
+) -> tuple[tuple[int, ...], ...]:
+    """Canonicalize live zero-damage SpecialS searches into facing-right space."""
+
+    fighter_position = [float(value) for value in memory["fighter_position"]]
+    spheres = []
+    for hitbox_id, source in enumerate(memory["hitboxes"]):
+        hitbox = dict(source)
+        if (
+            int(hitbox["state"]) == 0
+            or float(hitbox["damage"]) != 0.0
+            or float(hitbox["radius"]) <= 0.0
+        ):
+            continue
+        position = [float(value) for value in hitbox["position"]]
+        spheres.append(
+            (
+                round(
+                    facing
+                    * (position[0] - fighter_position[0])
+                    * MELEE_TO_SIM_Q16
+                ),
+                round(-(position[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
+                round(
+                    facing
+                    * (position[2] - fighter_position[2])
+                    * MELEE_TO_SIM_Q16
+                ),
+                round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+                hitbox_id,
+            )
+        )
+    return tuple(spheres)
+
+
 def collision_keys_q16_equivalent(
     left: tuple[object, ...], right: tuple[object, ...]
 ) -> bool:
@@ -339,6 +377,7 @@ def hitboxes_for_frame(move: dict[str, Any], action_frame: int) -> list[dict[str
 def generate(
     timing_data: dict[str, Any],
     full_data: dict[str, Any],
+    dat_data: dict[str, Any],
     hit_capture: dict[str, Any],
     hurt_capture: dict[str, Any],
     special_captures: list[dict[str, Any]],
@@ -361,6 +400,56 @@ def generate(
     hurt_capsules: list[tuple[int, ...]] = []
     hurt_moves: list[dict[str, int]] = []
     hurt_pose_offsets: dict[tuple[tuple[int, ...], ...], int] = {}
+    subactions = dat_data["nodes"][0]["data"]["subactions"]
+    ground_assignments = command_variable_assignments(subactions, 303)
+    air_assignments = command_variable_assignments(subactions, 305)
+    search_specs = (
+        (349, ground_assignments[(0x4C, 1)], ground_assignments[(0x4C, 0)] - 1),
+        (351, air_assignments[(0x4C, 1)], air_assignments[(0x4C, 0)] - 1),
+    )
+    search_spheres: list[tuple[int, ...]] = []
+    search_offsets: list[int] = []
+    search_counts: list[int] = []
+    for action_value, first_frame, last_frame in search_specs:
+        action_rows = [
+            row
+            for row in special_rows
+            if int(row["action_value"]) == action_value
+            and first_frame <= round(float(row["action_frame"])) <= last_frame
+        ]
+        search_frame_set = {
+            round(float(row["action_frame"]))
+            for row in action_rows
+        }
+        if search_frame_set != set(range(first_frame, last_frame + 1)):
+            raise ValueError(
+                f"SpecialS {action_value}: incomplete executable search frames"
+            )
+        poses = []
+        for row in action_rows:
+            facing = int(row["facing"])
+            if facing not in (-1, 1):
+                raise ValueError(f"SpecialS {action_value}: invalid facing")
+            pose = captured_search_spheres(dict(row["hitbox_memory"]), facing)
+            if len(pose) != 3:
+                raise ValueError(
+                    f"SpecialS {action_value}: expected three search spheres"
+                )
+            poses.append(pose)
+        source_pose = poses[0]
+        if any(
+            len(pose) != len(source_pose)
+            or any(
+                left[4] != right[4]
+                or any(abs(a - b) > 1 for a, b in zip(left[:4], right[:4], strict=True))
+                for left, right in zip(source_pose, pose, strict=True)
+            )
+            for pose in poses[1:]
+        ):
+            raise ValueError(f"SpecialS {action_value}: moving search geometry")
+        search_offsets.append(len(search_spheres))
+        search_counts.append(len(source_pose))
+        search_spheres.extend(source_pose)
     standing_rows = [
         row
         for row in rows
@@ -627,6 +716,9 @@ def generate(
                 "hurt_frames": hurt_frames,
                 "hurt_capsules": hurt_capsules,
                 "standing_hurt_capsules": standing_hurtboxes,
+                "side_special_search_spheres": search_spheres,
+                "side_special_search_offsets": search_offsets,
+                "side_special_search_counts": search_counts,
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -653,9 +745,30 @@ def generate(
         ),
         "};",
         "",
+        "static const uint16_t pf_m4_falcon_side_special_ground_search_offset = "
+        f"UINT16_C({search_offsets[0]});",
+        "static const uint8_t pf_m4_falcon_side_special_ground_search_count = "
+        f"UINT8_C({search_counts[0]});",
+        "static const uint16_t pf_m4_falcon_side_special_air_search_offset = "
+        f"UINT16_C({search_offsets[1]});",
+        "static const uint8_t pf_m4_falcon_side_special_air_search_count = "
+        f"UINT8_C({search_counts[1]});",
+        "static const pf_m4_reference_search_sphere",
+        "pf_m4_falcon_side_special_search_spheres[] = {",
+    ]
+    lines.extend(
+        "    { "
+        f"INT32_C({sphere[0]}), INT32_C({sphere[1]}), "
+        f"INT32_C({sphere[2]}), INT32_C({sphere[3]}) "
+        "},"
+        for sphere in search_spheres
+    )
+    lines.extend((
+        "};",
+        "",
         "static const pf_m4_reference_geometry_move",
         "pf_m4_falcon_geometry_moves[PF_M4_FALCON_MOVE_COUNT] = {",
-    ]
+    ))
     lines.extend(
         "    { "
         f"UINT16_C({move['frame_offset']}), "
@@ -781,6 +894,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("timing_source", type=Path)
     parser.add_argument("full_source", type=Path)
+    parser.add_argument("dat_source", type=Path)
     parser.add_argument("hit_capture", type=Path)
     parser.add_argument("hurt_capture", type=Path)
     parser.add_argument("output", type=Path)
@@ -794,6 +908,9 @@ def main() -> int:
     full_digest = file_sha256(args.full_source)
     if full_digest != EXPECTED_FULL_SOURCE_SHA256:
         raise SystemExit(f"unexpected Falcon full source SHA-256: {full_digest}")
+    dat_digest = file_sha256(args.dat_source)
+    if dat_digest != SOURCE_DAT_JSON_SHA256:
+        raise SystemExit(f"unexpected Falcon DAT JSON SHA-256: {dat_digest}")
     hit_capture_digest = file_sha256(args.hit_capture)
     if hit_capture_digest != EXPECTED_CAPTURE_SHA256:
         raise SystemExit(
@@ -814,6 +931,7 @@ def main() -> int:
             f"{special_capture_digests}"
         )
     full_data = json.loads(args.full_source.read_text(encoding="utf-8"))
+    dat_data = json.loads(args.dat_source.read_text(encoding="utf-8"))
     hit_capture = json.loads(args.hit_capture.read_text(encoding="utf-8"))
     hurt_capture = json.loads(args.hurt_capture.read_text(encoding="utf-8"))
     special_captures = [
@@ -826,6 +944,7 @@ def main() -> int:
     output = generate(
         timing_data,
         full_data,
+        dat_data,
         hit_capture,
         hurt_capture,
         special_captures,

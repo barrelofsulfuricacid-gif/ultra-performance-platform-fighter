@@ -316,11 +316,12 @@ static int make_m4_benchmark_content(
     content->charge.enabled = UINT8_C(1);
     content->recovery.enabled = UINT8_C(1);
 
+    /* Both benchmark views exercise the authored projectile, reflector,
+     * charge, recovery, and item systems rather than Falcon equivalence. */
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
+
     if (maximum_entities != 0)
     {
-        /* This workload deliberately saturates the original fixed projectile
-         * slot; it is not a Falcon-content equivalence scenario. */
-        content->fighter.reference_frame_data_enabled = UINT8_C(0);
         content->stage.spawn_spacing_q16 = PF_Q16_ONE;
         content->stage.platform_center_x_q16 =
             -INT32_C(20) * PF_Q16_ONE;
@@ -925,7 +926,12 @@ static int validate_m4_representative_workload(
             &result);
         if (status != PF_STATUS_OK)
         {
-            set_error(error, "run representative-M4 preflight", status);
+            (void)snprintf(
+                error,
+                PF_BENCHMARK_ERROR_CAPACITY,
+                "run representative-M4 preflight at tick %" PRIu64 ": %s",
+                tick,
+                pf_status_name(status));
             return 0;
         }
         status = pf_m4_inspect(pf_m4_duel_sim, &inspection);

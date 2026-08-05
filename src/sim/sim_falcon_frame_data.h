@@ -240,6 +240,12 @@ typedef struct pf_m4_falcon_special_attributes
     int32_t speciallw_air_landing_traction_q16;
 } pf_m4_falcon_special_attributes;
 
+typedef struct pf_m4_falcon_common_special_attributes
+{
+    int32_t side_special_stick_threshold_q16;
+    int32_t side_special_turn_threshold_q16;
+} pf_m4_falcon_common_special_attributes;
+
 typedef struct pf_m4_falcon_neutral_special_timing
 {
     uint16_t launch_frame;
@@ -247,6 +253,23 @@ typedef struct pf_m4_falcon_neutral_special_timing
     uint16_t velocity_scale_end_frame;
     uint16_t ordinary_air_physics_begin_frame;
 } pf_m4_falcon_neutral_special_timing;
+
+typedef struct pf_m4_falcon_side_special_timing
+{
+    uint16_t ground_search_begin_frame;
+    uint16_t ground_search_end_frame;
+    uint16_t air_search_begin_frame;
+    uint16_t air_search_end_frame;
+    uint16_t air_gravity_begin_frame;
+} pf_m4_falcon_side_special_timing;
+
+typedef struct pf_m4_reference_search_sphere
+{
+    int32_t offset_x_q16;
+    int32_t offset_y_q16;
+    int32_t offset_z_q16;
+    int32_t radius_q16;
+} pf_m4_reference_search_sphere;
 
 typedef struct pf_m4_reference_throw
 {
@@ -317,8 +340,19 @@ pf_m4_falcon_reference_common_attributes(void);
 const pf_m4_falcon_special_attributes *
 pf_m4_falcon_reference_special_attributes(void);
 
+const pf_m4_falcon_common_special_attributes *
+pf_m4_falcon_reference_common_special_attributes(void);
+
 const pf_m4_falcon_neutral_special_timing *
 pf_m4_falcon_reference_neutral_special_timing(void);
+
+const pf_m4_falcon_side_special_timing *
+pf_m4_falcon_reference_side_special_timing(void);
+
+const pf_m4_reference_search_sphere *
+pf_m4_falcon_reference_side_special_search_spheres(
+    int airborne,
+    uint8_t *out_count);
 
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void);
 

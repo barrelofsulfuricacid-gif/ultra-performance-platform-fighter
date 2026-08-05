@@ -616,12 +616,15 @@ must byte-match the offline packer for identical workbooks.
 ## Compatibility identity
 
 Content schema 69/fighter schema 62 folds the canonical Falcon geometry digest
-into content identity and routes 612 executable-captured animation frames and
-6,732 hurt capsules for the 14 production normals/aerials plus standing and
-dash grab. The move/frame tables are immutable offset/count arrays; collision
-does one bounded lookup and iterates at most 11 capsules without allocation.
-Hit-sphere geometry remains sourced from its independently pinned capture, so
-recapturing hurt poses cannot perturb already-qualified attack coordinates.
+into content identity and routes complete-frame executable-captured pose and
+hit geometry for the 14 production normals/aerials, standing and dash grab,
+and all 17 Falcon special subactions. Raptor Boost's six non-damaging search
+spheres live in a distinct immutable table so they cannot be mistaken for
+attack hitboxes. The move/frame tables are immutable offset/count arrays;
+collision does one bounded lookup and iterates fixed-capacity spans without
+allocation. Hit-sphere geometry remains sourced from its independently pinned
+capture, so recapturing hurt poses cannot perturb already-qualified attack
+coordinates.
 State schema 58 and the 803-byte checkpoint are unchanged because animation
 frame selection uses the existing canonical action and action-tick state.
 

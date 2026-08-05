@@ -520,9 +520,9 @@ static int pf_replay_action_transition_event_valid(
         if (player_index < (uint32_t)player_count)
         {
             if (previous_action >
-                    (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
                 next_action >
-                    (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
                 changed !=
                     ((event->detail &
                       (uint16_t)(UINT16_C(1) << player_index)) !=

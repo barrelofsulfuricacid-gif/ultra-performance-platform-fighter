@@ -3262,3 +3262,43 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `e24f1e5093f55942da2429550e95044ec80e0b1e04d50305ef84be0942cc1f8d`.
   Raptor Boost, Falcon Dive, and Falcon Kick remain the next source-routing
   slices; no guessed move values are accepted as substitutes.
+
+## 2026-08-04 complete Falcon regeneration and source-routed Raptor Boost
+
+- The Falcon import is complete and reproducible from the pinned NTSC 1.02
+  inputs: all 50 stable move slots, all 48 DAT-present subactions, the two
+  explicitly absent forward-smash angle variants, all 97 common-attribute
+  words, all 35 character-special attributes, action scripts, command-variable
+  timelines, effects, throws, animation translation/root motion, hit/grab
+  spheres, and complete-frame hurt poses. The complete generated source digest
+  is `96bafb1940d737a0e912377ac2893c1a3877b10078ed8e06b81c3f8a0fb36326`;
+  the canonical geometry digest is
+  `f7bb98902431ed7c7bb80b689cb3e954b5e8c2f40a7793b8dd8a81deafe75052`.
+  Fresh regeneration byte-matches both checked-in includes, whose SHA-256
+  values are `755200a1f70674475bf2775c02e2e1581b47222a798bf191c7c503f43bd23556`
+  and `6a0b7a3e74d1a1bdf760994c004aebce1926fa56fe33bf0acb7eecbc91ff59a4`.
+- Default reference side special now routes source ground/air Raptor Boost.
+  It consumes the imported 0.6 selection and 0.2 turnaround thresholds,
+  ground velocity multiplier, root translation, frames 15-34/18-34 search
+  windows, six distinct search spheres, frame-30 air-gravity command, 7-damage
+  ground/air hit effects, miss/hit landing lag, and all four start/hit actions.
+  The source search resolver is shared, fixed-capacity, and allocation-free;
+  custom special/projectile fixtures retain an explicit reference-data opt-out.
+- The new at-will `tools/verify_m4_raptor_boost.sh` runner drives the owner
+  executable and simulator with identical inputs. Its 46-frame ground-hit
+  route passes strict action and velocity checks plus the established 640-Q16
+  position envelope. This trace exposed a shared one-frame fidelity defect:
+  after hitlag reached zero, restored actions waited one extra simulation tick.
+  The production path now resumes ordinary movement and physics on that same
+  tick, matching Dolphin; affected deterministic fixtures and replay identities
+  were updated to the corrected behavior rather than preserving the error.
+- WSL Linux passes all 22 configured tests. Native and WebAssembly replay
+  output is byte-identical at corpus/final/event SHA-256
+  `e3359756020e844f973406666cc87874389374c4d42689d9a52a67eba63d941d`,
+  `40fc23de68fe634ff70b7919e663a55780a3fa2e00e4ee60f8aec1d7b8008e60`,
+  and `ddc1f793a4d9919988f4f44f6a78d7492a37b0f4721867f7f1f8ca5bb89ce2d7`.
+  The refreshed eight-match verifier digest is `223018a366b0af14`.
+- M4 remains unfinished. Falcon Dive and Falcon Kick still require production
+  routing and identical-input qualification. Raptor Boost air, miss/edge, and
+  item-search routes also remain explicit executable-oracle work; no guessed
+  timing or geometry is accepted in their place.

@@ -1436,10 +1436,27 @@ static int pf_m4_snapshot_action_is_landing(uint8_t action)
                (uint8_t)PF_M4_ACTION_STRONG_AERIAL_LANDING ||
            action ==
                (uint8_t)PF_M4_ACTION_STRONG_L_CANCEL_LANDING ||
+           action ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS ||
+           action ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
            (action >=
                 (uint8_t)PF_M4_ACTION_FORWARD_AERIAL_LANDING &&
             action <=
                 (uint8_t)PF_M4_ACTION_DOWN_AERIAL_L_CANCEL_LANDING);
+}
+
+static int pf_m4_snapshot_action_is_reference_air_special(uint8_t action)
+{
+    return action == (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+           action ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
+           action ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR ||
+           action ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_MISS ||
+           action ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT;
 }
 
 static int pf_m4_snapshot_action_is_smash_charge(uint8_t action)
@@ -1793,8 +1810,7 @@ static int pf_m4_player_state_consistent(
                !pf_m4_snapshot_action_is_aerial_attack(action) &&
                action !=
                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
-               action !=
-                   (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR &&
+               !pf_m4_snapshot_action_is_reference_air_special(action) &&
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
@@ -1820,7 +1836,7 @@ static int pf_m4_player_state_consistent(
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
         pf_m4_snapshot_action_is_aerial_attack(action) ||
         action == (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR ||
-        action == (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+        pf_m4_snapshot_action_is_reference_air_special(action) ||
         action == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
     {
         return 1;
@@ -2159,7 +2175,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks

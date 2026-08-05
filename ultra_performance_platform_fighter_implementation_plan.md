@@ -479,13 +479,17 @@ Hash-pinned Dolphin captures provide transformed hit geometry and complete-
 frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
 dash grab, and all 17 Falcon special subactions. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
-are not misclassified as attacks. The imported special timing, attributes, and
+are imported separately as the source's six search spheres rather than being
+misclassified as attacks. The imported special timing, attributes, and
 geometry are not by themselves an equivalence claim. Default reference content
 now routes neutral special through the source Falcon Punch ground/air state
-machine; the original Pulse Bolt is an explicit custom-content opt-out. Prism
-Burst, Arc Reservoir, and Vector Ascent remain original directional-special
-fixtures until Raptor Boost, Falcon Dive, and Falcon Kick are routed and
-qualified.
+machine and side special through the source Raptor Boost ground/air start,
+search-hit, miss, landing, and hit states; the original Pulse Bolt and Prism
+Burst are explicit custom-content opt-outs. Arc Reservoir and Vector Ascent
+remain original directional-special fixtures until Falcon Kick and Falcon Dive
+are routed and qualified. A 46-frame identical-input Dolphin Raptor Boost hit
+trace strictly matches action transitions and velocities and matches position
+within the bounded 640-Q16 representation allowance.
 Hurt capsules for remaining common actions, source-Z collision semantics,
 normal-throw collateral hits, and exact sphere-versus-shield intersection
 remain explicit M4 gaps and must be extracted or qualified rather than

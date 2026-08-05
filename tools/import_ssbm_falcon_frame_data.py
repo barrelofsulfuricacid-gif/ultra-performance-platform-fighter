@@ -26,6 +26,9 @@ SOURCE_ANIMATION_DAT_SHA256 = (
 SOURCE_DAT_JSON_SHA256 = (
     "fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266"
 )
+SOURCE_COMMON_DAT_SHA256 = (
+    "63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c"
+)
 
 COMMON_ATTRIBUTE_COUNT = 97
 SPECIAL_ATTRIBUTE_SIZE = 0x8C
@@ -223,6 +226,61 @@ def source_attributes(source_dat: bytes) -> tuple[list[int], dict[str, int]]:
     return common_bits, special
 
 
+def source_common_special_attributes(common_dat: bytes) -> dict[str, int]:
+    """Decode the common-data fields used by SpecialS input selection."""
+
+    if len(common_dat) < 0x20:
+        raise ValueError("truncated PlCo.dat header")
+    data_size, relocation_count, root_count, reference_count = struct.unpack_from(
+        ">4I", common_dat, 0x04
+    )
+    if root_count != 1 or reference_count != 0:
+        raise ValueError("unexpected PlCo.dat root/reference table")
+    root_table = 0x20 + data_size + relocation_count * 4
+    if root_table + 8 > len(common_dat):
+        raise ValueError("PlCo.dat root table is out of bounds")
+    root_offset, root_name_offset = struct.unpack_from(">2I", common_dat, root_table)
+    string_table = root_table + root_count * 8 + reference_count * 8
+    name_start = string_table + root_name_offset
+    name_end = common_dat.find(b"\0", name_start)
+    if name_end < 0 or common_dat[name_start:name_end] != b"ftLoadCommonData":
+        raise ValueError("unexpected PlCo.dat root name")
+    data = common_dat[0x20 : 0x20 + data_size]
+    if root_offset + 4 > len(data):
+        raise ValueError("ftLoadCommonData root is out of bounds")
+    common_offset = struct.unpack_from(">I", data, root_offset)[0]
+    if common_offset + 0x224 > len(data):
+        raise ValueError("ftCommonData is out of bounds")
+    return {
+        "side_special_stick_threshold_q16": q16(
+            struct.unpack_from(">f", data, common_offset + 0x218)[0]
+        ),
+        "side_special_turn_threshold_q16": q16(
+            struct.unpack_from(">f", data, common_offset + 0x220)[0]
+        ),
+    }
+
+
+def command_variable_assignments(
+    subactions: list[dict[str, Any]], subaction_index: int
+) -> dict[tuple[int, int], int]:
+    """Return exact displayed frames for action command-variable writes."""
+
+    frame = 0
+    assignments: dict[tuple[int, int], int] = {}
+    for event in subactions[subaction_index].get("events", []):
+        command_id = int(str(event["commandId"]), 16)
+        fields = event.get("fields") or {}
+        if command_id == 0x08:
+            frame = int(fields["frame"])
+        elif command_id == 0x04:
+            frame += int(fields["frames"])
+        command = bytes.fromhex(str(event["bytes"]))
+        if len(command) == 4 and command[0] in (0x4C, 0x4D, 0x4E):
+            assignments[(command[0], command[3])] = frame
+    return assignments
+
+
 def throw_release_frame(
     dat_data: dict[str, Any], subaction_index: int, subaction_name: str
 ) -> int:
@@ -267,6 +325,7 @@ def generate(
     dat_data: dict[str, Any],
     source_dat: bytes,
     animation_dat: bytes,
+    common_dat: bytes,
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -285,19 +344,7 @@ def generate(
     source_dat_block = source_dat[0x20:]
     common_attribute_bits, special_attributes = source_attributes(source_dat)
 
-    special_air_n_events = subactions[302]["events"]
-    special_air_n_frame = 0
-    special_air_n_assignments: dict[tuple[int, int], int] = {}
-    for event in special_air_n_events:
-        if event["name"] == "waitUntil":
-            special_air_n_frame = int(event["fields"]["frame"])
-        elif event["name"] == "waitFor":
-            special_air_n_frame += int(event["fields"]["frames"])
-        command = bytes.fromhex(str(event["bytes"]))
-        if len(command) == 4 and command[0] in (0x4C, 0x4D):
-            special_air_n_assignments[(command[0], command[3])] = (
-                special_air_n_frame
-            )
+    special_air_n_assignments = command_variable_assignments(subactions, 302)
     try:
         specialn_launch_frame = special_air_n_assignments[(0x4C, 1)]
         specialn_scale_begin_frame = special_air_n_assignments[(0x4D, 1)]
@@ -309,6 +356,23 @@ def generate(
         and specialn_scale_begin_frame < specialn_air_physics_begin_frame
     ):
         raise ValueError("invalid SpecialAirN command-variable ordering")
+    special_s_ground_assignments = command_variable_assignments(subactions, 303)
+    special_s_air_assignments = command_variable_assignments(subactions, 305)
+    try:
+        specials_ground_search_begin = special_s_ground_assignments[(0x4C, 1)]
+        specials_ground_search_end = special_s_ground_assignments[(0x4C, 0)] - 1
+        specials_air_search_begin = special_s_air_assignments[(0x4C, 1)]
+        specials_air_search_end = special_s_air_assignments[(0x4C, 0)] - 1
+        specials_air_gravity_begin = special_s_air_assignments[(0x4D, 1)]
+    except KeyError as error:
+        raise ValueError("incomplete SpecialS command-variable timeline") from error
+    if not (
+        specials_ground_search_begin <= specials_ground_search_end
+        and specials_air_search_begin <= specials_air_search_end
+        and specials_air_gravity_begin >= specials_air_search_begin
+    ):
+        raise ValueError("invalid SpecialS command-variable ordering")
+    common_special_attributes = source_common_special_attributes(common_dat)
     common_attributes = {
         "initial_walk_velocity_q16": round(
             raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
@@ -413,9 +477,13 @@ def generate(
         bytes.fromhex(EXPECTED_CANONICAL_SHA256)
         + bytes.fromhex(SOURCE_DAT_SHA256)
         + bytes.fromhex(SOURCE_ANIMATION_DAT_SHA256)
+        + bytes.fromhex(SOURCE_COMMON_DAT_SHA256)
         + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
         + json.dumps(
-            special_attributes,
+            {
+                "common_special": common_special_attributes,
+                "fighter_special": special_attributes,
+            },
             sort_keys=True,
             separators=(",", ":"),
         ).encode("ascii")
@@ -533,6 +601,7 @@ def generate(
         f"/* PlCa.dat SHA-256: {SOURCE_DAT_SHA256} */",
         f"/* PlCaAJ.dat SHA-256: {SOURCE_ANIMATION_DAT_SHA256} */",
         f"/* PlCa.dat JSON SHA-256: {SOURCE_DAT_JSON_SHA256} */",
+        f"/* PlCo.dat SHA-256: {SOURCE_COMMON_DAT_SHA256} */",
         f"/* complete Falcon source SHA-256: {complete_source_digest} */",
         "",
         "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
@@ -583,6 +652,18 @@ def generate(
         (
             "};",
             "",
+            "static const pf_m4_falcon_common_special_attributes",
+            "pf_m4_falcon_common_special_attribute_data = {",
+        )
+    )
+    lines.extend(
+        f"    .{name} = INT32_C({value}),"
+        for name, value in common_special_attributes.items()
+    )
+    lines.extend(
+        (
+            "};",
+            "",
             "static const pf_m4_falcon_special_attributes",
             "pf_m4_falcon_special_attribute_data = {",
         )
@@ -608,6 +689,20 @@ def generate(
             f"UINT16_C({specialn_air_physics_begin_frame - 1}),",
             "    .ordinary_air_physics_begin_frame = "
             f"UINT16_C({specialn_air_physics_begin_frame}),",
+            "};",
+            "",
+            "static const pf_m4_falcon_side_special_timing",
+            "pf_m4_falcon_side_special_timing_data = {",
+            "    .ground_search_begin_frame = "
+            f"UINT16_C({specials_ground_search_begin}),",
+            "    .ground_search_end_frame = "
+            f"UINT16_C({specials_ground_search_end}),",
+            "    .air_search_begin_frame = "
+            f"UINT16_C({specials_air_search_begin}),",
+            "    .air_search_end_frame = "
+            f"UINT16_C({specials_air_search_end}),",
+            "    .air_gravity_begin_frame = "
+            f"UINT16_C({specials_air_gravity_begin}),",
             "};",
             "",
             "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",
@@ -697,6 +792,7 @@ def main() -> int:
     parser.add_argument("dat_source", type=Path)
     parser.add_argument("source_dat", type=Path)
     parser.add_argument("animation_dat", type=Path)
+    parser.add_argument("common_dat", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     data = json.loads(args.source.read_text(encoding="utf-8"))
@@ -713,10 +809,14 @@ def main() -> int:
     animation_dat_digest = hashlib.sha256(animation_dat).hexdigest()
     if animation_dat_digest != SOURCE_ANIMATION_DAT_SHA256:
         raise SystemExit("unexpected PlCaAJ.dat SHA-256: " f"{animation_dat_digest}")
+    common_dat = args.common_dat.read_bytes()
+    common_dat_digest = hashlib.sha256(common_dat).hexdigest()
+    if common_dat_digest != SOURCE_COMMON_DAT_SHA256:
+        raise SystemExit(f"unexpected PlCo.dat SHA-256: {common_dat_digest}")
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
-    output = generate(data, dat_data, source_dat, animation_dat)
+    output = generate(data, dat_data, source_dat, animation_dat, common_dat)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")
     print(

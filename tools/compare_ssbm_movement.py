@@ -69,6 +69,10 @@ SSBM_TO_M4_ACTION = {
     "PLATFORM_DROP": 6,
     "NEUTRAL_B_FULL_CHARGE_AIR": 108,
     "NEUTRAL_B_ATTACKING_AIR": 107,
+    "SWORD_DANCE_1": 109,
+    "SWORD_DANCE_2_HIGH": 110,
+    "SWORD_DANCE_2_MID": 111,
+    "SWORD_DANCE_3_HIGH": 112,
 }
 
 M4_DELAYED_AIR_JUMP = 61
@@ -226,6 +230,10 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
         "TAUNT_LEFT",
         "NEUTRAL_B_FULL_CHARGE_AIR",
         "NEUTRAL_B_ATTACKING_AIR",
+        "SWORD_DANCE_1",
+        "SWORD_DANCE_2_HIGH",
+        "SWORD_DANCE_2_MID",
+        "SWORD_DANCE_3_HIGH",
     }:
         return frame
     if action == "TURNING_RUN":
@@ -295,6 +303,28 @@ def main() -> int:
             == "special_geometry_neutral_air_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
+    raptor_boost_ground_hit_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_side_ground_hit_start"
+        for row in oracle_rows
+    )
+    if raptor_boost_ground_hit_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_side_ground_hit_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_idle_after_hit = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "STANDING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_idle_after_hit + 1]
     push_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("push_")
@@ -372,6 +402,8 @@ def main() -> int:
         runner_command.append("--shield-hit")
     elif falcon_punch_air_mode:
         runner_command.append("--falcon-punch-air")
+    elif raptor_boost_ground_hit_mode:
+        runner_command.append("--raptor-boost-ground-hit")
     completed = subprocess.run(
         runner_command,
         input=input_text,
@@ -395,7 +427,12 @@ def main() -> int:
 
     previous_oracle: dict[str, object] | None = None
     previous_native: dict[str, str] | None = None
-    oracle_anchor_x = 0.0
+    oracle_anchor_x = (
+        float(oracle_rows[0]["position_x_from_origin"])
+        - float(oracle_rows[0]["ground_velocity_x"])
+        if raptor_boost_ground_hit_mode
+        else 0.0
+    )
     oracle_anchor_y = (
         float(oracle_rows[0]["position_y"])
         if capture.get("stage") == "BATTLEFIELD"
@@ -454,6 +491,11 @@ def main() -> int:
             )
         if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
+        if (
+            raptor_boost_ground_hit_mode
+            and float(oracle.get("hitlag_left", 0.0)) > 0.0
+        ):
+            expected_action = 13
         actual_action = int(native["action_state"])
         expected_ticks = (
             None
@@ -462,7 +504,10 @@ def main() -> int:
                 action_name, float(oracle["action_frame"])
             )
         )
-        if shield_hit_mode:
+        if shield_hit_mode or (
+            raptor_boost_ground_hit_mode
+            and float(oracle.get("hitlag_left", 0.0)) > 0.0
+        ):
             expected_ticks = None
         actual_ticks = int(native["action_ticks"])
         expected_facing = int(oracle["facing"]) * horizontal_mirror

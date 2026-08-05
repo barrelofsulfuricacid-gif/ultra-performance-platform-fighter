@@ -1820,7 +1820,8 @@ static int run_one_way_hit_test(
     frozen_y[0] = inspection.players[0].position_y_q16;
     frozen_y[1] = inspection.players[1].position_y_q16;
     for (freeze_tick = UINT32_C(0);
-         freeze_tick < (uint32_t)content->fighter.jab_hitlag_ticks;
+         freeze_tick + UINT32_C(1) <
+             (uint32_t)content->fighter.jab_hitlag_ticks;
          ++freeze_tick)
     {
         if (!step_duel(
@@ -1837,6 +1838,16 @@ static int run_one_way_hit_test(
         {
             return fail("hitlag-freeze");
         }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_ATTACK,
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP | PF_INPUT_BUTTON_ATTACK,
+            &inspection))
+    {
+        return fail("hitlag-resume-tick");
     }
 
     if (inspection.players[0].action_state !=
@@ -4920,7 +4931,8 @@ static int run_double_jump_cancel_counter_test(
     }
 
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.aerial_hitlag_ticks;
+         tick + UINT32_C(1) <
+             (uint32_t)content->fighter.aerial_hitlag_ticks;
          ++tick)
     {
         if (!step_duel(
@@ -4968,12 +4980,43 @@ static int run_double_jump_cancel_counter_test(
             return fail("double-jump-cancel-counter-hitlag-future");
         }
     }
+    if (!step_duel(
+            source,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &source_inspection))
+    {
+        return fail("double-jump-cancel-counter-source-resume-tick");
+    }
+    source_result = test_last_result;
+    if (!step_duel(
+            loaded,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &loaded_inspection) ||
+        source_result.event_count != test_last_result.event_count ||
+        !expect_status(
+            pf_sim_hash(source, &source_hash),
+            PF_STATUS_OK,
+            "double-jump-cancel-counter-source-resume-hash") ||
+        !expect_status(
+            pf_sim_hash(loaded, &loaded_hash),
+            PF_STATUS_OK,
+            "double-jump-cancel-counter-loaded-resume-hash") ||
+        !hash_equal(&source_hash, &loaded_hash))
+    {
+        return fail("double-jump-cancel-counter-resume-future");
+    }
     if (source_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
-        source_inspection.players[1].action_ticks != UINT16_C(0) ||
+        source_inspection.players[1].action_ticks != UINT16_C(1) ||
         source_inspection.players[1].hitstun_ticks != UINT16_C(0) ||
         source_inspection.players[1].velocity_y_q16 !=
-            frozen_velocity_y)
+            frozen_velocity_y + content->fighter.gravity_q16)
     {
         return fail("double-jump-cancel-counter-resume");
     }
@@ -5295,7 +5338,8 @@ static int run_aerial_hit_test(
     frozen_y[0] = inspection.players[0].position_y_q16;
     frozen_y[1] = inspection.players[1].position_y_q16;
     for (tick = UINT32_C(0);
-         tick < (uint32_t)content->fighter.aerial_hitlag_ticks;
+         tick + UINT32_C(1) <
+             (uint32_t)content->fighter.aerial_hitlag_ticks;
          ++tick)
     {
         if (!step_reaction_duel(
@@ -5316,6 +5360,20 @@ static int run_aerial_hit_test(
         {
             return fail("aerial-hitlag-freeze");
         }
+    }
+    if (!step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            &inspection))
+    {
+        return fail("aerial-hitlag-resume-tick");
     }
 
     if (inspection.players[0].action_state !=
@@ -13015,7 +13073,8 @@ static int advance_shield_break_to_stun(
             (uint8_t)PF_M4_SURFACE_NONE ||
         out_inspection->players[1].velocity_x_q16 != INT32_C(0) ||
         out_inspection->players[1].velocity_y_q16 !=
-            -content->fighter.shield_break_launch_speed_q16 ||
+            -content->fighter.shield_break_launch_speed_q16 +
+                content->fighter.gravity_q16 ||
         out_inspection->players[1].invulnerable != UINT8_C(1))
     {
         return fail("shield-break-launch");
@@ -13645,7 +13704,8 @@ static int run_di_and_sdi_test(
             neutral_inspection.players[1].velocity_y_q16 ||
         di_inspection.players[1].velocity_x_q16 >=
             neutral_inspection.players[1].velocity_x_q16 ||
-        speed_difference > neutral_speed_squared / INT64_C(100))
+        /* Squared magnitudes differ by twice the relative speed error. */
+        speed_difference > neutral_speed_squared / INT64_C(50))
     {
         return fail("trajectory-di-angle-and-magnitude");
     }
@@ -19787,6 +19847,7 @@ static int32_t expected_throw_velocity(
 }
 
 static int run_directional_throw_case(
+    const pf_m4_content *content,
     const pf_content_view *view,
     const pf_m4_throw_data *throw_data,
     uint16_t target_weight,
@@ -19820,6 +19881,11 @@ static int run_directional_throw_case(
                   throw_data->base_velocity_y_q16,
                   throw_data->velocity_growth_y_q16,
                   throw_data->damage_q16);
+    const int32_t expected_resumed_velocity_y =
+        expected_velocity_y + content->fighter.gravity_q16 <
+                content->fighter.fall_speed_q16
+            ? expected_velocity_y + content->fighter.gravity_q16
+            : content->fighter.fall_speed_q16;
     uint32_t tick;
 
     if (!initialize_sim(
@@ -19947,11 +20013,13 @@ static int run_directional_throw_case(
         }
     }
     if (inspection.players[0].action_state != (uint8_t)expected_action ||
-        inspection.players[0].action_ticks != throw_data->release_tick ||
+        inspection.players[0].action_ticks !=
+            (uint16_t)(throw_data->release_tick + UINT16_C(1)) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITSTUN ||
         inspection.players[1].velocity_x_q16 != expected_velocity_x ||
-        inspection.players[1].velocity_y_q16 != expected_velocity_y ||
+        inspection.players[1].velocity_y_q16 !=
+            expected_resumed_velocity_y ||
         inspection.players[0].stale_move_count != UINT8_C(1) ||
         inspection.players[0].stale_move_ids[0] !=
             (uint8_t)expected_action)
@@ -19960,7 +20028,8 @@ static int run_directional_throw_case(
     }
 
     for (tick = UINT32_C(0);
-         tick < (uint32_t)throw_data->recovery_ticks;
+         tick + UINT32_C(1) <
+             (uint32_t)throw_data->recovery_ticks;
          ++tick)
     {
         if (!step_reaction_duel(
@@ -19977,7 +20046,7 @@ static int run_directional_throw_case(
         {
             return 0;
         }
-        if (tick + UINT32_C(1) <
+        if (tick + UINT32_C(2) <
             (uint32_t)throw_data->recovery_ticks)
         {
             if (inspection.players[0].action_state !=
@@ -20277,6 +20346,7 @@ static int run_directional_throw_test(
     const pf_content_view *view)
 {
     if (!run_directional_throw_case(
+            content,
             view,
             &content->fighter.forward_throw,
             content->fighter.knockback_weight,
@@ -20284,6 +20354,7 @@ static int run_directional_throw_test(
             INT16_C(0),
             PF_M4_ACTION_THROW_FORWARD) ||
         !run_directional_throw_case(
+            content,
             view,
             &content->fighter.back_throw,
             content->fighter.knockback_weight,
@@ -20291,6 +20362,7 @@ static int run_directional_throw_test(
             INT16_C(0),
             PF_M4_ACTION_THROW_BACK) ||
         !run_directional_throw_case(
+            content,
             view,
             &content->fighter.up_throw,
             content->fighter.knockback_weight,
@@ -20298,6 +20370,7 @@ static int run_directional_throw_test(
             INT16_C(-32767),
             PF_M4_ACTION_THROW_UP) ||
         !run_directional_throw_case(
+            content,
             view,
             &content->fighter.down_throw,
             content->fighter.knockback_weight,
@@ -20305,6 +20378,7 @@ static int run_directional_throw_test(
             INT16_C(32767),
             PF_M4_ACTION_THROW_DOWN) ||
         !run_directional_throw_case(
+            content,
             view,
             &content->fighter.forward_throw,
             content->fighter.knockback_weight,
@@ -20312,6 +20386,7 @@ static int run_directional_throw_test(
             INT16_C(-32767),
             PF_M4_ACTION_THROW_FORWARD) ||
         !run_directional_throw_case(
+            content,
             view,
             &content->fighter.up_throw,
             content->fighter.knockback_weight,
@@ -21391,6 +21466,18 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_move(PF_M4_FALCON_FORWARD_SMASH_MID_LOW);
     const pf_m4_reference_move *special_n =
         pf_m4_falcon_reference_move(PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND);
+    const pf_m4_reference_move *special_s_ground =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_SIDE_SPECIAL_START_GROUND);
+    const pf_m4_reference_move *special_s_ground_hit =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_SIDE_SPECIAL_HIT_GROUND);
+    const pf_m4_reference_move *special_s_air =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_SIDE_SPECIAL_START_AIR);
+    const pf_m4_reference_move *special_s_air_hit =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_SIDE_SPECIAL_HIT_AIR);
     const pf_m4_reference_move *special_last =
         pf_m4_falcon_reference_move(
             PF_M4_FALCON_DOWN_SPECIAL_WALL_REBOUND);
@@ -21398,6 +21485,12 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_phase(PF_M4_FALCON_JAB1, UINT16_C(0));
     const pf_m4_reference_hit_effect *jab_effect =
         pf_m4_falcon_reference_primary_effect(PF_M4_FALCON_JAB1);
+    const pf_m4_reference_hit_effect *special_s_ground_effect =
+        pf_m4_falcon_reference_primary_effect(
+            PF_M4_FALCON_SIDE_SPECIAL_HIT_GROUND);
+    const pf_m4_reference_hit_effect *special_s_air_effect =
+        pf_m4_falcon_reference_primary_effect(
+            PF_M4_FALCON_SIDE_SPECIAL_HIT_AIR);
     const pf_m4_reference_throw *down_throw =
         pf_m4_falcon_reference_throw(PF_M4_FALCON_DOWN_THROW);
     const pf_m4_reference_throw *forward_throw =
@@ -21432,6 +21525,8 @@ static int run_falcon_reference_table_test(void)
     uint8_t dash_grab_sphere_count = UINT8_C(0);
     uint8_t neutral_special_sphere_count = UINT8_C(0);
     uint8_t neutral_special_air_sphere_count = UINT8_C(0);
+    uint8_t side_special_ground_search_count = UINT8_C(0);
+    uint8_t side_special_air_search_count = UINT8_C(0);
     uint8_t down_special_ground_sphere_count = UINT8_C(0);
     uint8_t down_special_air_sphere_count = UINT8_C(0);
     uint8_t standing_hurt_capsule_count = UINT8_C(0);
@@ -21475,6 +21570,14 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_NEUTRAL_SPECIAL_AIR,
             UINT16_C(52),
             &neutral_special_air_sphere_count);
+    const pf_m4_reference_search_sphere *side_special_ground_search =
+        pf_m4_falcon_reference_side_special_search_spheres(
+            UINT8_C(0),
+            &side_special_ground_search_count);
+    const pf_m4_reference_search_sphere *side_special_air_search =
+        pf_m4_falcon_reference_side_special_search_spheres(
+            UINT8_C(1),
+            &side_special_air_search_count);
     const pf_m4_reference_hit_sphere *down_special_ground_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_DOWN_SPECIAL_GROUND,
@@ -21524,6 +21627,10 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_common_attributes();
     const pf_m4_falcon_special_attributes *special_attributes =
         pf_m4_falcon_reference_special_attributes();
+    const pf_m4_falcon_common_special_attributes *common_special_attributes =
+        pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_side_special_timing *side_special_timing =
+        pf_m4_falcon_reference_side_special_timing();
     int32_t dash_motion_q16 = INT32_C(0);
     uint32_t present_count = UINT32_C(0);
 
@@ -21625,6 +21732,34 @@ static int run_falcon_reference_table_test(void)
         special_n->subaction_index != UINT16_C(301) ||
         special_n->total_frames != UINT16_C(99) ||
         special_n->iasa_frame != UINT16_C(65) ||
+        special_s_ground == NULL ||
+        special_s_ground->subaction_index != UINT16_C(303) ||
+        special_s_ground->total_frames != UINT16_C(79) ||
+        special_s_ground_hit == NULL ||
+        special_s_ground_hit->subaction_index != UINT16_C(304) ||
+        special_s_ground_hit->total_frames != UINT16_C(24) ||
+        special_s_air == NULL ||
+        special_s_air->subaction_index != UINT16_C(305) ||
+        special_s_air->total_frames != UINT16_C(79) ||
+        special_s_air_hit == NULL ||
+        special_s_air_hit->subaction_index != UINT16_C(306) ||
+        special_s_air_hit->total_frames != UINT16_C(44) ||
+        special_s_ground_effect == NULL ||
+        special_s_ground_effect->damage != UINT8_C(7) ||
+        special_s_ground_effect->angle_degrees != UINT16_C(90) ||
+        special_s_ground_effect->growth != UINT16_C(80) ||
+        special_s_ground_effect->base != UINT16_C(78) ||
+        special_s_ground_effect->shield_damage != UINT8_C(2) ||
+        special_s_ground_effect->element !=
+            (uint8_t)PF_M4_REFERENCE_HIT_FIRE ||
+        special_s_air_effect == NULL ||
+        special_s_air_effect->damage != UINT8_C(7) ||
+        special_s_air_effect->angle_degrees != UINT16_C(270) ||
+        special_s_air_effect->growth != UINT16_C(70) ||
+        special_s_air_effect->base != UINT16_C(60) ||
+        special_s_air_effect->shield_damage != UINT8_C(2) ||
+        special_s_air_effect->element !=
+            (uint8_t)PF_M4_REFERENCE_HIT_FIRE ||
         special_last == NULL || special_last->present != UINT8_C(1) ||
         special_last->subaction_index != UINT16_C(317) ||
         special_last->total_frames != UINT16_C(59) ||
@@ -21694,6 +21829,17 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_sphere_count != UINT8_C(3) ||
         neutral_special_air_spheres[0].radius_q16 != INT32_C(36060) ||
         neutral_special_air_spheres[1].radius_q16 != INT32_C(32054) ||
+        side_special_ground_search == NULL ||
+        side_special_ground_search_count != UINT8_C(3) ||
+        side_special_ground_search[0].offset_x_q16 != INT32_C(41456) ||
+        side_special_ground_search[0].offset_y_q16 != INT32_C(-21039) ||
+        side_special_ground_search[0].radius_q16 != INT32_C(27352) ||
+        side_special_ground_search[2].offset_y_q16 != INT32_C(-98354) ||
+        side_special_air_search == NULL ||
+        side_special_air_search_count != UINT8_C(3) ||
+        side_special_air_search[0].offset_x_q16 != INT32_C(38865) ||
+        side_special_air_search[1].offset_y_q16 != INT32_C(-66330) ||
+        side_special_air_search[2].offset_y_q16 != INT32_C(32025) ||
         !pf_m4_falcon_reference_has_hit_geometry(
             PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND) ||
         !pf_m4_falcon_reference_has_hit_geometry(
@@ -21744,8 +21890,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x61) ||
-        complete_source_sha256[31] != UINT8_C(0x46) ||
+        complete_source_sha256[0] != UINT8_C(0x96) ||
+        complete_source_sha256[31] != UINT8_C(0x26) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -21767,14 +21913,30 @@ static int run_falcon_reference_table_test(void)
         special_attributes->specialn_stick_range_y_neg_q16 !=
             INT32_C(8192) ||
         special_attributes->specialn_vel_x_q16 != INT32_C(127795) ||
+        special_attributes->specials_gr_vel_x_q16 != INT32_C(11796) ||
+        special_attributes->specials_grav_q16 != INT32_C(3277) ||
+        special_attributes->specials_terminal_vel_q16 != INT32_C(208404) ||
         special_attributes->specials_miss_landing_lag_q16 !=
             INT32_C(1310720) ||
+        special_attributes->specials_hit_landing_lag_q16 !=
+            INT32_C(2621440) ||
         special_attributes->specialhi_landing_lag_q16 !=
             INT32_C(1966080) ||
         special_attributes->speciallw_on_hit_spd_modifier_q16 !=
             INT32_C(39322) ||
         special_attributes->speciallw_air_landing_traction_q16 !=
             INT32_C(196608) ||
+        common_special_attributes == NULL ||
+        common_special_attributes->side_special_stick_threshold_q16 !=
+            INT32_C(39322) ||
+        common_special_attributes->side_special_turn_threshold_q16 !=
+            INT32_C(13107) ||
+        side_special_timing == NULL ||
+        side_special_timing->ground_search_begin_frame != UINT16_C(15) ||
+        side_special_timing->ground_search_end_frame != UINT16_C(34) ||
+        side_special_timing->air_search_begin_frame != UINT16_C(18) ||
+        side_special_timing->air_search_end_frame != UINT16_C(34) ||
+        side_special_timing->air_gravity_begin_frame != UINT16_C(30) ||
         jab_hurt_capsules == NULL ||
         jab_hurt_capsule_count != UINT8_C(11) ||
         jab_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(1374) ||
@@ -21793,10 +21955,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x92) ||
-        geometry_sha256[1] != UINT8_C(0xf5) ||
-        geometry_sha256[30] != UINT8_C(0xb4) ||
-        geometry_sha256[31] != UINT8_C(0xc0) ||
+        geometry_sha256[0] != UINT8_C(0xf7) ||
+        geometry_sha256[1] != UINT8_C(0xbb) ||
+        geometry_sha256[30] != UINT8_C(0x50) ||
+        geometry_sha256[31] != UINT8_C(0x52) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),

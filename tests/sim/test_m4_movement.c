@@ -13796,7 +13796,9 @@ static int run_falcon_punch_source_data_test(
                 ground_sim,
                 INT16_C(0),
                 INT16_C(0),
-                UINT64_C(0),
+                frame == UINT32_C(2)
+                    ? PF_INPUT_BUTTON_SPECIAL
+                    : UINT64_C(0),
                 &inspection))
         {
             return 0;
@@ -13951,6 +13953,472 @@ static int run_falcon_punch_source_data_test(
     return 1;
 }
 
+static int enter_air_raptor_boost(
+    pf_sim *sim,
+    uint64_t seed,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, seed),
+            PF_STATUS_OK,
+            "raptor-boost-air-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            out_inspection))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(30) &&
+         out_inspection->players[0].grounded != UINT8_C(0);
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(30) ||
+        !step_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
+        out_inspection->players[0].action_ticks != UINT16_C(1) ||
+        out_inspection->players[0].velocity_y_q16 != INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-air-entry\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_raptor_boost_source_data_test(
+    const pf_m4_content *default_content)
+{
+    const pf_m4_falcon_common_special_attributes *common_attributes =
+        pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_special_attributes *attributes =
+        pf_m4_falcon_reference_special_attributes();
+    const pf_m4_falcon_side_special_timing *timing =
+        pf_m4_falcon_reference_side_special_timing();
+    const pf_m4_reference_move *ground_move =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_SIDE_SPECIAL_START_GROUND);
+    const pf_m4_reference_move *air_move =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_SIDE_SPECIAL_START_AIR);
+    test_sim_storage ground_storage;
+    test_sim_storage ground_hit_storage;
+    test_sim_storage air_storage;
+    pf_m4_content ground_content = *default_content;
+    pf_m4_content ground_hit_content = *default_content;
+    pf_m4_content air_content = *default_content;
+    pf_content_view ground_view;
+    pf_content_view ground_hit_view;
+    pf_content_view air_view;
+    pf_sim *ground_sim = NULL;
+    pf_sim *ground_hit_sim = NULL;
+    pf_sim *air_sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t expected_motion_x_q16;
+    int32_t expected_gravity_q16;
+    uint32_t frame;
+    uint32_t tick;
+
+    if (common_attributes == NULL || attributes == NULL || timing == NULL ||
+        ground_move == NULL || air_move == NULL ||
+        common_attributes->side_special_stick_threshold_q16 !=
+            INT32_C(39322) ||
+        common_attributes->side_special_turn_threshold_q16 !=
+            INT32_C(13107) ||
+        ground_move->subaction_index != UINT16_C(303) ||
+        ground_move->total_frames != UINT16_C(79) ||
+        air_move->subaction_index != UINT16_C(305) ||
+        air_move->total_frames != UINT16_C(79) ||
+        timing->ground_search_begin_frame != UINT16_C(15) ||
+        timing->ground_search_end_frame != UINT16_C(34) ||
+        timing->air_search_begin_frame != UINT16_C(18) ||
+        timing->air_search_end_frame != UINT16_C(34) ||
+        timing->air_gravity_begin_frame != UINT16_C(30))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-imported-data\n");
+        return 0;
+    }
+
+    ground_content.stage.spawn_spacing_q16 =
+        INT32_C(8) * PF_Q16_ONE;
+    ground_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&ground_content, &ground_view),
+            PF_STATUS_OK,
+            "raptor-boost-ground-content-view") ||
+        !initialize_sim(
+            &ground_storage,
+            &ground_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &ground_sim) ||
+        !expect_status(
+            pf_sim_reset(ground_sim, UINT64_C(0xfa1c0b01)),
+            PF_STATUS_OK,
+            "raptor-boost-threshold-reset") ||
+        !step_duel(
+            ground_sim,
+            INT16_C(19660),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-below-threshold\n");
+        return 0;
+    }
+    if (!expect_status(
+            pf_sim_reset(ground_sim, UINT64_C(0xfa1c0b02)),
+            PF_STATUS_OK,
+            "raptor-boost-ground-reset") ||
+        !step_duel(
+            ground_sim,
+            INT16_C(19661),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(1); frame <= UINT32_C(79); ++frame)
+    {
+        if (!pf_m4_falcon_reference_motion_x_q16(
+                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND,
+                (uint16_t)frame,
+                &expected_motion_x_q16) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND ||
+            inspection.players[0].action_ticks != (uint16_t)frame ||
+            inspection.players[0].velocity_x_q16 !=
+                expected_motion_x_q16)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=raptor-boost-ground-frame "
+                "frame=%" PRIu32 " action=%u action_ticks=%u vx=%" PRId32
+                " expected_vx=%" PRId32 "\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                inspection.players[0].velocity_x_q16,
+                expected_motion_x_q16);
+            return 0;
+        }
+        if (frame < UINT32_C(79) &&
+            !step_duel(
+                ground_sim,
+                INT16_C(0),
+                INT16_C(0),
+                frame == UINT32_C(2)
+                    ? PF_INPUT_BUTTON_SPECIAL
+                    : UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            ground_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        !expect_status(
+            pf_sim_reset(ground_sim, UINT64_C(0xfa1c0b03)),
+            PF_STATUS_OK,
+            "raptor-boost-turn-reset") ||
+        !step_duel(
+            ground_sim,
+            INT16_C(-19661),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND ||
+        inspection.players[0].facing != INT8_C(-1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-ground-complete-turn\n");
+        return 0;
+    }
+
+    ground_hit_content.stage.spawn_spacing_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    ground_hit_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(
+                &ground_hit_content,
+                &ground_hit_view),
+            PF_STATUS_OK,
+            "raptor-boost-ground-hit-content-view") ||
+        !initialize_sim(
+            &ground_hit_storage,
+            &ground_hit_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &ground_hit_sim) ||
+        !expect_status(
+            pf_sim_reset(ground_hit_sim, UINT64_C(0xfa1c0b05)),
+            PF_STATUS_OK,
+            "raptor-boost-ground-hit-reset") ||
+        !step_duel(
+            ground_hit_sim,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(1);
+         frame <= UINT32_C(34) &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND;
+         ++frame)
+    {
+        if (!step_duel(
+                ground_hit_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (frame > UINT32_C(34) ||
+        inspection.players[0].action_ticks != UINT16_C(0) ||
+        !pf_m4_falcon_reference_motion_x_q16(
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND,
+            (uint16_t)frame,
+            &expected_motion_x_q16) ||
+        inspection.players[0].velocity_x_q16 !=
+            (int32_t)(
+                ((int64_t)expected_motion_x_q16 *
+                 (int64_t)attributes->specials_gr_vel_x_q16) /
+                (int64_t)PF_Q16_ONE))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-ground-search "
+            "frame=%" PRIu32 " action=%u ticks=%u vx=%" PRId32 "\n",
+            frame,
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            inspection.players[0].velocity_x_q16);
+        return 0;
+    }
+    for (frame = UINT32_C(1); frame < UINT32_C(3); ++frame)
+    {
+        if (!step_duel(
+                ground_hit_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND ||
+            inspection.players[0].action_ticks != (uint16_t)frame)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=raptor-boost-ground-hit-frame "
+                "frame=%" PRIu32 " action=%u ticks=%u\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks);
+            return 0;
+        }
+    }
+    if (!step_duel(
+            ground_hit_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].damage_q16 !=
+        UINT32_C(7) * (uint32_t)PF_Q16_ONE)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-ground-hit-damage "
+            "damage=%" PRIu32 "\n",
+            inspection.players[1].damage_q16);
+        return 0;
+    }
+
+    air_content.stage.spawn_spacing_q16 =
+        INT32_C(8) * PF_Q16_ONE;
+    air_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&air_content, &air_view),
+            PF_STATUS_OK,
+            "raptor-boost-air-content-view") ||
+        !initialize_sim(
+            &air_storage,
+            &air_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &air_sim) ||
+        !enter_air_raptor_boost(
+            air_sim,
+            UINT64_C(0xfa1c0b04),
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(2); frame < UINT32_C(30); ++frame)
+    {
+        if (!step_duel(
+                air_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
+            inspection.players[0].action_ticks != (uint16_t)frame ||
+            inspection.players[0].velocity_y_q16 != INT32_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=raptor-boost-air-zero-gravity "
+                "frame=%" PRIu32 " action=%u ticks=%u vy=%" PRId32 "\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                inspection.players[0].velocity_y_q16);
+            return 0;
+        }
+    }
+    expected_gravity_q16 = falcon_source_velocity_to_sim_q16(
+        attributes->specials_grav_q16,
+        INT32_C(11),
+        INT32_C(62));
+    if (!step_duel(
+            air_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
+        inspection.players[0].action_ticks != UINT16_C(30) ||
+        inspection.players[0].velocity_y_q16 != expected_gravity_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-air-gravity-begin "
+            "action=%u ticks=%u vy=%" PRId32 " expected=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            inspection.players[0].velocity_y_q16,
+            expected_gravity_q16);
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(240) &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS;
+         ++tick)
+    {
+        if (!step_duel(
+                air_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(240) ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-miss-landing-entry "
+            "action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    for (frame = UINT32_C(1); frame < UINT32_C(20); ++frame)
+    {
+        if (!step_duel(
+                air_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS ||
+            inspection.players[0].action_ticks != (uint16_t)frame)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=raptor-boost-miss-landing "
+                "frame=%" PRIu32 " action=%u ticks=%u\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks);
+            return 0;
+        }
+    }
+    if (!step_duel(
+            air_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=raptor-boost-miss-landing-end "
+            "action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    return 1;
+}
+
 #define RUN_MOVEMENT_TEST(call)                                         \
     ((call) ? 1                                                        \
             : ((void)fprintf(                                         \
@@ -13978,6 +14446,7 @@ int main(void)
             "content-view") ||
         !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_falcon_punch_source_data_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_raptor_boost_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||

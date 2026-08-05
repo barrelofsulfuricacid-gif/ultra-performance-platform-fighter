@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0x2b88c65c0067185c)
+    UINT64_C(0x223018a366b0af14)
 
 typedef struct pf_verifier_storage
 {
@@ -353,6 +353,10 @@ static int make_m4_match_content(
     content->reflector.enabled = UINT8_C(1);
     content->charge.enabled = UINT8_C(1);
     content->recovery.enabled = UINT8_C(1);
+
+    /* This multi-entity soak validates the authored projectile, reflector,
+     * charge, recovery, and item systems rather than Falcon equivalence. */
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
 
     content->stage.floor_left_q16 = -INT32_C(8) * PF_Q16_ONE;
     content->stage.floor_right_q16 = INT32_C(8) * PF_Q16_ONE;

@@ -55,6 +55,7 @@ int main(int argc, char **argv)
     int push_mode = 0;
     int shield_hit_mode = 0;
     int falcon_punch_air_mode = 0;
+    int raptor_boost_ground_hit_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -72,12 +73,19 @@ int main(int argc, char **argv)
     {
         falcon_punch_air_mode = 1;
     }
+    else if (
+        argc == 2 &&
+        strcmp(argv[1], "--raptor-boost-ground-hit") == 0)
+    {
+        raptor_boost_ground_hit_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
             stderr,
             "usage: pf_m4_movement_trace "
-            "[--platform|--push|--shield-hit|--falcon-punch-air]\n");
+            "[--platform|--push|--shield-hit|--falcon-punch-air|"
+            "--raptor-boost-ground-hit]\n");
         return 1;
     }
 
@@ -142,6 +150,16 @@ int main(int argc, char **argv)
         content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
         content.stage.blast_bottom_q16 =
             INT32_C(2048) * PF_Q16_ONE;
+    }
+    else if (raptor_boost_ground_hit_mode != 0)
+    {
+        /* The pinned Dolphin capture starts Falcon 10 Melee units from the
+         * stationary target. Translate that symmetric half-spacing through
+         * the repository's exact horizontal world scale. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)(
+                (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
+                INT64_C(115));
     }
     if (shield_hit_mode != 0)
     {

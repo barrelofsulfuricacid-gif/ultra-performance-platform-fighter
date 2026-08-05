@@ -58,10 +58,43 @@ pf_m4_falcon_reference_special_attributes(void)
     return &pf_m4_falcon_special_attribute_data;
 }
 
+const pf_m4_falcon_common_special_attributes *
+pf_m4_falcon_reference_common_special_attributes(void)
+{
+    return &pf_m4_falcon_common_special_attribute_data;
+}
+
 const pf_m4_falcon_neutral_special_timing *
 pf_m4_falcon_reference_neutral_special_timing(void)
 {
     return &pf_m4_falcon_neutral_special_timing_data;
+}
+
+const pf_m4_falcon_side_special_timing *
+pf_m4_falcon_reference_side_special_timing(void)
+{
+    return &pf_m4_falcon_side_special_timing_data;
+}
+
+const pf_m4_reference_search_sphere *
+pf_m4_falcon_reference_side_special_search_spheres(
+    int airborne,
+    uint8_t *out_count)
+{
+    const uint16_t offset = airborne != 0
+                                ? pf_m4_falcon_side_special_air_search_offset
+                                : pf_m4_falcon_side_special_ground_search_offset;
+    const uint8_t count = airborne != 0
+                              ? pf_m4_falcon_side_special_air_search_count
+                              : pf_m4_falcon_side_special_ground_search_count;
+
+    if (out_count != NULL)
+    {
+        *out_count = count;
+    }
+    return count == UINT8_C(0)
+               ? NULL
+               : &pf_m4_falcon_side_special_search_spheres[offset];
 }
 
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void)
@@ -345,6 +378,18 @@ int pf_m4_falcon_reference_move_for_action(
             break;
         case PF_M4_ACTION_FALCON_PUNCH_AIR:
             move_index = PF_M4_FALCON_NEUTRAL_SPECIAL_AIR;
+            break;
+        case PF_M4_ACTION_RAPTOR_BOOST_START_GROUND:
+            move_index = PF_M4_FALCON_SIDE_SPECIAL_START_GROUND;
+            break;
+        case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
+            move_index = PF_M4_FALCON_SIDE_SPECIAL_HIT_GROUND;
+            break;
+        case PF_M4_ACTION_RAPTOR_BOOST_START_AIR:
+            move_index = PF_M4_FALCON_SIDE_SPECIAL_START_AIR;
+            break;
+        case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
+            move_index = PF_M4_FALCON_SIDE_SPECIAL_HIT_AIR;
             break;
         default:
             return 0;

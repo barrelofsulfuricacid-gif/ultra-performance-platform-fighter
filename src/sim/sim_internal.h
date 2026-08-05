@@ -21,6 +21,30 @@
 #define PF_M4_TRIGGER_STATE_DENSE_MASK UINT8_C(12)
 #define PF_M4_TRIGGER_STATE_MASK UINT8_C(15)
 
+static inline int32_t pf_m4_multiply_q16(
+    int32_t value_q16,
+    int32_t multiplier_q16)
+{
+    return (int32_t)(
+        ((int64_t)value_q16 * (int64_t)multiplier_q16) /
+        (int64_t)PF_Q16_ONE);
+}
+
+static inline int32_t pf_m4_axis_q16(int16_t axis)
+{
+    const int64_t denominator =
+        axis < INT16_C(0) ? INT64_C(32768) : INT64_C(32767);
+    const int64_t product = (int64_t)axis * (int64_t)PF_Q16_ONE;
+
+    return product < INT64_C(0)
+               ? (int32_t)(
+                     -((-product + denominator / INT64_C(2)) /
+                       denominator))
+               : (int32_t)(
+                     (product + denominator / INT64_C(2)) /
+                     denominator);
+}
+
 static inline uint8_t pf_m4_input_trigger_state(
     const pf_m4_fighter_data *fighter,
     const pf_input_frame *input)
