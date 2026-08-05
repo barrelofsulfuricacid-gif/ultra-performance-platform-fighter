@@ -459,12 +459,13 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 14,671 captured frames, including
+executable-oracle evidence is therefore 14,826 captured frames, including
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
 103-frame grounded and 165-frame aerial miss routes with memory-probed ECB,
 internal damage, knockback, and reaction-timer state,
 46-frame Raptor Boost ground-hit, 80-frame ground-miss, 180-frame aerial-miss,
-145-frame aerial-hit-to-floor, and 51-frame ground-edge routes,
+145-frame aerial-hit-to-floor, 51-frame ground-edge, and 155-frame native
+Capsule item-search routes,
 and a 77-frame Falcon Kick ground-hit route with memory-probed parallel ground
 and self velocities.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
@@ -495,10 +496,17 @@ search-hit, miss, landing, and hit states, up special through Falcon Dive
 ground/air start, catch, and throw, and down special through Falcon Kick's
 ground/air start, ground end, air end, landing-hit, edge-fall, and wall-rebound
 states. The original Pulse Bolt, Prism Burst, Vector Ascent, and Arc Reservoir
-are explicit custom-content opt-outs. An at-will 502-frame identical-input
-Dolphin Raptor Boost suite covers the 46-frame ground-hit, 80-frame ground-
+are explicit custom-content opt-outs. An at-will 657-frame Dolphin Raptor
+Boost suite covers the 46-frame ground-hit, 80-frame ground-
 miss, 180-frame aerial-miss, 145-frame aerial-hit-to-floor, and 51-frame
-ground-edge routes. The
+ground-edge routes plus a 155-frame native Capsule search route. The item
+route forces only Melee's item-rule accessors to Very High and runtime kind 0,
+then uses the native ambient spawner, grounded Capsule, Falcon search callback,
+and hit-state transition. Its isolated opponent remains at least 100 Melee units
+away, and the verifier asserts the first live command-variable gate. The
+project's Relay Rod is not a Falcon item-search target because the source
+predicate accepts container kinds 0 through 5, two enemy ranges, and the
+random Pokemon kind rather than ordinary weapon items. The
 aerial-hit route includes search conversion, the imported frame-3 seven-damage
 hit, five-frame hitlag, the complete natural pre-landing recovery tail, the exact air-to-ground
 transition, 40 ticks of hit landing lag, and return to standing. It consumes

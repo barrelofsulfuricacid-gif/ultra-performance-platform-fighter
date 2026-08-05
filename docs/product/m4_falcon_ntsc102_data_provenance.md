@@ -164,8 +164,27 @@ launching the fighter. A separate 210-row ground-edge capture at SHA-256
 adds 51 strict frames. It uses an ordinary opponent dash to keep the search
 route empty, then qualifies `cmd_vars[2]`-gated floor loss, the full frame-20
 root step, the source air-speed clamp, no transition-row gravity, and common
-`FallSpecial`. Remaining executable qualification is explicitly limited to
-source item-search behavior.
+`FallSpecial`.
+
+A 155-row native item-search capture at SHA-256
+`9efacb94277b8cb870f8c69008e5dd248d4d31cec17e9713323abde94a577028`
+closes the remaining source branch. Slippi normally overwrites the live match
+rule with item frequency -1, so the capture's isolated Gecko configuration
+replaces only `gm_8016AE80` and `gm_8016AEA4`: Very High frequency and runtime
+item-kind mask bit 0. Melee's original `it_8026D018` ambient spawner then
+creates and settles a real Capsule. Falcon is relocated once before input to
+ten units left of that item, while the opposing fighter is kept at least 100
+units away. The original search callback selects grounded hit action 350 at
+the first live `cmd_vars[0]` gate, displayed start frame 15. The verifier also
+pins the otherwise non-obvious item-switch mapping: Capsule runtime kind 0 is
+saved preference bit 29 through `lbl_803B7844`.
+
+The decomp predicate accepts runtime container kinds 0 through 5, its two
+enemy-kind ranges, and the random Pokemon kind. It rejects ordinary weapon
+items. The project's Relay Rod is original content and therefore correctly
+does not activate Falcon's source item-search branch; no invented positive
+classification is attached to that custom fixture. The at-will Raptor Boost
+suite now covers 657 frames across all six routes.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,

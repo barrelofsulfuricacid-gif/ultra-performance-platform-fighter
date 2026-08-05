@@ -29,6 +29,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "side_ground_miss": "0x12f",
     "side_ground_edge": "0x12f",
     "side_ground_hit": "0x130",
+    "side_ground_item_hit": "0x130",
     "side_air_miss": "0x131",
     "side_air_hit": "0x132",
     "side_air_hit_floor": "0x132",
@@ -94,8 +95,10 @@ def input_trace(
         opponent_attack: bool = False,
         opponent_jump: bool = False,
         fighter_x_override: float | None = None,
+        fighter_x_from_item_offset: float | None = None,
         fighter_y_override: float | None = None,
         opponent_x_override: float | None = None,
+        opponent_x_from_item_offset: float | None = None,
         opponent_y_override: float | None = None,
     ) -> dict[str, object]:
         return {
@@ -117,8 +120,10 @@ def input_trace(
             "opponent_attack": opponent_attack,
             "opponent_jump": opponent_jump,
             "fighter_x_override": fighter_x_override,
+            "fighter_x_from_item_offset": fighter_x_from_item_offset,
             "fighter_y_override": fighter_y_override,
             "opponent_x_override": opponent_x_override,
+            "opponent_x_from_item_offset": opponent_x_from_item_offset,
             "opponent_y_override": opponent_y_override,
         }
 
@@ -357,9 +362,18 @@ def input_trace(
                 command(
                     f"special_geometry_{route}_opponent_pose_reset",
                     opponent_attack=True,
+                    opponent_x_from_item_offset=(
+                        100.0 if route == "side_ground_item_hit" else None
+                    ),
                 )
             )
-            repeat(f"special_geometry_{route}_settle", 29)
+            repeat(
+                f"special_geometry_{route}_settle",
+                29,
+                opponent_x_from_item_offset=(
+                    100.0 if route == "side_ground_item_hit" else None
+                ),
+            )
             airborne = route in {
                 "neutral_air",
                 "side_air_miss",
@@ -379,6 +393,7 @@ def input_trace(
                     "side_air_hit_floor",
                     "up_air_catch",
                 }
+
                 def airborne_setup(
                     suffix: str, *, jump: bool = False
                 ) -> dict[str, object]:
@@ -394,9 +409,7 @@ def input_trace(
                             airborne_opponent
                             and (not native_air_hit or native_jump_held)
                         ),
-                        fighter_x_override=(
-                            -10.0 if native_jump_setup else None
-                        ),
+                        fighter_x_override=(-10.0 if native_jump_setup else None),
                         opponent_x_override=(
                             0.0
                             if native_jump_setup
@@ -404,9 +417,7 @@ def input_trace(
                             else None
                         ),
                         opponent_y_override=(
-                            500.0
-                            if opponent_elevated and not native_air_hit
-                            else None
+                            500.0 if opponent_elevated and not native_air_hit else None
                         ),
                     )
 
@@ -452,6 +463,7 @@ def input_trace(
                 "side_ground_miss",
                 "side_ground_edge",
                 "side_ground_hit",
+                "side_ground_item_hit",
                 "side_air_miss",
                 "side_air_hit",
                 "side_air_hit_floor",
@@ -467,30 +479,34 @@ def input_trace(
                             if route == "side_ground_edge"
                             else (
                                 -10.0
-                                if collision_route and not native_air_hit
+                                if collision_route
+                                and not native_air_hit
+                                and route != "side_ground_item_hit"
                                 else None
                             )
                         ),
+                        fighter_x_from_item_offset=(
+                            -10.0 if route == "side_ground_item_hit" else None
+                        ),
                         fighter_y_override=(
-                            500.0
-                            if elevated_airborne and not native_air_hit
-                            else None
+                            500.0 if elevated_airborne and not native_air_hit else None
                         ),
                         opponent_x_override=(
                             0.0
-                            if collision_route and not native_air_hit
+                            if collision_route
+                            and not native_air_hit
+                            and route != "side_ground_item_hit"
                             else None
+                        ),
+                        opponent_x_from_item_offset=(
+                            100.0 if route == "side_ground_item_hit" else None
                         ),
                         opponent_y_override=(
                             500.0
-                            if collision_route
-                            and airborne
-                            and not native_air_hit
+                            if collision_route and airborne and not native_air_hit
                             else None
                         ),
-                        opponent_main_x=(
-                            0.0 if route == "side_ground_edge" else 0.5
-                        ),
+                        opponent_main_x=(0.0 if route == "side_ground_edge" else 0.5),
                     )
                 )
             elif route in {
@@ -550,28 +566,18 @@ def input_trace(
                         fighter_x_override=(
                             80.0
                             if route == "down_ground_edge"
-                            else (
-                                -20.0
-                                if route == "down_ground_hit"
-                                else None
-                            )
+                            else (-20.0 if route == "down_ground_hit" else None)
                         ),
                         opponent_x_override=(
                             0.0 if route == "down_ground_hit" else None
                         ),
-                        fighter_y_override=(
-                            500.0
-                            if elevated_airborne
-                            else None
-                        ),
+                        fighter_y_override=(500.0 if elevated_airborne else None),
                     )
                 )
             repeat(
                 f"special_geometry_{route}_observe",
                 special_total(route) + 100,
-                opponent_main_x=(
-                    0.0 if route == "side_ground_edge" else 0.5
-                ),
+                opponent_main_x=(0.0 if route == "side_ground_edge" else 0.5),
                 fighter_y_override=(
                     500.0
                     if elevated_airborne
@@ -1827,35 +1833,22 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
         "fighter_ecb": read_ecb(fighter),
         "fighter_environment_flags": memory_engine.read_word(fighter + 0x824),
-        "fighter_previous_environment_flags": memory_engine.read_word(
-            fighter + 0x828
-        ),
+        "fighter_previous_environment_flags": memory_engine.read_word(fighter + 0x828),
         "fighter_command_variables": [
-            memory_engine.read_word(fighter + 0x2200 + 4 * index)
-            for index in range(4)
+            memory_engine.read_word(fighter + 0x2200 + 4 * index) for index in range(4)
         ],
         "opponent_fighter_address": opponent,
         "opponent_fighter_position": [
             memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
         ],
-        "opponent_damage_percent_internal": memory_engine.read_float(
-            opponent + 0x1830
-        ),
-        "opponent_damage_percent_temp": memory_engine.read_float(
-            opponent + 0x1838
-        ),
-        "opponent_knockback_applied": memory_engine.read_float(
-            opponent + 0x1850
-        ),
-        "opponent_knockback_magnitude": memory_engine.read_float(
-            opponent + 0x18A4
-        ),
+        "opponent_damage_percent_internal": memory_engine.read_float(opponent + 0x1830),
+        "opponent_damage_percent_temp": memory_engine.read_float(opponent + 0x1838),
+        "opponent_knockback_applied": memory_engine.read_float(opponent + 0x1850),
+        "opponent_knockback_magnitude": memory_engine.read_float(opponent + 0x18A4),
         "opponent_knockback_applied_latched": memory_engine.read_float(
             opponent + 0x18A8
         ),
-        "opponent_damage_state_ticks": memory_engine.read_word(
-            opponent + 0x2340
-        ),
+        "opponent_damage_state_ticks": memory_engine.read_word(opponent + 0x2340),
         "throw_weight": memory_engine.read_float(common + 0x10C),
         "opponent_hurtboxes": read_fighter_hurt_capsules(memory_engine, opponent),
         "opponent_ecb": read_ecb(opponent),
@@ -1959,6 +1952,33 @@ def choose_stage_at(
         controller.press_button(melee.Button.BUTTON_A)
 
 
+def wait_for_grounded_capsule(
+    console: melee.Console,
+    player_one: melee.Controller,
+    player_two: melee.Controller,
+    gamestate: melee.GameState,
+) -> melee.GameState:
+    """Advance neutral frames until the native Capsule has stopped bouncing."""
+
+    for _ in range(600):
+        if len(gamestate.projectiles) == 1:
+            item = gamestate.projectiles[0]
+            if (
+                int(item.type.value) == 255
+                and int(item.subtype) == 0
+                and float(item.speed.x) == 0.0
+                and float(item.speed.y) == 0.0
+            ):
+                return gamestate
+        player_one.release_all()
+        player_two.release_all()
+        next_state = console.step()
+        if next_state is None:
+            raise RuntimeError("missing state while waiting for grounded Capsule")
+        gamestate = next_state
+    raise RuntimeError("native Capsule did not settle within 600 frames")
+
+
 def hook_memory_engine(dolphin: Path) -> object:
     """Hook DME, including extracted-AppImage process-name discovery."""
 
@@ -1973,6 +1993,104 @@ def hook_memory_engine(dolphin: Path) -> object:
         raise RuntimeError("memory probes require dolphin-memory-engine") from error
     memory_engine_module.hook()
     return memory_engine_module
+
+
+def wait_for_memory_engine_hook(dolphin: Path) -> object:
+    memory_engine = hook_memory_engine(dolphin)
+    hook_deadline = time.monotonic() + 10.0
+    while not memory_engine.is_hooked() and time.monotonic() < hook_deadline:
+        time.sleep(0.05)
+        memory_engine.hook()
+    if not memory_engine.is_hooked():
+        raise RuntimeError(
+            "dolphin-memory-engine could not hook the oracle process: "
+            f"{memory_engine.get_status()}"
+        )
+    return memory_engine
+
+
+def set_native_capsule_preferences(memory_engine: object) -> None:
+    """Set the source item-switch preference to Capsule at Very High."""
+
+    # gm_80167BC8 maps the item-switch UI mask through lbl_803B7844 when it
+    # constructs StartMeleeRules.x20. Capsule (It_Kind_Capsule == 0) is UI
+    # bit 29, not bit 0.
+    capsule_item_switch_mask = (1 << 29).to_bytes(8, "big")
+    main_data = int(memory_engine.read_word(0x804D3EE0))
+    if not 0x80000000 <= main_data < 0x81800000:
+        raise RuntimeError(f"invalid gmMainLib_804D3EE0 pointer: 0x{main_data:08x}")
+    item_preferences = main_data + 0x1898 + 0x448
+    memory_engine.write_byte(item_preferences, 4)
+    memory_engine.write_bytes(
+        item_preferences + 8,
+        capsule_item_switch_mask,
+    )
+    if (
+        int(memory_engine.read_byte(item_preferences)) != 4
+        or bytes(memory_engine.read_bytes(item_preferences + 8, 8))
+        != capsule_item_switch_mask
+    ):
+        raise RuntimeError("native item preferences did not retain write")
+
+
+def read_native_item_rules(memory_engine: object) -> dict[str, object]:
+    """Read the source preferences and isolated item-rule accessor code."""
+
+    main_data = int(memory_engine.read_word(0x804D3EE0))
+    if not 0x80000000 <= main_data < 0x81800000:
+        raise RuntimeError(f"invalid gmMainLib_804D3EE0 pointer: 0x{main_data:08x}")
+    item_preferences = main_data + 0x1898 + 0x448
+    return {
+        "spawns_enabled": int(memory_engine.read_word(0x8049FAA0 + 8)),
+        "rule_accessor_code": {
+            "frequency": bytes(memory_engine.read_bytes(0x8016AE80, 8)).hex(),
+            "runtime_mask": bytes(memory_engine.read_bytes(0x8016AEA4, 12)).hex(),
+        },
+        "preferences": {
+            "frequency": int(memory_engine.read_byte(item_preferences)),
+            "item_switch_mask": bytes(
+                memory_engine.read_bytes(item_preferences + 8, 8)
+            ).hex(),
+        },
+    }
+
+
+def enable_native_capsule_gecko(console: object) -> None:
+    """Configure the native spawner despite Slippi's items-off rule override."""
+
+    game_settings = (
+        Path(console._get_dolphin_home_path()) / "GameSettings" / "GALE01r2.ini"
+    )
+    if not game_settings.is_file():
+        raise FileNotFoundError(f"missing libmelee Gecko config: {game_settings}")
+    # Slippi's recording rules replace StartMeleeRules.xB with -1 during the
+    # match handoff, after vanilla preferences are copied. Override only the
+    # two source accessors consumed by it_8026D018 and the ambient spawner:
+    # frequency 4 (Very High), and runtime item-kind bit 0 (Capsule).
+    enabled_header = "[Gecko_Enabled]\n"
+    gecko_header = "[Gecko]\n"
+    code_name = "$Oracle: Native Capsule Spawning"
+    text = game_settings.read_text(encoding="ascii")
+    if enabled_header not in text or gecko_header not in text:
+        raise RuntimeError("unexpected libmelee Gecko config structure")
+    text = text.replace(
+        enabled_header,
+        f"{enabled_header}{code_name}\n",
+        1,
+    )
+    text = text.replace(
+        gecko_header,
+        (
+            f"{gecko_header}{code_name}\n"
+            "0416AE80 38600004 # Oracle/Items/NativeFrequencyVeryHigh.asm\n"
+            "0416AE84 4E800020\n"
+            "0416AEA4 38600000 # Oracle/Items/NativeMaskCapsuleHi.asm\n"
+            "0416AEA8 38800001\n"
+            "0416AEAC 4E800020\n"
+        ),
+        1,
+    )
+    game_settings.write_text(text, encoding="ascii", newline="\n")
 
 
 def capture(args: argparse.Namespace) -> dict[str, object]:
@@ -1990,9 +2108,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         and args.special_geometry_move
         and "down_ground_wall" in args.special_geometry_move
     )
-    if wall_geometry_route and set(args.special_geometry_move) != {
-        "down_ground_wall"
-    }:
+    if wall_geometry_route and set(args.special_geometry_move) != {"down_ground_wall"}:
         raise ValueError(
             "down_ground_wall uses Hyrule Temple and must be captured alone"
         )
@@ -2008,6 +2124,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         disable_audio=True,
         save_replays=False,
     )
+    if args.enable_items:
+        enable_native_capsule_gecko(console)
     player_one = melee.Controller(console, 1, melee.ControllerType.STANDARD)
     player_two = melee.Controller(console, 2, melee.ControllerType.STANDARD)
     started_at = time.monotonic()
@@ -2048,10 +2166,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             raise RuntimeError("Dolphin controller pipes did not connect")
 
         gamestate = None
+        items_configured = False
         while time.monotonic() - started_at < args.menu_timeout:
             gamestate = console.step()
             if gamestate is None:
                 continue
+            if (
+                args.enable_items
+                and not items_configured
+                and gamestate.menu_state == melee.Menu.MAIN_MENU
+            ):
+                memory_engine = wait_for_memory_engine_hook(dolphin)
+                set_native_capsule_preferences(memory_engine)
+                items_configured = True
             if (
                 gamestate.menu_state in (melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH)
                 and gamestate.frame >= args.start_frame
@@ -2093,19 +2220,18 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             or args.memory_probe_hitbox
         ):
             if memory_engine is None:
-                memory_engine = hook_memory_engine(dolphin)
-            hook_deadline = time.monotonic() + 10.0
-            while (
-                not memory_engine.is_hooked()
-                and time.monotonic() < hook_deadline
-            ):
-                time.sleep(0.05)
-                memory_engine.hook()
-            if not memory_engine.is_hooked():
-                raise RuntimeError(
-                    "dolphin-memory-engine could not hook the oracle process: "
-                    f"{memory_engine.get_status()}"
-                )
+                memory_engine = wait_for_memory_engine_hook(dolphin)
+
+        if (
+            args.special_geometry_move
+            and "side_ground_item_hit" in args.special_geometry_move
+        ):
+            gamestate = wait_for_grounded_capsule(
+                console,
+                player_one,
+                player_two,
+                gamestate,
+            )
 
         player_one.release_all()
         player_two.release_all()
@@ -2142,7 +2268,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         pipeline_delay = 2
         commands = trace + [
-            {**trace[0], "label": "pipeline_drain"} for _ in range(pipeline_delay)
+            {
+                **trace[0],
+                "label": "pipeline_drain",
+                "fighter_x_from_item_offset": None,
+                "opponent_x_from_item_offset": None,
+            }
+            for _ in range(pipeline_delay)
         ]
         for command_index, sample in enumerate(commands):
             player_one.release_all()
@@ -2188,10 +2320,28 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player_two.press_button(melee.Button.BUTTON_A)
             if bool(sample["opponent_jump"]):
                 player_two.press_button(melee.Button.BUTTON_X)
+            fighter_x_override = sample["fighter_x_override"]
+            opponent_x_override = sample["opponent_x_override"]
+            if sample["fighter_x_from_item_offset"] is not None:
+                if not gamestate.projectiles:
+                    raise RuntimeError(
+                        "item-relative fighter position requires a live item"
+                    )
+                fighter_x_override = float(gamestate.projectiles[0].position.x) + float(
+                    sample["fighter_x_from_item_offset"]
+                )
+            if sample["opponent_x_from_item_offset"] is not None:
+                if not gamestate.projectiles:
+                    raise RuntimeError(
+                        "item-relative opponent position requires a live item"
+                    )
+                opponent_x_override = float(
+                    gamestate.projectiles[0].position.x
+                ) + float(sample["opponent_x_from_item_offset"])
             position_overrides = (
-                (0, 0xB0, sample["fighter_x_override"]),
+                (0, 0xB0, fighter_x_override),
                 (0, 0xB4, sample["fighter_y_override"]),
-                (1, 0xB0, sample["opponent_x_override"]),
+                (1, 0xB0, opponent_x_override),
                 (1, 0xB4, sample["opponent_y_override"]),
             )
             if any(value is not None for _, _, value in position_overrides):
@@ -2426,6 +2576,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "opponent_hitlag_left": float(player_two_state.hitlag_left),
                 "opponent_hitstun_left": float(player_two_state.hitstun_frames_left),
                 "opponent_damage_percent": float(player_two_state.percent),
+                "projectiles": [
+                    {
+                        "type": int(projectile.type.value),
+                        "subtype": int(projectile.subtype),
+                        "x": float(projectile.position.x),
+                        "y": float(projectile.position.y),
+                        "velocity_x": float(projectile.speed.x),
+                        "velocity_y": float(projectile.speed.y),
+                        "owner": int(projectile.owner),
+                        "frame": int(projectile.frame),
+                    }
+                    for projectile in gamestate.projectiles
+                ],
             }
             if memory_engine is not None:
                 if args.memory_probe_shield:
@@ -2436,6 +2599,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
             rows.append(row)
 
+        item_rules = (
+            read_native_item_rules(memory_engine)
+            if args.enable_items and memory_engine is not None
+            else None
+        )
         return {
             "schema": (
                 9
@@ -2502,6 +2670,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_damage
                 else None
             ),
+            "item_rules": item_rules,
             "hitbox_memory_probe": (
                 {
                     "engine_version": importlib.metadata.version(
@@ -2543,6 +2712,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--menu-timeout", type=float, default=120.0)
     parser.add_argument("--start-frame", type=int, default=120)
     parser.add_argument("--batch", action="store_true")
+    parser.add_argument("--enable-items", action="store_true")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
@@ -2581,6 +2751,12 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
+    if (
+        args.special_geometry_move
+        and "side_ground_item_hit" in args.special_geometry_move
+        and not args.enable_items
+    ):
+        parser.error("side_ground_item_hit requires --enable-items")
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
     if args.memory_probe_hitbox and not (
