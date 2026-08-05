@@ -459,7 +459,7 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 13,526 captured frames, including a
+executable-oracle evidence is therefore 13,720 captured frames, including a
 116-frame grounded Falcon Dive catch/throw route with memory-probed ECB state.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
 inventory remain active work.
@@ -495,11 +495,13 @@ within the bounded 640-Q16 representation allowance.
 A separate 116-frame grounded Falcon Dive capture strictly matches catch,
 hitlag, captured-target attachment, throw release, source relocation/root
 motion, fall, and floor landing within the same representation allowance.
-A 70-frame Falcon Kick ground capture strictly matches the imported start and
-ground-end actions, root translation, velocity, and decoded traction-command
-boundary within that same allowance. Its ground-hit speed callback and cap,
-the air/end/landing/rebound graph, and all hit geometry consume the imported
-tables; remaining Falcon Kick dynamic routes still require identical-input
+A 264-frame Falcon Kick differential suite strictly matches the imported
+ground start/end, air start/end, air-to-ground landing, and ground-to-air edge
+routes, including root translation, velocity, decoded traction/air-physics
+command boundaries, and the source collision conversion's half crossing-tick
+displacement within that same allowance. Its ground-hit speed callback and
+cap, rebound graph, and all hit geometry consume the imported tables; the
+wall-rebound and ground-hit dynamic routes still require identical-input
 qualification before their behavior is called exhaustive.
 Hurt capsules for remaining common actions, source-Z collision semantics,
 normal-throw collateral hits, and exact sphere-versus-shield intersection

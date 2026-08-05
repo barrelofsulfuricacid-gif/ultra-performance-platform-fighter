@@ -390,6 +390,69 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
+    falcon_kick_ground_edge_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_down_ground_edge_start"
+        for row in oracle_rows
+    )
+    if falcon_kick_ground_edge_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_down_ground_edge_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_fall_after_special = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "FALLING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_fall_after_special + 1]
+    falcon_kick_air_mode = any(
+        str(row.get("label", "")) == "special_geometry_down_air_start"
+        for row in oracle_rows
+    )
+    if falcon_kick_air_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", "")) == "special_geometry_down_air_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_fall_after_special = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "FALLING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_fall_after_special + 1]
+    falcon_kick_air_land_mode = any(
+        str(row.get("label", "")) == "special_geometry_down_air_land_start"
+        for row in oracle_rows
+    )
+    if falcon_kick_air_land_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_down_air_land_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_idle_after_special = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "STANDING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_idle_after_special + 1]
     push_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("push_")
@@ -473,6 +536,12 @@ def main() -> int:
         runner_command.append("--falcon-dive-ground-catch")
     elif falcon_kick_ground_mode:
         runner_command.append("--falcon-kick-ground")
+    elif falcon_kick_ground_edge_mode:
+        runner_command.append("--falcon-kick-ground-edge")
+    elif falcon_kick_air_mode:
+        runner_command.append("--falcon-kick-air")
+    elif falcon_kick_air_land_mode:
+        runner_command.append("--falcon-kick-air-land")
     completed = subprocess.run(
         runner_command,
         input=input_text,
@@ -500,16 +569,26 @@ def main() -> int:
         float(oracle_rows[0]["position_x_from_origin"])
         - float(oracle_rows[0]["ground_velocity_x"])
         if raptor_boost_ground_hit_mode
+        else float(oracle_rows[0]["position_x_from_origin"])
+        if falcon_kick_ground_edge_mode
         else 0.0
     )
     oracle_anchor_y = (
         float(oracle_rows[0]["position_y"])
+        - (
+            float(oracle_rows[0]["velocity_y"])
+            if falcon_kick_air_land_mode
+            else 0.0
+        )
         if capture.get("stage") == "BATTLEFIELD"
+        or falcon_kick_air_land_mode
         else 0.0
     )
     native_anchor_x = 0
     native_anchor_y = 0
-    horizontal_mirror = -1 if falcon_punch_air_mode else 1
+    horizontal_mirror = (
+        -1 if falcon_punch_air_mode or falcon_kick_air_mode else 1
+    )
     previous_label: str | None = None
     skip_character_content = False
     shield_contact_seen = False
@@ -596,6 +675,24 @@ def main() -> int:
                 "SWORD_DANCE_1_AIR": 124,
                 "STANDING": 0,
             }.get(action_name, expected_action)
+        if falcon_kick_ground_edge_mode:
+            expected_action = {
+                "SWORD_DANCE_4_LOW": 123,
+                "SWORD_DANCE_3_MID_AIR": 127,
+                "FALLING": 6,
+            }.get(action_name, expected_action)
+        if falcon_kick_air_mode:
+            expected_action = {
+                "SWORD_DANCE_2_HIGH_AIR": 125,
+                "DOWN_B_GROUND": 128,
+                "FALLING": 6,
+            }.get(action_name, expected_action)
+        if falcon_kick_air_land_mode:
+            expected_action = {
+                "SWORD_DANCE_2_HIGH_AIR": 125,
+                "DOWN_B_GROUND_START": 126,
+                "STANDING": 0,
+            }.get(action_name, expected_action)
         if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
         if (
@@ -632,6 +729,27 @@ def main() -> int:
                 expected_ticks = action_frame
             elif action_name == "SWORD_DANCE_1_AIR":
                 expected_ticks = action_frame - 1
+            elif action_name == "STANDING":
+                expected_ticks = 0
+        if falcon_kick_ground_edge_mode:
+            if action_name == "SWORD_DANCE_4_LOW":
+                expected_ticks = action_frame
+            elif action_name == "SWORD_DANCE_3_MID_AIR":
+                expected_ticks = action_frame
+            elif action_name == "FALLING":
+                expected_ticks = action_frame - 1
+        if falcon_kick_air_mode:
+            if action_name == "SWORD_DANCE_2_HIGH_AIR":
+                expected_ticks = action_frame
+            elif action_name == "DOWN_B_GROUND":
+                expected_ticks = action_frame - 1
+            elif action_name == "FALLING":
+                expected_ticks = 0
+        if falcon_kick_air_land_mode:
+            if action_name == "SWORD_DANCE_2_HIGH_AIR":
+                expected_ticks = action_frame
+            elif action_name == "DOWN_B_GROUND_START":
+                expected_ticks = action_frame
             elif action_name == "STANDING":
                 expected_ticks = 0
         if shield_hit_mode or (
@@ -694,6 +812,10 @@ def main() -> int:
                 "SWORD_DANCE_4_HIGH",
             }
         )
+        skip_vertical_position = (
+            falcon_kick_air_mode
+            and oracle.get("requested_fighter_y_override") is not None
+        )
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
         expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)
@@ -733,6 +855,7 @@ def main() -> int:
             )
         if (
             not skip_special_physics
+            and not skip_vertical_position
             and abs(actual_position_y - expected_position_y)
             > args.position_tolerance_q16
         ):

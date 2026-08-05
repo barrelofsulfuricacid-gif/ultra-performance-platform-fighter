@@ -3383,3 +3383,22 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   ground-hit dynamic routes still need strict identical-input qualification;
   broader shared-state and collision gaps remain active rather than inferred
   from the static table.
+
+## 2026-08-04 Falcon Kick air, landing, and edge qualification
+
+- The at-will Falcon Kick verifier now covers 264 comparable frames across the
+  pinned ground, air, air-to-ground landing, and ground-to-air edge captures.
+  The added capture SHA-256 values are
+  `1b72cb23727cd0770ee2fb5c4a7c8e9e17e91c71548e45be57bbe85cb8df5990`,
+  `b86de007baeb6048488d4f2aaa258690ef2d09693033fd9b0f78865d81ea80d2`,
+  and `ae4d9c2f3cb19af35e9288d5f9dcc9a7a4a72adc1baa220bc3ffe03b8e17ddfc`.
+- Those routes exposed source-order details that static frame rows cannot
+  express: air-end physics runs on the transition tick, landing frame zero
+  preserves incoming vertical velocity, terminal fall speed clamps after
+  gravity, and `mpColl_8004B108` commits half of Falcon Kick's edge-crossing
+  displacement while preserving full root velocity and applying no same-tick
+  gravity. Production now follows those decomp/oracle semantics.
+- All four routes pass strict action, action-tick, facing, grounded-state, and
+  velocity comparison with the established 640-Q16 position envelope. The
+  wall-rebound and ground-hit dynamic routes remain unqualified and M4 remains
+  unfinished; no replacement timing is inferred for either route.

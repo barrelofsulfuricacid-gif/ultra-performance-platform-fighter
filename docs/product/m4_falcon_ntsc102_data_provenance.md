@@ -99,14 +99,14 @@ ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
 `pf_m4_default_content` consumes this typed view rather than repeating authored
 ratios. The raw attributes, typed view, special block, action table, collision
 pose, and source hashes form complete-source SHA-256
-`676813b2a18210c445771011668856b9b91fd5a3b2da8728236ee2899ef2ab64`.
+`39fc2a489460791b5557442063361873709afd22c51f59835433edef4b4274a2`.
 Fresh regeneration from the five pinned inputs byte-matches the checked-in
 include at SHA-256
-`ba0b94cff4ad16d6ca606a926d6df87c311b6ff24a4247b56a9562d1d804a046`.
-The production ground/aerial Falcon Punch, ground/aerial Raptor Boost, and
-ground/aerial Falcon Dive states consume this imported data directly. Falcon
-Kick remains an explicit M4 runtime-routing gate; the project's original
-directional-special fixtures are not evidence for that source move.
+`498ea9566f82051ed88ca6b8cf43e3e84c4f8a57994f90e91ec3c63a7be57e50`.
+The production ground/aerial Falcon Punch, Raptor Boost, Falcon Dive, and all
+seven Falcon Kick states consume this imported data directly. The project's
+original directional-special fixtures are not evidence for those source
+moves.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
@@ -209,12 +209,11 @@ and hitlag-frozen source actions without allocation.
 
 The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
 hash to
-`92f5014de753bf5660e5f4eb566e4e92ac734871089f359c697fa9a3d8e6b4c0`.
+`f7bb98902431ed7c7bb80b689cb3e954b5e8c2f40a7793b8dd8a81deafe75052`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
-retain an old compatibility identity. Production combat already queries this
-table for implemented normals, aerials, grabs, and both Falcon Punch states;
-the remaining special rows become runtime-active only as their source state
-machines are routed. Hurt poses for common non-attack actions, the retained
+retain an old compatibility identity. Production combat queries this table
+for implemented normals, aerials, grabs, and all 17 Falcon special
+subactions. Hurt poses for common non-attack actions, the retained
 source Z coordinate, normal-throw collateral hits, and exact sphere-versus-
 shield intersection remain active fidelity gaps, not values to be filled by
 guessed frame data. Custom authored content may opt out of reference geometry

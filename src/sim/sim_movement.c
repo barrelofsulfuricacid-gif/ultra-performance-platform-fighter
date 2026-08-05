@@ -1175,6 +1175,10 @@ static void pf_m4_falcon_source_air_physics(
         *velocity_y_q16,
         common->terminal_velocity_q16,
         common->gravity_q16);
+    if (*velocity_y_q16 > common->terminal_velocity_q16)
+    {
+        *velocity_y_q16 = common->terminal_velocity_q16;
+    }
 }
 
 static int32_t pf_m4_moonwalk_sweep_velocity(
@@ -3066,7 +3070,6 @@ static void pf_m4_land_from_air(
             (uint8_t)PF_M4_ACTION_FALCON_KICK_END_AIR)
     {
         *position_y = surface_y_q16 - fighter->half_height_q16;
-        *velocity_y = INT32_C(0);
         *action_ticks = UINT16_C(0);
         *grounded = UINT8_C(1);
         *action_state =
@@ -8113,17 +8116,39 @@ pf_status pf_m4_step_player(
                 }
                 if (action_ticks >= move->total_frames)
                 {
-                    action_state =
+                    const int ground_origin =
                         action_state ==
-                                (uint8_t)
-                                    PF_M4_ACTION_FALCON_KICK_START_GROUND
+                        (uint8_t)
+                            PF_M4_ACTION_FALCON_KICK_START_GROUND;
+
+                    action_state =
+                        ground_origin != 0
                             ? (uint8_t)
                                   PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND
                             : (uint8_t)
                                   PF_M4_ACTION_FALCON_KICK_END_AIR;
                     action_ticks = UINT16_C(0);
-                    velocity_x = INT32_C(0);
-                    velocity_y = INT32_C(0);
+                    if (ground_origin != 0)
+                    {
+                        velocity_x = INT32_C(0);
+                        velocity_y = INT32_C(0);
+                        launched_this_tick = 1;
+                    }
+                    else
+                    {
+                        const pf_m4_falcon_common_attributes *common =
+                            pf_m4_falcon_reference_common_attributes();
+
+                        if (common == NULL)
+                        {
+                            return PF_STATUS_DETERMINISTIC_FAULT;
+                        }
+                        pf_m4_falcon_source_air_physics(
+                            common,
+                            &velocity_x,
+                            &velocity_y);
+                        launched_this_tick = 1;
+                    }
                     scratch->attack_hit_mask[player_index] =
                         UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
@@ -8178,8 +8203,8 @@ pf_status pf_m4_step_player(
                     pf_m4_falcon_reference_common_attributes();
                 const pf_m4_falcon_down_special_timing *timing =
                     pf_m4_falcon_reference_down_special_timing();
-                const uint16_t displayed_frame =
-                    (uint16_t)(action_ticks + UINT16_C(1));
+                const uint16_t command_frame =
+                    (uint16_t)(action_ticks + UINT16_C(2));
 
                 if (move == NULL || common == NULL || timing == NULL)
                 {
@@ -8189,6 +8214,11 @@ pf_status pf_m4_step_player(
                 {
                     action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
                     action_ticks = UINT16_C(0);
+                    pf_m4_falcon_source_air_physics(
+                        common,
+                        &velocity_x,
+                        &velocity_y);
+                    launched_this_tick = 1;
                     scratch->falcon_kick_hit_count[player_index] =
                         UINT8_C(0);
                     scratch->attack_hit_mask[player_index] =
@@ -8205,7 +8235,9 @@ pf_status pf_m4_step_player(
                         (action_state ==
                              (uint8_t)
                                  PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND &&
-                         displayed_frame <
+                         /* Commands execute before Dolphin exposes the
+                          * resulting post-frame pose. */
+                         command_frame <
                              timing
                                  ->ground_origin_air_physics_begin_frame);
 
@@ -8941,6 +8973,16 @@ pf_status pf_m4_step_player(
                 raptor_timing != NULL &&
                 action_ticks >= raptor_timing->ground_search_begin_frame &&
                 action_ticks <= raptor_timing->ground_search_end_frame;
+
+            /* mpColl_8004B108's SpecialAttackGround edge conversion keeps
+             * Falcon's full root velocity but commits half of the crossing
+             * displacement.  The conversion tick itself runs no air gravity. */
+            if (falcon_kick_start_fall != 0)
+            {
+                position_x = previous_position_x +
+                    (position_x - previous_position_x) / INT32_C(2);
+                launched_this_tick = 1;
+            }
 
             grounded = UINT8_C(0);
             support = (uint8_t)PF_M4_SURFACE_NONE;

@@ -57,6 +57,9 @@ int main(int argc, char **argv)
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
+    int falcon_kick_ground_edge_mode = 0;
+    int falcon_kick_air_mode = 0;
+    int falcon_kick_air_land_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -91,6 +94,21 @@ int main(int argc, char **argv)
     {
         /* The ground oracle uses the runner's ordinary wide-floor setup. */
     }
+    else if (
+        argc == 2 && strcmp(argv[1], "--falcon-kick-ground-edge") == 0)
+    {
+        falcon_kick_ground_edge_mode = 1;
+    }
+    else if (
+        argc == 2 && strcmp(argv[1], "--falcon-kick-air") == 0)
+    {
+        falcon_kick_air_mode = 1;
+    }
+    else if (
+        argc == 2 && strcmp(argv[1], "--falcon-kick-air-land") == 0)
+    {
+        falcon_kick_air_land_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
@@ -98,7 +116,9 @@ int main(int argc, char **argv)
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
-            "--falcon-kick-ground]\n");
+            "--falcon-kick-ground|--falcon-kick-ground-edge|"
+            "--falcon-kick-air|"
+            "--falcon-kick-air-land]\n");
         return 1;
     }
 
@@ -126,7 +146,7 @@ int main(int argc, char **argv)
     content.projectile.speed_q16 = INT32_C(1);
     content.projectile.lifetime_ticks = UINT16_C(1);
     content.reflector.enabled = UINT8_C(1);
-    if (falcon_punch_air_mode == 0)
+    if (falcon_punch_air_mode == 0 && falcon_kick_air_mode == 0)
     {
         content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
         content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
@@ -158,7 +178,7 @@ int main(int argc, char **argv)
         content.stage.spawn_spacing_q16 =
             (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
     }
-    else if (falcon_punch_air_mode != 0)
+    else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0)
     {
         content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
         content.stage.blast_bottom_q16 =
@@ -182,6 +202,24 @@ int main(int argc, char **argv)
             (int32_t)(
                 (INT64_C(31) * INT64_C(12) * PF_Q16_ONE) /
                 (INT64_C(10) * INT64_C(115)));
+    }
+    else if (falcon_kick_ground_edge_mode != 0)
+    {
+        /*
+         * Isolate the source edge-fall boundary without changing production
+         * physics.  This symmetric two-player fixture uses the smallest
+         * practical spawn separation and disables irrelevant player push.
+         * At the pinned root track's displayed frame 13 Falcon remains over
+         * this floor; displayed frame 14 crosses it, exactly as in the owner
+         * Final Destination capture.
+         */
+        content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
+        content.fighter.player_push_half_width_q16 = INT32_C(1);
+        content.stage.revival_platform_half_width_q16 =
+            content.fighter.half_width_q16;
+        content.stage.floor_right_q16 =
+            content.fighter.half_width_q16 +
+            INT32_C(3) * content.stage.spawn_spacing_q16;
     }
     if (shield_hit_mode != 0)
     {
@@ -209,7 +247,9 @@ int main(int argc, char **argv)
     config.max_ticks = UINT64_C(100000);
     config.arena_half_width_q16 = INT32_C(256) * PF_Q16_ONE;
     config.arena_ceiling_q16 =
-        (falcon_punch_air_mode != 0 ? INT32_C(4096) : INT32_C(256)) *
+        (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0
+             ? INT32_C(4096)
+             : INT32_C(256)) *
         PF_Q16_ONE;
     config.stock_count = UINT8_C(0);
     status = pf_sim_init(
@@ -286,7 +326,85 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    else if (falcon_punch_air_mode != 0)
+    else if (falcon_kick_ground_edge_mode != 0)
+    {
+        uint32_t pre_roll_tick;
+
+        /* Move the non-oracle fighter off the tiny fixture before Falcon
+         * Kick becomes active, so this route measures edge conversion only. */
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(60);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            inputs[1].main_stick_x = INT16_MAX;
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("ground-edge-pre-roll-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("ground-edge-pre-roll-inspect", status);
+            }
+        }
+        if (inspection.players[0].grounded == UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=ground-edge-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (falcon_kick_air_land_mode != 0)
+    {
+        uint32_t pre_roll_tick;
+
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(7);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("air-land-pre-roll-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("air-land-pre-roll-inspect", status);
+            }
+        }
+        if (inspection.players[0].grounded != UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=air-land-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0)
     {
         uint32_t pre_roll_tick;
         int airborne_ready = 0;
@@ -309,12 +427,12 @@ int main(int argc, char **argv)
             status = pf_sim_tick(sim, inputs, (size_t)2, &result);
             if (status != PF_STATUS_OK)
             {
-                return fail_status("falcon-punch-pre-roll-tick", status);
+                return fail_status("air-special-pre-roll-tick", status);
             }
             status = pf_m4_inspect(sim, &inspection);
             if (status != PF_STATUS_OK)
             {
-                return fail_status("falcon-punch-pre-roll-inspect", status);
+                return fail_status("air-special-pre-roll-inspect", status);
             }
             if (inspection.players[0].grounded == UINT8_C(0) &&
                 inspection.players[0].action_state ==
@@ -329,7 +447,7 @@ int main(int argc, char **argv)
             (void)fprintf(
                 stderr,
                 "m4-movement-trace=fail "
-                "operation=falcon-punch-pre-roll\n");
+                "operation=air-special-pre-roll\n");
             return 1;
         }
     }
