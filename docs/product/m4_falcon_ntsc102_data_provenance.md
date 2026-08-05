@@ -100,9 +100,10 @@ ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
 ratios. The raw attributes, typed view, special block, action table, and source
 hashes form complete-source SHA-256
 `616461670890a22878a37e891b848808f3633d1b9f236226f6dd35044f7a8946`.
-The special attributes are imported and queryable, but the production special
-state machine is not yet Falcon Punch/Raptor Boost/Falcon Dive/Falcon Kick;
-that runtime replacement remains an explicit M4 gate.
+The production ground and aerial Falcon Punch states now consume this imported
+data directly. Raptor Boost, Falcon Dive, and Falcon Kick remain explicit M4
+runtime-routing gates; the project's original directional-special fixtures are
+not evidence for those source moves.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
@@ -208,13 +209,35 @@ hash to
 `92f5014de753bf5660e5f4eb566e4e92ac734871089f359c697fa9a3d8e6b4c0`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat already queries this
-table for implemented normals, aerials, and grabs; the complete special table
-becomes runtime-active only as each source special state is routed. Hurt poses
-for common non-attack actions, the retained source Z coordinate, normal-throw
-collateral hits, and exact sphere-versus-shield intersection remain active
-fidelity gaps, not values to be filled by guessed frame data. Custom authored
-content may opt out of reference geometry explicitly; default Falcon-
-counterpart content opts in.
+table for implemented normals, aerials, grabs, and both Falcon Punch states;
+the remaining special rows become runtime-active only as their source state
+machines are routed. Hurt poses for common non-attack actions, the retained
+source Z coordinate, normal-throw collateral hits, and exact sphere-versus-
+shield intersection remain active fidelity gaps, not values to be filled by
+guessed frame data. Custom authored content may opt out of reference geometry
+explicitly; default Falcon-counterpart content opts in.
+
+Falcon Punch timing is decoded from the raw `SpecialAirN` event stream rather
+than transcribed: command-variable assignments launch and begin velocity
+scaling on displayed frame 50, scale through frame 64, and restore ordinary air
+physics on frame 65. The state machine follows decomp revision `9509dc0`
+`ftCa_SpecialN_Enter`, `ftCa_SpecialAirN_Enter`, animation, physics, and
+collision callbacks. It consumes the imported stick-angle, launch-speed, and
+velocity-multiplier fields; the ground state consumes its per-frame animation
+translation; and both states query the captured frame-specific pose and hit
+geometry. Ground-to-air and air-to-ground changes retain the action frame.
+
+Fresh direct-executable Dolphin captures qualify the two production routes.
+The 200-frame grounded capture has SHA-256
+`2c8bc604024cfad745e266239dcc4d3e1b1ff1c4a07afcc6eecb9938b5f155b1`;
+the 241-frame aerial physics capture has SHA-256
+`9cfc8c5632a8bce37a0f79c6999bff6f0742130df5f8f2473196338d8b14d6c5`.
+The latter observes the source launch `(1.794, 0)` on frame 50, velocity
+scaling through frame 64, ordinary gravity and air control on frame 65, and
+`Fall` after frame 99. `tools/verify_m4_falcon_punch.sh` rebuilds the strict
+native trace runner and compares both captures on demand after verifying the
+GALE01 NTSC 1.02 disc identity. Position tolerance is limited to 640 Q16 units;
+velocity tolerance is 32 Q16 units.
 
 An independent recapture produced a different raw JSON hash because unused
 single-precision memory samples vary below the retained fixed-point precision.

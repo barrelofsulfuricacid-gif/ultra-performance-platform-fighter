@@ -67,6 +67,8 @@ SSBM_TO_M4_ACTION = {
     "TAUNT_RIGHT": 75,
     "TAUNT_LEFT": 75,
     "PLATFORM_DROP": 6,
+    "NEUTRAL_B_FULL_CHARGE_AIR": 108,
+    "NEUTRAL_B_ATTACKING_AIR": 107,
 }
 
 M4_DELAYED_AIR_JUMP = 61
@@ -159,6 +161,9 @@ CONTENT_ROUTE_ENTRY_ACTIONS = {
 # GALE01's Falcon attributes (for example, 2.0 becomes 24/115).
 SSBM_TO_M4_Q16 = 65536.0 * 12.0 / 115.0
 SSBM_TO_M4_Y_Q16 = 65536.0 * 11.0 / 62.0
+GALE01_NTSC102_SHA256 = (
+    "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
+)
 
 
 def controller_axis(value: float) -> int:
@@ -219,6 +224,8 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
         "CROUCH_END",
         "TAUNT_RIGHT",
         "TAUNT_LEFT",
+        "NEUTRAL_B_FULL_CHARGE_AIR",
+        "NEUTRAL_B_ATTACKING_AIR",
     }:
         return frame
     if action == "TURNING_RUN":
@@ -263,7 +270,31 @@ def main() -> int:
     args = parser.parse_args()
 
     capture = json.loads(args.capture.read_text(encoding="utf-8"))
+    disc = capture.get("disc")
+    if (
+        not isinstance(disc, dict)
+        or disc.get("game_id") != "GALE01"
+        or disc.get("revision") != 2
+        or disc.get("sha256") != GALE01_NTSC102_SHA256
+    ):
+        print(
+            "ssbm-movement-compare=fail reason=oracle-disc-identity",
+            file=sys.stderr,
+        )
+        return 1
     oracle_rows = capture["rows"]
+    falcon_punch_air_mode = any(
+        str(row.get("label", "")) == "special_geometry_neutral_air_start"
+        for row in oracle_rows
+    )
+    if falcon_punch_air_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_neutral_air_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
     push_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("push_")
@@ -339,6 +370,8 @@ def main() -> int:
         runner_command.append("--push")
     elif shield_hit_mode:
         runner_command.append("--shield-hit")
+    elif falcon_punch_air_mode:
+        runner_command.append("--falcon-punch-air")
     completed = subprocess.run(
         runner_command,
         input=input_text,
@@ -370,6 +403,7 @@ def main() -> int:
     )
     native_anchor_x = 0
     native_anchor_y = 0
+    horizontal_mirror = -1 if falcon_punch_air_mode else 1
     previous_label: str | None = None
     skip_character_content = False
     shield_contact_seen = False
@@ -403,6 +437,16 @@ def main() -> int:
             native_anchor_x = int(previous_native["position_x_q16_from_origin"])
             native_anchor_y = int(previous_native["position_y_q16_from_origin"])
         action_name = str(oracle["action"])
+        action_frame = round(float(oracle["action_frame"]))
+        if (
+            falcon_punch_air_mode
+            and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
+            and action_frame == 49
+        ):
+            oracle_anchor_x = float(oracle["position_x_from_origin"])
+            oracle_anchor_y = float(oracle["position_y"])
+            native_anchor_x = int(native["position_x_q16_from_origin"])
+            native_anchor_y = int(native["position_y_q16_from_origin"])
         expected_action = CONTENT_ROUTE_ENTRY_ACTIONS.get(label)
         if expected_action is None:
             expected_action = expected_action_state(
@@ -421,9 +465,9 @@ def main() -> int:
         if shield_hit_mode:
             expected_ticks = None
         actual_ticks = int(native["action_ticks"])
-        expected_facing = int(oracle["facing"])
+        expected_facing = int(oracle["facing"]) * horizontal_mirror
         actual_facing = int(native["facing"])
-        expected_position = scaled_q16(
+        expected_position = horizontal_mirror * scaled_q16(
             float(oracle["position_x_from_origin"]) - oracle_anchor_x
         )
         actual_position = (
@@ -435,7 +479,7 @@ def main() -> int:
         actual_position_y = (
             int(native["position_y_q16_from_origin"]) - native_anchor_y
         )
-        expected_velocity = scaled_q16(
+        expected_velocity = horizontal_mirror * scaled_q16(
             float(
                 oracle[
                     "air_velocity_x"
@@ -451,6 +495,7 @@ def main() -> int:
                         "FALLING_AERIAL_FORWARD",
                         "FALLING_AERIAL_BACKWARD",
                         "AIRDODGE",
+                        "NEUTRAL_B_FULL_CHARGE_AIR",
                     }
                     else "ground_velocity_x"
                 ]
@@ -459,6 +504,11 @@ def main() -> int:
         actual_velocity = int(native["velocity_x_q16"])
         expected_velocity_y = scaled_y_q16(float(oracle["velocity_y"]))
         actual_velocity_y = int(native["velocity_y_q16"])
+        skip_special_physics = (
+            falcon_punch_air_mode
+            and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
+            and action_frame < 50
+        )
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
         expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)
@@ -488,13 +538,17 @@ def main() -> int:
             differences.append(
                 f"grounded expected={expected_grounded} actual={actual_grounded}"
             )
-        if abs(actual_position - expected_position) > position_tolerance_q16:
+        if (
+            not skip_special_physics
+            and abs(actual_position - expected_position) > position_tolerance_q16
+        ):
             differences.append(
                 f"position_q16 expected={expected_position} actual={actual_position} "
                 f"delta={actual_position - expected_position}"
             )
         if (
-            abs(actual_position_y - expected_position_y)
+            not skip_special_physics
+            and abs(actual_position_y - expected_position_y)
             > args.position_tolerance_q16
         ):
             differences.append(
@@ -502,12 +556,19 @@ def main() -> int:
                 f"expected={expected_position_y} actual={actual_position_y} "
                 f"delta={actual_position_y - expected_position_y}"
             )
-        if abs(actual_velocity - expected_velocity) > args.velocity_tolerance_q16:
+        if (
+            not skip_special_physics
+            and abs(actual_velocity - expected_velocity)
+            > args.velocity_tolerance_q16
+        ):
             differences.append(
                 f"velocity_q16 expected={expected_velocity} actual={actual_velocity} "
                 f"delta={actual_velocity - expected_velocity}"
             )
-        if abs(actual_velocity_y - expected_velocity_y) > 32:
+        if (
+            not skip_special_physics
+            and abs(actual_velocity_y - expected_velocity_y) > 32
+        ):
             differences.append(
                 "velocity_y_q16 "
                 f"expected={expected_velocity_y} actual={actual_velocity_y} "

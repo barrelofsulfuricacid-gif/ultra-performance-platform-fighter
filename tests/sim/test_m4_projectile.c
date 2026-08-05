@@ -132,6 +132,7 @@ static int make_projectile_content(
     content->stage.platform_center_x_q16 =
         -INT32_C(20) * PF_Q16_ONE;
     content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->projectile.enabled = UINT8_C(1);
     return expect_status(
         pf_m4_make_content_view(content, view),
@@ -702,6 +703,7 @@ static int run_camping_contract(void)
     {
         return 0;
     }
+    content.fighter.reference_frame_data_enabled = UINT8_C(0);
     content.projectile.enabled = UINT8_C(1);
     content.stage.spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
     content.stage.platform_motion_amplitude_q16 = INT32_C(0);

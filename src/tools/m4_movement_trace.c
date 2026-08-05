@@ -54,6 +54,7 @@ int main(int argc, char **argv)
     int platform_mode = 0;
     int push_mode = 0;
     int shield_hit_mode = 0;
+    int falcon_punch_air_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -67,12 +68,16 @@ int main(int argc, char **argv)
     {
         shield_hit_mode = 1;
     }
+    else if (argc == 2 && strcmp(argv[1], "--falcon-punch-air") == 0)
+    {
+        falcon_punch_air_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
             stderr,
             "usage: pf_m4_movement_trace "
-            "[--platform|--push|--shield-hit]\n");
+            "[--platform|--push|--shield-hit|--falcon-punch-air]\n");
         return 1;
     }
 
@@ -100,8 +105,11 @@ int main(int argc, char **argv)
     content.projectile.speed_q16 = INT32_C(1);
     content.projectile.lifetime_ticks = UINT16_C(1);
     content.reflector.enabled = UINT8_C(1);
-    content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
-    content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
+    if (falcon_punch_air_mode == 0)
+    {
+        content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
+        content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
+    }
     content.stage.blast_left_q16 = -INT32_C(160) * PF_Q16_ONE;
     content.stage.blast_right_q16 = INT32_C(160) * PF_Q16_ONE;
     content.stage.platform_center_x_q16 =
@@ -129,6 +137,12 @@ int main(int argc, char **argv)
         content.stage.spawn_spacing_q16 =
             (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
     }
+    else if (falcon_punch_air_mode != 0)
+    {
+        content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
+        content.stage.blast_bottom_q16 =
+            INT32_C(2048) * PF_Q16_ONE;
+    }
     if (shield_hit_mode != 0)
     {
         /* Falcon's Jab 1 hits on displayed frames 3-4 for 2 damage. */
@@ -154,7 +168,9 @@ int main(int argc, char **argv)
     }
     config.max_ticks = UINT64_C(100000);
     config.arena_half_width_q16 = INT32_C(256) * PF_Q16_ONE;
-    config.arena_ceiling_q16 = INT32_C(256) * PF_Q16_ONE;
+    config.arena_ceiling_q16 =
+        (falcon_punch_air_mode != 0 ? INT32_C(4096) : INT32_C(256)) *
+        PF_Q16_ONE;
     config.stock_count = UINT8_C(0);
     status = pf_sim_init(
         storage.state,
@@ -227,6 +243,53 @@ int main(int argc, char **argv)
             (void)fprintf(
                 stderr,
                 "m4-movement-trace=fail operation=platform-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (falcon_punch_air_mode != 0)
+    {
+        uint32_t pre_roll_tick;
+        int airborne_ready = 0;
+
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(240);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            inputs[0].main_stick_x = INT16_MIN;
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("falcon-punch-pre-roll-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("falcon-punch-pre-roll-inspect", status);
+            }
+            if (inspection.players[0].grounded == UINT8_C(0) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_AIRBORNE)
+            {
+                airborne_ready = 1;
+                break;
+            }
+        }
+        if (airborne_ready == 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail "
+                "operation=falcon-punch-pre-roll\n");
             return 1;
         }
     }

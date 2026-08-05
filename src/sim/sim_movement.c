@@ -289,6 +289,85 @@ static int32_t pf_m4_sine_q15(uint16_t angle_turn)
     return quadrant >= UINT32_C(2) ? -value : value;
 }
 
+static int32_t pf_m4_falcon_source_velocity_to_sim_q16(
+    int32_t source_velocity_q16,
+    int32_t numerator,
+    int32_t denominator)
+{
+    const int64_t product =
+        (int64_t)source_velocity_q16 * (int64_t)numerator;
+
+    return product < INT64_C(0)
+               ? (int32_t)(
+                     -((-product + denominator / INT32_C(2)) /
+                       denominator))
+               : (int32_t)(
+                     (product + denominator / INT32_C(2)) /
+                     denominator);
+}
+
+static void pf_m4_falcon_punch_launch_velocity(
+    const pf_m4_falcon_special_attributes *attributes,
+    int16_t stick_y,
+    int8_t facing,
+    int32_t *out_velocity_x_q16,
+    int32_t *out_velocity_y_q16)
+{
+    const uint32_t stick_magnitude_q16 =
+        ((uint32_t)pf_m4_axis_magnitude(stick_y) * UINT32_C(65536) +
+         UINT32_C(16384)) /
+        UINT32_C(32768);
+    const uint32_t bounded_stick_q16 =
+        stick_magnitude_q16 >
+                (uint32_t)attributes->specialn_stick_range_y_pos_q16
+            ? (uint32_t)attributes->specialn_stick_range_y_pos_q16
+            : stick_magnitude_q16;
+    const uint32_t angle_input_q16 =
+        bounded_stick_q16 >
+                (uint32_t)attributes->specialn_stick_range_y_neg_q16
+            ? bounded_stick_q16 -
+                  (uint32_t)attributes->specialn_stick_range_y_neg_q16
+            : UINT32_C(0);
+    const uint32_t angle_range_q16 =
+        (uint32_t)(
+            attributes->specialn_stick_range_y_pos_q16 -
+            attributes->specialn_stick_range_y_neg_q16);
+    const uint32_t angle_degrees_q16 =
+        (uint32_t)(
+            ((uint64_t)angle_input_q16 *
+             (uint64_t)(uint32_t)attributes->specialn_angle_diff_q16) /
+            angle_range_q16);
+    uint16_t angle_turn = (uint16_t)(
+        angle_degrees_q16 / UINT32_C(360));
+    const int32_t source_x_q16 =
+        pf_m4_falcon_source_velocity_to_sim_q16(
+            attributes->specialn_vel_x_q16,
+            INT32_C(12),
+            INT32_C(115));
+    const int32_t source_y_q16 =
+        pf_m4_falcon_source_velocity_to_sim_q16(
+            attributes->specialn_vel_x_q16,
+            INT32_C(11),
+            INT32_C(62));
+
+    if (stick_y < INT16_C(0))
+    {
+        angle_turn = (uint16_t)(UINT16_C(0) - angle_turn);
+    }
+    *out_velocity_x_q16 =
+        (int32_t)facing *
+        (int32_t)(
+            ((int64_t)source_x_q16 *
+             (int64_t)pf_m4_sine_q15(
+                 (uint16_t)(angle_turn + UINT16_C(16384)))) /
+            INT64_C(32767));
+    *out_velocity_y_q16 =
+        -(int32_t)(
+            ((int64_t)source_y_q16 *
+             (int64_t)pf_m4_sine_q15(angle_turn)) /
+            INT64_C(32767));
+}
+
 void pf_m4_shield_tilt_axes(
     uint16_t angle_turn,
     uint16_t magnitude,
@@ -1359,6 +1438,8 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
                (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
            action_state ==
                (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND ||
            action_state == (uint8_t)PF_M4_ACTION_TAUNT;
 }
 
@@ -1420,6 +1501,22 @@ static int pf_m4_action_is_ground_attack(uint8_t action_state)
                (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE ||
            action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
            action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL;
+}
+
+static int pf_m4_action_allows_fresh_fast_fall(
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    const pf_m4_falcon_neutral_special_timing *timing;
+
+    if (action_state !=
+        (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR)
+    {
+        return 1;
+    }
+    timing = pf_m4_falcon_reference_neutral_special_timing();
+    return timing != NULL &&
+           action_ticks >= timing->ordinary_air_physics_begin_frame;
 }
 
 static int pf_m4_action_is_smash_charge(uint8_t action_state)
@@ -4453,6 +4550,18 @@ pf_status pf_m4_step_player(
             content->reflector.enabled != UINT8_C(0) &&
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold;
+        const int falcon_neutral_special_requested =
+            fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            up_special_requested == 0 &&
+            reflector_requested == 0 &&
+            horizontal_magnitude <= fighter->axis_dead_zone &&
+            vertical_magnitude <= fighter->axis_dead_zone;
+        const int falcon_punch_blocked =
+            falcon_neutral_special_requested != 0 &&
+            (world->action_state[player_index] ==
+                 (uint8_t)PF_M4_ACTION_CROUCH ||
+             world->action_state[player_index] ==
+                 (uint8_t)PF_M4_ACTION_CROUCH_END);
 
         if (vector_ascent_requested != 0)
         {
@@ -4475,10 +4584,14 @@ pf_status pf_m4_step_player(
                 launched_this_tick = 1;
             }
         }
-        else
+        else if (falcon_punch_blocked == 0)
         {
             action_state =
-                charge_requested != 0
+                falcon_neutral_special_requested != 0
+                    ? (grounded != UINT8_C(0)
+                           ? (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND
+                           : (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR)
+                    : charge_requested != 0
                     ? (uint8_t)PF_M4_ACTION_CHARGE_GROUND
                     : grounded != UINT8_C(0)
                     ? (reflector_requested != 0
@@ -4489,14 +4602,20 @@ pf_status pf_m4_step_player(
                            : (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR);
                 action_ticks = UINT16_C(0);
         }
-        if (vector_ascent_requested == 0 ||
-            action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
+        if (falcon_punch_blocked == 0 &&
+            (vector_ascent_requested == 0 ||
+             action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT))
         {
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             scratch->attack_stale_registered[player_index] =
                 UINT8_C(0);
             short_hop_latched = UINT8_C(0);
             dash_direction = INT8_C(0);
+            if (action_state ==
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR)
+            {
+                fast_fall = UINT8_C(0);
+            }
             scratch->powershield[player_index] = UINT8_C(0);
         }
     }
@@ -5353,6 +5472,42 @@ pf_status pf_m4_step_player(
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             scratch->attack_stale_registered[player_index] =
                 UINT8_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND)
+    {
+        const pf_m4_reference_move *move =
+            pf_m4_falcon_reference_move(
+                PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND);
+        int32_t reference_motion_x_q16;
+
+        if (move == NULL)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (action_ticks >= move->total_frames)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+            velocity_x = INT32_C(0);
+            scratch->attack_hit_mask[player_index] = UINT8_C(0);
+            scratch->attack_stale_registered[player_index] =
+                UINT8_C(0);
+        }
+        else
+        {
+            if (!pf_m4_falcon_reference_motion_x_q16(
+                    action_state,
+                    (uint16_t)(action_ticks + UINT16_C(1)),
+                    &reference_motion_x_q16))
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            velocity_x = (int32_t)facing * reference_motion_x_q16;
+            ++action_ticks;
         }
     }
     else if (!ledge_motion_handled &&
@@ -6936,6 +7091,73 @@ pf_status pf_m4_step_player(
                 }
             }
             else if (action_state ==
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR)
+            {
+                const pf_m4_reference_move *move =
+                    pf_m4_falcon_reference_move(
+                        PF_M4_FALCON_NEUTRAL_SPECIAL_AIR);
+                const pf_m4_falcon_special_attributes *attributes =
+                    pf_m4_falcon_reference_special_attributes();
+                const pf_m4_falcon_neutral_special_timing *timing =
+                    pf_m4_falcon_reference_neutral_special_timing();
+                const uint16_t displayed_frame =
+                    action_ticks + UINT16_C(1);
+
+                if (move == NULL || attributes == NULL || timing == NULL)
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                if (displayed_frame == timing->launch_frame)
+                {
+                    pf_m4_falcon_punch_launch_velocity(
+                        attributes,
+                        input->main_stick_y,
+                        facing,
+                        &velocity_x,
+                        &velocity_y);
+                }
+                if (displayed_frame >=
+                        timing->velocity_scale_begin_frame &&
+                    displayed_frame <=
+                        timing->velocity_scale_end_frame)
+                {
+                    velocity_x = pf_m4_multiply_q16(
+                        velocity_x,
+                        attributes->specialn_vel_mul_q16);
+                    velocity_y = pf_m4_multiply_q16(
+                        velocity_y,
+                        attributes->specialn_vel_mul_q16);
+                    launched_this_tick = 1;
+                }
+                else if (displayed_frame <
+                         timing->ordinary_air_physics_begin_frame)
+                {
+                    velocity_x = pf_m4_approach(
+                        velocity_x,
+                        INT32_C(0),
+                        fighter->air_friction_q16);
+                }
+                else
+                {
+                    velocity_x = pf_m4_apply_air_input(
+                        fighter,
+                        velocity_x,
+                        input->main_stick_x,
+                        fighter->air_speed_q16);
+                }
+                ++action_ticks;
+                if (action_ticks > move->total_frames)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                    scratch->attack_hit_mask[player_index] =
+                        UINT8_C(0);
+                    scratch->attack_stale_registered[player_index] =
+                        UINT8_C(0);
+                }
+            }
+            else if (action_state ==
                 (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR)
             {
                 velocity_x = pf_m4_apply_air_input(
@@ -7324,14 +7546,22 @@ pf_status pf_m4_step_player(
         {
             const int shield_break_fall =
                 pf_m4_action_is_shield_break(action_state);
+            const int falcon_punch_fall =
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND;
 
             grounded = UINT8_C(0);
             support = (uint8_t)PF_M4_SURFACE_NONE;
             action_state =
                 shield_break_fall != 0
                     ? (uint8_t)PF_M4_ACTION_SHIELD_BREAK
+                    : falcon_punch_fall != 0
+                    ? (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR
                     : (uint8_t)PF_M4_ACTION_AIRBORNE;
-            action_ticks = UINT16_C(0);
+            if (falcon_punch_fall == 0)
+            {
+                action_ticks = UINT16_C(0);
+            }
             short_hop_latched = UINT8_C(0);
             fast_fall = UINT8_C(0);
             dash_direction = INT8_C(0);
@@ -7385,6 +7615,9 @@ pf_status pf_m4_step_player(
                 (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
             action_state !=
                 (uint8_t)PF_M4_ACTION_VECTOR_ASCENT &&
+            pf_m4_action_allows_fresh_fast_fall(
+                action_state,
+                action_ticks) != 0 &&
             !pf_m4_action_is_surface_tech(action_state) &&
             input->main_stick_y >=
                 (int16_t)fighter->fast_fall_axis_threshold &&
@@ -7513,6 +7746,12 @@ pf_status pf_m4_step_player(
             }
             if (landing_support != (uint8_t)PF_M4_SURFACE_NONE)
             {
+                const int falcon_punch_landing =
+                    action_state ==
+                        (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR;
+                const uint16_t falcon_punch_action_ticks =
+                    action_ticks;
+
                 pf_m4_land_from_air(
                     fighter,
                     landing_y_q16,
@@ -7532,6 +7771,12 @@ pf_status pf_m4_step_player(
                     &short_hop_latched,
                     &fast_fall,
                     &dash_direction);
+                if (falcon_punch_landing != 0)
+                {
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND;
+                    action_ticks = falcon_punch_action_ticks;
+                }
             }
         }
         else if (

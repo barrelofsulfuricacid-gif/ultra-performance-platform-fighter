@@ -779,19 +779,27 @@ int main(void)
             0,
             0,
             0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 64 ||
-        test_view[TEST_EVENT_COUNT] != 2 ||
-        test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 19 ||
-        test_view[TEST_EVENT0 + TEST_EVENT_SOURCE] != 0 ||
-        test_view[TEST_EVENT0 + TEST_EVENT_DETAIL] != 64 ||
-        test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_STATE] != 2 ||
-        test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_OWNER] != 0 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 107 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 1 ||
+        test_view[TEST_EVENT_COUNT] != 1 ||
+        test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 24 ||
+        test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_STATE] != 0 ||
         test_view[
-            TEST_PROJECTILE_BASE + TEST_PROJECTILE_HITBOX_ACTIVE] != 1 ||
-        test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_VX] <= 0 ||
+            TEST_PROJECTILE_BASE + TEST_PROJECTILE_HITBOX_ACTIVE] != 0 ||
         !pf_web_m4_playtest_reset())
     {
-        return fail("live-projectile-special-route");
+        (void)fprintf(
+            stderr,
+            "m4-browser-adapter=debug operation=live-falcon-punch-route "
+            "action=%d action_ticks=%d events=%d projectile_state=%d "
+            "projectile_hitbox=%d\n",
+            (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+            (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS],
+            (int)test_view[TEST_EVENT_COUNT],
+            (int)test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_STATE],
+            (int)test_view[
+                TEST_PROJECTILE_BASE + TEST_PROJECTILE_HITBOX_ACTIVE]);
+        return fail("live-falcon-punch-route");
     }
 
     if (!pf_web_m4_playtest_reset() ||

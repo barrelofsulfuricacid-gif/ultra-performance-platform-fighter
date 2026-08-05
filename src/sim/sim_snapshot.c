@@ -1793,6 +1793,8 @@ static int pf_m4_player_state_consistent(
                !pf_m4_snapshot_action_is_aerial_attack(action) &&
                action !=
                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
+               action !=
+                   (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR &&
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
@@ -1818,6 +1820,7 @@ static int pf_m4_player_state_consistent(
         action == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
         pf_m4_snapshot_action_is_aerial_attack(action) ||
         action == (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR ||
+        action == (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
         action == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
     {
         return 1;
@@ -2155,7 +2158,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->shield_recoil_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_DASH_GRAB ||
+                action >
+                    (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks

@@ -480,9 +480,12 @@ frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
 dash grab, and all 17 Falcon special subactions. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
 are not misclassified as attacks. The imported special timing, attributes, and
-geometry are not by themselves an equivalence claim: production still uses the
-project's original Pulse Bolt, Prism Burst, Arc Reservoir, and Vector Ascent
-states until the source Falcon special state machines are routed and qualified.
+geometry are not by themselves an equivalence claim. Default reference content
+now routes neutral special through the source Falcon Punch ground/air state
+machine; the original Pulse Bolt is an explicit custom-content opt-out. Prism
+Burst, Arc Reservoir, and Vector Ascent remain original directional-special
+fixtures until Raptor Boost, Falcon Dive, and Falcon Kick are routed and
+qualified.
 Hurt capsules for remaining common actions, source-Z collision semantics,
 normal-throw collateral hits, and exact sphere-versus-shield intersection
 remain explicit M4 gaps and must be extracted or qualified rather than

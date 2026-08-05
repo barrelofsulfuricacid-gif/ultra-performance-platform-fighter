@@ -56,6 +56,9 @@ uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state)
         case PF_M4_ACTION_REFLECTOR_GROUND:
         case PF_M4_ACTION_REFLECTOR_AIR:
             return (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND;
+        case PF_M4_ACTION_FALCON_PUNCH_GROUND:
+        case PF_M4_ACTION_FALCON_PUNCH_AIR:
+            return (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND;
         default:
             return UINT8_C(0);
     }
@@ -561,6 +564,7 @@ static int pf_m4_apply_falcon_reference_frame(
     const pf_m4_reference_hit_effect *primary_effect;
     const pf_m4_reference_hit_effect *frame_effect;
     pf_m4_reference_timing timing;
+    int reference_special;
 
     if (fighter == NULL || attack == NULL ||
         !pf_m4_falcon_reference_move_for_action(
@@ -571,12 +575,18 @@ static int pf_m4_apply_falcon_reference_frame(
     }
     primary_effect = pf_m4_falcon_reference_primary_effect(move_index);
     timing = pf_m4_falcon_reference_timing(move_index);
+    reference_special =
+        move_index >= PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND;
     if (primary_effect == NULL || timing.active_ticks == UINT16_C(0) ||
-        (action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
+        (reference_special != 0 &&
+         fighter->reference_frame_data_enabled == UINT8_C(0)) ||
+        (reference_special == 0 &&
+         action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK &&
          !pf_m4_reference_knockback_matches(
              &fighter->jab_melee_knockback,
              primary_effect)) ||
-        (action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL &&
+        (reference_special == 0 &&
+         action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL &&
          !pf_m4_reference_knockback_matches(
              &fighter->jab_final_melee_knockback,
              primary_effect)) ||
@@ -584,8 +594,9 @@ static int pf_m4_apply_falcon_reference_frame(
             timing.startup_ticks + UINT16_C(1) ||
         attack->active_end_tick !=
             timing.startup_ticks + timing.active_ticks ||
-        pf_m4_authored_base_damage_for_action(fighter, action_state) !=
-            (uint32_t)primary_effect->damage * UINT32_C(65536))
+        (reference_special == 0 &&
+         pf_m4_authored_base_damage_for_action(fighter, action_state) !=
+             (uint32_t)primary_effect->damage * UINT32_C(65536)))
     {
         return 0;
     }
@@ -622,6 +633,45 @@ static int pf_m4_attack_for_action(
     }
     fighter = &content->fighter;
     out_attack->melee_knockback = NULL;
+
+    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    {
+        pf_m4_falcon_move_index reference_move_index;
+
+        if (pf_m4_falcon_reference_move_for_action(
+                action_state,
+                &reference_move_index) &&
+            reference_move_index >=
+                PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND)
+        {
+            const pf_m4_reference_hit_effect *effect =
+                pf_m4_falcon_reference_primary_effect(
+                    reference_move_index);
+            const pf_m4_reference_timing timing =
+                pf_m4_falcon_reference_timing(
+                    reference_move_index);
+
+            if (effect == NULL || timing.active_ticks == UINT16_C(0))
+            {
+                return 0;
+            }
+            (void)memset(out_attack, 0, sizeof(*out_attack));
+            out_attack->active_begin_tick =
+                timing.startup_ticks + UINT16_C(1);
+            out_attack->active_end_tick =
+                timing.startup_ticks + timing.active_ticks;
+            out_attack->direction = INT8_C(1);
+            out_attack->vertical_direction = INT8_C(-1);
+            out_attack->action_state = action_state;
+            pf_m4_apply_falcon_reference_effect(
+                fighter,
+                action_state,
+                UINT16_C(0),
+                effect,
+                out_attack);
+            return 1;
+        }
+    }
 
     if (action_state == (uint8_t)PF_M4_ACTION_DASH_ATTACK)
     {
@@ -1311,6 +1361,7 @@ static int pf_m4_falcon_geometry_move_for_attack(
 {
     pf_m4_falcon_move_index move_index;
     pf_m4_attack_runtime attack;
+    int reference_special;
 
     if (content == NULL ||
         content->fighter.reference_frame_data_enabled == UINT8_C(0) ||
@@ -1324,7 +1375,13 @@ static int pf_m4_falcon_geometry_move_for_attack(
             UINT16_C(0),
             UINT16_C(0),
             UINT16_C(0),
-            &attack) ||
+            &attack))
+    {
+        return 0;
+    }
+    reference_special =
+        move_index >= PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND;
+    if (reference_special == 0 &&
         !pf_m4_falcon_reference_attack_matches(
             action_state,
             (pf_m4_reference_timing){

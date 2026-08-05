@@ -58,6 +58,12 @@ pf_m4_falcon_reference_special_attributes(void)
     return &pf_m4_falcon_special_attribute_data;
 }
 
+const pf_m4_falcon_neutral_special_timing *
+pf_m4_falcon_reference_neutral_special_timing(void)
+{
+    return &pf_m4_falcon_neutral_special_timing_data;
+}
+
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void)
 {
     return pf_m4_falcon_geometry_sha256;
@@ -333,6 +339,12 @@ int pf_m4_falcon_reference_move_for_action(
             break;
         case PF_M4_ACTION_DASH_GRAB:
             move_index = PF_M4_FALCON_DASH_GRAB;
+            break;
+        case PF_M4_ACTION_FALCON_PUNCH_GROUND:
+            move_index = PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND;
+            break;
+        case PF_M4_ACTION_FALCON_PUNCH_AIR:
+            move_index = PF_M4_FALCON_NEUTRAL_SPECIAL_AIR;
             break;
         default:
             return 0;

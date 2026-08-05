@@ -318,6 +318,9 @@ static int make_m4_benchmark_content(
 
     if (maximum_entities != 0)
     {
+        /* This workload deliberately saturates the original fixed projectile
+         * slot; it is not a Falcon-content equivalence scenario. */
+        content->fighter.reference_frame_data_enabled = UINT8_C(0);
         content->stage.spawn_spacing_q16 = PF_Q16_ONE;
         content->stage.platform_center_x_q16 =
             -INT32_C(20) * PF_Q16_ONE;

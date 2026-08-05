@@ -7414,6 +7414,7 @@ static int pf_web_m4_run_chain_grab_probe(void)
     int passed;
     int restored;
 
+    pf_web_m4_content.fighter.reference_frame_data_enabled = UINT8_C(0);
     pf_web_m4_content.stage.spawn_spacing_q16 =
         (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
     pf_web_m4_content.stage.platform_center_x_q16 =
@@ -11407,6 +11408,7 @@ static int pf_web_m4_run_short_hop_laser_probe(void)
     pf_web_m4_content.stage.platform_center_x_q16 =
         -INT32_C(20) * PF_Q16_ONE;
     pf_web_m4_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    pf_web_m4_content.fighter.reference_frame_data_enabled = UINT8_C(0);
     pf_web_m4_content.projectile.enabled = UINT8_C(1);
 
     if (pf_web_m4_initialize_current_content() &&
@@ -11592,6 +11594,7 @@ static int pf_web_m4_run_camping_probe(void)
 
     if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK)
     {
+        pf_web_m4_content.fighter.reference_frame_data_enabled = UINT8_C(0);
         pf_web_m4_content.projectile.enabled = UINT8_C(1);
         pf_web_m4_content.stage.spawn_spacing_q16 =
             INT32_C(8) * PF_Q16_ONE;
@@ -11729,6 +11732,7 @@ static int pf_web_m4_run_shine_spike_probe(void)
 
     if (pf_m4_default_content(&pf_web_m4_content) == PF_STATUS_OK)
     {
+        pf_web_m4_content.fighter.reference_frame_data_enabled = UINT8_C(0);
         pf_web_m4_content.reflector.enabled = UINT8_C(1);
         pf_web_m4_content.projectile.enabled = UINT8_C(1);
         pf_web_m4_content.stage.floor_left_q16 =

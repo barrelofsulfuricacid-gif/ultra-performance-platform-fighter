@@ -284,6 +284,31 @@ def generate(
     model_scaling = float(attributes["modelScaling"])
     source_dat_block = source_dat[0x20:]
     common_attribute_bits, special_attributes = source_attributes(source_dat)
+
+    special_air_n_events = subactions[302]["events"]
+    special_air_n_frame = 0
+    special_air_n_assignments: dict[tuple[int, int], int] = {}
+    for event in special_air_n_events:
+        if event["name"] == "waitUntil":
+            special_air_n_frame = int(event["fields"]["frame"])
+        elif event["name"] == "waitFor":
+            special_air_n_frame += int(event["fields"]["frames"])
+        command = bytes.fromhex(str(event["bytes"]))
+        if len(command) == 4 and command[0] in (0x4C, 0x4D):
+            special_air_n_assignments[(command[0], command[3])] = (
+                special_air_n_frame
+            )
+    try:
+        specialn_launch_frame = special_air_n_assignments[(0x4C, 1)]
+        specialn_scale_begin_frame = special_air_n_assignments[(0x4D, 1)]
+        specialn_air_physics_begin_frame = special_air_n_assignments[(0x4D, 2)]
+    except KeyError as error:
+        raise ValueError("incomplete SpecialAirN command-variable timeline") from error
+    if not (
+        specialn_launch_frame == specialn_scale_begin_frame
+        and specialn_scale_begin_frame < specialn_air_physics_begin_frame
+    ):
+        raise ValueError("invalid SpecialAirN command-variable ordering")
     common_attributes = {
         "initial_walk_velocity_q16": round(
             raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
@@ -572,6 +597,17 @@ def generate(
     )
     lines.extend(
         (
+            "};",
+            "",
+            "static const pf_m4_falcon_neutral_special_timing",
+            "pf_m4_falcon_neutral_special_timing_data = {",
+            f"    .launch_frame = UINT16_C({specialn_launch_frame}),",
+            "    .velocity_scale_begin_frame = "
+            f"UINT16_C({specialn_scale_begin_frame}),",
+            "    .velocity_scale_end_frame = "
+            f"UINT16_C({specialn_air_physics_begin_frame - 1}),",
+            "    .ordinary_air_physics_begin_frame = "
+            f"UINT16_C({specialn_air_physics_begin_frame}),",
             "};",
             "",
             "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",

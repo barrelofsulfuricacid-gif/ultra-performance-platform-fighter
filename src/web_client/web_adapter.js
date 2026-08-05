@@ -2114,13 +2114,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Pulse Bolt, Down + E Prism Burst reflector, Up + E Vector Ascent recovery from the ground or air, or hold F with Up + E to charge Arc Reservoir · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Falcon Punch, Down + E Prism Burst reflector, Up + E Vector Ascent recovery from the ground or air, or hold F with Up + E to charge Arc Reservoir · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Pulse Bolt, Down + special Prism Burst reflector, Up + special Vector Ascent recovery from the ground or air, or hold light with Up + special to charge Arc Reservoir · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Falcon Punch, Down + special Prism Burst reflector, Up + special Vector Ascent recovery from the ground or air, or hold light with Up + special to charge Arc Reservoir · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -2279,10 +2279,10 @@ mergeInto(LibraryManager.library, {
       "Without an item, hold full up and freshly press light or strong during " +
        "jump squat to cancel into the standing strong attack; neutral, shallow-up, " +
        "and first-airborne-frame attacks keep their ordinary routes. " +
-       "Press E or ; (top face on a Standard Gamepad) to fire the fixed-capacity " +
-       "Pulse Bolt. Fire it during a short hop for the short-hop laser route; an " +
-      "ordinary shield blocks it, while a shield activated during the two-frame " +
-      "projectile window reflects ownership and velocity without taking damage. " +
+       "Press E or ; with a neutral main stick (B on a GameCube controller, or " +
+       "top face on a Standard Gamepad) for Falcon Punch on the ground or in the " +
+       "air. Its source frame-50 aerial launch can be angled vertically with the " +
+       "main stick. " +
       "Hold down with special for the Prism Burst reflector: its two active " +
       "frames strike nearby fighters down and away, and reverse an overlapping " +
       "Pulse Bolt without using the powershield result. " +
@@ -3285,6 +3285,8 @@ mergeInto(LibraryManager.library, {
       "CROUCH START",
       "CROUCH END",
       "DASH GRAB",
+      "FALCON PUNCH GROUND",
+      "FALCON PUNCH AIR",
     ];
 
     if (view[1] < previousTick) {

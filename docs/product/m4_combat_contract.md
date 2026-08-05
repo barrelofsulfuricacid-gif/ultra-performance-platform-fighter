@@ -1409,7 +1409,8 @@ entity. Default content keeps it disabled to preserve existing fixture
 isolation; the focused reflector fixture and live browser lab enable the same
 authored data. Down plus a fresh special edge selects
 `REFLECTOR_GROUND` or `REFLECTOR_AIR` from the legal ordinary movement states.
-Neutral special remains the Pulse Bolt route. Invalid down-special input is
+Neutral special selects Falcon Punch for default reference content and Pulse
+Bolt only for explicit custom-content opt-outs. Invalid down-special input is
 consumed, and holding special cannot retrigger either action.
 
 Prism Burst has one startup tick, two active ticks, and nine recovery ticks.
@@ -1442,7 +1443,7 @@ From grounded idle, walk, initial dash, run, or crouch, holding light attack
 with full up plus a fresh special edge selects `CHARGE_GROUND`. The extra light
 input keeps ordinary grounded up-special available to Vector Ascent. Invalid,
 airborne, hitlag, tumble, held, or disabled charge requests are consumed
-without falling through to Pulse Bolt.
+without falling through to either neutral-special route.
 
 Every charging tick adds one canonical charge tick through an inclusive
 120-tick clamp. A fresh shield edge enters `CHARGE_STORE_GROUND`. Releasing
@@ -1479,8 +1480,9 @@ once-per-airtime recovery resource is ready. Grounded entry clears support and
 launches immediately; landing enters the authored special-landing lag and then
 restores ordinary movement. Holding light with grounded full-up Special selects
 Arc Reservoir instead; down Special remains Prism Burst and neutral Special
-remains Pulse Bolt. An unavailable up-special is consumed without falling
-through to another special.
+selects Falcon Punch for default reference content or Pulse Bolt for an
+explicit custom-content opt-out. An unavailable up-special is consumed without
+falling through to another special.
 
 Entry spends the resource, clears fast fall and tumble, applies the authored
 4/5-unit upward velocity, and derives horizontal velocity from stick input up

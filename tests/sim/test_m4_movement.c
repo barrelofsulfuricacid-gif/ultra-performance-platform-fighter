@@ -3135,11 +3135,13 @@ static int run_crouch_common_iasa_test(
             PF_INPUT_BUTTON_SPECIAL,
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND)
+            (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND)
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=crouch-start-neutral-special\n");
+            "m4-movement=fail operation=crouch-start-neutral-special "
+            "action=%u\n",
+            (unsigned int)inspection.players[0].action_state);
         return 0;
     }
     if (!reset_to_crouch_action(
@@ -13629,6 +13631,326 @@ static int run_team_hash_trace(const pf_content_view *content)
     return 1;
 }
 
+static int32_t falcon_source_velocity_to_sim_q16(
+    int32_t source_velocity_q16,
+    int32_t numerator,
+    int32_t denominator)
+{
+    const int64_t product =
+        (int64_t)source_velocity_q16 * (int64_t)numerator;
+
+    return product < INT64_C(0)
+               ? (int32_t)(
+                     -((-product + denominator / INT32_C(2)) /
+                       denominator))
+               : (int32_t)(
+                     (product + denominator / INT32_C(2)) /
+                     denominator);
+}
+
+static int enter_air_falcon_punch(
+    pf_sim *sim,
+    uint64_t seed,
+    pf_m4_inspection *out_inspection)
+{
+    uint32_t tick;
+
+    if (!expect_status(
+            pf_sim_reset(sim, seed),
+            PF_STATUS_OK,
+            "falcon-punch-air-reset"))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(240); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MIN,
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded == UINT8_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_AIRBORNE)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(240) ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            out_inspection) ||
+        out_inspection->players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+        out_inspection->players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-punch-air-entry\n");
+        return 0;
+    }
+    return 1;
+}
+
+static int run_falcon_punch_source_data_test(
+    const pf_m4_content *default_content)
+{
+    const pf_m4_falcon_special_attributes *attributes =
+        pf_m4_falcon_reference_special_attributes();
+    const pf_m4_falcon_neutral_special_timing *timing =
+        pf_m4_falcon_reference_neutral_special_timing();
+    const pf_m4_reference_move *ground_move =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND);
+    const pf_m4_reference_move *air_move =
+        pf_m4_falcon_reference_move(
+            PF_M4_FALCON_NEUTRAL_SPECIAL_AIR);
+    test_sim_storage ground_storage;
+    test_sim_storage air_storage;
+    pf_m4_content ground_content = *default_content;
+    pf_m4_content air_content = *default_content;
+    pf_content_view ground_view;
+    pf_content_view air_view;
+    pf_sim *ground_sim = NULL;
+    pf_sim *air_sim = NULL;
+    pf_m4_inspection inspection;
+    int32_t expected_launch_velocity_x;
+    uint32_t frame;
+
+    if (attributes == NULL || timing == NULL || ground_move == NULL ||
+        air_move == NULL || ground_move->present == UINT8_C(0) ||
+        air_move->present == UINT8_C(0) ||
+        ground_move->total_frames != UINT16_C(99) ||
+        air_move->total_frames != UINT16_C(99) ||
+        timing->launch_frame != UINT16_C(50) ||
+        timing->velocity_scale_begin_frame != UINT16_C(50) ||
+        timing->velocity_scale_end_frame != UINT16_C(64) ||
+        timing->ordinary_air_physics_begin_frame != UINT16_C(65))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-punch-imported-timeline\n");
+        return 0;
+    }
+
+    ground_content.stage.spawn_spacing_q16 =
+        INT32_C(8) * PF_Q16_ONE;
+    if (!expect_status(
+            pf_m4_make_content_view(&ground_content, &ground_view),
+            PF_STATUS_OK,
+            "falcon-punch-ground-content-view") ||
+        !initialize_sim(
+            &ground_storage,
+            &ground_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &ground_sim) ||
+        !expect_status(
+            pf_sim_reset(ground_sim, UINT64_C(0xfa1c0a01)),
+            PF_STATUS_OK,
+            "falcon-punch-ground-reset") ||
+        !step_duel(
+            ground_sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(1); frame <= UINT32_C(99); ++frame)
+    {
+        const uint8_t expected_hitbox =
+            frame >= UINT32_C(52) && frame <= UINT32_C(56)
+                ? UINT8_C(1)
+                : UINT8_C(0);
+
+        if (inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_GROUND ||
+            inspection.players[0].action_ticks != (uint16_t)frame ||
+            inspection.players[0].hitbox_active != expected_hitbox ||
+            (expected_hitbox != UINT8_C(0) &&
+             inspection.players[0].hit_sphere_count == UINT8_C(0)))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=falcon-punch-ground-frame "
+                "frame=%" PRIu32 " action=%u action_ticks=%u "
+                "hitbox=%u spheres=%u\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                (unsigned int)inspection.players[0].hitbox_active,
+                (unsigned int)inspection.players[0].hit_sphere_count);
+            return 0;
+        }
+        if (frame < UINT32_C(99) &&
+            !step_duel(
+                ground_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            ground_sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-punch-ground-complete\n");
+        return 0;
+    }
+
+    air_content.stage.spawn_spacing_q16 =
+        INT32_C(10) * PF_Q16_ONE;
+    air_content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&air_content, &air_view),
+            PF_STATUS_OK,
+            "falcon-punch-air-content-view") ||
+        !initialize_sim(
+            &air_storage,
+            &air_view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &air_sim) ||
+        !enter_air_falcon_punch(
+            air_sim,
+            UINT64_C(0xfa1c0a02),
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(2); frame <= UINT32_C(50); ++frame)
+    {
+        if (!step_duel(
+                air_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+            inspection.players[0].action_ticks != (uint16_t)frame)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=falcon-punch-air-frame "
+                "frame=%" PRIu32 " action=%u action_ticks=%u\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks);
+            return 0;
+        }
+    }
+    expected_launch_velocity_x =
+        falcon_source_velocity_to_sim_q16(
+            attributes->specialn_vel_x_q16,
+            INT32_C(12),
+            INT32_C(115));
+    expected_launch_velocity_x = (int32_t)(
+        ((int64_t)expected_launch_velocity_x *
+         (int64_t)attributes->specialn_vel_mul_q16) /
+        (int64_t)PF_Q16_ONE);
+    if (inspection.players[0].velocity_x_q16 !=
+            -expected_launch_velocity_x ||
+        inspection.players[0].velocity_y_q16 != INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-punch-air-launch "
+            "vx=%" PRId32 " expected=%" PRId32 " vy=%" PRId32 "\n",
+            inspection.players[0].velocity_x_q16,
+            -expected_launch_velocity_x,
+            inspection.players[0].velocity_y_q16);
+        return 0;
+    }
+    for (frame = UINT32_C(51); frame <= UINT32_C(65); ++frame)
+    {
+        if (!step_duel(
+                air_sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+            inspection.players[0].action_ticks != (uint16_t)frame)
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].velocity_y_q16 !=
+            default_content->fighter.gravity_q16 ||
+        inspection.players[0].velocity_x_q16 >= INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-punch-air-ordinary-physics "
+            "vx=%" PRId32 " vy=%" PRId32 " expected_vy=%" PRId32
+            "\n",
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16,
+            default_content->fighter.gravity_q16);
+        return 0;
+    }
+
+    if (!enter_air_falcon_punch(
+            air_sim,
+            UINT64_C(0xfa1c0a03),
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(2); frame <= UINT32_C(50); ++frame)
+    {
+        const int16_t stick_y =
+            frame == UINT32_C(50) ? INT16_MAX : INT16_C(0);
+
+        if (!step_duel(
+                air_sim,
+                INT16_C(0),
+                stick_y,
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+            inspection.players[0].action_ticks != (uint16_t)frame)
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].velocity_x_q16 >= INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 >= INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-punch-air-up-angle "
+            "vx=%" PRId32 " vy=%" PRId32 "\n",
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].velocity_y_q16);
+        return 0;
+    }
+    return 1;
+}
+
 #define RUN_MOVEMENT_TEST(call)                                         \
     ((call) ? 1                                                        \
             : ((void)fprintf(                                         \
@@ -13655,6 +13977,7 @@ int main(void)
             PF_STATUS_OK,
             "content-view") ||
         !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_falcon_punch_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||

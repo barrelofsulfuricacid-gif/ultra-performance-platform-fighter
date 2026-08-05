@@ -475,7 +475,11 @@ def input_trace(
             repeat(
                 f"special_geometry_{route}_observe",
                 special_total(route) + 100,
-                fighter_y_override=500.0 if elevated_airborne else None,
+                fighter_y_override=(
+                    500.0
+                    if elevated_airborne and route != "neutral_air"
+                    else None
+                ),
                 opponent_x_override=(
                     0.0
                     if route

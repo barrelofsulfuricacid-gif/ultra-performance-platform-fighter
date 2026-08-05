@@ -13,9 +13,10 @@ an optional four-player Team Wobble Lab with alternating allied down-throw and
 fresh-grab handoffs against a legally mashing victim,
 one fixed Relay Rod with pickup, carry, drop, directional throw, hit, and reset
 plus bat-drop, glide-toss, and jump-cancel-throw routes,
-one fixed Pulse Bolt with grounded/aerial fire, hit, shield block, and
-powershield reflection plus short-hop-laser and bounded projectile-camping
-routes,
+source-routed ground/air Falcon Punch in default reference content, plus an
+explicit custom-content Pulse Bolt fixture with grounded/aerial fire, hit,
+shield block, powershield reflection, short-hop-laser, and bounded projectile-
+camping routes,
 one data-defined Prism Burst reflector with grounded/aerial physical hit and
 active-box projectile reflection plus the Shine-spike route,
 one data-defined Arc Reservoir with charge, storage cancel, exact resume, and
@@ -95,7 +96,7 @@ silently inferred from replay metadata.
 | Up/down stick and vertical DI | `W` / `S` | Up / Down |
 | Light attack; grounded reduced direction selects a tilt and full direction charges a smash; airborne full direction selects forward/back/up/down aerial | `F` | `/` or Numpad `0` |
 | Immediate uncharged strong; grounded direction selects forward/up/down strong, airborne remains direct strong aerial | `H` | `'` or Numpad `2` |
-| Special: neutral Pulse Bolt, full down Prism Burst, full up Vector Ascent from ground or air; add held light for grounded Arc Reservoir | `E` | `;` or Numpad `3` |
+| Special: neutral Falcon Punch, full down Prism Burst, full up Vector Ascent from ground or air; add held light for grounded Arc Reservoir | `E` | `;` or Numpad `3` |
 | Hold shield / tap tech, air-dodge, or L-cancel trigger | `G` | `.` or Numpad `1` |
 | Standing, dash, jump-canceled, or boost grab | Hold `G`, tap `F`; for boost, tap `G` after starting dash attack with held `F` | Hold `.`/Numpad `1`, tap `/`/Numpad `0`; for boost, tap trigger after starting dash attack with held light |
 | Pummel while holding a victim | Neutral/reduced direction + fresh `F` or `H` | Neutral/reduced direction + fresh `/`/Numpad `0` or `'`/Numpad `2` |
@@ -145,7 +146,7 @@ the adapter's native `057e:0337` USB interface after the owner clicks
 movement/DI, the D-pad supplies full
 magnitude, the bottom face button is light attack, directional tilt, or charged
 smash, the right face button is an immediate uncharged directional strong, the left face button
-jumps, the top face button fires Pulse Bolt, down plus top face selects Prism
+jumps, the top face button starts Falcon Punch, down plus top face selects Prism
 Burst, and up plus top face selects Vector Ascent from the ground or air.
 Holding light with grounded up plus top face starts/resumes Arc Reservoir.
 Back/View taunts, either bumper supplies a full
@@ -236,12 +237,16 @@ aerial item throw. Its green body outline remains visible while the inspector
 is enabled; the gold attack overlay appears only while the item hitbox is
 active.
 
-The cyan Pulse Bolt has its own live state card. Press `E` or `;`/Numpad `3`
-to fire from the ground, or tap jump, release during jump squat, and fire after
-takeoff for short-hop laser. Only one bolt can occupy the canonical slot. An
-ordinary shield blocks and clears it; activate shield during the authored
-two-frame projectile window to reverse the bolt, transfer its owner, and take
-no damage. The event feed distinguishes fire, hit, and reflection.
+Neutral `E` or `;`/Numpad `3` (B on GameCube) starts Falcon Punch in default
+reference content. Ground and air states use the imported 99-frame animation,
+source root/launch physics, and captured collision geometry. The aerial launch
+occurs on source frame 50 and can be angled vertically with the main stick.
+
+The cyan Pulse Bolt retains its own live state card because it remains an
+explicit custom-content fixture. It is exercised by the short-hop-laser,
+camping, powershield-reflection, and Prism Burst readiness routes with Falcon
+reference data disabled, after which the browser restores default reference
+content. Neutral input in the ordinary live match does not spawn it.
 
 For projectile camping, keep the opponent across the stage and freshly press
 Special whenever the previous canonical Pulse Bolt has resolved. The automated
@@ -252,7 +257,7 @@ hits, keep at least 10.58 units of center separation, and leave the camper at
 close the distance and land three physical hits.
 
 Hold down and freshly press the same special control for Prism Burst. Neutral
-special continues to fire Pulse Bolt. Prism Burst has one startup tick, two
+special selects Falcon Punch in default reference content. Prism Burst has one startup tick, two
 active ticks, and nine recovery ticks; its physical box deals 3% and launches
 downward. If a Pulse Bolt overlaps the active box, it reverses horizontal
 velocity and changes owner without setting the powershield indicator. For the

@@ -171,6 +171,7 @@ Run the focused native M4 contracts without a browser:
 
 ```sh
 ./tools/verify_m4_movement.sh
+./tools/verify_m4_falcon_punch.sh
 ./tools/verify_m4_combat.sh
 ./tools/verify_m4_match.sh
 ./tools/verify_m4_browser.sh

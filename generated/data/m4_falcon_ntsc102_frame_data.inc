@@ -117,6 +117,14 @@ pf_m4_falcon_special_attribute_data = {
     .speciallw_air_landing_traction_q16 = INT32_C(196608),
 };
 
+static const pf_m4_falcon_neutral_special_timing
+pf_m4_falcon_neutral_special_timing_data = {
+    .launch_frame = UINT16_C(50),
+    .velocity_scale_begin_frame = UINT16_C(50),
+    .velocity_scale_end_frame = UINT16_C(64),
+    .ordinary_air_physics_begin_frame = UINT16_C(65),
+};
+
 static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {
     { UINT16_C(3), UINT16_C(5), UINT16_C(1), UINT16_C(0) },
     { UINT16_C(4), UINT16_C(6), UINT16_C(1), UINT16_C(0) },

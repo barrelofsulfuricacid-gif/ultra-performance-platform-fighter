@@ -471,11 +471,12 @@ Input schema 3 assigns bit 0 to jump, bit 1 to light attack, bit 2 to strong
 attack, and bit 63 to forfeit. Unknown bits fail before any player state is
 advanced.
 Input schema 4 additionally assigns bit 3 to special. Neutral special may
-request the fixed Pulse Bolt; full down plus a fresh special edge may request
-the grounded or airborne Prism Burst, and full up plus a fresh special edge may
-request Vector Ascent from the ground or air. Holding light with the grounded
-full-up Special chord instead starts or resumes Arc Reservoir when its content
-and action state are legal.
+request source-routed ground/air Falcon Punch in default reference content, or
+the fixed Pulse Bolt in explicit custom content; full down plus a fresh special
+edge may request the grounded or airborne Prism Burst, and full up plus a fresh
+special edge may request Vector Ascent from the ground or air. Holding light
+with the grounded full-up Special chord instead starts or resumes Arc Reservoir
+when its content and action state are legal.
 Input schema 5 additionally assigns bit 4 to Taunt. A fresh grounded edge may
 enter the authored `TAUNT` action from ordinary standing, dash, run, crouch,
 turnaround/brake, or teeter states; held input does not retrigger it.

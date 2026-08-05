@@ -3219,9 +3219,46 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `863a4ed6b2f6334f6b67c15cf8c219d93ef84c8300792d6820db304dfa2e8e23`,
   and `6a58ca0e2ef8dd3e08308d8b8d3085c22c73530400286013f305f2343f38bf87`.
   The eight-match verifier identity is `2b88c65c0067185c` on Windows and WSL.
-- M4 is still unfinished: production specials remain Pulse Bolt, Prism Burst,
-  Arc Reservoir, and Vector Ascent until the imported Falcon special timing,
-  attributes, and geometry are routed through source-equivalent state machines
-  and compared against identical-input Dolphin traces. Common-state poses,
-  source-Z collision, exact sphere-versus-shield intersection, and normal-throw
-  collateral hits also remain active fidelity work.
+- M4 was still unfinished at this checkpoint: imported Falcon specials had not
+  yet been production-routed. Common-state poses, source-Z collision, exact
+  sphere-versus-shield intersection, and normal-throw collateral hits also
+  remained active fidelity work.
+
+## 2026-08-04 source-routed Falcon Punch
+
+- Default reference content now selects distinct ground and air Falcon Punch
+  actions instead of the original Pulse Bolt. Custom projectile, reflector,
+  charge, and emergent-technique fixtures explicitly opt out; they do not pose
+  as Falcon-equivalence evidence.
+- The importer decodes the `SpecialAirN` command-variable timeline directly:
+  launch and velocity scaling begin on displayed frame 50, scaling ends on
+  frame 64, ordinary air physics resumes on frame 65, and the imported
+  animation ends on frame 99. Production reads these generated values and the
+  five Falcon Punch special attributes instead of duplicating constants.
+- Ground Falcon Punch consumes its imported per-frame root translation. Air
+  Falcon Punch consumes source stick-angle launch, velocity scaling, gravity,
+  and air control with axis-specific Melee-to-stage conversion. Positive source
+  stick Y is mapped to negative screen Y. Ground/air collision transitions
+  retain the action frame, and neutral special is legal from `Squat` but not
+  from `SquatWait` or `SquatRv`, matching the source common dispatcher.
+- Combat queries the captured complete-frame pose and simultaneous hit spheres
+  for both actions. Default reference input cannot also spawn a Pulse Bolt, and
+  the web adapter exposes the new canonical action names.
+- Direct Dolphin captures are pinned at SHA-256
+  `2c8bc604024cfad745e266239dcc4d3e1b1ff1c4a07afcc6eecb9938b5f155b1`
+  for the 200-frame ground route and
+  `9cfc8c5632a8bce37a0f79c6999bff6f0742130df5f8f2473196338d8b14d6c5`
+  for the 241-frame air-physics route. The latter observes launch `(1.794, 0)`
+  on frame 50, multiplier physics through frame 64, ordinary physics on frame
+  65, and `Fall` after frame 99.
+- `tools/verify_m4_falcon_punch.sh` strictly rebuilds the native movement
+  runner, verifies the GALE01 NTSC 1.02 disc SHA-256, and differentially checks
+  200 frames of each route on demand. Both routes pass with a 640-Q16 position
+  allowance and 32-Q16 velocity allowance. Windows passes 20/20 CTest targets,
+  WSL Linux passes 22/22, pinned Emscripten rebuilds cleanly, native/Wasm replay
+  output is byte-identical, and the refreshed port-8002 page reports
+  `playtest=ready` with no failed probes or browser-console diagnostics.
+- The generated frame-data include SHA-256 is now
+  `e24f1e5093f55942da2429550e95044ec80e0b1e04d50305ef84be0942cc1f8d`.
+  Raptor Boost, Falcon Dive, and Falcon Kick remain the next source-routing
+  slices; no guessed move values are accepted as substitutes.

@@ -107,6 +107,7 @@ static int make_reflector_content(
     {
         return 0;
     }
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
     content->reflector.enabled = UINT8_C(1);
     content->projectile.enabled = UINT8_C(1);
     content->stage.floor_left_q16 = -INT32_C(8) * PF_Q16_ONE;

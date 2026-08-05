@@ -240,6 +240,14 @@ typedef struct pf_m4_falcon_special_attributes
     int32_t speciallw_air_landing_traction_q16;
 } pf_m4_falcon_special_attributes;
 
+typedef struct pf_m4_falcon_neutral_special_timing
+{
+    uint16_t launch_frame;
+    uint16_t velocity_scale_begin_frame;
+    uint16_t velocity_scale_end_frame;
+    uint16_t ordinary_air_physics_begin_frame;
+} pf_m4_falcon_neutral_special_timing;
+
 typedef struct pf_m4_reference_throw
 {
     uint16_t angle_degrees;
@@ -308,6 +316,9 @@ pf_m4_falcon_reference_common_attributes(void);
 
 const pf_m4_falcon_special_attributes *
 pf_m4_falcon_reference_special_attributes(void);
+
+const pf_m4_falcon_neutral_special_timing *
+pf_m4_falcon_reference_neutral_special_timing(void);
 
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void);
 

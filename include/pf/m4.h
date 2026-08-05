@@ -136,7 +136,9 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_STANDING_TURN = 103,
     PF_M4_ACTION_CROUCH_START = 104,
     PF_M4_ACTION_CROUCH_END = 105,
-    PF_M4_ACTION_DASH_GRAB = 106
+    PF_M4_ACTION_DASH_GRAB = 106,
+    PF_M4_ACTION_FALCON_PUNCH_GROUND = 107,
+    PF_M4_ACTION_FALCON_PUNCH_AIR = 108
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
