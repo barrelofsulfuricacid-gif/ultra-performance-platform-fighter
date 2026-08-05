@@ -72,7 +72,7 @@ used by the native/WebAssembly corpus test and browser inspector:
 - Final state SHA-256
   `f9fb60d1a468e9cd99d43bd412b408d0dfe8c1b414b8a1ef8dfe08f4dea27702`.
 - Per-tick event-journal SHA-256 under domain `PFEVT001`
-  `ddc1f793a4d9919988f4f44f6a78d7492a37b0f4721867f7f1f8ca5bb89ce2d7`.
+  `ff1b77013c60df79c5d130be72f67e37205998038b9983621bd33cd88cd1d253`.
 
 The test also proves checksum rejection without state mutation, exact
 localization of a deliberately wrong tick-51 hash, content incompatibility,

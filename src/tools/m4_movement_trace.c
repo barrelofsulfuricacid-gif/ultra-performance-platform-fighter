@@ -27,6 +27,58 @@ static int fail_status(const char *operation, pf_status status)
     return 1;
 }
 
+static int run_elevated_special_pre_roll(
+    pf_sim *sim,
+    pf_m4_inspection *inspection,
+    int opponent_flees)
+{
+    uint32_t pre_roll_tick;
+
+    for (pre_roll_tick = UINT32_C(0);
+         pre_roll_tick < UINT32_C(11);
+         ++pre_roll_tick)
+    {
+        pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+        pf_tick_result result;
+        pf_status status;
+
+        (void)memset(inputs, 0, sizeof(inputs));
+        inputs[0].tick = inspection->tick;
+        inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[0].player_slot = UINT8_C(0);
+        inputs[1].tick = inspection->tick;
+        inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[1].player_slot = UINT8_C(1);
+        if (pre_roll_tick < UINT32_C(5) ||
+            pre_roll_tick == UINT32_C(7))
+        {
+            inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+        }
+        if (opponent_flees != 0)
+        {
+            inputs[1].main_stick_x = INT16_MIN;
+        }
+        status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+        if (status != PF_STATUS_OK)
+        {
+            return fail_status("elevated-special-pre-roll-tick", status);
+        }
+        status = pf_m4_inspect(sim, inspection);
+        if (status != PF_STATUS_OK)
+        {
+            return fail_status("elevated-special-pre-roll-inspect", status);
+        }
+    }
+    if (inspection->players[0].grounded != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement-trace=fail operation=elevated-special-pre-roll\n");
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     pf_trace_storage storage;
@@ -56,6 +108,7 @@ int main(int argc, char **argv)
     int shield_hit_mode = 0;
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
+    int raptor_boost_air_miss_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
     int falcon_dive_air_catch_mode = 0;
     int falcon_dive_air_miss_mode = 0;
@@ -86,6 +139,17 @@ int main(int argc, char **argv)
         strcmp(argv[1], "--raptor-boost-ground-hit") == 0)
     {
         raptor_boost_ground_hit_mode = 1;
+    }
+    else if (
+        argc == 2 &&
+        strcmp(argv[1], "--raptor-boost-ground-miss") == 0)
+    {
+        /* The ground miss oracle uses the ordinary wide-floor setup. */
+    }
+    else if (
+        argc == 2 && strcmp(argv[1], "--raptor-boost-air-miss") == 0)
+    {
+        raptor_boost_air_miss_mode = 1;
     }
     else if (
         argc == 2 &&
@@ -139,7 +203,9 @@ int main(int argc, char **argv)
             stderr,
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
-            "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
+            "--raptor-boost-ground-miss|--raptor-boost-ground-hit|"
+            "--raptor-boost-air-miss|"
+            "--falcon-dive-ground-catch|"
             "--falcon-dive-air-catch|"
             "--falcon-dive-air-miss|"
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
@@ -211,6 +277,11 @@ int main(int argc, char **argv)
         content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
         content.stage.blast_bottom_q16 =
             INT32_C(2048) * PF_Q16_ONE;
+    }
+    else if (raptor_boost_air_miss_mode != 0)
+    {
+        content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
+        content.fighter.player_push_half_width_q16 = INT32_C(1);
     }
     else if (raptor_boost_ground_hit_mode != 0)
     {
@@ -285,6 +356,19 @@ int main(int argc, char **argv)
             content.fighter.half_width_q16 +
             INT32_C(3) * content.stage.spawn_spacing_q16;
     }
+    if (raptor_boost_air_miss_mode != 0)
+    {
+        /* Start both fighters on a legitimate floor, then let the imported
+         * rightward root track carry Falcon beyond its endpoint. This
+         * recreates the high offstage capture without mutating fighter state. */
+        content.stage.floor_right_q16 =
+            content.fighter.half_width_q16 +
+            INT32_C(3) * content.stage.spawn_spacing_q16;
+        content.stage.revival_platform_half_width_q16 =
+            content.fighter.half_width_q16;
+        content.stage.blast_bottom_q16 =
+            INT32_C(2048) * PF_Q16_ONE;
+    }
     if (shield_hit_mode != 0)
     {
         /* Falcon's Jab 1 hits on displayed frames 3-4 for 2 damage. */
@@ -313,7 +397,8 @@ int main(int argc, char **argv)
     config.arena_ceiling_q16 =
         (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
          falcon_dive_air_catch_mode != 0 ||
-         falcon_dive_air_miss_mode != 0
+         falcon_dive_air_miss_mode != 0 ||
+         raptor_boost_air_miss_mode != 0
              ? INT32_C(4096)
              : INT32_C(256)) *
         PF_Q16_ONE;
@@ -470,49 +555,14 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    else if (falcon_dive_air_miss_mode != 0)
+    else if (falcon_dive_air_miss_mode != 0 ||
+             raptor_boost_air_miss_mode != 0)
     {
-        uint32_t pre_roll_tick;
-
-        /* Replay the capture's ordinary full jump, three ascent samples,
-         * one double-jump press, and three neutral samples before up-B. */
-        for (pre_roll_tick = UINT32_C(0);
-             pre_roll_tick < UINT32_C(11);
-             ++pre_roll_tick)
+        if (run_elevated_special_pre_roll(
+                sim,
+                &inspection,
+                raptor_boost_air_miss_mode) != 0)
         {
-            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
-            pf_tick_result result;
-
-            (void)memset(inputs, 0, sizeof(inputs));
-            inputs[0].tick = inspection.tick;
-            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
-            inputs[0].player_slot = UINT8_C(0);
-            if (pre_roll_tick < UINT32_C(5) ||
-                pre_roll_tick == UINT32_C(7))
-            {
-                inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
-            }
-            inputs[1].tick = inspection.tick;
-            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
-            inputs[1].player_slot = UINT8_C(1);
-            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
-            if (status != PF_STATUS_OK)
-            {
-                return fail_status("falcon-dive-air-miss-pre-roll-tick", status);
-            }
-            status = pf_m4_inspect(sim, &inspection);
-            if (status != PF_STATUS_OK)
-            {
-                return fail_status(
-                    "falcon-dive-air-miss-pre-roll-inspect",
-                    status);
-            }
-        }
-        if (inspection.players[0].grounded != UINT8_C(0))
-        {
-            (void)fprintf(
-                stderr,
-                "m4-movement-trace=fail operation=falcon-dive-air-miss-pre-roll\n");
             return 1;
         }
     }

@@ -3508,3 +3508,31 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   native/Wasm replay byte identity also pass. M4 remains unfinished: Falcon
   Dive edge behavior, remaining Raptor Boost routes, and broader common-
   state fidelity gaps remain active executable-oracle work.
+
+## 2026-08-05 Raptor Boost miss qualification
+
+- The complete Falcon import remains the sole authority for Raptor Boost:
+  action scripts, command boundaries, root motion, special attributes, six
+  search spheres, effects, and complete-frame pose geometry are generated from
+  the pinned NTSC 1.02 inputs. No timing, velocity, pose, or transition value
+  was tuned from observation or guessed.
+- A fresh clean 431-row Dolphin memory capture contains the grounded- and
+  aerial-miss routes at SHA-256
+  `81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602`.
+  `tools/verify_m4_raptor_boost.sh` now passes 80 grounded-miss and 180 aerial-
+  miss frames in addition to the existing 46-frame ground hit, for 306 strict
+  comparable frames on demand.
+- Raptor Boost and Falcon Dive now share one zero-cost predicate for the
+  imported eight-frame common `FallSpecial` ECB-bottom cycle. This removes the
+  move-specific condition without duplicating the pose table or adding state.
+  The aerial miss also applies ordinary imported Falcon gravity on its
+  transition row, matching the executable after active special physics ends.
+- Corrected transition ordering refreshes replay corpus/final/event SHA-256 to
+  `b0f176b41a3031756c236f1827080808c49104c3938e407287653e1557ac0ce9`,
+  `e96399e8c83d2e148554d57b4b2287e11316eaa48780e8e6e729f92e47ee7517`,
+  and `ff1b77013c60df79c5d130be72f67e37205998038b9983621bd33cd88cd1d253`.
+  The refreshed eight-match verifier digest is `416848e8f260cf6c`.
+- Aggregate owner-executable evidence is now 14,475 captured frames. M4
+  remains unfinished: Raptor Boost aerial hit, edge conversions, and source
+  item-search behavior, Falcon Dive edge behavior, and broader shared-state
+  fidelity gaps remain active work.

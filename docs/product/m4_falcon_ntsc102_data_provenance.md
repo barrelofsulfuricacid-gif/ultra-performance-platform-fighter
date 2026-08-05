@@ -134,6 +134,20 @@ wall in `GrSh.dat`. The route qualifies displayed-frame-22 wall contact,
 preserved entry self velocity, no same-tick floor reattachment, and the full
 rebound root trajectory. No Falcon Kick dynamic route remains unqualified.
 
+Raptor Boost likewise consumes only the generated Falcon action, command,
+root-motion, search-sphere, effect, and attribute tables. A clean 431-row
+Dolphin memory capture containing its two miss routes has SHA-256
+`81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602`.
+`tools/verify_m4_raptor_boost.sh` selects the routes directly from that pinned
+capture and compares 80 grounded-miss and 180 aerial-miss frames in addition
+to the existing 46-frame ground hit. Both miss paths enter the same imported
+eight-frame common `FallSpecial` ECB-bottom cycle used by Falcon Dive through
+one allocation-free action predicate; no duplicate Raptor pose table exists.
+The aerial transition row applies Falcon's ordinary imported gravity, as the
+executable does, instead of suppressing it as if the active special were still
+launching the fighter. Remaining executable qualification is explicitly
+limited to aerial hit, edge conversions, and source item-search behavior.
+
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
 forward/up tilt, and up/down smash use `ftCo_Wait_IASA`; down tilt uses its

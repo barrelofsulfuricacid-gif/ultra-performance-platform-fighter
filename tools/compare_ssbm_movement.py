@@ -275,6 +275,11 @@ def main() -> int:
         "--native-input-output", type=Path,
         help="optionally preserve the normalized native input trace",
     )
+    parser.add_argument(
+        "--special-geometry-route",
+        choices=("side_ground_miss", "side_air_miss"),
+        help="select one route from a combined special-geometry capture",
+    )
     args = parser.parse_args()
 
     capture = json.loads(args.capture.read_text(encoding="utf-8"))
@@ -291,6 +296,27 @@ def main() -> int:
         )
         return 1
     oracle_rows = capture["rows"]
+    if args.special_geometry_route is not None:
+        start_label = (
+            f"special_geometry_{args.special_geometry_route}_start"
+        )
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", "")) == start_label
+        )
+        next_route = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > first_special_row
+                and str(row.get("label", "")).endswith(
+                    "_opponent_pose_reset"
+                )
+            ),
+            len(oracle_rows),
+        )
+        oracle_rows = oracle_rows[first_special_row:next_route]
     falcon_punch_air_mode = any(
         str(row.get("label", "")) == "special_geometry_neutral_air_start"
         for row in oracle_rows
@@ -325,6 +351,40 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_hit + 1]
+    raptor_boost_ground_miss_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_side_ground_miss_start"
+        for row in oracle_rows
+    )
+    if raptor_boost_ground_miss_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_side_ground_miss_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_idle_after_miss = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "STANDING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_idle_after_miss + 1]
+    raptor_boost_air_miss_mode = any(
+        str(row.get("label", "")) == "special_geometry_side_air_miss_start"
+        for row in oracle_rows
+    )
+    if raptor_boost_air_miss_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_side_air_miss_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
     falcon_dive_ground_miss_mode = any(
         str(row.get("label", ""))
         == "special_geometry_up_ground_miss_start"
@@ -605,8 +665,12 @@ def main() -> int:
         runner_command.append("--shield-hit")
     elif falcon_punch_air_mode:
         runner_command.append("--falcon-punch-air")
+    elif raptor_boost_ground_miss_mode:
+        runner_command.append("--raptor-boost-ground-miss")
     elif raptor_boost_ground_hit_mode:
         runner_command.append("--raptor-boost-ground-hit")
+    elif raptor_boost_air_miss_mode:
+        runner_command.append("--raptor-boost-air-miss")
     elif falcon_dive_ground_catch_mode:
         runner_command.append("--falcon-dive-ground-catch")
     elif falcon_dive_air_catch_mode:
@@ -672,7 +736,11 @@ def main() -> int:
     )
     if falcon_kick_ground_wall_mode:
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
-    elif falcon_dive_air_catch_mode or falcon_dive_air_miss_mode:
+    elif (
+        falcon_dive_air_catch_mode
+        or falcon_dive_air_miss_mode
+        or raptor_boost_air_miss_mode
+    ):
         oracle_anchor_x = float(oracle_rows[0]["position_x_from_origin"])
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
     native_anchor_x = 0
@@ -787,6 +855,11 @@ def main() -> int:
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
+        if raptor_boost_air_miss_mode:
+            expected_action = {
+                "SWORD_DANCE_2_MID": 111,
+                "DEAD_FALL": 113,
+            }.get(action_name, expected_action)
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode
@@ -864,6 +937,11 @@ def main() -> int:
                 expected_ticks = action_frame
             elif action_name == "DEAD_FALL":
                 expected_ticks = action_frame - 1
+        if raptor_boost_air_miss_mode:
+            if action_name == "SWORD_DANCE_2_MID":
+                expected_ticks = action_frame
+            elif action_name == "DEAD_FALL":
+                expected_ticks = action_frame - 1
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode
@@ -899,7 +977,10 @@ def main() -> int:
             elif action_name == "STANDING":
                 expected_ticks = 0
         if shield_hit_mode or (
-            (raptor_boost_ground_hit_mode or falcon_kick_ground_hit_mode)
+            (
+                raptor_boost_ground_hit_mode
+                or falcon_kick_ground_hit_mode
+            )
             and float(oracle.get("hitlag_left", 0.0)) > 0.0
         ):
             expected_ticks = None
@@ -968,7 +1049,11 @@ def main() -> int:
         skip_vertical_position = (
             falcon_kick_air_mode
             and oracle.get("requested_fighter_y_override") is not None
-        ) or falcon_dive_air_catch_mode or falcon_dive_air_miss_mode
+        ) or (
+            falcon_dive_air_catch_mode
+            or falcon_dive_air_miss_mode
+            or raptor_boost_air_miss_mode
+        )
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
         expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)

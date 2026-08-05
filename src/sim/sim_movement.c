@@ -1417,6 +1417,16 @@ static int32_t pf_m4_surface_y_q16(
     return content->stage.floor_y_q16;
 }
 
+static int pf_m4_action_uses_fall_special_pose(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_MISS ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT ||
+           action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
+}
+
 static int32_t pf_m4_floor_contact_bottom_extent_q16(
     const pf_m4_fighter_data *fighter,
     uint8_t action_state,
@@ -1427,7 +1437,7 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
 
     if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
         pose != NULL &&
-        action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL)
+        pf_m4_action_uses_fall_special_pose(action_state))
     {
         const uint16_t frame_index =
             action_ticks < PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT
@@ -8118,8 +8128,7 @@ pf_status pf_m4_step_player(
                           attributes->specialhi_freefall_air_spd_mul_q16)
                     : fighter->fall_special_mobility_q16;
 
-            if (action_state ==
-                (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL)
+            if (pf_m4_action_uses_fall_special_pose(action_state))
             {
                 action_ticks =
                     action_ticks + UINT16_C(1) <
@@ -8280,6 +8289,7 @@ pf_status pf_m4_step_player(
                         UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
+                    launched_this_tick = 0;
                 }
                 else
                 {
@@ -8647,8 +8657,8 @@ pf_status pf_m4_step_player(
                             gravity_q16);
                     }
                     ++action_ticks;
+                    launched_this_tick = 1;
                 }
-                launched_this_tick = 1;
                 fast_fall = UINT8_C(0);
             }
             else if (action_state ==
