@@ -4529,9 +4529,14 @@ pf_status pf_m4_step_player(
         ++scratch->trigger_input_age[player_index];
     }
 
-    if (scratch->hitlag_ticks[player_index] > UINT16_C(0))
+    if (scratch->hitlag_ticks[player_index] > UINT16_C(0) ||
+        (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+         scratch->hitlag_resume_action[player_index] != UINT8_C(0)))
     {
+        const int resolving_zero_hitlag =
+            scratch->hitlag_ticks[player_index] == UINT16_C(0);
         const int drop_cancel_eligible =
+            resolving_zero_hitlag == 0 &&
             pf_m4_drop_cancel_hitlag_is_eligible(
                 fighter,
                 action_ticks,
@@ -4593,12 +4598,13 @@ pf_status pf_m4_step_player(
                 scratch->support[player_index] = support;
             }
         }
-        if (scratch->hitlag_resume_action[player_index] ==
+        if (resolving_zero_hitlag == 0 &&
+            (scratch->hitlag_resume_action[player_index] ==
                 (uint8_t)PF_M4_ACTION_HITSTUN ||
             scratch->hitlag_resume_action[player_index] ==
                 (uint8_t)PF_M4_ACTION_RESET_BOUND ||
             scratch->hitlag_resume_action[player_index] ==
-                (uint8_t)PF_M4_ACTION_SHIELD_STUN)
+                (uint8_t)PF_M4_ACTION_SHIELD_STUN))
         {
             const int shield_sdi =
                 scratch->hitlag_resume_action[player_index] ==
@@ -4652,7 +4658,10 @@ pf_status pf_m4_step_player(
             scratch->sdi_direction_y[player_index] = sdi_y;
         }
 
-        --scratch->hitlag_ticks[player_index];
+        if (resolving_zero_hitlag == 0)
+        {
+            --scratch->hitlag_ticks[player_index];
+        }
         action_state = (uint8_t)PF_M4_ACTION_HITLAG;
         if (scratch->hitlag_ticks[player_index] == UINT16_C(0))
         {
@@ -6000,14 +6009,14 @@ pf_status pf_m4_step_player(
         }
     }
     else if (!ledge_motion_handled &&
-        grounded != UINT8_C(0) &&
-        (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
-         action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
-         action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
-         action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
-         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
-         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
-         pf_m4_action_is_throw(action_state)))
+        ((grounded != UINT8_C(0) &&
+          (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
+           action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
+           action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+           action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
+           action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
+           pf_m4_action_is_throw(action_state))) ||
+         action_state == (uint8_t)PF_M4_ACTION_GRABBED))
     {
         velocity_x = pf_m4_approach(
             velocity_x,
@@ -8663,6 +8672,19 @@ pf_status pf_m4_step_player(
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
                 }
+            }
+            else if (
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH ||
+                action_state == (uint8_t)PF_M4_ACTION_GRABBED)
+            {
+                /* CaptureCaptain freezes both airborne participants. The
+                 * action/capture timeline advances in the shared grab path;
+                 * do not route either participant through ordinary fall. */
+                velocity_x = INT32_C(0);
+                velocity_y = INT32_C(0);
+                launched_this_tick = 1;
+                fast_fall = UINT8_C(0);
             }
             else if (strong_attack_pressed &&
                      scratch->tumble[player_index] == UINT8_C(0))

@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
+#define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 
 typedef enum pf_m4_falcon_move_index
 {
@@ -270,9 +271,16 @@ typedef struct pf_m4_falcon_up_special_timing
 {
     uint16_t air_control_begin_frame;
     uint16_t throw_gravity_begin_frame;
+    uint16_t victim_release_hitstun_ticks;
+    uint16_t reserved;
     int32_t grounded_throw_reposition_x_q16;
     int32_t grounded_throw_reposition_y_q16;
 } pf_m4_falcon_up_special_timing;
+
+typedef struct pf_m4_melee_stale_move_data
+{
+    uint16_t slot_reduction_q16[PF_M4_MELEE_STALE_MOVE_SLOT_COUNT];
+} pf_m4_melee_stale_move_data;
 
 typedef struct pf_m4_falcon_down_special_timing
 {
@@ -373,6 +381,9 @@ pf_m4_falcon_reference_special_attributes(void);
 
 const pf_m4_falcon_common_special_attributes *
 pf_m4_falcon_reference_common_special_attributes(void);
+
+const pf_m4_melee_stale_move_data *
+pf_m4_falcon_reference_stale_move_data(void);
 
 const pf_m4_falcon_neutral_special_timing *
 pf_m4_falcon_reference_neutral_special_timing(void);

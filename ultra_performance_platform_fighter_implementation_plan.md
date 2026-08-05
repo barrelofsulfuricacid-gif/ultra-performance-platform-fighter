@@ -459,8 +459,9 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 13,855 captured frames, including a
-116-frame grounded Falcon Dive catch/throw route with memory-probed ECB state
+executable-oracle evidence is therefore 13,947 captured frames, including
+116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes with
+memory-probed ECB, internal damage, knockback, and reaction-timer state
 and a 77-frame Falcon Kick ground-hit route with memory-probed parallel ground
 and self velocities.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
@@ -497,6 +498,14 @@ within the bounded 640-Q16 representation allowance.
 A separate 116-frame grounded Falcon Dive capture strictly matches catch,
 hitlag, captured-target attachment, throw release, source relocation/root
 motion, fall, and floor landing within the same representation allowance.
+The 92-frame aerial catch/throw differential additionally qualifies the
+victim path: 5% catch, the imported nine-slot stale table's 0.91 first-slot
+multiplier, 15.92% post-throw internal damage, zero launch velocity, ordinary
+gravity, and the source-visible 26-frame damage reaction. Forty-two comparable
+victim frames are strict; the final three victim samples are excluded because
+the legitimate native jump fixture reaches its floor while the isolated
+Dolphin capture remains held at y=500. The static 26-frame boundary remains
+hash-pinned and asserted from that capture/decomp path.
 A 399-frame Falcon Kick differential suite strictly matches the imported
 ground start/end, air start/end, air-to-ground landing, ground-to-air edge, and
 ground-hit and wall-rebound routes, including root translation, velocity,

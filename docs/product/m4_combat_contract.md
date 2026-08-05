@@ -1694,9 +1694,12 @@ physical controller to simulation slot 2 rather than the scripted victim.
 Each player owns a fixed nine-entry queue of canonical move IDs, newest first.
 Before an attack applies damage, its multiplier is one minus the authored
 reduction for every queue slot that contains the same canonical ID. The default
-newest-to-oldest reductions are 4,608, 4,096, 3,584, 3,072, 2,560, 2,048,
-1,536, 1,024, and 512 in Q16.16. Their maximum combined reduction is 35.15625%,
-and multiplication uses the existing deterministic integer floor. Content
+newest-to-oldest reductions are generated from `PlCo.dat`'s
+`Fighter_804D6548` table: 9%, 8%, 7%, 6%, 5%, 4%, 3%, 2%, and 1%, represented
+as 5,898, 5,243, 4,588, 3,932, 3,277, 2,621, 1,966, 1,311, and 655 in Q16.16.
+Their maximum combined reduction is 45%, modulo the documented Q16.16
+representation envelope, and multiplication uses the existing deterministic
+integer floor. Content
 validation requires every reduction to be positive and strictly descending and
 caps their sum at one half.
 
@@ -2173,7 +2176,7 @@ mechanics invariants plus 74 journal invariants, including:
   freeze,
   launch, hitstun, one-hit masks, simultaneous trades, and the default strong
   attack's direct tumble-to-knockdown route;
-- all nine exact authored stale reductions; ten repeated jabs with deterministic
+- all nine exact imported stale reductions; ten repeated jabs with deterministic
   floor-scaled damage, capped newest-first queue order, multiplier, and
   opponent isolation; a fresh different move shifting the queue; hurt-only
   insertion, shield scaling without insertion, whiff/reset negatives,

@@ -97,12 +97,15 @@ view for every common field currently consumed by the simulation: walk,
 dash/run, traction, jump, double jump, gravity/fall/fast fall, air mobility,
 ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
 `pf_m4_default_content` consumes this typed view rather than repeating authored
-ratios. The raw attributes, typed view, special block, action table, collision
-pose, and source hashes form complete-source SHA-256
-`39fc2a489460791b5557442063361873709afd22c51f59835433edef4b4274a2`.
+ratios. The importer also decodes `ftLoadCommonData` pointer 3, the exact
+`Fighter_804D6548` stale-move table, as 9/8/7/6/5/4/3/2/1 percent and routes
+that generated nine-slot view into default content. The raw attributes, typed
+views, special block, action table, collision pose, Falcon Dive victim reaction
+boundary, and source hashes form complete-source SHA-256
+`15f6e6133100c652a4b9db6369a5fdffcee39b086182b38549ec21324f6d2778`.
 Fresh regeneration from the five pinned inputs byte-matches the checked-in
 include at SHA-256
-`498ea9566f82051ed88ca6b8cf43e3e84c4f8a57994f90e91ec3c63a7be57e50`.
+`88d5cc628b8f01b553b4941b0f0234a4536c715e132f09f4ca4499ada8eaa7d3`.
 The production ground/aerial Falcon Punch, Raptor Boost, Falcon Dive, and all
 seven Falcon Kick states consume this imported data directly. The project's
 original directional-special fixtures are not evidence for those source
@@ -285,6 +288,19 @@ hitlag, and velocity checks plus the established 640-Q16 position envelope.
 The route covers catch, holder/victim attachment, throw release and damage,
 source root motion, falling, and floor landing; it does not claim unprobed ECB
 evolution for every common state or arbitrary stage solid.
+
+The pinned aerial catch capture has SHA-256
+`59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f`.
+Its memory probe records exact internal damage, the victim's applied and
+latched knockback channels, throw weight, knockback magnitude, and damage-state
+timer. It proves that the 5% catch stales the shared Falcon Dive identity before
+the 12% throw, producing 15.92% total damage through the imported 0.91 newest-
+slot multiplier. `CaptureCaptain` computes the reaction duration but
+`ftCo_800DE7C0` clears applied launch velocity: the victim begins ordinary
+0.13-per-frame gravity immediately and exposes 26 post-transition hitstun
+frames. `tools/verify_m4_falcon_dive.sh` checks all 92 holder frames plus 42
+victim capture/reaction frames at will. The later one-percent change in the
+y=500 capture is off-screen magnifier damage and is excluded from move damage.
 
 ## Coordinate conversion
 

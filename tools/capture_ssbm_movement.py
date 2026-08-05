@@ -1713,6 +1713,8 @@ def read_fighter_hurt_capsules(
 def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     """Read both Falcons' live attack and hurt-capsule geometry."""
 
+    common = memory_engine.read_word(0x804D6554)
+
     def read_ecb(fighter_address: int) -> dict[str, list[float]]:
         ecb = fighter_address + 0x794
         return {
@@ -1782,6 +1784,25 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "opponent_fighter_position": [
             memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
         ],
+        "opponent_damage_percent_internal": memory_engine.read_float(
+            opponent + 0x1830
+        ),
+        "opponent_damage_percent_temp": memory_engine.read_float(
+            opponent + 0x1838
+        ),
+        "opponent_knockback_applied": memory_engine.read_float(
+            opponent + 0x1850
+        ),
+        "opponent_knockback_magnitude": memory_engine.read_float(
+            opponent + 0x18A4
+        ),
+        "opponent_knockback_applied_latched": memory_engine.read_float(
+            opponent + 0x18A8
+        ),
+        "opponent_damage_state_ticks": memory_engine.read_word(
+            opponent + 0x2340
+        ),
+        "throw_weight": memory_engine.read_float(common + 0x10C),
         "opponent_hurtboxes": read_fighter_hurt_capsules(memory_engine, opponent),
         "opponent_ecb": read_ecb(opponent),
     }

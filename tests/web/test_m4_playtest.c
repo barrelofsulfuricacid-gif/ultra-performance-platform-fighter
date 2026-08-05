@@ -1414,7 +1414,7 @@ int main(void)
         test_view[
             TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_COUNT] != 1 ||
         test_view[
-            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_MULTIPLIER] != 60928 ||
+            TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_MULTIPLIER] != 59638 ||
         test_view[
             TEST_STALE_MOVE_BASE + TEST_STALE_MOVE_REGISTERED] != 1 ||
         test_view[

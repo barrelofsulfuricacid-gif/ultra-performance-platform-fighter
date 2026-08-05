@@ -7834,15 +7834,15 @@ static int run_stale_move_test(
 {
     static const uint16_t expected_reductions[
         PF_SIM_STALE_MOVE_QUEUE_CAPACITY] = {
-        UINT16_C(4608),
-        UINT16_C(4096),
-        UINT16_C(3584),
-        UINT16_C(3072),
-        UINT16_C(2560),
-        UINT16_C(2048),
-        UINT16_C(1536),
-        UINT16_C(1024),
-        UINT16_C(512)};
+        UINT16_C(5898),
+        UINT16_C(5243),
+        UINT16_C(4588),
+        UINT16_C(3932),
+        UINT16_C(3277),
+        UINT16_C(2621),
+        UINT16_C(1966),
+        UINT16_C(1311),
+        UINT16_C(655)};
     test_sim_storage storage;
     test_sim_storage shield_storage;
     test_sim_storage miss_storage;
@@ -21629,8 +21629,12 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_special_attributes();
     const pf_m4_falcon_common_special_attributes *common_special_attributes =
         pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_melee_stale_move_data *stale_move_data =
+        pf_m4_falcon_reference_stale_move_data();
     const pf_m4_falcon_side_special_timing *side_special_timing =
         pf_m4_falcon_reference_side_special_timing();
+    const pf_m4_falcon_up_special_timing *up_special_timing =
+        pf_m4_falcon_reference_up_special_timing();
     const pf_m4_falcon_down_special_timing *down_special_timing =
         pf_m4_falcon_reference_down_special_timing();
     int32_t dash_motion_q16 = INT32_C(0);
@@ -21892,8 +21896,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x39) ||
-        complete_source_sha256[31] != UINT8_C(0xa2) ||
+        complete_source_sha256[0] != UINT8_C(0x15) ||
+        complete_source_sha256[31] != UINT8_C(0x78) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -21941,12 +21945,17 @@ static int run_falcon_reference_table_test(void)
             INT32_C(13107) ||
         common_special_attributes->air_drift_dead_zone_q16 !=
             INT32_C(6554) ||
+        stale_move_data == NULL ||
+        stale_move_data->slot_reduction_q16[0] != UINT16_C(5898) ||
+        stale_move_data->slot_reduction_q16[8] != UINT16_C(655) ||
         side_special_timing == NULL ||
         side_special_timing->ground_search_begin_frame != UINT16_C(15) ||
         side_special_timing->ground_search_end_frame != UINT16_C(34) ||
         side_special_timing->air_search_begin_frame != UINT16_C(18) ||
         side_special_timing->air_search_end_frame != UINT16_C(34) ||
         side_special_timing->air_gravity_begin_frame != UINT16_C(30) ||
+        up_special_timing == NULL ||
+        up_special_timing->victim_release_hitstun_ticks != UINT16_C(26) ||
         down_special_timing == NULL ||
         down_special_timing->ground_wall_rebound_begin_frame !=
             UINT16_C(15) ||

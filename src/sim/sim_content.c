@@ -1194,6 +1194,7 @@ const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
 pf_status pf_m4_default_content(pf_m4_content *out_content)
 {
     const pf_m4_falcon_common_attributes *falcon_attributes;
+    const pf_m4_melee_stale_move_data *stale_move_data;
     pf_m4_fighter_data *fighter;
     pf_m4_stage_data *stage;
     pf_m4_item_data *item;
@@ -1208,7 +1209,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     }
 
     falcon_attributes = pf_m4_falcon_reference_common_attributes();
-    if (falcon_attributes == NULL)
+    stale_move_data = pf_m4_falcon_reference_stale_move_data();
+    if (falcon_attributes == NULL || stale_move_data == NULL)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -1818,15 +1820,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->air_jump_count = UINT8_C(1);
     fighter->powershield_cancel_enabled = UINT8_C(1);
     fighter->wall_jump_enabled = UINT8_C(1);
-    fighter->stale_move_slot_reduction_q16[0] = UINT16_C(4608);
-    fighter->stale_move_slot_reduction_q16[1] = UINT16_C(4096);
-    fighter->stale_move_slot_reduction_q16[2] = UINT16_C(3584);
-    fighter->stale_move_slot_reduction_q16[3] = UINT16_C(3072);
-    fighter->stale_move_slot_reduction_q16[4] = UINT16_C(2560);
-    fighter->stale_move_slot_reduction_q16[5] = UINT16_C(2048);
-    fighter->stale_move_slot_reduction_q16[6] = UINT16_C(1536);
-    fighter->stale_move_slot_reduction_q16[7] = UINT16_C(1024);
-    fighter->stale_move_slot_reduction_q16[8] = UINT16_C(512);
+    (void)memcpy(
+        fighter->stale_move_slot_reduction_q16,
+        stale_move_data->slot_reduction_q16,
+        sizeof(fighter->stale_move_slot_reduction_q16));
     /* GALE01 Captain Falcon Squat and SquatRv animation lengths. */
     fighter->crouch_start_ticks = UINT16_C(7);
     fighter->crouch_end_ticks = UINT16_C(10);

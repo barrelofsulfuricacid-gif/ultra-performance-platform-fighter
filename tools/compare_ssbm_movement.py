@@ -369,6 +369,28 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
+    falcon_dive_air_catch_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_up_air_catch_start"
+        for row in oracle_rows
+    )
+    if falcon_dive_air_catch_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_up_air_catch_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_fall_after_throw = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "FALLING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_fall_after_throw + 1]
     falcon_kick_ground_mode = any(
         str(row.get("label", "")) == "special_geometry_down_ground_start"
         for row in oracle_rows
@@ -575,6 +597,8 @@ def main() -> int:
         runner_command.append("--raptor-boost-ground-hit")
     elif falcon_dive_ground_catch_mode:
         runner_command.append("--falcon-dive-ground-catch")
+    elif falcon_dive_air_catch_mode:
+        runner_command.append("--falcon-dive-air-catch")
     elif falcon_kick_ground_mode:
         runner_command.append("--falcon-kick-ground")
     elif falcon_kick_ground_hit_mode:
@@ -610,6 +634,7 @@ def main() -> int:
 
     previous_oracle: dict[str, object] | None = None
     previous_native: dict[str, str] | None = None
+    falcon_dive_target_checked_frames = 0
     oracle_anchor_x = (
         float(oracle_rows[0]["position_x_from_origin"])
         - float(oracle_rows[0]["ground_velocity_x"])
@@ -632,6 +657,9 @@ def main() -> int:
         else 0.0
     )
     if falcon_kick_ground_wall_mode:
+        oracle_anchor_y = float(oracle_rows[0]["position_y"])
+    elif falcon_dive_air_catch_mode:
+        oracle_anchor_x = float(oracle_rows[0]["position_x_from_origin"])
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
     native_anchor_x = 0
     native_anchor_y = 0
@@ -671,7 +699,7 @@ def main() -> int:
             native_anchor_x = int(previous_native["position_x_q16_from_origin"])
             native_anchor_y = int(previous_native["position_y_q16_from_origin"])
         if (
-            falcon_dive_ground_catch_mode
+            (falcon_dive_ground_catch_mode or falcon_dive_air_catch_mode)
             and str(oracle.get("action", "")) == "SWORD_DANCE_4_HIGH"
             and float(oracle.get("hitlag_left", 0.0)) > 0.0
             and (
@@ -732,6 +760,15 @@ def main() -> int:
                 "LANDING_SPECIAL": 122,
                 "LANDING": 7,
                 "STANDING": 0,
+            }.get(action_name, expected_action)
+            if float(oracle.get("hitlag_left", 0.0)) > 0.0:
+                expected_action = 13
+        if falcon_dive_air_catch_mode:
+            expected_action = {
+                "SWORD_DANCE_3_LOW": 118,
+                "SWORD_DANCE_4_HIGH": 119,
+                "SWORD_DANCE_4_MID": 120,
+                "FALLING": 6,
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
@@ -799,6 +836,13 @@ def main() -> int:
             elif action_name == "SWORD_DANCE_4_MID":
                 expected_ticks = None
             elif action_name == "LANDING_SPECIAL":
+                expected_ticks = action_frame - 1
+        if falcon_dive_air_catch_mode:
+            if action_name == "SWORD_DANCE_3_LOW":
+                expected_ticks = action_frame
+            elif action_name in {"SWORD_DANCE_4_HIGH", "SWORD_DANCE_4_MID"}:
+                expected_ticks = None
+            elif action_name == "FALLING":
                 expected_ticks = action_frame - 1
         if (
             falcon_kick_ground_mode
@@ -892,7 +936,7 @@ def main() -> int:
             and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
             and action_frame < 50
         ) or (
-            falcon_dive_ground_catch_mode
+            (falcon_dive_ground_catch_mode or falcon_dive_air_catch_mode)
             and action_name in {
                 "SWORD_DANCE_3_MID",
                 "SWORD_DANCE_4_HIGH",
@@ -904,7 +948,7 @@ def main() -> int:
         skip_vertical_position = (
             falcon_kick_air_mode
             and oracle.get("requested_fighter_y_override") is not None
-        )
+        ) or falcon_dive_air_catch_mode
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
         expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)
@@ -1108,6 +1152,106 @@ def main() -> int:
                     f"expected={expected_opponent_damage_q16} "
                     f"actual={actual_opponent_damage_q16}"
                 )
+        if falcon_dive_air_catch_mode:
+            opponent_action_name = str(oracle["opponent_action"])
+            actual_opponent_action = int(native["opponent_action_state"])
+            actual_opponent_grounded = int(native["opponent_grounded"])
+            oracle_hitstun = round(
+                float(oracle.get("opponent_hitstun_left", 0.0))
+            )
+            actual_opponent_hitstun = int(native["opponent_hitstun_ticks"])
+            capture_or_reaction = opponent_action_name in {
+                "CAPTURE_CAPTAIN",
+                "DAMAGE_AIR_3",
+            }
+            # The executable oracle is deliberately held at y=500 to isolate
+            # the aerial route. The native runner uses a legitimate jump
+            # fixture and can touch its floor for the final two reaction
+            # samples; qualify every victim sample before that unrelated
+            # contact, including 23/26 post-release hitstun frames.
+            fixture_floor_contact = (
+                opponent_action_name == "DAMAGE_AIR_3"
+                and actual_opponent_grounded != 0
+                and oracle_hitstun <= 3
+            )
+            if capture_or_reaction and not fixture_floor_contact:
+                falcon_dive_target_checked_frames += 1
+                expected_opponent_action = (
+                    51
+                    if opponent_action_name == "CAPTURE_CAPTAIN"
+                    else 13
+                    if oracle_hitstun == 26
+                    else 14
+                )
+                if actual_opponent_action != expected_opponent_action:
+                    differences.append(
+                        "falcon_dive_opponent_action "
+                        f"expected={expected_opponent_action} "
+                        f"actual={actual_opponent_action}"
+                    )
+                if opponent_action_name == "DAMAGE_AIR_3" and (
+                    actual_opponent_hitstun != oracle_hitstun
+                ):
+                    differences.append(
+                        "falcon_dive_opponent_hitstun "
+                        f"expected={oracle_hitstun} "
+                        f"actual={actual_opponent_hitstun}"
+                    )
+                if actual_opponent_grounded != 0:
+                    differences.append(
+                        "falcon_dive_opponent_grounded expected=0 actual=1"
+                    )
+                expected_opponent_velocity_x = scaled_q16(
+                    float(oracle["opponent_air_velocity_x"])
+                )
+                expected_opponent_velocity_y = scaled_y_q16(
+                    float(oracle["opponent_velocity_y"])
+                )
+                actual_opponent_velocity_x = int(
+                    native["opponent_velocity_x_q16"]
+                )
+                actual_opponent_velocity_y = int(
+                    native["opponent_velocity_y_q16"]
+                )
+                if abs(
+                    actual_opponent_velocity_x
+                    - expected_opponent_velocity_x
+                ) > args.velocity_tolerance_q16:
+                    differences.append(
+                        "falcon_dive_opponent_velocity_x_q16 "
+                        f"expected={expected_opponent_velocity_x} "
+                        f"actual={actual_opponent_velocity_x}"
+                    )
+                if abs(
+                    actual_opponent_velocity_y
+                    - expected_opponent_velocity_y
+                ) > args.velocity_tolerance_q16:
+                    differences.append(
+                        "falcon_dive_opponent_velocity_y_q16 "
+                        f"expected={expected_opponent_velocity_y} "
+                        f"actual={actual_opponent_velocity_y}"
+                    )
+                hitbox_memory = oracle.get("hitbox_memory", {})
+                if not isinstance(hitbox_memory, dict):
+                    differences.append("missing_falcon_dive_hitbox_memory")
+                else:
+                    expected_damage = float(
+                        hitbox_memory.get(
+                            "opponent_damage_percent_internal", 0.0
+                        )
+                    )
+                    # y=500 enters Melee's off-screen magnifier and adds one
+                    # unrelated percent at throw frame 25. Compare the source
+                    # catch and throw damage through the last pre-magnifier row.
+                    if expected_damage <= 15.93:
+                        expected_damage_q16 = round(expected_damage * 65536.0)
+                        actual_damage_q16 = int(native["opponent_damage_q16"])
+                        if abs(actual_damage_q16 - expected_damage_q16) > 4:
+                            differences.append(
+                                "falcon_dive_opponent_damage_q16 "
+                                f"expected={expected_damage_q16} "
+                                f"actual={actual_damage_q16}"
+                            )
         if two_player_mode:
             opponent_action_name = str(oracle["opponent_action"])
             expected_opponent_action = expected_action_state(
@@ -1253,9 +1397,15 @@ def main() -> int:
         if label in CONTENT_ROUTE_ENTRY_ACTIONS:
             skip_character_content = True
 
+    target_summary = (
+        f" falcon_dive_target_frames={falcon_dive_target_checked_frames}"
+        if falcon_dive_air_catch_mode
+        else ""
+    )
     print(
         f"ssbm-movement-compare=pass frames={len(oracle_rows)} "
         f"position_tolerance_q16={position_tolerance_q16}"
+        f"{target_summary}"
     )
     return 0
 

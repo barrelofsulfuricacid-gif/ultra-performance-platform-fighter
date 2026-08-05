@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
+    int falcon_dive_air_catch_mode = 0;
     int falcon_kick_ground_hit_mode = 0;
     int falcon_kick_ground_wall_mode = 0;
     int falcon_kick_ground_edge_mode = 0;
@@ -90,6 +91,11 @@ int main(int argc, char **argv)
         strcmp(argv[1], "--falcon-dive-ground-catch") == 0)
     {
         falcon_dive_ground_catch_mode = 1;
+    }
+    else if (
+        argc == 2 && strcmp(argv[1], "--falcon-dive-air-catch") == 0)
+    {
+        falcon_dive_air_catch_mode = 1;
     }
     else if (
         argc == 2 && strcmp(argv[1], "--falcon-kick-ground") == 0)
@@ -128,6 +134,7 @@ int main(int argc, char **argv)
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
+            "--falcon-dive-air-catch|"
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
@@ -243,6 +250,15 @@ int main(int argc, char **argv)
                 (INT64_C(31) * INT64_C(12) * PF_Q16_ONE) /
                 (INT64_C(10) * INT64_C(115)));
     }
+    else if (falcon_dive_air_catch_mode != 0)
+    {
+        /* The pinned aerial capture starts Falcon five Melee units from the
+         * airborne victim. Spawn spacing is the symmetric half-separation. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)(
+                (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(2) * INT64_C(115)));
+    }
     else if (falcon_kick_ground_edge_mode != 0)
     {
         /*
@@ -287,7 +303,8 @@ int main(int argc, char **argv)
     config.max_ticks = UINT64_C(100000);
     config.arena_half_width_q16 = INT32_C(256) * PF_Q16_ONE;
     config.arena_ceiling_q16 =
-        (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0
+        (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
+         falcon_dive_air_catch_mode != 0
              ? INT32_C(4096)
              : INT32_C(256)) *
         PF_Q16_ONE;
@@ -444,6 +461,59 @@ int main(int argc, char **argv)
             return 1;
         }
     }
+    else if (falcon_dive_air_catch_mode != 0)
+    {
+        uint32_t pre_roll_tick;
+
+        /* Match the oracle's high airborne entry without relocating state:
+         * both fighters perform a normal jump and an ordinary double jump.
+         * Falcon then starts the move; capture itself clears victim velocity. */
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(20);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            if (pre_roll_tick < UINT32_C(5) ||
+                (pre_roll_tick >= UINT32_C(10) &&
+                 pre_roll_tick < UINT32_C(15)))
+            {
+                inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+            }
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            if (pre_roll_tick < UINT32_C(5) ||
+                (pre_roll_tick >= UINT32_C(10) &&
+                 pre_roll_tick < UINT32_C(15)))
+            {
+                inputs[1].buttons = PF_INPUT_BUTTON_JUMP;
+            }
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("falcon-dive-air-pre-roll-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("falcon-dive-air-pre-roll-inspect", status);
+            }
+        }
+        if (inspection.players[0].grounded != UINT8_C(0) ||
+            inspection.players[1].grounded != UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=falcon-dive-air-pre-roll\n");
+            return 1;
+        }
+    }
     else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0)
     {
         uint32_t pre_roll_tick;
@@ -508,6 +578,7 @@ int main(int argc, char **argv)
         "shield_center_offset_y_q16,shield_radius_x_q16,shield_radius_y_q16,"
         "powershield,hitlag_ticks,shield_stun_ticks,"
         "opponent_action_state,opponent_action_ticks,opponent_hitlag_ticks,"
+        "opponent_hitstun_ticks,"
         "opponent_facing,opponent_grounded,"
         "opponent_position_x_q16_from_origin,"
         "opponent_position_y_q16_from_origin,"
@@ -596,7 +667,7 @@ int main(int argc, char **argv)
             ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
+            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
             ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32 "\n",
             trace_frame,
             input_x,
@@ -644,6 +715,7 @@ int main(int argc, char **argv)
             (unsigned int)inspection.players[1].action_state,
             (unsigned int)inspection.players[1].action_ticks,
             (unsigned int)inspection.players[1].hitlag_ticks,
+            (unsigned int)inspection.players[1].hitstun_ticks,
             (int)inspection.players[1].facing,
             (unsigned int)inspection.players[1].grounded,
             inspection.players[1].position_x_q16 -

@@ -25,6 +25,9 @@ _Static_assert(
 _Static_assert(
     sizeof(pf_m4_falcon_special_attributes) == (size_t)0x8c,
     "Falcon special-attribute view must cover the source block exactly");
+_Static_assert(
+    PF_M4_MELEE_STALE_MOVE_SLOT_COUNT == PF_SIM_STALE_MOVE_QUEUE_CAPACITY,
+    "Imported Melee stale-move table must cover the runtime queue");
 
 const uint8_t *pf_m4_falcon_reference_source_sha256(void)
 {
@@ -62,6 +65,12 @@ const pf_m4_falcon_common_special_attributes *
 pf_m4_falcon_reference_common_special_attributes(void)
 {
     return &pf_m4_falcon_common_special_attribute_data;
+}
+
+const pf_m4_melee_stale_move_data *
+pf_m4_falcon_reference_stale_move_data(void)
+{
+    return &pf_m4_melee_stale_move_data_source;
 }
 
 const pf_m4_falcon_neutral_special_timing *

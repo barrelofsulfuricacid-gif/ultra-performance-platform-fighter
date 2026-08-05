@@ -62,6 +62,9 @@ uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state)
         case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
         case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
             return (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND;
+        case PF_M4_ACTION_FALCON_DIVE_CATCH:
+        case PF_M4_ACTION_FALCON_DIVE_THROW:
+            return (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH;
         case PF_M4_ACTION_FALCON_KICK_START_GROUND:
         case PF_M4_ACTION_FALCON_KICK_START_AIR:
         case PF_M4_ACTION_FALCON_KICK_LANDING:
@@ -2909,12 +2912,11 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
         const pf_m4_reference_throw *source =
             pf_m4_falcon_reference_throw(
                 PF_M4_FALCON_UP_SPECIAL_THROW);
-        pf_m4_melee_knockback_data hit;
-        pf_m4_melee_knockback_result result;
+        const pf_m4_falcon_up_special_timing *timing =
+            pf_m4_falcon_reference_up_special_timing();
         uint32_t damage_q16;
-        uint32_t resulting_damage_q16;
 
-        if (source == NULL ||
+        if (source == NULL || timing == NULL ||
             scratch->action_ticks[holder_index] != UINT16_C(0))
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
@@ -2925,29 +2927,13 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
             holder_index,
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH,
             (uint32_t)source->damage * UINT32_C(65536));
-        resulting_damage_q16 = pf_m4_saturating_damage(
-            scratch->damage_q16[target_index],
-            damage_q16);
-        /* CaptureCaptain resolves 361 to the source 44-degree grounded
-         * Sakurai angle and 45 degrees for an already-airborne victim. */
-        hit.angle_degrees =
-            scratch->grounded[target_index] != UINT8_C(0)
-                ? UINT16_C(44)
-                : UINT16_C(45);
-        hit.growth = source->growth;
-        hit.weight_set = source->weight_set;
-        hit.base = source->base;
-        hit.enabled = UINT8_C(1);
-        (void)memset(hit.reserved, 0, sizeof(hit.reserved));
-        result = pf_m4_melee_knockback(
-            &hit,
-            content->fighter.knockback_weight,
-            damage_q16,
-            resulting_damage_q16);
         pf_m4_clear_grab_links(scratch, holder_index, target_index);
         scratch->grounded[target_index] = UINT8_C(0);
         scratch->support[target_index] =
             (uint8_t)PF_M4_SURFACE_NONE;
+        /* CaptureCaptain computes the victim's damage-state duration from the
+         * imported throw, then deliberately clears applied launch velocity in
+         * ftCo_800DE7C0. Ordinary air gravity starts on the release sample. */
         if (pf_m4_apply_hit_reaction(
                 content,
                 world,
@@ -2955,17 +2941,25 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
                 (uint8_t)holder_index,
                 target_index,
                 damage_q16,
-                -(int32_t)scratch->facing[holder_index] *
-                    result.velocity_x_q16,
-                -result.velocity_y_q16,
+                INT32_C(0),
+                INT32_C(0),
                 UINT16_C(0),
-                result.hitstun_ticks,
+                timing->victim_release_hitstun_ticks,
                 1,
                 PF_SIM_EVENT_THROW,
                 (uint16_t)PF_M4_ACTION_FALCON_DIVE_THROW) != PF_STATUS_OK)
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
+        /* Combat resolves after this tick's movement phase. Seed both the
+         * visible and zero-hitlag-resume channels with the source's first
+         * gravity step so the next movement tick continues the same sequence
+         * without introducing launch knockback. */
+        scratch->velocity_x_q16[target_index] = INT32_C(0);
+        scratch->velocity_y_q16[target_index] =
+            content->fighter.gravity_q16;
+        scratch->pending_velocity_y_q16[target_index] =
+            content->fighter.gravity_q16;
     }
     return PF_STATUS_OK;
 }

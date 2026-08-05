@@ -3462,3 +3462,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Fresh Windows MSVC and WSL Linux rebuilds each pass 22/22 tests. The pinned
   Emscripten 6.0.3 build, headless Chrome browser verifier, and native/Wasm
   240-tick replay byte-identity check also pass after the wall correction.
+
+## 2026-08-05 complete Falcon data use and aerial Falcon Dive qualification
+
+- The complete Falcon import remains the sole move-data authority: 50 stable
+  schema slots, all 48 DAT-present subactions, all 97 common-attribute words,
+  the complete 35-field special block, root tracks, command/effect timelines,
+  and full-frame hit/hurt geometry. The importer now also decodes
+  `PlCo.dat`'s `Fighter_804D6548` table directly. Default content therefore
+  uses Melee's exact newest-to-oldest stale reductions of
+  9/8/7/6/5/4/3/2/1 percent instead of the former authored approximations.
+- The pinned aerial Falcon Dive capture SHA-256 is
+  `59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f`.
+  Its memory probe records internal victim damage, applied/latched knockback,
+  throw weight and magnitude, and the live damage-state timer. Catch deals 5%,
+  the shared move identity is then stale for the 12% throw, and the exact first
+  stale slot produces 15.92% total internal damage.
+- Decomp plus executable state show `CaptureCaptain` computes the damage-state
+  duration and then clears launch velocity in `ftCo_800DE7C0`. Production now
+  reproduces the zero-launch path, immediate ordinary gravity, and 26 visible
+  post-transition reaction frames. The shared movement path also now resolves
+  zero-hitlag reactions instead of silently losing their pending state, and a
+  captured fighter updates correctly while airborne through the same bounded
+  `GRABBED` path used on the ground.
+- `tools/verify_m4_falcon_dive.sh` reruns both captures at will. It passes all
+  116 grounded and 92 aerial holder frames, plus 42 aerial victim frames that
+  strictly compare capture/reaction action, grounded state, internal damage,
+  hitstun, and both velocity axes. The legitimate native jump fixture reaches
+  its floor for the last three victim samples while the isolated executable
+  capture is held at y=500; those samples are not used to hide any move-state
+  difference, and the imported 26-frame boundary remains asserted directly.
+- Two fresh importer runs are byte-identical. The generated include SHA-256 is
+  `88d5cc628b8f01b553b4941b0f0234a4536c715e132f09f4ca4499ada8eaa7d3`;
+  the complete-source digest is
+  `15f6e6133100c652a4b9db6369a5fdffcee39b086182b38549ec21324f6d2778`.
+  Native Windows MSVC and WSL Linux each pass all 22 configured tests. Pinned
+  Emscripten rebuild, headless Chrome smoke, browser-adapter verification, and
+  native/Wasm replay byte identity also pass. M4 remains unfinished: Falcon
+  Dive miss/edge behavior, remaining Raptor Boost routes, and broader common-
+  state fidelity gaps remain active executable-oracle work.

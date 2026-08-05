@@ -37,6 +37,7 @@ SOURCE_COMMON_DAT_SHA256 = (
 
 COMMON_ATTRIBUTE_COUNT = 97
 SPECIAL_ATTRIBUTE_SIZE = 0x8C
+STALE_MOVE_SLOT_COUNT = 9
 
 # ftCaptain_DatAttrs at doldecomp/melee revision 9509dc0. Keep the raw words
 # as the source of truth; the typed Q16 view below exists only so the runtime
@@ -163,6 +164,14 @@ MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
 SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE = -10.707747459411621
 SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE = 2.545643227005005
 
+# CaptureCaptain enters damage with zero applied launch velocity, but the common
+# damage state is initialized with 27 ticks and consumes one on the transition
+# frame. This visible 26-tick release interval was read from fighter+0x2340 in
+# the pinned NTSC 1.02 Dolphin capture (SHA-256
+# 59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f)
+# and follows ftCo_800DE2A8 -> ftCo_800DE7C0 -> ftCo_Damage in the decomp.
+SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS = 26
+
 # Falcon's Falling ECB bottom is animation-derived, not the authored gameplay
 # body's half-height. Captured directly at fighter+0x794 from the same NTSC
 # 1.02 process (ECB capture SHA-256
@@ -253,8 +262,8 @@ def source_attributes(source_dat: bytes) -> tuple[list[int], dict[str, int]]:
     return common_bits, special
 
 
-def source_common_special_attributes(common_dat: bytes) -> dict[str, int]:
-    """Decode the common-data fields used by SpecialS input selection."""
+def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
+    """Decode the common-data fields used by Falcon's runtime simulation."""
 
     if len(common_dat) < 0x20:
         raise ValueError("truncated PlCo.dat header")
@@ -275,9 +284,13 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, int]:
     data = common_dat[0x20 : 0x20 + data_size]
     if root_offset + 4 > len(data):
         raise ValueError("ftLoadCommonData root is out of bounds")
-    common_offset = struct.unpack_from(">I", data, root_offset)[0]
+    common_offsets = struct.unpack_from(">23I", data, root_offset)
+    common_offset = common_offsets[0]
     if common_offset + 0x25C > len(data):
         raise ValueError("ftCommonData is out of bounds")
+    stale_move_offset = common_offsets[3]
+    if stale_move_offset + STALE_MOVE_SLOT_COUNT * 4 > len(data):
+        raise ValueError("stale-move reduction table is out of bounds")
     return {
         "fast_ground_friction_multiplier_q16": q16(
             struct.unpack_from(">f", data, common_offset + 0x6C)[0]
@@ -295,6 +308,10 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, int]:
         "air_drift_dead_zone_q16": q16(
             struct.unpack_from(">f", data, common_offset + 0x258)[0]
         ),
+        "stale_move_slot_reduction_q16": [
+            q16(struct.unpack_from(">f", data, stale_move_offset + index * 4)[0])
+            for index in range(STALE_MOVE_SLOT_COUNT)
+        ],
     }
 
 
@@ -583,6 +600,9 @@ def generate(
         + json.dumps(
             {
                 "common_special": common_special_attributes,
+                "falcon_dive_victim_release_hitstun_ticks": (
+                    SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS
+                ),
                 "fighter_special": special_attributes,
                 "falcon_dive_grounded_throw_reposition_melee": {
                     "x": SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE,
@@ -797,9 +817,24 @@ def generate(
     lines.extend(
         f"    .{name} = INT32_C({value}),"
         for name, value in common_special_attributes.items()
+        if name != "stale_move_slot_reduction_q16"
     )
     lines.extend(
         (
+            "};",
+            "",
+            "static const pf_m4_melee_stale_move_data",
+            "pf_m4_melee_stale_move_data_source = {",
+            "    .slot_reduction_q16 = {",
+            "        "
+            + ", ".join(
+                f"UINT16_C({value})"
+                for value in common_special_attributes[
+                    "stale_move_slot_reduction_q16"
+                ]
+            )
+            + ",",
+            "    },",
             "};",
             "",
             "static const pf_m4_falcon_special_attributes",
@@ -849,6 +884,9 @@ def generate(
             f"UINT16_C({specialhi_ground_control_begin}),",
             "    .throw_gravity_begin_frame = "
             f"UINT16_C({specialhi_throw_gravity_begin}),",
+            "    .victim_release_hitstun_ticks = "
+            f"UINT16_C({SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS}),",
+            "    .reserved = UINT16_C(0),",
             "    .grounded_throw_reposition_x_q16 = "
             "INT32_C("
             f"{round(SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE * MELEE_X_TO_SIM_Q16)}"
