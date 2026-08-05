@@ -178,6 +178,24 @@ SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS = 26
 # 4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb).
 FALLING_ECB_BOTTOM_Y_MELEE = 7.932853698730469
 
+# FallSpecial is a distinct common animation from Falling. These eight live
+# ECB-bottom samples are the complete pre-landing route observed in the pinned
+# up-ground-miss capture (SHA-256
+# 97672ddf0e5013beaad8ff4c31f54c6bae93551ca3a38755cc3d185bcd5b83c4),
+# independently confirmed by the aerial-miss capture (SHA-256
+# 9ecf456e6377f5b7d371ccb84c9f5bd7b3a1045724a7c223acb6cb9d4681fd21).
+# Reusing Falling's bottom here moves Falcon Dive's landing by multiple frames.
+FALL_SPECIAL_ECB_BOTTOM_Y_MELEE = (
+    2.3061580657958984,
+    2.11196231842041,
+    2.46517276763916,
+    2.718437671661377,
+    2.784078598022461,
+    2.7656466960906982,
+    2.499094247817993,
+    2.2265543937683105,
+)
+
 # SpecialLw frame 39 -> SpecialLwEnd frame 1 retains exactly 80% of the
 # animation-driven ground velocity. This is observed in the pinned vanilla
 # NTSC 1.02 down-ground capture (SHA-256
@@ -611,6 +629,9 @@ def generate(
                 "falcon_falling_collision_pose_melee": {
                     "bottom_y_from_origin": FALLING_ECB_BOTTOM_Y_MELEE,
                 },
+                "falcon_fall_special_collision_pose_melee": {
+                    "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
+                },
                 "falcon_kick_ground_end_entry_velocity_scale": (
                     FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE
                 ),
@@ -927,6 +948,14 @@ def generate(
             "    .falling_bottom_y_from_origin_q16 = INT32_C("
             f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
+            "    .fall_special_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in FALL_SPECIAL_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
             "};",
             "",
             "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",

@@ -58,6 +58,7 @@ int main(int argc, char **argv)
     int raptor_boost_ground_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
     int falcon_dive_air_catch_mode = 0;
+    int falcon_dive_air_miss_mode = 0;
     int falcon_kick_ground_hit_mode = 0;
     int falcon_kick_ground_wall_mode = 0;
     int falcon_kick_ground_edge_mode = 0;
@@ -98,6 +99,11 @@ int main(int argc, char **argv)
         falcon_dive_air_catch_mode = 1;
     }
     else if (
+        argc == 2 && strcmp(argv[1], "--falcon-dive-air-miss") == 0)
+    {
+        falcon_dive_air_miss_mode = 1;
+    }
+    else if (
         argc == 2 && strcmp(argv[1], "--falcon-kick-ground") == 0)
     {
         /* The ground oracle uses the runner's ordinary wide-floor setup. */
@@ -135,6 +141,7 @@ int main(int argc, char **argv)
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
             "--falcon-dive-air-catch|"
+            "--falcon-dive-air-miss|"
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
@@ -198,7 +205,8 @@ int main(int argc, char **argv)
         content.stage.spawn_spacing_q16 =
             (int32_t)((INT64_C(144) * PF_Q16_ONE) / INT64_C(23));
     }
-    else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0)
+    else if (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
+             falcon_dive_air_miss_mode != 0)
     {
         content.stage.spawn_spacing_q16 = INT32_C(10) * PF_Q16_ONE;
         content.stage.blast_bottom_q16 =
@@ -304,7 +312,8 @@ int main(int argc, char **argv)
     config.arena_half_width_q16 = INT32_C(256) * PF_Q16_ONE;
     config.arena_ceiling_q16 =
         (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
-         falcon_dive_air_catch_mode != 0
+         falcon_dive_air_catch_mode != 0 ||
+         falcon_dive_air_miss_mode != 0
              ? INT32_C(4096)
              : INT32_C(256)) *
         PF_Q16_ONE;
@@ -458,6 +467,52 @@ int main(int argc, char **argv)
             (void)fprintf(
                 stderr,
                 "m4-movement-trace=fail operation=air-land-pre-roll\n");
+            return 1;
+        }
+    }
+    else if (falcon_dive_air_miss_mode != 0)
+    {
+        uint32_t pre_roll_tick;
+
+        /* Replay the capture's ordinary full jump, three ascent samples,
+         * one double-jump press, and three neutral samples before up-B. */
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(11);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            if (pre_roll_tick < UINT32_C(5) ||
+                pre_roll_tick == UINT32_C(7))
+            {
+                inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+            }
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("falcon-dive-air-miss-pre-roll-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status(
+                    "falcon-dive-air-miss-pre-roll-inspect",
+                    status);
+            }
+        }
+        if (inspection.players[0].grounded != UINT8_C(0))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=falcon-dive-air-miss-pre-roll\n");
             return 1;
         }
     }

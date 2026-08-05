@@ -100,12 +100,12 @@ ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
 ratios. The importer also decodes `ftLoadCommonData` pointer 3, the exact
 `Fighter_804D6548` stale-move table, as 9/8/7/6/5/4/3/2/1 percent and routes
 that generated nine-slot view into default content. The raw attributes, typed
-views, special block, action table, collision pose, Falcon Dive victim reaction
+views, special block, action table, collision poses, Falcon Dive victim reaction
 boundary, and source hashes form complete-source SHA-256
-`15f6e6133100c652a4b9db6369a5fdffcee39b086182b38549ec21324f6d2778`.
+`6614ac4e4a9956327abeca886ece87e04ac598224c154efeb9981908005021f3`.
 Fresh regeneration from the five pinned inputs byte-matches the checked-in
 include at SHA-256
-`88d5cc628b8f01b553b4941b0f0234a4536c715e132f09f4ca4499ada8eaa7d3`.
+`d4e3e787b515fb04f05f205133aca2f33ff12308d72763d2c3249132d0c20402`.
 The production ground/aerial Falcon Punch, Raptor Boost, Falcon Dive, and all
 seven Falcon Kick states consume this imported data directly. The project's
 original directional-special fixtures are not evidence for those source
@@ -301,6 +301,21 @@ slot multiplier. `CaptureCaptain` computes the reaction duration but
 frames. `tools/verify_m4_falcon_dive.sh` checks all 92 holder frames plus 42
 victim capture/reaction frames at will. The later one-percent change in the
 y=500 capture is off-screen magnifier damage and is excluded from move damage.
+
+Two pinned miss captures close the ground and aerial `FallSpecial` paths. The
+195-row grounded capture has SHA-256
+`97672ddf0e5013beaad8ff4c31f54c6bae93551ca3a38755cc3d185bcd5b83c4`;
+the 206-row aerial capture has SHA-256
+`9ecf456e6377f5b7d371ccb84c9f5bd7b3a1045724a7c223acb6cb9d4681fd21`.
+Both memory-probe the live ECB and expose `FallSpecial`'s complete repeating
+bottom sequence as 2.306158066, 2.111962318, 2.465172768, 2.718437672,
+2.784078598, 2.765646696, 2.499094248, and 2.226554394 Melee units above the
+fighter origin. The generated eight-entry Q16.16 array is consumed directly
+by floor collision. The grounded transition also proves that
+`LandingFallSpecial` retains the incoming -2.426290512 vertical velocity on
+its first displayed row and clears it on the next row. The at-will verifier
+strictly compares 103 grounded-miss and 165 aerial-miss frames in addition to
+the catch routes.
 
 ## Coordinate conversion
 

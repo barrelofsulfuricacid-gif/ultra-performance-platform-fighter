@@ -3485,19 +3485,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   zero-hitlag reactions instead of silently losing their pending state, and a
   captured fighter updates correctly while airborne through the same bounded
   `GRABBED` path used on the ground.
-- `tools/verify_m4_falcon_dive.sh` reruns both captures at will. It passes all
-  116 grounded and 92 aerial holder frames, plus 42 aerial victim frames that
+- `tools/verify_m4_falcon_dive.sh` reruns all four catch/miss captures at will.
+  It passes 116 grounded-catch, 92 aerial-catch, 103 grounded-miss, and 165
+  aerial-miss frames, plus 42 aerial victim frames that
   strictly compare capture/reaction action, grounded state, internal damage,
   hitstun, and both velocity axes. The legitimate native jump fixture reaches
   its floor for the last three victim samples while the isolated executable
   capture is held at y=500; those samples are not used to hide any move-state
   difference, and the imported 26-frame boundary remains asserted directly.
+- The miss captures prove that `FallSpecial` has its own repeating eight-frame
+  ECB-bottom cycle. Production consumes that imported array instead of the
+  ordinary `Falling` pose, and preserves the ground route's transition-row
+  vertical velocity. Ground and aerial capture SHA-256 values are respectively
+  `97672ddf0e5013beaad8ff4c31f54c6bae93551ca3a38755cc3d185bcd5b83c4`
+  and `9ecf456e6377f5b7d371ccb84c9f5bd7b3a1045724a7c223acb6cb9d4681fd21`.
 - Two fresh importer runs are byte-identical. The generated include SHA-256 is
-  `88d5cc628b8f01b553b4941b0f0234a4536c715e132f09f4ca4499ada8eaa7d3`;
+  `d4e3e787b515fb04f05f205133aca2f33ff12308d72763d2c3249132d0c20402`;
   the complete-source digest is
-  `15f6e6133100c652a4b9db6369a5fdffcee39b086182b38549ec21324f6d2778`.
+  `6614ac4e4a9956327abeca886ece87e04ac598224c154efeb9981908005021f3`.
   Native Windows MSVC and WSL Linux each pass all 22 configured tests. Pinned
   Emscripten rebuild, headless Chrome smoke, browser-adapter verification, and
   native/Wasm replay byte identity also pass. M4 remains unfinished: Falcon
-  Dive miss/edge behavior, remaining Raptor Boost routes, and broader common-
+  Dive edge behavior, remaining Raptor Boost routes, and broader common-
   state fidelity gaps remain active executable-oracle work.
