@@ -941,15 +941,15 @@ int main(void)
                 0,
                 0,
                 0) ||
-            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 77 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 118 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION_TICKS] != 1 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VX] <= 0 ||
-            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VY] >= 0 ||
-            test_view[TEST_RECOVERY_BASE] != 0 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_VY] != 0 ||
+            test_view[TEST_RECOVERY_BASE] != 1 ||
             !pf_web_m4_playtest_reset() ||
             test_view[TEST_RECOVERY_BASE] != 1)
         {
-            return fail("live-vector-ascent-route");
+            return fail("live-falcon-dive-route");
         }
     }
 

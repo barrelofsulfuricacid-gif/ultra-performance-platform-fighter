@@ -76,6 +76,18 @@ pf_m4_falcon_reference_side_special_timing(void)
     return &pf_m4_falcon_side_special_timing_data;
 }
 
+const pf_m4_falcon_up_special_timing *
+pf_m4_falcon_reference_up_special_timing(void)
+{
+    return &pf_m4_falcon_up_special_timing_data;
+}
+
+const pf_m4_falcon_collision_pose *
+pf_m4_falcon_reference_collision_pose(void)
+{
+    return &pf_m4_falcon_collision_pose_data;
+}
+
 const pf_m4_reference_search_sphere *
 pf_m4_falcon_reference_side_special_search_spheres(
     int airborne,
@@ -391,6 +403,18 @@ int pf_m4_falcon_reference_move_for_action(
         case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
             move_index = PF_M4_FALCON_SIDE_SPECIAL_HIT_AIR;
             break;
+        case PF_M4_ACTION_FALCON_DIVE_START_GROUND:
+            move_index = PF_M4_FALCON_UP_SPECIAL_GROUND;
+            break;
+        case PF_M4_ACTION_FALCON_DIVE_START_AIR:
+            move_index = PF_M4_FALCON_UP_SPECIAL_AIR;
+            break;
+        case PF_M4_ACTION_FALCON_DIVE_CATCH:
+            move_index = PF_M4_FALCON_UP_SPECIAL_CATCH;
+            break;
+        case PF_M4_ACTION_FALCON_DIVE_THROW:
+            move_index = PF_M4_FALCON_UP_SPECIAL_THROW;
+            break;
         default:
             return 0;
     }
@@ -580,6 +604,35 @@ int pf_m4_falcon_reference_motion_x_q16(
     {
         *out_motion_x_q16 =
             pf_m4_falcon_motion_x_q16[
+                move->motion_offset + action_frame - UINT16_C(1)];
+    }
+    return 1;
+}
+
+int pf_m4_falcon_reference_motion_y_q16(
+    uint8_t action_state,
+    uint16_t action_frame,
+    int32_t *out_motion_y_q16)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+
+    if (action_frame == UINT16_C(0) ||
+        !pf_m4_falcon_reference_move_for_action(
+            action_state,
+            &move_index))
+    {
+        return 0;
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    if (move == NULL || action_frame > move->motion_count)
+    {
+        return 0;
+    }
+    if (out_motion_y_q16 != NULL)
+    {
+        *out_motion_y_q16 =
+            pf_m4_falcon_motion_y_q16[
                 move->motion_offset + action_frame - UINT16_C(1)];
     }
     return 1;

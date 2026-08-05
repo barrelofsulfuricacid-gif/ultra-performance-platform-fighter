@@ -615,6 +615,14 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+State schema 59/save format 55 extend the canonical action domain with the
+source-routed Falcon Dive ground/air start, catch, throw, fall, and landing
+states. The payload and 803-byte checkpoint size are unchanged, but old peers,
+replays, and saves fail closed because the serialized action byte now has new
+meanings. Content schema 69/fighter schema 62 remain current because the
+generated collision pose and up-special views are immutable internal source
+tables already folded into the canonical Falcon source identity.
+
 Content schema 69/fighter schema 62 folds the canonical Falcon geometry digest
 into content identity and routes complete-frame executable-captured pose and
 hit geometry for the 14 production normals/aerials, standing and dash grab,

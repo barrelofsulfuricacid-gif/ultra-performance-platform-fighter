@@ -1668,6 +1668,21 @@ def read_fighter_hurt_capsules(
 def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     """Read both Falcons' live attack and hurt-capsule geometry."""
 
+    def read_ecb(fighter_address: int) -> dict[str, list[float]]:
+        ecb = fighter_address + 0x794
+        return {
+            name: [
+                memory_engine.read_float(ecb + offset),
+                memory_engine.read_float(ecb + offset + 4),
+            ]
+            for name, offset in (
+                ("top", 0x00),
+                ("bottom", 0x08),
+                ("right", 0x10),
+                ("left", 0x18),
+            )
+        }
+
     fighter = read_fighter_address(memory_engine, 0)
     opponent = read_fighter_address(memory_engine, 1)
     hitboxes = []
@@ -1709,11 +1724,13 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         ],
         "hitboxes": hitboxes,
         "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
+        "fighter_ecb": read_ecb(fighter),
         "opponent_fighter_address": opponent,
         "opponent_fighter_position": [
             memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
         ],
         "opponent_hurtboxes": read_fighter_hurt_capsules(memory_engine, opponent),
+        "opponent_ecb": read_ecb(opponent),
     }
 
 
@@ -1907,7 +1924,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 memory_engine_module.hook()
             if not memory_engine_module.is_hooked():
                 raise RuntimeError(
-                    "dolphin-memory-engine could not hook the oracle process"
+                    "dolphin-memory-engine could not hook the oracle process: "
+                    f"{memory_engine_module.get_status()}"
                 )
             memory_engine = memory_engine_module
 
@@ -2318,6 +2336,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "hurtbox_stride": "0x4c",
                     "hurtbox_position_a": "hurtbox+0x28",
                     "hurtbox_position_b": "hurtbox+0x34",
+                    "fighter_ecb": "fighter+0x794",
+                    "ecb_layout": "top,bottom,right,left Vec2",
                     "decomp_revision": ("9509dc04406fb2028bfab01243841ba4787c0fb7"),
                 }
                 if args.memory_probe_hitbox

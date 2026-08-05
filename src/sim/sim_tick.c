@@ -157,7 +157,9 @@ static int32_t pf_m4_player_nudge_x_q16(
         world->support[player_index] ==
             (uint8_t)PF_M4_SURFACE_NONE ||
         world->support[player_index] ==
-            (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM)
+            (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM ||
+        world->grab_target_slot[player_index] != UINT8_C(0) ||
+        world->grab_owner_slot[player_index] != UINT8_C(0))
     {
         return INT32_C(0);
     }

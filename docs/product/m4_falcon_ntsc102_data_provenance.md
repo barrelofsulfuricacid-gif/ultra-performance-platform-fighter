@@ -97,13 +97,16 @@ view for every common field currently consumed by the simulation: walk,
 dash/run, traction, jump, double jump, gravity/fall/fast fall, air mobility,
 ledge/wall jump, shield-break launch, weight, jump startup, and landing lags.
 `pf_m4_default_content` consumes this typed view rather than repeating authored
-ratios. The raw attributes, typed view, special block, action table, and source
-hashes form complete-source SHA-256
-`616461670890a22878a37e891b848808f3633d1b9f236226f6dd35044f7a8946`.
-The production ground and aerial Falcon Punch states now consume this imported
-data directly. Raptor Boost, Falcon Dive, and Falcon Kick remain explicit M4
-runtime-routing gates; the project's original directional-special fixtures are
-not evidence for those source moves.
+ratios. The raw attributes, typed view, special block, action table, collision
+pose, and source hashes form complete-source SHA-256
+`676813b2a18210c445771011668856b9b91fd5a3b2da8728236ee2899ef2ab64`.
+Fresh regeneration from the five pinned inputs byte-matches the checked-in
+include at SHA-256
+`ba0b94cff4ad16d6ca606a926d6df87c311b6ff24a4247b56a9562d1d804a046`.
+The production ground/aerial Falcon Punch, ground/aerial Raptor Boost, and
+ground/aerial Falcon Dive states consume this imported data directly. Falcon
+Kick remains an explicit M4 runtime-routing gate; the project's original
+directional-special fixtures are not evidence for that source move.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
@@ -244,6 +247,22 @@ single-precision memory samples vary below the retained fixed-point precision.
 After conversion, every numeric table row was byte-identical to the pinned
 capture (apart from the provenance hash comment), bounding that recapture
 difference to discarded/Q16.16-level data rather than gameplay geometry.
+
+Falcon Dive uses the imported ground/air start, catch, and throw subactions,
+command timelines, special attributes, root translation, grab spheres, hurt
+poses, and throw effect. A fresh 146-row memory-probed grounded capture has
+SHA-256
+`4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb`.
+The probe reads the live fighter and opponent ECB top, bottom, right, and left
+points from `fighter+0x794`; the source Falling bottom is
+`7.932853698730469` Melee units above the fighter origin. Grounded catch-to-
+throw relocation is the capture-observed `(-10.7077474594, +2.545643227)`
+Melee-unit offset and is applied only on the source grounded transition.
+The 116 comparable frames pass strict action, facing, grounded, capture-link,
+hitlag, and velocity checks plus the established 640-Q16 position envelope.
+The route covers catch, holder/victim attachment, throw release and damage,
+source root motion, falling, and floor landing; it does not claim unprobed ECB
+evolution for every common state or arbitrary stage solid.
 
 ## Coordinate conversion
 

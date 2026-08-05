@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     int shield_hit_mode = 0;
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
+    int falcon_dive_ground_catch_mode = 0;
 
     if (argc == 2 && strcmp(argv[1], "--platform") == 0)
     {
@@ -79,13 +80,19 @@ int main(int argc, char **argv)
     {
         raptor_boost_ground_hit_mode = 1;
     }
+    else if (
+        argc == 2 &&
+        strcmp(argv[1], "--falcon-dive-ground-catch") == 0)
+    {
+        falcon_dive_ground_catch_mode = 1;
+    }
     else if (argc != 1)
     {
         (void)fprintf(
             stderr,
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
-            "--raptor-boost-ground-hit]\n");
+            "--raptor-boost-ground-hit|--falcon-dive-ground-catch]\n");
         return 1;
     }
 
@@ -160,6 +167,15 @@ int main(int argc, char **argv)
             (int32_t)(
                 (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
                 INT64_C(115));
+    }
+    else if (falcon_dive_ground_catch_mode != 0)
+    {
+        /* The pinned catch trace starts Falcon and the victim 6.2 Melee
+         * units apart. Spawn spacing is the symmetric half-separation. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)(
+                (INT64_C(31) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(10) * INT64_C(115)));
     }
     if (shield_hit_mode != 0)
     {

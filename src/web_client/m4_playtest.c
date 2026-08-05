@@ -3018,6 +3018,8 @@ static int pf_web_m4_initialize_ladder_fixture(void)
     pf_web_m4_content.fighter.strong_hitbox_half_width_q16 = PF_Q16_ONE;
     pf_web_m4_content.fighter.strong_hitbox_half_height_q16 =
         INT32_C(2) * PF_Q16_ONE;
+    /* This synthetic combat probe authors one-frame aerial data on purpose. */
+    pf_web_m4_content.fighter.reference_frame_data_enabled = UINT8_C(0);
     pf_web_m4_content.fighter.strong_base_knockback_x_q16 = INT32_C(1);
     pf_web_m4_content.fighter.strong_base_knockback_y_q16 =
         (INT32_C(15) * PF_Q16_ONE) / INT32_C(16);
@@ -5304,7 +5306,7 @@ static int pf_web_m4_run_double_jump_cancel_counter_route(void)
         return 0;
     }
 
-    for (tick = UINT32_C(0);
+    for (tick = UINT32_C(1);
          tick < (uint32_t)fighter->aerial_hitlag_ticks;
          ++tick)
     {
@@ -5328,11 +5330,20 @@ static int pf_web_m4_run_double_jump_cancel_counter_route(void)
             return 0;
         }
     }
-    if (inspection.players[1].action_state !=
+    if (!pf_web_m4_tick(
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
-        inspection.players[1].action_ticks != UINT16_C(0) ||
+        inspection.players[1].action_ticks != UINT16_C(1) ||
         inspection.players[1].hitstun_ticks != UINT16_C(0) ||
-        inspection.players[1].velocity_y_q16 != frozen_velocity_y ||
+        inspection.players[1].velocity_y_q16 !=
+            frozen_velocity_y + fighter->gravity_q16 ||
         !pf_web_m4_tick(
             INT16_C(0),
             INT16_C(0),
@@ -11926,14 +11937,14 @@ static int pf_web_m4_run_vector_ascent_probe(void)
                 INT16_C(0),
                 UINT64_C(0),
                 &inspection) &&
-            inspection.players[0].grounded == UINT8_C(0) &&
+            inspection.players[0].grounded != UINT8_C(0) &&
             inspection.players[0].action_state ==
-                (uint8_t)PF_M4_ACTION_VECTOR_ASCENT &&
-            inspection.players[0].recovery_available == UINT8_C(0))
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
+            inspection.players[0].recovery_available == UINT8_C(1))
         {
             for (guard = UINT32_C(0);
-                 guard < UINT32_C(240) &&
-                 inspection.players[0].grounded == UINT8_C(0);
+                 guard < UINT32_C(16) &&
+                 inspection.players[0].grounded != UINT8_C(0);
                  ++guard)
             {
                 if (!pf_web_m4_tick(
@@ -11948,14 +11959,15 @@ static int pf_web_m4_run_vector_ascent_probe(void)
                     break;
                 }
             }
-            if (guard < UINT32_C(240) &&
+            if (guard < UINT32_C(16) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
                 inspection.players[0].recovery_available == UINT8_C(1))
             {
                 for (guard = UINT32_C(0);
-                     guard < UINT32_C(32) &&
-                     inspection.players[0].action_state !=
-                         (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-                     ++guard)
+                 guard < UINT32_C(240) &&
+                  inspection.players[0].grounded == UINT8_C(0);
+                  ++guard)
                 {
                     if (!pf_web_m4_tick(
                             INT16_C(0),
@@ -11969,21 +11981,43 @@ static int pf_web_m4_run_vector_ascent_probe(void)
                         break;
                     }
                 }
-                landed_x = inspection.players[0].position_x_q16;
-                if (guard < UINT32_C(32) &&
-                    pf_web_m4_tick(
-                        INT16_MAX,
-                        INT16_C(0),
-                        UINT64_C(0),
-                        INT16_C(0),
-                        INT16_C(0),
-                        UINT64_C(0),
-                        &inspection) &&
-                    inspection.players[0].action_state ==
-                        (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-                    inspection.players[0].position_x_q16 == landed_x)
+                if (guard < UINT32_C(240) &&
+                    inspection.players[0].recovery_available == UINT8_C(1))
                 {
-                    grounded_passed = 1;
+                    for (guard = UINT32_C(0);
+                         guard < UINT32_C(32) &&
+                         inspection.players[0].action_state !=
+                             (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+                         ++guard)
+                    {
+                        if (!pf_web_m4_tick(
+                                INT16_C(0),
+                                INT16_C(0),
+                                UINT64_C(0),
+                                INT16_C(0),
+                                INT16_C(0),
+                                UINT64_C(0),
+                                &inspection))
+                        {
+                            break;
+                        }
+                    }
+                    landed_x = inspection.players[0].position_x_q16;
+                    if (guard < UINT32_C(32) &&
+                        pf_web_m4_tick(
+                            INT16_MAX,
+                            INT16_C(0),
+                            UINT64_C(0),
+                            INT16_C(0),
+                            INT16_C(0),
+                            UINT64_C(0),
+                            &inspection) &&
+                        inspection.players[0].action_state ==
+                            (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
+                        inspection.players[0].position_x_q16 == landed_x)
+                    {
+                        grounded_passed = 1;
+                    }
                 }
             }
         }
@@ -12026,11 +12060,11 @@ static int pf_web_m4_run_vector_ascent_probe(void)
                     UINT64_C(0),
                     &inspection) &&
                 inspection.players[0].action_state ==
-                    (uint8_t)PF_M4_ACTION_VECTOR_ASCENT &&
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR &&
                 inspection.players[0].action_ticks == UINT16_C(1) &&
-                inspection.players[0].recovery_available == UINT8_C(0) &&
+                inspection.players[0].recovery_available == UINT8_C(1) &&
                 inspection.players[0].velocity_x_q16 > INT32_C(0) &&
-                inspection.players[0].velocity_y_q16 < INT32_C(0))
+                inspection.players[0].velocity_y_q16 == INT32_C(0))
             {
                 aerial_passed = 1;
             }

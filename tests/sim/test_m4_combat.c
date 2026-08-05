@@ -21890,8 +21890,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x96) ||
-        complete_source_sha256[31] != UINT8_C(0x26) ||
+        complete_source_sha256[0] != UINT8_C(0x67) ||
+        complete_source_sha256[31] != UINT8_C(0x64) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -21927,10 +21927,15 @@ static int run_falcon_reference_table_test(void)
         special_attributes->speciallw_air_landing_traction_q16 !=
             INT32_C(196608) ||
         common_special_attributes == NULL ||
+        common_special_attributes
+                ->air_drift_over_maximum_deceleration_q16 !=
+            INT32_C(205) ||
         common_special_attributes->side_special_stick_threshold_q16 !=
             INT32_C(39322) ||
         common_special_attributes->side_special_turn_threshold_q16 !=
             INT32_C(13107) ||
+        common_special_attributes->air_drift_dead_zone_q16 !=
+            INT32_C(6554) ||
         side_special_timing == NULL ||
         side_special_timing->ground_search_begin_frame != UINT16_C(15) ||
         side_special_timing->ground_search_end_frame != UINT16_C(34) ||

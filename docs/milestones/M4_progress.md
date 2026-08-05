@@ -3302,3 +3302,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   routing and identical-input qualification. Raptor Boost air, miss/edge, and
   item-search routes also remain explicit executable-oracle work; no guessed
   timing or geometry is accepted in their place.
+
+## 2026-08-04 source-routed Falcon Dive and complete-source revalidation
+
+- Default reference up special now routes the imported ground/air Falcon Dive
+  start, catch, and throw states instead of Vector Ascent. Production consumes
+  the generated command timelines, special attributes, root translation,
+  grab spheres, complete-frame hurt poses, 5% catch effect, and 12% throw
+  effect; custom reference-data opt-outs retain the original fixture. The
+  source route is not gated by Vector Ascent's original once-per-airtime
+  resource: the pinned `ftCa_SpecialHi` entry has no such availability flag.
+- The capture probe now records both fighters' live ECB top, bottom, right, and
+  left points from `fighter+0x794`. The hash-pinned 146-row grounded route has
+  SHA-256
+  `4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb`
+  and supplies the source Falling bottom plus the grounded Catch-to-Throw
+  relocation. The source ECB is routed only through the floor-contact path it
+  describes; mixing it with the original rectangle's solid side/top extents
+  is forbidden until those complete collision poses are imported.
+- The identical-input comparator passes all 116 comparable frames with strict
+  action, facing, grounded, capture-link, hitlag, and velocity checks and the
+  existing 640-Q16 position envelope. This includes catch, holder/victim
+  attachment, throw release, damage, root motion, falling, and floor landing.
+- Fresh regeneration from all five pinned inputs reports exactly 50 schema
+  slots and 48 present subactions and byte-matches the checked-in include at
+  SHA-256
+  `ba0b94cff4ad16d6ca606a926d6df87c311b6ff24a4247b56a9562d1d804a046`.
+  The complete generated-source digest is
+  `676813b2a18210c445771011668856b9b91fd5a3b2da8728236ee2899ef2ab64`.
+  No frame count, effect, attribute, command boundary, or root-motion value is
+  guessed.
+- Windows and WSL Linux pass all 22 configured tests. The eight-match verifier
+  is stable across repeated runs at digest `0a0bff2cdff21b7c`. State schema 59/save
+  format 55 fail closed on the newly serialized Falcon Dive action meanings
+  without increasing the 803-byte checkpoint. Falcon Kick and the
+  uncaptured Falcon Dive/Raptor Boost routes remain explicit M4 work.
+- Native replay identity is refreshed at corpus/final/event SHA-256
+  `741b5f9451a3a81bf57a632c65e35a5ba35cbbd3fe45e331da4d196b6bfe3847`,
+  `f9fb60d1a468e9cd99d43bd412b408d0dfe8c1b414b8a1ef8dfe08f4dea27702`,
+  and `ddc1f793a4d9919988f4f44f6a78d7492a37b0f4721867f7f1f8ca5bb89ce2d7`.

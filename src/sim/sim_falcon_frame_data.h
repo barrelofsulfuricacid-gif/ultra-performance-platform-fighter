@@ -242,8 +242,10 @@ typedef struct pf_m4_falcon_special_attributes
 
 typedef struct pf_m4_falcon_common_special_attributes
 {
+    int32_t air_drift_over_maximum_deceleration_q16;
     int32_t side_special_stick_threshold_q16;
     int32_t side_special_turn_threshold_q16;
+    int32_t air_drift_dead_zone_q16;
 } pf_m4_falcon_common_special_attributes;
 
 typedef struct pf_m4_falcon_neutral_special_timing
@@ -262,6 +264,19 @@ typedef struct pf_m4_falcon_side_special_timing
     uint16_t air_search_end_frame;
     uint16_t air_gravity_begin_frame;
 } pf_m4_falcon_side_special_timing;
+
+typedef struct pf_m4_falcon_up_special_timing
+{
+    uint16_t air_control_begin_frame;
+    uint16_t throw_gravity_begin_frame;
+    int32_t grounded_throw_reposition_x_q16;
+    int32_t grounded_throw_reposition_y_q16;
+} pf_m4_falcon_up_special_timing;
+
+typedef struct pf_m4_falcon_collision_pose
+{
+    int32_t falling_bottom_y_from_origin_q16;
+} pf_m4_falcon_collision_pose;
 
 typedef struct pf_m4_reference_search_sphere
 {
@@ -349,6 +364,12 @@ pf_m4_falcon_reference_neutral_special_timing(void);
 const pf_m4_falcon_side_special_timing *
 pf_m4_falcon_reference_side_special_timing(void);
 
+const pf_m4_falcon_up_special_timing *
+pf_m4_falcon_reference_up_special_timing(void);
+
+const pf_m4_falcon_collision_pose *
+pf_m4_falcon_reference_collision_pose(void);
+
 const pf_m4_reference_search_sphere *
 pf_m4_falcon_reference_side_special_search_spheres(
     int airborne,
@@ -430,6 +451,11 @@ int pf_m4_falcon_reference_motion_x_q16(
     uint8_t action_state,
     uint16_t action_frame,
     int32_t *out_motion_x_q16);
+
+int pf_m4_falcon_reference_motion_y_q16(
+    uint8_t action_state,
+    uint16_t action_frame,
+    int32_t *out_motion_y_q16);
 
 /*
  * Returns one while an aerial's source-defined landing-lag flag is active,

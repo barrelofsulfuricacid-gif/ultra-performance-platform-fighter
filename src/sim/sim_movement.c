@@ -873,6 +873,218 @@ static int32_t pf_m4_apply_air_input(
     return (int32_t)next;
 }
 
+static int32_t pf_m4_falcon_dive_air_control(
+    const pf_m4_fighter_data *fighter,
+    const pf_m4_falcon_common_special_attributes *common,
+    const pf_m4_falcon_special_attributes *special,
+    int32_t axis_q16,
+    int32_t internal_x_q16,
+    int32_t maximum_q16)
+{
+    int32_t acceleration_q16 = INT32_C(0);
+    int32_t target_q16 = INT32_C(0);
+    int64_t candidate;
+
+    if (internal_x_q16 > maximum_q16 ||
+        internal_x_q16 < -maximum_q16)
+    {
+        return pf_m4_approach(
+            internal_x_q16,
+            INT32_C(0),
+            common->air_drift_over_maximum_deceleration_q16);
+    }
+    if (axis_q16 >= common->air_drift_dead_zone_q16 ||
+        axis_q16 <= -common->air_drift_dead_zone_q16)
+    {
+        acceleration_q16 = pf_m4_multiply_q16(
+            axis_q16,
+            pf_m4_multiply_q16(
+                fighter->air_acceleration_q16,
+                special->specialhi_air_friction_mul_q16));
+        target_q16 = pf_m4_multiply_q16(axis_q16, maximum_q16);
+    }
+    if (target_q16 == INT32_C(0))
+    {
+        return INT32_C(0);
+    }
+    candidate = (int64_t)internal_x_q16 + (int64_t)acceleration_q16;
+    if ((int64_t)internal_x_q16 * (int64_t)acceleration_q16 >=
+        INT64_C(0))
+    {
+        if ((acceleration_q16 > INT32_C(0) &&
+             candidate > (int64_t)target_q16) ||
+            (acceleration_q16 < INT32_C(0) &&
+             candidate < (int64_t)target_q16))
+        {
+            return target_q16;
+        }
+    }
+    return (int32_t)candidate;
+}
+
+static pf_status pf_m4_falcon_dive_start_velocity(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    int8_t *facing,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16)
+{
+    const pf_m4_falcon_common_special_attributes *common;
+    const pf_m4_falcon_special_attributes *special;
+    const pf_m4_falcon_up_special_timing *timing;
+    uint16_t displayed_frame;
+    int8_t previous_facing;
+    int32_t axis_q16;
+    int32_t maximum_q16;
+    int32_t previous_root_x_q16 = INT32_C(0);
+    int32_t root_x_q16;
+    int32_t root_y_q16;
+    int32_t internal_x_q16;
+
+    if (fighter == NULL || input == NULL || facing == NULL ||
+        velocity_x_q16 == NULL || velocity_y_q16 == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    common = pf_m4_falcon_reference_common_special_attributes();
+    special = pf_m4_falcon_reference_special_attributes();
+    timing = pf_m4_falcon_reference_up_special_timing();
+    displayed_frame = (uint16_t)(action_ticks + UINT16_C(1));
+    previous_facing = *facing;
+    axis_q16 = pf_m4_axis_q16(input->main_stick_x);
+    maximum_q16 =
+        special != NULL
+            ? pf_m4_multiply_q16(
+                  fighter->air_max_horizontal_speed_q16,
+                  special->specialhi_horz_vel_q16)
+            : INT32_C(0);
+    if (common == NULL || special == NULL || timing == NULL ||
+        maximum_q16 <= INT32_C(0) ||
+        !pf_m4_falcon_reference_motion_x_q16(
+            action_state,
+            displayed_frame,
+            &root_x_q16) ||
+        !pf_m4_falcon_reference_motion_y_q16(
+            action_state,
+            displayed_frame,
+            &root_y_q16) ||
+        (action_ticks != UINT16_C(0) &&
+         !pf_m4_falcon_reference_motion_x_q16(
+             action_state,
+             action_ticks,
+             &previous_root_x_q16)))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    internal_x_q16 =
+        action_ticks == UINT16_C(0)
+            ? INT32_C(0)
+            : *velocity_x_q16 -
+                  (int32_t)previous_facing * previous_root_x_q16;
+    if (displayed_frame >= timing->air_control_begin_frame &&
+        (axis_q16 > special->specialhi_input_var_q16 ||
+         axis_q16 < -special->specialhi_input_var_q16))
+    {
+        *facing = axis_q16 < INT32_C(0) ? INT8_C(-1) : INT8_C(1);
+    }
+    *velocity_x_q16 =
+        (int32_t)*facing * root_x_q16 +
+        pf_m4_falcon_dive_air_control(
+            fighter,
+            common,
+            special,
+            axis_q16,
+            internal_x_q16,
+            maximum_q16);
+    *velocity_y_q16 = root_y_q16;
+    return PF_STATUS_OK;
+}
+
+static pf_status pf_m4_falcon_dive_throw_velocity(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    uint16_t action_ticks,
+    int8_t facing,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16)
+{
+    const pf_m4_falcon_common_special_attributes *common =
+        pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_special_attributes *special =
+        pf_m4_falcon_reference_special_attributes();
+    const pf_m4_falcon_up_special_timing *timing =
+        pf_m4_falcon_reference_up_special_timing();
+    const uint16_t displayed_frame =
+        (uint16_t)(action_ticks + UINT16_C(1));
+    int32_t root_x_q16;
+    int32_t root_y_q16;
+    int32_t previous_root_x_q16 = INT32_C(0);
+    int32_t previous_root_y_q16 = INT32_C(0);
+    int32_t internal_x_q16 = INT32_C(0);
+    int32_t internal_y_q16 = INT32_C(0);
+    int32_t maximum_q16;
+
+    if (fighter == NULL || input == NULL || velocity_x_q16 == NULL ||
+        velocity_y_q16 == NULL || common == NULL || special == NULL ||
+        timing == NULL ||
+        !pf_m4_falcon_reference_motion_x_q16(
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
+            displayed_frame,
+            &root_x_q16) ||
+        !pf_m4_falcon_reference_motion_y_q16(
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
+            displayed_frame,
+            &root_y_q16) ||
+        (action_ticks != UINT16_C(0) &&
+         (!pf_m4_falcon_reference_motion_x_q16(
+              (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
+              action_ticks,
+              &previous_root_x_q16) ||
+          !pf_m4_falcon_reference_motion_y_q16(
+              (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW,
+              action_ticks,
+              &previous_root_y_q16))))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    maximum_q16 = pf_m4_multiply_q16(
+        fighter->air_max_horizontal_speed_q16,
+        special->specialhi_horz_vel_q16);
+    if (maximum_q16 <= INT32_C(0))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    if (displayed_frame >= timing->throw_gravity_begin_frame)
+    {
+        internal_x_q16 =
+            *velocity_x_q16 - (int32_t)facing * previous_root_x_q16;
+        internal_y_q16 = *velocity_y_q16 - previous_root_y_q16;
+        internal_x_q16 = pf_m4_falcon_dive_air_control(
+            fighter,
+            common,
+            special,
+            pf_m4_axis_q16(input->main_stick_x),
+            internal_x_q16,
+            maximum_q16);
+        internal_y_q16 = pf_m4_approach(
+            internal_y_q16,
+            fighter->fall_speed_q16,
+            pf_m4_falcon_source_velocity_to_sim_q16(
+                special->specialhi_catch_grav_q16,
+                INT32_C(11),
+                INT32_C(62)));
+    }
+    *velocity_x_q16 = (int32_t)facing * root_x_q16 + internal_x_q16;
+    *velocity_y_q16 = root_y_q16 + internal_y_q16;
+    if (*velocity_y_q16 > fighter->fall_speed_q16)
+    {
+        *velocity_y_q16 = fighter->fall_speed_q16;
+    }
+    return PF_STATUS_OK;
+}
+
 static int32_t pf_m4_moonwalk_sweep_velocity(
     const pf_m4_fighter_data *fighter,
     int32_t velocity_x,
@@ -1005,6 +1217,26 @@ static int32_t pf_m4_surface_y_q16(
         return content->stage.upper_platform_y_q16;
     }
     return content->stage.floor_y_q16;
+}
+
+static int32_t pf_m4_floor_contact_bottom_extent_q16(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state)
+{
+    const pf_m4_falcon_collision_pose *pose =
+        pf_m4_falcon_reference_collision_pose();
+
+    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+        pose != NULL &&
+        pose->falling_bottom_y_from_origin_q16 > INT32_C(0) &&
+        (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW))
+    {
+        return fighter->half_height_q16 -
+               pose->falling_bottom_y_from_origin_q16;
+    }
+    return fighter->half_height_q16;
 }
 
 static int pf_m4_surface_is_pass_through(uint8_t support)
@@ -1439,6 +1671,10 @@ static int pf_m4_action_locks_ground_control(uint8_t action_state)
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS ||
            action_state ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING ||
            action_state == (uint8_t)PF_M4_ACTION_TAUNT;
 }
 
@@ -1463,7 +1699,19 @@ static int pf_m4_action_is_reference_special_locked(uint8_t action_state)
            action_state ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS ||
            action_state ==
-               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT;
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING;
 }
 
 static int pf_m4_action_is_shield_break(uint8_t action_state)
@@ -1537,7 +1785,15 @@ static int pf_m4_action_allows_fresh_fast_fall(
         action_state !=
             (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR &&
         action_state !=
-            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR)
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR &&
+        action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
+        action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR &&
+        action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH &&
+        action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW)
     {
         return 1;
     }
@@ -2698,6 +2954,35 @@ static void pf_m4_land_from_air(
         return;
     }
 
+    if (*action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL ||
+        *action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW ||
+        ((*action_state ==
+              (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+          *action_state ==
+              (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR) &&
+         *action_ticks >=
+             pf_m4_falcon_reference_up_special_timing()
+                 ->air_control_begin_frame))
+    {
+        *position_y = surface_y_q16 - fighter->half_height_q16;
+        *velocity_y = INT32_C(0);
+        *action_ticks = UINT16_C(0);
+        *grounded = UINT8_C(1);
+        *action_state =
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING;
+        *support = surface;
+        *air_jumps_remaining = fighter->air_jump_count;
+        *short_hop_latched = UINT8_C(0);
+        *fast_fall = UINT8_C(0);
+        *dash_direction = INT8_C(0);
+        scratch->hitstun_ticks[player_index] = UINT16_C(0);
+        scratch->tumble[player_index] = UINT8_C(0);
+        scratch->tech_direction[player_index] = INT8_C(0);
+        return;
+    }
+
     if (*action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE ||
         *action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
         *action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT)
@@ -3058,7 +3343,9 @@ static void pf_m4_write_scratch(
     scratch->air_jumps_remaining[player_index] =
         air_jumps_remaining;
     scratch->recovery_available[player_index] =
-        grounded != UINT8_C(0)
+        grounded != UINT8_C(0) &&
+                action_state !=
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND
             ? UINT8_C(1)
             : recovery_available;
     scratch->short_hop_latched[player_index] = short_hop_latched;
@@ -4646,23 +4933,41 @@ pf_status pf_m4_step_player(
 
         if (vector_ascent_requested != 0)
         {
-            if (content->recovery.enabled != UINT8_C(0) &&
-                recovery_available != UINT8_C(0) &&
+            if ((fighter->reference_frame_data_enabled != UINT8_C(0) ||
+                 (content->recovery.enabled != UINT8_C(0) &&
+                  recovery_available != UINT8_C(0))) &&
                 pf_m4_action_can_start_vector_ascent(action_state))
             {
-                velocity_x = pf_m4_scale_axis_q16(
-                    input->main_stick_x,
-                    content->recovery.horizontal_speed_q16);
-                velocity_y = -content->recovery.vertical_speed_q16;
-                action_state =
-                    (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
+                if (fighter->reference_frame_data_enabled != UINT8_C(0))
+                {
+                    velocity_x = INT32_C(0);
+                    velocity_y = INT32_C(0);
+                    action_state =
+                        grounded != UINT8_C(0)
+                            ? (uint8_t)
+                                  PF_M4_ACTION_FALCON_DIVE_START_GROUND
+                            : (uint8_t)
+                                  PF_M4_ACTION_FALCON_DIVE_START_AIR;
+                }
+                else
+                {
+                    velocity_x = pf_m4_scale_axis_q16(
+                        input->main_stick_x,
+                        content->recovery.horizontal_speed_q16);
+                    velocity_y = -content->recovery.vertical_speed_q16;
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
+                    grounded = UINT8_C(0);
+                    support = (uint8_t)PF_M4_SURFACE_NONE;
+                    launched_this_tick = 1;
+                }
                 action_ticks = UINT16_C(0);
-                recovery_available = UINT8_C(0);
-                grounded = UINT8_C(0);
-                support = (uint8_t)PF_M4_SURFACE_NONE;
+                if (fighter->reference_frame_data_enabled == UINT8_C(0))
+                {
+                    recovery_available = UINT8_C(0);
+                }
                 fast_fall = UINT8_C(0);
                 scratch->tumble[player_index] = UINT8_C(0);
-                launched_this_tick = 1;
             }
         }
         else if (falcon_punch_blocked == 0)
@@ -4704,7 +5009,11 @@ pf_status pf_m4_step_player(
         }
         if (falcon_punch_blocked == 0 &&
             (vector_ascent_requested == 0 ||
-             action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT))
+             action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+             action_state ==
+                 (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+             action_state ==
+                 (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR))
         {
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             scratch->attack_stale_registered[player_index] =
@@ -4714,7 +5023,9 @@ pf_status pf_m4_step_player(
             if (action_state ==
                     (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
                 action_state ==
-                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR)
+                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
             {
                 fast_fall = UINT8_C(0);
             }
@@ -5336,6 +5647,48 @@ pf_status pf_m4_step_player(
         }
     }
     else if (!ledge_motion_handled &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH)
+    {
+        const pf_m4_reference_move *catch_move =
+            pf_m4_falcon_reference_move(
+                PF_M4_FALCON_UP_SPECIAL_CATCH);
+
+        velocity_x = INT32_C(0);
+        velocity_y = INT32_C(0);
+        if (catch_move == NULL ||
+            action_ticks > catch_move->total_frames)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        ++action_ticks;
+        if (action_ticks > catch_move->total_frames)
+        {
+            const pf_m4_falcon_up_special_timing *timing =
+                pf_m4_falcon_reference_up_special_timing();
+
+            if (timing == NULL)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            if (grounded != UINT8_C(0))
+            {
+                position_x +=
+                    (int32_t)facing *
+                    timing->grounded_throw_reposition_x_q16;
+                position_y +=
+                    timing->grounded_throw_reposition_y_q16;
+            }
+            action_state =
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
+            action_ticks = UINT16_C(0);
+            grounded = UINT8_C(0);
+            support = (uint8_t)PF_M4_SURFACE_NONE;
+            launched_this_tick = 1;
+            fast_fall = UINT8_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
         (action_state == (uint8_t)PF_M4_ACTION_GRAB ||
          action_state == (uint8_t)PF_M4_ACTION_DASH_GRAB ||
@@ -5614,6 +5967,40 @@ pf_status pf_m4_step_player(
     }
     else if (!ledge_motion_handled &&
         grounded != UINT8_C(0) &&
+        action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND)
+    {
+        const pf_m4_reference_move *move =
+            pf_m4_falcon_reference_move(
+                PF_M4_FALCON_UP_SPECIAL_GROUND);
+        const pf_m4_falcon_up_special_timing *timing =
+            pf_m4_falcon_reference_up_special_timing();
+        const uint16_t displayed_frame =
+            (uint16_t)(action_ticks + UINT16_C(1));
+
+        if (move == NULL || timing == NULL ||
+            action_ticks >= move->total_frames ||
+            pf_m4_falcon_dive_start_velocity(
+                fighter,
+                input,
+                action_state,
+                action_ticks,
+                &facing,
+                &velocity_x,
+                &velocity_y) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        ++action_ticks;
+        if (displayed_frame > timing->air_control_begin_frame)
+        {
+            grounded = UINT8_C(0);
+            support = (uint8_t)PF_M4_SURFACE_NONE;
+            launched_this_tick = 1;
+        }
+    }
+    else if (!ledge_motion_handled &&
+        grounded != UINT8_C(0) &&
         (action_state ==
              (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND ||
          action_state ==
@@ -5713,7 +6100,9 @@ pf_status pf_m4_step_player(
         action_state !=
             (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS &&
         action_state !=
-            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT)
+            (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT &&
+        action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING)
     {
         velocity_x = INT32_C(0);
         if (action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
@@ -6199,6 +6588,36 @@ pf_status pf_m4_step_player(
                 : (attributes != NULL
                        ? attributes->specials_miss_landing_lag_q16
                        : INT32_C(0));
+        const uint16_t landing_ticks =
+            (uint16_t)(lag_q16 / (int32_t)PF_Q16_ONE);
+
+        if (attributes == NULL || lag_q16 <= INT32_C(0) ||
+            lag_q16 % (int32_t)PF_Q16_ONE != INT32_C(0))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        velocity_x = pf_m4_approach(
+            velocity_x,
+            INT32_C(0),
+            fighter->traction_q16);
+        ++action_ticks;
+        if (action_ticks >= landing_ticks)
+        {
+            action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+            action_ticks = UINT16_C(0);
+        }
+    }
+    else if (!ledge_motion_handled &&
+             grounded != UINT8_C(0) &&
+             action_state ==
+                 (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING)
+    {
+        const pf_m4_falcon_special_attributes *attributes =
+            pf_m4_falcon_reference_special_attributes();
+        const int32_t lag_q16 =
+            attributes != NULL
+                ? attributes->specialhi_landing_lag_q16
+                : INT32_C(0);
         const uint16_t landing_ticks =
             (uint16_t)(lag_q16 / (int32_t)PF_Q16_ONE);
 
@@ -7181,14 +7600,28 @@ pf_status pf_m4_step_player(
             action_state ==
                 (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_MISS ||
             action_state ==
-                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT)
+                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT ||
+            action_state ==
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL)
         {
+            const pf_m4_falcon_special_attributes *attributes =
+                action_state ==
+                        (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL
+                    ? pf_m4_falcon_reference_special_attributes()
+                    : NULL;
+            const int32_t maximum_speed_q16 =
+                attributes != NULL
+                    ? pf_m4_multiply_q16(
+                          fighter->air_max_horizontal_speed_q16,
+                          attributes->specialhi_freefall_air_spd_mul_q16)
+                    : fighter->fall_special_mobility_q16;
+
             action_ticks = UINT16_C(0);
             velocity_x = pf_m4_apply_air_input(
                 fighter,
                 velocity_x,
                 input->main_stick_x,
-                fighter->fall_special_mobility_q16);
+                maximum_speed_q16);
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_WALL_JUMP)
         {
@@ -7277,6 +7710,121 @@ pf_status pf_m4_step_player(
                     scratch->attack_hit_mask[player_index] = UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
+                }
+            }
+            else if (
+                action_state ==
+                     (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+                action_state ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
+            {
+                const pf_m4_falcon_move_index move_index =
+                    action_state ==
+                            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND
+                        ? PF_M4_FALCON_UP_SPECIAL_GROUND
+                        : PF_M4_FALCON_UP_SPECIAL_AIR;
+                const pf_m4_reference_move *move =
+                    pf_m4_falcon_reference_move(move_index);
+
+                if (move == NULL)
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                if (launched_this_tick != 0)
+                {
+                    fast_fall = UINT8_C(0);
+                }
+                else if (action_ticks >= move->total_frames)
+                {
+                    const pf_m4_falcon_special_attributes *attributes =
+                        pf_m4_falcon_reference_special_attributes();
+                    const int32_t fall_maximum_q16 =
+                        attributes != NULL
+                            ? pf_m4_multiply_q16(
+                                  fighter->air_max_horizontal_speed_q16,
+                                  attributes
+                                      ->specialhi_freefall_air_spd_mul_q16)
+                            : INT32_C(0);
+
+                    if (attributes == NULL ||
+                        fall_maximum_q16 <= INT32_C(0))
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                    action_state =
+                        (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
+                    action_ticks = UINT16_C(0);
+                    velocity_x = pf_m4_apply_air_input(
+                        fighter,
+                        velocity_x,
+                        input->main_stick_x,
+                        fall_maximum_q16);
+                    scratch->attack_hit_mask[player_index] = UINT8_C(0);
+                    scratch->attack_stale_registered[player_index] =
+                        UINT8_C(0);
+                }
+                else
+                {
+                    if (pf_m4_falcon_dive_start_velocity(
+                            fighter,
+                            input,
+                            action_state,
+                            action_ticks,
+                            &facing,
+                            &velocity_x,
+                            &velocity_y) != PF_STATUS_OK)
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                    ++action_ticks;
+                    launched_this_tick = 1;
+                    fast_fall = UINT8_C(0);
+                }
+            }
+            else if (action_state ==
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW)
+            {
+                const pf_m4_reference_move *move =
+                    pf_m4_falcon_reference_move(
+                        PF_M4_FALCON_UP_SPECIAL_THROW);
+
+                if (move == NULL)
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                if (launched_this_tick != 0)
+                {
+                    fast_fall = UINT8_C(0);
+                }
+                else if (action_ticks >= move->total_frames)
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                    action_ticks = UINT16_C(0);
+                    recovery_available = UINT8_C(1);
+                    velocity_x = pf_m4_apply_air_input(
+                        fighter,
+                        velocity_x,
+                        input->main_stick_x,
+                        fighter->air_speed_q16);
+                    scratch->attack_hit_mask[player_index] = UINT8_C(0);
+                    scratch->attack_stale_registered[player_index] =
+                        UINT8_C(0);
+                }
+                else
+                {
+                    if (pf_m4_falcon_dive_throw_velocity(
+                            fighter,
+                            input,
+                            action_ticks,
+                            facing,
+                            &velocity_x,
+                            &velocity_y) != PF_STATUS_OK)
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
+                    }
+                    ++action_ticks;
+                    launched_this_tick = 1;
+                    fast_fall = UINT8_C(0);
                 }
             }
             else if (action_state ==
@@ -7860,7 +8408,11 @@ pf_status pf_m4_step_player(
             position_y =
                 pf_m4_surface_y_q16(content, support) -
                 fighter->half_height_q16;
-            velocity_y = INT32_C(0);
+            if (action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND)
+            {
+                velocity_y = INT32_C(0);
+            }
         }
     }
 
@@ -7869,12 +8421,19 @@ pf_status pf_m4_step_player(
     {
         const int32_t previous_bottom =
             position_y + fighter->half_height_q16;
+        const int32_t floor_contact_bottom_extent_q16 =
+            pf_m4_floor_contact_bottom_extent_q16(
+                fighter,
+                action_state);
+        const int32_t previous_floor_contact =
+            position_y + floor_contact_bottom_extent_q16;
         const int32_t previous_top =
             position_y - fighter->half_height_q16;
         const int wall_tech_stalled =
             pf_m4_action_is_wall_tech(action_state) &&
             action_ticks < fighter->wall_tech_stall_ticks;
         int32_t new_bottom;
+        int32_t new_floor_contact;
         int32_t new_top;
 
         if (wall_tech_stalled)
@@ -7933,6 +8492,8 @@ pf_status pf_m4_step_player(
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
         new_bottom = position_y + fighter->half_height_q16;
+        new_floor_contact =
+            position_y + floor_contact_bottom_extent_q16;
         new_top = position_y - fighter->half_height_q16;
 
         if (velocity_y >= INT32_C(0))
@@ -8014,16 +8575,12 @@ pf_status pf_m4_step_player(
             if (position_x >= stage->floor_left_q16 &&
                 position_x <= stage->floor_right_q16 &&
                 ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  (previous_bottom > stage->floor_y_q16 ||
-                   (down_held &&
-                    previous_bottom <= stage->floor_y_q16 &&
-                    new_bottom >= stage->floor_y_q16) ||
-                   (fast_fall != UINT8_C(0) &&
-                    previous_bottom <= stage->floor_y_q16 &&
-                    new_bottom >= stage->floor_y_q16))) ||
+                  (previous_floor_contact > stage->floor_y_q16 ||
+                   (previous_floor_contact <= stage->floor_y_q16 &&
+                    new_floor_contact >= stage->floor_y_q16))) ||
                  (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  previous_bottom <= stage->floor_y_q16 &&
-                  new_bottom >= stage->floor_y_q16)) &&
+                  previous_floor_contact <= stage->floor_y_q16 &&
+                  new_floor_contact >= stage->floor_y_q16)) &&
                 stage->floor_y_q16 < landing_y_q16)
             {
                 landing_y_q16 = stage->floor_y_q16;
@@ -8056,6 +8613,10 @@ pf_status pf_m4_step_player(
                     &short_hop_latched,
                     &fast_fall,
                     &dash_direction);
+                if (grounded != UINT8_C(0))
+                {
+                    recovery_available = UINT8_C(1);
+                }
                 if (falcon_punch_landing != 0)
                 {
                     action_state =
@@ -8140,7 +8701,18 @@ pf_status pf_m4_step_player(
          action_state ==
              (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
          action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
-         action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT) &&
+         action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL ||
+         action_state ==
+             (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW ||
+         ((action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR) &&
+          action_ticks >=
+              pf_m4_falcon_reference_up_special_timing()
+                  ->air_control_begin_frame)) &&
         platform_drop_ticks == UINT8_C(0))
     {
         if (pf_m4_try_grab_ledge(

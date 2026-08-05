@@ -528,7 +528,7 @@ grep -Fq \
     'to crouch cancel' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    'Vector Ascent recovery from the ground or air' \
+    'Falcon Dive recovery from the ground or air' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"MISSED STRONG L-CANCEL"' \

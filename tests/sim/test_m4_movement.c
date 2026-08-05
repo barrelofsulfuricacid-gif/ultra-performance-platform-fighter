@@ -12999,6 +12999,10 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
     uint32_t player_bits;
     uint32_t guard;
 
+    /* Vector Ascent is an original custom-content fixture. Default reference
+     * content routes the same input through source Falcon Dive instead. */
+    content.fighter.reference_frame_data_enabled = UINT8_C(0);
+
     if (content.recovery_count != PF_M4_TEST_RECOVERY_COUNT ||
         content.recovery.schema_version != PF_M4_RECOVERY_SCHEMA_VERSION ||
         content.recovery.enabled != UINT8_C(0) ||
@@ -14419,6 +14423,204 @@ static int run_raptor_boost_source_data_test(
     return 1;
 }
 
+static int run_falcon_dive_source_data_test(
+    const pf_m4_content *default_content)
+{
+    const pf_m4_falcon_common_special_attributes *common =
+        pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_special_attributes *attributes =
+        pf_m4_falcon_reference_special_attributes();
+    const pf_m4_falcon_up_special_timing *timing =
+        pf_m4_falcon_reference_up_special_timing();
+    const pf_m4_reference_move *ground_move =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_UP_SPECIAL_GROUND);
+    const pf_m4_reference_move *air_move =
+        pf_m4_falcon_reference_move(PF_M4_FALCON_UP_SPECIAL_AIR);
+    test_sim_storage storage;
+    pf_m4_content content = *default_content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t frame;
+    uint32_t tick;
+
+    if (common == NULL || attributes == NULL || timing == NULL ||
+        ground_move == NULL || air_move == NULL ||
+        common->air_drift_over_maximum_deceleration_q16 != INT32_C(205) ||
+        common->air_drift_dead_zone_q16 != INT32_C(6554) ||
+        attributes->specialhi_air_friction_mul_q16 != INT32_C(72090) ||
+        attributes->specialhi_horz_vel_q16 != INT32_C(55706) ||
+        attributes->specialhi_freefall_air_spd_mul_q16 != INT32_C(47186) ||
+        attributes->specialhi_landing_lag_q16 != INT32_C(1966080) ||
+        attributes->specialhi_input_var_q16 != INT32_C(14746) ||
+        attributes->specialhi_catch_grav_q16 != INT32_C(19661) ||
+        timing->air_control_begin_frame != UINT16_C(13) ||
+        timing->throw_gravity_begin_frame != UINT16_C(45) ||
+        ground_move->subaction_index != UINT16_C(307) ||
+        ground_move->total_frames != UINT16_C(64) ||
+        air_move->subaction_index != UINT16_C(308) ||
+        air_move->total_frames != UINT16_C(64))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-imported-data\n");
+        return 0;
+    }
+
+    content.stage.spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
+    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "falcon-dive-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0xfa1c0c01)),
+            PF_STATUS_OK,
+            "falcon-dive-ground-reset") ||
+        !step_duel(
+            sim,
+            INT16_C(0),
+            INT16_MIN,
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection))
+    {
+        return 0;
+    }
+    for (frame = UINT32_C(1); frame <= UINT32_C(64); ++frame)
+    {
+        int32_t expected_motion_x_q16 = INT32_C(0);
+        int32_t expected_motion_y_q16 = INT32_C(0);
+        const uint8_t expected_grounded =
+            frame <= UINT32_C(13) ? UINT8_C(1) : UINT8_C(0);
+
+        if (!pf_m4_falcon_reference_motion_x_q16(
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND,
+                (uint16_t)frame,
+                &expected_motion_x_q16) ||
+            !pf_m4_falcon_reference_motion_y_q16(
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND,
+                (uint16_t)frame,
+                &expected_motion_y_q16) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+            inspection.players[0].action_ticks != (uint16_t)frame ||
+            inspection.players[0].grounded != expected_grounded ||
+            inspection.players[0].velocity_x_q16 !=
+                expected_motion_x_q16 ||
+            inspection.players[0].velocity_y_q16 !=
+                expected_motion_y_q16)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=falcon-dive-ground-frame "
+                "frame=%" PRIu32 " action=%u ticks=%u grounded=%u "
+                "vx=%" PRId32 " expected_vx=%" PRId32 " "
+                "vy=%" PRId32 " expected_vy=%" PRId32 "\n",
+                frame,
+                (unsigned int)inspection.players[0].action_state,
+                (unsigned int)inspection.players[0].action_ticks,
+                (unsigned int)inspection.players[0].grounded,
+                inspection.players[0].velocity_x_q16,
+                expected_motion_x_q16,
+                inspection.players[0].velocity_y_q16,
+                expected_motion_y_q16);
+            return 0;
+        }
+        if (frame < UINT32_C(64) &&
+            !step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-fall-entry "
+            "action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    for (tick = UINT32_C(0);
+         tick < UINT32_C(120) &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (tick == UINT32_C(120) ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-landing-entry\n");
+        return 0;
+    }
+    for (frame = UINT32_C(1); frame < UINT32_C(30); ++frame)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING ||
+            inspection.players[0].action_ticks != (uint16_t)frame)
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-landing-end "
+            "action=%u ticks=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks);
+        return 0;
+    }
+    return 1;
+}
+
 #define RUN_MOVEMENT_TEST(call)                                         \
     ((call) ? 1                                                        \
             : ((void)fprintf(                                         \
@@ -14447,6 +14649,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_content_contract_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_falcon_punch_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_raptor_boost_source_data_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_falcon_dive_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||

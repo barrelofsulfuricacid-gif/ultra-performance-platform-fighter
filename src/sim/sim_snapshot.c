@@ -1440,6 +1440,8 @@ static int pf_m4_snapshot_action_is_landing(uint8_t action)
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS ||
            action ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING ||
            (action >=
                 (uint8_t)PF_M4_ACTION_FORWARD_AERIAL_LANDING &&
             action <=
@@ -1456,7 +1458,45 @@ static int pf_m4_snapshot_action_is_reference_air_special(uint8_t action)
            action ==
                (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_MISS ||
            action ==
-               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT;
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
+}
+
+static int pf_m4_snapshot_action_is_ground_falcon_dive_start(
+    uint8_t action,
+    uint16_t action_ticks)
+{
+    const pf_m4_falcon_up_special_timing *timing =
+        pf_m4_falcon_reference_up_special_timing();
+
+    return timing != NULL &&
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
+           action_ticks <= timing->air_control_begin_frame;
+}
+
+static int pf_m4_snapshot_action_is_falcon_dive_capture_holder(
+    uint8_t action,
+    uint8_t resume_action)
+{
+    const uint8_t effective_action =
+        action == (uint8_t)PF_M4_ACTION_HITLAG
+            ? resume_action
+            : action;
+
+    return effective_action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH ||
+           effective_action ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
 }
 
 static int pf_m4_snapshot_action_is_smash_charge(uint8_t action)
@@ -1798,6 +1838,18 @@ static int pf_m4_player_state_consistent(
     }
     if (grounded != UINT8_C(0))
     {
+        const int ground_falcon_dive_start =
+            pf_m4_snapshot_action_is_ground_falcon_dive_start(
+                action,
+                world->action_ticks[player_index]);
+        const int falcon_dive_landing =
+            action ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING;
+        const int falcon_dive_capture =
+            pf_m4_snapshot_action_is_falcon_dive_capture_holder(
+                action,
+                world->hitlag_resume_action[player_index]);
+
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
                action !=
@@ -1810,18 +1862,24 @@ static int pf_m4_player_state_consistent(
                !pf_m4_snapshot_action_is_aerial_attack(action) &&
                action !=
                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
-               !pf_m4_snapshot_action_is_reference_air_special(action) &&
+               (!pf_m4_snapshot_action_is_reference_air_special(action) ||
+                ground_falcon_dive_start != 0 ||
+                falcon_dive_capture != 0) &&
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
                (world->velocity_y_q16[player_index] == INT32_C(0) ||
-                action == (uint8_t)PF_M4_ACTION_HITLAG ||
-                (pf_m4_snapshot_action_is_landing(action) &&
-                 world->action_ticks[player_index] == UINT16_C(0))) &&
+                 action == (uint8_t)PF_M4_ACTION_HITLAG ||
+                 (pf_m4_snapshot_action_is_landing(action) &&
+                  world->action_ticks[player_index] == UINT16_C(0)) ||
+                 ground_falcon_dive_start != 0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
-               world->recovery_available[player_index] == UINT8_C(1);
+               (world->recovery_available[player_index] == UINT8_C(1) ||
+                ground_falcon_dive_start != 0 ||
+                falcon_dive_capture != 0 ||
+                falcon_dive_landing != 0);
     }
     if (support != (uint8_t)PF_M4_SURFACE_NONE)
     {
@@ -2175,7 +2233,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_HIT ||
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2759,6 +2817,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
                  world->action_state[player_index] !=
                      (uint8_t)PF_M4_ACTION_PUMMEL &&
+                 !pf_m4_snapshot_action_is_falcon_dive_capture_holder(
+                     world->action_state[player_index],
+                     world->hitlag_resume_action[player_index]) &&
                  !pf_m4_snapshot_action_is_throw(
                      world->action_state[player_index])) ||
                 world->grab_owner_slot[target_index] !=
@@ -2793,6 +2854,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
                  world->action_state[owner_index] !=
                      (uint8_t)PF_M4_ACTION_PUMMEL &&
+                 !pf_m4_snapshot_action_is_falcon_dive_capture_holder(
+                     world->action_state[owner_index],
+                     world->hitlag_resume_action[owner_index]) &&
                  !pf_m4_snapshot_action_is_throw(
                      world->action_state[owner_index])) ||
                 world->grab_target_slot[owner_index] !=

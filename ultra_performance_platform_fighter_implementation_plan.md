@@ -459,9 +459,10 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 13,340 captured frames. Uncaptured
-pressure/time/spacing routes and the broader shared-simulation inventory remain
-active work.
+executable-oracle evidence is therefore 13,456 captured frames, including a
+116-frame grounded Falcon Dive catch/throw route with memory-probed ECB state.
+Uncaptured pressure/time/spacing routes and the broader shared-simulation
+inventory remain active work.
 
 Falcon's complete static source is imported as a hash-pinned 50-slot schema
 with 48 concrete subactions; the only absent rows are the two angled forward-
@@ -483,13 +484,17 @@ are imported separately as the source's six search spheres rather than being
 misclassified as attacks. The imported special timing, attributes, and
 geometry are not by themselves an equivalence claim. Default reference content
 now routes neutral special through the source Falcon Punch ground/air state
-machine and side special through the source Raptor Boost ground/air start,
-search-hit, miss, landing, and hit states; the original Pulse Bolt and Prism
-Burst are explicit custom-content opt-outs. Arc Reservoir and Vector Ascent
-remain original directional-special fixtures until Falcon Kick and Falcon Dive
-are routed and qualified. A 46-frame identical-input Dolphin Raptor Boost hit
+machine, side special through the source Raptor Boost ground/air start,
+search-hit, miss, landing, and hit states, and up special through Falcon Dive
+ground/air start, catch, and throw; the original Pulse Bolt, Prism Burst, and
+Vector Ascent are explicit custom-content opt-outs. Arc Reservoir remains an
+original directional-special fixture until Falcon Kick is routed and
+qualified. A 46-frame identical-input Dolphin Raptor Boost hit
 trace strictly matches action transitions and velocities and matches position
 within the bounded 640-Q16 representation allowance.
+A separate 116-frame grounded Falcon Dive capture strictly matches catch,
+hitlag, captured-target attachment, throw release, source relocation/root
+motion, fall, and floor landing within the same representation allowance.
 Hurt capsules for remaining common actions, source-Z collision semantics,
 normal-throw collateral hits, and exact sphere-versus-shield intersection
 remain explicit M4 gaps and must be extracted or qualified rather than

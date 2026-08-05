@@ -10,7 +10,12 @@ from pathlib import Path
 import struct
 from typing import Any
 
-from hsd_figatree import TRACK_TRANSLATE_Z, decode_figatree, sample_track
+from hsd_figatree import (
+    TRACK_TRANSLATE_Y,
+    TRACK_TRANSLATE_Z,
+    decode_figatree,
+    sample_track,
+)
 
 
 EXPECTED_CANONICAL_SHA256 = (
@@ -149,6 +154,21 @@ ANIMATION_TRANSLATION_FLAG = 0x80000000
 MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
 MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
 
+# ftCa_SpecialHiThrow0 starts by running ftCo_800DE2A8. When Falcon caught a
+# grounded victim, that source routine relocates the thrower from the victim's
+# TransN2 attachment before animation-root motion begins. These NTSC 1.02
+# offsets are the observed relocation at SpecialHiCatch frame 15 ->
+# SpecialHiThrow frame 0 in the strict Dolphin capture whose SHA-256 is
+# 27d869d3d9873d91690223d014cf0e7875fcd2b7138013bac1229c8512c32c60.
+SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE = -10.707747459411621
+SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE = 2.545643227005005
+
+# Falcon's Falling ECB bottom is animation-derived, not the authored gameplay
+# body's half-height. Captured directly at fighter+0x794 from the same NTSC
+# 1.02 process (ECB capture SHA-256
+# 4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb).
+FALLING_ECB_BOTTOM_Y_MELEE = 7.932853698730469
+
 
 def canonical_sha256(data: dict[str, Any]) -> str:
     encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -249,14 +269,21 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, int]:
     if root_offset + 4 > len(data):
         raise ValueError("ftLoadCommonData root is out of bounds")
     common_offset = struct.unpack_from(">I", data, root_offset)[0]
-    if common_offset + 0x224 > len(data):
+    if common_offset + 0x25C > len(data):
         raise ValueError("ftCommonData is out of bounds")
     return {
+        "air_drift_over_maximum_deceleration_q16": round(
+            struct.unpack_from(">f", data, common_offset + 0x1FC)[0]
+            * MELEE_X_TO_SIM_Q16
+        ),
         "side_special_stick_threshold_q16": q16(
             struct.unpack_from(">f", data, common_offset + 0x218)[0]
         ),
         "side_special_turn_threshold_q16": q16(
             struct.unpack_from(">f", data, common_offset + 0x220)[0]
+        ),
+        "air_drift_dead_zone_q16": q16(
+            struct.unpack_from(">f", data, common_offset + 0x258)[0]
         ),
     }
 
@@ -332,6 +359,7 @@ def generate(
     throws: list[dict[str, Any]] = []
     moves: list[dict[str, int]] = []
     motion_x_q16: list[int] = []
+    motion_y_q16: list[int] = []
 
     fighter_data = dat_data["nodes"][0]["data"]
     subactions = fighter_data["subactions"]
@@ -373,6 +401,21 @@ def generate(
     ):
         raise ValueError("invalid SpecialS command-variable ordering")
     common_special_attributes = source_common_special_attributes(common_dat)
+    special_hi_ground_assignments = command_variable_assignments(subactions, 307)
+    special_hi_air_assignments = command_variable_assignments(subactions, 308)
+    special_hi_throw_assignments = command_variable_assignments(subactions, 310)
+    try:
+        specialhi_ground_control_begin = special_hi_ground_assignments[(0x4C, 1)]
+        specialhi_air_control_begin = special_hi_air_assignments[(0x4C, 1)]
+        specialhi_throw_gravity_begin = special_hi_throw_assignments[(0x4C, 1)]
+    except KeyError as error:
+        raise ValueError("incomplete SpecialHi command-variable timeline") from error
+    if not (
+        specialhi_ground_control_begin == specialhi_air_control_begin
+        and specialhi_ground_control_begin > 0
+        and specialhi_throw_gravity_begin > 0
+    ):
+        raise ValueError("invalid SpecialHi command-variable ordering")
     common_attributes = {
         "initial_walk_velocity_q16": round(
             raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
@@ -483,6 +526,13 @@ def generate(
             {
                 "common_special": common_special_attributes,
                 "fighter_special": special_attributes,
+                "falcon_dive_grounded_throw_reposition_melee": {
+                    "x": SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE,
+                    "y": SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE,
+                },
+                "falcon_falling_collision_pose_melee": {
+                    "bottom_y_from_origin": FALLING_ECB_BOTTOM_Y_MELEE,
+                },
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -547,29 +597,56 @@ def generate(
             translation_node = (action_flags & 0xFF) - 1
             if not 0 <= translation_node < len(tree.nodes):
                 raise ValueError(f"{key}: invalid translation node {translation_node}")
-            translation_tracks = [
+            translation_x_tracks = [
                 track
                 for track in tree.nodes[translation_node]
                 if track.track_type == TRACK_TRANSLATE_Z
             ]
-            if len(translation_tracks) != 1:
+            translation_y_tracks = [
+                track
+                for track in tree.nodes[translation_node]
+                if track.track_type == TRACK_TRANSLATE_Y
+            ]
+            if len(translation_x_tracks) != 1:
                 raise ValueError(
                     f"{key}: expected one translation-Z track, "
-                    f"found {len(translation_tracks)}"
+                    f"found {len(translation_x_tracks)}"
                 )
-            translation = translation_tracks[0]
-            positions = [
-                sample_track(translation, float(frame))
+            if len(translation_y_tracks) > 1:
+                raise ValueError(
+                    f"{key}: expected at most one translation-Y track, "
+                    f"found {len(translation_y_tracks)}"
+                )
+            positions_x = [
+                sample_track(translation_x_tracks[0], float(frame))
                 for frame in range(int(move["totalFrames"]) + 1)
             ]
             motion_x_q16.extend(
                 round(
-                    (positions[frame] - positions[frame - 1])
+                    (positions_x[frame] - positions_x[frame - 1])
                     * model_scaling
                     * MELEE_X_TO_SIM_Q16
                 )
-                for frame in range(1, len(positions))
+                for frame in range(1, len(positions_x))
             )
+            positions_y = (
+                [
+                    sample_track(translation_y_tracks[0], float(frame))
+                    for frame in range(int(move["totalFrames"]) + 1)
+                ]
+                if translation_y_tracks
+                else [0.0] * (int(move["totalFrames"]) + 1)
+            )
+            motion_y_q16.extend(
+                round(
+                    -(positions_y[frame] - positions_y[frame - 1])
+                    * model_scaling
+                    * MELEE_Y_TO_SIM_Q16
+                )
+                for frame in range(1, len(positions_y))
+            )
+        if len(motion_x_q16) != len(motion_y_q16):
+            raise ValueError(f"{key}: mismatched translation table lengths")
         moves.append(
             {
                 "present": 1,
@@ -705,6 +782,29 @@ def generate(
             f"UINT16_C({specials_air_gravity_begin}),",
             "};",
             "",
+            "static const pf_m4_falcon_up_special_timing",
+            "pf_m4_falcon_up_special_timing_data = {",
+            "    .air_control_begin_frame = "
+            f"UINT16_C({specialhi_ground_control_begin}),",
+            "    .throw_gravity_begin_frame = "
+            f"UINT16_C({specialhi_throw_gravity_begin}),",
+            "    .grounded_throw_reposition_x_q16 = "
+            "INT32_C("
+            f"{round(SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE * MELEE_X_TO_SIM_Q16)}"
+            "),",
+            "    .grounded_throw_reposition_y_q16 = "
+            "INT32_C("
+            f"{round(-SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
+            "),",
+            "};",
+            "",
+            "static const pf_m4_falcon_collision_pose",
+            "pf_m4_falcon_collision_pose_data = {",
+            "    .falling_bottom_y_from_origin_q16 = INT32_C("
+            f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
+            "),",
+            "};",
+            "",
             "static const pf_m4_reference_hit_phase pf_m4_falcon_hit_phases[] = {",
         )
     )
@@ -781,6 +881,13 @@ def generate(
         + ", ".join(f"INT32_C({value})" for value in motion_x_q16[index : index + 8])
         + ","
         for index in range(0, len(motion_x_q16), 8)
+    )
+    lines.extend(("};", "", "static const int32_t pf_m4_falcon_motion_y_q16[] = {"))
+    lines.extend(
+        "    "
+        + ", ".join(f"INT32_C({value})" for value in motion_y_q16[index : index + 8])
+        + ","
+        for index in range(0, len(motion_y_q16), 8)
     )
     lines.extend(("};", ""))
     return "\n".join(lines)

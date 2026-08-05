@@ -620,6 +620,17 @@ static int pf_m4_apply_falcon_reference_frame(
     return 1;
 }
 
+static int pf_m4_action_is_falcon_dive_capture_phase(
+    uint8_t action_state)
+{
+    return action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH;
+}
+
 static int pf_m4_attack_for_action(
     const pf_m4_content *content,
     uint8_t action_state,
@@ -637,7 +648,8 @@ static int pf_m4_attack_for_action(
     fighter = &content->fighter;
     out_attack->melee_knockback = NULL;
 
-    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+        !pf_m4_action_is_falcon_dive_capture_phase(action_state))
     {
         pf_m4_falcon_move_index reference_move_index;
 
@@ -1368,6 +1380,7 @@ static int pf_m4_falcon_geometry_move_for_attack(
 
     if (content == NULL ||
         content->fighter.reference_frame_data_enabled == UINT8_C(0) ||
+        pf_m4_action_is_falcon_dive_capture_phase(action_state) ||
         !pf_m4_falcon_reference_move_for_action(
             action_state,
             &move_index) ||
@@ -1619,6 +1632,26 @@ static int pf_m4_falcon_geometry_move_for_grab(
     {
         return 0;
     }
+    if (action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
+    {
+        move_index =
+            action_state ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND
+                ? PF_M4_FALCON_UP_SPECIAL_GROUND
+                : PF_M4_FALCON_UP_SPECIAL_AIR;
+        if (!pf_m4_falcon_reference_has_hit_geometry(move_index))
+        {
+            return 0;
+        }
+        if (out_move_index != NULL)
+        {
+            *out_move_index = move_index;
+        }
+        return 1;
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_GRAB)
     {
         move_index = PF_M4_FALCON_GRAB;
@@ -1722,9 +1755,7 @@ int pf_m4_grabbox(
         out_left_q16 == NULL ||
         out_right_q16 == NULL ||
         out_top_q16 == NULL ||
-        out_bottom_q16 == NULL ||
-        (action_state != (uint8_t)PF_M4_ACTION_GRAB &&
-         action_state != (uint8_t)PF_M4_ACTION_DASH_GRAB))
+        out_bottom_q16 == NULL)
     {
         return 0;
     }
@@ -1748,6 +1779,11 @@ int pf_m4_grabbox(
             out_right_q16,
             out_top_q16,
             out_bottom_q16);
+    }
+    if (action_state != (uint8_t)PF_M4_ACTION_GRAB &&
+        action_state != (uint8_t)PF_M4_ACTION_DASH_GRAB)
+    {
+        return 0;
     }
     if (action_ticks < active_begin || action_ticks > active_end)
     {
@@ -2734,6 +2770,202 @@ static pf_status pf_m4_apply_hit_reaction(
     return PF_STATUS_OK;
 }
 
+static pf_status pf_m4_resolve_falcon_dive_capture(
+    const pf_m4_content *content,
+    const pf_world_state *world,
+    pf_sim_scratch *scratch,
+    uint32_t holder_index,
+    uint32_t target_index,
+    int *out_handled)
+{
+    uint8_t holder_action = scratch->action_state[holder_index];
+
+    if (out_handled == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    if (holder_action == (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        holder_action =
+            scratch->hitlag_resume_action[holder_index];
+    }
+    *out_handled =
+        holder_action ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH ||
+        holder_action ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
+    if (*out_handled == 0)
+    {
+        return PF_STATUS_OK;
+    }
+    if (scratch->grab_owner_slot[target_index] !=
+            (uint8_t)(holder_index + UINT32_C(1)) ||
+        scratch->action_state[target_index] !=
+            (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    if (holder_action ==
+        (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH)
+    {
+        scratch->position_x_q16[target_index] =
+            scratch->position_x_q16[holder_index];
+        scratch->position_y_q16[target_index] =
+            scratch->position_y_q16[holder_index];
+        scratch->velocity_x_q16[target_index] = INT32_C(0);
+        scratch->velocity_y_q16[target_index] = INT32_C(0);
+        scratch->grounded[target_index] =
+            scratch->grounded[holder_index];
+        scratch->support[target_index] = scratch->support[holder_index];
+    }
+
+    if (holder_action ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH &&
+        scratch->action_state[holder_index] !=
+            (uint8_t)PF_M4_ACTION_HITLAG &&
+        scratch->action_ticks[holder_index] == UINT16_C(1) &&
+        scratch->attack_stale_registered[holder_index] == UINT8_C(0))
+    {
+        const pf_m4_reference_hit_effect *effect =
+            pf_m4_falcon_reference_primary_effect(
+                PF_M4_FALCON_UP_SPECIAL_CATCH);
+        pf_m4_melee_knockback_data hit;
+        pf_m4_melee_knockback_result result;
+        uint32_t damage_q16;
+        uint32_t hit_sequence;
+
+        if (effect == NULL || effect->damage == UINT8_C(0))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        damage_q16 = pf_m4_stale_scaled_damage_q16(
+            &content->fighter,
+            scratch,
+            holder_index,
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH,
+            (uint32_t)effect->damage * UINT32_C(65536));
+        hit.angle_degrees = effect->angle_degrees;
+        hit.growth = effect->growth;
+        hit.weight_set = effect->weight_set;
+        hit.base = effect->base;
+        hit.enabled = UINT8_C(1);
+        (void)memset(hit.reserved, 0, sizeof(hit.reserved));
+        result = pf_m4_melee_knockback(
+            &hit,
+            content->fighter.knockback_weight,
+            damage_q16,
+            pf_m4_saturating_damage(
+                scratch->damage_q16[target_index],
+                damage_q16));
+        scratch->damage_q16[target_index] = pf_m4_saturating_damage(
+            scratch->damage_q16[target_index],
+            damage_q16);
+        if (pf_sim_push_event(
+                scratch,
+                world->tick,
+                PF_SIM_EVENT_HIT,
+                (uint8_t)holder_index,
+                (uint8_t)target_index,
+                damage_q16,
+                INT32_C(0),
+                INT32_C(0),
+                UINT16_C(0),
+                (uint16_t)PF_M4_ACTION_FALCON_DIVE_CATCH,
+                &hit_sequence) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        scratch->last_hit_sequence[target_index] = hit_sequence;
+        scratch->last_hit_tick[target_index] = world->tick;
+        scratch->last_hit_damage_q16[target_index] = damage_q16;
+        scratch->last_hit_attacker[target_index] =
+            (uint8_t)holder_index;
+        pf_m4_register_stale_move(
+            scratch,
+            holder_index,
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH);
+        scratch->attack_stale_registered[holder_index] = UINT8_C(1);
+        scratch->hitlag_ticks[holder_index] = result.hitlag_ticks;
+        scratch->hitlag_resume_action[holder_index] =
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH;
+        pf_m4_set_action_state(
+            world,
+            scratch,
+            holder_index,
+            (uint8_t)PF_M4_ACTION_HITLAG);
+        return PF_STATUS_OK;
+    }
+
+    if (holder_action ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW &&
+        scratch->action_state[holder_index] !=
+            (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        const pf_m4_reference_throw *source =
+            pf_m4_falcon_reference_throw(
+                PF_M4_FALCON_UP_SPECIAL_THROW);
+        pf_m4_melee_knockback_data hit;
+        pf_m4_melee_knockback_result result;
+        uint32_t damage_q16;
+        uint32_t resulting_damage_q16;
+
+        if (source == NULL ||
+            scratch->action_ticks[holder_index] != UINT16_C(0))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        damage_q16 = pf_m4_stale_scaled_damage_q16(
+            &content->fighter,
+            scratch,
+            holder_index,
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH,
+            (uint32_t)source->damage * UINT32_C(65536));
+        resulting_damage_q16 = pf_m4_saturating_damage(
+            scratch->damage_q16[target_index],
+            damage_q16);
+        /* CaptureCaptain resolves 361 to the source 44-degree grounded
+         * Sakurai angle and 45 degrees for an already-airborne victim. */
+        hit.angle_degrees =
+            scratch->grounded[target_index] != UINT8_C(0)
+                ? UINT16_C(44)
+                : UINT16_C(45);
+        hit.growth = source->growth;
+        hit.weight_set = source->weight_set;
+        hit.base = source->base;
+        hit.enabled = UINT8_C(1);
+        (void)memset(hit.reserved, 0, sizeof(hit.reserved));
+        result = pf_m4_melee_knockback(
+            &hit,
+            content->fighter.knockback_weight,
+            damage_q16,
+            resulting_damage_q16);
+        pf_m4_clear_grab_links(scratch, holder_index, target_index);
+        scratch->grounded[target_index] = UINT8_C(0);
+        scratch->support[target_index] =
+            (uint8_t)PF_M4_SURFACE_NONE;
+        if (pf_m4_apply_hit_reaction(
+                content,
+                world,
+                scratch,
+                (uint8_t)holder_index,
+                target_index,
+                damage_q16,
+                -(int32_t)scratch->facing[holder_index] *
+                    result.velocity_x_q16,
+                -result.velocity_y_q16,
+                UINT16_C(0),
+                result.hitstun_ticks,
+                1,
+                PF_SIM_EVENT_THROW,
+                (uint16_t)PF_M4_ACTION_FALCON_DIVE_THROW) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+    }
+    return PF_STATUS_OK;
+}
+
 static pf_status pf_m4_resolve_grabs(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -2752,6 +2984,7 @@ static pf_status pf_m4_resolve_grabs(
             scratch->action_state[holder_index];
         const pf_m4_throw_data *throw_data =
             pf_m4_throw_for_action(&content->fighter, holder_action);
+        int falcon_dive_capture = 0;
         uint32_t target_index;
 
         if (target_slot == UINT8_C(0))
@@ -2763,6 +2996,20 @@ static pf_status pf_m4_resolve_grabs(
             target_index == holder_index)
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (pf_m4_resolve_falcon_dive_capture(
+                content,
+                world,
+                scratch,
+                holder_index,
+                target_index,
+                &falcon_dive_capture) != PF_STATUS_OK)
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (falcon_dive_capture != 0)
+        {
+            continue;
         }
         if (scratch->active[holder_index] == UINT8_C(0) ||
             scratch->active[target_index] == UINT8_C(0) ||
@@ -2989,14 +3236,19 @@ static pf_status pf_m4_resolve_grabs(
          attacker_index < (uint32_t)world->player_count;
          ++attacker_index)
     {
-        int32_t grabbox_left;
-        int32_t grabbox_right;
-        int32_t grabbox_top;
-        int32_t grabbox_bottom;
+        int32_t grabbox_left = INT32_C(0);
+        int32_t grabbox_right = INT32_C(0);
+        int32_t grabbox_top = INT32_C(0);
+        int32_t grabbox_bottom = INT32_C(0);
         pf_m4_falcon_move_index geometry_move_index;
         pf_m4_hit_sphere_inspection
             grab_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
         uint8_t grab_sphere_count = UINT8_C(0);
+        const int falcon_dive_grab =
+            scratch->action_state[attacker_index] ==
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+            scratch->action_state[attacker_index] ==
+                (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR;
         const int reference_grab_geometry =
             pf_m4_falcon_geometry_move_for_grab(
                 content,
@@ -3108,14 +3360,18 @@ static pf_status pf_m4_resolve_grabs(
             scratch->grab_owner_slot[target_index] =
                 (uint8_t)(attacker_index + UINT32_C(1));
             scratch->grab_escape_ticks[target_index] =
-                pf_m4_grab_escape_ticks(
-                    &content->fighter,
-                    scratch->damage_q16[target_index]);
+                falcon_dive_grab != 0
+                    ? UINT16_MAX
+                    : pf_m4_grab_escape_ticks(
+                          &content->fighter,
+                          scratch->damage_q16[target_index]);
             pf_m4_set_action_state(
                 world,
                 scratch,
                 attacker_index,
-                (uint8_t)PF_M4_ACTION_GRAB_HOLD);
+                falcon_dive_grab != 0
+                    ? (uint8_t)PF_M4_ACTION_FALCON_DIVE_CATCH
+                    : (uint8_t)PF_M4_ACTION_GRAB_HOLD);
             scratch->action_ticks[attacker_index] = UINT16_C(0);
             scratch->velocity_x_q16[attacker_index] = INT32_C(0);
             pf_m4_set_action_state(
@@ -3126,13 +3382,28 @@ static pf_status pf_m4_resolve_grabs(
             scratch->action_ticks[target_index] = UINT16_C(0);
             scratch->charge_ticks[target_index] = UINT16_C(0);
             scratch->smash_charge_ticks[target_index] = UINT16_C(0);
+            if (falcon_dive_grab != 0 &&
+                scratch->grounded[target_index] != UINT8_C(0))
+            {
+                scratch->position_x_q16[attacker_index] =
+                    scratch->position_x_q16[target_index];
+                scratch->position_y_q16[attacker_index] =
+                    scratch->position_y_q16[target_index];
+                scratch->grounded[attacker_index] = UINT8_C(1);
+                scratch->support[attacker_index] =
+                    scratch->support[target_index];
+            }
             scratch->position_x_q16[target_index] =
-                scratch->position_x_q16[attacker_index] +
-                (int32_t)scratch->facing[attacker_index] *
-                    content->fighter.grabbed_offset_x_q16;
+                falcon_dive_grab != 0
+                    ? scratch->position_x_q16[attacker_index]
+                    : scratch->position_x_q16[attacker_index] +
+                          (int32_t)scratch->facing[attacker_index] *
+                              content->fighter.grabbed_offset_x_q16;
             scratch->position_y_q16[target_index] =
-                scratch->position_y_q16[attacker_index] +
-                content->fighter.grabbed_offset_y_q16;
+                falcon_dive_grab != 0
+                    ? scratch->position_y_q16[attacker_index]
+                    : scratch->position_y_q16[attacker_index] +
+                          content->fighter.grabbed_offset_y_q16;
             scratch->velocity_x_q16[target_index] = INT32_C(0);
             scratch->velocity_y_q16[target_index] = INT32_C(0);
             scratch->pending_velocity_x_q16[target_index] = INT32_C(0);
