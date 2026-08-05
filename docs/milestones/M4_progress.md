@@ -3341,3 +3341,45 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `741b5f9451a3a81bf57a632c65e35a5ba35cbbd3fe45e331da4d196b6bfe3847`,
   `f9fb60d1a468e9cd99d43bd412b408d0dfe8c1b414b8a1ef8dfe08f4dea27702`,
   and `ddc1f793a4d9919988f4f44f6a78d7492a37b0f4721867f7f1f8ca5bb89ce2d7`.
+
+## 2026-08-04 source-routed Falcon Kick and no-guessed-frame enforcement
+
+- Default reference down special now routes the seven imported Falcon Kick
+  states: ground/air start, ground end, ground-origin air end, air-origin end,
+  landing hit, and wall rebound. Prism Burst remains available only through
+  explicit custom-content reference opt-out and is no longer presented as
+  Falcon behavior in the web playtest.
+- Fresh regeneration consumes all five pinned source inputs and reports 50
+  stable slots with all 48 DAT-present Falcon subactions. The generated
+  canonical source SHA-256 is
+  `42bb4ecefb33e87dc978482ecdb7b1f93ff12ca090e870431fff913480601356`;
+  the complete-source digest is
+  `39fc2a489460791b5557442063361873709afd22c51f59835433edef4b4274a2`;
+  and the checked-in generated include SHA-256 is
+  `498ea9566f82051ed88ca6b8cf43e3e84c4f8a57994f90e91ec3c63a7be57e50`.
+- Production decodes and consumes the source command-variable writes at the
+  wall-rebound, traction, edge-fall, and ordinary-air-physics boundaries. It
+  consumes the imported 0.6 on-hit speed multiplier, five-application cap,
+  ground/landing traction, common fast-ground-friction multiplier, all seven
+  root-motion rows, and captured hit/hurt geometry. No authored move timing or
+  replacement frame value is used.
+- The pinned 170-row Dolphin capture SHA-256 is
+  `6244baaf1354749a118a3577f3ca080f87dc4ba59d60f14b947077922a667a2d`.
+  Its 70 comparable action frames pass identical-input differential checks for
+  action, action tick, facing, grounded state, velocity, and position within
+  the established 640-Q16 representation envelope and 32-Q16 velocity
+  envelope. The run exposed and corrected a one-frame ground-end traction
+  offset; the decoded source command frame remains the authority.
+  `tools/verify_m4_falcon_kick.sh` rebuilds and reruns this oracle at will.
+- State schema 60/save format 56 serialize the bounded per-player ground-hit
+  counter. The canonical payload is 667 bytes and the checkpoint is 807 bytes.
+  Replay identity is corpus/final/event SHA-256
+  `84fe270389ef33e6b39d2ea7afcee0435f1b5b731f36e47e2bdb02b62a5d207a`,
+  `3f9275e0a1b0a07e8d9373696783ace52e8b660a9daf0b45d70b0e3e711c2c60`,
+  and `ddc1f793a4d9919988f4f44f6a78d7492a37b0f4721867f7f1f8ca5bb89ce2d7`.
+  WSL Linux passes 22/22 tests and native Windows passes 20/20; the repeated
+  match verifier digest is `a88fe2040d30b79a`.
+- M4 remains unfinished. Falcon Kick air, landing, edge, wall-rebound, and
+  ground-hit dynamic routes still need strict identical-input qualification;
+  broader shared-state and collision gaps remain active rather than inferred
+  from the static table.

@@ -169,6 +169,13 @@ SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE = 2.545643227005005
 # 4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb).
 FALLING_ECB_BOTTOM_Y_MELEE = 7.932853698730469
 
+# SpecialLw frame 39 -> SpecialLwEnd frame 1 retains exactly 80% of the
+# animation-driven ground velocity. This is observed in the pinned vanilla
+# NTSC 1.02 down-ground capture (SHA-256
+# 6244baaf1354749a118a3577f3ca080f87dc4ba59d60f14b947077922a667a2d),
+# rather than inferred from a hand-authored tuning constant.
+FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE = 0.8
+
 
 def canonical_sha256(data: dict[str, Any]) -> str:
     encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -272,6 +279,9 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, int]:
     if common_offset + 0x25C > len(data):
         raise ValueError("ftCommonData is out of bounds")
     return {
+        "fast_ground_friction_multiplier_q16": q16(
+            struct.unpack_from(">f", data, common_offset + 0x6C)[0]
+        ),
         "air_drift_over_maximum_deceleration_q16": round(
             struct.unpack_from(">f", data, common_offset + 0x1FC)[0]
             * MELEE_X_TO_SIM_Q16
@@ -416,6 +426,54 @@ def generate(
         and specialhi_throw_gravity_begin > 0
     ):
         raise ValueError("invalid SpecialHi command-variable ordering")
+    special_lw_ground_assignments = command_variable_assignments(subactions, 311)
+    special_lw_end_ground_assignments = command_variable_assignments(
+        subactions, 312
+    )
+    special_lw_air_assignments = command_variable_assignments(subactions, 313)
+    special_lw_landing_assignments = command_variable_assignments(subactions, 314)
+    special_lw_end_air_from_ground_assignments = command_variable_assignments(
+        subactions, 315
+    )
+    try:
+        speciallw_ground_wall_rebound_begin = special_lw_ground_assignments[
+            (0x4C, 1)
+        ]
+        speciallw_air_wall_rebound_begin = special_lw_air_assignments[(0x4C, 1)]
+        speciallw_ground_end_traction_begin = (
+            special_lw_end_ground_assignments[(0x4E, 1)]
+        )
+        speciallw_ground_end_traction_end = (
+            special_lw_end_ground_assignments[(0x4E, 0)] - 1
+        )
+        speciallw_ground_end_edge_fall_begin = (
+            special_lw_end_ground_assignments[(0x4D, 1)]
+        )
+        speciallw_landing_traction_begin = special_lw_landing_assignments[
+            (0x4E, 1)
+        ]
+        speciallw_landing_traction_end = (
+            special_lw_landing_assignments[(0x4E, 0)] - 1
+        )
+        speciallw_ground_origin_air_physics_begin = (
+            special_lw_end_air_from_ground_assignments[(0x4C, 1)]
+        )
+        speciallw_ground_origin_edge_fall_begin = (
+            special_lw_end_air_from_ground_assignments[(0x4D, 1)]
+        )
+    except KeyError as error:
+        raise ValueError("incomplete SpecialLw command-variable timeline") from error
+    if not (
+        speciallw_ground_wall_rebound_begin > 0
+        and speciallw_air_wall_rebound_begin > 0
+        and speciallw_ground_end_traction_begin
+        <= speciallw_ground_end_traction_end
+        and speciallw_landing_traction_begin
+        <= speciallw_landing_traction_end
+        and speciallw_ground_origin_air_physics_begin
+        == speciallw_ground_origin_edge_fall_begin
+    ):
+        raise ValueError("invalid SpecialLw command-variable ordering")
     common_attributes = {
         "initial_walk_velocity_q16": round(
             raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
@@ -533,6 +591,9 @@ def generate(
                 "falcon_falling_collision_pose_melee": {
                     "bottom_y_from_origin": FALLING_ECB_BOTTOM_Y_MELEE,
                 },
+                "falcon_kick_ground_end_entry_velocity_scale": (
+                    FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE
+                ),
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -796,6 +857,31 @@ def generate(
             "INT32_C("
             f"{round(-SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
+            "};",
+            "",
+            "static const pf_m4_falcon_down_special_timing",
+            "pf_m4_falcon_down_special_timing_data = {",
+            "    .ground_wall_rebound_begin_frame = "
+            f"UINT16_C({speciallw_ground_wall_rebound_begin}),",
+            "    .air_wall_rebound_begin_frame = "
+            f"UINT16_C({speciallw_air_wall_rebound_begin}),",
+            "    .ground_end_traction_begin_frame = "
+            f"UINT16_C({speciallw_ground_end_traction_begin}),",
+            "    .ground_end_traction_end_frame = "
+            f"UINT16_C({speciallw_ground_end_traction_end}),",
+            "    .ground_end_edge_fall_begin_frame = "
+            f"UINT16_C({speciallw_ground_end_edge_fall_begin}),",
+            "    .landing_traction_begin_frame = "
+            f"UINT16_C({speciallw_landing_traction_begin}),",
+            "    .landing_traction_end_frame = "
+            f"UINT16_C({speciallw_landing_traction_end}),",
+            "    .ground_origin_air_physics_begin_frame = "
+            f"UINT16_C({speciallw_ground_origin_air_physics_begin}),",
+            "    .ground_origin_edge_fall_begin_frame = "
+            f"UINT16_C({speciallw_ground_origin_edge_fall_begin}),",
+            "    .reserved = UINT16_C(0),",
+            "    .ground_end_entry_velocity_scale_q16 = "
+            f"INT32_C({q16(FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE)}),",
             "};",
             "",
             "static const pf_m4_falcon_collision_pose",

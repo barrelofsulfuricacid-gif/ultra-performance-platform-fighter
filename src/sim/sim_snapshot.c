@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)663)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)667)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -553,6 +553,10 @@ static void pf_write_payload(
         sizeof(world->attack_stale_registered));
     pf_writer_bytes(
         writer,
+        world->falcon_kick_hit_count,
+        sizeof(world->falcon_kick_hit_count));
+    pf_writer_bytes(
+        writer,
         world->stale_move_count,
         sizeof(world->stale_move_count));
     pf_writer_bytes(
@@ -1032,6 +1036,10 @@ static void pf_read_payload(
         sizeof(world->attack_stale_registered));
     pf_reader_bytes(
         reader,
+        world->falcon_kick_hit_count,
+        sizeof(world->falcon_kick_hit_count));
+    pf_reader_bytes(
+        reader,
         world->stale_move_count,
         sizeof(world->stale_move_count));
     pf_reader_bytes(
@@ -1468,7 +1476,29 @@ static int pf_m4_snapshot_action_is_reference_air_special(uint8_t action)
            action ==
                (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW ||
            action ==
-               (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL;
+               (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_START_AIR ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_END_AIR ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND;
+}
+
+static int pf_m4_snapshot_action_is_ground_falcon_kick(uint8_t action)
+{
+    return action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_END_GROUND ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_LANDING ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND;
 }
 
 static int pf_m4_snapshot_action_is_ground_falcon_dive_start(
@@ -1849,6 +1879,8 @@ static int pf_m4_player_state_consistent(
             pf_m4_snapshot_action_is_falcon_dive_capture_holder(
                 action,
                 world->hitlag_resume_action[player_index]);
+        const int ground_falcon_kick =
+            pf_m4_snapshot_action_is_ground_falcon_kick(action);
 
         return support != (uint8_t)PF_M4_SURFACE_NONE &&
                action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
@@ -1864,7 +1896,8 @@ static int pf_m4_player_state_consistent(
                    (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR &&
                (!pf_m4_snapshot_action_is_reference_air_special(action) ||
                 ground_falcon_dive_start != 0 ||
-                falcon_dive_capture != 0) &&
+                falcon_dive_capture != 0 ||
+                ground_falcon_kick != 0) &&
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
@@ -1879,7 +1912,8 @@ static int pf_m4_player_state_consistent(
                (world->recovery_available[player_index] == UINT8_C(1) ||
                 ground_falcon_dive_start != 0 ||
                 falcon_dive_capture != 0 ||
-                falcon_dive_landing != 0);
+                falcon_dive_landing != 0 ||
+                ground_falcon_kick != 0);
     }
     if (support != (uint8_t)PF_M4_SURFACE_NONE)
     {
@@ -1921,6 +1955,8 @@ static int pf_m4_player_state_consistent(
 
 pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
 {
+    const pf_m4_falcon_special_attributes *falcon_attributes =
+        pf_m4_falcon_reference_special_attributes();
     const uint32_t known_faults =
         (uint32_t)PF_SIM_FAULT_ARITHMETIC |
         (uint32_t)PF_SIM_FAULT_CAPACITY |
@@ -1931,7 +1967,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
     uint8_t expected_shield_recoil_mask = UINT8_C(0);
     uint8_t ledge_claims = UINT8_C(0);
 
-    if (world == NULL ||
+    if (world == NULL || falcon_attributes == NULL ||
+        falcon_attributes->speciallw_unk2 < INT32_C(0) ||
+        falcon_attributes->speciallw_unk2 >= (int32_t)UINT8_MAX ||
         world->state_schema_version != PF_SIM_STATE_SCHEMA_VERSION ||
         world->arithmetic_version != PF_SIM_ARITHMETIC_VERSION ||
         world->rng_version != PF_SIM_RNG_VERSION ||
@@ -2233,7 +2271,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
                 action >
-                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING ||
+                    (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2348,6 +2386,23 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (world->active[player_index] == UINT8_C(0) &&
                  world->attack_stale_registered[player_index] !=
                      UINT8_C(0)) ||
+                world->falcon_kick_hit_count[player_index] >
+                    (uint8_t)(
+                        falcon_attributes->speciallw_unk2 + INT32_C(1)) ||
+                (world->falcon_kick_hit_count[player_index] !=
+                     UINT8_C(0) &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND &&
+                 action !=
+                     (uint8_t)PF_M4_ACTION_FALCON_KICK_END_GROUND &&
+                 action !=
+                     (uint8_t)
+                         PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND &&
+                 (action != (uint8_t)PF_M4_ACTION_HITLAG ||
+                  (resume_action !=
+                       (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND &&
+                   resume_action !=
+                       (uint8_t)PF_M4_ACTION_FALCON_KICK_END_GROUND))) ||
                 ((action ==
                       (uint8_t)PF_M4_ACTION_INITIAL_DASH ||
                   action ==
@@ -2425,6 +2480,12 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_CHARGE_RELEASE_GROUND &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
+                 resume_action !=
+                     (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND &&
+                 resume_action !=
+                     (uint8_t)PF_M4_ACTION_FALCON_KICK_START_AIR &&
+                 resume_action !=
+                     (uint8_t)PF_M4_ACTION_FALCON_KICK_LANDING &&
                  !pf_m4_snapshot_action_is_throw(resume_action) &&
                  resume_action != (uint8_t)PF_M4_ACTION_HITSTUN &&
                  resume_action !=

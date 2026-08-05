@@ -147,6 +147,7 @@ typedef struct pf_world_state
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
+    uint8_t falcon_kick_hit_count[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_count[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_ids[PF_SIM_MAX_PLAYERS]
                           [PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
@@ -238,6 +239,7 @@ typedef struct pf_sim_scratch
     uint8_t hitlag_resume_action[PF_SIM_MAX_PLAYERS];
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
+    uint8_t falcon_kick_hit_count[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_count[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_ids[PF_SIM_MAX_PLAYERS]
                           [PF_SIM_STALE_MOVE_QUEUE_CAPACITY];

@@ -62,6 +62,10 @@ uint8_t pf_m4_stale_move_id_for_action(uint8_t action_state)
         case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
         case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
             return (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND;
+        case PF_M4_ACTION_FALCON_KICK_START_GROUND:
+        case PF_M4_ACTION_FALCON_KICK_START_AIR:
+        case PF_M4_ACTION_FALCON_KICK_LANDING:
+            return (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND;
         default:
             return UINT8_C(0);
     }
@@ -4390,6 +4394,26 @@ pf_status pf_m4_resolve_combat(
             uint16_t resolved_hitlag_ticks = attack.hitlag_ticks;
             uint16_t resolved_hitstun_ticks = UINT16_MAX;
             int velocity_is_weighted = 0;
+
+            if (attacker_action[owner] ==
+                    (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND ||
+                attacker_action[owner] ==
+                    (uint8_t)PF_M4_ACTION_FALCON_KICK_END_GROUND)
+            {
+                const pf_m4_falcon_special_attributes *attributes =
+                    pf_m4_falcon_reference_special_attributes();
+
+                if (attributes == NULL ||
+                    attributes->speciallw_unk2 < INT32_C(0))
+                {
+                    return PF_STATUS_DETERMINISTIC_FAULT;
+                }
+                if ((int32_t)scratch->falcon_kick_hit_count[owner] <=
+                    attributes->speciallw_unk2)
+                {
+                    ++scratch->falcon_kick_hit_count[owner];
+                }
+            }
 
             if (attack.melee_knockback != NULL)
             {

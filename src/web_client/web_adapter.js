@@ -2113,13 +2113,13 @@ mergeInto(LibraryManager.library, {
     controls.appendChild(
       controlCard(
         "Player 1",
-        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Falcon Punch, Down + E Prism Burst reflector, Up + E Falcon Dive recovery from the ground or air, or hold F with Up + E to charge Arc Reservoir · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
+        "Keyboard: A / D dash or DI · Shift + A / D walk · Shift + S reduced-down shield drop · W or Space jump · F light / directional tilt, or hold full direction + F to charge a smash · H immediate uncharged strong · E Falcon Punch, Down + E Falcon Kick, Up + E Falcon Dive recovery from the ground or air, or hold F with Up + E to charge Arc Reservoir · T taunt · G full shield/trigger · F + G grab, or pick up/drop the nearby Relay Rod. Standard Gamepad 1: left stick or D-pad · right stick strong or buffered shield escape · bottom face light / directional tilt or charged smash · right face immediate uncharged strong · left face jump · top face special · Back/View taunt · bumpers full shield · analog triggers pressure-sensitive shield · light + shield grab/item. GameCube adapter: A light · B special · X/Y jump · C-stick strong or buffered shield escape · L/R shield · Z grab/item · Start taunt"
       )
     );
     controls.appendChild(
       controlCard(
         "Player 2",
-        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Falcon Punch, Down + special Prism Burst reflector, Up + special Falcon Dive recovery from the ground or air, or hold light with Up + special to charge Arc Reservoir · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
+        "Keyboard: ← / → dash or DI · Shift + horizontal arrows walk · Shift + ↓ reduced-down shield drop · ↑ jump · / or Numpad 0 light / directional tilt, or hold full direction + light to charge a smash · ' or Numpad 2 immediate uncharged strong · ; or Numpad 3 Falcon Punch, Down + special Falcon Kick, Up + special Falcon Dive recovery from the ground or air, or hold light with Up + special to charge Arc Reservoir · , taunt · . or Numpad 1 shield/trigger · light + shield grab/item. Supported controller 2 uses the same controller layout as Player 1"
       )
     );
     section.appendChild(controls);
@@ -2282,9 +2282,9 @@ mergeInto(LibraryManager.library, {
        "top face on a Standard Gamepad) for Falcon Punch on the ground or in the " +
        "air. Its source frame-50 aerial launch can be angled vertically with the " +
        "main stick. " +
-      "Hold down with special for the Prism Burst reflector: its two active " +
-      "frames strike nearby fighters down and away, and reverse an overlapping " +
-      "Pulse Bolt without using the powershield result. " +
+      "Hold down with special for source-routed Falcon Kick. Its ground, air, " +
+      "landing-hit, edge-fall, and wall-rebound states use the imported NTSC " +
+      "1.02 scripts, root motion, hitboxes, and traction. " +
       "From the ground or air, hold up and freshly press special for Falcon " +
       "Dive. Catching a fighter enters its source catch and throw sequence; a " +
       "whiff follows the imported aerial route and special-fall landing lag. " +
@@ -2292,8 +2292,8 @@ mergeInto(LibraryManager.library, {
       "by a once-per-airtime resource. On the ground, hold light while pressing " +
       "up plus special to enter " +
       "Arc Reservoir charge instead. To gimp, intercept an opponent's ascent " +
-      "with an aerial or Prism " +
-      "Burst so they miss the stage; leave the same recovery unchallenged for " +
+      "with an aerial or Falcon Kick so they miss the stage; leave the same " +
+      "recovery unchallenged for " +
       "the control. To stage-spike, fight below the raised block and launch the " +
       "opponent into its underside; a missed tech ceiling-bounces downward, " +
       "while a fresh trigger produces the ceiling-tech control. " +
@@ -3295,6 +3295,19 @@ mergeInto(LibraryManager.library, {
       "RAPTOR BOOST FALL HIT",
       "RAPTOR BOOST LANDING MISS",
       "RAPTOR BOOST LANDING HIT",
+      "FALCON DIVE START GROUND",
+      "FALCON DIVE START AIR",
+      "FALCON DIVE CATCH",
+      "FALCON DIVE THROW",
+      "FALCON DIVE FALL",
+      "FALCON DIVE LANDING",
+      "FALCON KICK START GROUND",
+      "FALCON KICK END GROUND",
+      "FALCON KICK START AIR",
+      "FALCON KICK LANDING",
+      "FALCON KICK END AIR FROM GROUND",
+      "FALCON KICK END AIR",
+      "FALCON KICK WALL REBOUND",
     ];
 
     if (view[1] < previousTick) {
@@ -4528,7 +4541,7 @@ mergeInto(LibraryManager.library, {
         " / 120f · Smash charge " +
         view[base + 44] +
         " / 60f" +
-        " · Falcon Dive source-routed" +
+        " · Falcon Dive + Falcon Kick source-routed" +
         "<br>revival platform " +
         (view[431 + playerIndex * 4] !== 0
           ? "ACTIVE · move/button to drop"

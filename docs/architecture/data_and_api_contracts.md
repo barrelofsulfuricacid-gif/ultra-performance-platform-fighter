@@ -615,6 +615,15 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+State schema 60/save format 56 append one bounded Falcon Kick ground-hit
+counter per fixed player slot and extend the canonical action domain through
+the seven source down-special states. The canonical payload is 667 bytes and
+the checkpoint is 807 bytes. Reset, inactive-slot zeroing, hitlag resume,
+save/load validation, replay transitions, native/Wasm hashing, and inspection
+all share that state. Content schema 69/fighter schema 62 remain current: the
+generated Falcon source already owns the imported down-special scripts,
+attributes, geometry, and root motion folded into content identity.
+
 State schema 59/save format 55 extend the canonical action domain with the
 source-routed Falcon Dive ground/air start, catch, throw, fall, and landing
 states. The payload and 803-byte checkpoint size are unchanged, but old peers,

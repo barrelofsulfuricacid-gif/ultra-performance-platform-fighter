@@ -686,6 +686,8 @@ pf_status pf_sim_tick_impl(
             scratch->attack_hit_mask[player_index];
         world->attack_stale_registered[player_index] =
             scratch->attack_stale_registered[player_index];
+        world->falcon_kick_hit_count[player_index] =
+            scratch->falcon_kick_hit_count[player_index];
         world->last_hit_attacker[player_index] =
             scratch->last_hit_attacker[player_index];
         world->shield_held[player_index] =

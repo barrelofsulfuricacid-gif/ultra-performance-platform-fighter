@@ -7,14 +7,14 @@
 /* PlCaAJ.dat SHA-256: a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a */
 /* PlCa.dat JSON SHA-256: fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266 */
 /* PlCo.dat SHA-256: 63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c */
-/* complete Falcon source SHA-256: 676813b2a18210c445771011668856b9b91fd5a3b2da8728236ee2899ef2ab64 */
+/* complete Falcon source SHA-256: 39fc2a489460791b5557442063361873709afd22c51f59835433edef4b4274a2 */
 
 static const uint8_t pf_m4_falcon_source_sha256[32] = {
     UINT8_C(0x42), UINT8_C(0xbb), UINT8_C(0x4e), UINT8_C(0xce), UINT8_C(0xfb), UINT8_C(0x33), UINT8_C(0xe8), UINT8_C(0x7d), UINT8_C(0xc9), UINT8_C(0x78), UINT8_C(0x48), UINT8_C(0x2e), UINT8_C(0xcd), UINT8_C(0xb7), UINT8_C(0xb1), UINT8_C(0xf9), UINT8_C(0x3f), UINT8_C(0xf1), UINT8_C(0x2c), UINT8_C(0xa0), UINT8_C(0x90), UINT8_C(0xe8), UINT8_C(0x70), UINT8_C(0x43), UINT8_C(0x1f), UINT8_C(0xff), UINT8_C(0x91), UINT8_C(0x34), UINT8_C(0x80), UINT8_C(0x60), UINT8_C(0x13), UINT8_C(0x56)
 };
 
 static const uint8_t pf_m4_falcon_complete_source_sha256[32] = {
-    UINT8_C(0x67), UINT8_C(0x68), UINT8_C(0x13), UINT8_C(0xb2), UINT8_C(0xa1), UINT8_C(0x82), UINT8_C(0x10), UINT8_C(0xc4), UINT8_C(0x45), UINT8_C(0x77), UINT8_C(0x10), UINT8_C(0x11), UINT8_C(0x66), UINT8_C(0x88), UINT8_C(0x56), UINT8_C(0xb9), UINT8_C(0xb9), UINT8_C(0x1f), UINT8_C(0xd5), UINT8_C(0xa3), UINT8_C(0xb2), UINT8_C(0xda), UINT8_C(0x87), UINT8_C(0x28), UINT8_C(0x23), UINT8_C(0x6e), UINT8_C(0xe2), UINT8_C(0x89), UINT8_C(0x9e), UINT8_C(0xf2), UINT8_C(0xab), UINT8_C(0x64)
+    UINT8_C(0x39), UINT8_C(0xfc), UINT8_C(0x2a), UINT8_C(0x48), UINT8_C(0x94), UINT8_C(0x60), UINT8_C(0x79), UINT8_C(0x1b), UINT8_C(0x55), UINT8_C(0x57), UINT8_C(0x44), UINT8_C(0x20), UINT8_C(0x63), UINT8_C(0x36), UINT8_C(0x18), UINT8_C(0x73), UINT8_C(0x70), UINT8_C(0x9a), UINT8_C(0xfd), UINT8_C(0x22), UINT8_C(0xc5), UINT8_C(0x1f), UINT8_C(0x59), UINT8_C(0x83), UINT8_C(0x54), UINT8_C(0x33), UINT8_C(0xed), UINT8_C(0xef), UINT8_C(0x4b), UINT8_C(0x42), UINT8_C(0x74), UINT8_C(0xa2)
 };
 
 static const uint32_t
@@ -81,6 +81,7 @@ pf_m4_falcon_common_attribute_data = {
 
 static const pf_m4_falcon_common_special_attributes
 pf_m4_falcon_common_special_attribute_data = {
+    .fast_ground_friction_multiplier_q16 = INT32_C(131072),
     .air_drift_over_maximum_deceleration_q16 = INT32_C(205),
     .side_special_stick_threshold_q16 = INT32_C(39322),
     .side_special_turn_threshold_q16 = INT32_C(13107),
@@ -149,6 +150,21 @@ pf_m4_falcon_up_special_timing_data = {
     .throw_gravity_begin_frame = UINT16_C(45),
     .grounded_throw_reposition_x_q16 = INT32_C(-73225),
     .grounded_throw_reposition_y_q16 = INT32_C(-29599),
+};
+
+static const pf_m4_falcon_down_special_timing
+pf_m4_falcon_down_special_timing_data = {
+    .ground_wall_rebound_begin_frame = UINT16_C(15),
+    .air_wall_rebound_begin_frame = UINT16_C(15),
+    .ground_end_traction_begin_frame = UINT16_C(2),
+    .ground_end_traction_end_frame = UINT16_C(29),
+    .ground_end_edge_fall_begin_frame = UINT16_C(9),
+    .landing_traction_begin_frame = UINT16_C(0),
+    .landing_traction_end_frame = UINT16_C(22),
+    .ground_origin_air_physics_begin_frame = UINT16_C(8),
+    .ground_origin_edge_fall_begin_frame = UINT16_C(8),
+    .reserved = UINT16_C(0),
+    .ground_end_entry_velocity_scale_q16 = INT32_C(52429),
 };
 
 static const pf_m4_falcon_collision_pose

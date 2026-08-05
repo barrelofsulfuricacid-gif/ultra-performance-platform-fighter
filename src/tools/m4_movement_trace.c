@@ -86,13 +86,19 @@ int main(int argc, char **argv)
     {
         falcon_dive_ground_catch_mode = 1;
     }
+    else if (
+        argc == 2 && strcmp(argv[1], "--falcon-kick-ground") == 0)
+    {
+        /* The ground oracle uses the runner's ordinary wide-floor setup. */
+    }
     else if (argc != 1)
     {
         (void)fprintf(
             stderr,
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
-            "--raptor-boost-ground-hit|--falcon-dive-ground-catch]\n");
+            "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
+            "--falcon-kick-ground]\n");
         return 1;
     }
 

@@ -820,7 +820,7 @@ int main(void)
             0,
             0,
             0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 66 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 123 ||
         test_view[TEST_EVENT_COUNT] != 1 ||
         test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 24 ||
         test_view[TEST_PROJECTILE_BASE + TEST_PROJECTILE_STATE] != 0 ||
@@ -841,10 +841,11 @@ int main(void)
             0,
             0,
             0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_HITBOX_ACTIVE] != 1 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 123 ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_HITBOX_ACTIVE] != 0 ||
         !pf_web_m4_playtest_reset())
     {
-        return fail("live-reflector-down-special-route");
+        return fail("live-falcon-kick-down-special-route");
     }
 
     if (!pf_web_m4_playtest_reset() ||

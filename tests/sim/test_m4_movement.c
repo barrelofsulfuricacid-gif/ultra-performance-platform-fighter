@@ -407,7 +407,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)803)
+        required_bytes != (size_t)807)
     {
         return 0;
     }
@@ -1083,7 +1083,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)803)
+        required_bytes != (size_t)807)
     {
         return 0;
     }
@@ -1351,7 +1351,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)803)
+        required_bytes != (size_t)807)
     {
         return 0;
     }
@@ -3202,7 +3202,7 @@ static int run_crouch_common_iasa_test(
                 PF_INPUT_BUTTON_SPECIAL,
                 &inspection) ||
             inspection.players[0].action_state !=
-                (uint8_t)PF_M4_ACTION_REFLECTOR_GROUND)
+                (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND)
         {
             (void)fprintf(
                 stderr,
@@ -4783,7 +4783,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -5063,7 +5063,7 @@ static int run_moonwalk_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "moonwalk-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -5615,7 +5615,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }
@@ -5958,7 +5958,7 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -6155,7 +6155,7 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -6464,7 +6464,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -6780,7 +6780,7 @@ static int run_dash_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "dash-cancel-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -7452,7 +7452,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }
@@ -7800,7 +7800,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }
@@ -8480,7 +8480,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)803)
+        required_bytes != (size_t)807)
     {
         return 0;
     }
@@ -9346,7 +9346,7 @@ static int run_upper_platform_test(
             pf_sim_save(source, &destination),
             PF_STATUS_OK,
             "upper-platform-save") ||
-        destination.size != (size_t)803)
+        destination.size != (size_t)807)
     {
         return 0;
     }
@@ -9666,7 +9666,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }
@@ -11130,7 +11130,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }
@@ -11356,7 +11356,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }
@@ -11637,7 +11637,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -12127,7 +12127,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -13221,7 +13221,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "vector-ascent-save-size") ||
-        save_size != (size_t)803)
+        save_size != (size_t)807)
     {
         return 0;
     }

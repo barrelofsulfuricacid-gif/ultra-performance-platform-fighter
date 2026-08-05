@@ -459,7 +459,7 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 13,456 captured frames, including a
+executable-oracle evidence is therefore 13,526 captured frames, including a
 116-frame grounded Falcon Dive catch/throw route with memory-probed ECB state.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
 inventory remain active work.
@@ -485,16 +485,22 @@ misclassified as attacks. The imported special timing, attributes, and
 geometry are not by themselves an equivalence claim. Default reference content
 now routes neutral special through the source Falcon Punch ground/air state
 machine, side special through the source Raptor Boost ground/air start,
-search-hit, miss, landing, and hit states, and up special through Falcon Dive
-ground/air start, catch, and throw; the original Pulse Bolt, Prism Burst, and
-Vector Ascent are explicit custom-content opt-outs. Arc Reservoir remains an
-original directional-special fixture until Falcon Kick is routed and
-qualified. A 46-frame identical-input Dolphin Raptor Boost hit
+search-hit, miss, landing, and hit states, up special through Falcon Dive
+ground/air start, catch, and throw, and down special through Falcon Kick's
+ground/air start, ground end, air end, landing-hit, edge-fall, and wall-rebound
+states. The original Pulse Bolt, Prism Burst, Vector Ascent, and Arc Reservoir
+are explicit custom-content opt-outs. A 46-frame identical-input Dolphin Raptor Boost hit
 trace strictly matches action transitions and velocities and matches position
 within the bounded 640-Q16 representation allowance.
 A separate 116-frame grounded Falcon Dive capture strictly matches catch,
 hitlag, captured-target attachment, throw release, source relocation/root
 motion, fall, and floor landing within the same representation allowance.
+A 70-frame Falcon Kick ground capture strictly matches the imported start and
+ground-end actions, root translation, velocity, and decoded traction-command
+boundary within that same allowance. Its ground-hit speed callback and cap,
+the air/end/landing/rebound graph, and all hit geometry consume the imported
+tables; remaining Falcon Kick dynamic routes still require identical-input
+qualification before their behavior is called exhaustive.
 Hurt capsules for remaining common actions, source-Z collision semantics,
 normal-throw collateral hits, and exact sphere-versus-shield intersection
 remain explicit M4 gaps and must be extracted or qualified rather than

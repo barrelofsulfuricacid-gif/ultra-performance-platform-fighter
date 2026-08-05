@@ -242,6 +242,7 @@ typedef struct pf_m4_falcon_special_attributes
 
 typedef struct pf_m4_falcon_common_special_attributes
 {
+    int32_t fast_ground_friction_multiplier_q16;
     int32_t air_drift_over_maximum_deceleration_q16;
     int32_t side_special_stick_threshold_q16;
     int32_t side_special_turn_threshold_q16;
@@ -272,6 +273,21 @@ typedef struct pf_m4_falcon_up_special_timing
     int32_t grounded_throw_reposition_x_q16;
     int32_t grounded_throw_reposition_y_q16;
 } pf_m4_falcon_up_special_timing;
+
+typedef struct pf_m4_falcon_down_special_timing
+{
+    uint16_t ground_wall_rebound_begin_frame;
+    uint16_t air_wall_rebound_begin_frame;
+    uint16_t ground_end_traction_begin_frame;
+    uint16_t ground_end_traction_end_frame;
+    uint16_t ground_end_edge_fall_begin_frame;
+    uint16_t landing_traction_begin_frame;
+    uint16_t landing_traction_end_frame;
+    uint16_t ground_origin_air_physics_begin_frame;
+    uint16_t ground_origin_edge_fall_begin_frame;
+    uint16_t reserved;
+    int32_t ground_end_entry_velocity_scale_q16;
+} pf_m4_falcon_down_special_timing;
 
 typedef struct pf_m4_falcon_collision_pose
 {
@@ -366,6 +382,9 @@ pf_m4_falcon_reference_side_special_timing(void);
 
 const pf_m4_falcon_up_special_timing *
 pf_m4_falcon_reference_up_special_timing(void);
+
+const pf_m4_falcon_down_special_timing *
+pf_m4_falcon_reference_down_special_timing(void);
 
 const pf_m4_falcon_collision_pose *
 pf_m4_falcon_reference_collision_pose(void);

@@ -369,6 +369,27 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
+    falcon_kick_ground_mode = any(
+        str(row.get("label", "")) == "special_geometry_down_ground_start"
+        for row in oracle_rows
+    )
+    if falcon_kick_ground_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_down_ground_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_idle_after_special = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if index > 0 and str(row.get("action", "")) == "STANDING"
+            ),
+            len(oracle_rows) - 1,
+        )
+        oracle_rows = oracle_rows[: first_idle_after_special + 1]
     push_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("push_")
@@ -450,6 +471,8 @@ def main() -> int:
         runner_command.append("--raptor-boost-ground-hit")
     elif falcon_dive_ground_catch_mode:
         runner_command.append("--falcon-dive-ground-catch")
+    elif falcon_kick_ground_mode:
+        runner_command.append("--falcon-kick-ground")
     completed = subprocess.run(
         runner_command,
         input=input_text,
@@ -567,6 +590,12 @@ def main() -> int:
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
+        if falcon_kick_ground_mode:
+            expected_action = {
+                "SWORD_DANCE_4_LOW": 123,
+                "SWORD_DANCE_1_AIR": 124,
+                "STANDING": 0,
+            }.get(action_name, expected_action)
         if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
         if (
@@ -598,6 +627,13 @@ def main() -> int:
                 expected_ticks = None
             elif action_name == "LANDING_SPECIAL":
                 expected_ticks = action_frame - 1
+        if falcon_kick_ground_mode:
+            if action_name == "SWORD_DANCE_4_LOW":
+                expected_ticks = action_frame
+            elif action_name == "SWORD_DANCE_1_AIR":
+                expected_ticks = action_frame - 1
+            elif action_name == "STANDING":
+                expected_ticks = 0
         if shield_hit_mode or (
             raptor_boost_ground_hit_mode
             and float(oracle.get("hitlag_left", 0.0)) > 0.0

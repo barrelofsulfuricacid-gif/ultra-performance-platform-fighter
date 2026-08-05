@@ -82,6 +82,12 @@ pf_m4_falcon_reference_up_special_timing(void)
     return &pf_m4_falcon_up_special_timing_data;
 }
 
+const pf_m4_falcon_down_special_timing *
+pf_m4_falcon_reference_down_special_timing(void)
+{
+    return &pf_m4_falcon_down_special_timing_data;
+}
+
 const pf_m4_falcon_collision_pose *
 pf_m4_falcon_reference_collision_pose(void)
 {
@@ -414,6 +420,27 @@ int pf_m4_falcon_reference_move_for_action(
             break;
         case PF_M4_ACTION_FALCON_DIVE_THROW:
             move_index = PF_M4_FALCON_UP_SPECIAL_THROW;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_START_GROUND:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_GROUND;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_END_GROUND:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_END_GROUND;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_START_AIR:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_AIR;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_LANDING:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_LANDING_HIT;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_END_AIR_FROM_GROUND;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_END_AIR:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_END_AIR;
+            break;
+        case PF_M4_ACTION_FALCON_KICK_WALL_REBOUND:
+            move_index = PF_M4_FALCON_DOWN_SPECIAL_WALL_REBOUND;
             break;
         default:
             return 0;
