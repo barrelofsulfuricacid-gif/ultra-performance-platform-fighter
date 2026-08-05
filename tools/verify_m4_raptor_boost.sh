@@ -5,7 +5,7 @@ root=$(git rev-parse --show-toplevel)
 ground_hit_capture=${1:-/tmp/falcon_special_geometry_side_ground_hit_v1.json}
 output_dir=${2:-/tmp/m4_raptor_boost}
 remaining_capture=${3:-/tmp/falcon_special_geometry_side_misses_ecb_v2.json}
-air_hit_capture=${4:-/tmp/falcon_special_geometry_side_air_hit_v4.json}
+air_hit_capture=${4:-/tmp/falcon_special_geometry_side_air_hit_floor_v1.json}
 compiler=${CC:-cc}
 python=${PYTHON:-python3}
 
@@ -76,8 +76,8 @@ common_flags="
 "$python" "$root/tools/compare_ssbm_movement.py" \
     "$air_hit_capture" \
     "$output_dir/pf_m4_movement_trace" \
-    --special-geometry-route side_air_hit \
+    --special-geometry-route side_air_hit_floor \
     --native-output "$output_dir/air-hit.csv" \
     --native-input-output "$output_dir/air-hit.inputs"
 
-echo "m4-raptor-boost-verification=pass ground_hit_frames=46 ground_miss_frames=80 air_miss_frames=180 air_hit_frames=55 total_frames=361"
+echo "m4-raptor-boost-verification=pass ground_hit_frames=46 ground_miss_frames=80 air_miss_frames=180 air_hit_floor_frames=145 total_frames=451"

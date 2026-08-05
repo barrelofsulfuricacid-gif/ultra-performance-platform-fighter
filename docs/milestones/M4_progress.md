@@ -3545,3 +3545,35 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   remains unfinished: Raptor Boost aerial-hit tail, edge conversions, and source
   item-search behavior, Falcon Dive edge behavior, and broader shared-state
   fidelity gaps remain active work.
+
+## 2026-08-05 complete Raptor Boost aerial hit and landing route
+
+- A new 192-row natural-floor Dolphin capture has SHA-256
+  `f3f8518c103958f6b6e56e76b5bc728c0b3da0854f26a022fac978869f6d051b`.
+  One pre-action relocation establishes the same separation as the native
+  fixture; after that, both fighters jump through controller input and no
+  position or fighter state is held or modified during comparison.
+- The former 55-frame aerial-hit slice is replaced by 145 strict frames. They
+  qualify frame-18 search conversion, exact imported frame-3 seven-damage
+  contact, five-frame hitlag, the complete natural pre-landing hit-state tail,
+  natural
+  floor contact, all 40 hit-landing-lag ticks, and return to standing. The
+  at-will Raptor verifier now covers 451 frames in total.
+- The natural route exposed a one-frame-early landing caused by the generic
+  body extent. A separate complete memory capture at SHA-256
+  `86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e`
+  supplies every displayed frame 0 through 44 of `SpecialAirS`'s live ECB
+  bottom. Production consumes that generated 45-entry Q16.16 table through
+  the existing collision-pose view and preserves incoming vertical velocity
+  on the transition row; no tuned collision constant or duplicated state was
+  added.
+- Regeneration from all five pinned Falcon inputs byte-matches the generated
+  include at SHA-256
+  `7d1d7da573f112080ddf4aaecebfc8dd375c3724786f8d844e6dfab496bca1cf`.
+  The expanded complete-source digest is
+  `e57a62aa980c0895d7e362ff83d45d80f64125ef5f6c2f0a7b07a934fbf8c275`,
+  and the refreshed eight-match verifier digest is `083493fa2ea1613e`.
+- Aggregate owner-executable evidence is now 14,620 captured frames. Raptor
+  Boost still requires ground edge-conversion and source item-search routes;
+  Falcon Dive edge behavior and broader common-state fidelity remain active
+  M4 work.

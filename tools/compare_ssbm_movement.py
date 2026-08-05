@@ -277,7 +277,12 @@ def main() -> int:
     )
     parser.add_argument(
         "--special-geometry-route",
-        choices=("side_ground_miss", "side_air_miss", "side_air_hit"),
+        choices=(
+            "side_ground_miss",
+            "side_air_miss",
+            "side_air_hit",
+            "side_air_hit_floor",
+        ),
         help="select one route from a combined special-geometry capture",
     )
     args = parser.parse_args()
@@ -385,16 +390,25 @@ def main() -> int:
             == "special_geometry_side_air_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
-    raptor_boost_air_hit_mode = any(
+    raptor_boost_air_hit_floor_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_side_air_hit_floor_start"
+        for row in oracle_rows
+    )
+    raptor_boost_air_hit_mode = raptor_boost_air_hit_floor_mode or any(
         str(row.get("label", "")) == "special_geometry_side_air_hit_start"
         for row in oracle_rows
     )
     if raptor_boost_air_hit_mode:
+        start_label = (
+            "special_geometry_side_air_hit_floor_start"
+            if raptor_boost_air_hit_floor_mode
+            else "special_geometry_side_air_hit_start"
+        )
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_side_air_hit_start"
+            if str(row.get("label", "")) == start_label
         )
         oracle_rows = oracle_rows[first_special_row:]
         # The native fixture reaches its ordinary floor on the executable's
@@ -402,16 +416,18 @@ def main() -> int:
         # y=500. Qualify every source frame before that unrelated stage
         # contact, including the complete active/hitlag interval and 30
         # recovery frames; edge/landing conversion remains a separate route.
-        first_fixture_floor_boundary = next(
-            (
-                index
-                for index, row in enumerate(oracle_rows)
-                if str(row.get("action", "")) == "SWORD_DANCE_3_HIGH"
-                and round(float(row.get("action_frame", 0.0))) >= 34
-            ),
-            len(oracle_rows),
-        )
-        oracle_rows = oracle_rows[:first_fixture_floor_boundary]
+        if not raptor_boost_air_hit_floor_mode:
+            first_fixture_floor_boundary = next(
+                (
+                    index
+                    for index, row in enumerate(oracle_rows)
+                    if str(row.get("action", ""))
+                    == "SWORD_DANCE_3_HIGH"
+                    and round(float(row.get("action_frame", 0.0))) >= 34
+                ),
+                len(oracle_rows),
+            )
+            oracle_rows = oracle_rows[:first_fixture_floor_boundary]
     falcon_dive_ground_miss_mode = any(
         str(row.get("label", ""))
         == "special_geometry_up_ground_miss_start"
@@ -895,6 +911,8 @@ def main() -> int:
                 "SWORD_DANCE_2_MID": 111,
                 "SWORD_DANCE_3_HIGH": 112,
                 "DEAD_FALL": 114,
+                "LANDING_SPECIAL": 116,
+                "STANDING": 0,
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
@@ -987,6 +1005,10 @@ def main() -> int:
                 expected_ticks = action_frame
             elif action_name == "DEAD_FALL":
                 expected_ticks = action_frame - 1
+            elif action_name == "LANDING_SPECIAL":
+                expected_ticks = None
+            elif action_name == "STANDING":
+                expected_ticks = 0
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode

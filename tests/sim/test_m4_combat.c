@@ -21629,6 +21629,8 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_special_attributes();
     const pf_m4_falcon_common_special_attributes *common_special_attributes =
         pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_collision_pose *collision_pose =
+        pf_m4_falcon_reference_collision_pose();
     const pf_m4_melee_stale_move_data *stale_move_data =
         pf_m4_falcon_reference_stale_move_data();
     const pf_m4_falcon_side_special_timing *side_special_timing =
@@ -21896,8 +21898,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x66) ||
-        complete_source_sha256[31] != UINT8_C(0xf3) ||
+        complete_source_sha256[0] != UINT8_C(0xe5) ||
+        complete_source_sha256[31] != UINT8_C(0x75) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -21945,6 +21947,13 @@ static int run_falcon_reference_table_test(void)
             INT32_C(13107) ||
         common_special_attributes->air_drift_dead_zone_q16 !=
             INT32_C(6554) ||
+        collision_pose == NULL ||
+        collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[0] !=
+            INT32_C(25701) ||
+        collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[34] !=
+            INT32_C(19452) ||
+        collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[44] !=
+            INT32_C(27795) ||
         stale_move_data == NULL ||
         stale_move_data->slot_reduction_q16[0] != UINT16_C(5898) ||
         stale_move_data->slot_reduction_q16[8] != UINT16_C(655) ||

@@ -102,10 +102,10 @@ ratios. The importer also decodes `ftLoadCommonData` pointer 3, the exact
 that generated nine-slot view into default content. The raw attributes, typed
 views, special block, action table, collision poses, Falcon Dive victim reaction
 boundary, and source hashes form complete-source SHA-256
-`6614ac4e4a9956327abeca886ece87e04ac598224c154efeb9981908005021f3`.
+`e57a62aa980c0895d7e362ff83d45d80f64125ef5f6c2f0a7b07a934fbf8c275`.
 Fresh regeneration from the five pinned inputs byte-matches the checked-in
 include at SHA-256
-`d4e3e787b515fb04f05f205133aca2f33ff12308d72763d2c3249132d0c20402`.
+`7d1d7da573f112080ddf4aaecebfc8dd375c3724786f8d844e6dfab496bca1cf`.
 The production ground/aerial Falcon Punch, Raptor Boost, Falcon Dive, and all
 seven Falcon Kick states consume this imported data directly. The project's
 original directional-special fixtures are not evidence for those source
@@ -140,22 +140,27 @@ Dolphin memory capture containing its two miss routes has SHA-256
 `81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602`.
 `tools/verify_m4_raptor_boost.sh` selects the routes directly from that pinned
 capture and compares 80 grounded-miss and 180 aerial-miss frames in addition
-to the existing 46-frame ground hit. A separate 186-row aerial-hit capture at
-SHA-256
-`8eda88a578afb770af4d28a0a166413d2ee3ecf9da38fb533b45012c958e262a`
-adds 55 comparable frames. The native fixture launches both fighters through
-ordinary input and qualifies frame-18 search conversion, the imported active
-frame-3 seven-damage hit, five-frame hitlag, and hit-state recovery through
-displayed frame 33. It then reaches its ordinary floor while the isolated
-Dolphin capture remains held at y=500; the unsampled action tail and
-landing/edge conversion are not claimed. Both miss paths enter the same imported
+to the existing 46-frame ground hit. A 192-row natural-floor aerial-hit
+capture at SHA-256
+`f3f8518c103958f6b6e56e76b5bc728c0b3da0854f26a022fac978869f6d051b`
+adds 145 comparable frames. After one pre-action setup relocation, both
+fighters launch only through controller input; no position is held or changed
+during the compared route. It qualifies frame-18 search conversion, the
+imported active frame-3 seven-damage hit, five-frame hitlag, the full hit-state
+natural pre-landing tail, air-to-ground conversion, all 40 landing-lag ticks,
+and standing return.
+A separate complete-state capture at SHA-256
+`86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e`
+supplies all displayed frames 0 through 44 of `SpecialAirS`'s live ECB bottom.
+The generated 45-entry Q16.16 table delays floor contact by the exact one frame
+observed in the natural route and retains incoming vertical velocity on the
+first landing row. Both miss paths enter the same imported
 eight-frame common `FallSpecial` ECB-bottom cycle used by Falcon Dive through
 one allocation-free action predicate; no duplicate Raptor pose table exists.
 The aerial transition row applies Falcon's ordinary imported gravity, as the
 executable does, instead of suppressing it as if the active special were still
 launching the fighter. Remaining executable qualification is explicitly
-limited to the aerial-hit tail, edge conversions, and source item-search
-behavior.
+limited to edge conversions and source item-search behavior.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,

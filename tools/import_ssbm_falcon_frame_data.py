@@ -196,6 +196,60 @@ FALL_SPECIAL_ECB_BOTTOM_Y_MELEE = (
     2.2265543937683105,
 )
 
+# SpecialAirS is collision-animated independently of the common airborne body.
+# These are all displayed frames 0 through 44 from the pinned direct-memory
+# capture SHA-256
+# 86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e.
+# The separate natural-floor capture proves that frame 34's bottom delays
+# LandingFallSpecial by one frame compared with the generic body extent.
+RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE = (
+    2.21038818359375,
+    1.148101806640625,
+    1.119384765625,
+    1.149749755859375,
+    1.190185546875,
+    1.200103759765625,
+    1.35498046875,
+    0.0,
+    0.0,
+    0.97576904296875,
+    1.887542724609375,
+    2.355865478515625,
+    2.4384765625,
+    2.51934814453125,
+    2.494232177734375,
+    2.37939453125,
+    2.3909912109375,
+    2.5333251953125,
+    2.59649658203125,
+    2.580230712890625,
+    2.52886962890625,
+    2.797637939453125,
+    1.94158935546875,
+    1.239166259765625,
+    0.95928955078125,
+    1.274505615234375,
+    2.072601318359375,
+    2.61260986328125,
+    2.182159423828125,
+    1.88592529296875,
+    1.7708740234375,
+    1.70269775390625,
+    1.670013427734375,
+    1.6629638671875,
+    1.672943115234375,
+    1.69244384765625,
+    1.714813232421875,
+    1.734375,
+    1.746063232421875,
+    1.745758056640625,
+    1.730194091796875,
+    1.697662353515625,
+    1.83013916015625,
+    2.544525146484375,
+    2.3905029296875,
+)
+
 # SpecialLw frame 39 -> SpecialLwEnd frame 1 retains exactly 80% of the
 # animation-driven ground velocity. This is observed in the pinned vanilla
 # NTSC 1.02 down-ground capture (SHA-256
@@ -632,6 +686,11 @@ def generate(
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
                 },
+                "falcon_raptor_boost_hit_air_collision_pose_melee": {
+                    "bottom_y_from_origin": (
+                        RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE
+                    ),
+                },
                 "falcon_kick_ground_end_entry_velocity_scale": (
                     FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE
                 ),
@@ -953,6 +1012,14 @@ def generate(
             + ", ".join(
                 f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
                 for value in FALL_SPECIAL_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
+            "    .raptor_boost_hit_air_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE
             )
             + ",",
             "    },",

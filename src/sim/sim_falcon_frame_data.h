@@ -6,6 +6,7 @@
 #define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
+#define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
 
 typedef enum pf_m4_falcon_move_index
 {
@@ -303,6 +304,8 @@ typedef struct pf_m4_falcon_collision_pose
     int32_t falling_bottom_y_from_origin_q16;
     int32_t fall_special_bottom_y_from_origin_q16[
         PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT];
+    int32_t raptor_boost_hit_air_bottom_y_from_origin_q16[
+        PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT];
 } pf_m4_falcon_collision_pose;
 
 typedef struct pf_m4_reference_search_sphere

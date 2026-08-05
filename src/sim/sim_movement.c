@@ -1434,10 +1434,28 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
 {
     const pf_m4_falcon_collision_pose *pose =
         pf_m4_falcon_reference_collision_pose();
+    int32_t bottom_y_from_origin_q16 = INT32_C(0);
+    int has_reference_pose = 0;
 
-    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-        pose != NULL &&
-        pf_m4_action_uses_fall_special_pose(action_state))
+    if (fighter->reference_frame_data_enabled == UINT8_C(0) || pose == NULL)
+    {
+        return fighter->half_height_q16;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR)
+    {
+        const uint16_t frame_index =
+            action_ticks <
+                    PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT
+                ? action_ticks
+                : (uint16_t)(
+                      PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT -
+                      UINT16_C(1));
+
+        bottom_y_from_origin_q16 =
+            pose->raptor_boost_hit_air_bottom_y_from_origin_q16[frame_index];
+        has_reference_pose = 1;
+    }
+    else if (pf_m4_action_uses_fall_special_pose(action_state))
     {
         const uint16_t frame_index =
             action_ticks < PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT
@@ -1445,24 +1463,20 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
                 : (uint16_t)(
                       PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT -
                       UINT16_C(1));
-        const int32_t bottom_y_from_origin_q16 =
+        bottom_y_from_origin_q16 =
             pose->fall_special_bottom_y_from_origin_q16[frame_index];
-
-        if (bottom_y_from_origin_q16 > INT32_C(0))
-        {
-            return fighter->half_height_q16 -
-                   bottom_y_from_origin_q16;
-        }
+        has_reference_pose = 1;
     }
-    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-        pose != NULL &&
-        pose->falling_bottom_y_from_origin_q16 > INT32_C(0) &&
-        (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
-         action_state ==
-             (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW))
+    else if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+             action_state == (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW)
     {
-        return fighter->half_height_q16 -
-               pose->falling_bottom_y_from_origin_q16;
+        bottom_y_from_origin_q16 = pose->falling_bottom_y_from_origin_q16;
+        has_reference_pose = 1;
+    }
+    if (has_reference_pose != 0 &&
+        bottom_y_from_origin_q16 >= INT32_C(0))
+    {
+        return fighter->half_height_q16 - bottom_y_from_origin_q16;
     }
     return fighter->half_height_q16;
 }
@@ -3252,7 +3266,6 @@ static void pf_m4_land_from_air(
                 (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_FALL_HIT;
 
         *position_y = surface_y_q16 - fighter->half_height_q16;
-        *velocity_y = INT32_C(0);
         *action_ticks = UINT16_C(0);
         *grounded = UINT8_C(1);
         *action_state =

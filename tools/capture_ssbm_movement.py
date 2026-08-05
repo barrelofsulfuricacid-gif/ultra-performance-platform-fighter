@@ -30,6 +30,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "side_ground_hit": "0x130",
     "side_air_miss": "0x131",
     "side_air_hit": "0x132",
+    "side_air_hit_floor": "0x132",
     "up_ground_miss": "0x133",
     "up_air_miss": "0x134",
     "up_ground_catch": "0x135",
@@ -362,6 +363,7 @@ def input_trace(
                 "neutral_air",
                 "side_air_miss",
                 "side_air_hit",
+                "side_air_hit_floor",
                 "up_air_miss",
                 "up_air_catch",
                 "down_air",
@@ -369,24 +371,42 @@ def input_trace(
             }
             low_airborne = route == "down_air_land"
             elevated_airborne = airborne and not low_airborne
+            native_air_hit = route == "side_air_hit_floor"
             if airborne:
                 airborne_opponent = route in {
                     "side_air_hit",
+                    "side_air_hit_floor",
                     "up_air_catch",
                 }
-
                 def airborne_setup(
                     suffix: str, *, jump: bool = False
                 ) -> dict[str, object]:
                     opponent_elevated = (
                         airborne_opponent and suffix == "opponent_elevate"
                     )
+                    native_jump_setup = native_air_hit and suffix == "jump"
+                    native_jump_held = suffix in {"jump", "jump_squat"}
                     return command(
                         f"special_geometry_{route}_{suffix}",
                         jump=jump,
-                        opponent_jump=airborne_opponent,
-                        opponent_x_override=(0.0 if airborne_opponent else None),
-                        opponent_y_override=(500.0 if opponent_elevated else None),
+                        opponent_jump=(
+                            airborne_opponent
+                            and (not native_air_hit or native_jump_held)
+                        ),
+                        fighter_x_override=(
+                            -10.0 if native_jump_setup else None
+                        ),
+                        opponent_x_override=(
+                            0.0
+                            if native_jump_setup
+                            or (airborne_opponent and not native_air_hit)
+                            else None
+                        ),
+                        opponent_y_override=(
+                            500.0
+                            if opponent_elevated and not native_air_hit
+                            else None
+                        ),
                     )
 
                 airborne_commands = [
@@ -406,6 +426,10 @@ def input_trace(
                             airborne_setup("airborne_hold"),
                             airborne_setup("opponent_elevate"),
                         )
+                    )
+                if native_air_hit:
+                    airborne_commands.extend(
+                        airborne_setup("descent") for _ in range(6)
                     )
                 trace.extend(airborne_commands)
             if route == "neutral_ground":
@@ -428,18 +452,35 @@ def input_trace(
                 "side_ground_hit",
                 "side_air_miss",
                 "side_air_hit",
+                "side_air_hit_floor",
             }:
-                collision_route = route.endswith("_hit")
+                collision_route = route.endswith("_hit") or native_air_hit
                 trace.append(
                     command(
                         f"special_geometry_{route}_start",
                         main_x=1.0,
                         special=True,
-                        fighter_x_override=-10.0 if collision_route else None,
-                        fighter_y_override=(500.0 if elevated_airborne else None),
-                        opponent_x_override=0.0 if collision_route else None,
+                        fighter_x_override=(
+                            -10.0
+                            if collision_route and not native_air_hit
+                            else None
+                        ),
+                        fighter_y_override=(
+                            500.0
+                            if elevated_airborne and not native_air_hit
+                            else None
+                        ),
+                        opponent_x_override=(
+                            0.0
+                            if collision_route and not native_air_hit
+                            else None
+                        ),
                         opponent_y_override=(
-                            500.0 if collision_route and airborne else None
+                            500.0
+                            if collision_route
+                            and airborne
+                            and not native_air_hit
+                            else None
                         ),
                     )
                 )
@@ -521,7 +562,8 @@ def input_trace(
                 special_total(route) + 100,
                 fighter_y_override=(
                     500.0
-                    if elevated_airborne and route != "neutral_air"
+                    if elevated_airborne
+                    and route not in {"neutral_air", "side_air_hit_floor"}
                     else None
                 ),
                 opponent_x_override=(
