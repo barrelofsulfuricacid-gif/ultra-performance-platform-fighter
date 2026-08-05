@@ -3402,3 +3402,36 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   velocity comparison with the established 640-Q16 position envelope. The
   wall-rebound and ground-hit dynamic routes remain unqualified and M4 remains
   unfinished; no replacement timing is inferred for either route.
+
+## 2026-08-04 Falcon Kick ground-hit qualification
+
+- Falcon's complete NTSC 1.02 source remains the authority: 50 stable action
+  slots, all 48 DAT-present subactions, all 97 common-attribute words, the
+  complete 35-field special block, raw root tracks, command timelines, effects,
+  and full-frame hit/hurt geometry. No Falcon frame value is guessed.
+- A new 170-row Dolphin memory capture, SHA-256
+  `0dcf3574554a97a4760ff93e51dd24ebeb6d84d8dc5c23e777054ebe46a5ac32`,
+  supplies 77 comparable ground-hit frames. It records contact on displayed
+  frame 16, 15 damage, eight ticks of hitlag, and the imported 0.6 velocity
+  multiplier after hitlag.
+- The differential exposed a source-order detail absent from static tables:
+  Falcon Kick ground end advances Melee's unscaled ground channel in parallel
+  with its scaled self-velocity channel. Production now reconstructs that
+  bounded channel from imported root motion, entry scale, common/fast friction,
+  traction, multiplier, and cap. The implementation allocates nothing, adds no
+  duplicate serialized velocity, and shares the generated Falcon data path.
+- `tools/verify_m4_falcon_kick.sh` now qualifies 341 frames across ground, air,
+  landing, edge, and ground-hit routes. All five pass strict action, action-tick,
+  facing, grounded-state, velocity, attacker/defender hitlag, and defender
+  damage checks with the established 640-Q16 position envelope. Fresh source
+  regeneration reports 50 slots/48 present subactions and byte-matches both
+  checked-in generated includes at SHA-256
+  `498ea9566f82051ed88ca6b8cf43e3e84c4f8a57994f90e91ec3c63a7be57e50`
+  and `6a0b7a3e74d1a1bdf760994c004aebce1926fa56fe33bf0acb7eecbc91ff59a4`.
+- Native Windows MSVC and WSL Linux each pass 22/22 tests. Pinned Emscripten
+  rebuilds the web client and replay corpus; the headless browser smoke passes,
+  and native/Wasm replay output remains byte-identical. The browser verifier's
+  stale pre-schema-60 final-state hash was refreshed to the canonical replay
+  value already enforced by the replay verifier.
+- Only Falcon Kick's wall-rebound dynamic route remains unqualified; M4 remains
+  unfinished.

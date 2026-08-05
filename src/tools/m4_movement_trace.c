@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
+    int falcon_kick_ground_hit_mode = 0;
     int falcon_kick_ground_edge_mode = 0;
     int falcon_kick_air_mode = 0;
     int falcon_kick_air_land_mode = 0;
@@ -95,6 +96,11 @@ int main(int argc, char **argv)
         /* The ground oracle uses the runner's ordinary wide-floor setup. */
     }
     else if (
+        argc == 2 && strcmp(argv[1], "--falcon-kick-ground-hit") == 0)
+    {
+        falcon_kick_ground_hit_mode = 1;
+    }
+    else if (
         argc == 2 && strcmp(argv[1], "--falcon-kick-ground-edge") == 0)
     {
         falcon_kick_ground_edge_mode = 1;
@@ -117,6 +123,7 @@ int main(int argc, char **argv)
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
+            "--falcon-kick-ground-hit|"
             "--falcon-kick-air|"
             "--falcon-kick-air-land]\n");
         return 1;
@@ -193,6 +200,17 @@ int main(int argc, char **argv)
             (int32_t)(
                 (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
                 INT64_C(115));
+    }
+    else if (falcon_kick_ground_hit_mode != 0)
+    {
+        /* Align source sphere contact after five root-motion steps. The
+         * symmetric half-separation is 14 + 4/256 Melee units, translated
+         * through the repository's exact horizontal world scale. */
+        content.stage.spawn_spacing_q16 =
+            (int32_t)(
+                (INT64_C(3588) * INT64_C(12) * PF_Q16_ONE) /
+                (INT64_C(256) * INT64_C(115)));
+        content.fighter.player_push_half_width_q16 = INT32_C(1);
     }
     else if (falcon_dive_ground_catch_mode != 0)
     {
@@ -472,7 +490,7 @@ int main(int argc, char **argv)
         "opponent_position_x_q16_from_origin,"
         "opponent_position_y_q16_from_origin,"
         "opponent_velocity_x_q16,opponent_velocity_y_q16,"
-        "opponent_shield_recoil_x_q16");
+        "opponent_shield_recoil_x_q16,opponent_damage_q16");
     while (fgets(input_line, sizeof(input_line), stdin) != NULL)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -557,7 +575,7 @@ int main(int argc, char **argv)
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%" PRId32 ",%" PRId32 "\n",
+            ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32 "\n",
             trace_frame,
             input_x,
             input_y,
@@ -612,7 +630,8 @@ int main(int argc, char **argv)
                 opponent_origin_y_q16,
             inspection.players[1].velocity_x_q16,
             inspection.players[1].velocity_y_q16,
-            inspection.players[1].shield_recoil_x_q16);
+            inspection.players[1].shield_recoil_x_q16,
+            inspection.players[1].damage_q16);
         ++trace_frame;
     }
     if (ferror(stdin) != 0)

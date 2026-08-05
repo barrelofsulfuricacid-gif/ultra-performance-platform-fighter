@@ -35,6 +35,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "up_ground_catch": "0x135",
     "up_air_catch": "0x135",
     "down_ground": "0x137",
+    "down_ground_hit": "0x137",
     "down_ground_edge": "0x13b",
     "down_air": "0x139",
     "down_air_land": "0x13a",
@@ -457,6 +458,7 @@ def input_trace(
                 )
             elif route in {
                 "down_ground",
+                "down_ground_hit",
                 "down_ground_edge",
                 "down_air",
                 "down_air_land",
@@ -467,9 +469,18 @@ def input_trace(
                         main_y=0.0,
                         special=True,
                         fighter_x_override=(
-                            80.0 if route == "down_ground_edge" else None
+                            80.0
+                            if route == "down_ground_edge"
+                            else (-20.0 if route == "down_ground_hit" else None)
                         ),
-                        fighter_y_override=(500.0 if elevated_airborne else None),
+                        opponent_x_override=(
+                            0.0 if route == "down_ground_hit" else None
+                        ),
+                        fighter_y_override=(
+                            500.0
+                            if elevated_airborne
+                            else None
+                        ),
                     )
                 )
             repeat(
@@ -488,6 +499,7 @@ def input_trace(
                         "side_air_hit",
                         "up_ground_catch",
                         "up_air_catch",
+                        "down_ground_hit",
                     }
                     else None
                 ),
@@ -1725,6 +1737,14 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "hitboxes": hitboxes,
         "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
         "fighter_ecb": read_ecb(fighter),
+        "fighter_environment_flags": memory_engine.read_word(fighter + 0x824),
+        "fighter_previous_environment_flags": memory_engine.read_word(
+            fighter + 0x828
+        ),
+        "fighter_command_variables": [
+            memory_engine.read_word(fighter + 0x2200 + 4 * index)
+            for index in range(4)
+        ],
         "opponent_fighter_address": opponent,
         "opponent_fighter_position": [
             memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
@@ -1792,17 +1812,29 @@ def choose_match(
         )
     elif gamestate.menu_state == melee.Menu.STAGE_SELECT:
         player_two.release_all()
-        melee.MenuHelper.choose_stage(
-            stage,
-            gamestate,
-            player_one,
-        )
+        melee.MenuHelper.choose_stage(stage, gamestate, player_one)
     elif gamestate.menu_state in (melee.Menu.PRESS_START, melee.Menu.MAIN_MENU):
         player_two.release_all()
         melee.MenuHelper.choose_versus_mode(gamestate, player_one)
     else:
         player_one.release_all()
         player_two.release_all()
+
+
+def hook_memory_engine(dolphin: Path) -> object:
+    """Hook DME, including extracted-AppImage process-name discovery."""
+
+    if "DME_DOLPHIN_PROCESS_NAME" not in os.environ and (
+        dolphin.suffix.lower() == ".appimage"
+        or dolphin.name.lower() in {"apprun", "apprun.wrapped"}
+    ):
+        os.environ["DME_DOLPHIN_PROCESS_NAME"] = "AppRun.wrapped"
+    try:
+        import dolphin_memory_engine as memory_engine_module
+    except ImportError as error:
+        raise RuntimeError("memory probes require dolphin-memory-engine") from error
+    memory_engine_module.hook()
+    return memory_engine_module
 
 
 def capture(args: argparse.Namespace) -> dict[str, object]:
@@ -1908,26 +1940,20 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             or args.memory_probe_damage
             or args.memory_probe_hitbox
         ):
-            try:
-                import dolphin_memory_engine as memory_engine_module
-            except ImportError as error:
-                raise RuntimeError(
-                    "memory probes require dolphin-memory-engine"
-                ) from error
-            memory_engine_module.hook()
+            if memory_engine is None:
+                memory_engine = hook_memory_engine(dolphin)
             hook_deadline = time.monotonic() + 10.0
             while (
-                not memory_engine_module.is_hooked()
+                not memory_engine.is_hooked()
                 and time.monotonic() < hook_deadline
             ):
                 time.sleep(0.05)
-                memory_engine_module.hook()
-            if not memory_engine_module.is_hooked():
+                memory_engine.hook()
+            if not memory_engine.is_hooked():
                 raise RuntimeError(
                     "dolphin-memory-engine could not hook the oracle process: "
-                    f"{memory_engine_module.get_status()}"
+                    f"{memory_engine.get_status()}"
                 )
-            memory_engine = memory_engine_module
 
         player_one.release_all()
         player_two.release_all()

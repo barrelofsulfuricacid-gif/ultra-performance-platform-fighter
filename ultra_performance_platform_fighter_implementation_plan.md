@@ -459,8 +459,10 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 13,720 captured frames, including a
-116-frame grounded Falcon Dive catch/throw route with memory-probed ECB state.
+executable-oracle evidence is therefore 13,797 captured frames, including a
+116-frame grounded Falcon Dive catch/throw route with memory-probed ECB state
+and a 77-frame Falcon Kick ground-hit route with memory-probed parallel ground
+and self velocities.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
 inventory remain active work.
 
@@ -495,14 +497,16 @@ within the bounded 640-Q16 representation allowance.
 A separate 116-frame grounded Falcon Dive capture strictly matches catch,
 hitlag, captured-target attachment, throw release, source relocation/root
 motion, fall, and floor landing within the same representation allowance.
-A 264-frame Falcon Kick differential suite strictly matches the imported
-ground start/end, air start/end, air-to-ground landing, and ground-to-air edge
-routes, including root translation, velocity, decoded traction/air-physics
-command boundaries, and the source collision conversion's half crossing-tick
-displacement within that same allowance. Its ground-hit speed callback and
-cap, rebound graph, and all hit geometry consume the imported tables; the
-wall-rebound and ground-hit dynamic routes still require identical-input
-qualification before their behavior is called exhaustive.
+A 341-frame Falcon Kick differential suite strictly matches the imported
+ground start/end, air start/end, air-to-ground landing, ground-to-air edge, and
+ground-hit routes, including root translation, velocity, decoded traction/air-
+physics command boundaries, and the source collision conversion's half
+crossing-tick displacement within that same allowance. The ground-hit route
+also qualifies eight ticks of hitlag, 15 damage, the imported 0.6 on-hit speed
+multiplier, and Melee's parallel ground/self velocity update through the ground
+end state. Its speed cap, rebound graph, and all hit geometry consume the
+imported tables; only the wall-rebound dynamic route still requires identical-
+input qualification before Falcon Kick behavior is called exhaustive.
 Hurt capsules for remaining common actions, source-Z collision semantics,
 normal-throw collateral hits, and exact sphere-versus-shield intersection
 remain explicit M4 gaps and must be extracted or qualified rather than

@@ -1162,6 +1162,108 @@ static int32_t pf_m4_falcon_source_ground_friction(
                : common->friction_q16;
 }
 
+static int32_t pf_m4_falcon_kick_parallel_velocity(
+    int32_t unscaled_velocity_q16,
+    int32_t applied_friction_q16,
+    int32_t hit_scale_q16)
+{
+    return pf_m4_multiply_q16(unscaled_velocity_q16, hit_scale_q16) -
+           pf_m4_multiply_q16(
+               applied_friction_q16,
+               PF_Q16_ONE - hit_scale_q16);
+}
+
+static pf_status pf_m4_falcon_kick_ground_end_velocity(
+    uint16_t action_ticks,
+    int8_t facing,
+    uint8_t hit_count,
+    int is_entry_frame,
+    int32_t *velocity_x_q16)
+{
+    const pf_m4_reference_move *start_move =
+        pf_m4_falcon_move_for_action(
+            (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND);
+    const pf_m4_falcon_common_attributes *common =
+        pf_m4_falcon_reference_common_attributes();
+    const pf_m4_falcon_common_special_attributes *common_special =
+        pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_special_attributes *attributes =
+        pf_m4_falcon_reference_special_attributes();
+    const pf_m4_falcon_down_special_timing *timing =
+        pf_m4_falcon_reference_down_special_timing();
+    int32_t root_velocity_q16;
+    int32_t ignored_velocity_y_q16;
+    int32_t unscaled_velocity_q16;
+    int32_t applied_friction_q16;
+    int32_t hit_scale_q16;
+    uint16_t step;
+
+    if (velocity_x_q16 == NULL || start_move == NULL || common == NULL ||
+        common_special == NULL || attributes == NULL || timing == NULL ||
+        start_move->total_frames == UINT16_C(0) ||
+        pf_m4_falcon_kick_root_velocity(
+            (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND,
+            (uint16_t)(start_move->total_frames - UINT16_C(1)),
+            1,
+            0,
+            &root_velocity_q16,
+            &ignored_velocity_y_q16) != PF_STATUS_OK)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    unscaled_velocity_q16 = pf_m4_multiply_q16(
+        root_velocity_q16,
+        timing->ground_end_entry_velocity_scale_q16);
+    hit_scale_q16 = pf_m4_falcon_kick_hit_velocity_scale(
+        attributes,
+        hit_count);
+    /* Melee advances gr_vel and self_vel in parallel here. Reconstruct the
+     * bounded ground channel from imported root motion and friction instead
+     * of serializing a duplicate runtime velocity. */
+    if (is_entry_frame != 0)
+    {
+        applied_friction_q16 = pf_m4_falcon_source_ground_friction(
+            common,
+            common_special,
+            root_velocity_q16);
+    }
+    else
+    {
+        applied_friction_q16 = INT32_C(0);
+        for (step = UINT16_C(0); step <= action_ticks; ++step)
+        {
+            const uint16_t displayed_frame =
+                (uint16_t)(step + UINT16_C(2));
+            const int32_t friction_q16 =
+                displayed_frame >= timing->ground_end_traction_begin_frame &&
+                        displayed_frame <=
+                            timing->ground_end_traction_end_frame
+                    ? pf_m4_multiply_q16(
+                          common->friction_q16,
+                          attributes->speciallw_ground_traction_q16)
+                    : pf_m4_falcon_source_ground_friction(
+                          common,
+                          common_special,
+                          unscaled_velocity_q16);
+            const int32_t next_velocity_q16 = pf_m4_approach(
+                unscaled_velocity_q16,
+                INT32_C(0),
+                friction_q16);
+
+            applied_friction_q16 =
+                unscaled_velocity_q16 - next_velocity_q16;
+            unscaled_velocity_q16 = next_velocity_q16;
+        }
+    }
+    *velocity_x_q16 = (int32_t)facing *
+        pf_m4_falcon_kick_parallel_velocity(
+            unscaled_velocity_q16,
+            applied_friction_q16,
+            hit_scale_q16);
+    return PF_STATUS_OK;
+}
+
 static void pf_m4_falcon_source_air_physics(
     const pf_m4_falcon_common_attributes *common,
     int32_t *velocity_x_q16,
@@ -6190,19 +6292,18 @@ pf_status pf_m4_step_player(
         }
         if (action_ticks >= move->total_frames)
         {
-            const pf_m4_falcon_down_special_timing *timing =
-                pf_m4_falcon_reference_down_special_timing();
-
-            if (timing == NULL)
-            {
-                return PF_STATUS_DETERMINISTIC_FAULT;
-            }
             action_state =
                 (uint8_t)PF_M4_ACTION_FALCON_KICK_END_GROUND;
             action_ticks = UINT16_C(0);
-            velocity_x = pf_m4_multiply_q16(
-                velocity_x,
-                timing->ground_end_entry_velocity_scale_q16);
+            if (pf_m4_falcon_kick_ground_end_velocity(
+                    UINT16_C(0),
+                    facing,
+                    scratch->falcon_kick_hit_count[player_index],
+                    1,
+                    &velocity_x) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
             scratch->attack_hit_mask[player_index] = UINT8_C(0);
             scratch->attack_stale_registered[player_index] =
                 UINT8_C(0);
@@ -6236,20 +6337,8 @@ pf_status pf_m4_step_player(
     {
         const pf_m4_reference_move *move =
             pf_m4_falcon_move_for_action(action_state);
-        const pf_m4_falcon_common_attributes *common =
-            pf_m4_falcon_reference_common_attributes();
-        const pf_m4_falcon_common_special_attributes *common_special =
-            pf_m4_falcon_reference_common_special_attributes();
-        const pf_m4_falcon_special_attributes *attributes =
-            pf_m4_falcon_reference_special_attributes();
-        const pf_m4_falcon_down_special_timing *timing =
-            pf_m4_falcon_reference_down_special_timing();
-        const uint16_t displayed_frame =
-            (uint16_t)(action_ticks + UINT16_C(2));
-        int32_t friction_q16;
 
-        if (move == NULL || common == NULL || common_special == NULL ||
-            attributes == NULL || timing == NULL)
+        if (move == NULL)
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
@@ -6264,25 +6353,15 @@ pf_status pf_m4_step_player(
         }
         else
         {
-            friction_q16 =
-                displayed_frame >=
-                        timing->ground_end_traction_begin_frame &&
-                    displayed_frame <=
-                        timing->ground_end_traction_end_frame
-                    ? pf_m4_multiply_q16(
-                          common->friction_q16,
-                          attributes->speciallw_ground_traction_q16)
-                    : pf_m4_falcon_source_ground_friction(
-                          common,
-                          common_special,
-                          velocity_x);
-            velocity_x =
-                pf_m4_approach(velocity_x, INT32_C(0), friction_q16);
-            velocity_x = pf_m4_multiply_q16(
-                velocity_x,
-                pf_m4_falcon_kick_hit_velocity_scale(
-                    attributes,
-                    scratch->falcon_kick_hit_count[player_index]));
+            if (pf_m4_falcon_kick_ground_end_velocity(
+                    action_ticks,
+                    facing,
+                    scratch->falcon_kick_hit_count[player_index],
+                    0,
+                    &velocity_x) != PF_STATUS_OK)
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
             ++action_ticks;
         }
     }

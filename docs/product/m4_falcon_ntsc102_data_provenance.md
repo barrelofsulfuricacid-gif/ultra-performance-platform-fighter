@@ -108,6 +108,21 @@ seven Falcon Kick states consume this imported data directly. The project's
 original directional-special fixtures are not evidence for those source
 moves.
 
+Falcon Kick's imported ground-hit attributes are also executable-oracle
+qualified rather than transcribed or tuned. The 170-row Dolphin memory capture
+SHA-256 is
+`0dcf3574554a97a4760ff93e51dd24ebeb6d84d8dc5c23e777054ebe46a5ac32`;
+its 77 comparable rows hit on displayed frame 16, deal 15 damage, and preserve
+eight ticks of hitlag. After hitlag, the captured self velocity is exactly the
+imported 0.6 on-hit multiplier of root velocity. Ground-end samples expose the
+source callback's distinct ground and self velocity channels: unscaled ground
+friction advances beside the scaled self velocity instead of repeatedly
+scaling the already-scaled result. Production reconstructs that bounded channel
+from the generated root-motion, entry-scale, common friction, fast-friction,
+traction, multiplier, and hit-count-cap fields with no allocation or additional
+serialized state. The five-route Falcon Kick verifier now passes 341 comparable
+frames; only the wall-rebound dynamic route remains unqualified.
+
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
 forward/up tilt, and up/down smash use `ftCo_Wait_IASA`; down tilt uses its
