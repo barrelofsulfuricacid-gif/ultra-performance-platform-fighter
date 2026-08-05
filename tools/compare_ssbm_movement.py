@@ -412,6 +412,25 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
+    falcon_kick_ground_wall_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_down_ground_wall_start"
+        for row in oracle_rows
+    )
+    if falcon_kick_ground_wall_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_down_ground_wall_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        last_wall_rebound = max(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("action", "")) == "SWORD_DANCE_3_LOW_AIR"
+        )
+        oracle_rows = oracle_rows[: last_wall_rebound + 1]
     falcon_kick_ground_edge_mode = any(
         str(row.get("label", ""))
         == "special_geometry_down_ground_edge_start"
@@ -560,6 +579,8 @@ def main() -> int:
         runner_command.append("--falcon-kick-ground")
     elif falcon_kick_ground_hit_mode:
         runner_command.append("--falcon-kick-ground-hit")
+    elif falcon_kick_ground_wall_mode:
+        runner_command.append("--falcon-kick-ground-wall")
     elif falcon_kick_ground_edge_mode:
         runner_command.append("--falcon-kick-ground-edge")
     elif falcon_kick_air_mode:
@@ -594,7 +615,9 @@ def main() -> int:
         - float(oracle_rows[0]["ground_velocity_x"])
         if raptor_boost_ground_hit_mode
         else float(oracle_rows[0]["position_x_from_origin"])
-        if falcon_kick_ground_edge_mode or falcon_kick_ground_hit_mode
+        if falcon_kick_ground_edge_mode
+        or falcon_kick_ground_hit_mode
+        or falcon_kick_ground_wall_mode
         else 0.0
     )
     oracle_anchor_y = (
@@ -608,6 +631,8 @@ def main() -> int:
         or falcon_kick_air_land_mode
         else 0.0
     )
+    if falcon_kick_ground_wall_mode:
+        oracle_anchor_y = float(oracle_rows[0]["position_y"])
     native_anchor_x = 0
     native_anchor_y = 0
     horizontal_mirror = (
@@ -661,6 +686,23 @@ def main() -> int:
         action_name = str(oracle["action"])
         action_frame = round(float(oracle["action_frame"]))
         if (
+            falcon_kick_ground_wall_mode
+            and action_name == "SWORD_DANCE_3_LOW_AIR"
+            and (
+                previous_oracle is None
+                or str(previous_oracle.get("action", ""))
+                != "SWORD_DANCE_3_LOW_AIR"
+            )
+        ):
+            # Hyrule's approach floor changes height before the wall. Anchor
+            # the rebound state at its executable transition so the following
+            # imported root trajectory is compared independently of that
+            # unrelated stage topology.
+            oracle_anchor_x = float(oracle["position_x_from_origin"])
+            oracle_anchor_y = float(oracle["position_y"])
+            native_anchor_x = int(native["position_x_q16_from_origin"])
+            native_anchor_y = int(native["position_y_q16_from_origin"])
+        if (
             falcon_punch_air_mode
             and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
             and action_frame == 49
@@ -693,10 +735,15 @@ def main() -> int:
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
-        if falcon_kick_ground_mode or falcon_kick_ground_hit_mode:
+        if (
+            falcon_kick_ground_mode
+            or falcon_kick_ground_hit_mode
+            or falcon_kick_ground_wall_mode
+        ):
             expected_action = {
                 "SWORD_DANCE_4_LOW": 123,
                 "SWORD_DANCE_1_AIR": 124,
+                "SWORD_DANCE_3_LOW_AIR": 129,
                 "STANDING": 0,
             }.get(action_name, expected_action)
             if (
@@ -753,11 +800,17 @@ def main() -> int:
                 expected_ticks = None
             elif action_name == "LANDING_SPECIAL":
                 expected_ticks = action_frame - 1
-        if falcon_kick_ground_mode or falcon_kick_ground_hit_mode:
+        if (
+            falcon_kick_ground_mode
+            or falcon_kick_ground_hit_mode
+            or falcon_kick_ground_wall_mode
+        ):
             if action_name == "SWORD_DANCE_4_LOW":
                 expected_ticks = action_frame
             elif action_name == "SWORD_DANCE_1_AIR":
                 expected_ticks = action_frame - 1
+            elif action_name == "SWORD_DANCE_3_LOW_AIR":
+                expected_ticks = action_frame
             elif action_name == "STANDING":
                 expected_ticks = 0
         if falcon_kick_ground_edge_mode:
@@ -844,6 +897,9 @@ def main() -> int:
                 "SWORD_DANCE_3_MID",
                 "SWORD_DANCE_4_HIGH",
             }
+        ) or (
+            falcon_kick_ground_wall_mode
+            and action_name == "SWORD_DANCE_4_LOW"
         )
         skip_vertical_position = (
             falcon_kick_air_mode

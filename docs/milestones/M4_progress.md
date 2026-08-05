@@ -3435,3 +3435,30 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   value already enforced by the replay verifier.
 - Only Falcon Kick's wall-rebound dynamic route remains unqualified; M4 remains
   unfinished.
+
+## 2026-08-04 Falcon Kick wall-rebound qualification
+
+- The complete Falcon dataset remains authoritative and unchanged: 50 stable
+  slots, 48 DAT-present subactions, all 97 common-attribute words, the complete
+  35-field special block, root tracks, command timelines, effects, and full-
+  frame hit/hurt geometry. No wall timing or trajectory value is guessed.
+- A source-derived Hyrule Temple fixture selects `St_Kind_Shrine` from
+  `MnSlMap.usd` at cursor `(-3.3, 10.1)`. Falcon jumps legitimately, is moved
+  while airborne, and lands through Melee's collision callback near the rising
+  `GrSh.dat` wall before the unmodified down-special input. The resulting
+  253-row capture hashes to
+  `fd4b04d9128486d2b690ce7d9b701fa12c7762367d5f822d2f3baca3c3f0d70e`.
+- Dolphin enters action 363 after the displayed-frame-22 wall-hug sample. The
+  58-frame differential exposed two production gaps: Melee clears `gr_vel` but
+  preserves Falcon Kick's `self_vel` on the transition, and its ECB lock avoids
+  same-tick floor reattachment. Production now preserves the incoming channel
+  and suppresses only that impossible same-tick landing, with no allocation,
+  duplicated frame table, or added serialized state.
+- `tools/verify_m4_falcon_kick.sh` now passes 399 frames across all six ground,
+  air, landing, edge, hit, and wall routes. Falcon Kick has no remaining
+  unqualified dynamic state. M4 remains unfinished because broader common
+  behavior and remaining Raptor Boost/Falcon Dive dynamic routes still require
+  qualification.
+- Fresh Windows MSVC and WSL Linux rebuilds each pass 22/22 tests. The pinned
+  Emscripten 6.0.3 build, headless Chrome browser verifier, and native/Wasm
+  240-tick replay byte-identity check also pass after the wall correction.

@@ -120,8 +120,16 @@ friction advances beside the scaled self velocity instead of repeatedly
 scaling the already-scaled result. Production reconstructs that bounded channel
 from the generated root-motion, entry-scale, common friction, fast-friction,
 traction, multiplier, and hit-count-cap fields with no allocation or additional
-serialized state. The five-route Falcon Kick verifier now passes 341 comparable
-frames; only the wall-rebound dynamic route remains unqualified.
+serialized state. The six-route Falcon Kick verifier now passes 399 comparable
+frames. Its 253-row Hyrule Temple wall capture, SHA-256
+`fd4b04d9128486d2b690ce7d9b701fa12c7762367d5f822d2f3baca3c3f0d70e`,
+adds 58 comparable frames and naturally enters executable action 363 from a
+grounded kick. The setup selects St_Kind_Shrine from the source
+`MnSlMap.usd` cursor animation, relocates Falcon only while legitimately
+airborne, and lands through the normal collision callback beside the rising
+wall in `GrSh.dat`. The route qualifies displayed-frame-22 wall contact,
+preserved entry self velocity, no same-tick floor reattachment, and the full
+rebound root trajectory. No Falcon Kick dynamic route remains unqualified.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,

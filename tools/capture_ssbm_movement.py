@@ -36,10 +36,17 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "up_air_catch": "0x135",
     "down_ground": "0x137",
     "down_ground_hit": "0x137",
+    "down_ground_wall": "0x137",
     "down_ground_edge": "0x13b",
     "down_air": "0x139",
     "down_air_land": "0x13a",
 }
+
+# MnSlMap.usd's stage-entry table maps St_Kind_Shrine (0x0E) to entry 5. The
+# matching x90 anchor animation resolves to (-3.3, 15.7), and odd entry 5 uses
+# the x40 template's y=-5.6 child. Keep the resulting source-derived cursor
+# coordinate here instead of relying on a hand-tuned menu click.
+HYRULE_TEMPLE_STAGE_CURSOR = (-3.3, 10.1)
 
 
 def input_trace(
@@ -459,10 +466,32 @@ def input_trace(
             elif route in {
                 "down_ground",
                 "down_ground_hit",
+                "down_ground_wall",
                 "down_ground_edge",
                 "down_air",
                 "down_air_land",
             }:
+                if route == "down_ground_wall":
+                    # Use GrSh.dat's local floor-5/left-wall-79 collision group
+                    # as the relocation target. Relocate only after a real jump
+                    # has cleared the old floor-support line, then let Melee's
+                    # joint transforms and collision code choose the supported
+                    # surface naturally. The kick itself is unmodified.
+                    trace.extend(
+                        command(
+                            "special_geometry_down_ground_wall_jump",
+                            jump=True,
+                        )
+                        for _ in range(5)
+                    )
+                    repeat("special_geometry_down_ground_wall_air_wait", 35)
+                    repeat(
+                        "special_geometry_down_ground_wall_air_relocate",
+                        3,
+                        fighter_x_override=-187.0,
+                        fighter_y_override=20.0,
+                    )
+                    repeat("special_geometry_down_ground_wall_land", 40)
                 trace.append(
                     command(
                         f"special_geometry_{route}_start",
@@ -471,7 +500,11 @@ def input_trace(
                         fighter_x_override=(
                             80.0
                             if route == "down_ground_edge"
-                            else (-20.0 if route == "down_ground_hit" else None)
+                            else (
+                                -20.0
+                                if route == "down_ground_hit"
+                                else None
+                            )
                         ),
                         opponent_x_override=(
                             0.0 if route == "down_ground_hit" else None
@@ -1789,6 +1822,7 @@ def choose_match(
     player_two: melee.Controller,
     stage: melee.Stage,
     opponent: melee.Character = melee.Character.FOX,
+    stage_cursor: tuple[float, float] | None = None,
 ) -> None:
     if gamestate.menu_state in (
         melee.Menu.CHARACTER_SELECT,
@@ -1812,13 +1846,42 @@ def choose_match(
         )
     elif gamestate.menu_state == melee.Menu.STAGE_SELECT:
         player_two.release_all()
-        melee.MenuHelper.choose_stage(stage, gamestate, player_one)
+        if stage_cursor is None:
+            melee.MenuHelper.choose_stage(stage, gamestate, player_one)
+        else:
+            choose_stage_at(gamestate, player_one, *stage_cursor)
     elif gamestate.menu_state in (melee.Menu.PRESS_START, melee.Menu.MAIN_MENU):
         player_two.release_all()
         melee.MenuHelper.choose_versus_mode(gamestate, player_one)
     else:
         player_one.release_all()
         player_two.release_all()
+
+
+def choose_stage_at(
+    gamestate: melee.GameState,
+    controller: melee.Controller,
+    target_x: float,
+    target_y: float,
+) -> None:
+    """Choose a vanilla stage at a source-derived stage-select coordinate."""
+
+    if gamestate.frame < 20:
+        controller.release_all()
+        return
+    cursor = gamestate.players[controller.port].cursor
+    wiggleroom = 1.5
+    controller.release_button(melee.Button.BUTTON_A)
+    if cursor.y < target_y - wiggleroom:
+        controller.tilt_analog(melee.Button.BUTTON_MAIN, 0.5, 1.0)
+    elif cursor.y > target_y + wiggleroom:
+        controller.tilt_analog(melee.Button.BUTTON_MAIN, 0.5, 0.0)
+    elif cursor.x < target_x - wiggleroom:
+        controller.tilt_analog(melee.Button.BUTTON_MAIN, 1.0, 0.5)
+    elif cursor.x > target_x + wiggleroom:
+        controller.tilt_analog(melee.Button.BUTTON_MAIN, 0.0, 0.5)
+    else:
+        controller.press_button(melee.Button.BUTTON_A)
 
 
 def hook_memory_engine(dolphin: Path) -> object:
@@ -1847,6 +1910,17 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         raise FileNotFoundError(f"missing Dolphin executable or AppImage: {dolphin}")
     if not iso.is_file():
         raise FileNotFoundError(f"missing GALE01 image: {iso}")
+    wall_geometry_route = bool(
+        args.special_geometry_only
+        and args.special_geometry_move
+        and "down_ground_wall" in args.special_geometry_move
+    )
+    if wall_geometry_route and set(args.special_geometry_move) != {
+        "down_ground_wall"
+    }:
+        raise ValueError(
+            "down_ground_wall uses Hyrule Temple and must be captured alone"
+        )
 
     console = melee.Console(
         path=str(dolphin),
@@ -1929,6 +2003,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         or args.special_geometry_only
                     )
                     else melee.Character.FOX
+                ),
+                stage_cursor=(
+                    HYRULE_TEMPLE_STAGE_CURSOR if wall_geometry_route else None
                 ),
             )
         else:
@@ -2310,7 +2387,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 )
                 else "FOX"
             ),
-            "stage": "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION",
+            "stage": (
+                "HYRULE_TEMPLE"
+                if wall_geometry_route
+                else "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION"
+            ),
             "shield_hit_requested_pressure": (
                 args.shield_hit_pressure if args.shield_hit_only else None
             ),

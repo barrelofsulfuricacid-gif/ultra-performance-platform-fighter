@@ -58,6 +58,7 @@ int main(int argc, char **argv)
     int raptor_boost_ground_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
     int falcon_kick_ground_hit_mode = 0;
+    int falcon_kick_ground_wall_mode = 0;
     int falcon_kick_ground_edge_mode = 0;
     int falcon_kick_air_mode = 0;
     int falcon_kick_air_land_mode = 0;
@@ -101,6 +102,11 @@ int main(int argc, char **argv)
         falcon_kick_ground_hit_mode = 1;
     }
     else if (
+        argc == 2 && strcmp(argv[1], "--falcon-kick-ground-wall") == 0)
+    {
+        falcon_kick_ground_wall_mode = 1;
+    }
+    else if (
         argc == 2 && strcmp(argv[1], "--falcon-kick-ground-edge") == 0)
     {
         falcon_kick_ground_edge_mode = 1;
@@ -123,7 +129,7 @@ int main(int argc, char **argv)
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-hit|--falcon-dive-ground-catch|"
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
-            "--falcon-kick-ground-hit|"
+            "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
             "--falcon-kick-air-land]\n");
         return 1;
@@ -211,6 +217,22 @@ int main(int argc, char **argv)
                 (INT64_C(3588) * INT64_C(12) * PF_Q16_ONE) /
                 (INT64_C(256) * INT64_C(115)));
         content.fighter.player_push_half_width_q16 = INT32_C(1);
+    }
+    else if (falcon_kick_ground_wall_mode != 0)
+    {
+        /* Hyrule exposes action 363 one post-frame after its displayed-frame
+         * 22 wall-hug sample. Place the fixture one Q16 unit beyond the exact
+         * imported frame-22 endpoint (201289) so its crossing is exposed on
+         * that same next row. The wall is deliberately tall so only the
+         * Falcon Kick callback, rather than unrelated stage topology, is
+         * under comparison. */
+        content.stage.solid_left_q16 =
+            -content.stage.spawn_spacing_q16 +
+            content.fighter.half_width_q16 + INT32_C(201290);
+        content.stage.solid_right_q16 =
+            content.stage.solid_left_q16 + PF_Q16_ONE;
+        content.stage.solid_bottom_q16 =
+            content.stage.floor_y_q16 - PF_Q16_ONE / INT32_C(4);
     }
     else if (falcon_dive_ground_catch_mode != 0)
     {

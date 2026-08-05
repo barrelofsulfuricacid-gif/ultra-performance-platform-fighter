@@ -8906,12 +8906,19 @@ pf_status pf_m4_step_player(
             {
                 grounded = UINT8_C(0);
                 support = (uint8_t)PF_M4_SURFACE_NONE;
-                velocity_x = INT32_C(0);
-                velocity_y = INT32_C(0);
+                /* ftCommon_8007D5D4 clears Melee's ground channel but
+                 * preserves self_vel. Falcon Kick has already copied its
+                 * root speed into that channel, so the action-363 entry
+                 * post-frame still exposes the incoming horizontal speed. */
                 action_ticks = UINT16_C(0);
                 action_state =
                     (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND;
                 fast_fall = UINT8_C(0);
+                /* Melee locks the ECB for ten frames in ftCommon_8007D5D4.
+                 * Marking this transition as launched prevents only the
+                 * impossible same-tick floor reattachment; the imported
+                 * rebound root motion clears the floor on the next tick. */
+                launched_this_tick = 1;
                 scratch->attack_hit_mask[player_index] = UINT8_C(0);
                 scratch->attack_stale_registered[player_index] =
                     UINT8_C(0);
@@ -9192,7 +9199,10 @@ pf_status pf_m4_step_player(
             position_y + floor_contact_bottom_extent_q16;
         new_top = position_y - fighter->half_height_q16;
 
-        if (velocity_y >= INT32_C(0))
+        if (velocity_y >= INT32_C(0) &&
+            !(launched_this_tick != 0 &&
+              action_state ==
+                  (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND))
         {
             const int32_t platform_center =
                 pf_m4_platform_center_x_q16(
