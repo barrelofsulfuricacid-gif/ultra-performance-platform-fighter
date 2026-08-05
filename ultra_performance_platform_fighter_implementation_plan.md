@@ -459,12 +459,12 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 14,475 captured frames, including
+executable-oracle evidence is therefore 14,530 captured frames, including
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
 103-frame grounded and 165-frame aerial miss routes with memory-probed ECB,
 internal damage, knockback, and reaction-timer state,
-46-frame Raptor Boost ground-hit, 80-frame ground-miss, and 180-frame aerial-
-miss routes,
+46-frame Raptor Boost ground-hit, 80-frame ground-miss, 180-frame aerial-miss,
+and 55-frame aerial-hit routes,
 and a 77-frame Falcon Kick ground-hit route with memory-probed parallel ground
 and self velocities.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
@@ -495,13 +495,18 @@ search-hit, miss, landing, and hit states, up special through Falcon Dive
 ground/air start, catch, and throw, and down special through Falcon Kick's
 ground/air start, ground end, air end, landing-hit, edge-fall, and wall-rebound
 states. The original Pulse Bolt, Prism Burst, Vector Ascent, and Arc Reservoir
-are explicit custom-content opt-outs. An at-will 306-frame identical-input
+are explicit custom-content opt-outs. An at-will 361-frame identical-input
 Dolphin Raptor Boost suite covers the 46-frame ground-hit, 80-frame ground-
-miss, and 180-frame aerial-miss routes. It strictly matches action transitions
-and velocities and matches position within the bounded 640-Q16 representation
-allowance. Both miss routes consume the imported common `FallSpecial` pose
-cycle; the aerial transition applies ordinary common gravity rather than a
-move-specific approximation.
+miss, 180-frame aerial-miss, and 55-frame aerial-hit routes. The aerial-hit
+slice includes search conversion, the imported frame-3 seven-damage hit,
+five-frame hitlag, and recovery through displayed frame 33; its legitimate
+native fixture then reaches the floor while the isolated Dolphin capture is
+held at y=500, so the remaining tail and landing/edge conversions remain
+explicit work. The suite strictly matches action transitions and velocities
+and matches position within the bounded 640-Q16 representation allowance.
+Both miss routes consume the imported common `FallSpecial` pose cycle; the
+aerial transition applies ordinary common gravity rather than a move-specific
+approximation.
 A separate 116-frame grounded Falcon Dive capture strictly matches catch,
 hitlag, captured-target attachment, throw release, source relocation/root
 motion, fall, and floor landing within the same representation allowance.

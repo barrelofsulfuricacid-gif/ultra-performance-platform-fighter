@@ -30,12 +30,18 @@ static int fail_status(const char *operation, pf_status status)
 static int run_elevated_special_pre_roll(
     pf_sim *sim,
     pf_m4_inspection *inspection,
-    int opponent_flees)
+    int opponent_flees,
+    int opponent_jumps)
 {
+    const uint32_t pre_roll_ticks =
+        opponent_jumps != 0 ? UINT32_C(17) : UINT32_C(11);
     uint32_t pre_roll_tick;
 
+    /* The aerial-hit fixture launches the victim through ordinary input and
+     * waits until its descent intersects the imported up-hit geometry. The
+     * ordinary miss fixtures need only Falcon's 11-tick ascent sequence. */
     for (pre_roll_tick = UINT32_C(0);
-         pre_roll_tick < UINT32_C(11);
+         pre_roll_tick < pre_roll_ticks;
          ++pre_roll_tick)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
@@ -57,6 +63,10 @@ static int run_elevated_special_pre_roll(
         if (opponent_flees != 0)
         {
             inputs[1].main_stick_x = INT16_MIN;
+        }
+        if (opponent_jumps != 0 && pre_roll_tick < UINT32_C(5))
+        {
+            inputs[1].buttons = PF_INPUT_BUTTON_JUMP;
         }
         status = pf_sim_tick(sim, inputs, (size_t)2, &result);
         if (status != PF_STATUS_OK)
@@ -109,6 +119,7 @@ int main(int argc, char **argv)
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
     int raptor_boost_air_miss_mode = 0;
+    int raptor_boost_air_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
     int falcon_dive_air_catch_mode = 0;
     int falcon_dive_air_miss_mode = 0;
@@ -150,6 +161,11 @@ int main(int argc, char **argv)
         argc == 2 && strcmp(argv[1], "--raptor-boost-air-miss") == 0)
     {
         raptor_boost_air_miss_mode = 1;
+    }
+    else if (
+        argc == 2 && strcmp(argv[1], "--raptor-boost-air-hit") == 0)
+    {
+        raptor_boost_air_hit_mode = 1;
     }
     else if (
         argc == 2 &&
@@ -204,7 +220,7 @@ int main(int argc, char **argv)
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-miss|--raptor-boost-ground-hit|"
-            "--raptor-boost-air-miss|"
+            "--raptor-boost-air-miss|--raptor-boost-air-hit|"
             "--falcon-dive-ground-catch|"
             "--falcon-dive-air-catch|"
             "--falcon-dive-air-miss|"
@@ -283,7 +299,8 @@ int main(int argc, char **argv)
         content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
         content.fighter.player_push_half_width_q16 = INT32_C(1);
     }
-    else if (raptor_boost_ground_hit_mode != 0)
+    else if (raptor_boost_ground_hit_mode != 0 ||
+             raptor_boost_air_hit_mode != 0)
     {
         /* The pinned Dolphin capture starts Falcon 10 Melee units from the
          * stationary target. Translate that symmetric half-spacing through
@@ -398,7 +415,8 @@ int main(int argc, char **argv)
         (falcon_punch_air_mode != 0 || falcon_kick_air_mode != 0 ||
          falcon_dive_air_catch_mode != 0 ||
          falcon_dive_air_miss_mode != 0 ||
-         raptor_boost_air_miss_mode != 0
+         raptor_boost_air_miss_mode != 0 ||
+         raptor_boost_air_hit_mode != 0
              ? INT32_C(4096)
              : INT32_C(256)) *
         PF_Q16_ONE;
@@ -556,12 +574,14 @@ int main(int argc, char **argv)
         }
     }
     else if (falcon_dive_air_miss_mode != 0 ||
-             raptor_boost_air_miss_mode != 0)
+             raptor_boost_air_miss_mode != 0 ||
+             raptor_boost_air_hit_mode != 0)
     {
         if (run_elevated_special_pre_roll(
                 sim,
                 &inspection,
-                raptor_boost_air_miss_mode) != 0)
+                raptor_boost_air_miss_mode,
+                raptor_boost_air_hit_mode) != 0)
         {
             return 1;
         }

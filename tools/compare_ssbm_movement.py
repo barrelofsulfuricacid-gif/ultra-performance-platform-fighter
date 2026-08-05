@@ -277,7 +277,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--special-geometry-route",
-        choices=("side_ground_miss", "side_air_miss"),
+        choices=("side_ground_miss", "side_air_miss", "side_air_hit"),
         help="select one route from a combined special-geometry capture",
     )
     args = parser.parse_args()
@@ -385,6 +385,33 @@ def main() -> int:
             == "special_geometry_side_air_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
+    raptor_boost_air_hit_mode = any(
+        str(row.get("label", "")) == "special_geometry_side_air_hit_start"
+        for row in oracle_rows
+    )
+    if raptor_boost_air_hit_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_side_air_hit_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        # The native fixture reaches its ordinary floor on the executable's
+        # hit-action frame 34 while the isolated Dolphin capture is held at
+        # y=500. Qualify every source frame before that unrelated stage
+        # contact, including the complete active/hitlag interval and 30
+        # recovery frames; edge/landing conversion remains a separate route.
+        first_fixture_floor_boundary = next(
+            (
+                index
+                for index, row in enumerate(oracle_rows)
+                if str(row.get("action", "")) == "SWORD_DANCE_3_HIGH"
+                and round(float(row.get("action_frame", 0.0))) >= 34
+            ),
+            len(oracle_rows),
+        )
+        oracle_rows = oracle_rows[:first_fixture_floor_boundary]
     falcon_dive_ground_miss_mode = any(
         str(row.get("label", ""))
         == "special_geometry_up_ground_miss_start"
@@ -671,6 +698,8 @@ def main() -> int:
         runner_command.append("--raptor-boost-ground-hit")
     elif raptor_boost_air_miss_mode:
         runner_command.append("--raptor-boost-air-miss")
+    elif raptor_boost_air_hit_mode:
+        runner_command.append("--raptor-boost-air-hit")
     elif falcon_dive_ground_catch_mode:
         runner_command.append("--falcon-dive-ground-catch")
     elif falcon_dive_air_catch_mode:
@@ -740,6 +769,7 @@ def main() -> int:
         falcon_dive_air_catch_mode
         or falcon_dive_air_miss_mode
         or raptor_boost_air_miss_mode
+        or raptor_boost_air_hit_mode
     ):
         oracle_anchor_x = float(oracle_rows[0]["position_x_from_origin"])
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
@@ -860,6 +890,14 @@ def main() -> int:
                 "SWORD_DANCE_2_MID": 111,
                 "DEAD_FALL": 113,
             }.get(action_name, expected_action)
+        if raptor_boost_air_hit_mode:
+            expected_action = {
+                "SWORD_DANCE_2_MID": 111,
+                "SWORD_DANCE_3_HIGH": 112,
+                "DEAD_FALL": 114,
+            }.get(action_name, expected_action)
+            if float(oracle.get("hitlag_left", 0.0)) > 0.0:
+                expected_action = 13
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode
@@ -942,6 +980,13 @@ def main() -> int:
                 expected_ticks = action_frame
             elif action_name == "DEAD_FALL":
                 expected_ticks = action_frame - 1
+        if raptor_boost_air_hit_mode:
+            if action_name == "SWORD_DANCE_2_MID":
+                expected_ticks = action_frame
+            elif action_name == "SWORD_DANCE_3_HIGH":
+                expected_ticks = action_frame
+            elif action_name == "DEAD_FALL":
+                expected_ticks = action_frame - 1
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode
@@ -979,6 +1024,7 @@ def main() -> int:
         if shield_hit_mode or (
             (
                 raptor_boost_ground_hit_mode
+                or raptor_boost_air_hit_mode
                 or falcon_kick_ground_hit_mode
             )
             and float(oracle.get("hitlag_left", 0.0)) > 0.0
@@ -1053,6 +1099,7 @@ def main() -> int:
             falcon_dive_air_catch_mode
             or falcon_dive_air_miss_mode
             or raptor_boost_air_miss_mode
+            or raptor_boost_air_hit_mode
         )
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
@@ -1230,13 +1277,17 @@ def main() -> int:
                         f"delta={actual_geometry - expected_geometry}"
                     )
         if (
-            (shield_hit_mode or falcon_kick_ground_hit_mode)
+            (
+                shield_hit_mode
+                or falcon_kick_ground_hit_mode
+                or raptor_boost_air_hit_mode
+            )
             and actual_hitlag != expected_hitlag
         ):
             differences.append(
                 f"hitlag expected={expected_hitlag} actual={actual_hitlag}"
             )
-        if falcon_kick_ground_hit_mode:
+        if falcon_kick_ground_hit_mode or raptor_boost_air_hit_mode:
             expected_opponent_hitlag = round(
                 float(oracle.get("opponent_hitlag_left", 0.0))
             )
