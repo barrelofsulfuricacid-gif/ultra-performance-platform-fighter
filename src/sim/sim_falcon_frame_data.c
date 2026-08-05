@@ -55,6 +55,12 @@ pf_m4_falcon_reference_common_attributes(void)
     return &pf_m4_falcon_common_attribute_data;
 }
 
+const pf_m4_falcon_ledge_attributes *
+pf_m4_falcon_reference_ledge_attributes(void)
+{
+    return &pf_m4_falcon_ledge_attribute_data;
+}
+
 const pf_m4_falcon_special_attributes *
 pf_m4_falcon_reference_special_attributes(void)
 {

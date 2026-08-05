@@ -3597,3 +3597,35 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Raptor Boost frames 1 through 20. No authored timing or movement constant is
   duplicated. The at-will Raptor suite now covers 502 frames and aggregate
   owner-executable evidence is 14,671 frames.
+
+## 2026-08-05 Falcon Dive ledge collision and complete collision-data import
+
+- The complete Falcon source importer now decodes the DAT's entire
+  `ftData_x44` collision block in addition to the existing 50 move slots, 48
+  present subactions, 97 common words, 35 special fields, scripts, root
+  motion, geometry, and stale table. Runtime memory independently confirms
+  Falcon's authored ledge-snap values are exactly x=9, y=17, and height=11.
+- The pinned native ledge capture SHA-256 is
+  `5a5b295d0fc7a8d1c06512dc704176a131a7c01a931a0a2b92f6d7ff8c3a8295`.
+  It uses one safe on-stage preposition, then only controller input. Sixty-
+  three Falcon Dive frames match action, facing, position, and both velocity
+  axes within the bounded 640-Q16 allowance. The source verifier separately
+  proves frame 64 enters `EdgeCatch` and frame 71 enters `EdgeHang` using the
+  exact decomp inequalities and live collision contact/position/ECB memory.
+- Production replaces the generic half-width-plus-air-speed reach during
+  Falcon Dive with one zero-allocation data view over the authored ledge-snap
+  values and the complete 64-step live ECB right/bottom sequence. The same
+  source review corrected two independent gaps: Falcon may change facing only
+  on the exact frame-13 command gate, and its horizontal cap uses imported
+  `air_drift_max` rather than the separate maximum-air-speed field.
+- `tools/verify_m4_falcon_dive.sh` now reruns 539 strict comparable frames and
+  the source-verified catch/hang transition at will. Regeneration from all
+  five pinned Falcon inputs byte-matches the generated include at SHA-256
+  `0be763ee219d385e738e7c32a2cfbd65b9adfbc5759fed114280ce1f9588ca34`;
+  the expanded complete-source digest is
+  `af9020d9a33ccfe37fb0fa86bf89a97d18ed54ddfef54ba2f58e3067ddaa4d2c`.
+  The refreshed eight-match verifier digest is `85775872b7a284f5`.
+- Aggregate owner-executable evidence is now 14,889 captured frames. Fresh WSL
+  Linux and native Windows builds pass 19/19 and 20/20 configured tests.
+  M4 remains unfinished; broader shared-state and remaining exhaustive SSBM
+  equivalence work stay active.

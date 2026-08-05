@@ -21625,6 +21625,8 @@ static int run_falcon_reference_table_test(void)
             &common_attribute_count);
     const pf_m4_falcon_common_attributes *common_attributes =
         pf_m4_falcon_reference_common_attributes();
+    const pf_m4_falcon_ledge_attributes *ledge_attributes =
+        pf_m4_falcon_reference_ledge_attributes();
     const pf_m4_falcon_special_attributes *special_attributes =
         pf_m4_falcon_reference_special_attributes();
     const pf_m4_falcon_common_special_attributes *common_special_attributes =
@@ -21898,8 +21900,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xe5) ||
-        complete_source_sha256[31] != UINT8_C(0x75) ||
+        complete_source_sha256[0] != UINT8_C(0xaf) ||
+        complete_source_sha256[31] != UINT8_C(0x2c) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -21917,6 +21919,10 @@ static int run_falcon_reference_table_test(void)
         common_attributes->weight != UINT16_C(104) ||
         common_attributes->down_aerial_landing_lag_ticks !=
             UINT16_C(24) ||
+        ledge_attributes == NULL ||
+        ledge_attributes->snap_x_q16 != INT32_C(61547) ||
+        ledge_attributes->snap_y_q16 != INT32_C(197665) ||
+        ledge_attributes->snap_height_q16 != INT32_C(127901) ||
         special_attributes == NULL ||
         special_attributes->specialn_stick_range_y_neg_q16 !=
             INT32_C(8192) ||

@@ -962,7 +962,7 @@ static pf_status pf_m4_falcon_dive_start_velocity(
     maximum_q16 =
         special != NULL
             ? pf_m4_multiply_q16(
-                  fighter->air_max_horizontal_speed_q16,
+                  fighter->air_speed_q16,
                   special->specialhi_horz_vel_q16)
             : INT32_C(0);
     if (common == NULL || special == NULL || timing == NULL ||
@@ -988,7 +988,10 @@ static pf_status pf_m4_falcon_dive_start_velocity(
             ? INT32_C(0)
             : *velocity_x_q16 -
                   (int32_t)previous_facing * previous_root_x_q16;
-    if (displayed_frame >= timing->air_control_begin_frame &&
+    /* ftCa_SpecialHiAir_IASA consumes and clears the action-script command
+     * variable once. Direction may change on that exact gate frame only;
+     * later air-control samples do not repeatedly turn Falcon. */
+    if (displayed_frame == timing->air_control_begin_frame &&
         (axis_q16 > special->specialhi_input_var_q16 ||
          axis_q16 < -special->specialhi_input_var_q16))
     {
@@ -1055,7 +1058,7 @@ static pf_status pf_m4_falcon_dive_throw_velocity(
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
     maximum_q16 = pf_m4_multiply_q16(
-        fighter->air_max_horizontal_speed_q16,
+        fighter->air_speed_q16,
         special->specialhi_horz_vel_q16);
     if (maximum_q16 <= INT32_C(0))
     {
@@ -2856,24 +2859,83 @@ static int pf_m4_try_grab_ledge(
     uint8_t *fast_fall,
     uint16_t *ledge_invulnerability_ticks,
     uint16_t ledge_regrab_lockout_ticks,
+    uint8_t action_state_before_catch,
+    uint16_t action_ticks_before_catch,
+    int32_t previous_position_x,
     int8_t facing,
     int8_t *dash_direction)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
     const pf_m4_stage_data *stage = &content->stage;
-    const int64_t horizontal_reach =
+    int64_t horizontal_reach =
         (int64_t)fighter->half_width_q16 +
         (int64_t)fighter->air_speed_q16;
-    const int32_t catch_top =
+    int32_t catch_top =
         stage->floor_y_q16 - fighter->half_height_q16;
-    const int32_t catch_bottom =
+    int32_t catch_bottom =
         stage->floor_y_q16 + fighter->half_height_q16;
+    int32_t melee_bottom_extent_q16 = INT32_C(0);
+    int32_t left_probe_position_x = *position_x;
+    int32_t right_probe_position_x = *position_x;
+    int use_melee_ledge_probe = 0;
     uint8_t ledge = (uint8_t)PF_M4_LEDGE_NONE;
+
+    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+        (action_state_before_catch ==
+             (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+         action_state_before_catch ==
+             (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR))
+    {
+        const pf_m4_falcon_ledge_attributes *ledge_attributes =
+            pf_m4_falcon_reference_ledge_attributes();
+        const pf_m4_falcon_collision_pose *pose =
+            pf_m4_falcon_reference_collision_pose();
+
+        if (ledge_attributes != NULL && pose != NULL)
+        {
+            const uint16_t frame_index =
+                action_ticks_before_catch > UINT16_C(0) &&
+                        action_ticks_before_catch <=
+                            PF_M4_FALCON_DIVE_ECB_FRAME_COUNT
+                    ? (uint16_t)(action_ticks_before_catch - UINT16_C(1))
+                    : (uint16_t)(
+                          PF_M4_FALCON_DIVE_ECB_FRAME_COUNT - UINT16_C(1));
+
+            horizontal_reach =
+                (int64_t)ledge_attributes->snap_x_q16 +
+                (int64_t)pose
+                    ->falcon_dive_right_x_from_origin_q16[frame_index];
+            melee_bottom_extent_q16 =
+                pose->falcon_dive_bottom_y_from_origin_q16[frame_index];
+            catch_top =
+                stage->floor_y_q16 + ledge_attributes->snap_y_q16 -
+                ledge_attributes->snap_height_q16 / INT32_C(2);
+            catch_bottom =
+                stage->floor_y_q16 + ledge_attributes->snap_y_q16 +
+                ledge_attributes->snap_height_q16 / INT32_C(2);
+            left_probe_position_x =
+                previous_position_x > *position_x
+                    ? previous_position_x
+                    : *position_x;
+            right_probe_position_x =
+                previous_position_x < *position_x
+                    ? previous_position_x
+                    : *position_x;
+            use_melee_ledge_probe = 1;
+        }
+    }
 
     if (ledge_regrab_lockout_ticks != UINT16_C(0) ||
         *velocity_y < INT32_C(0) ||
+        (use_melee_ledge_probe != 0 && *velocity_y == INT32_C(0)) ||
         *position_y < catch_top ||
-        *position_y > catch_bottom)
+        (use_melee_ledge_probe == 0 && *position_y > catch_bottom) ||
+        (use_melee_ledge_probe != 0 &&
+         (int64_t)*position_y - (int64_t)*velocity_y >
+             (int64_t)catch_bottom) ||
+        (use_melee_ledge_probe != 0 &&
+         (int64_t)*position_y - (int64_t)melee_bottom_extent_q16 <=
+             (int64_t)stage->floor_y_q16))
     {
         return 0;
     }
@@ -2881,14 +2943,14 @@ static int pf_m4_try_grab_ledge(
     if (*position_x < stage->floor_left_q16 &&
         facing == INT8_C(1) &&
         (int64_t)stage->floor_left_q16 -
-                (int64_t)*position_x <=
+                (int64_t)left_probe_position_x <=
             horizontal_reach)
     {
         ledge = (uint8_t)PF_M4_LEDGE_LEFT;
     }
     else if (*position_x > stage->floor_right_q16 &&
              facing == INT8_C(-1) &&
-             (int64_t)*position_x -
+             (int64_t)right_probe_position_x -
                      (int64_t)stage->floor_right_q16 <=
                  horizontal_reach)
     {
@@ -9540,6 +9602,9 @@ pf_status pf_m4_step_player(
                 &fast_fall,
                 &scratch->ledge_invulnerability_ticks[player_index],
                 scratch->ledge_regrab_lockout_ticks[player_index],
+                action_state,
+                action_ticks,
+                previous_position_x,
                 facing,
                 &dash_direction))
         {

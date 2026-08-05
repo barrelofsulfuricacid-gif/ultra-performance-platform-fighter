@@ -260,19 +260,25 @@ def main() -> int:
     parser.add_argument("capture", type=Path)
     parser.add_argument("runner", type=Path)
     parser.add_argument(
-        "--position-tolerance-q16", type=int, default=640,
+        "--position-tolerance-q16",
+        type=int,
+        default=640,
         help="allowed float-to-fixed position quantization difference",
     )
     parser.add_argument(
-        "--velocity-tolerance-q16", type=int, default=32,
+        "--velocity-tolerance-q16",
+        type=int,
+        default=32,
         help="allowed float-to-fixed velocity quantization difference",
     )
     parser.add_argument(
-        "--native-output", type=Path,
+        "--native-output",
+        type=Path,
         help="optionally preserve the native CSV trace for diagnostics",
     )
     parser.add_argument(
-        "--native-input-output", type=Path,
+        "--native-input-output",
+        type=Path,
         help="optionally preserve the normalized native input trace",
     )
     parser.add_argument(
@@ -303,9 +309,7 @@ def main() -> int:
         return 1
     oracle_rows = capture["rows"]
     if args.special_geometry_route is not None:
-        start_label = (
-            f"special_geometry_{args.special_geometry_route}_start"
-        )
+        start_label = f"special_geometry_{args.special_geometry_route}_start"
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
@@ -316,9 +320,7 @@ def main() -> int:
                 index
                 for index, row in enumerate(oracle_rows)
                 if index > first_special_row
-                and str(row.get("label", "")).endswith(
-                    "_opponent_pose_reset"
-                )
+                and str(row.get("label", "")).endswith("_opponent_pose_reset")
             ),
             len(oracle_rows),
         )
@@ -331,21 +333,18 @@ def main() -> int:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_neutral_air_start"
+            if str(row.get("label", "")) == "special_geometry_neutral_air_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
     raptor_boost_ground_hit_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_side_ground_hit_start"
+        str(row.get("label", "")) == "special_geometry_side_ground_hit_start"
         for row in oracle_rows
     )
     if raptor_boost_ground_hit_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_side_ground_hit_start"
+            if str(row.get("label", "")) == "special_geometry_side_ground_hit_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_hit = next(
@@ -358,16 +357,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: first_idle_after_hit + 1]
     raptor_boost_ground_miss_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_side_ground_miss_start"
+        str(row.get("label", "")) == "special_geometry_side_ground_miss_start"
         for row in oracle_rows
     )
     if raptor_boost_ground_miss_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_side_ground_miss_start"
+            if str(row.get("label", "")) == "special_geometry_side_ground_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_miss = next(
@@ -380,16 +377,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: first_idle_after_miss + 1]
     raptor_boost_ground_edge_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_side_ground_edge_start"
+        str(row.get("label", "")) == "special_geometry_side_ground_edge_start"
         for row in oracle_rows
     )
     if raptor_boost_ground_edge_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_side_ground_edge_start"
+            if str(row.get("label", "")) == "special_geometry_side_ground_edge_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_fall_row = next(
@@ -406,13 +401,11 @@ def main() -> int:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_side_air_miss_start"
+            if str(row.get("label", "")) == "special_geometry_side_air_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
     raptor_boost_air_hit_floor_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_side_air_hit_floor_start"
+        str(row.get("label", "")) == "special_geometry_side_air_hit_floor_start"
         for row in oracle_rows
     )
     raptor_boost_air_hit_mode = raptor_boost_air_hit_floor_mode or any(
@@ -441,24 +434,21 @@ def main() -> int:
                 (
                     index
                     for index, row in enumerate(oracle_rows)
-                    if str(row.get("action", ""))
-                    == "SWORD_DANCE_3_HIGH"
+                    if str(row.get("action", "")) == "SWORD_DANCE_3_HIGH"
                     and round(float(row.get("action_frame", 0.0))) >= 34
                 ),
                 len(oracle_rows),
             )
             oracle_rows = oracle_rows[:first_fixture_floor_boundary]
     falcon_dive_ground_miss_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_up_ground_miss_start"
+        str(row.get("label", "")) == "special_geometry_up_ground_miss_start"
         for row in oracle_rows
     )
     if falcon_dive_ground_miss_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_up_ground_miss_start"
+            if str(row.get("label", "")) == "special_geometry_up_ground_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_special = next(
@@ -471,16 +461,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
     falcon_dive_ground_catch_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_up_ground_catch_start"
+        str(row.get("label", "")) == "special_geometry_up_ground_catch_start"
         for row in oracle_rows
     )
     if falcon_dive_ground_catch_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_up_ground_catch_start"
+            if str(row.get("label", "")) == "special_geometry_up_ground_catch_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_special = next(
@@ -493,16 +481,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
     falcon_dive_air_catch_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_up_air_catch_start"
+        str(row.get("label", "")) == "special_geometry_up_air_catch_start"
         for row in oracle_rows
     )
     if falcon_dive_air_catch_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_up_air_catch_start"
+            if str(row.get("label", "")) == "special_geometry_up_air_catch_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_fall_after_throw = next(
@@ -522,10 +508,26 @@ def main() -> int:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_up_air_miss_start"
+            if str(row.get("label", "")) == "special_geometry_up_air_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
+    falcon_dive_air_ledge_mode = any(
+        str(row.get("label", "")) == "special_geometry_up_air_ledge_grab_start"
+        for row in oracle_rows
+    )
+    if falcon_dive_air_ledge_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", "")) == "special_geometry_up_air_ledge_grab_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_ledge_catch = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("action", "")) == "EDGE_CATCHING"
+        )
+        oracle_rows = oracle_rows[:first_ledge_catch]
     falcon_kick_ground_mode = any(
         str(row.get("label", "")) == "special_geometry_down_ground_start"
         for row in oracle_rows
@@ -534,8 +536,7 @@ def main() -> int:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_down_ground_start"
+            if str(row.get("label", "")) == "special_geometry_down_ground_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_special = next(
@@ -548,16 +549,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
     falcon_kick_ground_hit_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_down_ground_hit_start"
+        str(row.get("label", "")) == "special_geometry_down_ground_hit_start"
         for row in oracle_rows
     )
     if falcon_kick_ground_hit_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_down_ground_hit_start"
+            if str(row.get("label", "")) == "special_geometry_down_ground_hit_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_special = next(
@@ -570,16 +569,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
     falcon_kick_ground_wall_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_down_ground_wall_start"
+        str(row.get("label", "")) == "special_geometry_down_ground_wall_start"
         for row in oracle_rows
     )
     if falcon_kick_ground_wall_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_down_ground_wall_start"
+            if str(row.get("label", "")) == "special_geometry_down_ground_wall_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         last_wall_rebound = max(
@@ -589,16 +586,14 @@ def main() -> int:
         )
         oracle_rows = oracle_rows[: last_wall_rebound + 1]
     falcon_kick_ground_edge_mode = any(
-        str(row.get("label", ""))
-        == "special_geometry_down_ground_edge_start"
+        str(row.get("label", "")) == "special_geometry_down_ground_edge_start"
         for row in oracle_rows
     )
     if falcon_kick_ground_edge_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_down_ground_edge_start"
+            if str(row.get("label", "")) == "special_geometry_down_ground_edge_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_fall_after_special = next(
@@ -638,8 +633,7 @@ def main() -> int:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", ""))
-            == "special_geometry_down_air_land_start"
+            if str(row.get("label", "")) == "special_geometry_down_air_land_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_idle_after_special = next(
@@ -651,9 +645,9 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
-    push_mode = bool(oracle_rows) and str(
-        oracle_rows[0].get("label", "")
-    ).startswith("push_")
+    push_mode = bool(oracle_rows) and str(oracle_rows[0].get("label", "")).startswith(
+        "push_"
+    )
     shield_hit_mode = bool(oracle_rows) and str(
         oracle_rows[0].get("label", "")
     ).startswith("shield_hit_")
@@ -675,16 +669,20 @@ def main() -> int:
             65535
             if bool(row.get("observed_grab", False))
             or bool(row.get("requested_digital_left"))
-            else controller_trigger(observed_analog)
-            if float(row.get("requested_left_shoulder", 0.0)) > 0.0
-            else 0
+            else (
+                controller_trigger(observed_analog)
+                if float(row.get("requested_left_shoulder", 0.0)) > 0.0
+                else 0
+            )
         )
         right_trigger = (
             65535
             if bool(row.get("requested_digital_right"))
-            else controller_trigger(observed_analog)
-            if float(row.get("requested_right_shoulder", 0.0)) > 0.0
-            else 0
+            else (
+                controller_trigger(observed_analog)
+                if float(row.get("requested_right_shoulder", 0.0)) > 0.0
+                else 0
+            )
         )
         buttons = 1 if bool(row.get("observed_jump", False)) else 0
         if bool(row.get("observed_attack", False)) or bool(
@@ -705,9 +703,7 @@ def main() -> int:
         opponent_input_x = controller_axis(
             float(row.get("observed_opponent_main_x", 0.5))
         )
-        opponent_buttons = (
-            2 if bool(row.get("observed_opponent_attack", False)) else 0
-        )
+        opponent_buttons = 2 if bool(row.get("observed_opponent_attack", False)) else 0
         input_lines.append(
             f"{controller_axis(float(row['observed_main_x']))},"
             f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
@@ -744,6 +740,8 @@ def main() -> int:
         runner_command.append("--falcon-dive-air-catch")
     elif falcon_dive_air_miss_mode:
         runner_command.append("--falcon-dive-air-miss")
+    elif falcon_dive_air_ledge_mode:
+        runner_command.append("--falcon-dive-air-ledge")
     elif falcon_kick_ground_mode:
         runner_command.append("--falcon-kick-ground")
     elif falcon_kick_ground_hit_mode:
@@ -784,21 +782,18 @@ def main() -> int:
         float(oracle_rows[0]["position_x_from_origin"])
         - float(oracle_rows[0]["ground_velocity_x"])
         if raptor_boost_ground_hit_mode or raptor_boost_ground_edge_mode
-        else float(oracle_rows[0]["position_x_from_origin"])
-        if falcon_kick_ground_edge_mode
-        or falcon_kick_ground_hit_mode
-        or falcon_kick_ground_wall_mode
-        else 0.0
+        else (
+            float(oracle_rows[0]["position_x_from_origin"])
+            if falcon_kick_ground_edge_mode
+            or falcon_kick_ground_hit_mode
+            or falcon_kick_ground_wall_mode
+            else 0.0
+        )
     )
     oracle_anchor_y = (
         float(oracle_rows[0]["position_y"])
-        - (
-            float(oracle_rows[0]["velocity_y"])
-            if falcon_kick_air_land_mode
-            else 0.0
-        )
-        if capture.get("stage") == "BATTLEFIELD"
-        or falcon_kick_air_land_mode
+        - (float(oracle_rows[0]["velocity_y"]) if falcon_kick_air_land_mode else 0.0)
+        if capture.get("stage") == "BATTLEFIELD" or falcon_kick_air_land_mode
         else 0.0
     )
     if falcon_kick_ground_wall_mode:
@@ -806,6 +801,7 @@ def main() -> int:
     elif (
         falcon_dive_air_catch_mode
         or falcon_dive_air_miss_mode
+        or falcon_dive_air_ledge_mode
         or raptor_boost_air_miss_mode
         or raptor_boost_air_hit_mode
     ):
@@ -813,9 +809,7 @@ def main() -> int:
         oracle_anchor_y = float(oracle_rows[0]["position_y"])
     native_anchor_x = 0
     native_anchor_y = 0
-    horizontal_mirror = (
-        -1 if falcon_punch_air_mode or falcon_kick_air_mode else 1
-    )
+    horizontal_mirror = -1 if falcon_punch_air_mode or falcon_kick_air_mode else 1
     previous_label: str | None = None
     skip_character_content = False
     shield_contact_seen = False
@@ -828,10 +822,7 @@ def main() -> int:
         label = str(oracle["label"])
         entering_anchor = (
             label != previous_label
-            and (
-                label in POSITION_ANCHOR_LABELS
-                or label.endswith("_settle")
-            )
+            and (label in POSITION_ANCHOR_LABELS or label.endswith("_settle"))
             and previous_oracle is not None
         )
         if skip_character_content and not entering_anchor:
@@ -841,9 +832,7 @@ def main() -> int:
             continue
         if entering_anchor:
             skip_character_content = False
-        if (
-            entering_anchor
-        ):
+        if entering_anchor:
             oracle_anchor_x = float(previous_oracle["position_x_from_origin"])
             oracle_anchor_y = float(previous_oracle["position_y"])
             native_anchor_x = int(previous_native["position_x_q16_from_origin"])
@@ -868,8 +857,7 @@ def main() -> int:
             and action_name == "SWORD_DANCE_3_LOW_AIR"
             and (
                 previous_oracle is None
-                or str(previous_oracle.get("action", ""))
-                != "SWORD_DANCE_3_LOW_AIR"
+                or str(previous_oracle.get("action", "")) != "SWORD_DANCE_3_LOW_AIR"
             )
         ):
             # Hyrule's approach floor changes height before the wall. Anchor
@@ -913,13 +901,19 @@ def main() -> int:
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
-        if falcon_dive_air_catch_mode or falcon_dive_air_miss_mode:
+        if (
+            falcon_dive_air_catch_mode
+            or falcon_dive_air_miss_mode
+            or falcon_dive_air_ledge_mode
+        ):
             expected_action = {
                 "SWORD_DANCE_3_LOW": 118,
                 "SWORD_DANCE_4_HIGH": 119,
                 "SWORD_DANCE_4_MID": 120,
                 "DEAD_FALL": 121,
                 "FALLING": 6,
+                "EDGE_CATCHING": 8,
+                "EDGE_HANGING": 8,
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
@@ -979,18 +973,13 @@ def main() -> int:
             }.get(action_name, expected_action)
         if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
-        if (
-            raptor_boost_ground_hit_mode
-            and float(oracle.get("hitlag_left", 0.0)) > 0.0
-        ):
+        if raptor_boost_ground_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
         actual_action = int(native["action_state"])
         expected_ticks = (
             None
             if label in CONTENT_ROUTE_ENTRY_ACTIONS
-            else expected_action_ticks(
-                action_name, float(oracle["action_frame"])
-            )
+            else expected_action_ticks(action_name, float(oracle["action_frame"]))
         )
         if falcon_dive_ground_miss_mode:
             if action_name == "SWORD_DANCE_3_MID":
@@ -1020,6 +1009,13 @@ def main() -> int:
                 expected_ticks = action_frame
             elif action_name == "DEAD_FALL":
                 expected_ticks = action_frame - 1
+        if falcon_dive_air_ledge_mode:
+            if action_name == "SWORD_DANCE_3_LOW":
+                expected_ticks = action_frame
+            elif action_name == "EDGE_CATCHING":
+                expected_ticks = action_frame - 1
+            elif action_name == "EDGE_HANGING":
+                expected_ticks = min(8, action_frame + 6)
         if raptor_boost_air_miss_mode:
             if action_name == "SWORD_DANCE_2_MID":
                 expected_ticks = action_frame
@@ -1090,15 +1086,11 @@ def main() -> int:
         expected_position = horizontal_mirror * scaled_q16(
             float(oracle["position_x_from_origin"]) - oracle_anchor_x
         )
-        actual_position = (
-            int(native["position_x_q16_from_origin"]) - native_anchor_x
-        )
+        actual_position = int(native["position_x_q16_from_origin"]) - native_anchor_x
         expected_position_y = scaled_y_q16(
             float(oracle["position_y"]) - oracle_anchor_y
         )
-        actual_position_y = (
-            int(native["position_y_q16_from_origin"]) - native_anchor_y
-        )
+        actual_position_y = int(native["position_y_q16_from_origin"]) - native_anchor_y
         expected_velocity_key = (
             "air_velocity_x"
             if (
@@ -1107,7 +1099,8 @@ def main() -> int:
                     and float(oracle.get("opponent_damage_percent", 0.0)) > 0.0
                 )
                 or not bool(oracle["grounded"])
-                or action_name in {
+                or action_name
+                in {
                     "JUMPING_FORWARD",
                     "JUMPING_BACKWARD",
                     "JUMPING_ARIAL_FORWARD",
@@ -1125,26 +1118,26 @@ def main() -> int:
             else "ground_velocity_x"
         )
         expected_velocity = horizontal_mirror * scaled_q16(
-            float(
-                oracle[expected_velocity_key]
-            )
+            float(oracle[expected_velocity_key])
         )
         actual_velocity = int(native["velocity_x_q16"])
         expected_velocity_y = scaled_y_q16(float(oracle["velocity_y"]))
         actual_velocity_y = int(native["velocity_y_q16"])
         skip_special_physics = (
-            falcon_punch_air_mode
-            and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
-            and action_frame < 50
-        ) or (
-            (falcon_dive_ground_catch_mode or falcon_dive_air_catch_mode)
-            and action_name in {
-                "SWORD_DANCE_3_MID",
-                "SWORD_DANCE_4_HIGH",
-            }
-        ) or (
-            falcon_kick_ground_wall_mode
-            and action_name == "SWORD_DANCE_4_LOW"
+            (
+                falcon_punch_air_mode
+                and action_name == "NEUTRAL_B_FULL_CHARGE_AIR"
+                and action_frame < 50
+            )
+            or (
+                (falcon_dive_ground_catch_mode or falcon_dive_air_catch_mode)
+                and action_name
+                in {
+                    "SWORD_DANCE_3_MID",
+                    "SWORD_DANCE_4_HIGH",
+                }
+            )
+            or (falcon_kick_ground_wall_mode and action_name == "SWORD_DANCE_4_LOW")
         )
         skip_vertical_position = (
             falcon_kick_air_mode
@@ -1152,6 +1145,7 @@ def main() -> int:
         ) or (
             falcon_dive_air_catch_mode
             or falcon_dive_air_miss_mode
+            or falcon_dive_air_ledge_mode
             or raptor_boost_air_miss_mode
             or raptor_boost_air_hit_mode
         )
@@ -1205,8 +1199,7 @@ def main() -> int:
             )
         if (
             not skip_special_physics
-            and abs(actual_velocity - expected_velocity)
-            > args.velocity_tolerance_q16
+            and abs(actual_velocity - expected_velocity) > args.velocity_tolerance_q16
         ):
             differences.append(
                 f"velocity_q16 expected={expected_velocity} actual={actual_velocity} "
@@ -1222,10 +1215,8 @@ def main() -> int:
                 f"expected={expected_velocity_y} actual={actual_velocity_y} "
                 f"delta={actual_velocity_y - expected_velocity_y}"
             )
-        if (
-            previous_oracle is not None
-            and float(oracle["shield_health"])
-            != float(previous_oracle["shield_health"])
+        if previous_oracle is not None and float(oracle["shield_health"]) != float(
+            previous_oracle["shield_health"]
         ):
             shield_numeric_ticks += 1
         shield_health_tolerance_q16 = max(64, shield_numeric_ticks * 2)
@@ -1262,14 +1253,14 @@ def main() -> int:
                 float(shield_state_memory["guard_magnitude"]) * 65535.0
             )
             actual_guard_magnitude = int(native["shield_magnitude"])
-            expected_guard_angle = round(
-                (
-                    (float(shield_state_memory["guard_angle_degrees"]) - 10.0)
-                    % 360.0
+            expected_guard_angle = (
+                round(
+                    ((float(shield_state_memory["guard_angle_degrees"]) - 10.0) % 360.0)
+                    * 65536.0
+                    / 360.0
                 )
-                * 65536.0
-                / 360.0
-            ) % 65536
+                % 65536
+            )
             actual_guard_angle = int(native["shield_angle_turn"])
             guard_angle_delta = (
                 (actual_guard_angle - expected_guard_angle + 32768) % 65536
@@ -1279,12 +1270,9 @@ def main() -> int:
             expected_center_offset_x = scaled_q16(
                 float(shield_matrix[3]) - float(fighter_position[0])
             )
-            expected_center_offset_y = (
-                scaled_y_q16(
-                    float(shield_matrix[7]) - float(fighter_position[1])
-                )
-                + round(0.8 * 65536.0)
-            )
+            expected_center_offset_y = scaled_y_q16(
+                float(shield_matrix[7]) - float(fighter_position[1])
+            ) + round(0.8 * 65536.0)
             size_matrix = shield_memory["shield_joint_matrix"]
             shield_world_radius = (
                 float(size_matrix[0]) ** 2
@@ -1292,9 +1280,7 @@ def main() -> int:
                 + float(size_matrix[8]) ** 2
             ) ** 0.5
             expected_radius_x = scaled_q16(shield_world_radius)
-            expected_radius_y = round(
-                shield_world_radius * SSBM_TO_M4_Y_Q16
-            )
+            expected_radius_y = round(shield_world_radius * SSBM_TO_M4_Y_Q16)
             geometry_pairs = (
                 (
                     "shield_center_offset_x_q16",
@@ -1331,13 +1317,8 @@ def main() -> int:
                         f"delta={actual_geometry - expected_geometry}"
                     )
         if (
-            (
-                shield_hit_mode
-                or falcon_kick_ground_hit_mode
-                or raptor_boost_air_hit_mode
-            )
-            and actual_hitlag != expected_hitlag
-        ):
+            shield_hit_mode or falcon_kick_ground_hit_mode or raptor_boost_air_hit_mode
+        ) and actual_hitlag != expected_hitlag:
             differences.append(
                 f"hitlag expected={expected_hitlag} actual={actual_hitlag}"
             )
@@ -1366,9 +1347,7 @@ def main() -> int:
             opponent_action_name = str(oracle["opponent_action"])
             actual_opponent_action = int(native["opponent_action_state"])
             actual_opponent_grounded = int(native["opponent_grounded"])
-            oracle_hitstun = round(
-                float(oracle.get("opponent_hitstun_left", 0.0))
-            )
+            oracle_hitstun = round(float(oracle.get("opponent_hitstun_left", 0.0)))
             actual_opponent_hitstun = int(native["opponent_hitstun_ticks"])
             capture_or_reaction = opponent_action_name in {
                 "CAPTURE_CAPTAIN",
@@ -1389,9 +1368,7 @@ def main() -> int:
                 expected_opponent_action = (
                     51
                     if opponent_action_name == "CAPTURE_CAPTAIN"
-                    else 13
-                    if oracle_hitstun == 26
-                    else 14
+                    else 13 if oracle_hitstun == 26 else 14
                 )
                 if actual_opponent_action != expected_opponent_action:
                     differences.append(
@@ -1417,25 +1394,21 @@ def main() -> int:
                 expected_opponent_velocity_y = scaled_y_q16(
                     float(oracle["opponent_velocity_y"])
                 )
-                actual_opponent_velocity_x = int(
-                    native["opponent_velocity_x_q16"]
-                )
-                actual_opponent_velocity_y = int(
-                    native["opponent_velocity_y_q16"]
-                )
-                if abs(
-                    actual_opponent_velocity_x
-                    - expected_opponent_velocity_x
-                ) > args.velocity_tolerance_q16:
+                actual_opponent_velocity_x = int(native["opponent_velocity_x_q16"])
+                actual_opponent_velocity_y = int(native["opponent_velocity_y_q16"])
+                if (
+                    abs(actual_opponent_velocity_x - expected_opponent_velocity_x)
+                    > args.velocity_tolerance_q16
+                ):
                     differences.append(
                         "falcon_dive_opponent_velocity_x_q16 "
                         f"expected={expected_opponent_velocity_x} "
                         f"actual={actual_opponent_velocity_x}"
                     )
-                if abs(
-                    actual_opponent_velocity_y
-                    - expected_opponent_velocity_y
-                ) > args.velocity_tolerance_q16:
+                if (
+                    abs(actual_opponent_velocity_y - expected_opponent_velocity_y)
+                    > args.velocity_tolerance_q16
+                ):
                     differences.append(
                         "falcon_dive_opponent_velocity_y_q16 "
                         f"expected={expected_opponent_velocity_y} "
@@ -1446,9 +1419,7 @@ def main() -> int:
                     differences.append("missing_falcon_dive_hitbox_memory")
                 else:
                     expected_damage = float(
-                        hitbox_memory.get(
-                            "opponent_damage_percent_internal", 0.0
-                        )
+                        hitbox_memory.get("opponent_damage_percent_internal", 0.0)
                     )
                     # y=500 enters Melee's off-screen magnifier and adds one
                     # unrelated percent at throw frame 25. Compare the source
@@ -1468,10 +1439,7 @@ def main() -> int:
                 opponent_action_name,
                 float(oracle["opponent_action_frame"]),
             )
-            if (
-                shield_hit_mode
-                and float(oracle.get("opponent_hitlag_left", 0.0)) > 0.0
-            ):
+            if shield_hit_mode and float(oracle.get("opponent_hitlag_left", 0.0)) > 0.0:
                 expected_opponent_action = 13
             actual_opponent_action = int(native["opponent_action_state"])
             expected_opponent_ticks = expected_action_ticks(
@@ -1493,9 +1461,7 @@ def main() -> int:
             actual_opponent_position = int(
                 native["opponent_position_x_q16_from_origin"]
             )
-            expected_opponent_grounded = (
-                1 if bool(oracle["opponent_grounded"]) else 0
-            )
+            expected_opponent_grounded = 1 if bool(oracle["opponent_grounded"]) else 0
             actual_opponent_grounded = int(native["opponent_grounded"])
             expected_opponent_velocity = scaled_q16(
                 float(oracle["opponent_ground_velocity_x"])
@@ -1529,20 +1495,14 @@ def main() -> int:
                     f"expected={expected_opponent_facing} "
                     f"actual={actual_opponent_facing}"
                 )
-            if (
-                shield_hit_mode
-                and actual_opponent_hitlag != expected_opponent_hitlag
-            ):
+            if shield_hit_mode and actual_opponent_hitlag != expected_opponent_hitlag:
                 differences.append(
                     "opponent_hitlag "
                     f"expected={expected_opponent_hitlag} "
                     f"actual={actual_opponent_hitlag}"
                 )
             if (
-                abs(
-                    actual_opponent_position -
-                    expected_opponent_position
-                )
+                abs(actual_opponent_position - expected_opponent_position)
                 > position_tolerance_q16
             ):
                 differences.append(
@@ -1580,9 +1540,7 @@ def main() -> int:
                     - float(previous_oracle["opponent_position_x_from_origin"])
                     - float(oracle["opponent_ground_velocity_x"])
                 )
-                actual_opponent_recoil = int(
-                    native["opponent_shield_recoil_x_q16"]
-                )
+                actual_opponent_recoil = int(native["opponent_shield_recoil_x_q16"])
                 if (
                     abs(actual_opponent_recoil - expected_opponent_recoil)
                     > args.velocity_tolerance_q16

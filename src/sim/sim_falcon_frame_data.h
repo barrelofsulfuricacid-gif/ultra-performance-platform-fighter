@@ -7,6 +7,7 @@
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
 #define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
+#define PF_M4_FALCON_DIVE_ECB_FRAME_COUNT UINT16_C(64)
 
 typedef enum pf_m4_falcon_move_index
 {
@@ -198,6 +199,13 @@ typedef struct pf_m4_falcon_common_attributes
     uint16_t down_aerial_landing_lag_ticks;
 } pf_m4_falcon_common_attributes;
 
+typedef struct pf_m4_falcon_ledge_attributes
+{
+    int32_t snap_x_q16;
+    int32_t snap_y_q16;
+    int32_t snap_height_q16;
+} pf_m4_falcon_ledge_attributes;
+
 /*
  * Exact deterministic view of the 0x8c-byte ftCaptain_DatAttrs block. Float
  * members are converted from the owner DAT's big-endian IEEE-754 words to
@@ -306,6 +314,10 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT];
     int32_t raptor_boost_hit_air_bottom_y_from_origin_q16[
         PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT];
+    int32_t falcon_dive_right_x_from_origin_q16[
+        PF_M4_FALCON_DIVE_ECB_FRAME_COUNT];
+    int32_t falcon_dive_bottom_y_from_origin_q16[
+        PF_M4_FALCON_DIVE_ECB_FRAME_COUNT];
 } pf_m4_falcon_collision_pose;
 
 typedef struct pf_m4_reference_search_sphere
@@ -381,6 +393,9 @@ const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
 
 const pf_m4_falcon_common_attributes *
 pf_m4_falcon_reference_common_attributes(void);
+
+const pf_m4_falcon_ledge_attributes *
+pf_m4_falcon_reference_ledge_attributes(void);
 
 const pf_m4_falcon_special_attributes *
 pf_m4_falcon_reference_special_attributes(void);

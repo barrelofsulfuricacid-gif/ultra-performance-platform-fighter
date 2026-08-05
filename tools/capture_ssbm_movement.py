@@ -35,6 +35,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "side_air_hit_floor": "0x132",
     "up_ground_miss": "0x133",
     "up_air_miss": "0x134",
+    "up_air_ledge_grab": "0x134",
     "up_ground_catch": "0x135",
     "up_air_catch": "0x135",
     "down_ground": "0x137",
@@ -380,6 +381,7 @@ def input_trace(
                 "side_air_hit",
                 "side_air_hit_floor",
                 "up_air_miss",
+                "up_air_ledge_grab",
                 "up_air_catch",
                 "down_air",
                 "down_air_land",
@@ -394,55 +396,88 @@ def input_trace(
                     "up_air_catch",
                 }
 
-                def airborne_setup(
-                    suffix: str, *, jump: bool = False
-                ) -> dict[str, object]:
-                    opponent_elevated = (
-                        airborne_opponent and suffix == "opponent_elevate"
-                    )
-                    native_jump_setup = native_air_hit and suffix == "jump"
-                    native_jump_held = suffix in {"jump", "jump_squat"}
-                    return command(
-                        f"special_geometry_{route}_{suffix}",
-                        jump=jump,
-                        opponent_jump=(
-                            airborne_opponent
-                            and (not native_air_hit or native_jump_held)
-                        ),
-                        fighter_x_override=(-10.0 if native_jump_setup else None),
-                        opponent_x_override=(
-                            0.0
-                            if native_jump_setup
-                            or (airborne_opponent and not native_air_hit)
-                            else None
-                        ),
-                        opponent_y_override=(
-                            500.0 if opponent_elevated and not native_air_hit else None
-                        ),
-                    )
-
-                airborne_commands = [
-                    airborne_setup("jump", jump=True),
-                    airborne_setup("jump_squat", jump=True),
-                    airborne_setup("jump_squat", jump=True),
-                    airborne_setup("jump_squat", jump=True),
-                    airborne_setup("jump_squat", jump=True),
-                    airborne_setup("ascent"),
-                    airborne_setup("ascent"),
-                ]
-                if not low_airborne:
-                    airborne_commands.extend(
-                        (
-                            airborne_setup("double_jump", jump=True),
-                            airborne_setup("airborne_hold"),
-                            airborne_setup("airborne_hold"),
-                            airborne_setup("opponent_elevate"),
+                if route == "up_air_ledge_grab":
+                    # Start from a safe grounded point, then create the
+                    # recovery setup entirely through native movement. This
+                    # preserves Melee's collision history and ledge flags.
+                    trace.append(
+                        command(
+                            "special_geometry_up_air_ledge_grab_preposition",
+                            fighter_x_override=-45.0,
                         )
                     )
-                if native_air_hit:
-                    airborne_commands.extend(
-                        airborne_setup("descent") for _ in range(6)
+                    repeat("special_geometry_up_air_ledge_grab_preposition_settle", 3)
+                    trace.extend(
+                        command(
+                            "special_geometry_up_air_ledge_grab_jump",
+                            main_x=0.0,
+                            jump=True,
+                        )
+                        for _ in range(5)
                     )
+                    repeat(
+                        "special_geometry_up_air_ledge_grab_drift_out",
+                        25,
+                        main_x=0.0,
+                    )
+                    repeat(
+                        "special_geometry_up_air_ledge_grab_descend",
+                        32,
+                    )
+                    airborne_commands = []
+                else:
+
+                    def airborne_setup(
+                        suffix: str, *, jump: bool = False
+                    ) -> dict[str, object]:
+                        opponent_elevated = (
+                            airborne_opponent and suffix == "opponent_elevate"
+                        )
+                        native_jump_setup = native_air_hit and suffix == "jump"
+                        native_jump_held = suffix in {"jump", "jump_squat"}
+                        return command(
+                            f"special_geometry_{route}_{suffix}",
+                            jump=jump,
+                            opponent_jump=(
+                                airborne_opponent
+                                and (not native_air_hit or native_jump_held)
+                            ),
+                            fighter_x_override=(-10.0 if native_jump_setup else None),
+                            opponent_x_override=(
+                                0.0
+                                if native_jump_setup
+                                or (airborne_opponent and not native_air_hit)
+                                else None
+                            ),
+                            opponent_y_override=(
+                                500.0
+                                if opponent_elevated and not native_air_hit
+                                else None
+                            ),
+                        )
+
+                    airborne_commands = [
+                        airborne_setup("jump", jump=True),
+                        airborne_setup("jump_squat", jump=True),
+                        airborne_setup("jump_squat", jump=True),
+                        airborne_setup("jump_squat", jump=True),
+                        airborne_setup("jump_squat", jump=True),
+                        airborne_setup("ascent"),
+                        airborne_setup("ascent"),
+                    ]
+                    if not low_airborne:
+                        airborne_commands.extend(
+                            (
+                                airborne_setup("double_jump", jump=True),
+                                airborne_setup("airborne_hold"),
+                                airborne_setup("airborne_hold"),
+                                airborne_setup("opponent_elevate"),
+                            )
+                        )
+                    if native_air_hit:
+                        airborne_commands.extend(
+                            airborne_setup("descent") for _ in range(6)
+                        )
                 trace.extend(airborne_commands)
             if route == "neutral_ground":
                 trace.append(
@@ -512,6 +547,7 @@ def input_trace(
             elif route in {
                 "up_ground_miss",
                 "up_air_miss",
+                "up_air_ledge_grab",
                 "up_ground_catch",
                 "up_air_catch",
             }:
@@ -520,15 +556,31 @@ def input_trace(
                     command(
                         f"special_geometry_{route}_start",
                         main_y=1.0,
+                        main_x=(0.75 if route == "up_air_ledge_grab" else 0.5),
                         special=True,
-                        fighter_x_override=-5.0 if collision_route else None,
-                        fighter_y_override=(500.0 if elevated_airborne else None),
-                        opponent_x_override=0.0 if collision_route else None,
+                        fighter_x_override=(-5.0 if collision_route else None),
+                        fighter_y_override=(
+                            500.0
+                            if elevated_airborne and route != "up_air_ledge_grab"
+                            else None
+                        ),
+                        opponent_x_override=(0.0 if collision_route else None),
                         opponent_y_override=(
                             500.0 if collision_route and airborne else None
                         ),
                     )
                 )
+                if route == "up_air_ledge_grab":
+                    repeat(
+                        "special_geometry_up_air_ledge_grab_steer_toward",
+                        12,
+                        main_x=1.0,
+                    )
+                    repeat(
+                        "special_geometry_up_air_ledge_grab_steer_away",
+                        52,
+                        main_x=0.24,
+                    )
             elif route in {
                 "down_ground",
                 "down_ground_hit",
@@ -581,7 +633,12 @@ def input_trace(
                 fighter_y_override=(
                     500.0
                     if elevated_airborne
-                    and route not in {"neutral_air", "side_air_hit_floor"}
+                    and route
+                    not in {
+                        "neutral_air",
+                        "side_air_hit_floor",
+                        "up_air_ledge_grab",
+                    }
                     else None
                 ),
                 opponent_x_override=(
@@ -1832,10 +1889,38 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "hitboxes": hitboxes,
         "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
         "fighter_ecb": read_ecb(fighter),
+        "fighter_ledge_snap": [
+            memory_engine.read_float(fighter + 0x744),
+            memory_engine.read_float(fighter + 0x748),
+            memory_engine.read_float(fighter + 0x74C),
+        ],
+        "fighter_collision_contact": [
+            memory_engine.read_float(fighter + 0x830 + 4 * axis) for axis in range(3)
+        ],
+        "fighter_collision_positions": {
+            name: [
+                memory_engine.read_float(fighter + offset + 4 * axis)
+                for axis in range(3)
+            ]
+            for name, offset in (
+                ("current", 0x6F4),
+                ("previous", 0x700),
+                ("last", 0x70C),
+            )
+        },
+        "fighter_ledge_ids": [
+            memory_engine.read_word(fighter + 0x730),
+            memory_engine.read_word(fighter + 0x734),
+        ],
         "fighter_environment_flags": memory_engine.read_word(fighter + 0x824),
         "fighter_previous_environment_flags": memory_engine.read_word(fighter + 0x828),
         "fighter_command_variables": [
             memory_engine.read_word(fighter + 0x2200 + 4 * index) for index in range(4)
+        ],
+        "fighter_captain_specialhi_flags": memory_engine.read_byte(fighter + 0x2342),
+        "fighter_captain_specialhi_velocity": [
+            memory_engine.read_float(fighter + 0x2344),
+            memory_engine.read_float(fighter + 0x2348),
         ],
         "opponent_fighter_address": opponent,
         "opponent_fighter_position": [
@@ -2689,6 +2774,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "hurtbox_position_b": "hurtbox+0x34",
                     "fighter_ecb": "fighter+0x794",
                     "ecb_layout": "top,bottom,right,left Vec2",
+                    "fighter_ledge_snap": "fighter+0x744,+0x748,+0x74c",
+                    "fighter_collision_contact": "fighter+0x830 Vec3",
+                    "fighter_collision_positions": ("fighter+0x6f4,+0x700,+0x70c Vec3"),
+                    "fighter_ledge_ids": "fighter+0x730,+0x734",
                     "decomp_revision": ("9509dc04406fb2028bfab01243841ba4787c0fb7"),
                 }
                 if args.memory_probe_hitbox

@@ -459,9 +459,10 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 14,826 captured frames, including
+executable-oracle evidence is therefore 14,889 captured frames, including
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
-103-frame grounded and 165-frame aerial miss routes with memory-probed ECB,
+103-frame grounded, 165-frame aerial miss, and 63-frame aerial ledge-approach
+routes with memory-probed ECB,
 internal damage, knockback, and reaction-timer state,
 46-frame Raptor Boost ground-hit, 80-frame ground-miss, 180-frame aerial-miss,
 145-frame aerial-hit-to-floor, 51-frame ground-edge, and 155-frame native
@@ -477,7 +478,8 @@ smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
 ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
 character-special subactions. The same generated source preserves all 97 raw
 common-attribute words and the complete 0x8c-byte, 35-field Falcon special-
-attribute block. A typed zero-cost view supplies the default runtime's mapped
+attribute block, plus Falcon's complete `ftData_x44` collision/ledge-snap
+block. A typed zero-cost view supplies the default runtime's mapped
 movement, jump, fall, weight, and landing values directly; it may not be
 replaced by hand-entered approximations. No implemented Falcon-counterpart move
 may use a guessed timing, effect, or character attribute when this source
@@ -537,6 +539,12 @@ eight-frame ECB-bottom cycle rather than substituting the ordinary `Falling`
 pose; the grounded route additionally preserves the executable's incoming
 vertical velocity on the `LandingFallSpecial` transition row. No common-state
 collision value is inferred from the special-move timing table.
+The 63-frame aerial ledge approach strictly matches Falcon Dive action,
+facing, position, and both velocity axes. Its hash-pinned live-memory capture
+then proves the native frame-64 `EdgeCatch` transition and frame-71 `EdgeHang`
+against the decomp's descending ledge probe. Production consumes the DAT's
+exact 9/17/11 ledge-snap block and all 64 observed Falcon Dive ECB right/bottom
+samples; it does not substitute generic body width or hand-tuned reach.
 A 399-frame Falcon Kick differential suite strictly matches the imported
 ground start/end, air start/end, air-to-ground landing, ground-to-air edge, and
 ground-hit and wall-rebound routes, including root translation, velocity,

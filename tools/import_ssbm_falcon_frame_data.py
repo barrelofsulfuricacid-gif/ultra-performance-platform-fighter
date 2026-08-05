@@ -34,6 +34,9 @@ SOURCE_DAT_JSON_SHA256 = (
 SOURCE_COMMON_DAT_SHA256 = (
     "63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c"
 )
+SPECIALHI_LEDGE_ECB_CAPTURE_SHA256 = (
+    "5a5b295d0fc7a8d1c06512dc704176a131a7c01a931a0a2b92f6d7ff8c3a8295"
+)
 
 COMMON_ATTRIBUTE_COUNT = 97
 SPECIAL_ATTRIBUTE_SIZE = 0x8C
@@ -250,6 +253,146 @@ RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE = (
     2.3905029296875,
 )
 
+# Complete collision-step 1..64 horizontal ECB extent for SpecialAirHi,
+# captured from fighter+0x794 in the pinned NTSC 1.02 ledge route above. Frame
+# 64 is the catch step: CollData retains SpecialAirHi's pre-snap position while
+# the post-collision ECB already reflects EdgeCatch. The
+# decomp's mpColl_80044164 adds this animated extent to ftData_x44's authored
+# ledge-snap X; using a generic body width changes Falcon Dive's catch frame.
+SPECIALHI_ECB_RIGHT_X_MELEE = (
+    4.6822509765625,
+    3.2646751403808594,
+    3.2517662048339844,
+    8.790153503417969,
+    9.282890319824219,
+    9.3123779296875,
+    9.328704833984375,
+    9.3343505859375,
+    9.332077026367188,
+    9.322662353515625,
+    9.302871704101562,
+    9.272300720214844,
+    9.225509643554688,
+    4.481849670410156,
+    2.7993927001953125,
+    3.1050453186035156,
+    3.1559104919433594,
+    3.2133026123046875,
+    3.277557373046875,
+    3.3464431762695312,
+    3.4177474975585938,
+    3.49127197265625,
+    3.576812744140625,
+    3.8591537475585938,
+    4.148586273193359,
+    4.3865203857421875,
+    4.665973663330078,
+    4.6155853271484375,
+    4.551082611083984,
+    4.699317932128906,
+    4.574001312255859,
+    3.7549285888671875,
+    3.1483802795410156,
+    3.94476318359375,
+    4.5456695556640625,
+    11.011032104492188,
+    10.624046325683594,
+    4.975502014160156,
+    3.980335235595703,
+    3.3603744506835938,
+    2.94268798828125,
+    3.6852798461914062,
+    3.100555419921875,
+    2.7566299438476562,
+    3.8938522338867188,
+    4.600364685058594,
+    6.003654479980469,
+    5.736976623535156,
+    5.63336181640625,
+    6.48797607421875,
+    3.9386558532714844,
+    2.584308624267578,
+    2.0,
+    2.0,
+    2.3788604736328125,
+    2.775951385498047,
+    2.3810043334960938,
+    2.3954505920410156,
+    2.3052520751953125,
+    2.1954994201660156,
+    2.63751220703125,
+    2.8061485290527344,
+    2.899059295654297,
+    3.6350555419921875,
+)
+
+SPECIALHI_ECB_BOTTOM_Y_MELEE = (
+    3.055513381958008,
+    4.40119743347168,
+    4.645145416259766,
+    4.39903450012207,
+    2.1715545654296875,
+    2.0419673919677734,
+    1.9570884704589844,
+    1.9130744934082031,
+    1.9060840606689453,
+    1.9322776794433594,
+    1.987813949584961,
+    2.0688552856445312,
+    2.1715545654296875,
+    2.1715545654296875,
+    2.1715545654296875,
+    2.1715545654296875,
+    2.1715545654296875,
+    2.0919408798217773,
+    2.034531593322754,
+    1.926483154296875,
+    1.8232789039611816,
+    1.7804226875305176,
+    1.8533048629760742,
+    2.0940933227539062,
+    2.4376063346862793,
+    2.846829414367676,
+    3.2853517532348633,
+    3.712709426879883,
+    4.111310005187988,
+    4.468051910400391,
+    4.8230133056640625,
+    4.9176177978515625,
+    5.207601547241211,
+    5.917392730712891,
+    6.684072494506836,
+    7.168909072875977,
+    7.242408752441406,
+    7.64799690246582,
+    8.447587966918945,
+    8.544607162475586,
+    9.129560470581055,
+    11.209505081176758,
+    13.178729057312012,
+    12.47581958770752,
+    12.429488182067871,
+    12.864155769348145,
+    13.55915355682373,
+    14.357234954833984,
+    13.16108226776123,
+    11.59609603881836,
+    9.9263916015625,
+    7.727045059204102,
+    6.414306640625,
+    6.587861061096191,
+    8.260906219482422,
+    9.847517967224121,
+    12.090156555175781,
+    11.625774383544922,
+    10.76664924621582,
+    9.730381965637207,
+    8.729700088500977,
+    7.349581241607666,
+    4.837783336639404,
+    3.194936752319336,
+)
+
 # SpecialLw frame 39 -> SpecialLwEnd frame 1 retains exactly 80% of the
 # animation-driven ground velocity. This is observed in the pinned vanilla
 # NTSC 1.02 down-ground capture (SHA-256
@@ -275,8 +418,8 @@ def raw_f32(words: list[int], index: int) -> float:
     return struct.unpack(">f", words[index].to_bytes(4, "big"))[0]
 
 
-def fighter_data_offsets(source_dat: bytes) -> tuple[int, int]:
-    """Return ftDataCaptain's common- and extended-attribute offsets."""
+def fighter_data_offsets(source_dat: bytes) -> tuple[int, int, int]:
+    """Return ftDataCaptain's common, extended, and collision-data offsets."""
 
     if len(source_dat) < 0x20:
         raise ValueError("truncated PlCa.dat header")
@@ -298,17 +441,20 @@ def fighter_data_offsets(source_dat: bytes) -> tuple[int, int]:
     if root_offset + 8 > len(data):
         raise ValueError("ftDataCaptain root is out of bounds")
     common_offset, special_offset = struct.unpack_from(">2I", data, root_offset)
+    collision_offset = struct.unpack_from(">I", data, root_offset + 0x44)[0]
     if common_offset + COMMON_ATTRIBUTE_COUNT * 4 > len(data):
         raise ValueError("Falcon common attributes are out of bounds")
     if special_offset + SPECIAL_ATTRIBUTE_SIZE > len(data):
         raise ValueError("Falcon special attributes are out of bounds")
-    return common_offset, special_offset
+    if collision_offset + 0x1C > len(data):
+        raise ValueError("Falcon collision attributes are out of bounds")
+    return common_offset, special_offset, collision_offset
 
 
 def source_attributes(source_dat: bytes) -> tuple[list[int], dict[str, int]]:
     """Decode every common word and every decomp-defined Falcon special."""
 
-    common_offset, special_offset = fighter_data_offsets(source_dat)
+    common_offset, special_offset, _ = fighter_data_offsets(source_dat)
     data = source_dat[0x20:]
     common_bits = list(struct.unpack_from(">97I", data, common_offset))
     special: dict[str, int] = {}
@@ -332,6 +478,26 @@ def source_attributes(source_dat: bytes) -> tuple[list[int], dict[str, int]]:
     if len(common_bits) != COMMON_ATTRIBUTE_COUNT or len(special) != 35:
         raise ValueError("incomplete Falcon attribute decode")
     return common_bits, special
+
+
+def source_collision_attributes(source_dat: bytes) -> dict[str, float]:
+    """Decode Falcon's complete ftData_x44 collision/ledge-snap block."""
+
+    _, _, collision_offset = fighter_data_offsets(source_dat)
+    data = source_dat[0x20:]
+    joints_and_scale = struct.unpack_from(">6h4f", data, collision_offset)
+    return {
+        "ecb_top_joint": joints_and_scale[0],
+        "ecb_bottom_joint": joints_and_scale[1],
+        "ecb_right_joint": joints_and_scale[2],
+        "ecb_left_joint": joints_and_scale[3],
+        "ecb_transn_joint": joints_and_scale[4],
+        "ecb_joint_5": joints_and_scale[5],
+        "ecb_minimum_q16": q16(joints_and_scale[6]),
+        "ledge_snap_x": joints_and_scale[7],
+        "ledge_snap_y": joints_and_scale[8],
+        "ledge_snap_height": joints_and_scale[9],
+    }
 
 
 def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
@@ -470,6 +636,14 @@ def generate(
     model_scaling = float(attributes["modelScaling"])
     source_dat_block = source_dat[0x20:]
     common_attribute_bits, special_attributes = source_attributes(source_dat)
+    collision_attributes = source_collision_attributes(source_dat)
+    ledge_attributes = {
+        "snap_x_q16": round(collision_attributes["ledge_snap_x"] * MELEE_X_TO_SIM_Q16),
+        "snap_y_q16": round(collision_attributes["ledge_snap_y"] * MELEE_Y_TO_SIM_Q16),
+        "snap_height_q16": round(
+            collision_attributes["ledge_snap_height"] * MELEE_Y_TO_SIM_Q16
+        ),
+    }
 
     special_air_n_assignments = command_variable_assignments(subactions, 302)
     try:
@@ -516,34 +690,26 @@ def generate(
     ):
         raise ValueError("invalid SpecialHi command-variable ordering")
     special_lw_ground_assignments = command_variable_assignments(subactions, 311)
-    special_lw_end_ground_assignments = command_variable_assignments(
-        subactions, 312
-    )
+    special_lw_end_ground_assignments = command_variable_assignments(subactions, 312)
     special_lw_air_assignments = command_variable_assignments(subactions, 313)
     special_lw_landing_assignments = command_variable_assignments(subactions, 314)
     special_lw_end_air_from_ground_assignments = command_variable_assignments(
         subactions, 315
     )
     try:
-        speciallw_ground_wall_rebound_begin = special_lw_ground_assignments[
-            (0x4C, 1)
-        ]
+        speciallw_ground_wall_rebound_begin = special_lw_ground_assignments[(0x4C, 1)]
         speciallw_air_wall_rebound_begin = special_lw_air_assignments[(0x4C, 1)]
-        speciallw_ground_end_traction_begin = (
-            special_lw_end_ground_assignments[(0x4E, 1)]
-        )
+        speciallw_ground_end_traction_begin = special_lw_end_ground_assignments[
+            (0x4E, 1)
+        ]
         speciallw_ground_end_traction_end = (
             special_lw_end_ground_assignments[(0x4E, 0)] - 1
         )
-        speciallw_ground_end_edge_fall_begin = (
-            special_lw_end_ground_assignments[(0x4D, 1)]
-        )
-        speciallw_landing_traction_begin = special_lw_landing_assignments[
-            (0x4E, 1)
+        speciallw_ground_end_edge_fall_begin = special_lw_end_ground_assignments[
+            (0x4D, 1)
         ]
-        speciallw_landing_traction_end = (
-            special_lw_landing_assignments[(0x4E, 0)] - 1
-        )
+        speciallw_landing_traction_begin = special_lw_landing_assignments[(0x4E, 1)]
+        speciallw_landing_traction_end = special_lw_landing_assignments[(0x4E, 0)] - 1
         speciallw_ground_origin_air_physics_begin = (
             special_lw_end_air_from_ground_assignments[(0x4C, 1)]
         )
@@ -555,10 +721,8 @@ def generate(
     if not (
         speciallw_ground_wall_rebound_begin > 0
         and speciallw_air_wall_rebound_begin > 0
-        and speciallw_ground_end_traction_begin
-        <= speciallw_ground_end_traction_end
-        and speciallw_landing_traction_begin
-        <= speciallw_landing_traction_end
+        and speciallw_ground_end_traction_begin <= speciallw_ground_end_traction_end
+        and speciallw_landing_traction_begin <= speciallw_landing_traction_end
         and speciallw_ground_origin_air_physics_begin
         == speciallw_ground_origin_edge_fall_begin
     ):
@@ -676,6 +840,12 @@ def generate(
                     SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS
                 ),
                 "fighter_special": special_attributes,
+                "fighter_collision": collision_attributes,
+                "falcon_dive_ledge_ecb_capture_sha256": (
+                    SPECIALHI_LEDGE_ECB_CAPTURE_SHA256
+                ),
+                "falcon_dive_ledge_ecb_right_x_melee": (SPECIALHI_ECB_RIGHT_X_MELEE),
+                "falcon_dive_ledge_ecb_bottom_y_melee": (SPECIALHI_ECB_BOTTOM_Y_MELEE),
                 "falcon_dive_grounded_throw_reposition_melee": {
                     "x": SPECIALHI_GROUNDED_THROW_REPOSITION_X_MELEE,
                     "y": SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE,
@@ -687,9 +857,7 @@ def generate(
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
                 },
                 "falcon_raptor_boost_hit_air_collision_pose_melee": {
-                    "bottom_y_from_origin": (
-                        RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE
-                    ),
+                    "bottom_y_from_origin": (RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE),
                 },
                 "falcon_kick_ground_end_entry_velocity_scale": (
                     FALCON_KICK_GROUND_END_ENTRY_VELOCITY_SCALE
@@ -890,6 +1058,17 @@ def generate(
         (
             "};",
             "",
+            "static const pf_m4_falcon_ledge_attributes",
+            "pf_m4_falcon_ledge_attribute_data = {",
+        )
+    )
+    lines.extend(
+        f"    .{name} = INT32_C({value})," for name, value in ledge_attributes.items()
+    )
+    lines.extend(
+        (
+            "};",
+            "",
             "static const pf_m4_falcon_common_special_attributes",
             "pf_m4_falcon_common_special_attribute_data = {",
         )
@@ -909,9 +1088,7 @@ def generate(
             "        "
             + ", ".join(
                 f"UINT16_C({value})"
-                for value in common_special_attributes[
-                    "stale_move_slot_reduction_q16"
-                ]
+                for value in common_special_attributes["stale_move_slot_reduction_q16"]
             )
             + ",",
             "    },",
@@ -950,10 +1127,8 @@ def generate(
             f"UINT16_C({specials_ground_search_begin}),",
             "    .ground_search_end_frame = "
             f"UINT16_C({specials_ground_search_end}),",
-            "    .air_search_begin_frame = "
-            f"UINT16_C({specials_air_search_begin}),",
-            "    .air_search_end_frame = "
-            f"UINT16_C({specials_air_search_end}),",
+            "    .air_search_begin_frame = " f"UINT16_C({specials_air_search_begin}),",
+            "    .air_search_end_frame = " f"UINT16_C({specials_air_search_end}),",
             "    .air_gravity_begin_frame = "
             f"UINT16_C({specials_air_gravity_begin}),",
             "};",
@@ -1020,6 +1195,22 @@ def generate(
             + ", ".join(
                 f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
                 for value in RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
+            "    .falcon_dive_right_x_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_X_TO_SIM_Q16)})"
+                for value in SPECIALHI_ECB_RIGHT_X_MELEE
+            )
+            + ",",
+            "    },",
+            "    .falcon_dive_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in SPECIALHI_ECB_BOTTOM_Y_MELEE
             )
             + ",",
             "    },",
