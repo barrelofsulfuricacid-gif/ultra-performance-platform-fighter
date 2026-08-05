@@ -64,6 +64,7 @@ def input_trace(
     attack_iasa_only: bool = False,
     ground_attack_iasa_only: bool = False,
     hitbox_geometry_only: bool = False,
+    throw_geometry_only: bool = False,
     special_geometry_only: bool = False,
     ground_attack_moves: tuple[str, ...] | None = None,
     special_geometry_moves: tuple[str, ...] | None = None,
@@ -338,6 +339,38 @@ def input_trace(
         aerial_starter("bair", c_x=0.0)
         aerial_starter("uair", c_y=1.0)
         aerial_starter("dair", c_y=0.0)
+        return trace
+
+    if throw_geometry_only:
+        if falcon_frame_data is None:
+            raise ValueError("throw-geometry capture requires Falcon frame data")
+
+        throw_inputs = {
+            "fthrow": {"main_x": 1.0},
+            "bthrow": {"main_x": 0.0},
+            "dthrow": {"main_y": 0.0},
+            "uthrow": {"main_y": 1.0},
+        }
+        for move, throw_input in throw_inputs.items():
+            trace.append(
+                command(
+                    f"throw_geometry_{move}_preposition",
+                    fighter_x_override=-2.0,
+                    opponent_x_override=2.0,
+                )
+            )
+            repeat(f"throw_geometry_{move}_settle", 60)
+            trace.append(command(f"throw_geometry_{move}_grab", grab=True))
+            repeat(f"throw_geometry_{move}_capture", 12)
+            trace.append(command(f"throw_geometry_{move}_start", **throw_input))
+            repeat(
+                f"throw_geometry_{move}_observe",
+                int(dict(falcon_frame_data[move])["totalFrames"]) + 45,
+            )
+            trace.append(
+                command(f"throw_geometry_{move}_victim_wakeup", opponent_attack=True)
+            )
+            repeat(f"throw_geometry_{move}_victim_recover", 60)
         return trace
 
     if special_geometry_only:
@@ -2287,6 +2320,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         or args.shield_hit_only
                         or args.damage_hit_only
                         or args.hitbox_geometry_only
+                        or args.throw_geometry_only
                         or args.special_geometry_only
                     )
                     else melee.Character.FOX
@@ -2339,6 +2373,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             attack_iasa_only=args.attack_iasa_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
             hitbox_geometry_only=args.hitbox_geometry_only,
+            throw_geometry_only=args.throw_geometry_only,
             special_geometry_only=args.special_geometry_only,
             ground_attack_moves=(
                 tuple(args.ground_attack_move) if args.ground_attack_move else None
@@ -2711,6 +2746,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     or args.shield_hit_only
                     or args.damage_hit_only
                     or args.hitbox_geometry_only
+                    or args.throw_geometry_only
                     or args.special_geometry_only
                 )
                 else "FOX"
@@ -2813,6 +2849,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
     mode.add_argument("--hitbox-geometry-only", action="store_true")
+    mode.add_argument("--throw-geometry-only", action="store_true")
     mode.add_argument("--special-geometry-only", action="store_true")
     parser.add_argument(
         "--ground-attack-move",
@@ -2849,7 +2886,9 @@ def parse_args() -> argparse.Namespace:
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
     if args.memory_probe_hitbox and not (
-        args.hitbox_geometry_only or args.special_geometry_only
+        args.hitbox_geometry_only
+        or args.throw_geometry_only
+        or args.special_geometry_only
     ):
         parser.error("--memory-probe-hitbox requires a geometry-only mode")
     if (

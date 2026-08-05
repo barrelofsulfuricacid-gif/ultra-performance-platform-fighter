@@ -1009,7 +1009,7 @@ int main(void)
         }
         for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
         {
-            if (test_view[TEST_EVENT_COUNT] == 2 &&
+            if (test_view[TEST_EVENT_COUNT] >= 1 &&
                 test_view[TEST_EVENT0 + TEST_EVENT_TYPE] == 11)
             {
                 grab_seen = 1;
@@ -1080,8 +1080,8 @@ int main(void)
             test_view[TEST_EVENT0 + TEST_EVENT_TARGET] != 1 ||
             test_view[TEST_EVENT0 + TEST_EVENT_VALUE] != 7 * 65536 ||
             test_view[TEST_EVENT0 + TEST_EVENT_DETAIL] != 56 ||
-            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 13 ||
-            test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION] != 13 ||
+            test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 56 ||
+            test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION] != 14 ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET] != 255 ||
             test_view[TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_OWNER] != 255 ||
             !pf_web_m4_playtest_reset())

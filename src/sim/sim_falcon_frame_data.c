@@ -406,6 +406,18 @@ int pf_m4_falcon_reference_move_for_action(
         case PF_M4_ACTION_DASH_GRAB:
             move_index = PF_M4_FALCON_DASH_GRAB;
             break;
+        case PF_M4_ACTION_THROW_FORWARD:
+            move_index = PF_M4_FALCON_FORWARD_THROW;
+            break;
+        case PF_M4_ACTION_THROW_BACK:
+            move_index = PF_M4_FALCON_BACK_THROW;
+            break;
+        case PF_M4_ACTION_THROW_UP:
+            move_index = PF_M4_FALCON_UP_THROW;
+            break;
+        case PF_M4_ACTION_THROW_DOWN:
+            move_index = PF_M4_FALCON_DOWN_THROW;
+            break;
         case PF_M4_ACTION_FALCON_PUNCH_GROUND:
             move_index = PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND;
             break;

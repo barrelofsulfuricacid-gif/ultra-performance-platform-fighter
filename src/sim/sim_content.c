@@ -77,8 +77,9 @@ static int pf_m4_apply_falcon_reference_throw(
     throw_data->release_tick = effect->release_frame;
     throw_data->recovery_ticks =
         (uint16_t)(move->total_frames - effect->release_frame);
-    throw_data->hitlag_ticks =
-        pf_m4_falcon_reference_hitlag_ticks(effect->damage);
+    /* SSBM's throw absolute-damage command adds no release hitlag. Any
+     * synchronized freeze comes from a separate ordinary throw hitbox. */
+    throw_data->hitlag_ticks = UINT16_C(0);
     throw_data->reserved = UINT16_C(0);
     throw_data->melee_knockback.angle_degrees = effect->angle_degrees;
     throw_data->melee_knockback.growth = effect->growth;
@@ -475,9 +476,7 @@ static int pf_m4_throw_data_is_valid(
              throw_data->base_velocity_y_q16 == INT32_C(0) &&
              throw_data->velocity_growth_x_q16 == INT32_C(0) &&
              throw_data->velocity_growth_y_q16 == INT32_C(0) &&
-             throw_data->hitlag_ticks ==
-                 pf_m4_falcon_reference_hitlag_ticks(
-                     (uint8_t)(throw_data->damage_q16 >> 16U))) ||
+             throw_data->hitlag_ticks == UINT16_C(0)) ||
             (semantic == 0 && vector_is_valid != 0)) &&
            throw_data->release_tick != UINT16_C(0) &&
            throw_data->release_tick <= UINT16_C(120) &&
@@ -486,8 +485,11 @@ static int pf_m4_throw_data_is_valid(
            (uint32_t)throw_data->release_tick +
                    (uint32_t)throw_data->recovery_ticks <=
                UINT32_C(600) &&
-           throw_data->hitlag_ticks != UINT16_C(0) &&
-           throw_data->hitlag_ticks <= UINT16_C(120) &&
+           ((semantic != 0 &&
+             throw_data->hitlag_ticks == UINT16_C(0)) ||
+            (semantic == 0 &&
+             throw_data->hitlag_ticks != UINT16_C(0) &&
+             throw_data->hitlag_ticks <= UINT16_C(120))) &&
            throw_data->reserved == UINT16_C(0);
 }
 

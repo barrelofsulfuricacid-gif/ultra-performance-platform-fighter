@@ -222,10 +222,16 @@ transcribed in the default fighter.
 All four production throws consume the imported damage, release frame, total
 animation duration, angle, KBG, weight-set knockback, and BKB. They use the
 shared integer Melee knockback calculation; custom content can explicitly
-disable semantic knockback and retain the original vector response. The
-source-defined collateral hitboxes on forward/back/up throw remain represented
-in the complete table but cannot yet hit bystanders through the single-target
-grab resolver.
+disable semantic knockback and retain the original vector response. A pinned
+894-row Dolphin capture at SHA-256
+`368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95`
+supplies the three moving attack spheres on forward/back/up throw. Its 181
+throw-action samples prove that the captured victim takes the ordinary 5/5/4%
+hit with four synchronized hitlag frames, then the separate 4/4/3% throw at
+the DAT-decoded release frame with zero release hitlag; down throw has no
+ordinary hitbox and releases 7% with zero hitlag. Production preserves the
+capture link for that first hit and routes the same generated spheres through
+the ordinary fixed-capacity collision path for bystanders.
 
 The semantic jab route remains explicitly selectable so original/custom
 content can retain its authored vector response without silently inheriting
@@ -253,7 +259,8 @@ an unrelated effect row.
 `tools/import_ssbm_falcon_hit_geometry.py` converts that evidence into
 `generated/data/m4_falcon_ntsc102_hit_geometry.inc`. The compact table includes
 jab 1, jab 2, dash attack, forward/up/down tilt, forward/up/down smash, all five
-aerials, standing grab, dash grab, and every damaging or grabbing Falcon-
+aerials, standing grab, dash grab, all three ordinary throw-hitbox actions,
+and every damaging or grabbing Falcon-
 special phase. The special capture set covers ground/air Falcon Punch;
 ground/air Raptor Boost start and hit; ground/air Falcon Dive start, catch, and
 throw; and every Falcon Kick ground, air, landing, edge-end, and wall-rebound
@@ -287,12 +294,12 @@ and hitlag-frozen source actions without allocation.
 
 The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
 hash to
-`f7bb98902431ed7c7bb80b689cb3e954b5e8c2f40a7793b8dd8a81deafe75052`.
+`0a995d523bbeedf775559e7f53ea0558511188e8ef42e923e88a1d63e0d3e1b3`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
-for implemented normals, aerials, grabs, and all 17 Falcon special
+for implemented normals, aerials, grabs, normal throws, and all 17 Falcon special
 subactions. Hurt poses for common non-attack actions, the retained
-source Z coordinate, normal-throw collateral hits, and exact sphere-versus-
+source Z coordinate, and exact sphere-versus-
 shield intersection remain active fidelity gaps, not values to be filled by
 guessed frame data. Custom authored content may opt out of reference geometry
 explicitly; default Falcon-counterpart content opts in.

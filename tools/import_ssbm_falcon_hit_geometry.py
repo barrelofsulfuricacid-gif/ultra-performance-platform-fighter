@@ -27,6 +27,9 @@ EXPECTED_CAPTURE_SHA256 = (
 EXPECTED_HURT_CAPTURE_SHA256 = (
     "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
 )
+EXPECTED_THROW_CAPTURE_SHA256 = (
+    "368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95"
+)
 SPECIAL_CAPTURE_ACTION_VALUES = {
     "2c8bc604024cfad745e266239dcc4d3e1b1ff1c4a07afcc6eecb9938b5f155b1": frozenset(
         {347}
@@ -90,6 +93,10 @@ ACTION_BY_MOVE = {
     "bair": "BAIR",
     "uair": "UAIR",
     "dair": "DAIR",
+    "fthrow": "THROW_FORWARD",
+    "bthrow": "THROW_BACK",
+    "uthrow": "THROW_UP",
+    "dthrow": "THROW_DOWN",
     "0x12d": "NEUTRAL_B_ATTACKING_AIR",
     "0x12e": "NEUTRAL_B_FULL_CHARGE_AIR",
     "0x12f": "SWORD_DANCE_1",
@@ -152,6 +159,7 @@ SOURCE_FRAME_OFFSET = {
 }
 LIVE_EFFECT_ONLY_FRAMES = {"0x139": frozenset(range(26, 30))}
 POSE_ALIAS = {"0x13d": "0x136"}
+THROW_MOVE_KEYS = frozenset({"fthrow", "bthrow", "uthrow", "dthrow"})
 
 
 def file_sha256(path: Path) -> str:
@@ -380,6 +388,7 @@ def generate(
     dat_data: dict[str, Any],
     hit_capture: dict[str, Any],
     hurt_capture: dict[str, Any],
+    throw_capture: dict[str, Any],
     special_captures: list[dict[str, Any]],
     special_capture_digests: list[str],
 ) -> str:
@@ -391,7 +400,11 @@ def generate(
         for row in capture["rows"]
         if int(row["action_value"]) in SPECIAL_CAPTURE_ACTION_VALUES[digest]
     ]
-    rows = list(hit_capture["rows"]) + special_rows
+    rows = list(hit_capture["rows"]) + list(throw_capture["rows"]) + special_rows
+    # Throw animation rate depends on the captured fighter's weight, so its
+    # hurt poses require a separate weight-qualified time axis. Keep this
+    # import scoped to the throw attack spheres; do not pretend the raw
+    # animation-frame samples are one fixed-tick hurt-pose sequence.
     hurt_rows = list(hurt_capture["rows"]) + special_rows
     frames: list[dict[str, int]] = []
     spheres: list[dict[str, int]] = []
@@ -518,7 +531,9 @@ def generate(
                     f"{move_key}: inconsistent hurt pose on frame " f"{action_frame}"
                 )
             hurt_by_frame[action_frame] = pose
-        expected_hurt_frames = set(range(1, total_frames + 1))
+        expected_hurt_frames = (
+            set() if move_key in THROW_MOVE_KEYS else set(range(1, total_frames + 1))
+        )
         if set(hurt_by_frame) != expected_hurt_frames:
             raise ValueError(
                 f"{move_key}: hurt-frame mismatch: "
@@ -527,7 +542,7 @@ def generate(
                 f"{sorted(hurt_by_frame)}"
             )
         hurt_frame_offset = len(hurt_frames)
-        for action_frame in range(1, total_frames + 1):
+        for action_frame in sorted(expected_hurt_frames):
             pose = hurt_by_frame[action_frame]
             capsule_offset = hurt_pose_offsets.get(pose)
             if capsule_offset is None:
@@ -545,8 +560,8 @@ def generate(
         hurt_moves.append(
             {
                 "frame_offset": hurt_frame_offset,
-                "first_frame": 1,
-                "frame_count": total_frames,
+                "first_frame": 0 if move_key in THROW_MOVE_KEYS else 1,
+                "frame_count": 0 if move_key in THROW_MOVE_KEYS else total_frames,
             }
         )
         source_frames = active_frames(full_move)
@@ -729,6 +744,7 @@ def generate(
         f"/* full source SHA-256: {EXPECTED_FULL_SOURCE_SHA256} */",
         f"/* hit-sphere capture SHA-256: {EXPECTED_CAPTURE_SHA256} */",
         f"/* hurt-pose capture SHA-256: {EXPECTED_HURT_CAPTURE_SHA256} */",
+        f"/* throw capture SHA-256: {EXPECTED_THROW_CAPTURE_SHA256} */",
         *(
             f"/* special capture SHA-256: {digest} */"
             for digest in special_capture_digests
@@ -897,6 +913,7 @@ def main() -> int:
     parser.add_argument("dat_source", type=Path)
     parser.add_argument("hit_capture", type=Path)
     parser.add_argument("hurt_capture", type=Path)
+    parser.add_argument("throw_capture", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--special-capture", action="append", default=[], type=Path)
     args = parser.parse_args()
@@ -921,6 +938,11 @@ def main() -> int:
         raise SystemExit(
             "unexpected Dolphin hurt-pose capture SHA-256: " f"{hurt_capture_digest}"
         )
+    throw_capture_digest = file_sha256(args.throw_capture)
+    if throw_capture_digest != EXPECTED_THROW_CAPTURE_SHA256:
+        raise SystemExit(
+            "unexpected Dolphin throw capture SHA-256: " f"{throw_capture_digest}"
+        )
     special_capture_digests = [file_sha256(path) for path in args.special_capture]
     if (
         len(special_capture_digests) != len(EXPECTED_SPECIAL_CAPTURE_SHA256S)
@@ -934,11 +956,13 @@ def main() -> int:
     dat_data = json.loads(args.dat_source.read_text(encoding="utf-8"))
     hit_capture = json.loads(args.hit_capture.read_text(encoding="utf-8"))
     hurt_capture = json.loads(args.hurt_capture.read_text(encoding="utf-8"))
+    throw_capture = json.loads(args.throw_capture.read_text(encoding="utf-8"))
     special_captures = [
         json.loads(path.read_text(encoding="utf-8")) for path in args.special_capture
     ]
     validate_capture(hit_capture, 8)
     validate_capture(hurt_capture, 9)
+    validate_capture(throw_capture, 9)
     for special_capture in special_captures:
         validate_capture(special_capture, 9)
     output = generate(
@@ -947,6 +971,7 @@ def main() -> int:
         dat_data,
         hit_capture,
         hurt_capture,
+        throw_capture,
         special_captures,
         special_capture_digests,
     )

@@ -3629,3 +3629,32 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   Linux and native Windows builds pass 19/19 and 20/20 configured tests.
   M4 remains unfinished; broader shared-state and remaining exhaustive SSBM
   equivalence work stay active.
+
+## 2026-08-05 normal-throw hitboxes and release semantics
+
+- A new 894-row Falcon-on-Falcon Dolphin memory capture has SHA-256
+  `368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95`.
+  `tools/verify_ssbm_falcon_throw.py` hash-pins the executable, full frame-data,
+  and DAT sources and qualifies 181 throw-action frames. Forward, back, and up
+  throw expose their exact three moving attack spheres on frames 11-17, 12-19,
+  and 11-28; down throw correctly exposes none.
+- The capture proves the ordinary hitbox first damages the captured fighter by
+  5/5/4% with four synchronized hitlag frames while preserving the capture.
+  The separate throw command then adds 4/4/3% on DAT-decoded frames 18/20/15
+  with zero release hitlag. Down throw adds 7% on frame 20 with no preceding
+  hitbox and zero release hitlag. Runtime now models both phases instead of
+  applying only the release throw.
+- Bystanders reuse the existing fixed-capacity generated sphere/effect path;
+  captured victims use one capture-preserving scripted-effect path. Both share
+  current-action stale scaling so simultaneous targets and the later throw
+  command use the pre-move stale queue exactly once. No allocation, duplicate
+  collision table, guessed timing, or hand-authored throw geometry was added.
+- The canonical geometry digest is now
+  `0a995d523bbeedf775559e7f53ea0558511188e8ef42e923e88a1d63e0d3e1b3`;
+  the generated include SHA-256 is
+  `c3305a58a7242e8b4fbceb54001ea622870cbb6110e313c8467d2ab3273296fe`,
+  and the deterministic eight-match verifier digest is `940b60fe4d0b7a64`.
+  Aggregate executable qualification is 15,070 frames. Fresh WSL Linux passes
+  22/22 tests and native Windows passes 20/20. M4 remains unfinished; common-
+  action hurt poses, source-Z collision semantics, exact sphere-versus-shield
+  collision, and broader exhaustive SSBM equivalence remain active work.

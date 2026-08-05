@@ -459,7 +459,7 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
 and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 14,889 captured frames, including
+executable-oracle evidence is therefore 15,070 qualified frames, including
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
 103-frame grounded, 165-frame aerial miss, and 63-frame aerial ledge-approach
 routes with memory-probed ECB,
@@ -468,7 +468,9 @@ internal damage, knockback, and reaction-timer state,
 145-frame aerial-hit-to-floor, 51-frame ground-edge, and 155-frame native
 Capsule item-search routes,
 and a 77-frame Falcon Kick ground-hit route with memory-probed parallel ground
-and self velocities.
+and self velocities, plus 181 live normal-throw frames covering all four
+release routes, three ordinary hitbox intervals, captured-victim damage and
+hitlag, and zero release hitlag.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
 inventory remain active work.
 
@@ -558,7 +560,7 @@ complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules for remaining common actions, source-Z collision semantics,
-normal-throw collateral hits, and exact sphere-versus-shield intersection
+and exact sphere-versus-shield intersection
 remain explicit M4 gaps and must be extracted or qualified rather than
 approximated with invented frame data.
 These captures qualify only their sampled routes and do not reduce the

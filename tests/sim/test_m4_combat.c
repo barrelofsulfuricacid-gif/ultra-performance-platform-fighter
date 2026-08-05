@@ -19859,34 +19859,58 @@ static int run_directional_throw_case(
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     pf_sim_event grab_event;
-    const pf_m4_melee_knockback_result melee_result =
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_hit_effect *collateral_effect;
+    pf_m4_melee_knockback_result melee_result;
+    uint32_t collateral_damage_q16;
+    uint32_t resulting_damage_q16;
+    int32_t expected_velocity_x;
+    int32_t expected_velocity_y;
+    int32_t expected_resumed_velocity_y;
+    uint32_t tick;
+    int throw_seen = 0;
+
+    if (!pf_m4_falcon_reference_move_for_action(
+            (uint8_t)expected_action,
+            &move_index))
+    {
+        return fail("directional-throw-reference-move");
+    }
+    collateral_effect =
+        pf_m4_falcon_reference_primary_effect(move_index);
+    collateral_damage_q16 =
+        collateral_effect != NULL
+            ? (uint32_t)collateral_effect->damage * UINT32_C(65536)
+            : UINT32_C(0);
+    resulting_damage_q16 =
+        collateral_damage_q16 + throw_data->damage_q16;
+    melee_result =
         throw_data->melee_knockback.enabled != UINT8_C(0)
             ? pf_m4_melee_knockback(
                   &throw_data->melee_knockback,
                   target_weight,
                   throw_data->damage_q16,
-                  throw_data->damage_q16)
+                  resulting_damage_q16)
             : (pf_m4_melee_knockback_result){0};
-    const int32_t expected_velocity_x =
+    expected_velocity_x =
         throw_data->melee_knockback.enabled != UINT8_C(0)
             ? melee_result.velocity_x_q16
             : expected_throw_velocity(
                   throw_data->base_velocity_x_q16,
                   throw_data->velocity_growth_x_q16,
                   throw_data->damage_q16);
-    const int32_t expected_velocity_y =
+    expected_velocity_y =
         throw_data->melee_knockback.enabled != UINT8_C(0)
             ? -melee_result.velocity_y_q16
             : expected_throw_velocity(
                   throw_data->base_velocity_y_q16,
                   throw_data->velocity_growth_y_q16,
                   throw_data->damage_q16);
-    const int32_t expected_resumed_velocity_y =
+    expected_resumed_velocity_y =
         expected_velocity_y + content->fighter.gravity_q16 <
                 content->fighter.fall_speed_q16
             ? expected_velocity_y + content->fighter.gravity_q16
             : content->fighter.fall_speed_q16;
-    uint32_t tick;
 
     if (!initialize_sim(
             &storage,
@@ -19919,7 +19943,7 @@ static int run_directional_throw_case(
     }
 
     for (tick = UINT32_C(0);
-         tick < (uint32_t)throw_data->release_tick;
+         tick < (uint32_t)throw_data->release_tick + UINT32_C(32);
          ++tick)
     {
         const pf_sim_event *throw_event;
@@ -19939,22 +19963,24 @@ static int run_directional_throw_case(
             return 0;
         }
         throw_event = find_last_tick_event(PF_SIM_EVENT_THROW);
-        if (tick + UINT32_C(1) <
-            (uint32_t)throw_data->release_tick)
+        if (throw_event == NULL)
         {
-            if (throw_event != NULL ||
-                inspection.players[0].action_state !=
-                    (uint8_t)expected_action ||
-                inspection.players[0].action_ticks !=
-                    (uint16_t)(tick + UINT32_C(1)) ||
+            if ((inspection.players[0].action_state !=
+                     (uint8_t)expected_action &&
+                 inspection.players[0].action_state !=
+                     (uint8_t)PF_M4_ACTION_HITLAG) ||
                 inspection.players[0].grab_target != UINT8_C(1) ||
-                inspection.players[1].grab_owner != UINT8_C(0))
+                inspection.players[1].grab_owner != UINT8_C(0) ||
+                (inspection.players[1].action_state !=
+                     (uint8_t)PF_M4_ACTION_GRABBED &&
+                 inspection.players[1].action_state !=
+                     (uint8_t)PF_M4_ACTION_HITLAG))
             {
                 return fail("directional-throw-startup");
             }
+            continue;
         }
-        else if (throw_event == NULL ||
-                 throw_event->source_player != UINT8_C(0) ||
+        if (throw_event->source_player != UINT8_C(0) ||
                  throw_event->target_player != UINT8_C(1) ||
                  throw_event->value_q16 != throw_data->damage_q16 ||
                  throw_event->velocity_x_q16 != expected_velocity_x ||
@@ -19962,9 +19988,13 @@ static int run_directional_throw_case(
                  throw_event->flags != UINT16_C(0) ||
                  throw_event->detail != (uint16_t)expected_action ||
                  inspection.players[0].action_state !=
-                     (uint8_t)PF_M4_ACTION_HITLAG ||
+                     (throw_data->hitlag_ticks != UINT16_C(0)
+                          ? (uint8_t)PF_M4_ACTION_HITLAG
+                          : (uint8_t)expected_action) ||
                  inspection.players[1].action_state !=
-                     (uint8_t)PF_M4_ACTION_HITLAG ||
+                     (throw_data->hitlag_ticks != UINT16_C(0)
+                          ? (uint8_t)PF_M4_ACTION_HITLAG
+                          : (uint8_t)PF_M4_ACTION_HITSTUN) ||
                  inspection.players[0].hitlag_ticks !=
                      throw_data->hitlag_ticks ||
                  inspection.players[1].hitlag_ticks !=
@@ -19974,12 +20004,18 @@ static int run_directional_throw_case(
                  inspection.players[1].grab_owner !=
                      PF_SIM_EVENT_NO_PLAYER ||
                  inspection.players[1].damage_q16 !=
-                     throw_data->damage_q16 ||
+                     resulting_damage_q16 ||
                  inspection.players[1].last_hit_valid != UINT8_C(1) ||
                  inspection.players[1].last_hit_attacker != UINT8_C(0))
         {
             return fail("directional-throw-release");
         }
+        throw_seen = 1;
+        break;
+    }
+    if (throw_seen == 0)
+    {
+        return fail("directional-throw-release-timeout");
     }
 
     for (tick = UINT32_C(0);
@@ -20014,12 +20050,18 @@ static int run_directional_throw_case(
     }
     if (inspection.players[0].action_state != (uint8_t)expected_action ||
         inspection.players[0].action_ticks !=
-            (uint16_t)(throw_data->release_tick + UINT16_C(1)) ||
+            (uint16_t)(
+                throw_data->release_tick +
+                (throw_data->hitlag_ticks != UINT16_C(0)
+                     ? UINT16_C(1)
+                     : UINT16_C(0))) ||
         inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_HITSTUN ||
         inspection.players[1].velocity_x_q16 != expected_velocity_x ||
         inspection.players[1].velocity_y_q16 !=
-            expected_resumed_velocity_y ||
+            (throw_data->hitlag_ticks != UINT16_C(0)
+                 ? expected_resumed_velocity_y
+                 : expected_velocity_y) ||
         inspection.players[0].stale_move_count != UINT8_C(1) ||
         inspection.players[0].stale_move_ids[0] !=
             (uint8_t)expected_action)
@@ -20028,8 +20070,11 @@ static int run_directional_throw_case(
     }
 
     for (tick = UINT32_C(0);
-         tick + UINT32_C(1) <
-             (uint32_t)throw_data->recovery_ticks;
+         tick <
+             (uint32_t)throw_data->recovery_ticks -
+                 (throw_data->hitlag_ticks != UINT16_C(0)
+                      ? UINT32_C(1)
+                      : UINT32_C(0));
          ++tick)
     {
         if (!step_reaction_duel(
@@ -20046,8 +20091,11 @@ static int run_directional_throw_case(
         {
             return 0;
         }
-        if (tick + UINT32_C(2) <
-            (uint32_t)throw_data->recovery_ticks)
+        if (tick + UINT32_C(1) <
+            (uint32_t)throw_data->recovery_ticks -
+                (throw_data->hitlag_ticks != UINT16_C(0)
+                     ? UINT32_C(1)
+                     : UINT32_C(0)))
         {
             if (inspection.players[0].action_state !=
                 (uint8_t)expected_action)
@@ -20395,6 +20443,149 @@ static int run_directional_throw_test(
             PF_M4_ACTION_THROW_UP))
     {
         return 0;
+    }
+    return 1;
+}
+
+static int run_throw_collateral_test(void)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    int16_t axes_x[PF_SIM_MAX_PLAYERS] = {
+        INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0)};
+    int16_t axes_y[PF_SIM_MAX_PLAYERS] = {
+        INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0)};
+    uint64_t buttons[PF_SIM_MAX_PLAYERS] = {
+        UINT64_C(0), UINT64_C(0), UINT64_C(0), UINT64_C(0)};
+    uint16_t triggers[PF_SIM_MAX_PLAYERS] = {
+        UINT16_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(0)};
+    uint32_t tick;
+    int grab_seen = 0;
+    int collateral_seen = 0;
+    int throw_seen = 0;
+
+    if (!make_grab_content(
+            (INT32_C(3) * PF_Q16_ONE) / INT32_C(10),
+            &content,
+            &view) ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(4),
+            PF_SIM_MODE_TEAMS,
+            1,
+            &sim))
+    {
+        return 0;
+    }
+
+    buttons[2] = PF_INPUT_BUTTON_ATTACK;
+    triggers[2] = UINT16_MAX;
+    if (!step_players_with_triggers(
+            sim,
+            UINT8_C(4),
+            axes_x,
+            axes_y,
+            buttons,
+            triggers,
+            &inspection))
+    {
+        return 0;
+    }
+    (void)memset(buttons, 0, sizeof(buttons));
+    (void)memset(triggers, 0, sizeof(triggers));
+    for (tick = UINT32_C(0); tick < UINT32_C(16); ++tick)
+    {
+        const pf_sim_event *event = find_last_tick_event(PF_SIM_EVENT_GRAB);
+
+        if (event != NULL)
+        {
+            if (event->source_player != UINT8_C(2) ||
+                event->target_player != UINT8_C(1))
+            {
+                return fail("throw-collateral-grab-priority");
+            }
+            grab_seen = 1;
+            break;
+        }
+        if (!step_players(
+                sim,
+                UINT8_C(4),
+                axes_x,
+                axes_y,
+                buttons,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (grab_seen == 0)
+    {
+        return fail("throw-collateral-grab");
+    }
+
+    axes_x[2] = INT16_MAX;
+    buttons[2] = PF_INPUT_BUTTON_ATTACK;
+    if (!step_players(
+            sim,
+            UINT8_C(4),
+            axes_x,
+            axes_y,
+            buttons,
+            &inspection) ||
+        inspection.players[2].action_state !=
+            (uint8_t)PF_M4_ACTION_THROW_BACK)
+    {
+        return fail("throw-collateral-input");
+    }
+    (void)memset(axes_x, 0, sizeof(axes_x));
+    (void)memset(buttons, 0, sizeof(buttons));
+    for (tick = UINT32_C(0); tick < UINT32_C(96); ++tick)
+    {
+        const pf_sim_event *hit = find_last_tick_event(PF_SIM_EVENT_HIT);
+        const pf_sim_event *throw_event =
+            find_last_tick_event(PF_SIM_EVENT_THROW);
+
+        if (hit != NULL && hit->source_player == UINT8_C(2) &&
+            hit->target_player == UINT8_C(3))
+        {
+            collateral_seen = 1;
+        }
+        if (throw_event != NULL &&
+            throw_event->source_player == UINT8_C(2) &&
+            throw_event->target_player == UINT8_C(1))
+        {
+            throw_seen = 1;
+        }
+        if (collateral_seen != 0 && throw_seen != 0)
+        {
+            break;
+        }
+        if (!step_players(
+                sim,
+                UINT8_C(4),
+                axes_x,
+                axes_y,
+                buttons,
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (collateral_seen == 0 || throw_seen == 0 ||
+        inspection.players[1].damage_q16 !=
+            content.fighter.back_throw.damage_q16 +
+                UINT32_C(5) * UINT32_C(65536) ||
+        inspection.players[3].damage_q16 !=
+            UINT32_C(5) * UINT32_C(65536) ||
+        inspection.players[2].stale_move_count != UINT8_C(1) ||
+        inspection.players[2].stale_move_ids[0] !=
+            (uint8_t)PF_M4_ACTION_THROW_BACK)
+    {
+        return fail("throw-collateral-resolution");
     }
     return 1;
 }
@@ -22006,10 +22197,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0xf7) ||
-        geometry_sha256[1] != UINT8_C(0xbb) ||
-        geometry_sha256[30] != UINT8_C(0x50) ||
-        geometry_sha256[31] != UINT8_C(0x52) ||
+        geometry_sha256[0] != UINT8_C(0x0a) ||
+        geometry_sha256[1] != UINT8_C(0x99) ||
+        geometry_sha256[30] != UINT8_C(0xe1) ||
+        geometry_sha256[31] != UINT8_C(0xb3) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -23312,6 +23503,7 @@ int main(void)
         !run_pummel_test(
             &grab_close_content,
             &grab_close_view) ||
+        !run_throw_collateral_test() ||
         !run_directional_throw_test(
             &grab_close_content,
             &grab_close_view) ||
