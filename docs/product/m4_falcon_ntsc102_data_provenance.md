@@ -159,8 +159,13 @@ eight-frame common `FallSpecial` ECB-bottom cycle used by Falcon Dive through
 one allocation-free action predicate; no duplicate Raptor pose table exists.
 The aerial transition row applies Falcon's ordinary imported gravity, as the
 executable does, instead of suppressing it as if the active special were still
-launching the fighter. Remaining executable qualification is explicitly
-limited to edge conversions and source item-search behavior.
+launching the fighter. A separate 210-row ground-edge capture at SHA-256
+`3b59fbf62ad880ffe88d694e6e69f0a0b08f23fd7e4714c9a0cf4a41194744ae`
+adds 51 strict frames. It uses an ordinary opponent dash to keep the search
+route empty, then qualifies `cmd_vars[2]`-gated floor loss, the full frame-20
+root step, the source air-speed clamp, no transition-row gravity, and common
+`FallSpecial`. Remaining executable qualification is explicitly limited to
+source item-search behavior.
 
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,

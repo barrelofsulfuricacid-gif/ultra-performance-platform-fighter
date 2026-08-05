@@ -1,5 +1,6 @@
 #include "pf/m4.h"
 #include "pf/sim.h"
+#include "sim_falcon_frame_data.h"
 
 #include <inttypes.h>
 #include <stdalign.h>
@@ -118,6 +119,7 @@ int main(int argc, char **argv)
     int shield_hit_mode = 0;
     int falcon_punch_air_mode = 0;
     int raptor_boost_ground_hit_mode = 0;
+    int raptor_boost_ground_edge_mode = 0;
     int raptor_boost_air_miss_mode = 0;
     int raptor_boost_air_hit_mode = 0;
     int falcon_dive_ground_catch_mode = 0;
@@ -156,6 +158,12 @@ int main(int argc, char **argv)
         strcmp(argv[1], "--raptor-boost-ground-miss") == 0)
     {
         /* The ground miss oracle uses the ordinary wide-floor setup. */
+    }
+    else if (
+        argc == 2 &&
+        strcmp(argv[1], "--raptor-boost-ground-edge") == 0)
+    {
+        raptor_boost_ground_edge_mode = 1;
     }
     else if (
         argc == 2 && strcmp(argv[1], "--raptor-boost-air-miss") == 0)
@@ -220,6 +228,7 @@ int main(int argc, char **argv)
             "usage: pf_m4_movement_trace "
             "[--platform|--push|--shield-hit|--falcon-punch-air|"
             "--raptor-boost-ground-miss|--raptor-boost-ground-hit|"
+            "--raptor-boost-ground-edge|"
             "--raptor-boost-air-miss|--raptor-boost-air-hit|"
             "--falcon-dive-ground-catch|"
             "--falcon-dive-air-catch|"
@@ -309,6 +318,44 @@ int main(int argc, char **argv)
             (int32_t)(
                 (INT64_C(5) * INT64_C(12) * PF_Q16_ONE) /
                 INT64_C(115));
+    }
+    else if (raptor_boost_ground_edge_mode != 0)
+    {
+        int32_t before_crossing_q16 = INT32_C(0);
+        int32_t after_crossing_q16 = INT32_C(0);
+        uint16_t displayed_frame;
+
+        content.stage.spawn_spacing_q16 = PF_Q16_ONE / INT32_C(32);
+        content.fighter.player_push_half_width_q16 = INT32_C(1);
+        content.stage.revival_platform_half_width_q16 =
+            content.fighter.half_width_q16;
+        for (displayed_frame = UINT16_C(1);
+             displayed_frame <= UINT16_C(20);
+             ++displayed_frame)
+        {
+            int32_t motion_q16 = INT32_C(0);
+
+            if (!pf_m4_falcon_reference_motion_x_q16(
+                    (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND,
+                    displayed_frame,
+                    &motion_q16))
+            {
+                (void)fprintf(
+                    stderr,
+                    "m4-movement-trace=fail operation="
+                    "raptor-boost-ground-edge-motion\n");
+                return 1;
+            }
+            if (displayed_frame <= UINT16_C(19))
+            {
+                before_crossing_q16 += motion_q16;
+            }
+            after_crossing_q16 += motion_q16;
+        }
+        content.stage.floor_right_q16 =
+            -content.stage.spawn_spacing_q16 +
+            before_crossing_q16 +
+            (after_crossing_q16 - before_crossing_q16) / INT32_C(2);
     }
     else if (falcon_kick_ground_hit_mode != 0)
     {

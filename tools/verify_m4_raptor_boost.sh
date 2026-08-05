@@ -6,12 +6,14 @@ ground_hit_capture=${1:-/tmp/falcon_special_geometry_side_ground_hit_v1.json}
 output_dir=${2:-/tmp/m4_raptor_boost}
 remaining_capture=${3:-/tmp/falcon_special_geometry_side_misses_ecb_v2.json}
 air_hit_capture=${4:-/tmp/falcon_special_geometry_side_air_hit_floor_v1.json}
+ground_edge_capture=${5:-/tmp/falcon_special_geometry_side_ground_edge_v3.json}
 compiler=${CC:-cc}
 python=${PYTHON:-python3}
 
 test -f "$ground_hit_capture"
 test -f "$remaining_capture"
 test -f "$air_hit_capture"
+test -f "$ground_edge_capture"
 mkdir -p "$output_dir"
 
 common_flags="
@@ -80,4 +82,11 @@ common_flags="
     --native-output "$output_dir/air-hit.csv" \
     --native-input-output "$output_dir/air-hit.inputs"
 
-echo "m4-raptor-boost-verification=pass ground_hit_frames=46 ground_miss_frames=80 air_miss_frames=180 air_hit_floor_frames=145 total_frames=451"
+"$python" "$root/tools/compare_ssbm_movement.py" \
+    "$ground_edge_capture" \
+    "$output_dir/pf_m4_movement_trace" \
+    --special-geometry-route side_ground_edge \
+    --native-output "$output_dir/ground-edge.csv" \
+    --native-input-output "$output_dir/ground-edge.inputs"
+
+echo "m4-raptor-boost-verification=pass ground_hit_frames=46 ground_miss_frames=80 air_miss_frames=180 air_hit_floor_frames=145 ground_edge_frames=51 total_frames=502"

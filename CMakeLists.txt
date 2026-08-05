@@ -355,6 +355,7 @@ if(PF_BUILD_TOOLS)
 
     add_executable(m4_movement_trace src/tools/m4_movement_trace.c)
     target_link_libraries(m4_movement_trace PRIVATE sim)
+    target_include_directories(m4_movement_trace PRIVATE src/sim)
     target_compile_features(m4_movement_trace PRIVATE c_std_17)
     set_target_properties(
         m4_movement_trace

@@ -279,6 +279,7 @@ def main() -> int:
         "--special-geometry-route",
         choices=(
             "side_ground_miss",
+            "side_ground_edge",
             "side_air_miss",
             "side_air_hit",
             "side_air_hit_floor",
@@ -378,6 +379,25 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_miss + 1]
+    raptor_boost_ground_edge_mode = any(
+        str(row.get("label", ""))
+        == "special_geometry_side_ground_edge_start"
+        for row in oracle_rows
+    )
+    if raptor_boost_ground_edge_mode:
+        first_special_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("label", ""))
+            == "special_geometry_side_ground_edge_start"
+        )
+        oracle_rows = oracle_rows[first_special_row:]
+        first_fall_row = next(
+            index
+            for index, row in enumerate(oracle_rows)
+            if str(row.get("action", "")) == "DEAD_FALL"
+        )
+        oracle_rows = oracle_rows[: first_fall_row + 32]
     raptor_boost_air_miss_mode = any(
         str(row.get("label", "")) == "special_geometry_side_air_miss_start"
         for row in oracle_rows
@@ -710,6 +730,8 @@ def main() -> int:
         runner_command.append("--falcon-punch-air")
     elif raptor_boost_ground_miss_mode:
         runner_command.append("--raptor-boost-ground-miss")
+    elif raptor_boost_ground_edge_mode:
+        runner_command.append("--raptor-boost-ground-edge")
     elif raptor_boost_ground_hit_mode:
         runner_command.append("--raptor-boost-ground-hit")
     elif raptor_boost_air_miss_mode:
@@ -761,7 +783,7 @@ def main() -> int:
     oracle_anchor_x = (
         float(oracle_rows[0]["position_x_from_origin"])
         - float(oracle_rows[0]["ground_velocity_x"])
-        if raptor_boost_ground_hit_mode
+        if raptor_boost_ground_hit_mode or raptor_boost_ground_edge_mode
         else float(oracle_rows[0]["position_x_from_origin"])
         if falcon_kick_ground_edge_mode
         or falcon_kick_ground_hit_mode
@@ -906,6 +928,11 @@ def main() -> int:
                 "SWORD_DANCE_2_MID": 111,
                 "DEAD_FALL": 113,
             }.get(action_name, expected_action)
+        if raptor_boost_ground_edge_mode:
+            expected_action = {
+                "SWORD_DANCE_1": 109,
+                "DEAD_FALL": 113,
+            }.get(action_name, expected_action)
         if raptor_boost_air_hit_mode:
             expected_action = {
                 "SWORD_DANCE_2_MID": 111,
@@ -995,6 +1022,11 @@ def main() -> int:
                 expected_ticks = action_frame - 1
         if raptor_boost_air_miss_mode:
             if action_name == "SWORD_DANCE_2_MID":
+                expected_ticks = action_frame
+            elif action_name == "DEAD_FALL":
+                expected_ticks = action_frame - 1
+        if raptor_boost_ground_edge_mode:
+            if action_name == "SWORD_DANCE_1":
                 expected_ticks = action_frame
             elif action_name == "DEAD_FALL":
                 expected_ticks = action_frame - 1

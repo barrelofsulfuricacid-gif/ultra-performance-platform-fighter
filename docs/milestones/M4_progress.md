@@ -3558,7 +3558,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   contact, five-frame hitlag, the complete natural pre-landing hit-state tail,
   natural
   floor contact, all 40 hit-landing-lag ticks, and return to standing. The
-  at-will Raptor verifier now covers 451 frames in total.
+  at-will Raptor verifier now covers 502 frames in total.
 - The natural route exposed a one-frame-early landing caused by the generic
   body extent. A separate complete memory capture at SHA-256
   `86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e`
@@ -3573,7 +3573,27 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   The expanded complete-source digest is
   `e57a62aa980c0895d7e362ff83d45d80f64125ef5f6c2f0a7b07a934fbf8c275`,
   and the refreshed eight-match verifier digest is `083493fa2ea1613e`.
-- Aggregate owner-executable evidence is now 14,620 captured frames. Raptor
-  Boost still requires ground edge-conversion and source item-search routes;
+- Aggregate owner-executable evidence is now 14,671 captured frames. Raptor
+  Boost still requires source item-search routes;
   Falcon Dive edge behavior and broader common-state fidelity remain active
   M4 work.
+
+## 2026-08-05 Raptor Boost ground-edge conversion
+
+- `ftCa_SpecialSStart_Coll` at pinned doldecomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` establishes the transition: once
+  `cmd_vars[2]` is active, floor loss enters common `FallSpecial`, clamps air
+  drift, and applies the imported 20-frame miss landing lag.
+- A 210-row owner Dolphin capture at SHA-256
+  `3b59fbf62ad880ffe88d694e6e69f0a0b08f23fd7e4714c9a0cf4a41194744ae`
+  contributes 51 strict comparison frames. Falcon is relocated once before
+  the action; the opponent then flees through ordinary controller input and
+  neither fighter is held or modified during the compared route.
+- The route exposed two production gaps on the exact floor-loss row: the
+  frame-20 root velocity was not clamped to Falcon's imported air speed and
+  ordinary gravity ran one tick early. One shared integer clamp now implements
+  the decomp ordering for both grounded miss and hit edge conversions.
+- The route fixture derives its crossing boundary directly from generated
+  Raptor Boost frames 1 through 20. No authored timing or movement constant is
+  duplicated. The at-will Raptor suite now covers 502 frames and aggregate
+  owner-executable evidence is 14,671 frames.

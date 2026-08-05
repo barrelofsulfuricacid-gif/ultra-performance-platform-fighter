@@ -27,6 +27,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "neutral_ground": "0x12d",
     "neutral_air": "0x12e",
     "side_ground_miss": "0x12f",
+    "side_ground_edge": "0x12f",
     "side_ground_hit": "0x130",
     "side_air_miss": "0x131",
     "side_air_hit": "0x132",
@@ -449,6 +450,7 @@ def input_trace(
                 )
             elif route in {
                 "side_ground_miss",
+                "side_ground_edge",
                 "side_ground_hit",
                 "side_air_miss",
                 "side_air_hit",
@@ -461,9 +463,13 @@ def input_trace(
                         main_x=1.0,
                         special=True,
                         fighter_x_override=(
-                            -10.0
-                            if collision_route and not native_air_hit
-                            else None
+                            78.0
+                            if route == "side_ground_edge"
+                            else (
+                                -10.0
+                                if collision_route and not native_air_hit
+                                else None
+                            )
                         ),
                         fighter_y_override=(
                             500.0
@@ -481,6 +487,9 @@ def input_trace(
                             and airborne
                             and not native_air_hit
                             else None
+                        ),
+                        opponent_main_x=(
+                            0.0 if route == "side_ground_edge" else 0.5
                         ),
                     )
                 )
@@ -560,6 +569,9 @@ def input_trace(
             repeat(
                 f"special_geometry_{route}_observe",
                 special_total(route) + 100,
+                opponent_main_x=(
+                    0.0 if route == "side_ground_edge" else 0.5
+                ),
                 fighter_y_override=(
                     500.0
                     if elevated_airborne

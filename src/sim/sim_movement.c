@@ -68,6 +68,11 @@ static int32_t pf_m4_approach(
     return value;
 }
 
+static int32_t pf_m4_clamp_i32(int32_t value, int32_t minimum, int32_t maximum)
+{
+    return value < minimum ? minimum : value > maximum ? maximum : value;
+}
+
 static uint32_t pf_m4_shield_health_add(
     uint32_t health_q16,
     uint32_t amount_q16,
@@ -9143,6 +9148,9 @@ pf_status pf_m4_step_player(
                 raptor_timing != NULL &&
                 action_ticks >= raptor_timing->ground_search_begin_frame &&
                 action_ticks <= raptor_timing->ground_search_end_frame;
+            const int raptor_boost_edge_fall =
+                raptor_boost_active_fall != 0 ||
+                raptor_boost_hit_fall != 0;
 
             /* mpColl_8004B108's SpecialAttackGround edge conversion keeps
              * Falcon's full root velocity but commits half of the crossing
@@ -9151,6 +9159,14 @@ pf_status pf_m4_step_player(
             {
                 position_x = previous_position_x +
                     (position_x - previous_position_x) / INT32_C(2);
+                launched_this_tick = 1;
+            }
+            if (raptor_boost_edge_fall != 0)
+            {
+                velocity_x = pf_m4_clamp_i32(
+                    velocity_x,
+                    -fighter->air_speed_q16,
+                    fighter->air_speed_q16);
                 launched_this_tick = 1;
             }
 
