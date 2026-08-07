@@ -1529,6 +1529,25 @@ static int pf_m4_snapshot_action_is_falcon_dive_capture_holder(
                (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW;
 }
 
+static int pf_m4_snapshot_action_is_grabbed(
+    uint8_t action,
+    uint8_t resume_action)
+{
+    return action == (uint8_t)PF_M4_ACTION_GRABBED ||
+           (action == (uint8_t)PF_M4_ACTION_HITLAG &&
+            resume_action == (uint8_t)PF_M4_ACTION_GRABBED);
+}
+
+static int pf_m4_snapshot_action_is_throw_holder(
+    uint8_t action,
+    uint8_t resume_action)
+{
+    return pf_m4_snapshot_action_is_throw(
+        action == (uint8_t)PF_M4_ACTION_HITLAG
+            ? resume_action
+            : action);
+}
+
 static int pf_m4_snapshot_action_is_smash_charge(uint8_t action)
 {
     return action ==
@@ -2487,6 +2506,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_FALCON_KICK_LANDING &&
                  !pf_m4_snapshot_action_is_throw(resume_action) &&
+                 resume_action != (uint8_t)PF_M4_ACTION_GRABBED &&
                  resume_action != (uint8_t)PF_M4_ACTION_HITSTUN &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
@@ -2881,12 +2901,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  !pf_m4_snapshot_action_is_falcon_dive_capture_holder(
                      world->action_state[player_index],
                      world->hitlag_resume_action[player_index]) &&
-                 !pf_m4_snapshot_action_is_throw(
-                     world->action_state[player_index])) ||
+                 !pf_m4_snapshot_action_is_throw_holder(
+                     world->action_state[player_index],
+                     world->hitlag_resume_action[player_index])) ||
                 world->grab_owner_slot[target_index] !=
                     (uint8_t)(player_index + UINT32_C(1)) ||
-                world->action_state[target_index] !=
-                    (uint8_t)PF_M4_ACTION_GRABBED ||
+                !pf_m4_snapshot_action_is_grabbed(
+                    world->action_state[target_index],
+                    world->hitlag_resume_action[target_index]) ||
                 world->grab_escape_ticks[target_index] == UINT16_C(0))
             {
                 return PF_STATUS_INVALID_STATE;
@@ -2909,8 +2931,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->active[owner_index] == UINT8_C(0) ||
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[player_index] == world->team[owner_index]) ||
-                world->action_state[player_index] !=
-                    (uint8_t)PF_M4_ACTION_GRABBED ||
+                !pf_m4_snapshot_action_is_grabbed(
+                    world->action_state[player_index],
+                    world->hitlag_resume_action[player_index]) ||
                 (world->action_state[owner_index] !=
                      (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
                  world->action_state[owner_index] !=
@@ -2918,8 +2941,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  !pf_m4_snapshot_action_is_falcon_dive_capture_holder(
                      world->action_state[owner_index],
                      world->hitlag_resume_action[owner_index]) &&
-                 !pf_m4_snapshot_action_is_throw(
-                     world->action_state[owner_index])) ||
+                 !pf_m4_snapshot_action_is_throw_holder(
+                     world->action_state[owner_index],
+                     world->hitlag_resume_action[owner_index])) ||
                 world->grab_target_slot[owner_index] !=
                     (uint8_t)(player_index + UINT32_C(1)) ||
                 world->grab_escape_ticks[player_index] == UINT16_C(0))
@@ -2927,8 +2951,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 return PF_STATUS_INVALID_STATE;
             }
         }
-        else if (world->action_state[player_index] ==
-                     (uint8_t)PF_M4_ACTION_GRABBED ||
+        else if (pf_m4_snapshot_action_is_grabbed(
+                     world->action_state[player_index],
+                     world->hitlag_resume_action[player_index]) ||
                  world->grab_escape_ticks[player_index] != UINT16_C(0))
         {
             return PF_STATUS_INVALID_STATE;

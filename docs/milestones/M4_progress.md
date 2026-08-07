@@ -3711,5 +3711,29 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `08c277adad0fcd126d01351a118578cb73a6ba573f0b8377a26d8f9653f523d8`.
   Native Windows MinGW passes all 15 configured tests and WSL GCC passes all
   22 configured tests. This closes the Falcon source-data inventory gap, not
-  common callback, command, pose, ledge, or source-Z behavioral gaps; those
-  remain active M4 work.
+  common callback, command, pose, ledge, or moving-collision behavioral gaps;
+  those remain active M4 work.
+
+## 2026-08-07 source-Z Falcon collision import
+
+- The pinned Dolphin hurt-pose captures now generate both X/Y/Z endpoints for
+  every imported 11-capsule Falcon pose. Runtime hit spheres retain their
+  already-imported Z center, reflect X and Z with facing, and use one shared
+  allocation-free Q16.16 3D point-to-capsule predicate. Shield sphere tests now
+  include hit-sphere Z as well. Inspection schema 52 exposes the source Z
+  center while the browser keeps its intentional X/Y projection.
+- The canonical geometry SHA-256 is now
+  `6a623a51717fc1c163b7b686c02f3dc336e2901ef3d85d501d4f76b037277fce`;
+  the generated include SHA-256 is
+  `4282ee1a77d2b8b204bb2d032a9982a63c9b1d7f55537d828bcbbc19adeaf9c5`.
+  A source-derived down-tilt/standing-capsule case proves the former 2D false
+  positive is rejected while the in-plane control still hits.
+- The 20,000-tick combat trace exposed a valid synchronized throw state whose
+  victim remains grabbed during ordinary throw hitlag. Snapshot validation now
+  treats `HITLAG -> GRABBED` and `HITLAG -> THROW_*` as their effective linked
+  actions, so hash/save validation accepts the same state the throw resolver
+  already produces.
+- Native Windows MinGW passes all 15 configured tests. WSL GCC passes all 22
+  configured tests after refreshing the verifier soak digest for the changed
+  content identity. The remaining collision gap is the executable's moving
+  previous-to-current hit-capsule sweep, not source-Z data loss.

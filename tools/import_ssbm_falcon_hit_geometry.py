@@ -297,9 +297,15 @@ def captured_hurt_capsules(
                 ),
                 round(-(endpoint_a[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
                 round(
+                    facing * (endpoint_a[2] - fighter_position[2]) * MELEE_TO_SIM_Q16
+                ),
+                round(
                     facing * (endpoint_b[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
                 ),
                 round(-(endpoint_b[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
+                round(
+                    facing * (endpoint_b[2] - fighter_position[2]) * MELEE_TO_SIM_Q16
+                ),
                 round(float(hurtbox["radius"]) * MELEE_TO_SIM_Q16),
                 hurtbox_id,
                 int(hurtbox["height"]),
@@ -314,11 +320,11 @@ def hurt_poses_q16_equivalent(
     right: tuple[tuple[int, ...], ...],
 ) -> bool:
     return len(left) == len(right) and all(
-        left_capsule[5:] == right_capsule[5:]
+        left_capsule[7:] == right_capsule[7:]
         and all(
             abs(left_value - right_value) <= 1
             for left_value, right_value in zip(
-                left_capsule[:5], right_capsule[:5], strict=True
+                left_capsule[:7], right_capsule[:7], strict=True
             )
         )
         for left_capsule, right_capsule in zip(left, right, strict=True)
@@ -874,9 +880,11 @@ def generate(
         f"INT32_C({hurtbox[2]}), "
         f"INT32_C({hurtbox[3]}), "
         f"INT32_C({hurtbox[4]}), "
-        f"UINT8_C({hurtbox[5]}), "
-        f"UINT8_C({hurtbox[6]}), "
-        f"UINT8_C({hurtbox[7]}), UINT8_C(0) "
+        f"INT32_C({hurtbox[5]}), "
+        f"INT32_C({hurtbox[6]}), "
+        f"UINT8_C({hurtbox[7]}), "
+        f"UINT8_C({hurtbox[8]}), "
+        f"UINT8_C({hurtbox[9]}), UINT8_C(0) "
         "},"
         for hurtbox in hurt_capsules
     )
@@ -896,9 +904,11 @@ def generate(
         f"INT32_C({hurtbox[2]}), "
         f"INT32_C({hurtbox[3]}), "
         f"INT32_C({hurtbox[4]}), "
-        f"UINT8_C({hurtbox[5]}), "
-        f"UINT8_C({hurtbox[6]}), "
-        f"UINT8_C({hurtbox[7]}), UINT8_C(0) "
+        f"INT32_C({hurtbox[5]}), "
+        f"INT32_C({hurtbox[6]}), "
+        f"UINT8_C({hurtbox[7]}), "
+        f"UINT8_C({hurtbox[8]}), "
+        f"UINT8_C({hurtbox[9]}), UINT8_C(0) "
         "},"
         for hurtbox in standing_hurtboxes
     )

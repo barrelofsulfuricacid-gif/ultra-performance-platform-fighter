@@ -697,6 +697,13 @@ ledge-jump velocities, and the 15/19/18/15/24 aerial landing-lag table. State
 schema 51/save format 50 introduced the four per-player X/Y tilt directions and
 ages used by decomp-style dash and fast-fall input timing.
 
+Inspection schema 52 appends the signed Q16.16 source-Z center to every
+imported hit-sphere record. Native and browser consumers continue reading X/Y
+and radius by named fields; the browser deliberately projects the diagnostic
+overlay into 2D. Canonical state/save/replay layouts are unchanged because hit
+and hurt geometry is immutable generated content, while its canonical digest
+already participates in the content hash.
+
 A peer, replay, save state, or verifier job is compatible only when all
 deterministic identity fields match:
 

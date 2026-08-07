@@ -3,6 +3,7 @@
 #include "pf/rl.h"
 #include "pf/sim.h"
 #include "../../src/sim/sim_falcon_frame_data.h"
+#include "../../src/sim/sim_collision.h"
 #include "../../src/sim/sim_melee.h"
 
 #include <inttypes.h>
@@ -21894,6 +21895,7 @@ static int run_falcon_reference_table_test(void)
     uint8_t side_special_air_search_count = UINT8_C(0);
     uint8_t down_special_ground_sphere_count = UINT8_C(0);
     uint8_t down_special_air_sphere_count = UINT8_C(0);
+    uint8_t down_tilt_sphere_count = UINT8_C(0);
     uint8_t standing_hurt_capsule_count = UINT8_C(0);
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
@@ -21953,6 +21955,11 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_DOWN_SPECIAL_AIR,
             UINT16_C(29),
             &down_special_air_sphere_count);
+    const pf_m4_reference_hit_sphere *down_tilt_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_DOWN_TILT,
+            UINT16_C(15),
+            &down_tilt_sphere_count);
     const pf_m4_reference_hurt_capsule *standing_hurt_capsules =
         pf_m4_falcon_reference_standing_hurt_capsules(
             &standing_hurt_capsule_count);
@@ -22017,6 +22024,48 @@ static int run_falcon_reference_table_test(void)
     uint32_t animated_submotion_count = UINT32_C(0);
     uint32_t empty_submotion_count = UINT32_C(0);
     uint16_t submotion_index;
+
+    if (down_tilt_spheres == NULL ||
+        down_tilt_sphere_count != UINT8_C(3) ||
+        standing_hurt_capsules == NULL ||
+        standing_hurt_capsule_count != UINT8_C(11))
+    {
+        return fail("falcon-reference-z-collision-source");
+    }
+    {
+        const int64_t target_offset_x =
+            (int64_t)down_tilt_spheres[0].offset_x_q16 -
+            (int64_t)standing_hurt_capsules[0].endpoint_a_x_q16;
+        pf_m4_collision_sphere3_q16 sphere = {
+            (int64_t)down_tilt_spheres[0].offset_x_q16,
+            (int64_t)down_tilt_spheres[0].offset_y_q16,
+            (int64_t)down_tilt_spheres[0].offset_z_q16,
+            (int64_t)down_tilt_spheres[0].radius_q16};
+        const pf_m4_collision_capsule3_q16 capsule = {
+            target_offset_x +
+                (int64_t)standing_hurt_capsules[0].endpoint_a_x_q16,
+            (int64_t)standing_hurt_capsules[0].endpoint_a_y_q16,
+            (int64_t)standing_hurt_capsules[0].endpoint_a_z_q16,
+            target_offset_x +
+                (int64_t)standing_hurt_capsules[0].endpoint_b_x_q16,
+            (int64_t)standing_hurt_capsules[0].endpoint_b_y_q16,
+            (int64_t)standing_hurt_capsules[0].endpoint_b_z_q16,
+            (int64_t)standing_hurt_capsules[0].radius_q16};
+
+        if (pf_m4_collision_sphere_capsule_overlap_q16(
+                &sphere,
+                &capsule))
+        {
+            return fail("falcon-reference-z-collision-false-positive");
+        }
+        sphere.center_z_q16 = capsule.endpoint_a_z_q16;
+        if (!pf_m4_collision_sphere_capsule_overlap_q16(
+                &sphere,
+                &capsule))
+        {
+            return fail("falcon-reference-z-collision-control");
+        }
+    }
 
     for (submotion_index = UINT16_C(0);
          submotion_index < PF_M4_FALCON_SUBMOTION_COUNT;
@@ -22318,8 +22367,10 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsule_count != UINT8_C(11) ||
         standing_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(-1667) ||
         standing_hurt_capsules[0].endpoint_a_y_q16 != INT32_C(-71491) ||
+        standing_hurt_capsules[0].endpoint_a_z_q16 != INT32_C(2338) ||
         standing_hurt_capsules[0].endpoint_b_x_q16 != INT32_C(259) ||
         standing_hurt_capsules[0].endpoint_b_y_q16 != INT32_C(-70872) ||
+        standing_hurt_capsules[0].endpoint_b_z_q16 != INT32_C(-3980) ||
         standing_hurt_capsules[0].radius_q16 != INT32_C(16412) ||
         standing_hurt_capsules[0].hurtbox_id != UINT8_C(0) ||
         standing_hurt_capsules[0].height != UINT8_C(1) ||
@@ -22431,10 +22482,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x0a) ||
-        geometry_sha256[1] != UINT8_C(0x99) ||
-        geometry_sha256[30] != UINT8_C(0xe1) ||
-        geometry_sha256[31] != UINT8_C(0xb3) ||
+        geometry_sha256[0] != UINT8_C(0x6a) ||
+        geometry_sha256[1] != UINT8_C(0x62) ||
+        geometry_sha256[30] != UINT8_C(0x7f) ||
+        geometry_sha256[31] != UINT8_C(0xce) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),

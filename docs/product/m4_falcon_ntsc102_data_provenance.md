@@ -313,12 +313,16 @@ Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
 remains the grounded-idle route. A single move/frame lookup feeds exact 2D
-circle-versus-capsule intersection for attacks, grabs, item/projectile boxes,
-and hitlag-frozen source actions without allocation.
+projection for overlays and full 3D point-versus-capsule intersection for
+reference attacks and grabs without allocation. Both endpoints of every hurt
+capsule and every hit-sphere center retain the executable capture's Z
+coordinate; facing reflection applies to X and Z as it does to the source
+model transform. Authored item/projectile rectangles retain their separate 2D
+route.
 
 The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
 hash to
-`0a995d523bbeedf775559e7f53ea0558511188e8ef42e923e88a1d63e0d3e1b3`.
+`6a623a51717fc1c163b7b686c02f3dc336e2901ef3d85d501d4f76b037277fce`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, and all 17 Falcon special
@@ -337,8 +341,10 @@ All decisions match. Last-hit/first-miss boundaries are 28.60/28.65,
 same squared radius-sum predicate without allocation, square root, floating
 point, or the former rectangle/ellipse broad-phase rejection.
 
-Hurt poses for common non-attack actions and the retained source Z coordinate
-remain active fidelity gaps, not values to be filled by guessed frame data.
+Hurt poses for common non-attack actions and the source executable's
+previous-to-current moving hit-capsule sweep remain active fidelity gaps, not
+values to be filled by guessed frame data. The current-point specialization
+now consumes source Z exactly within bounded Q16.16 projection rounding.
 Custom authored content may opt out of reference geometry explicitly; default
 Falcon-counterpart content opts in.
 

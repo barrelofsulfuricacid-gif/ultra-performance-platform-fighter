@@ -1,4 +1,5 @@
 #include "sim_internal.h"
+#include "sim_collision.h"
 #include "sim_falcon_frame_data.h"
 #include "sim_melee.h"
 
@@ -1405,6 +1406,8 @@ static uint8_t pf_m4_reference_hit_spheres_at_world(
             (int32_t)facing * source[sphere_index].offset_x_q16;
         out_spheres[sphere_index].center_y_q16 =
             reference_origin_y_q16 + source[sphere_index].offset_y_q16;
+        out_spheres[sphere_index].center_z_q16 =
+            (int32_t)facing * source[sphere_index].offset_z_q16;
         out_spheres[sphere_index].radius_q16 =
             source[sphere_index].radius_q16;
         out_spheres[sphere_index].effect_index =
@@ -2042,14 +2045,7 @@ int pf_m4_shield_box(
     return 1;
 }
 
-typedef struct pf_m4_world_hurt_capsule
-{
-    int64_t endpoint_a_x_q16;
-    int64_t endpoint_a_y_q16;
-    int64_t endpoint_b_x_q16;
-    int64_t endpoint_b_y_q16;
-    int64_t radius_q16;
-} pf_m4_world_hurt_capsule;
+typedef pf_m4_collision_capsule3_q16 pf_m4_world_hurt_capsule;
 
 static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     const pf_m4_fighter_data *fighter,
@@ -2106,8 +2102,10 @@ static pf_m4_world_hurt_capsule pf_m4_world_hurt_capsule_from_reference(
     const pf_m4_world_hurt_capsule world = {
         position_x + facing * (int64_t)source->endpoint_a_x_q16,
         position_y + (int64_t)source->endpoint_a_y_q16,
+        facing * (int64_t)source->endpoint_a_z_q16,
         position_x + facing * (int64_t)source->endpoint_b_x_q16,
         position_y + (int64_t)source->endpoint_b_y_q16,
+        facing * (int64_t)source->endpoint_b_z_q16,
         (int64_t)source->radius_q16};
 
     return world;
@@ -2293,57 +2291,20 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
                 scratch,
                 target_index,
                 &capsules[capsule_index]);
-        const int64_t segment_x =
-            capsule.endpoint_b_x_q16 - capsule.endpoint_a_x_q16;
-        const int64_t segment_y =
-            capsule.endpoint_b_y_q16 - capsule.endpoint_a_y_q16;
-        const int64_t sphere_from_a_x =
-            (int64_t)sphere->center_x_q16 -
-            capsule.endpoint_a_x_q16;
-        const int64_t sphere_from_a_y =
-            (int64_t)sphere->center_y_q16 -
-            capsule.endpoint_a_y_q16;
-        const int64_t segment_length_squared =
-            segment_x * segment_x + segment_y * segment_y;
-        int64_t projection =
-            sphere_from_a_x * segment_x +
-            sphere_from_a_y * segment_y;
-        int64_t nearest_x;
-        int64_t nearest_y;
-        int64_t delta_x;
-        int64_t delta_y;
-        const int64_t combined_radius =
-            (int64_t)sphere->radius_q16 + capsule.radius_q16;
+        const pf_m4_collision_sphere3_q16 collision_sphere = {
+            (int64_t)sphere->center_x_q16,
+            (int64_t)sphere->center_y_q16,
+            (int64_t)sphere->center_z_q16,
+            (int64_t)sphere->radius_q16};
 
         if (grabbable_only != 0 &&
             capsules[capsule_index].grabbable == UINT8_C(0))
         {
             continue;
         }
-        if (projection < INT64_C(0))
-        {
-            projection = INT64_C(0);
-        }
-        else if (projection > segment_length_squared)
-        {
-            projection = segment_length_squared;
-        }
-        if (segment_length_squared == INT64_C(0))
-        {
-            nearest_x = capsule.endpoint_a_x_q16;
-            nearest_y = capsule.endpoint_a_y_q16;
-        }
-        else
-        {
-            nearest_x = capsule.endpoint_a_x_q16 +
-                segment_x * projection / segment_length_squared;
-            nearest_y = capsule.endpoint_a_y_q16 +
-                segment_y * projection / segment_length_squared;
-        }
-        delta_x = (int64_t)sphere->center_x_q16 - nearest_x;
-        delta_y = (int64_t)sphere->center_y_q16 - nearest_y;
-        if (delta_x * delta_x + delta_y * delta_y <=
-            combined_radius * combined_radius)
+        if (pf_m4_collision_sphere_capsule_overlap_q16(
+                &collision_sphere,
+                &capsule))
         {
             return 1;
         }
@@ -2456,6 +2417,7 @@ static int pf_m4_hit_sphere_overlaps_shield(
             scratch->position_y_q16[attacker_index]);
     int64_t delta_x;
     int64_t delta_y;
+    int64_t delta_z;
     int64_t combined_radius;
 
     if (!pf_m4_shield_volume_for_player(
@@ -2492,7 +2454,9 @@ static int pf_m4_hit_sphere_overlaps_shield(
     combined_radius =
         (int64_t)sphere->radius_q16 +
         (int64_t)volume.radius_x_q16;
-    return delta_x * delta_x + delta_y * delta_y <=
+    delta_z = (int64_t)sphere->center_z_q16;
+    return delta_x * delta_x + delta_y * delta_y +
+               delta_z * delta_z <=
            combined_radius * combined_radius;
 }
 
@@ -4228,16 +4192,21 @@ static pf_status pf_m4_resolve_falcon_side_special_searches(
                 const pf_m4_reference_search_sphere *source =
                     &source_spheres[sphere_index];
                 const pf_m4_hit_sphere_inspection sphere = {
-                    scratch->position_x_q16[attacker_index] +
+                    .center_x_q16 =
+                        scratch->position_x_q16[attacker_index] +
                         (int32_t)scratch->facing[attacker_index] *
                             source->offset_x_q16,
-                    scratch->position_y_q16[attacker_index] +
+                    .center_y_q16 =
+                        scratch->position_y_q16[attacker_index] +
                         source->offset_y_q16,
-                    source->radius_q16,
-                    UINT8_C(0),
-                    sphere_index,
-                    UINT8_C(0),
-                    UINT8_C(0)};
+                    .center_z_q16 =
+                        (int32_t)scratch->facing[attacker_index] *
+                        source->offset_z_q16,
+                    .radius_q16 = source->radius_q16,
+                    .effect_index = UINT8_C(0),
+                    .hitbox_id = sphere_index,
+                    .group_id = UINT8_C(0),
+                    .reserved = UINT8_C(0)};
 
                 if (pf_m4_hit_sphere_overlaps_player(
                         &content->fighter,

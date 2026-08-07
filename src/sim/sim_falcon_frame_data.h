@@ -172,8 +172,10 @@ typedef struct pf_m4_reference_hurt_capsule
 {
     int32_t endpoint_a_x_q16;
     int32_t endpoint_a_y_q16;
+    int32_t endpoint_a_z_q16;
     int32_t endpoint_b_x_q16;
     int32_t endpoint_b_y_q16;
+    int32_t endpoint_b_z_q16;
     int32_t radius_q16;
     uint8_t hurtbox_id;
     uint8_t height;

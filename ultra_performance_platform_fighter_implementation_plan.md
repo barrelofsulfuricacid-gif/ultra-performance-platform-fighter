@@ -569,8 +569,11 @@ complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for remaining common
-actions, plus source-Z collision semantics, remain explicit M4 gaps and must
-be extracted or qualified rather than approximated with invented frame data.
+actions, plus the executable's previous-to-current moving hit-capsule sweep,
+remain explicit M4 gaps and must be extracted or qualified rather than
+approximated with invented frame data. Imported attack spheres and both hurt-
+capsule endpoints retain source X/Y/Z and share one zero-allocation 3D point-
+to-capsule predicate; source Z may not be dropped by collision or inspection.
 The complete submotion catalog closes data availability, not those behavior
 routes. Imported hit and hurt geometry is rooted
 at Melee's fighter origin, and reference hit spheres use the decomp's exact
