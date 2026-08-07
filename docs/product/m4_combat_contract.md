@@ -826,10 +826,12 @@ stock loss, respawn, or reset.
 Falcon's neutral shield-joint center, 0.97 model scale, 15-unit initial radius,
 and guard animation are converted independently through the project's x and y
 coordinate scales. The result is one authoritative elliptical volume helper.
-Inspection and the browser consume its bounding box; physical hit collision
-uses an ellipse-versus-hitbox nearest-point test. Health, analog density,
-facing reflection, and tilt therefore cannot drift between gameplay and
-visualization.
+Inspection and the browser consume its bounding box. Authored rectangular
+attacks use an ellipse-versus-rectangle nearest-point test. Imported Falcon
+hit spheres instead use Melee's exact radius-sum test in the uniform source
+spatial metric; only the shield-joint displacement is converted back from the
+project's independent world-Y scale. Health, analog density, facing reflection,
+and tilt therefore cannot drift between gameplay and visualization.
 
 Physical attacks, thrown items, and projectiles test the shield volume and the
 hurtbox independently. Shield collision wins wherever both overlap. If an
@@ -844,7 +846,10 @@ Melee paths in
 [`ftanim.c`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/ftanim.c), and
 [`lbcollision.c`](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/lb/lbcollision.c).
 Owner-executable memory probes qualify the resulting angle, magnitude, center,
-and radius across cardinal, diagonal, and angular-sweep routes.
+and radius across cardinal, diagonal, and angular-sweep routes. A separate
+2,568-frame, 33-decision Jab 1 sweep qualifies the source sphere/capsule
+predicate at neutral, up-right, and down-right shield offsets, including each
+last-hit/first-miss boundary at 0.05-Melee-unit resolution.
 
 ## Blocking, shield stun, and powershield
 

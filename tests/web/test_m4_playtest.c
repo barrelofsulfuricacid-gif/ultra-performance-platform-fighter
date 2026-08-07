@@ -1317,7 +1317,8 @@ int main(void)
         test_view[TEST_HIT_SPHERE0 + 1] !=
             test_view[TEST_PLAYER0_BASE] + 72548 ||
         test_view[TEST_HIT_SPHERE0 + 2] !=
-            test_view[TEST_PLAYER0_BASE + 1] - 73843 ||
+            test_view[TEST_PLAYER0_BASE + 1] +
+                INT32_C(52428) - INT32_C(73843) ||
         test_view[TEST_HIT_SPHERE0 + 3] != 24040 ||
         test_view[TEST_HIT_SPHERE0 + 4] != 0 ||
         test_view[TEST_HIT_SPHERE0 + 5] != 0 ||

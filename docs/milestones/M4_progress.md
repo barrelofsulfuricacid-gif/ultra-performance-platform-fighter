@@ -3658,3 +3658,36 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   22/22 tests and native Windows passes 20/20. M4 remains unfinished; common-
   action hurt poses, source-Z collision semantics, exact sphere-versus-shield
   collision, and broader exhaustive SSBM equivalence remain active work.
+
+## 2026-08-07 exact Falcon sphere-versus-shield collision
+
+- A new 2,568-row Dolphin 3.4.0 memory capture has SHA-256
+  `2df522e9bc93a09b61d15406f9281f4638f9c81796da349d033d90a112d51289`.
+  It supplies 33 Falcon Jab 1 decisions at neutral, up-right, and down-right
+  light-shield offsets. The observed last-hit/first-miss distances are
+  28.60/28.65, 29.65/29.70, and 29.60/29.65 Melee units.
+- `tools/verify_ssbm_shield_collision.py` hash-pins both that capture and
+  `lbcollision.c` from decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`. It reconstructs the live
+  closest-point capsule distance and matrix-scaled radius sum; all 33 source
+  predictions match the executable outcomes.
+- Imported hit spheres and hurt capsules now share one correct Melee-root
+  origin instead of being displaced by the simulation body's half height.
+  Reference sphere/shield collision uses one squared radius-sum predicate in
+  Melee's uniform spatial metric. The invalid rectangle/ellipse broad phase is
+  skipped for reference spheres, removing both false negatives and redundant
+  work while retaining the authored-rectangle path for custom content.
+- Six deterministic boundary cases reproduce the three captured transitions
+  with the observed controller pressure and guard axes. Aggregate executable
+  qualification is now 17,638 frames. M4 remains unfinished; common-action
+  hurt poses, source-Z semantics, and broader exhaustive SSBM equivalence stay
+  active.
+- The corrected root origin refreshes replay corpus/final SHA-256 to
+  `47a9fe041eaf90013aa080907ca0168ca488616b95901f207cbe4cc755704590` and
+  `370bdaa36efeeb6d0b7dc0278a46316018f68a8c0ace8c7a213327d142aea66f`;
+  event-journal SHA-256 is
+  `79bff77cc0438838f3c40ed054ac6d96396414deca781d0f3b03b07bfa637811`.
+- Native Windows MinGW passes 20/20 configured tests and WSL Linux GCC passes
+  22/22, including benchmark self-test and throughput smoke. The native replay
+  verifier passes; WebAssembly replay verification remains delegated to the
+  existing CI lane because the pinned Emscripten SDK is not installed locally.

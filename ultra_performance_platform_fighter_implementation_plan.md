@@ -458,8 +458,11 @@ post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
 270- and 2,158-frame memory-probed shield routes qualify the half-step wrapped
 angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
 joint-derived center and radius, facing reflection, health/pressure scaling,
-and the anisotropically mapped elliptical collision volume. Aggregate
-executable-oracle evidence is therefore 15,070 qualified frames, including
+and the anisotropically mapped elliptical collision volume. A 2,568-frame,
+33-decision Jab 1 sweep additionally qualifies exact sphere-versus-shield
+collision at neutral and two diagonal guard offsets, including all three
+last-hit/first-miss boundaries. Aggregate executable-oracle evidence is
+therefore 17,638 qualified frames, including
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
 103-frame grounded, 165-frame aerial miss, and 63-frame aerial ledge-approach
 routes with memory-probed ECB,
@@ -559,10 +562,12 @@ frame-22 wall-hug detection, action 363, preserved entry self velocity, and the
 complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
-Hurt capsules for remaining common actions, source-Z collision semantics,
-and exact sphere-versus-shield intersection
+Hurt capsules for remaining common actions and source-Z collision semantics
 remain explicit M4 gaps and must be extracted or qualified rather than
-approximated with invented frame data.
+approximated with invented frame data. Imported hit and hurt geometry is rooted
+at Melee's fighter origin, and reference hit spheres use the decomp's exact
+radius-sum shield predicate in the uniform source spatial metric; authored
+rectangles retain their separate ellipse collision path.
 These captures qualify only their sampled routes and do not reduce the
 exhaustive obligation below.
 

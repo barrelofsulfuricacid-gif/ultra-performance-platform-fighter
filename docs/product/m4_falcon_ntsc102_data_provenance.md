@@ -298,11 +298,25 @@ hash to
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, and all 17 Falcon special
-subactions. Hurt poses for common non-attack actions, the retained
-source Z coordinate, and exact sphere-versus-
-shield intersection remain active fidelity gaps, not values to be filled by
-guessed frame data. Custom authored content may opt out of reference geometry
-explicitly; default Falcon-counterpart content opts in.
+subactions. Imported hit and hurt geometry is anchored to Melee's fighter root
+at the simulation floor-origin offset, rather than incorrectly treating the
+simulation body center as the source origin.
+
+A 2,568-row Dolphin 3.4.0 capture, SHA-256
+`2df522e9bc93a09b61d15406f9281f4638f9c81796da349d033d90a112d51289`,
+adds 33 Falcon Jab 1 collision decisions against light shield at neutral,
+up-right, and down-right offsets. `tools/verify_ssbm_shield_collision.py`
+hash-pins the capture and `lbcollision.c`, then applies the decomp's closest-
+point capsule distance plus transformed shield and hit radii to live memory.
+All decisions match. Last-hit/first-miss boundaries are 28.60/28.65,
+29.65/29.70, and 29.60/29.65 Melee units respectively. Production uses the
+same squared radius-sum predicate without allocation, square root, floating
+point, or the former rectangle/ellipse broad-phase rejection.
+
+Hurt poses for common non-attack actions and the retained source Z coordinate
+remain active fidelity gaps, not values to be filled by guessed frame data.
+Custom authored content may opt out of reference geometry explicitly; default
+Falcon-counterpart content opts in.
 
 Falcon Punch timing is decoded from the raw `SpecialAirN` event stream rather
 than transcribed: command-variable assignments launch and begin velocity

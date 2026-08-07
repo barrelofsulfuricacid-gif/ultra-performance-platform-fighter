@@ -665,7 +665,8 @@ bytes and the checkpoint remains 803 bytes. Observation schema 13 and
 inspection schema 49 expose smoothed Cartesian tilt, while inspection also
 exposes the canonical angle and magnitude. One shared shield-volume helper is
 the only runtime authority for health/pressure size, facing reflection, tilt
-animation, inspection bounds, and ellipse collision.
+animation, inspection bounds, authored rectangle/ellipse collision, and the
+uniform-source-metric radius consumed by imported Falcon hit spheres.
 
 Content schema 64/fighter schema 56 replaces the prior approximate
 shield-response constants with the owner-disc/decomp pressure-dependent

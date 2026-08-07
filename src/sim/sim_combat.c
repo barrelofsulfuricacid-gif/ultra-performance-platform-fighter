@@ -1360,7 +1360,15 @@ static pf_status pf_m4_apply_shield_hit(
         NULL);
 }
 
+static int32_t pf_m4_reference_origin_y_q16(
+    const pf_m4_fighter_data *fighter,
+    int32_t position_y_q16)
+{
+    return position_y_q16 + fighter->half_height_q16;
+}
+
 static uint8_t pf_m4_reference_hit_spheres_at_world(
+    const pf_m4_fighter_data *fighter,
     pf_m4_falcon_move_index move_index,
     int32_t position_x_q16,
     int32_t position_y_q16,
@@ -1370,6 +1378,8 @@ static uint8_t pf_m4_reference_hit_spheres_at_world(
         out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY])
 {
     const pf_m4_reference_hit_sphere *source;
+    const int32_t reference_origin_y_q16 =
+        pf_m4_reference_origin_y_q16(fighter, position_y_q16);
     uint8_t sphere_count;
     uint8_t sphere_index;
 
@@ -1394,7 +1404,7 @@ static uint8_t pf_m4_reference_hit_spheres_at_world(
             position_x_q16 +
             (int32_t)facing * source[sphere_index].offset_x_q16;
         out_spheres[sphere_index].center_y_q16 =
-            position_y_q16 + source[sphere_index].offset_y_q16;
+            reference_origin_y_q16 + source[sphere_index].offset_y_q16;
         out_spheres[sphere_index].radius_q16 =
             source[sphere_index].radius_q16;
         out_spheres[sphere_index].effect_index =
@@ -1483,6 +1493,7 @@ uint8_t pf_m4_attack_hit_spheres(
         return UINT8_C(0);
     }
     return pf_m4_reference_hit_spheres_at_world(
+        &content->fighter,
         move_index,
         position_x_q16,
         position_y_q16,
@@ -1585,6 +1596,7 @@ int pf_m4_attack_hitbox(
             &geometry_move_index))
     {
         sphere_count = pf_m4_reference_hit_spheres_at_world(
+            &content->fighter,
             geometry_move_index,
             position_x_q16,
             position_y_q16,
@@ -1745,6 +1757,7 @@ static uint8_t pf_m4_grab_hit_spheres(
         return UINT8_C(0);
     }
     return pf_m4_reference_hit_spheres_at_world(
+        &content->fighter,
         move_index,
         position_x_q16,
         position_y_q16,
@@ -1806,6 +1819,7 @@ int pf_m4_grabbox(
             &geometry_move_index))
     {
         sphere_count = pf_m4_reference_hit_spheres_at_world(
+            &content->fighter,
             geometry_move_index,
             position_x_q16,
             position_y_q16,
@@ -2077,6 +2091,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
 }
 
 static pf_m4_world_hurt_capsule pf_m4_world_hurt_capsule_from_reference(
+    const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
     const pf_m4_reference_hurt_capsule *source)
@@ -2084,7 +2099,9 @@ static pf_m4_world_hurt_capsule pf_m4_world_hurt_capsule_from_reference(
     const int64_t position_x =
         (int64_t)scratch->position_x_q16[target_index];
     const int64_t position_y =
-        (int64_t)scratch->position_y_q16[target_index];
+        (int64_t)pf_m4_reference_origin_y_q16(
+            fighter,
+            scratch->position_y_q16[target_index]);
     const int64_t facing = (int64_t)scratch->facing[target_index];
     const pf_m4_world_hurt_capsule world = {
         position_x + facing * (int64_t)source->endpoint_a_x_q16,
@@ -2123,6 +2140,7 @@ static int pf_m4_hitbox_overlaps_player(
         {
             const pf_m4_world_hurt_capsule capsule =
                 pf_m4_world_hurt_capsule_from_reference(
+                    fighter,
                     scratch,
                     target_index,
                     &capsules[capsule_index]);
@@ -2255,6 +2273,7 @@ static int pf_m4_hitbox_overlaps_player_or_shield(
 }
 
 static int pf_m4_hit_sphere_overlaps_reference_pose(
+    const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
     const pf_m4_hit_sphere_inspection *sphere,
@@ -2270,6 +2289,7 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
     {
         const pf_m4_world_hurt_capsule capsule =
             pf_m4_world_hurt_capsule_from_reference(
+                fighter,
                 scratch,
                 target_index,
                 &capsules[capsule_index]);
@@ -2348,6 +2368,7 @@ static int pf_m4_hit_sphere_overlaps_player(
     if (capsules != NULL)
     {
         return pf_m4_hit_sphere_overlaps_reference_pose(
+            fighter,
             scratch,
             target_index,
             sphere,
@@ -2406,6 +2427,7 @@ static int pf_m4_grab_sphere_overlaps_player(
     if (capsules != NULL)
     {
         return pf_m4_hit_sphere_overlaps_reference_pose(
+            fighter,
             scratch,
             target_index,
             sphere,
@@ -2423,17 +2445,55 @@ static int pf_m4_grab_sphere_overlaps_player(
 static int pf_m4_hit_sphere_overlaps_shield(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
+    uint32_t attacker_index,
     uint32_t target_index,
     const pf_m4_hit_sphere_inspection *sphere)
 {
-    return pf_m4_hitbox_overlaps_shield(
-        fighter,
-        scratch,
-        target_index,
-        sphere->center_x_q16 - sphere->radius_q16,
-        sphere->center_x_q16 + sphere->radius_q16,
-        sphere->center_y_q16 - sphere->radius_q16,
-        sphere->center_y_q16 + sphere->radius_q16);
+    pf_m4_shield_volume volume;
+    const int64_t attacker_reference_origin_y =
+        (int64_t)pf_m4_reference_origin_y_q16(
+            fighter,
+            scratch->position_y_q16[attacker_index]);
+    int64_t delta_x;
+    int64_t delta_y;
+    int64_t combined_radius;
+
+    if (!pf_m4_shield_volume_for_player(
+            fighter,
+            scratch->position_x_q16[target_index],
+            scratch->position_y_q16[target_index],
+            scratch->action_state[target_index],
+            scratch->hitlag_resume_action[target_index],
+            scratch->shield_health_q16[target_index],
+            scratch->shield_strength[target_index],
+            scratch->facing[target_index],
+            scratch->shield_angle_turn[target_index],
+            scratch->shield_magnitude[target_index],
+            &volume))
+    {
+        return 0;
+    }
+
+    /* The executable tests two spheres in Melee's uniform spatial metric.
+     * World Y uses the project's independent movement scale, while imported
+     * hit-sphere offsets/radii already use the spatial X scale. Convert only
+     * each fighter origin and the shield joint back into that metric; keeping
+     * the hit offset separate avoids scaling it twice. */
+    delta_x =
+        (int64_t)sphere->center_x_q16 -
+        (int64_t)volume.center_x_q16;
+    delta_y =
+        (attacker_reference_origin_y -
+         (int64_t)volume.center_y_q16) *
+            (int64_t)fighter->shield_radius_x_q16 /
+            (int64_t)fighter->shield_radius_y_q16 +
+        ((int64_t)sphere->center_y_q16 -
+         attacker_reference_origin_y);
+    combined_radius =
+        (int64_t)sphere->radius_q16 +
+        (int64_t)volume.radius_x_q16;
+    return delta_x * delta_x + delta_y * delta_y <=
+           combined_radius * combined_radius;
 }
 
 static int pf_m4_boxes_overlap(
@@ -4352,15 +4412,19 @@ pf_status pf_m4_resolve_combat(
         {
             const uint8_t target_bit =
                 (uint8_t)(UINT32_C(1) << target_index);
+            const int uses_reference_spheres =
+                attacker_sphere_count[attacker_index] != UINT8_C(0);
             int shield_overlap =
-                pf_m4_hitbox_overlaps_shield(
-                    &content->fighter,
-                    scratch,
-                    target_index,
-                    hitbox_left,
-                    hitbox_right,
-                    hitbox_top,
-                    hitbox_bottom);
+                uses_reference_spheres != 0
+                    ? 0
+                    : pf_m4_hitbox_overlaps_shield(
+                          &content->fighter,
+                          scratch,
+                          target_index,
+                          hitbox_left,
+                          hitbox_right,
+                          hitbox_top,
+                          hitbox_bottom);
 
             if (target_index == attacker_index ||
                 scratch->grab_target_slot[attacker_index] ==
@@ -4385,14 +4449,15 @@ pf_status pf_m4_resolve_combat(
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[attacker_index] ==
                      world->team[target_index]) ||
-                !pf_m4_hitbox_overlaps_player_or_shield(
-                    &content->fighter,
-                    scratch,
-                    target_index,
-                    hitbox_left,
-                    hitbox_right,
-                    hitbox_top,
-                    hitbox_bottom))
+                (uses_reference_spheres == 0 &&
+                 !pf_m4_hitbox_overlaps_player_or_shield(
+                     &content->fighter,
+                     scratch,
+                     target_index,
+                     hitbox_left,
+                     hitbox_right,
+                     hitbox_top,
+                     hitbox_bottom)))
             {
                 continue;
             }
@@ -4413,6 +4478,7 @@ pf_status pf_m4_resolve_combat(
                         pf_m4_hit_sphere_overlaps_shield(
                             &content->fighter,
                             scratch,
+                            attacker_index,
                             target_index,
                             sphere);
 

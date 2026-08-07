@@ -2138,14 +2138,12 @@ static int run_directional_attack_hit_case(
     }
 }
 
-static int directional_attack_reaction_matches(
+static int directional_attack_reaction_matches_effect(
     const pf_m4_fighter_data *fighter,
     const pf_m4_attack_data *attack,
     const test_directional_attack_reaction *reaction,
-    pf_m4_falcon_move_index move_index)
+    const pf_m4_reference_hit_effect *effect)
 {
-    const pf_m4_reference_hit_effect *effect =
-        pf_m4_falcon_reference_primary_effect(move_index);
     pf_m4_melee_knockback_data knockback = {0};
     pf_m4_melee_knockback_result result;
 
@@ -2169,6 +2167,19 @@ static int directional_attack_reaction_matches(
            reaction->damage_q16 == attack->damage_q16 &&
            reaction->hitstun_ticks == result.hitstun_ticks &&
            reaction->hitlag_ticks == result.hitlag_ticks;
+}
+
+static int directional_attack_reaction_matches(
+    const pf_m4_fighter_data *fighter,
+    const pf_m4_attack_data *attack,
+    const test_directional_attack_reaction *reaction,
+    pf_m4_falcon_move_index move_index)
+{
+    return directional_attack_reaction_matches_effect(
+        fighter,
+        attack,
+        reaction,
+        pf_m4_falcon_reference_primary_effect(move_index));
 }
 
 static int run_directional_attack_snapshot_test(
@@ -3643,11 +3654,21 @@ static int run_directional_aerial_test(
          attack_index < UINT32_C(4);
          ++attack_index)
     {
-        if (!directional_attack_reaction_matches(
+        /* With the captured Melee-root origin, this close down-air fixture
+         * contacts the imported outer 290-degree sphere (effect 1). */
+        const pf_m4_reference_hit_effect *effect =
+            attack_index == UINT32_C(3)
+                ? pf_m4_falcon_reference_effect(
+                      moves[attack_index],
+                      UINT16_C(1))
+                : pf_m4_falcon_reference_primary_effect(
+                      moves[attack_index]);
+
+        if (!directional_attack_reaction_matches_effect(
                 &content->fighter,
                 attacks[attack_index],
                 reactions[attack_index],
-                moves[attack_index]))
+                effect))
         {
             return fail("directional-aerial-exact-launch");
         }
@@ -12973,6 +12994,159 @@ static int run_shield_geometry_and_poke_test(
         return fail("shield-poke-exposed-hurtbox");
     }
     return 1;
+}
+
+static int run_reference_shield_boundary_case(
+    uint32_t melee_distance_hundredths,
+    int16_t shield_axis_x,
+    int16_t shield_axis_y,
+    int expect_block)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const uint16_t light_trigger = UINT16_C(21064);
+    const int64_t scaled_distance_numerator =
+        (int64_t)melee_distance_hundredths *
+        (int64_t)PF_Q16_ONE * INT64_C(12);
+    const int64_t scaled_distance_denominator =
+        INT64_C(100) * INT64_C(115);
+    const int32_t total_distance_q16 =
+        (int32_t)(
+            (scaled_distance_numerator +
+             scaled_distance_denominator / INT64_C(2)) /
+            scaled_distance_denominator);
+    uint32_t tick;
+    int blocked = 0;
+    int hit = 0;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "reference-shield-boundary-default-content"))
+    {
+        return 0;
+    }
+    content.stage.spawn_spacing_q16 = total_distance_q16 / INT32_C(2);
+    content.item.enabled = UINT8_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "reference-shield-boundary-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                shield_axis_x,
+                shield_axis_y,
+                UINT64_C(0),
+                light_trigger,
+                &inspection))
+        {
+            return fail("reference-shield-boundary-hold");
+        }
+    }
+    if (inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_SHIELD ||
+        inspection.players[1].shield_active == UINT8_C(0))
+    {
+        return fail("reference-shield-boundary-ready");
+    }
+
+    for (tick = UINT32_C(0);
+         tick < (uint32_t)content.fighter.jab_startup_ticks +
+                    (uint32_t)content.fighter.jab_active_ticks +
+                    UINT32_C(2);
+         ++tick)
+    {
+        const pf_sim_event *block_event;
+        const pf_sim_event *hit_event;
+
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                UINT16_C(0),
+                shield_axis_x,
+                shield_axis_y,
+                UINT64_C(0),
+                light_trigger,
+                &inspection))
+        {
+            return fail("reference-shield-boundary-attack");
+        }
+        block_event = find_last_tick_event(PF_SIM_EVENT_SHIELD_BLOCK);
+        hit_event = find_last_tick_event(PF_SIM_EVENT_HIT);
+        blocked |= block_event != NULL;
+        hit |= hit_event != NULL;
+        if (block_event != NULL || hit_event != NULL)
+        {
+            break;
+        }
+    }
+    if (blocked != expect_block || hit != 0 ||
+        inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("reference-shield-boundary-result");
+    }
+    return 1;
+}
+
+static int run_reference_shield_boundary_test(void)
+{
+    /* These are the last-hit/first-miss boundaries from the pinned 0.05-unit
+     * GALE01 sweep. Axes reproduce the controller values observed by Dolphin;
+     * X is mirrored because the simulation defender starts facing left. */
+    return run_reference_shield_boundary_case(
+               UINT32_C(2860),
+               INT16_C(0),
+               INT16_C(0),
+               1) &&
+           run_reference_shield_boundary_case(
+               UINT32_C(2865),
+               INT16_C(0),
+               INT16_C(0),
+               0) &&
+           run_reference_shield_boundary_case(
+               UINT32_C(2965),
+               INT16_C(-12697),
+               INT16_C(-12697),
+               1) &&
+           run_reference_shield_boundary_case(
+               UINT32_C(2970),
+               INT16_C(-12697),
+               INT16_C(-12697),
+               0) &&
+           run_reference_shield_boundary_case(
+               UINT32_C(2960),
+               INT16_C(-12697),
+               INT16_C(13107),
+               1) &&
+           run_reference_shield_boundary_case(
+               UINT32_C(2965),
+               INT16_C(-12697),
+               INT16_C(13107),
+               0);
 }
 
 static int make_shield_break_content(
@@ -23439,6 +23613,7 @@ int main(void)
         !run_shield_geometry_and_poke_test(
             &shield_poke_content,
             &shield_poke_view) ||
+        !run_reference_shield_boundary_test() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

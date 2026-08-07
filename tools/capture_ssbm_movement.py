@@ -60,6 +60,7 @@ def input_trace(
     shield_geometry_only: bool = False,
     shield_geometry_sweep_only: bool = False,
     shield_hit_only: bool = False,
+    shield_collision_only: bool = False,
     damage_hit_only: bool = False,
     attack_iasa_only: bool = False,
     ground_attack_iasa_only: bool = False,
@@ -980,6 +981,63 @@ def input_trace(
         repeat("shield_hit_release", 30)
         return trace
 
+    if shield_collision_only:
+        # Sweep Jab 1 in 0.05-unit steps across the transformed shield sphere
+        # at neutral and two diagonal offsets. Explicit relocation makes every
+        # trial independent of locomotion, while the unshielded recovery
+        # interval restores the small amount of health spent by the preceding
+        # trial.
+        repeat("shield_collision_settle", 60)
+        for direction, main_x, main_y, first_hundredth in (
+            ("neutral", 0.5, 0.5, 2840),
+            ("up_right", 0.625, 0.625, 2940),
+            ("down_right", 0.625, 0.375, 2940),
+        ):
+            for hundredth in range(first_hundredth, first_hundredth + 51, 5):
+                distance = hundredth / 100.0
+                trial = f"shield_collision_{direction}_{distance:.2f}"
+                trace.append(
+                    command(
+                        f"{trial}_place",
+                        fighter_x_override=0.0,
+                        fighter_y_override=0.0001,
+                        opponent_x_override=distance,
+                        opponent_y_override=0.0001,
+                    )
+                )
+                repeat(
+                    f"{trial}_settle",
+                    10,
+                )
+                repeat(
+                    f"{trial}_hold",
+                    12,
+                    main_x=main_x,
+                    main_y=main_y,
+                    left_shoulder=0.35,
+                )
+                trace.append(
+                    command(
+                        f"{trial}_jab",
+                        main_x=main_x,
+                        main_y=main_y,
+                        left_shoulder=0.35,
+                        opponent_attack=True,
+                    )
+                )
+                repeat(
+                    f"{trial}_observe",
+                    12,
+                    main_x=main_x,
+                    main_y=main_y,
+                    left_shoulder=0.35,
+                )
+                repeat(
+                    f"{trial}_recover",
+                    40,
+                )
+        return trace
+
     if damage_hit_only:
         repeat("damage_hit_settle", 60)
         repeat(
@@ -1880,37 +1938,40 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
             )
         }
 
+    def read_hitboxes(fighter_address: int) -> list[dict[str, object]]:
+        hitboxes = []
+        for index in range(4):
+            hitbox = fighter_address + 0x914 + index * 0x138
+            hitboxes.append(
+                {
+                    "state": memory_engine.read_word(hitbox),
+                    "hit_id": memory_engine.read_word(hitbox + 0x04),
+                    "damage_count": memory_engine.read_word(hitbox + 0x08),
+                    "damage": memory_engine.read_float(hitbox + 0x0C),
+                    "bone_offset": [
+                        memory_engine.read_float(hitbox + 0x10 + 4 * axis)
+                        for axis in range(3)
+                    ],
+                    "radius": memory_engine.read_float(hitbox + 0x1C),
+                    "angle": memory_engine.read_word(hitbox + 0x20),
+                    "knockback_growth": memory_engine.read_word(hitbox + 0x24),
+                    "weight_set_knockback": memory_engine.read_word(hitbox + 0x28),
+                    "base_knockback": memory_engine.read_word(hitbox + 0x2C),
+                    "element": memory_engine.read_word(hitbox + 0x30),
+                    "position": [
+                        memory_engine.read_float(hitbox + 0x4C + 4 * axis)
+                        for axis in range(3)
+                    ],
+                    "previous_position": [
+                        memory_engine.read_float(hitbox + 0x58 + 4 * axis)
+                        for axis in range(3)
+                    ],
+                }
+            )
+        return hitboxes
+
     fighter = read_fighter_address(memory_engine, 0)
     opponent = read_fighter_address(memory_engine, 1)
-    hitboxes = []
-    for index in range(4):
-        hitbox = fighter + 0x914 + index * 0x138
-        hitboxes.append(
-            {
-                "state": memory_engine.read_word(hitbox),
-                "hit_id": memory_engine.read_word(hitbox + 0x04),
-                "damage_count": memory_engine.read_word(hitbox + 0x08),
-                "damage": memory_engine.read_float(hitbox + 0x0C),
-                "bone_offset": [
-                    memory_engine.read_float(hitbox + 0x10 + 4 * axis)
-                    for axis in range(3)
-                ],
-                "radius": memory_engine.read_float(hitbox + 0x1C),
-                "angle": memory_engine.read_word(hitbox + 0x20),
-                "knockback_growth": memory_engine.read_word(hitbox + 0x24),
-                "weight_set_knockback": memory_engine.read_word(hitbox + 0x28),
-                "base_knockback": memory_engine.read_word(hitbox + 0x2C),
-                "element": memory_engine.read_word(hitbox + 0x30),
-                "position": [
-                    memory_engine.read_float(hitbox + 0x4C + 4 * axis)
-                    for axis in range(3)
-                ],
-                "previous_position": [
-                    memory_engine.read_float(hitbox + 0x58 + 4 * axis)
-                    for axis in range(3)
-                ],
-            }
-        )
     return {
         "fighter_address": fighter,
         "fighter_position": [
@@ -1919,7 +1980,7 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "fighter_scale": [
             memory_engine.read_float(fighter + 0x34 + 4 * axis) for axis in range(3)
         ],
-        "hitboxes": hitboxes,
+        "hitboxes": read_hitboxes(fighter),
         "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
         "fighter_ecb": read_ecb(fighter),
         "fighter_ledge_snap": [
@@ -1959,6 +2020,7 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
         "opponent_fighter_position": [
             memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
         ],
+        "opponent_hitboxes": read_hitboxes(opponent),
         "opponent_damage_percent_internal": memory_engine.read_float(opponent + 0x1830),
         "opponent_damage_percent_temp": memory_engine.read_float(opponent + 0x1838),
         "opponent_knockback_applied": memory_engine.read_float(opponent + 0x1850),
@@ -2318,6 +2380,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     if (
                         args.push_only
                         or args.shield_hit_only
+                        or args.shield_collision_only
                         or args.damage_hit_only
                         or args.hitbox_geometry_only
                         or args.throw_geometry_only
@@ -2337,6 +2400,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             args.memory_probe_shield
             or args.memory_probe_damage
             or args.memory_probe_hitbox
+            or args.memory_probe_collision
         ):
             if memory_engine is None:
                 memory_engine = wait_for_memory_engine_hook(dolphin)
@@ -2369,6 +2433,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_geometry_only=args.shield_geometry_only,
             shield_geometry_sweep_only=args.shield_geometry_sweep_only,
             shield_hit_only=args.shield_hit_only,
+            shield_collision_only=args.shield_collision_only,
             damage_hit_only=args.damage_hit_only,
             attack_iasa_only=args.attack_iasa_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
@@ -2717,6 +2782,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     row["damage_memory"] = read_damage_memory_probe(memory_engine)
                 if args.memory_probe_hitbox:
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
+                if args.memory_probe_collision:
+                    row["shield_memory"] = read_shield_memory_probe(memory_engine)
+                    row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
             rows.append(row)
 
         item_rules = (
@@ -2726,7 +2794,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         return {
             "schema": (
-                9
+                10
+                if args.memory_probe_collision
+                else 9
                 if args.memory_probe_hitbox
                 else 8 if args.memory_probe_shield or args.memory_probe_damage else 7
             ),
@@ -2744,6 +2814,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if (
                     args.push_only
                     or args.shield_hit_only
+                    or args.shield_collision_only
                     or args.damage_hit_only
                     or args.hitbox_geometry_only
                     or args.throw_geometry_only
@@ -2776,7 +2847,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         "shield_joint": "fighter+0x19c0",
                     },
                 }
-                if args.memory_probe_shield
+                if args.memory_probe_shield or args.memory_probe_collision
                 else None
             ),
             "damage_memory_probe": (
@@ -2816,7 +2887,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "fighter_ledge_ids": "fighter+0x730,+0x734",
                     "decomp_revision": ("9509dc04406fb2028bfab01243841ba4787c0fb7"),
                 }
-                if args.memory_probe_hitbox
+                if args.memory_probe_hitbox or args.memory_probe_collision
                 else None
             ),
             "rows": rows,
@@ -2845,6 +2916,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-geometry-only", action="store_true")
     mode.add_argument("--shield-geometry-sweep-only", action="store_true")
     mode.add_argument("--shield-hit-only", action="store_true")
+    mode.add_argument("--shield-collision-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
@@ -2873,6 +2945,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--memory-probe-damage", action="store_true")
     parser.add_argument("--memory-probe-hitbox", action="store_true")
+    parser.add_argument("--memory-probe-collision", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args()
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
@@ -2891,12 +2964,15 @@ def parse_args() -> argparse.Namespace:
         or args.special_geometry_only
     ):
         parser.error("--memory-probe-hitbox requires a geometry-only mode")
+    if args.memory_probe_collision and not args.shield_collision_only:
+        parser.error("--memory-probe-collision requires --shield-collision-only")
     if (
         sum(
             (
                 args.memory_probe_shield,
                 args.memory_probe_damage,
                 args.memory_probe_hitbox,
+                args.memory_probe_collision,
             )
         )
         > 1
