@@ -27,6 +27,16 @@ _Static_assert(
         (size_t)PF_M4_FALCON_SUBMOTION_COUNT,
     "Falcon submotion table must cover every source slot");
 _Static_assert(
+    sizeof(pf_m4_falcon_script_events) /
+            sizeof(pf_m4_falcon_script_events[0]) ==
+        (size_t)PF_M4_FALCON_SCRIPT_EVENT_COUNT,
+    "Falcon action-script event table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_script_bytes) /
+            sizeof(pf_m4_falcon_script_bytes[0]) ==
+        (size_t)PF_M4_FALCON_SCRIPT_BYTE_COUNT,
+    "Falcon action-script byte table must be complete");
+_Static_assert(
     sizeof(pf_m4_falcon_special_attributes) == (size_t)0x8c,
     "Falcon special-attribute view must cover the source block exactly");
 _Static_assert(
@@ -48,6 +58,22 @@ const uint8_t *pf_m4_falcon_reference_submotion_catalog_sha256(void)
     return pf_m4_falcon_submotion_catalog_sha256;
 }
 
+const uint8_t *pf_m4_falcon_reference_action_script_sha256(void)
+{
+    return pf_m4_falcon_action_script_sha256;
+}
+
+const uint8_t *pf_m4_falcon_reference_animation_tracks_sha256(void)
+{
+    return pf_m4_falcon_animation_tracks_sha256;
+}
+
+const pf_m4_falcon_animation_decode_summary *
+pf_m4_falcon_reference_animation_decode_summary(void)
+{
+    return &pf_m4_falcon_animation_decode_summary_data;
+}
+
 const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
     uint16_t submotion_index)
 {
@@ -56,6 +82,32 @@ const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
         return NULL;
     }
     return &pf_m4_falcon_submotions[submotion_index];
+}
+
+const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
+    uint16_t submotion_index,
+    uint16_t event_index,
+    const uint8_t **out_bytes)
+{
+    const pf_m4_falcon_submotion_data *submotion;
+    const pf_m4_falcon_script_event *event;
+
+    if (out_bytes != NULL)
+    {
+        *out_bytes = NULL;
+    }
+    submotion = pf_m4_falcon_reference_submotion(submotion_index);
+    if (submotion == NULL || event_index >= submotion->event_count)
+    {
+        return NULL;
+    }
+    event = &pf_m4_falcon_script_events[
+        (uint32_t)submotion->event_offset + (uint32_t)event_index];
+    if (out_bytes != NULL)
+    {
+        *out_bytes = &pf_m4_falcon_script_bytes[event->byte_offset];
+    }
+    return event;
 }
 
 const uint32_t *pf_m4_falcon_reference_common_attribute_bits(

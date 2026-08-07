@@ -407,6 +407,53 @@ def canonical_sha256(data: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def hash_figatree(
+    digest: Any,
+    submotion_index: int,
+    animation_size: int,
+    tree: Any | None,
+) -> tuple[int, int, int]:
+    """Hash every decoded node, track, and key in canonical source order."""
+
+    nodes = () if tree is None else tree.nodes
+    frame_count = 0.0 if tree is None else float(tree.frame_count)
+    digest.update(
+        struct.pack(
+            ">HIdH",
+            submotion_index,
+            animation_size,
+            frame_count,
+            len(nodes),
+        )
+    )
+    track_count = 0
+    key_count = 0
+    for node_index, node in enumerate(nodes):
+        digest.update(struct.pack(">HH", node_index, len(node)))
+        track_count += len(node)
+        for track in node:
+            digest.update(
+                struct.pack(
+                    ">BiI",
+                    int(track.track_type),
+                    int(track.start_frame),
+                    len(track.keys),
+                )
+            )
+            key_count += len(track.keys)
+            for key in track.keys:
+                digest.update(
+                    struct.pack(
+                        ">dddB",
+                        float(key.frame),
+                        float(key.value),
+                        float(key.tangent),
+                        int(key.interpolation),
+                    )
+                )
+    return len(nodes), track_count, key_count
+
+
 def u16(value: Any) -> int:
     return 0 if value is None else int(value)
 
@@ -643,9 +690,16 @@ def generate(
     if subactions_offset + SUBMOTION_COUNT * 0x18 > len(source_dat_block):
         raise ValueError("Falcon submotion records are out of bounds")
     submotion_catalog: list[dict[str, int]] = []
+    script_events: list[dict[str, int]] = []
+    script_bytes = bytearray()
+    animation_tracks_digest = hashlib.sha256()
+    animation_node_count = 0
+    animation_track_count = 0
+    animation_key_count = 0
     for submotion_index, subaction in enumerate(subactions):
         animation_size = int(subaction["animSize"])
         animation_frame_count = 0
+        tree = None
         if animation_size != 0:
             animation_offset = int(subaction["animOffset"])
             tree = decode_figatree(
@@ -661,6 +715,15 @@ def generate(
                     f"submotion {submotion_index}: invalid frame count "
                     f"{tree.frame_count}"
                 )
+        node_count, track_count, key_count = hash_figatree(
+            animation_tracks_digest,
+            submotion_index,
+            animation_size,
+            tree,
+        )
+        animation_node_count += node_count
+        animation_track_count += track_count
+        animation_key_count += key_count
         animation_flags = struct.unpack_from(
             ">I",
             source_dat_block,
@@ -669,11 +732,45 @@ def generate(
         event_count = len(subaction["events"])
         if event_count > 0xFFFF:
             raise ValueError(f"submotion {submotion_index}: too many events")
+        event_offset = len(script_events)
+        if event_offset > 0xFFFF:
+            raise ValueError("Falcon action-script event table is too large")
+        for event_index, event in enumerate(subaction["events"]):
+            encoded = bytes.fromhex(str(event["bytes"]))
+            byte_count = int(event["length"])
+            command_id = int(str(event["commandId"]), 16)
+            if (
+                byte_count == 0
+                or byte_count != len(encoded)
+                or byte_count % 4 != 0
+                or byte_count > 0xFF
+            ):
+                raise ValueError(
+                    f"submotion {submotion_index} event {event_index}: "
+                    "invalid encoded length"
+                )
+            if command_id > 0xFF or encoded[0] & 0xFC != command_id:
+                raise ValueError(
+                    f"submotion {submotion_index} event {event_index}: "
+                    "opcode does not match encoded command"
+                )
+            byte_offset = len(script_bytes)
+            if byte_offset > 0xFFFF:
+                raise ValueError("Falcon action-script byte table is too large")
+            script_events.append(
+                {
+                    "byte_offset": byte_offset,
+                    "byte_count": byte_count,
+                    "command_id": command_id,
+                }
+            )
+            script_bytes.extend(encoded)
         submotion_catalog.append(
             {
                 "animation_frame_count": animation_frame_count,
                 "gameplay_frame_count": max(0, animation_frame_count - 1),
                 "event_count": event_count,
+                "event_offset": event_offset,
                 "animation_flags": animation_flags,
                 "animation_size": animation_size,
             }
@@ -683,6 +780,17 @@ def generate(
         or sum(row["animation_frame_count"] == 0 for row in submotion_catalog) != 43
     ):
         raise ValueError("unexpected Falcon animated/empty submotion coverage")
+    if (
+        animation_node_count != 17271
+        or animation_track_count != 38560
+        or animation_key_count != 308057
+    ):
+        raise ValueError(
+            "unexpected complete Falcon animation-track coverage: "
+            f"nodes={animation_node_count} tracks={animation_track_count} "
+            f"keys={animation_key_count}"
+        )
+    animation_tracks_sha256 = animation_tracks_digest.hexdigest()
     submotion_catalog_digest = hashlib.sha256(
         b"".join(
             struct.pack(
@@ -690,12 +798,29 @@ def generate(
                 row["animation_frame_count"],
                 row["gameplay_frame_count"],
                 row["event_count"],
-                0,
+                row["event_offset"],
                 row["animation_flags"],
                 row["animation_size"],
             )
             for row in submotion_catalog
         )
+    ).hexdigest()
+    if len(script_events) != 2056 or len(script_bytes) != 16516:
+        raise ValueError(
+            "unexpected complete Falcon action-script coverage: "
+            f"events={len(script_events)} bytes={len(script_bytes)}"
+        )
+    action_script_digest = hashlib.sha256(
+        b"".join(
+            struct.pack(
+                ">HBB",
+                event["byte_offset"],
+                event["byte_count"],
+                event["command_id"],
+            )
+            for event in script_events
+        )
+        + script_bytes
     ).hexdigest()
     common_attribute_bits, special_attributes = source_attributes(source_dat)
     collision_attributes = source_collision_attributes(source_dat)
@@ -1072,6 +1197,8 @@ def generate(
         f"/* PlCo.dat SHA-256: {SOURCE_COMMON_DAT_SHA256} */",
         f"/* complete Falcon source SHA-256: {complete_source_digest} */",
         f"/* complete 318-submotion catalog SHA-256: {submotion_catalog_digest} */",
+        f"/* complete action-script SHA-256: {action_script_digest} */",
+        f"/* complete decoded animation-track SHA-256: {animation_tracks_sha256} */",
         "",
         "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
         "    "
@@ -1097,6 +1224,29 @@ def generate(
         ),
         "};",
         "",
+        "static const uint8_t pf_m4_falcon_action_script_sha256[32] = {",
+        "    "
+        + ", ".join(
+            f"UINT8_C(0x{action_script_digest[index:index + 2]})"
+            for index in range(0, len(action_script_digest), 2)
+        ),
+        "};",
+        "",
+        "static const uint8_t pf_m4_falcon_animation_tracks_sha256[32] = {",
+        "    "
+        + ", ".join(
+            f"UINT8_C(0x{animation_tracks_sha256[index:index + 2]})"
+            for index in range(0, len(animation_tracks_sha256), 2)
+        ),
+        "};",
+        "",
+        "static const pf_m4_falcon_animation_decode_summary",
+        "pf_m4_falcon_animation_decode_summary_data = {",
+        f"    UINT32_C({animation_node_count}),",
+        f"    UINT32_C({animation_track_count}),",
+        f"    UINT32_C({animation_key_count}),",
+        "};",
+        "",
         "static const pf_m4_falcon_submotion_data",
         "pf_m4_falcon_submotions[PF_M4_FALCON_SUBMOTION_COUNT] = {",
     ]
@@ -1104,10 +1254,36 @@ def generate(
         "    { "
         f"UINT16_C({row['animation_frame_count']}), "
         f"UINT16_C({row['gameplay_frame_count']}), "
-        f"UINT16_C({row['event_count']}), UINT16_C(0), "
+        f"UINT16_C({row['event_count']}), "
+        f"UINT16_C({row['event_offset']}), "
         f"UINT32_C(0x{row['animation_flags']:08x}), "
         f"UINT32_C({row['animation_size']}) }},"
         for row in submotion_catalog
+    )
+    lines.extend([
+        "};",
+        "",
+        "static const pf_m4_falcon_script_event",
+        "pf_m4_falcon_script_events[PF_M4_FALCON_SCRIPT_EVENT_COUNT] = {",
+    ])
+    lines.extend(
+        "    { "
+        f"UINT16_C({event['byte_offset']}), "
+        f"UINT8_C({event['byte_count']}), "
+        f"UINT8_C(0x{event['command_id']:02x}) }},"
+        for event in script_events
+    )
+    lines.extend([
+        "};",
+        "",
+        "static const uint8_t",
+        "pf_m4_falcon_script_bytes[PF_M4_FALCON_SCRIPT_BYTE_COUNT] = {",
+    ])
+    lines.extend(
+        "    "
+        + ", ".join(f"UINT8_C(0x{value:02x})" for value in script_bytes[index:index + 12])
+        + ","
+        for index in range(0, len(script_bytes), 12)
     )
     lines.extend([
         "};",
@@ -1428,6 +1604,9 @@ def main() -> int:
         f"slots={len(MOVE_KEYS)} "
         f"subactions={sum(data[key] is not None for key in MOVE_KEYS)} "
         f"catalog={SUBMOTION_COUNT} animated=275 empty=43 "
+        f"script_events=2056 script_bytes=16516 "
+        f"animation_nodes=17271 animation_tracks=38560 "
+        f"animation_keys=308057 "
         f"source_sha256={digest} output={args.output}"
     )
     return 0

@@ -484,7 +484,12 @@ ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
 character-special subactions. This is complemented by a complete 318-slot
 `PlCa.dat` submotion catalog: all 275 present FigaTree animations and all 43
 source-defined empty slots, with frame endpoints, gameplay last frames,
-action-script event counts, animation flags, and source byte sizes. Default
+action-script event counts/offsets, animation flags, and source byte sizes. The
+import must retain all 2,056 event boundaries and 16,516 raw script bytes, and
+must exhaustively decode/hash all 17,271 animation nodes, 38,560 tracks, and
+308,057 keys. Runtime code may keep animation tracks offline until a behavior
+consumes them, but it may not replace a source track or command with an authored
+approximation. Default
 dash/turn/brake/landing/crouch/shield-release/dodge/roll/tech/getup/appeal
 timing must consume this catalog rather than repeat literals. The same
 generated source preserves all 97 raw
@@ -495,6 +500,14 @@ movement, jump, fall, weight, and landing values directly; it may not be
 replaced by hand-entered approximations. No implemented Falcon-counterpart move
 may use a guessed timing, effect, or character attribute when this source
 contains it.
+
+Future character ports must reuse the installed `ssbm-character-importer`
+workflow and generic source-manifest routine. Each port must maintain separate
+source-available, losslessly-imported, production-consumed, and Dolphin-
+qualified coverage; complete files or tables alone are never an equivalence
+claim. Shared hashing, event validation, fixed-point conversion, span access,
+and Dolphin route construction must be generalized rather than copied into a
+new character-specific implementation.
 
 Hash-pinned Dolphin captures provide transformed hit geometry and complete-
 frame 11-capsule hurt poses for the 14 production normals/aerials, standing and

@@ -21994,6 +21994,12 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_complete_source_sha256();
     const uint8_t *submotion_catalog_sha256 =
         pf_m4_falcon_reference_submotion_catalog_sha256();
+    const uint8_t *action_script_sha256 =
+        pf_m4_falcon_reference_action_script_sha256();
+    const uint8_t *animation_tracks_sha256 =
+        pf_m4_falcon_reference_animation_tracks_sha256();
+    const pf_m4_falcon_animation_decode_summary *animation_decode_summary =
+        pf_m4_falcon_reference_animation_decode_summary();
     const pf_m4_falcon_submotion_data *dash_submotion =
         pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_DASH);
     const pf_m4_falcon_submotion_data *empty_submotion =
@@ -22023,6 +22029,8 @@ static int run_falcon_reference_table_test(void)
     uint32_t present_count = UINT32_C(0);
     uint32_t animated_submotion_count = UINT32_C(0);
     uint32_t empty_submotion_count = UINT32_C(0);
+    uint32_t script_event_count = UINT32_C(0);
+    uint32_t script_byte_count = UINT32_C(0);
     uint16_t submotion_index;
 
     if (down_tilt_spheres == NULL ||
@@ -22073,10 +22081,49 @@ static int run_falcon_reference_table_test(void)
     {
         const pf_m4_falcon_submotion_data *submotion =
             pf_m4_falcon_reference_submotion(submotion_index);
+        uint16_t event_index;
 
         if (submotion == NULL || submotion->event_count == UINT16_C(0))
         {
             return fail("falcon-reference-submotion-null");
+        }
+        if ((uint32_t)submotion->event_offset != script_event_count)
+        {
+            return fail("falcon-reference-submotion-event-span");
+        }
+        for (event_index = UINT16_C(0);
+             event_index < submotion->event_count;
+             ++event_index)
+        {
+            const uint8_t *event_bytes = NULL;
+            const pf_m4_falcon_script_event *event =
+                pf_m4_falcon_reference_submotion_event(
+                    submotion_index,
+                    event_index,
+                    &event_bytes);
+
+            if (event == NULL || event_bytes == NULL ||
+                event->byte_count == UINT8_C(0) ||
+                event->byte_count % UINT8_C(4) != UINT8_C(0) ||
+                (uint32_t)event->byte_offset != script_byte_count ||
+                (event_bytes[0] & UINT8_C(0xfc)) != event->command_id)
+            {
+                return fail("falcon-reference-action-script-event");
+            }
+            script_byte_count += (uint32_t)event->byte_count;
+            ++script_event_count;
+        }
+        {
+            const uint8_t *event_bytes = (const uint8_t *)submotion;
+
+            if (pf_m4_falcon_reference_submotion_event(
+                    submotion_index,
+                    submotion->event_count,
+                    &event_bytes) != NULL ||
+                event_bytes != NULL)
+            {
+                return fail("falcon-reference-action-script-event-bounds");
+            }
         }
         if (submotion->animation_frame_count == UINT16_C(0))
         {
@@ -22103,9 +22150,23 @@ static int run_falcon_reference_table_test(void)
             NULL ||
         animated_submotion_count != UINT32_C(275) ||
         empty_submotion_count != UINT32_C(43) ||
+        script_event_count !=
+            (uint32_t)PF_M4_FALCON_SCRIPT_EVENT_COUNT ||
+        script_byte_count !=
+            (uint32_t)PF_M4_FALCON_SCRIPT_BYTE_COUNT ||
         submotion_catalog_sha256 == NULL ||
-        submotion_catalog_sha256[0] != UINT8_C(0xf4) ||
-        submotion_catalog_sha256[31] != UINT8_C(0x77) ||
+        submotion_catalog_sha256[0] != UINT8_C(0x9b) ||
+        submotion_catalog_sha256[31] != UINT8_C(0xce) ||
+        action_script_sha256 == NULL ||
+        action_script_sha256[0] != UINT8_C(0x6b) ||
+        action_script_sha256[31] != UINT8_C(0xfe) ||
+        animation_tracks_sha256 == NULL ||
+        animation_tracks_sha256[0] != UINT8_C(0xd8) ||
+        animation_tracks_sha256[31] != UINT8_C(0xdc) ||
+        animation_decode_summary == NULL ||
+        animation_decode_summary->node_count != UINT32_C(17271) ||
+        animation_decode_summary->track_count != UINT32_C(38560) ||
+        animation_decode_summary->key_count != UINT32_C(308057) ||
         dash_submotion == NULL ||
         dash_submotion->animation_frame_count != UINT16_C(29) ||
         dash_submotion->gameplay_frame_count != UINT16_C(28) ||
@@ -22116,6 +22177,53 @@ static int run_falcon_reference_table_test(void)
         empty_submotion->animation_size != UINT32_C(0))
     {
         return fail("falcon-reference-submotion-completeness");
+    }
+    {
+        const uint8_t *wait_bytes = NULL;
+        const uint8_t *body_bytes = NULL;
+        const uint8_t *reverse_bytes = NULL;
+        const pf_m4_falcon_script_event *wait_event =
+            pf_m4_falcon_reference_submotion_event(
+                PF_M4_FALCON_SUBMOTION_SPOT_DODGE,
+                UINT16_C(1),
+                &wait_bytes);
+        const pf_m4_falcon_script_event *body_event =
+            pf_m4_falcon_reference_submotion_event(
+                PF_M4_FALCON_SUBMOTION_SPOT_DODGE,
+                UINT16_C(4),
+                &body_bytes);
+        const pf_m4_falcon_script_event *reverse_event =
+            pf_m4_falcon_reference_submotion_event(
+                PF_M4_FALCON_SUBMOTION_ROLL_FORWARD,
+                UINT16_C(7),
+                &reverse_bytes);
+        const uint8_t expected_wait[4] = {
+            UINT8_C(0x08), UINT8_C(0x00), UINT8_C(0x00), UINT8_C(0x03)};
+        const uint8_t expected_body[4] = {
+            UINT8_C(0x68), UINT8_C(0x00), UINT8_C(0x00), UINT8_C(0x02)};
+        const uint8_t expected_reverse[4] = {
+            UINT8_C(0x50), UINT8_C(0x00), UINT8_C(0x00), UINT8_C(0x00)};
+        const uint8_t *invalid_bytes = (const uint8_t *)dash_submotion;
+
+        if (wait_event == NULL || wait_event->command_id != UINT8_C(0x08) ||
+            wait_event->byte_count != UINT8_C(4) ||
+            memcmp(wait_bytes, expected_wait, sizeof(expected_wait)) != 0 ||
+            body_event == NULL || body_event->command_id != UINT8_C(0x68) ||
+            body_event->byte_count != UINT8_C(4) ||
+            memcmp(body_bytes, expected_body, sizeof(expected_body)) != 0 ||
+            reverse_event == NULL ||
+            reverse_event->command_id != UINT8_C(0x50) ||
+            reverse_event->byte_count != UINT8_C(4) ||
+            memcmp(reverse_bytes, expected_reverse, sizeof(expected_reverse)) !=
+                0 ||
+            pf_m4_falcon_reference_submotion_event(
+                PF_M4_FALCON_SUBMOTION_COUNT,
+                UINT16_C(0),
+                &invalid_bytes) != NULL ||
+            invalid_bytes != NULL)
+        {
+            return fail("falcon-reference-action-script-source-bytes");
+        }
     }
 
     for (mapped_move = PF_M4_FALCON_JAB1;

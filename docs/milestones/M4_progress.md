@@ -3696,23 +3696,41 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - The raw owner `PlCa.dat`/`PlCaAJ.dat` and pinned DAT JSON now generate an
   exhaustive 318-slot Falcon submotion catalog: 275 decoded FigaTree
   animations and the 43 intentional empty slots. Each compact row retains the
-  animation endpoint, last gameplay frame, action-script event count, action
-  flags, and source byte size. The catalog SHA-256 is
-  `f4e5f358d82bd59e7b67a2339c16bd292a5e46a9288bae66962786a09b8daa77`;
+  animation endpoint, last gameplay frame, action-script event count/offset,
+  action flags, and source byte size. The catalog SHA-256 is
+  `9bd124115e6eb66db0f6152dd6fade2886c85d1ae2368b4ae88b9084c7cc67ce`;
   the importer rejects incomplete counts, fractional/invalid frame endpoints,
   or changed pinned inputs.
+- The same pass losslessly retains all 2,056 action-script events and 16,516
+  encoded bytes. Exhaustive bounds/opcode/length tests and representative
+  EscapeN/EscapeF source-byte assertions cover the O(1) accessor. The script
+  digest is
+  `6bf1021da93ea2f829c812b2bc425fe310808c8ad6e6e75eaf103c42b7ea4cfe`.
+- All 275 FigaTrees are decoded rather than merely counted: 17,271 nodes,
+  38,560 tracks, and 308,057 keys produce canonical SHA-256
+  `d8a09bf451ce547d8d24634f40f654564e42cbf14ad5339a0c7d93ff7edc15dc`.
+  Behavior-relevant tracks are emitted as compact tables on demand; unused
+  visual animation keys are not linked into the hot runtime.
 - Default dash, standing/run turn, run brake, landing, crouch, shield release,
   spot dodge, rolls, air dodge, tech, getup, and both taunt timings now query
   this single generated table. The exact default values and replay identity
   remain unchanged; 18 handwritten assignments were removed. State-specific
   endpoint/last-frame and entry-tick conventions remain explicit and are
   covered by the existing Dolphin-qualified transition tests.
-- The generated include is 110,083 bytes with SHA-256
-  `08c277adad0fcd126d01351a118578cb73a6ba573f0b8377a26d8f9653f523d8`.
+- The generated include is 471,804 bytes with SHA-256
+  `d868c943b36495cc1f07c52382df459712f437ea31aba38b981b51a52348b245`.
   Native Windows MinGW passes all 15 configured tests and WSL GCC passes all
   22 configured tests. This closes the Falcon source-data inventory gap, not
   common callback, command, pose, ledge, or moving-collision behavioral gaps;
   those remain active M4 work.
+
+- A reusable personal `ssbm-character-importer` Codex skill now captures the
+  proven source hierarchy, no-guessing rules, DAT/FigaTree/action-script
+  gotchas, zero-cost runtime pattern, four-column coverage ledger, and
+  identical-input Dolphin workflow. Its generic inspector independently
+  reconstructs Falcon's 318/275/43, 2,056/16,516, and
+  17,271/38,560/308,057 totals and the same catalog/script/animation digests;
+  skill validation and its pinned Falcon forward run pass.
 
 ## 2026-08-07 source-Z Falcon collision import
 

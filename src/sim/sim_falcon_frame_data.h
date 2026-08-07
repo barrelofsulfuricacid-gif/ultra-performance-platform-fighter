@@ -5,6 +5,8 @@
 
 #define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
 #define PF_M4_FALCON_SUBMOTION_COUNT UINT16_C(318)
+#define PF_M4_FALCON_SCRIPT_EVENT_COUNT UINT16_C(2056)
+#define PF_M4_FALCON_SCRIPT_BYTE_COUNT UINT16_C(16516)
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
 #define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
@@ -105,10 +107,24 @@ typedef struct pf_m4_falcon_submotion_data
     uint16_t animation_frame_count;
     uint16_t gameplay_frame_count;
     uint16_t event_count;
-    uint16_t reserved;
+    uint16_t event_offset;
     uint32_t animation_flags;
     uint32_t animation_size;
 } pf_m4_falcon_submotion_data;
+
+typedef struct pf_m4_falcon_script_event
+{
+    uint16_t byte_offset;
+    uint8_t byte_count;
+    uint8_t command_id;
+} pf_m4_falcon_script_event;
+
+typedef struct pf_m4_falcon_animation_decode_summary
+{
+    uint32_t node_count;
+    uint32_t track_count;
+    uint32_t key_count;
+} pf_m4_falcon_animation_decode_summary;
 
 typedef enum pf_m4_reference_hit_element
 {
@@ -438,8 +454,20 @@ const uint8_t *pf_m4_falcon_reference_complete_source_sha256(void);
 
 const uint8_t *pf_m4_falcon_reference_submotion_catalog_sha256(void);
 
+const uint8_t *pf_m4_falcon_reference_action_script_sha256(void);
+
+const uint8_t *pf_m4_falcon_reference_animation_tracks_sha256(void);
+
+const pf_m4_falcon_animation_decode_summary *
+pf_m4_falcon_reference_animation_decode_summary(void);
+
 const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
     uint16_t submotion_index);
+
+const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
+    uint16_t submotion_index,
+    uint16_t event_index,
+    const uint8_t **out_bytes);
 
 const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
     uint16_t *out_count);

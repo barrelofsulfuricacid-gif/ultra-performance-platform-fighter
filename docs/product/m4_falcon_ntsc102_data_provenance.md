@@ -81,14 +81,25 @@ external evidence and are not repository or build inputs.
 The same import now covers Falcon's entire `PlCa.dat` submotion catalog rather
 than treating the 50 attack-oriented rows as the whole character dataset. It
 rejects any catalog other than the source's 318 slots, decodes all 275 present
-FigaTree archives, and preserves the 43 intentional no-animation slots. Every
-row stores the raw animation endpoint count, extractor-compatible last
-gameplay frame, action-script event count, packed action flags, and animation
-byte size. The generated catalog SHA-256 is
-`f4e5f358d82bd59e7b67a2339c16bd292a5e46a9288bae66962786a09b8daa77`.
-This makes common movement, defensive, damage, item, ledge, and character-
-specific action lengths available from one immutable indexed table without
-shipping names, scripts, or animation assets.
+FigaTree archives, and preserves the 43 intentional no-animation slots. The
+decoder visits every one of their 17,271 nodes, 38,560 tracks, and 308,057
+keys; their canonical decoded SHA-256 is
+`d8a09bf451ce547d8d24634f40f654564e42cbf14ad5339a0c7d93ff7edc15dc`.
+Every catalog row stores the raw animation endpoint count, extractor-compatible
+last gameplay frame, action-script event count/offset, packed action flags, and
+animation byte size. The generated catalog SHA-256 is
+`9bd124115e6eb66db0f6152dd6fade2886c85d1ae2368b4ae88b9084c7cc67ce`.
+
+The import also losslessly retains all 2,056 action-script event boundaries and
+all 16,516 encoded bytes in one immutable descriptor table and byte blob. Each
+event validates its declared length, four-byte alignment, bounds, and
+`encoded[0] & 0xfc` opcode. The complete script SHA-256 is
+`6bf1021da93ea2f829c812b2bc425fe310808c8ad6e6e75eaf103c42b7ea4cfe`.
+O(1) span access exposes unknown commands without interpreting them at runtime;
+typed throw and special-command tables continue to be generated from the same
+source stream. Full animation keys remain an offline source surface and are
+emitted as compact Q16 tables only when production behavior consumes a track,
+avoiding a multi-megabyte unused runtime asset.
 
 Default production timing for dash, standing/run turn, run brake, ordinary
 landing, crouch start/reverse, shield release, spot dodge, both rolls, air
