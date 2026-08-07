@@ -76,6 +76,22 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     const pf_m4_falcon_submotion_data *appeal_left =
         pf_m4_falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_APPEAL_LEFT);
+    const pf_m4_falcon_body_collision_timing *getup_neutral_back_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_BACK);
+    const pf_m4_falcon_body_collision_timing *
+        getup_neutral_stomach_collision =
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_STOMACH);
+    const pf_m4_falcon_body_collision_timing *tech_in_place_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE);
+    const pf_m4_falcon_body_collision_timing *tech_roll_forward_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD);
+    const pf_m4_falcon_body_collision_timing *tech_roll_backward_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD);
 
     if (fighter == NULL || dash == NULL || turn == NULL || turn_run == NULL ||
         run_brake == NULL || landing == NULL || squat == NULL ||
@@ -85,14 +101,32 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         getup_roll_forward == NULL || getup_roll_backward == NULL ||
         tech_in_place == NULL || tech_roll_forward == NULL ||
         tech_roll_backward == NULL || appeal_right == NULL ||
-        appeal_left == NULL || dash->animation_frame_count == UINT16_C(0) ||
+        appeal_left == NULL || getup_neutral_back_collision == NULL ||
+        getup_neutral_stomach_collision == NULL ||
+        tech_in_place_collision == NULL ||
+        tech_roll_forward_collision == NULL ||
+        tech_roll_backward_collision == NULL ||
+        dash->animation_frame_count == UINT16_C(0) ||
         run_brake->animation_frame_count == UINT16_MAX ||
         appeal_right->animation_frame_count !=
             appeal_left->animation_frame_count ||
         getup_roll_forward->gameplay_frame_count !=
             getup_roll_backward->gameplay_frame_count ||
         tech_roll_forward->animation_frame_count !=
-            tech_roll_backward->animation_frame_count)
+            tech_roll_backward->animation_frame_count ||
+        getup_neutral_back_collision->state_two_frame != UINT16_C(0) ||
+        getup_neutral_back_collision->state_zero_frame != UINT16_C(23) ||
+        getup_neutral_stomach_collision->state_two_frame != UINT16_C(0) ||
+        getup_neutral_stomach_collision->state_zero_frame !=
+            getup_neutral_back_collision->state_zero_frame ||
+        tech_in_place_collision->state_two_frame != UINT16_C(0) ||
+        tech_roll_forward_collision->state_two_frame != UINT16_C(0) ||
+        tech_roll_backward_collision->state_two_frame != UINT16_C(0) ||
+        tech_in_place_collision->state_zero_frame != UINT16_C(20) ||
+        tech_roll_forward_collision->state_zero_frame !=
+            tech_in_place_collision->state_zero_frame ||
+        tech_roll_backward_collision->state_zero_frame !=
+            tech_in_place_collision->state_zero_frame)
     {
         return 0;
     }
@@ -121,6 +155,10 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     fighter->getup_roll_ticks = getup_roll_forward->gameplay_frame_count;
     fighter->tech_in_place_ticks = tech_in_place->animation_frame_count;
     fighter->tech_roll_ticks = tech_roll_forward->animation_frame_count;
+    fighter->tech_invulnerability_ticks =
+        tech_in_place_collision->state_zero_frame;
+    fighter->getup_neutral_invulnerability_ticks =
+        getup_neutral_back_collision->state_zero_frame;
     fighter->taunt_ticks =
         (uint16_t)(appeal_right->animation_frame_count + UINT16_C(1));
     return 1;
@@ -1845,7 +1883,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
     fighter->tech_window_ticks = UINT16_C(20);
     fighter->tech_lockout_ticks = UINT16_C(40);
-    fighter->tech_invulnerability_ticks = UINT16_C(20);
     fighter->wall_tech_stall_ticks = UINT16_C(3);
     fighter->wall_tech_ticks = UINT16_C(24);
     fighter->wall_jump_ticks = UINT16_C(24);
@@ -1853,7 +1890,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->ceiling_tech_ticks = UINT16_C(30);
     fighter->knockdown_ticks = UINT16_C(26);
     fighter->down_wait_ticks = UINT16_C(180);
-    fighter->getup_neutral_invulnerability_ticks = UINT16_C(23);
     fighter->getup_roll_back_forward.movement_begin_tick = UINT8_C(6);
     fighter->getup_roll_back_forward.invulnerability_begin_tick =
         UINT8_C(1);

@@ -101,6 +101,15 @@ source stream. Full animation keys remain an offline source surface and are
 emitted as compact Q16 tables only when production behavior consumes a track,
 avoiding a multi-megabyte unused runtime asset.
 
+A generated 318-row body-collision command view decodes raw `waitUntil`,
+`waitFor`, state-2, and state-0 bytes without relying on extractor labels.
+Production tech-in-place/roll invulnerability duration now comes from the three
+matching frame-0-to-20 source windows, and neutral getup validates both prone
+orientations' matching frame-0-to-23 windows. The duplicate authored 20/23
+assignments were removed. Dodge, getup-attack, ledge, and other windows are
+retained as source commands but are not equated with runtime invulnerability
+until their state-specific displayed-frame semantics are qualified.
+
 Default production timing for dash, standing/run turn, run brake, ordinary
 landing, crouch start/reverse, shield release, spot dodge, both rolls, air
 dodge, tech in place/roll, neutral getup, getup roll/attack, and both Falcon

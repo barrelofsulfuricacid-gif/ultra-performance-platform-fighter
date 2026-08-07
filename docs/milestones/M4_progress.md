@@ -3717,8 +3717,13 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   remain unchanged; 18 handwritten assignments were removed. State-specific
   endpoint/last-frame and entry-tick conventions remain explicit and are
   covered by the existing Dolphin-qualified transition tests.
-- The generated include is 471,804 bytes with SHA-256
-  `d868c943b36495cc1f07c52382df459712f437ea31aba38b981b51a52348b245`.
+- A 318-row typed command view decodes body-collision state-2/state-0 windows
+  directly from the validated raw bytes. The default tech-in-place/roll 20-tick
+  and both-orientation neutral-getup 23-tick windows now consume that table;
+  their duplicate handwritten assignments are gone. Dodge and orientation-
+  dependent getup/ledge mappings remain explicit qualification work.
+- The generated include is 485,116 bytes with SHA-256
+  `0507bbcb9dd25130b71c8e22b420e4c538033848405cb48222396e1c02ae7aec`.
   Native Windows MinGW passes all 15 configured tests and WSL GCC passes all
   22 configured tests. This closes the Falcon source-data inventory gap, not
   common callback, command, pose, ledge, or moving-collision behavioral gaps;

@@ -22081,9 +22081,15 @@ static int run_falcon_reference_table_test(void)
     {
         const pf_m4_falcon_submotion_data *submotion =
             pf_m4_falcon_reference_submotion(submotion_index);
+        const pf_m4_falcon_body_collision_timing *body_collision_timing =
+            pf_m4_falcon_reference_body_collision_timing(submotion_index);
+        uint32_t script_frame = UINT32_C(0);
+        uint16_t expected_state_two_frame = UINT16_MAX;
+        uint16_t expected_state_zero_frame = UINT16_MAX;
         uint16_t event_index;
 
-        if (submotion == NULL || submotion->event_count == UINT16_C(0))
+        if (submotion == NULL || body_collision_timing == NULL ||
+            submotion->event_count == UINT16_C(0))
         {
             return fail("falcon-reference-submotion-null");
         }
@@ -22110,8 +22116,47 @@ static int run_falcon_reference_table_test(void)
             {
                 return fail("falcon-reference-action-script-event");
             }
+            if ((event->command_id == UINT8_C(0x08) ||
+                 event->command_id == UINT8_C(0x04)) &&
+                event->byte_count == UINT8_C(4))
+            {
+                const uint32_t frame_argument =
+                    (uint32_t)event_bytes[1] * UINT32_C(65536) +
+                    (uint32_t)event_bytes[2] * UINT32_C(256) +
+                    (uint32_t)event_bytes[3];
+
+                script_frame = event->command_id == UINT8_C(0x08)
+                                   ? frame_argument
+                                   : script_frame + frame_argument;
+            }
+            else if (event->command_id == UINT8_C(0x68) &&
+                     event->byte_count == UINT8_C(4))
+            {
+                if (script_frame > (uint32_t)UINT16_MAX)
+                {
+                    return fail("falcon-reference-body-collision-frame");
+                }
+                if (event_bytes[3] == UINT8_C(2) &&
+                    expected_state_two_frame == UINT16_MAX)
+                {
+                    expected_state_two_frame = (uint16_t)script_frame;
+                }
+                else if (event_bytes[3] == UINT8_C(0) &&
+                         expected_state_two_frame != UINT16_MAX &&
+                         expected_state_zero_frame == UINT16_MAX)
+                {
+                    expected_state_zero_frame = (uint16_t)script_frame;
+                }
+            }
             script_byte_count += (uint32_t)event->byte_count;
             ++script_event_count;
+        }
+        if (body_collision_timing->state_two_frame !=
+                expected_state_two_frame ||
+            body_collision_timing->state_zero_frame !=
+                expected_state_zero_frame)
+        {
+            return fail("falcon-reference-body-collision-timing");
         }
         {
             const uint8_t *event_bytes = (const uint8_t *)submotion;
@@ -22220,7 +22265,9 @@ static int run_falcon_reference_table_test(void)
                 PF_M4_FALCON_SUBMOTION_COUNT,
                 UINT16_C(0),
                 &invalid_bytes) != NULL ||
-            invalid_bytes != NULL)
+            invalid_bytes != NULL ||
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_COUNT) != NULL)
         {
             return fail("falcon-reference-action-script-source-bytes");
         }

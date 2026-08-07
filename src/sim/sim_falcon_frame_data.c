@@ -32,6 +32,11 @@ _Static_assert(
         (size_t)PF_M4_FALCON_SCRIPT_EVENT_COUNT,
     "Falcon action-script event table must be complete");
 _Static_assert(
+    sizeof(pf_m4_falcon_body_collision_timings) /
+            sizeof(pf_m4_falcon_body_collision_timings[0]) ==
+        (size_t)PF_M4_FALCON_SUBMOTION_COUNT,
+    "Falcon body-collision timing table must cover every source slot");
+_Static_assert(
     sizeof(pf_m4_falcon_script_bytes) /
             sizeof(pf_m4_falcon_script_bytes[0]) ==
         (size_t)PF_M4_FALCON_SCRIPT_BYTE_COUNT,
@@ -108,6 +113,16 @@ const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
         *out_bytes = &pf_m4_falcon_script_bytes[event->byte_offset];
     }
     return event;
+}
+
+const pf_m4_falcon_body_collision_timing *
+pf_m4_falcon_reference_body_collision_timing(uint16_t submotion_index)
+{
+    if (submotion_index >= PF_M4_FALCON_SUBMOTION_COUNT)
+    {
+        return NULL;
+    }
+    return &pf_m4_falcon_body_collision_timings[submotion_index];
 }
 
 const uint32_t *pf_m4_falcon_reference_common_attribute_bits(

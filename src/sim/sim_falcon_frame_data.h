@@ -94,6 +94,7 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_BACK = 187,
     PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK = 188,
     PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK = 189,
+    PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_STOMACH = 194,
     PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE = 199,
     PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD = 200,
     PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD = 201,
@@ -125,6 +126,13 @@ typedef struct pf_m4_falcon_animation_decode_summary
     uint32_t track_count;
     uint32_t key_count;
 } pf_m4_falcon_animation_decode_summary;
+
+typedef struct pf_m4_falcon_body_collision_timing
+{
+    /* Raw action-script frames; UINT16_MAX means the command is absent. */
+    uint16_t state_two_frame;
+    uint16_t state_zero_frame;
+} pf_m4_falcon_body_collision_timing;
 
 typedef enum pf_m4_reference_hit_element
 {
@@ -468,6 +476,9 @@ const pf_m4_falcon_script_event *pf_m4_falcon_reference_submotion_event(
     uint16_t submotion_index,
     uint16_t event_index,
     const uint8_t **out_bytes);
+
+const pf_m4_falcon_body_collision_timing *
+pf_m4_falcon_reference_body_collision_timing(uint16_t submotion_index);
 
 const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
     uint16_t *out_count);

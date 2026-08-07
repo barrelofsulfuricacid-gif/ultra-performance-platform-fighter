@@ -454,6 +454,43 @@ def hash_figatree(
     return len(nodes), track_count, key_count
 
 
+def body_collision_timing(subaction: dict[str, Any]) -> tuple[int, int]:
+    """Decode the first state-2 interval without assigning gameplay meaning."""
+
+    frame = 0
+    state_two_frame: int | None = None
+    state_zero_frame: int | None = None
+    for event in subaction.get("events", []):
+        command_id = int(str(event["commandId"]), 16)
+        encoded = bytes.fromhex(str(event["bytes"]))
+        argument = int.from_bytes(encoded, "big") & 0xFFFFFF
+        if command_id == 0x08:
+            frame = argument
+        elif command_id == 0x04:
+            frame += argument
+        elif command_id == 0x68:
+            state = argument
+            if state == 2 and state_two_frame is None:
+                state_two_frame = frame
+            elif state == 0 and state_two_frame is not None:
+                if state_zero_frame is None:
+                    state_zero_frame = frame
+            elif state != 0:
+                raise ValueError(
+                    "unsupported body-collision command sequence in "
+                    f"{subaction.get('shortName', '<unnamed>')}"
+                )
+    if state_two_frame is None:
+        if state_zero_frame is not None:
+            raise ValueError("body-collision restore has no state-2 command")
+        return 0xFFFF, 0xFFFF
+    if state_two_frame > 0xFFFE or (
+        state_zero_frame is not None and state_zero_frame > 0xFFFE
+    ):
+        raise ValueError("body-collision command frame exceeds uint16_t")
+    return state_two_frame, 0xFFFF if state_zero_frame is None else state_zero_frame
+
+
 def u16(value: Any) -> int:
     return 0 if value is None else int(value)
 
@@ -692,6 +729,7 @@ def generate(
     submotion_catalog: list[dict[str, int]] = []
     script_events: list[dict[str, int]] = []
     script_bytes = bytearray()
+    body_collision_timings: list[tuple[int, int]] = []
     animation_tracks_digest = hashlib.sha256()
     animation_node_count = 0
     animation_track_count = 0
@@ -775,6 +813,7 @@ def generate(
                 "animation_size": animation_size,
             }
         )
+        body_collision_timings.append(body_collision_timing(subaction))
     if (
         sum(row["animation_frame_count"] != 0 for row in submotion_catalog) != 275
         or sum(row["animation_frame_count"] == 0 for row in submotion_catalog) != 43
@@ -1259,6 +1298,17 @@ def generate(
         f"UINT32_C(0x{row['animation_flags']:08x}), "
         f"UINT32_C({row['animation_size']}) }},"
         for row in submotion_catalog
+    )
+    lines.extend([
+        "};",
+        "",
+        "static const pf_m4_falcon_body_collision_timing",
+        "pf_m4_falcon_body_collision_timings[PF_M4_FALCON_SUBMOTION_COUNT] = {",
+    ])
+    lines.extend(
+        "    { "
+        f"UINT16_C({state_two_frame}), UINT16_C({state_zero_frame}) }},"
+        for state_two_frame, state_zero_frame in body_collision_timings
     )
     lines.extend([
         "};",
