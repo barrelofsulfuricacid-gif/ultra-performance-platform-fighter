@@ -23,6 +23,10 @@ _Static_assert(
         (size_t)PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT,
     "Falcon common-attribute table must be complete");
 _Static_assert(
+    sizeof(pf_m4_falcon_submotions) / sizeof(pf_m4_falcon_submotions[0]) ==
+        (size_t)PF_M4_FALCON_SUBMOTION_COUNT,
+    "Falcon submotion table must cover every source slot");
+_Static_assert(
     sizeof(pf_m4_falcon_special_attributes) == (size_t)0x8c,
     "Falcon special-attribute view must cover the source block exactly");
 _Static_assert(
@@ -37,6 +41,21 @@ const uint8_t *pf_m4_falcon_reference_source_sha256(void)
 const uint8_t *pf_m4_falcon_reference_complete_source_sha256(void)
 {
     return pf_m4_falcon_complete_source_sha256;
+}
+
+const uint8_t *pf_m4_falcon_reference_submotion_catalog_sha256(void)
+{
+    return pf_m4_falcon_submotion_catalog_sha256;
+}
+
+const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
+    uint16_t submotion_index)
+{
+    if (submotion_index >= PF_M4_FALCON_SUBMOTION_COUNT)
+    {
+        return NULL;
+    }
+    return &pf_m4_falcon_submotions[submotion_index];
 }
 
 const uint32_t *pf_m4_falcon_reference_common_attribute_bits(

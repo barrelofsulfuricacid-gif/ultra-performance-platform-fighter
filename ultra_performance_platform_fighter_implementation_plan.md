@@ -477,11 +477,17 @@ hitlag, and zero release hitlag.
 Uncaptured pressure/time/spacing routes and the broader shared-simulation
 inventory remain active work.
 
-Falcon's complete static source is imported as a hash-pinned 50-slot schema
-with 48 concrete subactions; the only absent rows are the two angled forward-
-smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
+Falcon's complete attack-oriented source is imported as a hash-pinned 50-slot
+schema with 48 concrete subactions; the only absent rows are the two angled
+forward-smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
 ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
-character-special subactions. The same generated source preserves all 97 raw
+character-special subactions. This is complemented by a complete 318-slot
+`PlCa.dat` submotion catalog: all 275 present FigaTree animations and all 43
+source-defined empty slots, with frame endpoints, gameplay last frames,
+action-script event counts, animation flags, and source byte sizes. Default
+dash/turn/brake/landing/crouch/shield-release/dodge/roll/tech/getup/appeal
+timing must consume this catalog rather than repeat literals. The same
+generated source preserves all 97 raw
 common-attribute words and the complete 0x8c-byte, 35-field Falcon special-
 attribute block, plus Falcon's complete `ftData_x44` collision/ledge-snap
 block. A typed zero-cost view supplies the default runtime's mapped
@@ -562,9 +568,11 @@ frame-22 wall-hug detection, action 363, preserved entry self velocity, and the
 complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
-Hurt capsules for remaining common actions and source-Z collision semantics
-remain explicit M4 gaps and must be extracted or qualified rather than
-approximated with invented frame data. Imported hit and hurt geometry is rooted
+Hurt capsules and action-command/callback semantics for remaining common
+actions, plus source-Z collision semantics, remain explicit M4 gaps and must
+be extracted or qualified rather than approximated with invented frame data.
+The complete submotion catalog closes data availability, not those behavior
+routes. Imported hit and hurt geometry is rooted
 at Melee's fighter origin, and reference hit spheres use the decomp's exact
 radius-sum shield predicate in the uniform source spatial metric; authored
 rectangles retain their separate ellipse collision path.

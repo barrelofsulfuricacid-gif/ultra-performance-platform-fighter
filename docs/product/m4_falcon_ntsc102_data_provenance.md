@@ -77,6 +77,30 @@ Extracted DAT files and raw executable-memory captures remain temporary
 external evidence and are not repository or build inputs.
 `tools/import_ssbm_falcon_frame_data.py` is the reproducible conversion path;
 `generated/data/m4_falcon_ntsc102_frame_data.inc` is its numeric output.
+
+The same import now covers Falcon's entire `PlCa.dat` submotion catalog rather
+than treating the 50 attack-oriented rows as the whole character dataset. It
+rejects any catalog other than the source's 318 slots, decodes all 275 present
+FigaTree archives, and preserves the 43 intentional no-animation slots. Every
+row stores the raw animation endpoint count, extractor-compatible last
+gameplay frame, action-script event count, packed action flags, and animation
+byte size. The generated catalog SHA-256 is
+`f4e5f358d82bd59e7b67a2339c16bd292a5e46a9288bae66962786a09b8daa77`.
+This makes common movement, defensive, damage, item, ledge, and character-
+specific action lengths available from one immutable indexed table without
+shipping names, scripts, or animation assets.
+
+Default production timing for dash, standing/run turn, run brake, ordinary
+landing, crouch start/reverse, shield release, spot dodge, both rolls, air
+dodge, tech in place/roll, neutral getup, getup roll/attack, and both Falcon
+appeals now comes through that generated catalog. Each runtime state selects
+either the raw animation endpoint or last gameplay frame according to its
+decomp-qualified transition comparator; run brake and appeal retain their
+explicit entry-tick counter adjustment. The resulting numeric defaults are
+unchanged, but they are no longer duplicated as handwritten frame constants.
+Unimplemented common callbacks and pose/command semantics remain fidelity
+work; catalog completeness is not presented as behavioral equivalence.
+
 The default production routes for jab 1, jab 2, dash attack, all three tilts,
 all three smashes, and all five aerials consume this generated table directly.
 Each action uses the imported total timing, and an exact frame lookup preserves
@@ -102,10 +126,10 @@ ratios. The importer also decodes `ftLoadCommonData` pointer 3, the exact
 that generated nine-slot view into default content. The raw attributes, typed
 views, special block, action table, collision poses, Falcon Dive victim reaction
 boundary, and source hashes form complete-source SHA-256
-`e57a62aa980c0895d7e362ff83d45d80f64125ef5f6c2f0a7b07a934fbf8c275`.
+`af9020d9a33ccfe37fb0fa86bf89a97d18ed54ddfef54ba2f58e3067ddaa4d2c`.
 Fresh regeneration from the five pinned inputs byte-matches the checked-in
 include at SHA-256
-`7d1d7da573f112080ddf4aaecebfc8dd375c3724786f8d844e6dfab496bca1cf`.
+`08c277adad0fcd126d01351a118578cb73a6ba573f0b8377a26d8f9653f523d8`.
 The production ground/aerial Falcon Punch, Raptor Boost, Falcon Dive, and all
 seven Falcon Kick states consume this imported data directly. The project's
 original directional-special fixtures are not evidence for those source

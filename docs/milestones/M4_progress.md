@@ -3691,3 +3691,25 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   22/22, including benchmark self-test and throughput smoke. The native replay
   verifier passes; WebAssembly replay verification remains delegated to the
   existing CI lane because the pinned Emscripten SDK is not installed locally.
+## 2026-08-07 complete Falcon submotion-catalog import
+
+- The raw owner `PlCa.dat`/`PlCaAJ.dat` and pinned DAT JSON now generate an
+  exhaustive 318-slot Falcon submotion catalog: 275 decoded FigaTree
+  animations and the 43 intentional empty slots. Each compact row retains the
+  animation endpoint, last gameplay frame, action-script event count, action
+  flags, and source byte size. The catalog SHA-256 is
+  `f4e5f358d82bd59e7b67a2339c16bd292a5e46a9288bae66962786a09b8daa77`;
+  the importer rejects incomplete counts, fractional/invalid frame endpoints,
+  or changed pinned inputs.
+- Default dash, standing/run turn, run brake, landing, crouch, shield release,
+  spot dodge, rolls, air dodge, tech, getup, and both taunt timings now query
+  this single generated table. The exact default values and replay identity
+  remain unchanged; 18 handwritten assignments were removed. State-specific
+  endpoint/last-frame and entry-tick conventions remain explicit and are
+  covered by the existing Dolphin-qualified transition tests.
+- The generated include is 110,083 bytes with SHA-256
+  `08c277adad0fcd126d01351a118578cb73a6ba573f0b8377a26d8f9653f523d8`.
+  Native Windows MinGW passes all 15 configured tests and WSL GCC passes all
+  22 configured tests. This closes the Falcon source-data inventory gap, not
+  common callback, command, pose, ledge, or source-Z behavioral gaps; those
+  remain active M4 work.

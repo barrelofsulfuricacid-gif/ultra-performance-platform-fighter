@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT UINT16_C(97)
+#define PF_M4_FALCON_SUBMOTION_COUNT UINT16_C(318)
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
 #define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
@@ -63,6 +64,51 @@ typedef enum pf_m4_falcon_move_index
     PF_M4_FALCON_DOWN_SPECIAL_WALL_REBOUND,
     PF_M4_FALCON_MOVE_COUNT
 } pf_m4_falcon_move_index;
+
+/*
+ * PlCa.dat submotion indices used directly by the simulation. The complete
+ * 318-entry catalog remains index-addressable, including intentional empty
+ * animation slots; only semantic aliases needed by runtime code are named
+ * here so the public surface does not duplicate the source name table.
+ */
+typedef enum pf_m4_falcon_submotion_index
+{
+    PF_M4_FALCON_SUBMOTION_WAIT = 2,
+    PF_M4_FALCON_SUBMOTION_TURN = 10,
+    PF_M4_FALCON_SUBMOTION_TURN_RUN = 11,
+    PF_M4_FALCON_SUBMOTION_DASH = 12,
+    PF_M4_FALCON_SUBMOTION_RUN = 13,
+    PF_M4_FALCON_SUBMOTION_RUN_BRAKE = 14,
+    PF_M4_FALCON_SUBMOTION_LANDING = 15,
+    PF_M4_FALCON_SUBMOTION_SQUAT = 30,
+    PF_M4_FALCON_SUBMOTION_SQUAT_WAIT = 31,
+    PF_M4_FALCON_SUBMOTION_SQUAT_REVERSE = 34,
+    PF_M4_FALCON_SUBMOTION_GUARD_OFF = 39,
+    PF_M4_FALCON_SUBMOTION_SPOT_DODGE = 41,
+    PF_M4_FALCON_SUBMOTION_ROLL_FORWARD = 42,
+    PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD = 43,
+    PF_M4_FALCON_SUBMOTION_AIR_DODGE = 44,
+    PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_BACK = 186,
+    PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_BACK = 187,
+    PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK = 188,
+    PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK = 189,
+    PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE = 199,
+    PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD = 200,
+    PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD = 201,
+    PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT = 239,
+    PF_M4_FALCON_SUBMOTION_APPEAL_LEFT = 240
+} pf_m4_falcon_submotion_index;
+
+typedef struct pf_m4_falcon_submotion_data
+{
+    /* Raw FigaTree endpoint count and extractor-compatible last frame. */
+    uint16_t animation_frame_count;
+    uint16_t gameplay_frame_count;
+    uint16_t event_count;
+    uint16_t reserved;
+    uint32_t animation_flags;
+    uint32_t animation_size;
+} pf_m4_falcon_submotion_data;
 
 typedef enum pf_m4_reference_hit_element
 {
@@ -387,6 +433,11 @@ typedef enum pf_m4_reference_ground_physics
 const uint8_t *pf_m4_falcon_reference_source_sha256(void);
 
 const uint8_t *pf_m4_falcon_reference_complete_source_sha256(void);
+
+const uint8_t *pf_m4_falcon_reference_submotion_catalog_sha256(void);
+
+const pf_m4_falcon_submotion_data *pf_m4_falcon_reference_submotion(
+    uint16_t submotion_index);
 
 const uint32_t *pf_m4_falcon_reference_common_attribute_bits(
     uint16_t *out_count);

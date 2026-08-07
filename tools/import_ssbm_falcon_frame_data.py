@@ -39,6 +39,7 @@ SPECIALHI_LEDGE_ECB_CAPTURE_SHA256 = (
 )
 
 COMMON_ATTRIBUTE_COUNT = 97
+SUBMOTION_COUNT = 318
 SPECIAL_ATTRIBUTE_SIZE = 0x8C
 STALE_MOVE_SLOT_COUNT = 9
 
@@ -635,6 +636,67 @@ def generate(
     }
     model_scaling = float(attributes["modelScaling"])
     source_dat_block = source_dat[0x20:]
+    if len(subactions) != SUBMOTION_COUNT:
+        raise ValueError(
+            f"incomplete Falcon submotion catalog: {len(subactions)}"
+        )
+    if subactions_offset + SUBMOTION_COUNT * 0x18 > len(source_dat_block):
+        raise ValueError("Falcon submotion records are out of bounds")
+    submotion_catalog: list[dict[str, int]] = []
+    for submotion_index, subaction in enumerate(subactions):
+        animation_size = int(subaction["animSize"])
+        animation_frame_count = 0
+        if animation_size != 0:
+            animation_offset = int(subaction["animOffset"])
+            tree = decode_figatree(
+                animation_dat[animation_offset : animation_offset + animation_size]
+            )
+            animation_frame_count = round(tree.frame_count)
+            if (
+                animation_frame_count <= 0
+                or float(animation_frame_count) != tree.frame_count
+                or animation_frame_count > 0xFFFF
+            ):
+                raise ValueError(
+                    f"submotion {submotion_index}: invalid frame count "
+                    f"{tree.frame_count}"
+                )
+        animation_flags = struct.unpack_from(
+            ">I",
+            source_dat_block,
+            subactions_offset + submotion_index * 0x18 + 0x10,
+        )[0]
+        event_count = len(subaction["events"])
+        if event_count > 0xFFFF:
+            raise ValueError(f"submotion {submotion_index}: too many events")
+        submotion_catalog.append(
+            {
+                "animation_frame_count": animation_frame_count,
+                "gameplay_frame_count": max(0, animation_frame_count - 1),
+                "event_count": event_count,
+                "animation_flags": animation_flags,
+                "animation_size": animation_size,
+            }
+        )
+    if (
+        sum(row["animation_frame_count"] != 0 for row in submotion_catalog) != 275
+        or sum(row["animation_frame_count"] == 0 for row in submotion_catalog) != 43
+    ):
+        raise ValueError("unexpected Falcon animated/empty submotion coverage")
+    submotion_catalog_digest = hashlib.sha256(
+        b"".join(
+            struct.pack(
+                ">4H2I",
+                row["animation_frame_count"],
+                row["gameplay_frame_count"],
+                row["event_count"],
+                0,
+                row["animation_flags"],
+                row["animation_size"],
+            )
+            for row in submotion_catalog
+        )
+    ).hexdigest()
     common_attribute_bits, special_attributes = source_attributes(source_dat)
     collision_attributes = source_collision_attributes(source_dat)
     ledge_attributes = {
@@ -1009,6 +1071,7 @@ def generate(
         f"/* PlCa.dat JSON SHA-256: {SOURCE_DAT_JSON_SHA256} */",
         f"/* PlCo.dat SHA-256: {SOURCE_COMMON_DAT_SHA256} */",
         f"/* complete Falcon source SHA-256: {complete_source_digest} */",
+        f"/* complete 318-submotion catalog SHA-256: {submotion_catalog_digest} */",
         "",
         "static const uint8_t pf_m4_falcon_source_sha256[32] = {",
         "    "
@@ -1026,9 +1089,32 @@ def generate(
         ),
         "};",
         "",
+        "static const uint8_t pf_m4_falcon_submotion_catalog_sha256[32] = {",
+        "    "
+        + ", ".join(
+            f"UINT8_C(0x{submotion_catalog_digest[index:index + 2]})"
+            for index in range(0, len(submotion_catalog_digest), 2)
+        ),
+        "};",
+        "",
+        "static const pf_m4_falcon_submotion_data",
+        "pf_m4_falcon_submotions[PF_M4_FALCON_SUBMOTION_COUNT] = {",
+    ]
+    lines.extend(
+        "    { "
+        f"UINT16_C({row['animation_frame_count']}), "
+        f"UINT16_C({row['gameplay_frame_count']}), "
+        f"UINT16_C({row['event_count']}), UINT16_C(0), "
+        f"UINT32_C(0x{row['animation_flags']:08x}), "
+        f"UINT32_C({row['animation_size']}) }},"
+        for row in submotion_catalog
+    )
+    lines.extend([
+        "};",
+        "",
         "static const uint32_t",
         "pf_m4_falcon_common_attribute_bits[PF_M4_FALCON_COMMON_ATTRIBUTE_COUNT] = {",
-    ]
+    ])
     lines.extend(
         "    "
         + ", ".join(
@@ -1341,6 +1427,7 @@ def main() -> int:
         "ssbm-falcon-frame-data=pass "
         f"slots={len(MOVE_KEYS)} "
         f"subactions={sum(data[key] is not None for key in MOVE_KEYS)} "
+        f"catalog={SUBMOTION_COUNT} animated=275 empty=43 "
         f"source_sha256={digest} output={args.output}"
     )
     return 0

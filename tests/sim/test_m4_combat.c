@@ -21985,6 +21985,12 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_geometry_sha256();
     const uint8_t *complete_source_sha256 =
         pf_m4_falcon_reference_complete_source_sha256();
+    const uint8_t *submotion_catalog_sha256 =
+        pf_m4_falcon_reference_submotion_catalog_sha256();
+    const pf_m4_falcon_submotion_data *dash_submotion =
+        pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_DASH);
+    const pf_m4_falcon_submotion_data *empty_submotion =
+        pf_m4_falcon_reference_submotion(UINT16_C(5));
     const uint32_t *common_attribute_bits =
         pf_m4_falcon_reference_common_attribute_bits(
             &common_attribute_count);
@@ -22008,6 +22014,60 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_down_special_timing();
     int32_t dash_motion_q16 = INT32_C(0);
     uint32_t present_count = UINT32_C(0);
+    uint32_t animated_submotion_count = UINT32_C(0);
+    uint32_t empty_submotion_count = UINT32_C(0);
+    uint16_t submotion_index;
+
+    for (submotion_index = UINT16_C(0);
+         submotion_index < PF_M4_FALCON_SUBMOTION_COUNT;
+         ++submotion_index)
+    {
+        const pf_m4_falcon_submotion_data *submotion =
+            pf_m4_falcon_reference_submotion(submotion_index);
+
+        if (submotion == NULL || submotion->event_count == UINT16_C(0))
+        {
+            return fail("falcon-reference-submotion-null");
+        }
+        if (submotion->animation_frame_count == UINT16_C(0))
+        {
+            if (submotion->gameplay_frame_count != UINT16_C(0) ||
+                submotion->animation_size != UINT32_C(0))
+            {
+                return fail("falcon-reference-empty-submotion");
+            }
+            ++empty_submotion_count;
+        }
+        else
+        {
+            if ((uint32_t)submotion->gameplay_frame_count + UINT32_C(1) !=
+                    (uint32_t)submotion->animation_frame_count ||
+                submotion->animation_size == UINT32_C(0))
+            {
+                return fail("falcon-reference-animated-submotion");
+            }
+            ++animated_submotion_count;
+        }
+    }
+
+    if (pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_COUNT) !=
+            NULL ||
+        animated_submotion_count != UINT32_C(275) ||
+        empty_submotion_count != UINT32_C(43) ||
+        submotion_catalog_sha256 == NULL ||
+        submotion_catalog_sha256[0] != UINT8_C(0xf4) ||
+        submotion_catalog_sha256[31] != UINT8_C(0x77) ||
+        dash_submotion == NULL ||
+        dash_submotion->animation_frame_count != UINT16_C(29) ||
+        dash_submotion->gameplay_frame_count != UINT16_C(28) ||
+        dash_submotion->event_count != UINT16_C(9) ||
+        dash_submotion->animation_flags != UINT32_C(0x80000002) ||
+        empty_submotion == NULL ||
+        empty_submotion->animation_frame_count != UINT16_C(0) ||
+        empty_submotion->animation_size != UINT32_C(0))
+    {
+        return fail("falcon-reference-submotion-completeness");
+    }
 
     for (mapped_move = PF_M4_FALCON_JAB1;
          mapped_move < PF_M4_FALCON_MOVE_COUNT;
