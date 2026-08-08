@@ -187,6 +187,32 @@ def pose_count(domain: dict[str, Any]) -> int:
     return total
 
 
+def numeric_trace_case_count(
+    domain: dict[str, Any], stored: dict[str, Any]
+) -> int:
+    cases = stored.get("cases")
+    if cases is None:
+        # Compatibility with the original damage-response domain. New numeric
+        # domains own their simulator cases directly under stored_oracle.
+        checkpoint_pack = domain.get("checkpoint_pack")
+        capture_plan = (
+            checkpoint_pack.get("capture_plan")
+            if isinstance(checkpoint_pack, dict)
+            else None
+        )
+        cases = (
+            capture_plan.get("damage_response_cases")
+            if isinstance(capture_plan, dict)
+            else None
+        )
+    if not isinstance(cases, list) or not cases:
+        fail(
+            f"operation=manifest domain={domain.get('domain')} "
+            "reason=invalid-trace-cases"
+        )
+    return len(cases)
+
+
 def manifest_digest(
     root_manifest_path: Path,
     domain_manifest_paths: list[Path],
@@ -344,22 +370,7 @@ def main() -> int:
         )
         kind = stored.get("kind", "pose-geometry-v1")
         if kind == "numeric-trace-v1":
-            checkpoint_pack = domain.get("checkpoint_pack")
-            capture_plan = (
-                checkpoint_pack.get("capture_plan")
-                if isinstance(checkpoint_pack, dict)
-                else None
-            )
-            cases = (
-                capture_plan.get("damage_response_cases")
-                if isinstance(capture_plan, dict)
-                else None
-            )
-            if not isinstance(cases, list) or not cases:
-                fail(
-                    f"operation=manifest domain={domain_name} "
-                    "reason=invalid-trace-cases"
-                )
+            case_count = numeric_trace_case_count(domain, stored)
             samples_per_case = stored.get("samples_per_case")
             if (
                 not isinstance(samples_per_case, int)
@@ -373,8 +384,8 @@ def main() -> int:
             expected = {
                 "domain": domain_name,
                 "poses": "0",
-                "cases": str(len(cases)),
-                "samples": str(len(cases) * samples_per_case),
+                "cases": str(case_count),
+                "samples": str(case_count * samples_per_case),
                 "source_trace_sha256": str(
                     stored.get("source_trace_sha256")
                 ),
@@ -389,10 +400,11 @@ def main() -> int:
                     f"operation=manifest domain={domain_name} "
                     "reason=invalid-cases"
                 )
+            case_count = len(cases)
             expected = {
                 "domain": domain_name,
                 "poses": str(pose_count(domain)),
-                "cases": str(len(cases)),
+                "cases": str(case_count),
                 "source_pose_sha256": str(
                     stored.get("source_pose_sha256")
                 ),
@@ -411,7 +423,7 @@ def main() -> int:
                     f"operation=stored-runner-{domain_name} field={field} "
                     f"expected={value} actual={fields.get(field)}"
                 )
-        stored_cases += len(cases)
+        stored_cases += case_count
 
     replay = manifest.get("replay")
     executable, arguments = require_runner(replay, "replay")

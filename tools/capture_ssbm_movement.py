@@ -1857,6 +1857,73 @@ def input_trace(
         if checkpoint_isolated:
             if checkpoint_capture_plan is None:
                 raise ValueError("checkpoint capture plan is required")
+            raw_ground_cases = checkpoint_capture_plan.get(
+                "ground_knockback_cases"
+            )
+            if raw_ground_cases is not None:
+                if not isinstance(raw_ground_cases, list) or not raw_ground_cases:
+                    raise ValueError(
+                        "ground knockback checkpoint cases are invalid"
+                    )
+                case_ids: set[str] = set()
+                for raw_case in raw_ground_cases:
+                    if not isinstance(raw_case, dict):
+                        raise ValueError(
+                            "ground knockback case must be an object"
+                        )
+                    case_id = raw_case.get("id")
+                    target_x = raw_case.get("target_x")
+                    approach_ticks = raw_case.get("approach_ticks")
+                    observe_ticks = raw_case.get("observe_ticks")
+                    if (
+                        not isinstance(case_id, str)
+                        or not case_id
+                        or case_id in case_ids
+                        or not isinstance(target_x, (int, float))
+                        or isinstance(target_x, bool)
+                        or not isinstance(approach_ticks, int)
+                        or isinstance(approach_ticks, bool)
+                        or not 1 <= approach_ticks <= 30
+                        or not isinstance(observe_ticks, int)
+                        or isinstance(observe_ticks, bool)
+                        or not 1 <= observe_ticks <= 120
+                    ):
+                        raise ValueError(
+                            f"invalid ground knockback case {case_id!r}"
+                        )
+                    case_ids.add(case_id)
+                    prefix = f"ground_knockback_{case_id}"
+                    place = command(
+                        f"{prefix}_place",
+                        fighter_x_override=float(target_x),
+                        fighter_facing_override=-1.0,
+                        opponent_x_override=0.0,
+                        opponent_facing_override=1.0,
+                    )
+                    trace.append({**place, "restore_before": True})
+                    repeat(
+                        f"{prefix}_settle",
+                        8,
+                        fighter_x_override=float(target_x),
+                        fighter_facing_override=-1.0,
+                        opponent_x_override=0.0,
+                        opponent_facing_override=1.0,
+                    )
+                    repeat(
+                        f"{prefix}_approach",
+                        approach_ticks,
+                        opponent_main_x=1.0,
+                    )
+                    trace.append(
+                        command(
+                            f"{prefix}_attack",
+                            opponent_main_x=1.0,
+                            opponent_attack=True,
+                        )
+                    )
+                    repeat(f"{prefix}_observe", observe_ticks)
+                return trace
+
             raw_cases = checkpoint_capture_plan.get("damage_response_cases")
             if not isinstance(raw_cases, list) or not raw_cases:
                 raise ValueError("damage response checkpoint cases are required")

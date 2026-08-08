@@ -52,6 +52,8 @@ common_flags="
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_ssbm_common_data.c" \
+    "$root/src/sim/sim_ssbm_damage.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -63,6 +65,7 @@ common_flags="
     "$root/src/sim/sim_sha256.c" \
     "$root/src/sim/sim_snapshot.c" \
     "$root/src/sim/sim_tick.c" \
+    "$root/tests/sim/ssbm_stored_oracle.c" \
     "$root/tests/sim/test_m4_combat.c" \
     -o "$output_dir/m4_combat_test"
 

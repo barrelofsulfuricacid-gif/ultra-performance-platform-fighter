@@ -615,6 +615,15 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+State schema 61/save format 57 extend the canonical action domain through
+`DAMAGE_LOW_1`, `DAMAGE_LOW_2`, and `DAMAGE_LOW_3` while retaining the
+667-byte payload and 807-byte checkpoint. Flat-stage load reconstructs the
+ground-tangent knockback scalar from the already serialized grounded `x8c`
+component; a future sloped-stage format must serialize that scalar separately.
+The version bump makes the new action, hitlag-resume, animation-plus-hitstun
+release, and ground-to-air cleanup semantics fail closed. Inspection schema 53
+exposes both the scalar and the effective hitlag resume action.
+
 State schema 60/save format 56 append one bounded Falcon Kick ground-hit
 counter per fixed player slot and extend the canonical action domain through
 the seven source down-special states. The canonical payload is 667 bytes and

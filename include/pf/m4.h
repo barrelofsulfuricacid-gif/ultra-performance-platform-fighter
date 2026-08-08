@@ -18,7 +18,7 @@ extern "C"
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(52)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(53)
 #define PF_M4_INSPECTION_HIT_SPHERE_CAPACITY 4
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
@@ -159,7 +159,10 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_FALCON_KICK_LANDING = 126,
     PF_M4_ACTION_FALCON_KICK_END_AIR_FROM_GROUND = 127,
     PF_M4_ACTION_FALCON_KICK_END_AIR = 128,
-    PF_M4_ACTION_FALCON_KICK_WALL_REBOUND = 129
+    PF_M4_ACTION_FALCON_KICK_WALL_REBOUND = 129,
+    PF_M4_ACTION_DAMAGE_LOW_1 = 130,
+    PF_M4_ACTION_DAMAGE_LOW_2 = 131,
+    PF_M4_ACTION_DAMAGE_LOW_3 = 132
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -792,10 +795,12 @@ typedef struct pf_m4_player_inspection
     int32_t self_velocity_y_q16;
     int32_t knockback_velocity_x_q16;
     int32_t knockback_velocity_y_q16;
+    int32_t ground_knockback_velocity_q16;
     int32_t shield_recoil_x_q16;
     uint16_t action_ticks;
     uint16_t respawn_count;
     uint8_t action_state;
+    uint8_t hitlag_resume_action;
     int8_t facing;
     int8_t dash_direction;
     int8_t previous_strong_direction;

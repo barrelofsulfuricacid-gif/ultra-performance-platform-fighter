@@ -31,6 +31,17 @@ static void hash_i32_le(pf_sha256 *hash, int32_t value)
     pf_sha256_update(hash, bytes, sizeof(bytes));
 }
 
+static void hash_u32_le(pf_sha256 *hash, uint32_t value)
+{
+    const uint8_t bytes[4] = {
+        (uint8_t)value,
+        (uint8_t)(value >> 8),
+        (uint8_t)(value >> 16),
+        (uint8_t)(value >> 24)};
+
+    pf_sha256_update(hash, bytes, sizeof(bytes));
+}
+
 static void digest_hex(const uint8_t digest[32], char out_hex[65])
 {
     static const char digits[] = "0123456789abcdef";
@@ -289,8 +300,15 @@ int pf_ssbm_stored_trace_oracle_run(
             hash_i32_le(&hash, sample->self_velocity_y_q16);
             hash_i32_le(&hash, sample->knockback_velocity_x_q16);
             hash_i32_le(&hash, sample->knockback_velocity_y_q16);
+            hash_i32_le(&hash, sample->ground_knockback_velocity_q16);
+            hash_u32_le(&hash, sample->damage_q16);
+            hash_u16_le(&hash, sample->action_ticks);
             hash_u16_le(&hash, sample->hitlag_ticks);
             hash_u16_le(&hash, sample->hitstun_ticks);
+            hash_u8(&hash, sample->action_state);
+            hash_u8(&hash, sample->hitlag_resume_action);
+            hash_u8(&hash, sample->grounded);
+            hash_u8(&hash, sample->tumble);
         }
     }
     pf_sha256_finish(&hash, digest);

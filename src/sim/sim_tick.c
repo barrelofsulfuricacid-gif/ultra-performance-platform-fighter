@@ -662,6 +662,8 @@ pf_status pf_sim_tick_impl(
             scratch->knockback_velocity_x_q16[player_index];
         world->knockback_velocity_y_q16[player_index] =
             scratch->knockback_velocity_y_q16[player_index];
+        world->ground_knockback_velocity_q16[player_index] =
+            scratch->ground_knockback_velocity_q16[player_index];
         world->last_hit_sequence[player_index] =
             scratch->last_hit_sequence[player_index];
         world->last_hit_tick[player_index] =

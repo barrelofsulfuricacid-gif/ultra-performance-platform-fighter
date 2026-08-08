@@ -18,6 +18,7 @@
 
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -735,6 +736,64 @@ static int initialize_sim(
                pf_sim_reset(*out_sim, UINT64_C(0x4d34434f4d424154)),
                PF_STATUS_OK,
                "reset");
+}
+
+static int clone_sim_through_canonical_save(
+    pf_sim *source_sim,
+    const pf_content_view *content,
+    test_sim_storage *destination_storage,
+    pf_sim **out_destination_sim)
+{
+    uint8_t save_bytes[TEST_SAVE_CAPACITY];
+    pf_mut_bytes destination = {
+        save_bytes,
+        sizeof(save_bytes),
+        (size_t)0};
+    pf_bytes source;
+    pf_state_hash source_hash;
+    pf_state_hash destination_hash;
+    size_t save_size = (size_t)0;
+
+    if (source_sim == NULL || content == NULL ||
+        destination_storage == NULL || out_destination_sim == NULL ||
+        !expect_status(
+            pf_sim_query_save_size(source_sim, &save_size),
+            PF_STATUS_OK,
+            "clone-query-save-size") ||
+        save_size > sizeof(save_bytes) ||
+        !expect_status(
+            pf_sim_save(source_sim, &destination),
+            PF_STATUS_OK,
+            "clone-save") ||
+        destination.size != save_size ||
+        !initialize_sim(
+            destination_storage,
+            content,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            0,
+            out_destination_sim))
+    {
+        return 0;
+    }
+    source.bytes = save_bytes;
+    source.size = destination.size;
+    return expect_status(
+               pf_sim_load(*out_destination_sim, source),
+               PF_STATUS_OK,
+               "clone-load") &&
+           expect_status(
+               pf_sim_hash(source_sim, &source_hash),
+               PF_STATUS_OK,
+               "clone-source-hash") &&
+           expect_status(
+               pf_sim_hash(*out_destination_sim, &destination_hash),
+               PF_STATUS_OK,
+               "clone-destination-hash") &&
+           memcmp(
+               source_hash.bytes,
+               destination_hash.bytes,
+               sizeof(source_hash.bytes)) == 0;
 }
 
 static void make_inputs(
@@ -2193,7 +2252,8 @@ static int directional_attack_reaction_matches_effect(
     const pf_m4_fighter_data *fighter,
     const pf_m4_attack_data *attack,
     const test_directional_attack_reaction *reaction,
-    const pf_m4_reference_hit_effect *effect)
+    const pf_m4_reference_hit_effect *effect,
+    uint8_t target_grounded)
 {
     pf_m4_melee_knockback_data knockback = {0};
     pf_m4_melee_knockback_result result;
@@ -2207,17 +2267,36 @@ static int directional_attack_reaction_matches_effect(
     knockback.weight_set = effect->weight_set;
     knockback.base = effect->base;
     knockback.enabled = UINT8_C(1);
-    result = pf_m4_melee_knockback(
+    result = pf_m4_melee_knockback_for_state(
         &knockback,
         fighter->knockback_weight,
         attack->damage_q16,
-        attack->damage_q16);
+        attack->damage_q16,
+        target_grounded);
 
-    return reaction->velocity_x_q16 == result.velocity_x_q16 &&
-           reaction->velocity_y_q16 == -result.velocity_y_q16 &&
-           reaction->damage_q16 == attack->damage_q16 &&
-           reaction->hitstun_ticks == result.hitstun_ticks &&
-           reaction->hitlag_ticks == result.hitlag_ticks;
+    if (reaction->velocity_x_q16 != result.velocity_x_q16 ||
+        reaction->velocity_y_q16 != -result.velocity_y_q16 ||
+        reaction->damage_q16 != attack->damage_q16 ||
+        reaction->hitstun_ticks != result.hitstun_ticks ||
+        reaction->hitlag_ticks != result.hitlag_ticks)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=detail operation=reference-hit-response"
+            " angle=%u actual_v=(%d,%d) expected_v=(%d,%d)"
+            " actual_timers=(%u,%u) expected_timers=(%u,%u)\n",
+            (unsigned int)effect->angle_degrees,
+            reaction->velocity_x_q16,
+            reaction->velocity_y_q16,
+            result.velocity_x_q16,
+            -result.velocity_y_q16,
+            (unsigned int)reaction->hitlag_ticks,
+            (unsigned int)reaction->hitstun_ticks,
+            (unsigned int)result.hitlag_ticks,
+            (unsigned int)result.hitstun_ticks);
+        return 0;
+    }
+    return 1;
 }
 
 static int directional_attack_reaction_matches(
@@ -2230,7 +2309,8 @@ static int directional_attack_reaction_matches(
         fighter,
         attack,
         reaction,
-        pf_m4_falcon_reference_primary_effect(move_index));
+        pf_m4_falcon_reference_primary_effect(move_index),
+        UINT8_C(1));
 }
 
 static int run_directional_attack_snapshot_test(
@@ -2925,13 +3005,7 @@ static int run_directional_ground_attack_test(
             &content->fighter,
             &content->fighter.down_strong_attack,
             &down_strong_reaction,
-            PF_M4_FALCON_DOWN_SMASH) ||
-        up_reaction.velocity_y_q16 >= INT32_C(0) ||
-        down_reaction.velocity_y_q16 >= INT32_C(0) ||
-        forward_reaction.velocity_y_q16 >= INT32_C(0) ||
-        forward_strong_reaction.velocity_y_q16 >= INT32_C(0) ||
-        up_strong_reaction.velocity_y_q16 >= INT32_C(0) ||
-        down_strong_reaction.velocity_y_q16 >= INT32_C(0))
+            PF_M4_FALCON_DOWN_SMASH))
     {
         return fail("directional-attack-exact-launch");
     }
@@ -3719,7 +3793,8 @@ static int run_directional_aerial_test(
                 &content->fighter,
                 attacks[attack_index],
                 reactions[attack_index],
-                effect))
+                effect,
+                UINT8_C(0)))
         {
             return fail("directional-aerial-exact-launch");
         }
@@ -14484,6 +14559,32 @@ static int step_ssbm_damage_duel(
                "ssbm-damage-inspect-after-step");
 }
 
+static void capture_ssbm_stored_trace_sample(
+    const pf_m4_player_inspection *player,
+    int32_t origin_x_q16,
+    int32_t origin_y_q16,
+    pf_ssbm_stored_trace_sample *sample)
+{
+    sample->position_x_q16 = player->position_x_q16 - origin_x_q16;
+    sample->position_y_q16 = player->position_y_q16 - origin_y_q16;
+    sample->self_velocity_x_q16 = player->self_velocity_x_q16;
+    sample->self_velocity_y_q16 = player->self_velocity_y_q16;
+    sample->knockback_velocity_x_q16 =
+        player->knockback_velocity_x_q16;
+    sample->knockback_velocity_y_q16 =
+        player->knockback_velocity_y_q16;
+    sample->ground_knockback_velocity_q16 =
+        player->ground_knockback_velocity_q16;
+    sample->damage_q16 = player->damage_q16;
+    sample->action_ticks = player->action_ticks;
+    sample->hitlag_ticks = player->hitlag_ticks;
+    sample->hitstun_ticks = player->hitstun_ticks;
+    sample->action_state = player->action_state;
+    sample->hitlag_resume_action = player->hitlag_resume_action;
+    sample->grounded = player->grounded;
+    sample->tumble = player->tumble;
+}
+
 static uint8_t run_ssbm_damage_trace_case(
     void *context,
     const pf_ssbm_stored_trace_case *stored_case,
@@ -14584,20 +14685,11 @@ static uint8_t run_ssbm_damage_trace_case(
         {
             return UINT8_C(0);
         }
-        sample->position_x_q16 =
-            inspection.players[1].position_x_q16 - hit_x;
-        sample->position_y_q16 =
-            inspection.players[1].position_y_q16 - hit_y;
-        sample->self_velocity_x_q16 =
-            inspection.players[1].self_velocity_x_q16;
-        sample->self_velocity_y_q16 =
-            inspection.players[1].self_velocity_y_q16;
-        sample->knockback_velocity_x_q16 =
-            inspection.players[1].knockback_velocity_x_q16;
-        sample->knockback_velocity_y_q16 =
-            inspection.players[1].knockback_velocity_y_q16;
-        sample->hitlag_ticks = inspection.players[1].hitlag_ticks;
-        sample->hitstun_ticks = inspection.players[1].hitstun_ticks;
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            hit_x,
+            hit_y,
+            sample);
     }
     if (context != NULL && *(const int *)context != 0)
     {
@@ -14672,6 +14764,287 @@ static int run_ssbm_damage_observation_oracle(void)
             PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT *
             PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SAMPLES_PER_CASE),
         PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
+static uint8_t run_ssbm_ground_knockback_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    test_sim_storage loaded_storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    pf_sim *loaded = NULL;
+    const pf_sim_event *hit = NULL;
+    int32_t hit_x;
+    int32_t hit_y;
+    uint32_t tick;
+    uint8_t sample_index;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL ||
+        capacity < PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE ||
+        !expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "ssbm-ground-knockback-default-content"))
+    {
+        return UINT8_C(0);
+    }
+    /* X coordinates use the same 12/115 scale as the live comparison, so
+     * this is the source route's exact 33-unit initial separation. */
+    content.stage.spawn_spacing_q16 =
+        (INT32_C(198) * PF_Q16_ONE) / INT32_C(115);
+    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content.item.enabled = UINT8_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "ssbm-ground-knockback-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return UINT8_C(0);
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(4); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+    }
+    if (!step_reaction_duel(
+            sim,
+            INT16_MAX,
+            INT16_C(0),
+            PF_INPUT_BUTTON_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return UINT8_C(0);
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(50); ++tick)
+    {
+        hit = find_last_tick_event(PF_SIM_EVENT_HIT);
+        if (hit != NULL)
+        {
+            break;
+        }
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+    }
+    if (hit == NULL || hit->source_player != UINT8_C(0) ||
+        hit->target_player != UINT8_C(1) ||
+        hit->detail != (uint16_t)PF_M4_ACTION_DASH_ATTACK ||
+        inspection.players[1].damage_q16 !=
+            UINT32_C(7) * UINT32_C(65536) ||
+        inspection.players[1].grounded == UINT8_C(0) ||
+        inspection.players[1].hitlag_ticks != UINT16_C(5) ||
+        inspection.players[1].hitstun_ticks != UINT16_C(8) ||
+        inspection.players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_HITLAG ||
+        inspection.players[1].hitlag_resume_action !=
+            (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-ground-knockback=fail operation=route"
+            " hit=%d attacker_action=%u attacker_tick=%u"
+            " target_action=%u resume=%u damage=%u hitlag=%u hitstun=%u\n",
+            hit != NULL,
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].hitlag_resume_action,
+            (unsigned int)(inspection.players[1].damage_q16 / UINT32_C(65536)),
+            (unsigned int)inspection.players[1].hitlag_ticks,
+            (unsigned int)inspection.players[1].hitstun_ticks);
+        return UINT8_C(0);
+    }
+
+    hit_x = inspection.players[1].position_x_q16;
+    hit_y = inspection.players[1].position_y_q16;
+    for (sample_index = UINT8_C(0);
+         sample_index <
+             PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE;
+         ++sample_index)
+    {
+        pf_ssbm_stored_trace_sample *sample =
+            &out_samples[sample_index];
+
+        if (sample_index != UINT8_C(0))
+        {
+            const pf_ssbm_stored_trace_input *input =
+                &stored_case->inputs[sample_index];
+
+            if (!step_ssbm_damage_duel(
+                    sim,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    input->secondary_stick_x,
+                    input->secondary_stick_y,
+                    UINT64_C(0),
+                    &inspection))
+            {
+                return UINT8_C(0);
+            }
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            hit_x,
+            hit_y,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-ground-knockback-observation case=%s frame=%u"
+                " action=%u resume=%u action_tick=%u grounded=%u tumble=%u"
+                " damage=%u hitlag=%u hitstun=%u dx=%" PRId32
+                " dy=%" PRId32 " self_vx=%" PRId32
+                " self_vy=%" PRId32 " kb_vx=%" PRId32
+                " kb_vy=%" PRId32 " ground_kb=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->hitlag_resume_action,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)(sample->damage_q16 / UINT32_C(65536)),
+                (unsigned int)sample->hitlag_ticks,
+                (unsigned int)sample->hitstun_ticks,
+                sample->position_x_q16,
+                sample->position_y_q16,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16,
+                sample->ground_knockback_velocity_q16);
+        }
+        if (sample_index == UINT8_C(5))
+        {
+            pf_m4_inspection loaded_inspection;
+
+            if (!clone_sim_through_canonical_save(
+                    sim,
+                    &view,
+                    &loaded_storage,
+                    &loaded) ||
+                !expect_status(
+                    pf_m4_inspect(loaded, &loaded_inspection),
+                    PF_STATUS_OK,
+                    "ground-knockback-loaded-inspection") ||
+                loaded_inspection.players[1]
+                        .ground_knockback_velocity_q16 !=
+                    sample->ground_knockback_velocity_q16 ||
+                loaded_inspection.players[1].action_state !=
+                    sample->action_state ||
+                loaded_inspection.players[1].action_ticks !=
+                    sample->action_ticks)
+            {
+                return UINT8_C(0);
+            }
+            sim = loaded;
+        }
+    }
+    return PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE;
+}
+
+static int run_ssbm_ground_knockback_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-ground-knockback",
+        pf_m4_ssbm_falcon_ground_knockback_cases,
+        PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT,
+        PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_ground_knockback_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass "
+        "domain=falcon-common-ground-knockback poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        (unsigned int)PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT,
+        (unsigned int)(
+            PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT *
+            PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE),
+        PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
 }
@@ -24813,6 +25186,11 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-damage-response") == 0)
         {
             return run_ssbm_damage_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-ground-knockback") == 0)
+        {
+            return run_ssbm_ground_knockback_observation_oracle() ? 0 : 1;
         }
         (void)fprintf(
             stderr,

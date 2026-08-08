@@ -2757,6 +2757,8 @@ static pf_status pf_m4_apply_hit_reaction(
     uint16_t hitlag_ticks,
     uint16_t resolved_hitstun_ticks,
     int velocity_is_weighted,
+    int launch_grounded,
+    uint8_t damage_level,
     pf_sim_event_type event_type,
     uint16_t event_detail)
 {
@@ -2843,8 +2845,20 @@ static pf_status pf_m4_apply_hit_reaction(
             : reset != 0
             ? -content->fighter.reset_bound_speed_q16
             : launch_velocity_y_q16;
+    scratch->ground_knockback_velocity_q16[target_index] =
+        armored != 0 || reset != 0 || launch_grounded == 0
+            ? INT32_C(0)
+            : launch_velocity_x_q16;
     scratch->hitstun_ticks[target_index] =
         armored != 0 ? UINT16_C(0) : hitstun_ticks;
+    if (armored == 0 && pf_m4_event_is_physical_hit(event_type))
+    {
+        /* ftCo_Damage clears self/gr_vel when ordinary damage motion starts;
+         * separately tracked knockback owns displacement until damage motion
+         * releases control. */
+        scratch->velocity_x_q16[target_index] = INT32_C(0);
+        scratch->velocity_y_q16[target_index] = INT32_C(0);
+    }
     if (crouch_cancelled != 0)
     {
         scratch->knockback_velocity_x_q16[target_index] =
@@ -2893,6 +2907,11 @@ static pf_status pf_m4_apply_hit_reaction(
             ? previous_action
             : reset != 0
             ? (uint8_t)PF_M4_ACTION_RESET_BOUND
+            : launch_grounded != 0
+            ? (uint8_t)((uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 +
+                        (damage_level < UINT8_C(3)
+                             ? damage_level
+                             : UINT8_C(2)))
             : (uint8_t)PF_M4_ACTION_HITSTUN;
     pf_m4_set_action_state(
         world,
@@ -3115,6 +3134,8 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
                 UINT16_C(0),
                 timing->victim_release_hitstun_ticks,
                 1,
+                0,
+                UINT8_C(0),
                 PF_SIM_EVENT_THROW,
                 (uint16_t)PF_M4_ACTION_FALCON_DIVE_THROW) != PF_STATUS_OK)
         {
@@ -3452,15 +3473,18 @@ static pf_status pf_m4_resolve_grabs(
                     throw_data->hitlag_ticks;
                 uint16_t resolved_hitstun_ticks = UINT16_MAX;
                 int velocity_is_weighted = 0;
+                int launch_grounded = 0;
+                uint8_t damage_level = UINT8_C(0);
 
                 if (throw_data->melee_knockback.enabled != UINT8_C(0))
                 {
                     const pf_m4_melee_knockback_result result =
-                        pf_m4_melee_knockback(
+                        pf_m4_melee_knockback_for_state(
                             &throw_data->melee_knockback,
                             content->fighter.knockback_weight,
                             damage_q16,
-                            resulting_damage);
+                            resulting_damage,
+                            scratch->grounded[target_index]);
 
                     launch_velocity_x =
                         (int32_t)scratch->facing[holder_index] *
@@ -3468,6 +3492,8 @@ static pf_status pf_m4_resolve_grabs(
                     launch_velocity_y = -result.velocity_y_q16;
                     resolved_hitstun_ticks = result.hitstun_ticks;
                     velocity_is_weighted = 1;
+                    launch_grounded = result.grounded_launch != UINT8_C(0);
+                    damage_level = result.damage_level;
                 }
                 else
                 {
@@ -3500,6 +3526,8 @@ static pf_status pf_m4_resolve_grabs(
                         resolved_hitlag_ticks,
                         resolved_hitstun_ticks,
                         velocity_is_weighted,
+                        launch_grounded,
+                        damage_level,
                         PF_SIM_EVENT_THROW,
                         (uint16_t)holder_action) != PF_STATUS_OK)
                 {
@@ -3754,6 +3782,7 @@ static pf_status pf_m4_resolve_grabs(
             scratch->velocity_y_q16[target_index] = INT32_C(0);
             scratch->knockback_velocity_x_q16[target_index] = INT32_C(0);
             scratch->knockback_velocity_y_q16[target_index] = INT32_C(0);
+            scratch->ground_knockback_velocity_q16[target_index] = INT32_C(0);
             scratch->hitlag_ticks[target_index] = UINT16_C(0);
             scratch->hitstun_ticks[target_index] = UINT16_C(0);
             scratch->shield_stun_ticks[target_index] = UINT16_C(0);
@@ -3957,6 +3986,8 @@ static pf_status pf_m4_resolve_item_combat(
                     item->hitlag_ticks,
                     UINT16_MAX,
                     0,
+                    0,
+                    UINT8_C(0),
                     PF_SIM_EVENT_ITEM_HIT,
                     (uint16_t)scratch->item_throw_direction) !=
                 PF_STATUS_OK)
@@ -4240,6 +4271,8 @@ static pf_status pf_m4_resolve_projectile_combat(
                     projectile->hitlag_ticks,
                     UINT16_MAX,
                     0,
+                    0,
+                    UINT8_C(0),
                     PF_SIM_EVENT_PROJECTILE_HIT,
                     (uint16_t)PF_M4_ACTION_PROJECTILE_FIRE_GROUND) !=
                 PF_STATUS_OK)
@@ -4781,6 +4814,8 @@ pf_status pf_m4_resolve_combat(
             uint16_t resolved_hitlag_ticks = attack.hitlag_ticks;
             uint16_t resolved_hitstun_ticks = UINT16_MAX;
             int velocity_is_weighted = 0;
+            int launch_grounded = 0;
+            uint8_t damage_level = UINT8_C(0);
 
             if (attacker_action[owner] ==
                     (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND ||
@@ -4805,11 +4840,12 @@ pf_status pf_m4_resolve_combat(
             if (attack.melee_knockback != NULL)
             {
                 const pf_m4_melee_knockback_result result =
-                    pf_m4_melee_knockback(
+                    pf_m4_melee_knockback_for_state(
                         attack.melee_knockback,
                         content->fighter.knockback_weight,
                         attack.damage_q16,
-                        resulting_damage);
+                        resulting_damage,
+                        scratch->grounded[target_index]);
 
                 launch_velocity_x =
                     (int32_t)scratch->facing[owner] *
@@ -4818,6 +4854,8 @@ pf_status pf_m4_resolve_combat(
                 resolved_hitlag_ticks = result.hitlag_ticks;
                 resolved_hitstun_ticks = result.hitstun_ticks;
                 velocity_is_weighted = 1;
+                launch_grounded = result.grounded_launch != UINT8_C(0);
+                damage_level = result.damage_level;
             }
             else
             {
@@ -4849,6 +4887,8 @@ pf_status pf_m4_resolve_combat(
                     resolved_hitlag_ticks,
                     resolved_hitstun_ticks,
                     velocity_is_weighted,
+                    launch_grounded,
+                    damage_level,
                     PF_SIM_EVENT_HIT,
                     (uint16_t)attacker_action[owner]) != PF_STATUS_OK)
             {

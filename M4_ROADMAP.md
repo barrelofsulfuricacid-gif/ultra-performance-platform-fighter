@@ -22,15 +22,15 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for two domains | `falcon-common-hurt` and `falcon-common-damage-response`: 26 cases; Windows 205.990 ms, WSL 285.842 ms. |
+| Fast stored equivalence | done for three domains | `falcon-common-hurt`, `falcon-common-damage-response`, and flat-ground knockback: 27 cases plus deterministic replay in 0.305 seconds on Windows. |
 | Fast live Dolphin oracle | done for `falcon-common-hurt` | One headless/null/unlimited ExiAI process, eight checkpoint-isolated cases, 283 rows, warm 2.635-2.729 s. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
 | Falcon movement and combat | partial | Many captured routes pass, but the fidelity audit still lists unqualified combinations and incomplete damage/knockback behavior. |
-| Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass; full Windows 21/21 and WSL 20/20 suites pass. Ground and collision response remain separate pending domains. |
-| Separate knockback velocity and decay | in progress | Open-air launch now uses distinct self/knockback channels and source-order 0.051 magnitude decay; ground and collision routes still need live qualification. |
+| Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
+| Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
 | Native Battlefield frontend | not complete | Existing SDL target is only an early render-packet spike, not the M4 playtest client. |
-| Character-importer skill | active | Existing skill covers source manifests, callback mapping, Dolphin capture, and oracle architecture; add reusable HSD/PlCo routines from the current slice. |
+| Character-importer skill | active | The skill now records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, and action-release guidance from this slice. |
 
 ## Completed and verified
 
@@ -68,7 +68,7 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
 - [x] Preserve deterministic replay/snapshot behavior for completed slices on
   Windows and WSL.
 
-## In progress: common damage response
+## In progress: common damage and ground response
 
 Primary sources:
 
@@ -116,6 +116,47 @@ Implemented and pushed in `b3edb14`:
 - [x] Pass WSL ASan/UBSan 16/16 after the final DI boundary review.
 - [x] Commit and push the qualified slice to PR #3 as `b3edb14`.
 
+Implemented and cross-platform verified locally after `b3edb14`:
+
+- [x] Pin the decomp routes for grounded damage classification, Sakurai-angle
+  handling, `xF0_ground_kb_vel`, friction decay, flat tangent projection, and
+  the animation-plus-hitstun release boundary.
+- [x] Capture a stable 64-row live late-DashAttack route in 2.801 seconds total;
+  checkpoint restore is 0.011 seconds and the warm packed case is 0.128
+  seconds.
+- [x] Import the relevant `PlCo.dat` thresholds and ground-knockback constants
+  rather than authoring replacements.
+- [x] Add distinct `DamageLow1/2/3` runtime states and source submotion
+  durations without expanding the canonical flat-stage snapshot payload.
+- [x] Keep self velocity and ground knockback under separate deterministic
+  state, including source-order friction decay and hitlag resume behavior.
+- [x] Extend the generic numeric stored-oracle sample with action, resume
+  action, grounded/tumble, damage, and ground-knockback fields; both prior
+  domains continue through the same runner.
+- [x] Register `falcon-common-ground-knockback` with one case and fifteen
+  samples. Live-vs-sim comparison passes for every declared field; position is
+  explicitly excluded because the chosen rows also exercise the separate
+  player-pushbox domain.
+- [x] Normalize only the attacker idle-loop phase that checkpoint restore does
+  not freeze; two independent live captures now share observation digest
+  `e08d7149e3f46d814d5c4a709e316cf3063208bb9673141effe6b1958f03fc79`.
+- [x] Preserve the 807-byte canonical flat-stage save format by reconstructing
+  `xF0` from the serialized flat-tangent `x8c` component; a mid-damage
+  save/load continuation has exact state hashes and samples. State schema 61 /
+  save format 57 fail closed on the new action semantics without adding bytes.
+- [x] Clear the ground-only `xF0` scalar when a sliding fighter leaves a
+  surface while retaining the projected airborne `x8c` velocity.
+- [x] Review and repin the intentional deterministic replay identities after
+  three identical runs; the root three-domain gate includes replay and passes
+  27 cases in 0.305 seconds.
+- [x] Pass the complete Windows release suite (21/21 in 1.13 seconds), WSL
+  Ubuntu release suite (23/23 in 1.32 seconds), and WSL ASan/UBSan suite (16/16
+  in 10.99 seconds).
+- [x] Restore every standalone shell verifier's complete simulation source
+  graph, then pass native/Wasm replay identity, the browser adapter verifier,
+  and the full headless Chrome smoke with the repinned 81-event replay.
+- [ ] Commit and push this qualified slice to PR #3.
+
 ## Remaining work, in priority order
 
 ### Falcon equivalence
@@ -124,8 +165,10 @@ Implemented and pushed in `b3edb14`:
   rather than folding it into ordinary self velocity.
 - [x] Implement imported air magnitude decay in the exact source callback
   order and qualify the six-case open-air launch boundary live.
-- [ ] Qualify ground knockback/friction decay and wall, ceiling, floor, tech,
-  bounce, and getup interactions against live source routes.
+- [x] Qualify flat-ground knockback/friction decay and grounded damage-action
+  release against a live source route.
+- [ ] Qualify wall, ceiling, floor landing, tech, bounce, getup, slopes, and
+  player-pushbox interactions against their own live source routes.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -142,11 +185,23 @@ Implemented and pushed in `b3edb14`:
   common-hurt command-line mode.
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
-- [ ] Keep changed-domain local validation comfortably below two seconds and
+- [x] Keep changed-domain local validation comfortably below two seconds and
   warm live changed-domain validation below three seconds where the manifest
-  declares that budget.
+  declares that budget. Current full stored gate is 0.305 seconds; the ground
+  live pack is 0.128 seconds warm and 2.801 seconds end to end.
 - [ ] Maintain explicit coverage ledgers; no finite scenario may be described
   as detecting every possible anomaly.
+
+### What a green equivalence result means
+
+Each registered domain is a small executable theorem, not a universal anomaly
+detector. Live headless Dolphin establishes pinned NTSC 1.02 observations;
+the simulator adapter receives the corresponding inputs and compares only the
+manifest-declared fields and tolerances; the approved production digest then
+makes the ordinary no-Dolphin edit loop bit-exact. Replay hashes additionally
+prove deterministic continuation, but do not establish Melee fidelity on their
+own. Whole-Falcon equivalence is reached only by closing every fidelity-audit
+row with positive, negative, threshold, entry, and exit coverage.
 
 ### Native playtest frontend
 

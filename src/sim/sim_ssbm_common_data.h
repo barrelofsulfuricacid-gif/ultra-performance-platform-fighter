@@ -10,6 +10,14 @@ typedef struct pf_m4_ssbm_damage_response_attributes
     int32_t hitstun_per_knockback_q16;
     int32_t launch_speed_x_per_knockback_q16;
     int32_t launch_speed_y_per_knockback_q16;
+    int32_t sakurai_air_angle_degrees_q16;
+    int32_t sakurai_max_ground_angle_degrees_q16;
+    int32_t sakurai_low_knockback_q16;
+    int32_t sakurai_high_knockback_q16;
+    int32_t damage_level_1_threshold_q16;
+    int32_t damage_level_2_threshold_q16;
+    int32_t grounded_damage_max_level_q16;
+    int32_t ground_knockback_max_speed_q16;
     int32_t di_max_angle_radians_q30;
     int32_t ground_knockback_decay_scale_q16;
     int32_t air_knockback_decay_q16;

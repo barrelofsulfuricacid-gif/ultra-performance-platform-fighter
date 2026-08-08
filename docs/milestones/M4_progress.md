@@ -4136,6 +4136,51 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   tech, bounce, and getup response require their own live qualification before
   they may enter the stored oracle or be marked equivalent.
 
+## 2026-08-08 Falcon flat-ground damage response
+
+- The source sweep pins grounded damage classification, Sakurai-angle
+  handling, `xF0_ground_kb_vel`, friction/projection order, damage levels, and
+  the animation-plus-hitstun release boundary at doldecomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`. The typed common-data import now
+  exposes the required thresholds and ground constants from the same owner
+  `PlCo.dat`; no response constants are guessed.
+- Production owns separate self, `x8c` knockback, and ground-tangent `xF0`
+  channels. `DamageLw1/2/3` use imported submotion durations, ordinary control
+  cannot overwrite them during hitstun, and a ground-to-air edge conversion
+  retains projected `x8c` while clearing stale `xF0`.
+- One checkpoint-isolated late-DashAttack route records 64 rows and selects 15
+  damage samples. Live and simulation agree on effective action/frame,
+  grounded/tumble, damage, hitlag, hitstun, self velocity, projected
+  knockback, and `xF0` within 0.001 source units. Observation SHA-256 is
+  `e08d7149e3f46d814d5c4a709e316cf3063208bb9673141effe6b1958f03fc79`;
+  position is explicitly reserved for the separate pushbox domain. Warm work
+  takes 0.128 seconds and the full live lifecycle 2.801 seconds.
+- The generic numeric stored oracle now carries action, resume action,
+  grounded/tumble, damage, action tick, and ground-knockback fields. Its new
+  domain production digest is
+  `954931140122b77790e334b4d1742709c853fcc060fdc692fc9e45522ff7a379`.
+  All three domains cover 27 cases and include deterministic replay in 0.305
+  seconds on Windows.
+- Mid-damage canonical save/load is exact without expanding the 807-byte flat-
+  stage format: load reconstructs `xF0` from the serialized flat-tangent
+  `x8c`; state schema 61/save format 57 make the three new damage actions and
+  their resume/release semantics fail closed. Slopes remain an explicit future
+  versioned-serialization boundary.
+  Windows release passes 21/21 in 1.13 seconds, WSL release 23/23 in 1.32
+  seconds, and WSL ASan/UBSan 16/16 in 10.99 seconds. Native/Wasm replay is
+  byte-identical, the standalone kernel/browser verifiers pass, and the full
+  headless Chrome smoke passes with the repinned 81-event replay.
+  Replay identities intentionally advance to corpus/final/event SHA-256
+  `6531cd69c3f0766ffb5c252ec0e4799b0a4ff5353ce1a7aa31ae37d740a28046`,
+  `0cd7a7327a0e6fdbdaf149ebd12f69c473446a5d1a85e017c4b5df51cb68b16f`,
+  and `509d826181cd7d047a2241b06fda4cb4c875477bd5b0828fcafcb65865b80ae5`;
+  the repeated-match verifier digest is `d3fdaa3dc317d4b4`.
+- The reusable importer skill now records the distinct scalar/channel model,
+  source operation order, flat-snapshot reconstruction limit, hitlag resume
+  action, and damage release rule. M4 remains unfinished: slopes, pushbox-
+  coupled position, wall/ceiling/floor collision, tech, bounce, getup, and
+  wider damage routes still require their own live domains.
+
 ## 2026-08-08 executable-oracle checkpoint pack
 
 - A fresh prior-art sweep covered upstream Dolphin batch/null/NoGUI support,

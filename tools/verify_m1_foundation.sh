@@ -18,6 +18,8 @@ mkdir -p "$direct_dir" "$cmake_dir"
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_ssbm_common_data.c" \
+    "$root/src/sim/sim_ssbm_damage.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -45,6 +47,8 @@ grep -q '^sim-contract=pass abi=4 tick_hz=60$' \
     "$root/src/sim/sim_combat.c" \
     "$root/src/sim/sim_content.c" \
     "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_ssbm_common_data.c" \
+    "$root/src/sim/sim_ssbm_damage.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \

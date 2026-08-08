@@ -2,6 +2,7 @@
 #define PF_SIM_MELEE_H
 
 #include "pf/m4.h"
+#include "sim_ssbm_common_data.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -12,6 +13,9 @@ typedef struct pf_m4_melee_knockback_result
     int32_t velocity_y_q16;
     uint16_t hitlag_ticks;
     uint16_t hitstun_ticks;
+    uint8_t grounded_launch;
+    uint8_t damage_level;
+    uint8_t reserved[2];
 } pf_m4_melee_knockback_result;
 
 /* Q2.30 sin(0..90 degrees), indexed by the integer hitbox angle. */
@@ -60,11 +64,12 @@ static inline int32_t pf_m4_melee_sin_degrees_q30(uint16_t angle)
     }
 }
 
-static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
+static inline pf_m4_melee_knockback_result pf_m4_melee_knockback_for_state(
     const pf_m4_melee_knockback_data *hit,
     uint16_t target_weight,
     uint32_t damage_q16,
-    uint32_t resulting_damage_q16)
+    uint32_t resulting_damage_q16,
+    uint8_t target_grounded)
 {
     const int64_t one_q16 = INT64_C(65536);
     const uint32_t damage_count = damage_q16 >> 16U;
@@ -87,10 +92,12 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
         (int64_t)hit->base * one_q16 +
         ((int64_t)hit->growth * base_term_q16) / INT64_C(100);
     int64_t launch_q16;
-    const int32_t sin_q30 =
-        pf_m4_melee_sin_degrees_q30(hit->angle_degrees);
-    const int32_t cos_q30 = pf_m4_melee_sin_degrees_q30(
-        (uint16_t)(hit->angle_degrees + UINT16_C(90)));
+    const pf_m4_ssbm_damage_response_attributes *common =
+        pf_m4_ssbm_common_reference_damage_response();
+    uint16_t launch_angle_degrees = hit->angle_degrees;
+    int32_t scaled_knockback_q16;
+    int32_t sin_q30;
+    int32_t cos_q30;
     pf_m4_melee_knockback_result result;
     uint32_t hitlag;
     uint32_t hitstun;
@@ -99,6 +106,44 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
     {
         knockback_q16 = INT64_C(2500) * one_q16;
     }
+    if (launch_angle_degrees == UINT16_C(361) && common != NULL)
+    {
+        if (target_grounded == UINT8_C(0))
+        {
+            launch_angle_degrees = (uint16_t)(
+                (common->sakurai_air_angle_degrees_q16 + INT32_C(32768)) >>
+                16U);
+        }
+        else if (knockback_q16 < common->sakurai_low_knockback_q16)
+        {
+            launch_angle_degrees = UINT16_C(0);
+        }
+        else
+        {
+            const int64_t range_q16 =
+                (int64_t)common->sakurai_high_knockback_q16 -
+                (int64_t)common->sakurai_low_knockback_q16;
+            int64_t angle_q16 =
+                range_q16 > INT64_C(0)
+                    ? INT64_C(65536) +
+                          ((knockback_q16 -
+                            (int64_t)common->sakurai_low_knockback_q16) *
+                           common->sakurai_max_ground_angle_degrees_q16) /
+                              range_q16
+                    : common->sakurai_max_ground_angle_degrees_q16;
+            if (angle_q16 >
+                common->sakurai_max_ground_angle_degrees_q16)
+            {
+                angle_q16 =
+                    common->sakurai_max_ground_angle_degrees_q16;
+            }
+            launch_angle_degrees =
+                (uint16_t)((angle_q16 + INT64_C(32768)) >> 16U);
+        }
+    }
+    sin_q30 = pf_m4_melee_sin_degrees_q30(launch_angle_degrees);
+    cos_q30 = pf_m4_melee_sin_degrees_q30(
+        (uint16_t)(launch_angle_degrees + UINT16_C(90)));
     launch_q16 = (knockback_q16 * INT64_C(3)) / INT64_C(100);
     result.velocity_x_q16 = (int32_t)(
         ((((launch_q16 * (int64_t)cos_q30) >> 30U) * INT64_C(12)) /
@@ -106,6 +151,35 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
     result.velocity_y_q16 = (int32_t)(
         ((((launch_q16 * (int64_t)sin_q30) >> 30U) * INT64_C(11)) /
          INT64_C(62)));
+    scaled_knockback_q16 =
+        common != NULL
+            ? (int32_t)((knockback_q16 *
+                         common->hitstun_per_knockback_q16) >>
+                        16U)
+            : (int32_t)((knockback_q16 * INT64_C(2)) / INT64_C(5));
+    result.grounded_launch =
+        target_grounded != UINT8_C(0) &&
+                result.velocity_y_q16 <= INT32_C(0) && common != NULL &&
+                scaled_knockback_q16 < common->grounded_damage_max_level_q16
+            ? UINT8_C(1)
+            : UINT8_C(0);
+    result.damage_level =
+        common == NULL || scaled_knockback_q16 <
+                              common->damage_level_1_threshold_q16
+            ? UINT8_C(0)
+            : scaled_knockback_q16 <
+                      common->damage_level_2_threshold_q16
+            ? UINT8_C(1)
+            : scaled_knockback_q16 <
+                      common->grounded_damage_max_level_q16
+            ? UINT8_C(2)
+            : UINT8_C(3);
+    result.reserved[0] = UINT8_C(0);
+    result.reserved[1] = UINT8_C(0);
+    if (result.grounded_launch != UINT8_C(0))
+    {
+        result.velocity_y_q16 = INT32_C(0);
+    }
     hitlag = (uint32_t)(
         ((uint64_t)damage_q16 / UINT64_C(3)) >> 16U) +
         UINT32_C(3);
@@ -123,6 +197,20 @@ static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
     result.hitlag_ticks = (uint16_t)hitlag;
     result.hitstun_ticks = (uint16_t)hitstun;
     return result;
+}
+
+static inline pf_m4_melee_knockback_result pf_m4_melee_knockback(
+    const pf_m4_melee_knockback_data *hit,
+    uint16_t target_weight,
+    uint32_t damage_q16,
+    uint32_t resulting_damage_q16)
+{
+    return pf_m4_melee_knockback_for_state(
+        hit,
+        target_weight,
+        damage_q16,
+        resulting_damage_q16,
+        UINT8_C(0));
 }
 
 #endif

@@ -767,7 +767,7 @@ second authored constants table.
 | hitstun per knockback, `0x154` | 0.4 | 26,214 Q16 |
 | launch speed per knockback, `0x100` | 0.03 | independently scaled X/Y: 205 / 349 Q16 |
 | maximum DI angle, `0x1A8` | 18 degrees | 337,325,943 Q30 radians |
-| ground knockback decay scale, `0x200` | 1.0 | 65,536 Q16; pending ground-route qualification |
+| ground knockback decay scale, `0x200` | 1.0 | 65,536 Q16; multiplied by Falcon's imported 0.08 friction each grounded damage tick |
 | air knockback magnitude decay, `0x204` | 0.051 | 3,342 Q16 in Melee source units |
 | SDI radial threshold / window, `0x4B0` / `0x4B4` | 0.7 / 4 | 22,937 of 32,767 / four ticks |
 | SDI distance, `0x4B8` | 6.0 | independently scaled X/Y: 41,031 / 69,764 Q16 |
@@ -779,8 +779,15 @@ scaled velocity channels back to Melee units. The runtime keeps ordinary self
 velocity and damage knockback velocity separate, applies physics first,
 subtracts the imported scalar from knockback magnitude, then integrates their
 sum, matching `Fighter_procUpdate` ordering. The six-case checkpointed Dolphin
-route and stored numeric oracle qualify this open-air boundary; they do not
-claim the pending ground/collision routes.
+route and stored numeric oracle qualify this open-air boundary. A separate
+64-row late-DashAttack route qualifies the flat-ground branch: Sakurai-angle
+ground projection, distinct `xF0_ground_kb_vel`, 0.08-per-frame friction,
+`DamageLw1` frames 1-11, and release only after both hitstun and animation
+finish. Its 15 damage samples match action/frame, grounded/tumble state,
+damage, timers, self velocity, projected `x8c`, and `xF0` within 0.001 source
+units. Position is excluded because the route also activates the independently
+qualified player-push system; slopes and broader collision response remain
+unqualified.
 
 The player-push values come from Falcon's `ftDataCaptain` `x2C4` vector in
 `PlCa.dat` and common-data field `x450` in `PlCo.dat`. The independently

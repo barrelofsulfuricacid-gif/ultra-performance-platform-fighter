@@ -578,6 +578,17 @@ hit, providing a direct tumble test path. Jump, attack, fast fall, and ordinary
 steering remain locked during hitstun; deterministic gravity and stage
 collision continue.
 
+Falcon-reference content additionally follows the imported common grounded
+damage branch. A grounded non-upward launch projects into a distinct
+`ground_knockback_velocity_q16` channel corresponding to Melee's
+`xF0_ground_kb_vel`; Falcon's friction decays that scalar before it is copied
+to the flat-floor `x8c` vector and integrated. The source damage-level
+threshold selects `DAMAGE_LOW_1`, `DAMAGE_LOW_2`, or `DAMAGE_LOW_3`, and the
+state releases only when both imported animation duration and hitstun have
+ended. Leaving a surface retains projected `x8c` motion but clears the ground-
+only scalar. Flat stages reconstruct the scalar from serialized `x8c` during
+canonical load; slopes require a future versioned snapshot field.
+
 ## DI, SDI, and ASDI
 
 The hit target can affect its reaction through the normalized main stick:

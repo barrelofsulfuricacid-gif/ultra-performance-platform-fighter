@@ -63,9 +63,16 @@ def generate(manifest: dict[str, Any]) -> str:
     capture_plan = checkpoint_pack.get("capture_plan")
     if not isinstance(capture_plan, dict):
         raise ValueError("checkpoint_pack.capture_plan must be an object")
-    raw_cases = capture_plan.get("damage_response_cases")
+    raw_cases = stored.get("cases")
+    sample_key = "inputs"
+    if raw_cases is None:
+        # Backward-compatible route for the first numeric domain. New domains
+        # keep their simulator input sequence under stored_oracle so this
+        # generic generator is independent of the live-capture choreography.
+        raw_cases = capture_plan.get("damage_response_cases")
+        sample_key = "hitlag"
     if not isinstance(raw_cases, list) or not raw_cases:
-        raise ValueError("damage_response_cases must be a non-empty list")
+        raise ValueError("stored trace cases must be a non-empty list")
     c_config = stored.get("c")
     if not isinstance(c_config, dict):
         raise ValueError("stored_oracle.c must be an object")
@@ -81,9 +88,9 @@ def generate(manifest: dict[str, Any]) -> str:
     if (
         not isinstance(samples_per_case, int)
         or isinstance(samples_per_case, bool)
-        or not 1 <= samples_per_case <= 8
+        or not 1 <= samples_per_case <= 64
     ):
-        raise ValueError("samples_per_case must be in [1, 8]")
+        raise ValueError("samples_per_case must be in [1, 64]")
     source_digest = digest(
         stored.get("source_trace_sha256"),
         "stored_oracle.source_trace_sha256",
@@ -100,13 +107,15 @@ def generate(manifest: dict[str, Any]) -> str:
         if not isinstance(case, dict):
             raise ValueError(f"damage_response_cases[{case_index}] is invalid")
         case_id = case.get("id")
-        hitlag = case.get("hitlag")
+        samples = case.get(sample_key)
+        if samples is None and sample_key == "inputs":
+            samples = [{} for _ in range(samples_per_case)]
         if (
             not isinstance(case_id, str)
             or not case_id
             or case_id in ids
-            or not isinstance(hitlag, list)
-            or len(hitlag) != samples_per_case
+            or not isinstance(samples, list)
+            or len(samples) != samples_per_case
         ):
             raise ValueError(f"invalid trace case {case_id!r}")
         ids.add(case_id)
@@ -117,19 +126,19 @@ def generate(manifest: dict[str, Any]) -> str:
                 f"{input_symbol}[] = {{",
             ]
         )
-        for sample_index, sample in enumerate(hitlag):
+        for sample_index, sample in enumerate(samples):
             if not isinstance(sample, dict):
                 raise ValueError(
-                    f"{case_id}.hitlag[{sample_index}] must be an object"
+                    f"{case_id}.{sample_key}[{sample_index}] must be an object"
                 )
             main_x, main_y = stick(
                 sample.get("main", [0, 0]),
-                f"{case_id}.hitlag[{sample_index}].main",
+                f"{case_id}.{sample_key}[{sample_index}].main",
                 invert_y=True,
             )
             c_x, c_y = stick(
                 sample.get("c_stick", [0, 0]),
-                f"{case_id}.hitlag[{sample_index}].c_stick",
+                f"{case_id}.{sample_key}[{sample_index}].c_stick",
                 invert_y=True,
             )
             rows.append(

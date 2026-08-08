@@ -59,6 +59,16 @@ def generate(raw: bytes) -> str:
         "launch_speed_y_per_knockback_q16": round(
             f32(0x100) * MELEE_Y_TO_SIM_Q16
         ),
+        "sakurai_air_angle_degrees_q16": q16(math.degrees(f32(0x144))),
+        "sakurai_max_ground_angle_degrees_q16": q16(f32(0x148)),
+        "sakurai_low_knockback_q16": q16(f32(0x14C)),
+        "sakurai_high_knockback_q16": q16(f32(0x150)),
+        "damage_level_1_threshold_q16": q16(f32(0x158)),
+        "damage_level_2_threshold_q16": q16(f32(0x15C)),
+        "grounded_damage_max_level_q16": q16(f32(0x160)),
+        "ground_knockback_max_speed_q16": round(
+            f32(0x164) * MELEE_X_TO_SIM_Q16
+        ),
         "di_max_angle_radians_q30": round(
             math.radians(f32(0x1A8)) * float(1 << 30)
         ),
@@ -109,6 +119,14 @@ def generate(raw: bytes) -> str:
             f"    INT32_C({attributes['hitstun_per_knockback_q16']}),",
             f"    INT32_C({attributes['launch_speed_x_per_knockback_q16']}),",
             f"    INT32_C({attributes['launch_speed_y_per_knockback_q16']}),",
+            f"    INT32_C({attributes['sakurai_air_angle_degrees_q16']}),",
+            f"    INT32_C({attributes['sakurai_max_ground_angle_degrees_q16']}),",
+            f"    INT32_C({attributes['sakurai_low_knockback_q16']}),",
+            f"    INT32_C({attributes['sakurai_high_knockback_q16']}),",
+            f"    INT32_C({attributes['damage_level_1_threshold_q16']}),",
+            f"    INT32_C({attributes['damage_level_2_threshold_q16']}),",
+            f"    INT32_C({attributes['grounded_damage_max_level_q16']}),",
+            f"    INT32_C({attributes['ground_knockback_max_speed_q16']}),",
             f"    INT32_C({attributes['di_max_angle_radians_q30']}),",
             f"    INT32_C({attributes['ground_knockback_decay_scale_q16']}),",
             f"    INT32_C({attributes['air_knockback_decay_q16']}),",

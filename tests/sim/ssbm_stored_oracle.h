@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define PF_SSBM_STORED_MAX_CAPSULES UINT8_C(32)
-#define PF_SSBM_STORED_MAX_TRACE_SAMPLES UINT8_C(8)
+#define PF_SSBM_STORED_MAX_TRACE_SAMPLES UINT8_C(64)
 
 typedef enum pf_ssbm_stored_case_mode
 {
@@ -108,8 +108,15 @@ typedef struct pf_ssbm_stored_trace_sample
     int32_t self_velocity_y_q16;
     int32_t knockback_velocity_x_q16;
     int32_t knockback_velocity_y_q16;
+    int32_t ground_knockback_velocity_q16;
+    uint32_t damage_q16;
+    uint16_t action_ticks;
     uint16_t hitlag_ticks;
     uint16_t hitstun_ticks;
+    uint8_t action_state;
+    uint8_t hitlag_resume_action;
+    uint8_t grounded;
+    uint8_t tumble;
 } pf_ssbm_stored_trace_sample;
 
 typedef struct pf_ssbm_stored_trace_case

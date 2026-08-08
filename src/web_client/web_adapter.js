@@ -3308,6 +3308,9 @@ mergeInto(LibraryManager.library, {
       "FALCON KICK END AIR FROM GROUND",
       "FALCON KICK END AIR",
       "FALCON KICK WALL REBOUND",
+      "DAMAGE LOW 1",
+      "DAMAGE LOW 2",
+      "DAMAGE LOW 3",
     ];
 
     if (view[1] < previousTick) {

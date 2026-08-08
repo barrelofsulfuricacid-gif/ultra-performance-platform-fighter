@@ -58,6 +58,19 @@ static inline uint32_t pf_m4_u64_sqrt(uint64_t value)
 #define PF_M4_TRIGGER_STATE_DENSE_MASK UINT8_C(12)
 #define PF_M4_TRIGGER_STATE_MASK UINT8_C(15)
 
+static inline int pf_m4_action_is_ground_damage(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_1 ||
+           action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_2 ||
+           action_state == (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3;
+}
+
+static inline int pf_m4_action_is_damage(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_HITSTUN ||
+           pf_m4_action_is_ground_damage(action_state);
+}
+
 static inline int32_t pf_m4_multiply_q16(
     int32_t value_q16,
     int32_t multiplier_q16)
@@ -172,6 +185,7 @@ typedef struct pf_world_state
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    int32_t ground_knockback_velocity_q16[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
@@ -264,6 +278,7 @@ typedef struct pf_sim_scratch
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    int32_t ground_knockback_velocity_q16[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];

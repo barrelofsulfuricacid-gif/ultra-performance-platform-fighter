@@ -984,6 +984,16 @@ static void pf_read_payload(
     {
         world->knockback_velocity_y_q16[player_index] =
             pf_reader_i32(reader);
+        /* Every current M4 surface has a flat tangent, so xF0 is the exact X
+         * projection already serialized in x8c. Reconstructing it preserves
+         * the canonical PFSAVE51 layout without omitting behavior state. A
+         * sloped-stage milestone must serialize the independent scalar. */
+        world->ground_knockback_velocity_q16[player_index] =
+            world->grounded[player_index] != UINT8_C(0) &&
+                    world->knockback_velocity_y_q16[player_index] ==
+                        INT32_C(0)
+                ? world->knockback_velocity_x_q16[player_index]
+                : INT32_C(0);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1953,7 +1963,7 @@ static int pf_m4_player_state_consistent(
         return 1;
     }
     if (action == (uint8_t)PF_M4_ACTION_HITLAG ||
-        action == (uint8_t)PF_M4_ACTION_HITSTUN ||
+        pf_m4_action_is_damage(action) ||
         action == (uint8_t)PF_M4_ACTION_RESET_BOUND ||
         pf_m4_snapshot_action_is_surface_tech(action) ||
         pf_m4_snapshot_action_is_surface_bounce(action))
@@ -2284,13 +2294,23 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                world->ground_knockback_velocity_q16[player_index] <
+                    -PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                world->ground_knockback_velocity_q16[player_index] >
+                    PF_SIM_MAX_MOTION_SPEED_Q16 ||
+                (world->ground_knockback_velocity_q16[player_index] !=
+                     INT32_C(0) &&
+                 (world->grounded[player_index] == UINT8_C(0) ||
+                  world->knockback_velocity_x_q16[player_index] !=
+                      world->ground_knockback_velocity_q16[player_index] ||
+                  world->knockback_velocity_y_q16[player_index] !=
+                      INT32_C(0))) ||
                 world->shield_recoil_x_q16[player_index] <
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->shield_recoil_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action >
-                    (uint8_t)PF_M4_ACTION_FALCON_KICK_WALL_REBOUND ||
+                action > (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3 ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2507,7 +2527,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_FALCON_KICK_LANDING &&
                  !pf_m4_snapshot_action_is_throw(resume_action) &&
                  resume_action != (uint8_t)PF_M4_ACTION_GRABBED &&
-                 resume_action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 !pf_m4_action_is_damage(resume_action) &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
                  resume_action !=
@@ -2558,7 +2578,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_SURFACE_NONE ||
                   world->velocity_x_q16[player_index] != INT32_C(0) ||
                   world->velocity_y_q16[player_index] != INT32_C(0))) ||
-                ((resume_action == (uint8_t)PF_M4_ACTION_HITSTUN ||
+                ((pf_m4_action_is_damage(resume_action) ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
                  (hitstun == UINT16_C(0) ||
@@ -2583,11 +2603,18 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  hitstun == UINT16_C(0)) ||
                 (hitlag == UINT16_C(0) &&
                  hitstun > UINT16_C(0) &&
-                 action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 !pf_m4_action_is_damage(action) &&
                  action != (uint8_t)PF_M4_ACTION_RESET_BOUND &&
                  !pf_m4_snapshot_action_is_surface_bounce(action)) ||
                 (action == (uint8_t)PF_M4_ACTION_HITSTUN &&
                  world->grounded[player_index] != UINT8_C(0)) ||
+                (pf_m4_action_is_ground_damage(action) &&
+                 (world->grounded[player_index] == UINT8_C(0) ||
+                  world->support[player_index] ==
+                      (uint8_t)PF_M4_SURFACE_NONE ||
+                  world->knockback_velocity_y_q16[player_index] !=
+                      INT32_C(0) ||
+                  tumble != UINT8_C(0))) ||
                 (hitlag == UINT16_C(0) &&
                  ((action ==
                        (uint8_t)PF_M4_ACTION_SHIELD_STUN) !=
@@ -2633,14 +2660,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
                 (tumble != UINT8_C(0) &&
                  action != (uint8_t)PF_M4_ACTION_HITLAG &&
-                 action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 !pf_m4_action_is_damage(action) &&
                  action != (uint8_t)PF_M4_ACTION_AIRBORNE &&
                  !pf_m4_snapshot_action_is_surface_bounce(action)) ||
                 ((world->sdi_direction_x[player_index] != INT8_C(0) ||
                   world->sdi_direction_y[player_index] != INT8_C(0)) &&
                  (action != (uint8_t)PF_M4_ACTION_HITLAG ||
-                  (resume_action !=
-                       (uint8_t)PF_M4_ACTION_HITSTUN &&
+                  (!pf_m4_action_is_damage(resume_action) &&
                    resume_action !=
                        (uint8_t)PF_M4_ACTION_RESET_BOUND &&
                    resume_action !=
