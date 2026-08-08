@@ -4134,6 +4134,37 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   rebasing, coalesced-read, canonical-digest, and non-duplicated discriminator
   rules and validates successfully. M4 remains unfinished.
 
+## 2026-08-08 manifest-selected stored equivalence lane
+
+- The ordinary post-build edit loop no longer needs Dolphin for the registered
+  Falcon common-hurt domain. One generic registry selects affected domains,
+  validates generated metadata, runs the filtered production oracle, checks
+  declared counts and source/production digests, and runs the pinned replay
+  corpus. An unrelated documentation change correctly selects no domain.
+- The character-independent Python selector/generator and shared C runner own
+  all selection, schema, hashing, source-frame mapping, case dispatch, failure
+  reporting, replay, and budget logic. Falcon-specific action identifiers,
+  complete pose spans, 20 controls, and three thin production adapters live in
+  its domain manifest/combat test. The generated include contains no capsule
+  copy; a thin adapter reads the production accessor, and static assertions
+  guard manifest completeness.
+- All 255 production-accessed poses hash to
+  `33e7ceea1447113256972a719f3abc981857d6a0cd67432842100b74dc50a613`;
+  the live source payload remains pinned at
+  `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`.
+  The manifest registry/domain aggregate is identical on Windows and WSL at
+  `fdda6d8a3d9780d0b59e43e6ba807e2efc4b6a984596f314b7143035a4b59b24`.
+- Five warm complete runs take 116.845-120.355 ms on native Windows MSVC
+  Release and 148.121-166.786 ms on WSL GCC 13.3 Release, far below the
+  two-second plan target. Focused combat/stored-oracle CTest takes 0.41/0.44
+  seconds respectively, and the full combat executable passes on both. The
+  complete configured matrices pass 23/23 on native Windows and 16/16 in the
+  isolated WSL equivalence build.
+- This closes the no-Dolphin edit-loop portion for the registered domain, not
+  the full equivalence infrastructure: the warm changed-domain live target is
+  still above its three-second requirement, only one domain is registered, and
+  uncovered Falcon behaviors in the fidelity audit remain active work.
+
 ## 2026-08-08 Falcon ordinary Landing hurt poses
 
 - The mandatory prior-art sweep checked the existing common-pose importer and

@@ -560,7 +560,11 @@ if(BUILD_TESTING)
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-movement=pass content_schema=70 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
 
-    add_executable(m4_combat_test tests/sim/test_m4_combat.c)
+    add_executable(
+        m4_combat_test
+        tests/sim/test_m4_combat.c
+        tests/sim/ssbm_stored_oracle.c
+        tests/sim/ssbm_stored_oracle.h)
     target_link_libraries(m4_combat_test PRIVATE sim)
     target_compile_features(m4_combat_test PRIVATE c_std_17)
     set_target_properties(m4_combat_test PROPERTIES C_EXTENSIONS OFF)
@@ -572,6 +576,14 @@ if(BUILD_TESTING)
         sim.m4_combat
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-combat=pass content_schema=70 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=4 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
+
+    add_test(
+        NAME sim.m4_ssbm_falcon_common_hurt
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-hurt)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_common_hurt
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=255 cases=20")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)

@@ -76,6 +76,16 @@ position, velocity, and observed controller sample. `pf_m4_movement_trace`
 replays those observed samples through the native simulator, and
 `tools/compare_ssbm_movement.py` stops at the first behavioral divergence.
 
+The post-build edit loop additionally runs
+`tools/verify_ssbm_stored_equivalence.py`. Its generic registry selects affected
+domain manifests, rejects stale generated rows, runs each filtered production
+oracle, and then requires the pinned deterministic replay corpus. The first
+registered domain, `falcon-common-hurt`, hashes all 255 production-accessed
+poses and runs 20 manifest-owned hit/miss controls in 116.845-120.355 ms on
+Windows and 148.121-166.786 ms in WSL across five warm runs. This is regression
+against already-qualified live truth; it does not turn uncovered routes into
+evidence or replace a fresh Dolphin qualification when a golden changes.
+
 The current comparison passes 8,675 identical input frames covering held
 dash/run, complete run turnaround and post-turnaround lockout, released dash
 and run brake, direct dash dancing, moving dashbacks, two-sample dash

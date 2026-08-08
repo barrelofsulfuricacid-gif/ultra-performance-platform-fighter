@@ -197,6 +197,52 @@ desynchronized event stream and then blocks. Persistence therefore stays
 inside one connected runner/packed invocation rather than relying on unsafe
 cross-process reattachment.
 
+## Manifest-selected stored regression lane
+
+The ordinary edit loop now has a generic no-Dolphin runner:
+
+```sh
+python tools/verify_ssbm_stored_equivalence.py \
+  --build-dir build/wsl-stored-equivalence-release --all
+```
+
+On Windows, use `build/windows-msvc-release`. `--changed-file PATH` and
+`--changed-from REVISION` select only affected domains. Shared simulation,
+test, capture, collision, or manifest infrastructure selects every registered
+domain; a character-specific imported table or verifier selects only that
+character/domain. An unrelated documentation path selects none and skips the
+replay corpus.
+
+`tools/ssbm_equivalence_manifest.json` is the character-independent registry:
+it owns the two-second budget, shared dependency patterns, domain-manifest
+list, and deterministic replay goldens. Each domain manifest owns only its
+source identity, action/frame coverage, C identifier bindings, generated
+output, production digest, runner command, and physical cases. The generic
+Python selector, generator, and C runner contain no Falcon action mapping.
+Adding a character registers another domain manifest and supplies only thin
+production pose/runtime/geometry adapters.
+
+For `falcon-common-hurt`, generation validates twelve complete tracks, 255
+poses, eleven capsules per pose, runtime-to-source frame mapping, unique case
+IDs, and 20 hit/miss controls. The filtered C runner hashes the capsules
+returned by the production accessor under the declared little-endian
+serialization and requires production SHA-256
+`33e7ceea1447113256972a719f3abc981857d6a0cd67432842100b74dc50a613`.
+It also reports the independently pinned live-source pose digest
+`3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`.
+The selector rejects stale generated C, mismatched counts/digests, any failed
+boundary, changed replay output, missing executables, and budget overruns.
+
+Five warm post-build runs measured 116.845-120.355 ms on native Windows MSVC
+Release and 148.121-166.786 ms in WSL GCC 13.3 Release. The manifest digest was
+identical on both platforms:
+`fdda6d8a3d9780d0b59e43e6ba807e2efc4b6a984596f314b7143035a4b59b24`.
+The complete combat plus focused CTest lane took 0.41 seconds on Windows and
+0.44 seconds in WSL. These results meet the two-second post-build target with
+substantial margin. They do not replace live Dolphin: changing a pinned source
+truth or golden requires a fresh checkpoint capture, live verification, and
+provenance review.
+
 Wall-clock data is emitted on stderr and is not part of authoritative JSON.
 Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical

@@ -42,3 +42,12 @@ extracted game files remain external;
 only converted numeric tables are tracked. The importer rejects mismatched
 disc, capture, extractor, or decomp provenance and cross-checks every captured
 sphere's effect against the complete frame-data table.
+
+`m4_ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
+fast stored-equivalence lane. Its single authored source is
+`tools/ssbm_falcon_common_hurt_coverage.json`; the generic generator validates
+the action/frame spans, simulator identifier bindings, source-frame phase,
+digests, and hit/miss cases before emitting immutable rows. It contains no
+second copy of hurt capsules. A thin Falcon adapter lets the shared C runner
+hash the production `m4_falcon_ntsc102_hit_geometry.inc` accessor output
+directly, so a stale or modified production table fails the pinned digest.

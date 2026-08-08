@@ -1,7 +1,21 @@
 {
   "schema": 1,
   "scope": "falcon-common-hurt-geometry",
+  "domain": "falcon-common-hurt",
+  "character": "falcon",
   "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_falcon_ntsc102_hit_geometry.inc",
+      "generated/data/m4_ssbm_falcon_common_hurt_oracle.inc",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/import_ssbm_falcon_hit_geometry.py",
+      "tools/ssbm_falcon_common_hurt_coverage.json",
+      "tools/verify_ssbm_falcon_checkpoint_pack.sh",
+      "tools/verify_ssbm_falcon_common_hurt.py"
+    ]
+  },
   "checkpoint_cases": [
     {
       "id": "dash-poses",
@@ -108,6 +122,285 @@
         "action": "DASHING",
         "frame": 5,
         "routes": ["hit", "miss"]
+      }
+    ]
+  },
+  "stored_oracle": {
+    "source_pose_sha256": "3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
+    "production_pose_sha256": "33e7ceea1447113256972a719f3abc981857d6a0cd67432842100b74dc50a613",
+    "expected_pose_count": 255,
+    "expected_capsules_per_pose": 11,
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_common_hurt",
+      "macro_prefix": "PF_M4_SSBM_FALCON_COMMON_HURT",
+      "track_count_expression": "PF_M4_FALCON_COMMON_HURT_COUNT",
+      "actions": {
+        "DASHING": "PF_M4_ACTION_INITIAL_DASH",
+        "RUN_BRAKE": "PF_M4_ACTION_RUN_BRAKE",
+        "CROUCH_START": "PF_M4_ACTION_CROUCH_START",
+        "CROUCH_END": "PF_M4_ACTION_CROUCH_END",
+        "KNEE_BEND": "PF_M4_ACTION_JUMP_SQUAT",
+        "LANDING": "PF_M4_ACTION_LANDING",
+        "SPOTDODGE": "PF_M4_ACTION_SPOT_DODGE",
+        "ROLL_FORWARD": "PF_M4_ACTION_ROLL_FORWARD",
+        "ROLL_BACKWARD": "PF_M4_ACTION_ROLL_BACKWARD",
+        "AIRDODGE": "PF_M4_ACTION_AIR_DODGE",
+        "DEAD_FALL": "PF_M4_ACTION_FALL_SPECIAL",
+        "LANDING_SPECIAL": "PF_M4_ACTION_SPECIAL_LANDING",
+        "INITIAL_DASH": "PF_M4_ACTION_INITIAL_DASH",
+        "JUMP_SQUAT": "PF_M4_ACTION_JUMP_SQUAT",
+        "SPOT_DODGE": "PF_M4_ACTION_SPOT_DODGE",
+        "AIR_DODGE": "PF_M4_ACTION_AIR_DODGE",
+        "FALL_SPECIAL": "PF_M4_ACTION_FALL_SPECIAL",
+        "SPECIAL_LANDING": "PF_M4_ACTION_SPECIAL_LANDING"
+      },
+      "buttons": {
+        "jump": "PF_INPUT_BUTTON_JUMP"
+      }
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-hurt"]
+    },
+    "cases": [
+      {
+        "id": "dash-hit",
+        "mode": "runtime",
+        "distance_hundredths": 3100,
+        "target_stick": [-32767, 0],
+        "target_buttons": [],
+        "target_button_delay_ticks": 0,
+        "target_action": "INITIAL_DASH",
+        "expected_hit_action_tick": 5,
+        "expect_hit": true
+      },
+      {
+        "id": "dash-miss",
+        "mode": "runtime",
+        "distance_hundredths": 3150,
+        "target_stick": [-32767, 0],
+        "target_buttons": [],
+        "target_button_delay_ticks": 0,
+        "target_action": "INITIAL_DASH",
+        "expected_hit_action_tick": 5,
+        "expect_hit": false
+      },
+      {
+        "id": "crouch-start-hit",
+        "mode": "runtime",
+        "distance_hundredths": 1770,
+        "target_stick": [0, 32767],
+        "target_buttons": [],
+        "target_button_delay_ticks": 0,
+        "target_action": "CROUCH_START",
+        "expected_hit_action_tick": 3,
+        "expect_hit": true
+      },
+      {
+        "id": "crouch-start-miss",
+        "mode": "runtime",
+        "distance_hundredths": 1784,
+        "target_stick": [0, 32767],
+        "target_buttons": [],
+        "target_button_delay_ticks": 0,
+        "target_action": "CROUCH_START",
+        "expected_hit_action_tick": 3,
+        "expect_hit": false
+      },
+      {
+        "id": "knee-bend-hit",
+        "mode": "runtime",
+        "distance_hundredths": 1650,
+        "target_stick": [0, 0],
+        "target_buttons": ["jump"],
+        "target_button_delay_ticks": 1,
+        "target_action": "JUMP_SQUAT",
+        "expected_hit_action_tick": 3,
+        "expect_hit": true
+      },
+      {
+        "id": "knee-bend-miss",
+        "mode": "runtime",
+        "distance_hundredths": 1680,
+        "target_stick": [0, 0],
+        "target_buttons": ["jump"],
+        "target_button_delay_ticks": 1,
+        "target_action": "JUMP_SQUAT",
+        "expected_hit_action_tick": 3,
+        "expect_hit": false
+      },
+      {
+        "id": "spot-dodge-hit",
+        "mode": "geometry",
+        "target_action": "SPOT_DODGE",
+        "action_frame": 24,
+        "source_frame": 24,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 2100,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "spot-dodge-miss",
+        "mode": "geometry",
+        "target_action": "SPOT_DODGE",
+        "action_frame": 24,
+        "source_frame": 24,
+        "jab_frame": 4,
+        "facing": 1,
+        "distance_hundredths": 2200,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "roll-forward-hit",
+        "mode": "geometry",
+        "target_action": "ROLL_FORWARD",
+        "action_frame": 22,
+        "source_frame": 22,
+        "jab_frame": 3,
+        "facing": -1,
+        "distance_hundredths": 1298,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "roll-forward-miss",
+        "mode": "geometry",
+        "target_action": "ROLL_FORWARD",
+        "action_frame": 22,
+        "source_frame": 22,
+        "jab_frame": 3,
+        "facing": -1,
+        "distance_hundredths": 1418,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "roll-backward-hit",
+        "mode": "geometry",
+        "target_action": "ROLL_BACKWARD",
+        "action_frame": 24,
+        "source_frame": 24,
+        "jab_frame": 5,
+        "facing": 1,
+        "distance_hundredths": 2000,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "roll-backward-miss",
+        "mode": "geometry",
+        "target_action": "ROLL_BACKWARD",
+        "action_frame": 24,
+        "source_frame": 24,
+        "jab_frame": 5,
+        "facing": 1,
+        "distance_hundredths": 2075,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "air-dodge-hit",
+        "mode": "geometry",
+        "target_action": "AIR_DODGE",
+        "action_frame": 31,
+        "source_frame": 31,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 2100,
+        "height_hundredths": 300,
+        "expect_hit": true
+      },
+      {
+        "id": "air-dodge-miss",
+        "mode": "geometry",
+        "target_action": "AIR_DODGE",
+        "action_frame": 31,
+        "source_frame": 31,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 2180,
+        "height_hundredths": 300,
+        "expect_hit": false
+      },
+      {
+        "id": "fall-special-hit",
+        "mode": "geometry",
+        "target_action": "FALL_SPECIAL",
+        "action_frame": 5,
+        "source_frame": 5,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 1550,
+        "height_hundredths": 300,
+        "expect_hit": true
+      },
+      {
+        "id": "fall-special-miss",
+        "mode": "geometry",
+        "target_action": "FALL_SPECIAL",
+        "action_frame": 5,
+        "source_frame": 5,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 1620,
+        "height_hundredths": 300,
+        "expect_hit": false
+      },
+      {
+        "id": "landing-fall-special-hit",
+        "mode": "geometry",
+        "target_action": "SPECIAL_LANDING",
+        "action_frame": 3,
+        "source_frame": 7,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 1850,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "landing-fall-special-miss",
+        "mode": "geometry",
+        "target_action": "SPECIAL_LANDING",
+        "action_frame": 3,
+        "source_frame": 7,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 1930,
+        "height_hundredths": 0,
+        "expect_hit": false
+      },
+      {
+        "id": "landing-hit",
+        "mode": "geometry",
+        "target_action": "LANDING",
+        "action_frame": 22,
+        "source_frame": 22,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 2030,
+        "height_hundredths": 0,
+        "expect_hit": true
+      },
+      {
+        "id": "landing-miss",
+        "mode": "geometry",
+        "target_action": "LANDING",
+        "action_frame": 22,
+        "source_frame": 22,
+        "jab_frame": 3,
+        "facing": 1,
+        "distance_hundredths": 2060,
+        "height_hundredths": 0,
+        "expect_hit": false
       }
     ]
   }

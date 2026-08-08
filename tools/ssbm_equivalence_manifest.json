@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "post_build_budget_ms": 2000,
+  "selection": {
+    "shared_paths": [
+      "CMakeLists.txt",
+      "include/pf/**",
+      "src/sim/**",
+      "tests/sim/**",
+      "tools/bootstrap_ssbm_checkpoint_oracle.sh",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_stored_oracle.py",
+      "tools/ssbm_collision.py",
+      "tools/ssbm_equivalence_manifest.json",
+      "tools/ssbm_exiai_checkpoint.patch",
+      "tools/verify_ssbm_oracle_acceleration.py",
+      "tools/verify_ssbm_stored_equivalence.py"
+    ]
+  },
+  "domains": [
+    "tools/ssbm_falcon_common_hurt_coverage.json"
+  ],
+  "replay": {
+    "executable": "pf_replay_corpus",
+    "arguments": [],
+    "expected": {
+      "ticks": "240",
+      "players": "4",
+      "bytes": "41579",
+      "corpus_sha256": "5893af587684844c22c0fc6c7019f13748c4366c586e088ed1a24d4e1819c942",
+      "final_sha256": "0235c47f05fdd37257bdd59ac5cfd5c7e107316a19f99001eefdeea7d78e951d",
+      "events_sha256": "deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b"
+    }
+  }
+}

@@ -5,6 +5,7 @@
 #include "../../src/sim/sim_falcon_frame_data.h"
 #include "../../src/sim/sim_collision.h"
 #include "../../src/sim/sim_melee.h"
+#include "ssbm_stored_oracle.h"
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -12,6 +13,8 @@
 #include <stdio.h>
 #include <stdalign.h>
 #include <string.h>
+
+#include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -13509,81 +13512,6 @@ static int run_reference_common_hurt_runtime_case(
     return 1;
 }
 
-static int run_reference_common_dash_hurt_test(void)
-{
-    /* Same-input Dolphin boundary: Jab 1 versus an inward Falcon Dash hits
-     * from 31.0 Melee units and misses from 31.5. The former is well outside
-     * the old generic rectangle, so this exercises the imported common pose. */
-    return run_reference_common_hurt_runtime_case(
-               UINT32_C(3100),
-               -INT16_C(32767),
-               INT16_C(0),
-               UINT64_C(0),
-               UINT16_C(0),
-               (uint8_t)PF_M4_ACTION_INITIAL_DASH,
-               UINT16_C(5),
-               1) &&
-           run_reference_common_hurt_runtime_case(
-               UINT32_C(3150),
-               -INT16_C(32767),
-               INT16_C(0),
-               UINT64_C(0),
-               UINT16_C(0),
-               (uint8_t)PF_M4_ACTION_INITIAL_DASH,
-               UINT16_C(5),
-               0);
-}
-
-static int run_reference_common_crouch_hurt_test(void)
-{
-    /* Same-input Dolphin boundary: Jab 1 versus Falcon CrouchStart hits at
-     * 17.7 Melee units and misses at 17.84. The old generic rectangle hits
-     * both, so the negative case discriminates the imported crouch pose. */
-    return run_reference_common_hurt_runtime_case(
-               UINT32_C(1770),
-               INT16_C(0),
-               INT16_C(32767),
-               UINT64_C(0),
-               UINT16_C(0),
-               (uint8_t)PF_M4_ACTION_CROUCH_START,
-               UINT16_C(3),
-               1) &&
-           run_reference_common_hurt_runtime_case(
-               UINT32_C(1784),
-               INT16_C(0),
-               INT16_C(32767),
-               UINT64_C(0),
-               UINT16_C(0),
-               (uint8_t)PF_M4_ACTION_CROUCH_START,
-               UINT16_C(3),
-               0);
-}
-
-static int run_reference_common_knee_bend_hurt_test(void)
-{
-    /* Same-input Dolphin boundary: Jab 1 versus Falcon KneeBend frame 2 hits
-     * at 16.5 Melee units and misses at 16.8. The generic rectangle hits both,
-     * so the negative case discriminates the imported jump-squat pose. */
-    return run_reference_common_hurt_runtime_case(
-               UINT32_C(1650),
-               INT16_C(0),
-               INT16_C(0),
-               PF_INPUT_BUTTON_JUMP,
-               UINT16_C(1),
-               (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
-               UINT16_C(3),
-               1) &&
-           run_reference_common_hurt_runtime_case(
-               UINT32_C(1680),
-               INT16_C(0),
-               INT16_C(0),
-               PF_INPUT_BUTTON_JUMP,
-               UINT16_C(1),
-               (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
-               UINT16_C(3),
-               0);
-}
-
 static int reference_common_hurt_overlap_at_distance(
     uint8_t action_state,
     uint16_t action_frame,
@@ -13615,7 +13543,7 @@ static int reference_common_hurt_overlap_at_distance(
     if (hit_spheres == NULL || hit_sphere_count == UINT8_C(0) ||
         hurt_capsules == NULL || hurt_capsule_count != UINT8_C(11))
     {
-        return 0;
+        return -1;
     }
     for (hit_index = UINT8_C(0);
          hit_index < hit_sphere_count;
@@ -13663,169 +13591,123 @@ static int reference_common_hurt_overlap_at_distance(
     return 0;
 }
 
-static int run_reference_common_spot_dodge_hurt_test(void)
+static uint8_t reference_common_hurt_read_pose(
+    void *context,
+    uint8_t action_state,
+    uint16_t action_frame,
+    pf_ssbm_stored_hurt_capsule *out_capsules,
+    uint8_t capacity)
 {
-    /* Same-input Dolphin boundary: Jab 1 hits the pending Falcon SpotDodge
-     * frame-24 pose at 21.0 Melee units and misses at 22.0. The old generic
-     * rectangle misses the positive route, so this isolates the imported
-     * capsule track rather than an authored box. */
-    if (reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_SPOT_DODGE,
-            UINT16_C(24),
-            UINT16_C(4),
-            INT8_C(1),
-            UINT32_C(2100),
-            UINT32_C(0)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_SPOT_DODGE,
-            UINT16_C(24),
-            UINT16_C(4),
-            INT8_C(1),
-            UINT32_C(2200),
-            UINT32_C(0)) != 0)
+    uint8_t capsule_count = UINT8_C(0);
+    const pf_m4_reference_hurt_capsule *capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            action_state,
+            action_frame,
+            &capsule_count);
+    uint8_t capsule_index;
+
+    (void)context;
+    if (capsules == NULL || capsule_count > capacity)
     {
-        return fail("reference-common-spot-dodge-hurt");
+        return UINT8_C(0);
     }
-    return 1;
+    for (capsule_index = UINT8_C(0);
+         capsule_index < capsule_count;
+         ++capsule_index)
+    {
+        out_capsules[capsule_index] = (pf_ssbm_stored_hurt_capsule){
+            capsules[capsule_index].endpoint_a_x_q16,
+            capsules[capsule_index].endpoint_a_y_q16,
+            capsules[capsule_index].endpoint_a_z_q16,
+            capsules[capsule_index].endpoint_b_x_q16,
+            capsules[capsule_index].endpoint_b_y_q16,
+            capsules[capsule_index].endpoint_b_z_q16,
+            capsules[capsule_index].radius_q16,
+            capsules[capsule_index].hurtbox_id,
+            capsules[capsule_index].height,
+            capsules[capsule_index].grabbable,
+            capsules[capsule_index].reserved};
+    }
+    return capsule_count;
 }
 
-static int run_reference_common_roll_hurt_test(void)
+static int reference_common_hurt_run_runtime_case(
+    void *context,
+    const pf_ssbm_stored_case *stored_case)
 {
-    /* Same-input Dolphin boundaries after source TransN movement. EscapeF's
-     * frame-22 pose faces left and hits at 12.98 Melee units but misses at
-     * 14.18; EscapeB frame 24 faces right and hits at 20.00 but misses at
-     * 20.75. These isolate the two distinct imported roll-pose tracks. */
-    if (reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_ROLL_FORWARD,
-            UINT16_C(22),
-            UINT16_C(3),
-            -INT8_C(1),
-            UINT32_C(1298),
-            UINT32_C(0)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_ROLL_FORWARD,
-            UINT16_C(22),
-            UINT16_C(3),
-            -INT8_C(1),
-            UINT32_C(1418),
-            UINT32_C(0)) != 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_ROLL_BACKWARD,
-            UINT16_C(24),
-            UINT16_C(5),
-            INT8_C(1),
-            UINT32_C(2000),
-            UINT32_C(0)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_ROLL_BACKWARD,
-            UINT16_C(24),
-            UINT16_C(5),
-            INT8_C(1),
-            UINT32_C(2075),
-            UINT32_C(0)) != 0)
-    {
-        return fail("reference-common-roll-hurt");
-    }
-    return 1;
+    (void)context;
+    return run_reference_common_hurt_runtime_case(
+        stored_case->distance_hundredths,
+        stored_case->target_stick_x_or_facing,
+        stored_case->target_stick_y,
+        stored_case->target_buttons,
+        stored_case->button_delay_or_jab_frame,
+        stored_case->target_action,
+        stored_case->expected_hit_action_tick,
+        stored_case->expect_hit != UINT8_C(0));
 }
 
-static int run_reference_common_air_dodge_hurt_test(void)
+static int reference_common_hurt_run_geometry_case(
+    void *context,
+    const pf_ssbm_stored_case *stored_case)
 {
-    /* Same-input Dolphin boundary: Falcon's Jab 1 hits tangible AirDodge
-     * frame 31 at +21.0 Melee units and a +3.0 root height, but misses at
-     * +21.8. The former generic rectangle misses both controls. */
-    if (reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_AIR_DODGE,
-            UINT16_C(31),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(2100),
-            UINT32_C(300)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_AIR_DODGE,
-            UINT16_C(31),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(2180),
-            UINT32_C(300)) != 0)
-    {
-        return fail("reference-common-air-dodge-hurt");
-    }
-    return 1;
+    (void)context;
+    return reference_common_hurt_overlap_at_distance(
+        stored_case->target_action,
+        stored_case->action_frame,
+        stored_case->button_delay_or_jab_frame,
+        (int8_t)stored_case->target_stick_x_or_facing,
+        stored_case->distance_hundredths,
+        stored_case->height_hundredths);
 }
 
-static int run_reference_common_fall_special_hurt_test(void)
+static int run_reference_common_hurt_stored_oracle(int print_pass)
 {
-    /* Same-input Dolphin controls: Jab 1 frame 3 evaluates FallSpecial's
-     * pending frame-5 pose at a +3.0 root height and hits at 15.5 Melee units
-     * but misses at 16.2. The former generic rectangle hits both controls. */
-    if (reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_FALL_SPECIAL,
-            UINT16_C(5),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(1550),
-            UINT32_C(300)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_FALL_SPECIAL,
-            UINT16_C(5),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(1620),
-            UINT32_C(300)) != 0)
-    {
-        return fail("reference-common-fall-special-hurt");
-    }
-    return 1;
-}
+    static const pf_ssbm_stored_oracle_domain domain = {
+        "falcon-common-hurt",
+        pf_m4_ssbm_falcon_common_hurt_pose_tracks,
+        (uint16_t)(
+            sizeof(pf_m4_ssbm_falcon_common_hurt_pose_tracks) /
+            sizeof(pf_m4_ssbm_falcon_common_hurt_pose_tracks[0])),
+        pf_m4_ssbm_falcon_common_hurt_cases,
+        PF_M4_SSBM_FALCON_COMMON_HURT_CASE_COUNT,
+        PF_M4_SSBM_FALCON_COMMON_HURT_POSE_COUNT,
+        PF_M4_SSBM_FALCON_COMMON_HURT_CAPSULES_PER_POSE,
+        PF_M4_SSBM_FALCON_COMMON_HURT_PRODUCTION_POSE_SHA256,
+        NULL,
+        reference_common_hurt_read_pose,
+        reference_common_hurt_run_runtime_case,
+        reference_common_hurt_run_geometry_case};
+    pf_ssbm_stored_oracle_result result;
 
-static int run_reference_common_landing_fall_special_hurt_test(void)
-{
-    /* The 10-entry runtime track samples source displayed frames 1,4,...,28.
-     * Jab 1 evaluates the third entry (source frame 7): it hits at 18.5
-     * Melee units and misses at 19.3, while the generic rectangle misses
-     * both controls. */
-    if (reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING,
-            UINT16_C(3),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(1850),
-            UINT32_C(0)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_SPECIAL_LANDING,
-            UINT16_C(3),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(1930),
-            UINT32_C(0)) != 0)
+    if (!pf_ssbm_stored_oracle_run(&domain, &result))
     {
-        return fail("reference-common-landing-fall-special-hurt");
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_pose_sha256=%s "
+            "actual_production_pose_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_pose_sha256,
+            result.production_pose_sha256[0] != '\0'
+                ? result.production_pose_sha256
+                : "unavailable");
+        return 0;
     }
-    return 1;
-}
-
-static int run_reference_common_landing_hurt_test(void)
-{
-    /* Same-input Dolphin controls: Jab 1 frame 3 evaluates ordinary
-     * Landing's pending source frame-22 pose. It hits at 20.3 Melee units
-     * and misses at 20.6, while the former generic rectangle misses both. */
-    if (reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_LANDING,
-            UINT16_C(22),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(2030),
-            UINT32_C(0)) == 0 ||
-        reference_common_hurt_overlap_at_distance(
-            (uint8_t)PF_M4_ACTION_LANDING,
-            UINT16_C(22),
-            UINT16_C(3),
-            INT8_C(1),
-            UINT32_C(2060),
-            UINT32_C(0)) != 0)
+    if (print_pass != 0)
     {
-        return fail("reference-common-landing-hurt");
+        (void)printf(
+            "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt "
+            "poses=%u cases=%u source_pose_sha256=%s "
+            "production_pose_sha256=%s\n",
+            (unsigned int)PF_M4_SSBM_FALCON_COMMON_HURT_POSE_COUNT,
+            (unsigned int)PF_M4_SSBM_FALCON_COMMON_HURT_CASE_COUNT,
+            PF_M4_SSBM_FALCON_COMMON_HURT_SOURCE_POSE_SHA256,
+            result.production_pose_sha256);
     }
     return 1;
 }
@@ -24388,7 +24270,7 @@ static int run_falcon_ground_iasa_policy_test(void)
     return 1;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     pf_m4_content content;
     pf_m4_content shield_poke_content;
@@ -24493,6 +24375,20 @@ int main(void)
     pf_content_view shield_geometry_hash_view;
     pf_content_view stale_hash_view;
     pf_content_view getup_roll_hash_view;
+
+    if (argc != 1)
+    {
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-hurt") == 0)
+        {
+            return run_reference_common_hurt_stored_oracle(1) ? 0 : 1;
+        }
+        (void)fprintf(
+            stderr,
+            "usage: %s [--ssbm-oracle falcon-common-hurt]\n",
+            argv[0]);
+        return 2;
+    }
 
     if (!run_falcon_reference_table_test() ||
         !run_falcon_jab1_iasa_test() ||
@@ -24998,15 +24894,7 @@ int main(void)
             &shield_poke_view) ||
         !run_reference_shield_boundary_test() ||
         !run_reference_moving_hit_sweep_test() ||
-        !run_reference_common_dash_hurt_test() ||
-        !run_reference_common_crouch_hurt_test() ||
-        !run_reference_common_knee_bend_hurt_test() ||
-        !run_reference_common_spot_dodge_hurt_test() ||
-        !run_reference_common_roll_hurt_test() ||
-        !run_reference_common_air_dodge_hurt_test() ||
-        !run_reference_common_fall_special_hurt_test() ||
-        !run_reference_common_landing_fall_special_hurt_test() ||
-        !run_reference_common_landing_hurt_test() ||
+        !run_reference_common_hurt_stored_oracle(0) ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||
