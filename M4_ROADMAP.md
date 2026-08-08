@@ -55,6 +55,8 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
 - `dbf12f0` - checkpointed Dolphin foundation.
 - `5c68258` - generic manifest-selected stored SSBM oracle.
 - `b113dbb` - manifest-controlled live observation pruning and warm-budget gate.
+- `b3edb14` - qualified open-air damage response, numeric stored oracle, and
+  complete `PlCo.dat` import.
 
 ### Falcon data and qualified behavior
 
@@ -77,7 +79,7 @@ Primary sources:
 - `ftCo_Damage.c` for SDI, ASDI, and DI operation order.
 - `fighter.c` for the later separate knockback-velocity decay channel.
 
-Implemented in the current uncommitted slice:
+Implemented and pushed in `b3edb14`:
 
 - [x] Strict reusable HSD archive root/relocation validation in
   `tools/ssbm_dat.py`.
@@ -112,7 +114,7 @@ Implemented in the current uncommitted slice:
   digest is `07cc4f4247d83066`; the synthetic browser ladder fixture explicitly
   retains its authored decay instead of inheriting imported Falcon data.
 - [x] Pass WSL ASan/UBSan 16/16 after the final DI boundary review.
-- [ ] Commit and push the qualified slice to PR #3.
+- [x] Commit and push the qualified slice to PR #3 as `b3edb14`.
 
 ## Remaining work, in priority order
 
