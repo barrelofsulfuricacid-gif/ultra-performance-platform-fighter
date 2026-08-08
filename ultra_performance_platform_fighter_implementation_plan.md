@@ -702,11 +702,12 @@ affected-file selector, C runner, and replay gate validate all 255
 production-accessed poses plus 20 manifest-owned hit/miss cases; Falcon owns
 only its action bindings, coverage rows, and thin production adapters. Five
 warm post-build runs take 116.845-120.355 ms on native Windows MSVC Release and
-148.121-166.786 ms on WSL GCC 13.3 Release, meeting the two-second target. This
-does not satisfy the separate warm changed-domain live target: the current
-checkpoint pack is 4.01-4.90 seconds and remains an active optimization defect
-against the three-second requirement. Additional behavior domains must join
-the same registry as their live evidence becomes source-complete.
+148.121-166.786 ms on WSL GCC 13.3 Release, meeting the two-second target. The
+live checkpoint pack serializes only its 255 declared poses and 28 live
+discriminator rows; five fully verified warm runs take 2.635-2.729 seconds and
+meet the separate three-second changed-domain target. Additional behavior
+domains must join the same registry as their live evidence becomes
+source-complete.
 
 This gate is not limited to locomotion. It also covers every implemented shared
 simulation path for which SSBM supplies the intended behavior, including

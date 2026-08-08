@@ -82,7 +82,8 @@ build/oracle-toolchain/exiai-python/bin/python \
   --iso /owner/path/to/GALE01.iso \
   --output build/oracle/capture-exiai.json \
   --common-hurt-geometry-only --memory-probe-hitbox --oracle-exiai \
-  --oracle-checkpoint-pack
+  --oracle-checkpoint-pack \
+  --oracle-coverage-manifest tools/ssbm_falcon_common_hurt_coverage.json
 ```
 
 For acceleration qualification, run the same extracted launcher and Python
@@ -164,7 +165,8 @@ obscures failures and permits earlier state to contaminate later
 qualifications.
 
 The first complete checkpoint pack reduces the common-hurt route from 4,198 to
-417 rows and from 26 repeated setup/collision cases to eight isolated cases.
+283 serialized rows and from 26 repeated setup/collision cases to eight
+isolated cases.
 It still captures all 255 imported action/frame poses across Initial Dash,
 RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge, both rolls, AirDodge,
 FallSpecial, LandingFallSpecial, and ordinary Landing. One live Dash hit/miss
@@ -173,13 +175,21 @@ route for every other pose was removed as duplicate evidence: their boundaries
 are evaluated from the exhaustive captured capsules and the hash-pinned decomp
 collision routine.
 
+The packed command stream still executes every input tick required to reach
+the qualified actions, but it snapshots and serializes only declared action
+poses and the live discriminator. Redundant shield dwell, terminal action
+holds, and post-action recovery ticks are removed. The ordinary-Landing route
+remains a native jump and landing; the optimization does not synthesize its
+action state.
+
 Two independent runs produced the same canonical pose digest,
 `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`,
 and identical live margins: `+0.289212401` for the hit and `-0.156798480` for
 the miss. Compared with the accepted 4,198-row artifact, all 255 poses pass the
 documented Q16.16 comparison; 24 poses contain 30 component differences and
-every difference is exactly one Q16.16 least-significant bit. Repeated measured
-warm runs remain between 4.01 and 4.90 seconds. Lifecycle instrumentation
+every difference is exactly one Q16.16 least-significant bit. Five fully
+verified warm runs take 2.635-2.729 seconds and pass the manifest's
+three-second changed-domain budget. Lifecycle instrumentation
 showed that the apparent 18-21-second cold invocation was not primarily
 emulation: about nine seconds were spent re-hashing the unchanged 1.4-GB disc
 image. Oracle-input digests are now cached atomically against path, size,
@@ -236,7 +246,7 @@ boundary, changed replay output, missing executables, and budget overruns.
 Five warm post-build runs measured 116.845-120.355 ms on native Windows MSVC
 Release and 148.121-166.786 ms in WSL GCC 13.3 Release. The manifest digest was
 identical on both platforms:
-`fdda6d8a3d9780d0b59e43e6ba807e2efc4b6a984596f314b7143035a4b59b24`.
+`270f7e71a30500401ac97c18ced42e341f89a75443b5482bfaca343d5c642326`.
 The complete combat plus focused CTest lane took 0.41 seconds on Windows and
 0.44 seconds in WSL. These results meet the two-second post-build target with
 substantial margin. They do not replace live Dolphin: changing a pinned source

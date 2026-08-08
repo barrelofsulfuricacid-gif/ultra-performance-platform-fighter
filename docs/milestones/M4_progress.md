@@ -4111,8 +4111,8 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   shared mapping, avoiding per-field `process_vm_readv` calls. A
   329-row comparison against the accepted defense trace is exact after the
   already-documented idle-pose normalization.
-- The common-hurt pack is reduced from 4,198 rows/26 repeated cases to 417
-  rows/eight checkpoint-isolated cases. It retains all 255 imported common
+- The common-hurt pack is reduced from 4,198 rows/26 repeated cases to 283
+  serialized rows/eight checkpoint-isolated cases. It retains all 255 imported common
   action poses plus one live Dash collision hit/miss integration pair. The
   remaining per-pose boundaries use the same exhaustive capsules and pinned
   decomp collision routine offline instead of duplicating long Dolphin routes.
@@ -4120,8 +4120,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`
   and identical Dash margins `+0.289212401/-0.156798480`. Against the accepted
   4,198-row artifact, every pose is Q16.16-equivalent; only 30 components in
-  24 poses differ, each by exactly one Q16.16 least-significant bit. Repeated
-  warm pack times are 4.01-4.90 seconds, down from 37.6 seconds. Lifecycle
+  24 poses differ, each by exactly one Q16.16 least-significant bit. Setup
+  ticks still execute, but the observer skips undeclared actions; redundant
+  shield dwell, terminal holds, and recovery commands are removed. Five fully
+  verified warm pack times are 2.635-2.729 seconds, down from 37.6 seconds and
+  below the manifest-owned three-second changed-domain budget. Lifecycle
   timing isolated a further nine-second repeated cost to hashing the unchanged
   1.4-GB disc. An atomic stat-keyed digest cache preserves the pinned digest,
   invalidates on any path/size/mtime/ctime change, and reduces unchanged full
@@ -4153,17 +4156,17 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the live source payload remains pinned at
   `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`.
   The manifest registry/domain aggregate is identical on Windows and WSL at
-  `fdda6d8a3d9780d0b59e43e6ba807e2efc4b6a984596f314b7143035a4b59b24`.
+  `270f7e71a30500401ac97c18ced42e341f89a75443b5482bfaca343d5c642326`.
 - Five warm complete runs take 116.845-120.355 ms on native Windows MSVC
   Release and 148.121-166.786 ms on WSL GCC 13.3 Release, far below the
   two-second plan target. Focused combat/stored-oracle CTest takes 0.41/0.44
   seconds respectively, and the full combat executable passes on both. The
   complete configured matrices pass 23/23 on native Windows and 16/16 in the
   isolated WSL equivalence build.
-- This closes the no-Dolphin edit-loop portion for the registered domain, not
-  the full equivalence infrastructure: the warm changed-domain live target is
-  still above its three-second requirement, only one domain is registered, and
-  uncovered Falcon behaviors in the fidelity audit remain active work.
+- This closes both the no-Dolphin edit-loop and warm changed-domain live
+  budgets for the registered domain, not the full equivalence infrastructure:
+  only one domain is registered, and uncovered Falcon behaviors in the
+  fidelity audit remain active work.
 
 ## 2026-08-08 Falcon ordinary Landing hurt poses
 

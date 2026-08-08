@@ -10,6 +10,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 iso="$1"
 decomp_root="$2"
 output="${3:-${repo_root}/build/oracle/falcon-common-hurt-checkpoint-pack.json}"
+coverage_manifest="${repo_root}/tools/ssbm_falcon_common_hurt_coverage.json"
 toolchain_root="${repo_root}/build/oracle-toolchain"
 python="${toolchain_root}/exiai-python/bin/python"
 dolphin="${toolchain_root}/exiai-checkpoint/Binaries/dolphin-emu"
@@ -36,15 +37,22 @@ done
     --memory-probe-hitbox \
     --oracle-exiai \
     --oracle-checkpoint-pack \
+    --oracle-coverage-manifest "${coverage_manifest}" \
     2> >(tee "${timing_log}" >&2)
 
 warm_seconds="$(sed -n 's/.*warm_seconds=\([0-9.]*\).*/\1/p' "${timing_log}" | tail -n 1)"
+warm_budget_seconds="$(
+    "${python}" -c \
+        'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["checkpoint_pack"]["warm_budget_seconds"])' \
+        "${coverage_manifest}"
+)"
 if [[ -z "${warm_seconds}" ]]; then
     echo "checkpoint pack did not report a warm duration" >&2
     exit 1
 fi
-awk -v seconds="${warm_seconds}" 'BEGIN { exit !(seconds <= 10.0) }' || {
-    echo "checkpoint pack exceeded 10-second warm budget: ${warm_seconds}" >&2
+awk -v seconds="${warm_seconds}" -v budget="${warm_budget_seconds}" \
+    'BEGIN { exit !(seconds <= budget) }' || {
+    echo "checkpoint pack exceeded ${warm_budget_seconds}-second warm budget: ${warm_seconds}" >&2
     exit 1
 }
 

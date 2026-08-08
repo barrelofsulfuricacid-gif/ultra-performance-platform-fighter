@@ -429,6 +429,9 @@ def main() -> int:
         .with_name("ssbm_falcon_common_hurt_coverage.json")
         .read_text(encoding="utf-8")
     )
+    expected_checkpoint_pack = dict(
+        expected_coverage_manifest["checkpoint_pack"]
+    )
     expected_case_labels = [
         str(case["start_label"])
         for case in expected_coverage_manifest["checkpoint_cases"]
@@ -448,12 +451,17 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != (417 if args.checkpoint_pack else 4198)
+        or len(rows)
+        != (
+            int(expected_checkpoint_pack["expected_rows"])
+            if args.checkpoint_pack
+            else 4198
+        )
         or (
             args.checkpoint_pack
             and (
                 checkpoint_pack.get("protocol")
-                != "rebased-slippi-state-file-control-v1"
+                != expected_checkpoint_pack["protocol"]
                 or checkpoint_pack.get("case_count") != len(expected_case_labels)
                 or checkpoint_pack.get("case_start_labels")
                 != expected_case_labels

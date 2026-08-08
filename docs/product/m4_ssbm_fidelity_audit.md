@@ -85,6 +85,10 @@ poses and runs 20 manifest-owned hit/miss controls in 116.845-120.355 ms on
 Windows and 148.121-166.786 ms in WSL across five warm runs. This is regression
 against already-qualified live truth; it does not turn uncovered routes into
 evidence or replace a fresh Dolphin qualification when a golden changes.
+The corresponding live common-hurt pack executes eight checkpoint-isolated
+cases in one headless/null/unlimited ExiAI process, serializes 255 declared
+poses plus 28 discriminator rows, and passes five fully verified warm runs in
+2.635-2.729 seconds against a manifest-owned three-second budget.
 
 The current comparison passes 8,675 identical input frames covering held
 dash/run, complete run turnaround and post-turnaround lockout, released dash

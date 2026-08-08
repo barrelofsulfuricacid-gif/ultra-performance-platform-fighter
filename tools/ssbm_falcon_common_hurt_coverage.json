@@ -4,6 +4,50 @@
   "domain": "falcon-common-hurt",
   "character": "falcon",
   "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 283,
+    "warm_budget_seconds": 3.0,
+    "capture_plan": {
+      "record_actions_by_label": {
+        "common_hurt_dash_hold": ["DASHING"],
+        "common_hurt_dash_recover": ["RUN_BRAKE"],
+        "common_hurt_crouch_hold": ["CROUCH_START"],
+        "common_hurt_crouch_release": ["CROUCH_END"],
+        "common_hurt_knee_bend_hold": ["KNEE_BEND"],
+        "common_hurt_knee_bend_recover": ["LANDING"],
+        "common_hurt_spot_dodge_hold": ["SPOTDODGE"],
+        "common_hurt_roll_forward_hold": ["ROLL_FORWARD"],
+        "common_hurt_roll_backward_hold": ["ROLL_BACKWARD"],
+        "common_hurt_air_dodge_entry": ["AIRDODGE"],
+        "common_hurt_air_dodge_hold": ["AIRDODGE", "DEAD_FALL"],
+        "common_hurt_air_dodge_recover": ["DEAD_FALL", "LANDING_SPECIAL"]
+      },
+      "command_limits_by_label": {
+        "common_hurt_dash_hold": 18,
+        "common_hurt_dash_recover": 28,
+        "common_hurt_crouch_hold": 7,
+        "common_hurt_crouch_release": 10,
+        "common_hurt_knee_bend_hold": 4,
+        "common_hurt_knee_bend_recover": 79,
+        "common_hurt_spot_dodge_shield": 1,
+        "common_hurt_spot_dodge_hold": 32,
+        "common_hurt_roll_forward_shield": 1,
+        "common_hurt_roll_forward_hold": 31,
+        "common_hurt_roll_backward_shield": 1,
+        "common_hurt_roll_backward_hold": 31,
+        "common_hurt_air_dodge_recover": 12
+      },
+      "always_record_prefixes": ["common_hurt_dash_collision_"],
+      "command_overrides": [
+        {
+          "label": "common_hurt_air_dodge_recover",
+          "retained_index": 1,
+          "values": { "fighter_y_override": 0.0001 }
+        }
+      ]
+    }
+  },
   "selection": {
     "paths": [
       "generated/data/m4_falcon_ntsc102_frame_data.inc",

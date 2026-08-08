@@ -83,6 +83,7 @@ def input_trace(
     ground_attack_moves: tuple[str, ...] | None = None,
     special_geometry_moves: tuple[str, ...] | None = None,
     falcon_frame_data: dict[str, object] | None = None,
+    checkpoint_capture_plan: dict[str, object] | None = None,
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
@@ -1162,14 +1163,94 @@ def input_trace(
 
             result: list[dict[str, object]] = []
             pending_restore = False
-            retained_source_frames = {
-                # These are not cross-case settling: they are the shortest
-                # prefixes that exercise every source animation frame used by
-                # the importer/verifier.
-                "common_hurt_dash_recover": 28,
-                "common_hurt_knee_bend_recover": 79,
+            if checkpoint_capture_plan is None:
+                raise ValueError("checkpoint capture plan is required")
+            raw_record_actions = checkpoint_capture_plan.get(
+                "record_actions_by_label"
+            )
+            raw_command_limits = checkpoint_capture_plan.get(
+                "command_limits_by_label"
+            )
+            raw_always_record_prefixes = checkpoint_capture_plan.get(
+                "always_record_prefixes"
+            )
+            raw_command_overrides = checkpoint_capture_plan.get(
+                "command_overrides"
+            )
+            if (
+                not isinstance(raw_record_actions, dict)
+                or not isinstance(raw_command_limits, dict)
+                or not isinstance(raw_always_record_prefixes, list)
+                or not isinstance(raw_command_overrides, list)
+            ):
+                raise ValueError("checkpoint capture plan is incomplete")
+            recorded_actions_by_label = {
+                str(label): tuple(str(action) for action in actions)
+                for label, actions in raw_record_actions.items()
+                if (
+                    isinstance(label, str)
+                    and label
+                    and isinstance(actions, list)
+                    and actions
+                    and all(isinstance(action, str) and action for action in actions)
+                )
             }
-            retained_counts = dict.fromkeys(retained_source_frames, 0)
+            retained_command_limits = {
+                str(label): int(limit)
+                for label, limit in raw_command_limits.items()
+                if (
+                    isinstance(label, str)
+                    and label
+                    and isinstance(limit, int)
+                    and not isinstance(limit, bool)
+                    and limit > 0
+                )
+            }
+            if (
+                len(recorded_actions_by_label) != len(raw_record_actions)
+                or len(retained_command_limits) != len(raw_command_limits)
+            ):
+                raise ValueError("checkpoint capture labels or limits are invalid")
+            if any(
+                not isinstance(prefix, str) or not prefix
+                for prefix in raw_always_record_prefixes
+            ):
+                raise ValueError("checkpoint record prefix is invalid")
+            always_record_prefixes = tuple(
+                str(prefix) for prefix in raw_always_record_prefixes
+            )
+            command_overrides: dict[
+                tuple[str, int], dict[str, object]
+            ] = {}
+            allowed_override_fields = {
+                "fighter_x_override",
+                "fighter_y_override",
+                "fighter_facing_override",
+                "opponent_x_override",
+                "opponent_y_override",
+                "opponent_facing_override",
+            }
+            for override in raw_command_overrides:
+                if not isinstance(override, dict):
+                    raise ValueError("checkpoint command override must be an object")
+                override_label = override.get("label")
+                values = override.get("values")
+                if (
+                    not isinstance(override_label, str)
+                    or not override_label
+                    or not isinstance(values, dict)
+                    or not values
+                    or set(values) - allowed_override_fields
+                ):
+                    raise ValueError("checkpoint command override has no values")
+                key = (
+                    override_label,
+                    int(override.get("retained_index", -1)),
+                )
+                if key[1] < 0 or key in command_overrides:
+                    raise ValueError("invalid checkpoint command override")
+                command_overrides[key] = dict(values)
+            retained_counts = dict.fromkeys(retained_command_limits, 0)
             direct_boundaries = {
                 "common_hurt_dash_place",
                 "common_hurt_crouch_place",
@@ -1196,11 +1277,16 @@ def input_trace(
                     and not label.startswith("common_hurt_dash_collision_")
                 ):
                     continue
-                if label in retained_source_frames:
-                    if retained_counts[label] < retained_source_frames[label]:
-                        retained_counts[label] += 1
-                        result.append(sample)
-                    continue
+                if label in retained_command_limits:
+                    retained_index = retained_counts[label]
+                    retained_counts[label] += 1
+                    if retained_index >= retained_command_limits[label]:
+                        continue
+                    override_values = command_overrides.get(
+                        (label, retained_index)
+                    )
+                    if override_values is not None:
+                        sample = {**sample, **override_values}
                 if label.endswith("_reset_place"):
                     pending_restore = True
                     continue
@@ -1213,7 +1299,12 @@ def input_trace(
                     or label.endswith("_settle")
                     or (
                         label.endswith("_recover")
-                        and label != "common_hurt_air_dodge_recover"
+                        and label
+                        not in (
+                            "common_hurt_dash_recover",
+                            "common_hurt_knee_bend_recover",
+                            "common_hurt_air_dodge_recover",
+                        )
                     )
                 ):
                     continue
@@ -1229,6 +1320,14 @@ def input_trace(
                 if pending_restore or direct_boundary:
                     isolated = {**isolated, "restore_before": True}
                     pending_restore = False
+                recorded_actions = recorded_actions_by_label.get(label)
+                if recorded_actions is not None:
+                    isolated = {
+                        **isolated,
+                        "record_actions": recorded_actions,
+                    }
+                elif not label.startswith(always_record_prefixes):
+                    isolated = {**isolated, "record": False}
                 result.append(isolated)
             return result
 
@@ -3676,6 +3775,18 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             if args.falcon_frame_data is not None
             else None
         )
+        checkpoint_coverage_manifest = (
+            json.loads(
+                args.oracle_coverage_manifest.read_text(encoding="utf-8")
+            )
+            if args.oracle_coverage_manifest is not None
+            else None
+        )
+        checkpoint_capture_plan = (
+            dict(checkpoint_coverage_manifest["checkpoint_pack"]["capture_plan"])
+            if checkpoint_coverage_manifest is not None
+            else None
+        )
         trace = input_trace(
             platform_only=args.platform_only,
             push_only=args.push_only,
@@ -3704,6 +3815,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 else None
             ),
             falcon_frame_data=falcon_frame_data,
+            checkpoint_capture_plan=checkpoint_capture_plan,
             shield_hit_pressure=args.shield_hit_pressure,
         )
         # libmelee's modern blocking-input scheduler applies each command to
@@ -3995,6 +4107,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     f"opponent_attack={observed_opponent_attack}"
                     f" opponent_grab={observed_opponent_grab}"
                 )
+            if not bool(scheduled.get("record", True)):
+                continue
+            record_actions = scheduled.get("record_actions")
+            if (
+                record_actions is not None
+                and player.action.name not in record_actions
+            ):
+                continue
             if origin_x is None:
                 origin_x = player.position.x
             if origin_two_x is None:
@@ -4142,13 +4262,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "protocol": "rebased-slippi-state-file-control-v1",
                 "case_count": len(checkpoint_case_labels),
                 "case_start_labels": checkpoint_case_labels,
-                "coverage_manifest": json.loads(
-                    (
-                        Path(__file__).with_name(
-                            "ssbm_falcon_common_hurt_coverage.json"
-                        )
-                    ).read_text(encoding="utf-8")
-                ),
+                "coverage_manifest": checkpoint_coverage_manifest,
             }
             if checkpoint_pack_started_at is not None
             else None
@@ -4334,6 +4448,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="replace cross-case settling with checkpoint-isolated cases",
     )
+    parser.add_argument(
+        "--oracle-coverage-manifest",
+        type=Path,
+        help="domain manifest owning checkpoint capture selection and budgets",
+    )
     parser.add_argument("--enable-items", action="store_true")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
@@ -4395,6 +4514,10 @@ def parse_args() -> argparse.Namespace:
         )
     if args.oracle_checkpoint_probe and args.oracle_checkpoint_pack:
         parser.error("select only one checkpoint mode")
+    if args.oracle_checkpoint_pack and args.oracle_coverage_manifest is None:
+        parser.error("--oracle-checkpoint-pack requires --oracle-coverage-manifest")
+    if args.oracle_coverage_manifest is not None and not args.oracle_checkpoint_pack:
+        parser.error("--oracle-coverage-manifest requires --oracle-checkpoint-pack")
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
     if (
