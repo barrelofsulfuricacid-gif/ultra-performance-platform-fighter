@@ -83,20 +83,21 @@ build/oracle-toolchain/exiai-python/bin/python \
 
 ## Qualification and measurement
 
-The current qualification trace contains 3,818 rows and eleven Falcon common-hurt
+The current qualification trace contains 4,198 rows and twelve Falcon common-hurt
 tracks: Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
-RollForward, RollBackward, AirDodge, FallSpecial, and LandingFallSpecial,
+RollForward, RollBackward, AirDodge, FallSpecial, LandingFallSpecial, and
+ordinary Landing,
 including physical hit/miss
 controls. The automated A/B comparison
 strictly matches every requested and observed input, game frame, initialized
 active action frame, position, velocity, damage, hitlag, collision decision,
 and qualified geometry observation. It covers 1,773 non-standing Falcon rows
-and 1,049 non-standing opponent rows. Of those, 1,674 Falcon and 1,023 opponent rows are
+and 1,149 non-standing opponent rows. Of those, 1,909 Falcon and 1,120 opponent rows are
 initialized, non-hitlag, action-owned pose samples whose complete capsule
 geometry also matches exactly. The unaccelerated control SHA-256 is
-`8f27b27e82cbcb3f50db6595f050580c921ad7316a40f1b819489c73df12da1c`;
+`32a0a742012f360c1e49b27d2fb2023e16eac5af23694b032a3777d41ad16a9d`;
 the selected accelerated capture is
-`ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e`.
+`8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc`.
 
 Measured on the local WSL host:
 
@@ -107,9 +108,9 @@ Measured on the local WSL host:
 | ExiAI unaccelerated control, headless, 650 rows | 22.17 s | qualification control |
 | ExiAI headless/null/fast-forward, 650 rows | 16.68 s | selected |
 
-Those timings are the retained 650-row benchmark. The current 3,818-row route
+Those timings are the retained 650-row benchmark. The current 4,198-row route
 adds safely isolated SpotDodge, both-roll, AirDodge, FallSpecial, and
-LandingFallSpecial collision controls. Its
+LandingFallSpecial and ordinary Landing collision controls. Its
 unaccelerated and accelerated outputs remain field-for-field identical without
 changing the selected runner.
 
@@ -127,6 +128,24 @@ path still runs a larger capture about 41% faster than the previous stock runner
 removes GUI launches, and supplies frames as quickly as the blocking observer
 can consume them. Two upstream live tests, each launching its own match, took
 7.92 seconds total on the same host.
+
+The latest 4,198-row ordinary-Landing qualification took 37.6 seconds in the
+accelerated candidate and 45.3 seconds in the same-binary control. Although the
+outputs match exactly, that throughput is rejected for the ongoing edit loop.
+Profiling the observation architecture found that the geometry reader performs
+hundreds of `process_vm_readv` calls per fighter frame: direct fighter fields
+are read separately, and each hurtbox endpoint performs twelve individual
+floating-point reads. Emulator fast-forward cannot remove that observer cost.
+
+The replacement architecture keeps one warm Dolphin process and executes many
+short cases with checkpoint restoration between them. Direct fighter state and
+embedded hurtbox records are read as contiguous snapshots, unique bone matrices
+are coalesced, and only fields declared by the case manifest are serialized.
+Stored authoritative traces cover the ordinary no-Dolphin edit loop. The
+post-build targets are at most 2 seconds for that local suite, 3 seconds for a
+warm changed-domain live run, and 10 seconds for the complete warm Falcon pack.
+A single state-leaking mega-scenario is deliberately rejected: it obscures
+failures and permits earlier state to contaminate later qualifications.
 
 ## Geometry-sampling limitation
 

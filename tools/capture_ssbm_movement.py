@@ -1636,6 +1636,34 @@ def input_trace(
             )
             repeat(f"{route_prefix}_observe", 12, main_y=0.0)
             repeat(f"{route_prefix}_recover", 90)
+        # Ordinary Landing keeps playing its complete 30-frame source motion
+        # after the frame-4 interrupt gate when no input is supplied.  Starting
+        # the opponent's Jab 1 on displayed Landing frame 19 makes its first
+        # live collision evaluate the pending frame-22 pose.  That pose reaches
+        # the 20.3-unit control but not 20.6; the generic rectangle misses both.
+        for route, target_x in (("miss", 20.6), ("hit", 20.3)):
+            route_prefix = f"common_hurt_landing_collision_{route}"
+            reset_common_hurt_route(route_prefix)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=target_x,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=0.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            repeat(f"{route_prefix}_jump", 4, jump=True)
+            repeat(f"{route_prefix}_advance", 67)
+            trace.append(
+                command(
+                    f"{route_prefix}_jab_start",
+                    opponent_attack=True,
+                )
+            )
+            repeat(f"{route_prefix}_observe", 8)
+            repeat(f"{route_prefix}_recover", 40)
         return trace
 
     if damage_hit_only:

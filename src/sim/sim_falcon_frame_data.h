@@ -122,7 +122,8 @@ typedef enum pf_m4_falcon_common_hurt_index
     PF_M4_FALCON_COMMON_HURT_AIR_DODGE = 8,
     PF_M4_FALCON_COMMON_HURT_FALL_SPECIAL = 9,
     PF_M4_FALCON_COMMON_HURT_LANDING_FALL_SPECIAL = 10,
-    PF_M4_FALCON_COMMON_HURT_COUNT = 11
+    PF_M4_FALCON_COMMON_HURT_LANDING = 11,
+    PF_M4_FALCON_COMMON_HURT_COUNT = 12
 } pf_m4_falcon_common_hurt_index;
 
 typedef struct pf_m4_falcon_submotion_data

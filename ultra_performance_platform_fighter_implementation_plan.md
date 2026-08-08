@@ -70,6 +70,7 @@ These are constraints on implementation, not premature choices about data repres
 12. **Original expression throughout.** SSBM is a system/feel reference, never an asset source. Every name, image, animation, sound, composition, story element, UI asset, stage layout, and written description must be original or properly licensed.
 13. **Beautiful zero-cost implementation.** Express shared mechanics, formulas, state transitions, validation, serialization, and platform-independent policy once through cohesive C APIs, immutable data, and compile-time or `static inline` composition. An abstraction on a simulation hot path must add no allocation, ownership ambiguity, avoidable data movement, indirect dispatch, branch, or call overhead versus its direct equivalent in optimized builds. Where zero cost is not evident, inspect optimized code or measure it. Authoritative gameplay logic may not be copied among runtime, replay, RL, verifier, native, and web paths; unavoidable adapter or test duplication must be small, explicit, and kept outside the deterministic authority.
 14. **Prior art before implementation.** Before starting every implementation slice, fidelity investigation, tool, experiment harness, or optimization, first search the repository, pinned upstream sources, existing project skills, and maintained public implementations for reusable evidence or machinery. Record the relevant result in the milestone evidence. Implement only after this sweep, and do not replace authoritative source data or an established routine with a guess.
+15. **Massively fast equivalence validation.** Exactness does not excuse a slow edit loop. Run source/import checks, stored identical-input traces, deterministic simulation tests, replay checks, and affected-coverage selection without Dolphin in the ordinary edit loop. A live oracle uses one persistent headless/null/unlimited Dolphin session, checkpoint-isolated cases, coalesced or streamed memory observation, and one machine-readable coverage manifest. Do not relaunch Dolphin, serialize unrequested memory, or issue per-field cross-process reads when one batch can preserve the same evidence. Target at most 2 seconds after build for the no-Dolphin edit suite, 3 seconds for a warm changed-domain live oracle, and 10 seconds for the complete warm Falcon oracle pack; treat misses as active performance defects, not acceptable test overhead.
 
 ---
 
@@ -421,6 +422,19 @@ trace, coordinate conversion, and first divergent frame. Internal deterministic
 tests remain required, but cannot substitute for this executable-oracle
 comparison.
 
+The executable oracle is one persistent scenario pack, not one state-leaking
+continuous match. Each short case declares its starting checkpoint, ordered
+inputs, observed fields, source rows/callback branches, and exact or bounded
+comparison policy; the runner restores the checkpoint between cases and emits
+one aggregate artifact. Its coverage manifest must account for every imported
+table row, action-frame pose, transition, callback branch, and physical
+positive/negative boundary claimed by production. The fast at-will suite
+replays stored authoritative inputs/traces without launching Dolphin and
+selects changed cases from that same manifest. A warm live run requalifies the
+affected domain, while the complete pack periodically requalifies the whole
+manifest. No finite scenario proves the absence of every possible anomaly, so
+coverage is explicit and extensible rather than described as universal.
+
 Exact equivalence here is behavioral rather than a demand that Q16.16 fixed
 point reproduce every least-significant bit of Dolphin's single-precision
 positions. Small numeric differences are accepted only when they are bounded,
@@ -469,7 +483,7 @@ and the anisotropically mapped elliptical collision volume. A 2,568-frame,
 33-decision Jab 1 sweep additionally qualifies exact sphere-versus-shield
 collision at neutral and two diagonal guard offsets, including all three
 last-hit/first-miss boundaries. Aggregate executable-oracle evidence is
-therefore 18,317 qualified frames, including 350 actionable frames from a
+therefore 18,697 qualified frames, including 350 actionable frames from a
 1,250-frame aerial-IASA capture covering one-frame-early/exact fair, back-air,
 up-air, and down-air double-jump interrupts plus neutral-air's no-IASA control,
 and
@@ -611,7 +625,8 @@ geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
 Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
-RollForward, RollBackward, AirDodge, FallSpecial, and LandingFallSpecial remain
+RollForward, RollBackward, AirDodge, FallSpecial, LandingFallSpecial, and
+ordinary Landing remain
 explicit
 M4 gaps and must be extracted or qualified rather than approximated with
 invented frame data. Common poses use
@@ -631,7 +646,11 @@ lag; its source-frame-7 discriminator hits at 18.5 and misses at 19.3, where
 the generic rectangle falsely misses the hit. Runtime lookup uses one
 action-specific tick-to-source-frame adapter so movements that already enter
 at source frame 1 are not shifted, while zero-based KneeBend/dodge/roll/
-FallSpecial/LandingFallSpecial ticks are converted without duplicate tables.
+FallSpecial/LandingFallSpecial/Landing ticks are converted without duplicate
+tables. Ordinary Landing resolves to common submotion 15 and retains all 30
+displayed poses when no interrupt is supplied even though its input gate opens
+after Falcon's four-frame landing lag. A pending source-frame-22 Jab 1 control
+hits at 20.3 units and misses at 20.6, while the generic rectangle misses both.
 LandingFallSpecial physics follows `ftCo_Landing_Phys -> ft_80084F3C`: entry
 copies horizontal self velocity to ground velocity, each flat-stage tick moves
 by the post-friction velocity, and friction is Falcon's ground friction times

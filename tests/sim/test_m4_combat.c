@@ -13805,6 +13805,31 @@ static int run_reference_common_landing_fall_special_hurt_test(void)
     return 1;
 }
 
+static int run_reference_common_landing_hurt_test(void)
+{
+    /* Same-input Dolphin controls: Jab 1 frame 3 evaluates ordinary
+     * Landing's pending source frame-22 pose. It hits at 20.3 Melee units
+     * and misses at 20.6, while the former generic rectangle misses both. */
+    if (reference_common_hurt_overlap_at_distance(
+            (uint8_t)PF_M4_ACTION_LANDING,
+            UINT16_C(22),
+            UINT16_C(3),
+            INT8_C(1),
+            UINT32_C(2030),
+            UINT32_C(0)) == 0 ||
+        reference_common_hurt_overlap_at_distance(
+            (uint8_t)PF_M4_ACTION_LANDING,
+            UINT16_C(22),
+            UINT16_C(3),
+            INT8_C(1),
+            UINT32_C(2060),
+            UINT32_C(0)) != 0)
+    {
+        return fail("reference-common-landing-hurt");
+    }
+    return 1;
+}
+
 static int make_shield_break_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -22588,6 +22613,8 @@ static int run_falcon_reference_table_test(void)
     uint8_t fall_special_last_hurt_capsule_count = UINT8_C(0);
     uint8_t landing_fall_special_hurt_capsule_count = UINT8_C(0);
     uint8_t landing_fall_special_last_hurt_capsule_count = UINT8_C(0);
+    uint8_t landing_hurt_capsule_count = UINT8_C(0);
+    uint8_t landing_last_hurt_capsule_count = UINT8_C(0);
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
     uint8_t grab_hurt_capsule_count = UINT8_C(0);
@@ -22770,6 +22797,16 @@ static int run_falcon_reference_table_test(void)
                 (uint8_t)PF_M4_ACTION_SPECIAL_LANDING,
                 UINT16_C(10),
                 &landing_fall_special_last_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *landing_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_LANDING,
+            UINT16_C(1),
+            &landing_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *landing_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_LANDING,
+            UINT16_C(30),
+            &landing_last_hurt_capsule_count);
     const pf_m4_reference_hurt_capsule *jab_hurt_capsules =
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
@@ -22898,6 +22935,10 @@ static int run_falcon_reference_table_test(void)
         landing_fall_special_hurt_capsule_count != UINT8_C(11) ||
         landing_fall_special_last_hurt_capsules == NULL ||
         landing_fall_special_last_hurt_capsule_count != UINT8_C(11) ||
+        landing_hurt_capsules == NULL ||
+        landing_hurt_capsule_count != UINT8_C(11) ||
+        landing_last_hurt_capsules == NULL ||
+        landing_last_hurt_capsule_count != UINT8_C(11) ||
         pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             (uint8_t)PF_M4_ACTION_INITIAL_DASH,
             UINT16_C(0),
@@ -22941,6 +22982,10 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             (uint8_t)PF_M4_ACTION_SPECIAL_LANDING,
             UINT16_C(11),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_LANDING,
+            UINT16_C(31),
             NULL) != NULL)
     {
         return fail("falcon-reference-z-collision-source");
@@ -23688,10 +23733,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x18) ||
-        geometry_sha256[1] != UINT8_C(0x1c) ||
-        geometry_sha256[30] != UINT8_C(0x2e) ||
-        geometry_sha256[31] != UINT8_C(0x42) ||
+        geometry_sha256[0] != UINT8_C(0x37) ||
+        geometry_sha256[1] != UINT8_C(0x7f) ||
+        geometry_sha256[30] != UINT8_C(0xe6) ||
+        geometry_sha256[31] != UINT8_C(0x45) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -24961,6 +25006,7 @@ int main(void)
         !run_reference_common_air_dodge_hurt_test() ||
         !run_reference_common_fall_special_hurt_test() ||
         !run_reference_common_landing_fall_special_hurt_test() ||
+        !run_reference_common_landing_hurt_test() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

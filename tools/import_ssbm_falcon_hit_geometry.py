@@ -32,7 +32,7 @@ EXPECTED_HURT_CAPTURE_SHA256 = (
     "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
 )
 EXPECTED_COMMON_HURT_CAPTURE_SHA256 = (
-    "ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e"
+    "8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc"
 )
 EXPECTED_THROW_CAPTURE_SHA256 = (
     "368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95"
@@ -102,6 +102,7 @@ COMMON_HURT_ACTIONS = (
     # LandingFallSpecial plays Falcon's 29-frame source motion at 3.0
     # animation frames per simulation tick for the common 10-frame lag.
     ("LANDING_SPECIAL", tuple(range(1, 29, 3))),
+    ("LANDING", tuple(range(1, 31))),
 )
 
 ACTION_BY_MOVE = {

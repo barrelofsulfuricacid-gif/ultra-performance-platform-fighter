@@ -4091,6 +4091,58 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon ordinary Landing hurt poses
+
+- The mandatory prior-art sweep checked the existing common-pose importer and
+  runtime lookup, the reusable `ssbm-character-importer` skill, the accepted
+  common-state Dolphin capture, maintained public import/extractor work, and
+  pinned doldecomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+  before implementation. Common motion state 42 resolves to submotion 15;
+  its source endpoint is 30, gameplay endpoint is 29, and it has no TransN
+  stream. With no interrupt input, the executable exposes displayed Landing
+  frames 1-30 even though Falcon's separate landing-lag gate opens after frame
+  4. Animation duration and interruptibility are not conflated.
+- The expanded common-pose oracle contains 4,198 rows. The accepted accelerated
+  SHA-256 is
+  `8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc`;
+  the same ExiAI binary without fast-forward produces control SHA-256
+  `32a0a742012f360c1e49b27d2fb2023e16eac5af23694b032a3777d41ad16a9d`.
+  Strict A/B comparison passes all rows, 2,011/1,149 active fighter/opponent
+  rows, and 1,909/1,120 initialized non-hitlag action-owned pose rows. The
+  accelerated/control captures took 37.6/45.3 seconds locally; those timings
+  preserve oracle validity but are explicitly not acceptable iteration
+  throughput, so capture-pipeline optimization precedes the next long route.
+- Jab 1 frame 3 evaluates ordinary Landing's pending source-frame-22 pose. It
+  hits at 20.3 Melee units and misses at 20.6, with reconstructed margins
+  +0.142592999/-0.150664469. The old generic rectangle misses the positive
+  route at -1.863413048, so action labels or the fallback body cannot satisfy
+  the control.
+- The importer appends one compact 30-frame entry to the existing common index,
+  reuses the deduplicated capsule pool, and maps public `LANDING` once. It adds
+  no allocation, float math, capsule representation, snapshot bytes, or per-
+  fighter state. Canonical geometry SHA-256 is
+  `377fb771847ff7a6a3dcb6c02e648787c279fc68a5c3eee9aab16ce23d5fe645`;
+  two pinned regenerations are byte-identical at tracked-include SHA-256
+  `b39310bffe4ac6ec61e4711481e28f24dd01811dcdfdded7d52c921ac8ad415e`.
+- Windows MSVC and WSL Release pass 22/22 tests; WSL ASan/UBSan and Windows
+  MinGW pass 15/15. The standalone combat/browser verifiers and Chrome smoke
+  pass with emergent-technique-specific tests skipped. Rebuilt native/Wasm
+  replay output is byte-identical at corpus/final/event SHA-256 values
+  `5893af587684844c22c0fc6c7019f13748c4366c586e088ed1a24d4e1819c942`,
+  `0235c47f05fdd37257bdd59ac5cfd5c7e107316a19f99001eefdeea7d78e951d`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  The deterministic verifier digest advances to `c408c172ee853571`.
+  Live-browser QA reports every probe passing, `controllers 2/2 · GameCube
+  4/4`, advancing ticks, and no warnings/errors. The 13-scenario profile
+  workload passes with ten available scenarios; a separate unsampled 64-
+  environment boundary reports 232,384 single-call and 1,348,050 batched ticks
+  per second, a 5.8010x speedup with exact state identity.
+- The reusable importer skill now records that a full no-input animation span
+  must be qualified independently from an earlier interrupt gate, and validates
+  successfully. Aggregate owner-executable evidence is 18,697 qualified
+  frames. M4 remains unfinished; the next slice first optimizes the oracle's
+  cross-process capture path before further fidelity expansion.
+
 ## 2026-08-08 Falcon horizontal LandingFallSpecial physics
 
 - The mandatory prior-art sweep checked the existing movement implementation,

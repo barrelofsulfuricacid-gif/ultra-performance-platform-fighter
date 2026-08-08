@@ -637,7 +637,8 @@ into content identity and routes complete-frame executable-captured pose and
 hit geometry for the 14 production normals/aerials, standing and dash grab,
 all 17 Falcon special subactions, Initial Dash, RunBrake, CrouchStart, and
 CrouchEnd, KneeBend, SpotDodge, both rolls, AirDodge, looping FallSpecial, and
-the speed-scaled LandingFallSpecial sequence. A compact common-pose index maps
+the speed-scaled LandingFallSpecial sequence, plus all 30 ordinary Landing
+poses. A compact common-pose index maps
 the existing public action at lookup time; one inlined action-tick adapter
 preserves the source-frame-1 convention of dash/brake/squat while mapping the
 zero-based common states to their one-based source poses. Its frame spans reuse

@@ -413,29 +413,31 @@ special subactions. The final wall-rebound row reuses the source-defined Falcon
 Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
-remains the grounded-idle route. A third 3,818-row Slippi Dolphin 3.5.1 ExiAI
+remains the grounded-idle route. A third 4,198-row Slippi Dolphin 3.5.1 ExiAI
 capture,
 SHA-256
-`ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e`,
+`8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc`,
 adds every displayed Initial Dash frame 1-15, RunBrake frame 1-28, CrouchStart
 frame 1-7, CrouchEnd frame 1-10, KneeBend frame 1-4, SpotDodge frame 1-32,
 RollForward frame 1-31, RollBackward frame 1-31, AirDodge frame 1-49,
 FallSpecial frame 1-8, and speed-scaled LandingFallSpecial source frames
-1, 4, 7, 10, 13, 16, 19, 22, 25, and 28. Its
+1, 4, 7, 10, 13, 16, 19, 22, 25, and 28, plus ordinary Landing frames 1-30.
+Its
 controller-port cross-check requires both live poses to canonicalize to the
 same Falcon Q16.16 capsules; capture metadata alone is not accepted as proof
 that the menu spawned the requested character. The ExiAI path is separately
 qualified against an unaccelerated same-binary control at SHA-256
-`8f27b27e82cbcb3f50db6595f050580c921ad7316a40f1b819489c73df12da1c`;
-the A/B comparison covers 1,773/1,049 active fighter/opponent rows and
-1,674/1,023 qualified action-owned pose rows. Every collision control first
+`32a0a742012f360c1e49b27d2fb2023e16eac5af23694b032a3777d41ad16a9d`;
+the A/B comparison covers 2,011/1,149 active fighter/opponent rows and
+1,909/1,120 qualified action-owned pose rows. Every collision control first
 pre-places both ports safely, settles them, establishes explicit facing, and
 fully recovers before final placement; this prevents preceding routes from
 leaking airborne state, facing, or velocity.
 Looping idle, `Ft_MF_SkipAnim` GuardReflect inheritance, and positive-hitlag
 bone endpoints are forbidden as geometry sources, so every imported KneeBend,
 SpotDodge, RollForward, RollBackward, AirDodge, FallSpecial, and
-LandingFallSpecial sample comes from a dedicated active, non-hitlag track. The
+LandingFallSpecial and ordinary Landing samples come from dedicated active,
+non-hitlag tracks. The
 pinned `ftCo_Escape.c` SHA-256 is
 `762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89`;
 its generated state-two/state-zero commands and executable trace agree on
@@ -475,7 +477,12 @@ frame-5 control hits at 15.5 Melee units and misses at 16.2, with reconstructed
 margins +0.563753525/-0.130038736; the generic rectangle falsely hits the miss
 at +2.936591339. A pending LandingFallSpecial source-frame-7 control hits at
 18.5 and misses at 19.3, with margins +0.509528504/-0.137582566; the generic
-rectangle falsely misses the hit at -0.063411903.
+rectangle falsely misses the hit at -0.063411903. Common state 42 resolves to
+ordinary Landing submotion 15. With no interrupt, the executable exposes all
+30 displayed poses even though Falcon's input gate opens after frame 4. Jab 1
+evaluates the pending source-frame-22 pose: it hits at 20.3 and misses at 20.6,
+with reconstructed margins +0.142592999/-0.150664469; the generic rectangle
+misses both at -1.863413048 on the positive route.
 
 The same pinned landing source proves there is no LandingFallSpecial root-
 motion correction. `ftCo_Landing_Enter` grounds the fighter through
@@ -497,15 +504,15 @@ position units while velocity already matched.
 The canonicalized timing, hit-sphere, standing-pose, action-pose, and common-
 pose tables
 hash to
-`181c614a07192564a18c779515c53e7f906c34a1d6ececf67e912cb8ed8d2e42`.
+`377fb771847ff7a6a3dcb6c02e648787c279fc68a5c3eee9aab16ce23d5fe645`.
 Pinned regeneration produces the tracked include at SHA-256
-`f9e823f41da8ae4684791ba1aa667f903e422bc23d237139634118230607e6df`.
+`b39310bffe4ac6ec61e4711481e28f24dd01811dcdfdded7d52c921ac8ad415e`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, all 17 Falcon special
 subactions, Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend,
 SpotDodge, RollForward, RollBackward, AirDodge, FallSpecial, and
-LandingFallSpecial.
+LandingFallSpecial, plus ordinary Landing.
 Imported hit and hurt geometry is anchored to Melee's fighter root
 at the simulation floor-origin offset, rather than incorrectly treating the
 simulation body center as the source origin.

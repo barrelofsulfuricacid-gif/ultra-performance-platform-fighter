@@ -19,7 +19,7 @@ from ssbm_collision import (
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e"
+    "8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc"
 )
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
@@ -434,7 +434,7 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 3818
+        or len(rows) != 4198
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -472,6 +472,13 @@ def main() -> int:
         "KNEE_BEND",
         1,
         4,
+    )
+    landing_rows = exact_action_frames(
+        rows,
+        "common_hurt_knee_bend_recover",
+        "LANDING",
+        1,
+        30,
     )
     spot_dodge_rows = exact_action_frames(
         rows,
@@ -1036,6 +1043,74 @@ def main() -> int:
             f"generic_margin={landing_generic_margin:.9f}"
         )
 
+    normal_landing_positive, normal_landing_negative = (
+        verify_collision_outcome(
+            rows,
+            "landing",
+            9.699999809265137,
+            10.920000076293945,
+            "DAMAGE_NEUTRAL_2",
+            target_prefix="",
+            negative_damage=9.699999809265137,
+        )
+    )
+    normal_landing_miss_frame = collision_frame(
+        normal_landing_negative,
+        3,
+        "LANDING",
+        21,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        landing_rows[20],
+        normal_landing_miss_frame,
+        "port-1 Landing frame 21",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    normal_landing_target_shift = (
+        requested_route_distance(
+            normal_landing_positive,
+            target="fighter",
+            attacker="opponent",
+        )
+        - requested_route_distance(
+            normal_landing_negative,
+            target="fighter",
+            attacker="opponent",
+        )
+    )
+    normal_landing_pending_frame = row_with_pending_fighter_pose(
+        normal_landing_miss_frame, landing_rows[21]
+    )
+    normal_landing_hit_margin, normal_landing_miss_margin = (
+        reconstructed_collision_margins(
+            normal_landing_pending_frame,
+            normal_landing_target_shift,
+            hitbox_key="opponent_hitboxes",
+            hurtbox_key="fighter_hurtboxes",
+        )
+    )
+    normal_landing_generic_margin = generic_rectangle_margin(
+        dict(normal_landing_pending_frame["hitbox_memory"]),
+        normal_landing_target_shift,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        normal_landing_hit_margin < 0.0
+        or normal_landing_miss_margin >= 0.0
+        or normal_landing_generic_margin >= 0.0
+    ):
+        raise SystemExit(
+            "Landing collision discriminator failed: "
+            f"hit_margin={normal_landing_hit_margin:.9f} "
+            f"miss_margin={normal_landing_miss_margin:.9f} "
+            f"generic_margin={normal_landing_generic_margin:.9f}"
+        )
+
     print(
         "ssbm-common-hurt=pass "
         f"frames={len(rows)} dash_frames={len(dash_rows)} "
@@ -1043,6 +1118,7 @@ def main() -> int:
         f"crouch_start_frames={len(crouch_start_rows)} "
         f"crouch_end_frames={len(crouch_end_rows)} "
         f"knee_bend_frames={len(knee_bend_rows)} "
+        f"landing_frames={len(landing_rows)} "
         f"spot_dodge_frames={len(spot_dodge_rows)} "
         f"roll_forward_frames={len(roll_forward_rows)} "
         f"roll_backward_frames={len(roll_backward_rows)} "
@@ -1076,6 +1152,9 @@ def main() -> int:
         f"landing_fall_special_hit_margin={landing_hit_margin:.9f} "
         f"landing_fall_special_miss_margin={landing_miss_margin:.9f} "
         f"landing_fall_special_generic_margin={landing_generic_margin:.9f} "
+        f"landing_hit_margin={normal_landing_hit_margin:.9f} "
+        f"landing_miss_margin={normal_landing_miss_margin:.9f} "
+        f"landing_generic_margin={normal_landing_generic_margin:.9f} "
         f"capture_sha256={capture_digest}"
     )
     return 0

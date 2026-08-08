@@ -194,3 +194,25 @@ evidence. Experiment traces sharing a match configuration should be batched in
 one process; repeated GUI launches at real-time speed are not an acceptable
 default workflow. Save-state or persistent-process extensions remain optional
 only when measurements show material benefit beyond the qualified prior art.
+
+## 2026-08-08 - Massively fast executable-oracle validation
+
+The ordinary edit loop must not launch Dolphin. It runs source/import checks,
+stored authoritative identical-input traces, deterministic simulation and
+replay checks, and changed-case selection from one machine-readable coverage
+manifest. After the build, this no-Dolphin suite targets at most 2 seconds.
+
+Live qualification uses one persistent headless/null/unlimited Dolphin process
+containing many short, checkpoint-isolated cases. Each case declares its
+checkpoint, ordered inputs, observed fields, source rows and callback branches,
+and exact or bounded comparison policy. The runner restores the checkpoint
+between cases, batches cross-process memory observation, and emits one aggregate
+artifact. A changed-domain warm run targets at most 3 seconds and the complete
+warm Falcon pack targets at most 10 seconds. Missing either budget is an active
+performance defect.
+
+One continuous scenario is not sufficient because state leaks between actions
+and failures become difficult to localize. No finite scenario can detect every
+possible anomaly either. Completeness is therefore an explicit, extensible
+manifest accounting for every imported table row, action-frame pose,
+transition, callback branch, and claimed positive/negative physical boundary.

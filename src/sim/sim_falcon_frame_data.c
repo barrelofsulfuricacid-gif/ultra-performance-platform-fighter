@@ -510,6 +510,9 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             track_index =
                 PF_M4_FALCON_COMMON_HURT_LANDING_FALL_SPECIAL;
             break;
+        case PF_M4_ACTION_LANDING:
+            track_index = PF_M4_FALCON_COMMON_HURT_LANDING;
+            break;
         default:
             if (out_count != NULL)
             {
