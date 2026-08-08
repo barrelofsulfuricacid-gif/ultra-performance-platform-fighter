@@ -453,9 +453,13 @@ pf_status pf_sim_observe(
         player->position_y_q16 =
             sim->world.position_y_q16[player_index];
         player->velocity_x_q16 =
-            sim->world.velocity_x_q16[player_index];
+            pf_m4_total_velocity_q16(
+                sim->world.velocity_x_q16[player_index],
+                sim->world.knockback_velocity_x_q16[player_index]);
         player->velocity_y_q16 =
-            sim->world.velocity_y_q16[player_index];
+            pf_m4_total_velocity_q16(
+                sim->world.velocity_y_q16[player_index],
+                sim->world.knockback_velocity_y_q16[player_index]);
         player->player_slot = (uint8_t)player_index;
         player->team = sim->world.team[player_index];
         player->grounded = sim->world.grounded[player_index];

@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-damage-response",
+  "domain": "falcon-common-damage-response",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 138,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "damage_response_cases": [
+        {
+          "id": "neutral",
+          "pre_hit": { "main": [0, 0] },
+          "hitlag": [
+            { "main": [0, 0] },
+            { "main": [0, 0] },
+            { "main": [0, 0] }
+          ]
+        },
+        {
+          "id": "di_full_right",
+          "pre_hit": { "main": [0, 0] },
+          "hitlag": [
+            { "main": [0, 0] },
+            { "main": [32767, 0] },
+            { "main": [32767, 0] }
+          ]
+        },
+        {
+          "id": "di_half_right",
+          "pre_hit": { "main": [0, 0] },
+          "hitlag": [
+            { "main": [0, 0] },
+            { "main": [16384, 0] },
+            { "main": [16384, 0] }
+          ]
+        },
+        {
+          "id": "sdi_radial_diagonal",
+          "pre_hit": { "main": [0, 0] },
+          "hitlag": [
+            { "main": [16384, 16384] },
+            { "main": [16384, 16384] },
+            { "main": [16384, 16384] }
+          ]
+        },
+        {
+          "id": "sdi_below_radial",
+          "pre_hit": { "main": [0, 0] },
+          "hitlag": [
+            { "main": [16100, 16100] },
+            { "main": [16100, 16100] },
+            { "main": [16100, 16100] }
+          ]
+        },
+        {
+          "id": "asdi_c_priority",
+          "pre_hit": { "main": [0, 0] },
+          "hitlag": [
+            { "main": [0, 0] },
+            { "main": [32767, 0], "c_stick": [0, 32767] },
+            { "main": [32767, 0], "c_stick": [0, 32767] }
+          ]
+        }
+      ]
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "src/sim/sim_ssbm_common_data.c",
+      "src/sim/sim_ssbm_damage.c",
+      "generated/data/m4_ssbm_falcon_damage_response_oracle.inc",
+      "tools/import_ssbm_common_data.py",
+      "tools/ssbm_dat.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_damage_response_coverage.json",
+      "tools/verify_ssbm_falcon_damage_response.py",
+      "tools/verify_ssbm_falcon_damage_response.sh"
+    ]
+  },
+  "checkpoint_cases": [
+    { "id": "neutral", "start_label": "damage_response_neutral_place" },
+    { "id": "di-full-right", "start_label": "damage_response_di_full_right_place" },
+    { "id": "di-half-right", "start_label": "damage_response_di_half_right_place" },
+    { "id": "sdi-radial-diagonal", "start_label": "damage_response_sdi_radial_diagonal_place" },
+    { "id": "sdi-below-radial", "start_label": "damage_response_sdi_below_radial_place" },
+    { "id": "asdi-c-priority", "start_label": "damage_response_asdi_c_priority_place" }
+  ],
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95",
+    "production_trace_sha256": "dd946d72cc6348c502298cd92438d3617866cd5f8798e342b4057a1f200e812b",
+    "samples_per_case": 3,
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_damage_response",
+      "macro_prefix": "PF_M4_SSBM_FALCON_DAMAGE_RESPONSE"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-damage-response"]
+    }
+  }
+}

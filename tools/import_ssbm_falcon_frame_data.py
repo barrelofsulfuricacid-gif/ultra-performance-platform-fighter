@@ -16,6 +16,7 @@ from hsd_figatree import (
     decode_figatree,
     sample_track,
 )
+from ssbm_dat import ft_common_data
 
 
 EXPECTED_CANONICAL_SHA256 = (
@@ -734,27 +735,7 @@ def source_collision_attributes(source_dat: bytes) -> dict[str, float]:
 def source_common_data(common_dat: bytes) -> tuple[bytes, tuple[int, ...]]:
     """Return the pinned ftCommonData block and its root pointer table."""
 
-    if len(common_dat) < 0x20:
-        raise ValueError("truncated PlCo.dat header")
-    data_size, relocation_count, root_count, reference_count = struct.unpack_from(
-        ">4I", common_dat, 0x04
-    )
-    if root_count != 1 or reference_count != 0:
-        raise ValueError("unexpected PlCo.dat root/reference table")
-    root_table = 0x20 + data_size + relocation_count * 4
-    if root_table + 8 > len(common_dat):
-        raise ValueError("PlCo.dat root table is out of bounds")
-    root_offset, root_name_offset = struct.unpack_from(">2I", common_dat, root_table)
-    string_table = root_table + root_count * 8 + reference_count * 8
-    name_start = string_table + root_name_offset
-    name_end = common_dat.find(b"\0", name_start)
-    if name_end < 0 or common_dat[name_start:name_end] != b"ftLoadCommonData":
-        raise ValueError("unexpected PlCo.dat root name")
-    data = common_dat[0x20 : 0x20 + data_size]
-    if root_offset + 4 > len(data):
-        raise ValueError("ftLoadCommonData root is out of bounds")
-    common_offsets = struct.unpack_from(">23I", data, root_offset)
-    return data, common_offsets
+    return ft_common_data(common_dat)
 
 
 def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:

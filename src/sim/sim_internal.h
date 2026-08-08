@@ -8,6 +8,43 @@
 
 #define PF_SIM_HANDLE_MAGIC UINT64_C(0x504653494D303032)
 #define PF_SIM_MAX_MOTION_SPEED_Q16 INT32_C(262144)
+
+static inline int32_t pf_m4_total_velocity_q16(
+    int32_t self_velocity_q16,
+    int32_t knockback_velocity_q16)
+{
+    /* Both channels are independently bounded by
+     * PF_SIM_MAX_MOTION_SPEED_Q16, so their sum is representable in i32. */
+    return (int32_t)(
+        (int64_t)self_velocity_q16 + (int64_t)knockback_velocity_q16);
+}
+
+static inline uint32_t pf_m4_u64_sqrt(uint64_t value)
+{
+    uint64_t result = UINT64_C(0);
+    uint64_t bit = UINT64_C(1) << 62U;
+
+    while (bit > value)
+    {
+        bit >>= 2U;
+    }
+    while (bit != UINT64_C(0))
+    {
+        if (value >= result + bit)
+        {
+            value -= result + bit;
+            result = (result >> 1U) + bit;
+        }
+        else
+        {
+            result >>= 1U;
+        }
+        bit >>= 2U;
+    }
+    return result > (uint64_t)UINT32_MAX
+               ? UINT32_MAX
+               : (uint32_t)result;
+}
 #define PF_SIM_MAX_DAMAGE_Q16 (UINT32_C(999) * UINT32_C(65536))
 #define PF_SIM_MAX_SHIELD_HEALTH_Q16 \
     (UINT32_C(100) * UINT32_C(65536))
@@ -133,8 +170,8 @@ typedef struct pf_world_state
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
-    int32_t pending_velocity_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t pending_velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
+    int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];
@@ -225,8 +262,8 @@ typedef struct pf_sim_scratch
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
-    int32_t pending_velocity_x_q16[PF_SIM_MAX_PLAYERS];
-    int32_t pending_velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
+    int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_sequence[PF_SIM_MAX_PLAYERS];
     uint64_t last_hit_tick[PF_SIM_MAX_PLAYERS];
     uint32_t last_hit_damage_q16[PF_SIM_MAX_PLAYERS];

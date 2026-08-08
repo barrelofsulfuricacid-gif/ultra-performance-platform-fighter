@@ -342,16 +342,69 @@ def main() -> int:
             "m4-ssbm-stored-oracle",
             f"stored-runner-{domain_name}",
         )
-        cases = stored.get("cases")
-        if not isinstance(cases, list):
-            fail(f"operation=manifest domain={domain_name} reason=invalid-cases")
-        expected = {
-            "domain": domain_name,
-            "poses": str(pose_count(domain)),
-            "cases": str(len(cases)),
-            "source_pose_sha256": str(stored.get("source_pose_sha256")),
-            "production_pose_sha256": str(stored.get("production_pose_sha256")),
-        }
+        kind = stored.get("kind", "pose-geometry-v1")
+        if kind == "numeric-trace-v1":
+            checkpoint_pack = domain.get("checkpoint_pack")
+            capture_plan = (
+                checkpoint_pack.get("capture_plan")
+                if isinstance(checkpoint_pack, dict)
+                else None
+            )
+            cases = (
+                capture_plan.get("damage_response_cases")
+                if isinstance(capture_plan, dict)
+                else None
+            )
+            if not isinstance(cases, list) or not cases:
+                fail(
+                    f"operation=manifest domain={domain_name} "
+                    "reason=invalid-trace-cases"
+                )
+            samples_per_case = stored.get("samples_per_case")
+            if (
+                not isinstance(samples_per_case, int)
+                or isinstance(samples_per_case, bool)
+                or samples_per_case <= 0
+            ):
+                fail(
+                    f"operation=manifest domain={domain_name} "
+                    "reason=invalid-samples-per-case"
+                )
+            expected = {
+                "domain": domain_name,
+                "poses": "0",
+                "cases": str(len(cases)),
+                "samples": str(len(cases) * samples_per_case),
+                "source_trace_sha256": str(
+                    stored.get("source_trace_sha256")
+                ),
+                "production_trace_sha256": str(
+                    stored.get("production_trace_sha256")
+                ),
+            }
+        elif kind == "pose-geometry-v1":
+            cases = stored.get("cases")
+            if not isinstance(cases, list):
+                fail(
+                    f"operation=manifest domain={domain_name} "
+                    "reason=invalid-cases"
+                )
+            expected = {
+                "domain": domain_name,
+                "poses": str(pose_count(domain)),
+                "cases": str(len(cases)),
+                "source_pose_sha256": str(
+                    stored.get("source_pose_sha256")
+                ),
+                "production_pose_sha256": str(
+                    stored.get("production_pose_sha256")
+                ),
+            }
+        else:
+            fail(
+                f"operation=manifest domain={domain_name} "
+                f"reason=unsupported-stored-kind kind={kind!r}"
+            )
         for field, value in expected.items():
             if fields.get(field) != value:
                 fail(

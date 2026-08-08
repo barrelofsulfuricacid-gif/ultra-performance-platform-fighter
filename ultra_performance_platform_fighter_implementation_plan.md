@@ -4,7 +4,9 @@
 
 **Plan basis:** `game(3).txt` plus fresh primary-source technical research performed on 2026-07-27. No previous game analysis is incorporated.
 
-**Status:** Execution active in M4; owner decisions and subsequent binding plan modifications are recorded in `plan_modifications.md`.
+**Status:** Execution active in M4. The concise live done/active/remaining
+ledger is `M4_ROADMAP.md`; owner decisions and subsequent binding plan
+modifications are recorded in `plan_modifications.md`.
 
 ---
 

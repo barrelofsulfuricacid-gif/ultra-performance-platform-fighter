@@ -753,6 +753,35 @@ both pass the identical-input comparator. Their SHA-256 values are
 | analog shield common dead zone / first accepted raw value | 0.30 / 0.30 | threshold 19661 of 65535; a digital click is 65535 |
 | air-dodge X/Y dead zone | 0.25 / 0.25 | 8192 of 32767 |
 
+## Imported common damage-response values
+
+The standalone common-data generator validates the HSD archive root and all
+relocations before copying the complete 0x818-byte, 518-word `ftCommonData`
+object. Its owner `PlCo.dat` SHA-256 is
+`63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c`.
+Typed fields below are views over that complete pinned object rather than a
+second authored constants table.
+
+| Source field / offset | NTSC 1.02 raw | Simulation mapping |
+|---|---:|---:|
+| hitstun per knockback, `0x154` | 0.4 | 26,214 Q16 |
+| launch speed per knockback, `0x100` | 0.03 | independently scaled X/Y: 205 / 349 Q16 |
+| maximum DI angle, `0x1A8` | 18 degrees | 337,325,943 Q30 radians |
+| ground knockback decay scale, `0x200` | 1.0 | 65,536 Q16; pending ground-route qualification |
+| air knockback magnitude decay, `0x204` | 0.051 | 3,342 Q16 in Melee source units |
+| SDI radial threshold / window, `0x4B0` / `0x4B4` | 0.7 / 4 | 22,937 of 32,767 / four ticks |
+| SDI distance, `0x4B8` | 6.0 | independently scaled X/Y: 41,031 / 69,764 Q16 |
+| ASDI distance, `0x4BC` | 3.0 | independently scaled X/Y: 20,516 / 34,882 Q16 |
+| shield SDI multiplier, `0x4C0` | 0.66 | 43,254 Q16 |
+
+DI and knockback decay operate after converting the project's anisotropically
+scaled velocity channels back to Melee units. The runtime keeps ordinary self
+velocity and damage knockback velocity separate, applies physics first,
+subtracts the imported scalar from knockback magnitude, then integrates their
+sum, matching `Fighter_procUpdate` ordering. The six-case checkpointed Dolphin
+route and stored numeric oracle qualify this open-air boundary; they do not
+claim the pending ground/collision routes.
+
 The player-push values come from Falcon's `ftDataCaptain` `x2C4` vector in
 `PlCa.dat` and common-data field `x450` in `PlCo.dat`. The independently
 written implementation follows pinned decomp routines `ftCommon_8007DD7C` and

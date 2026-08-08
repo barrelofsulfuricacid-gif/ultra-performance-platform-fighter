@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define PF_SSBM_STORED_MAX_CAPSULES UINT8_C(32)
+#define PF_SSBM_STORED_MAX_TRACE_SAMPLES UINT8_C(8)
 
 typedef enum pf_ssbm_stored_case_mode
 {
@@ -91,8 +92,62 @@ typedef struct pf_ssbm_stored_oracle_result
     const char *failed_case;
 } pf_ssbm_stored_oracle_result;
 
+typedef struct pf_ssbm_stored_trace_input
+{
+    int16_t main_stick_x;
+    int16_t main_stick_y;
+    int16_t secondary_stick_x;
+    int16_t secondary_stick_y;
+} pf_ssbm_stored_trace_input;
+
+typedef struct pf_ssbm_stored_trace_sample
+{
+    int32_t position_x_q16;
+    int32_t position_y_q16;
+    int32_t self_velocity_x_q16;
+    int32_t self_velocity_y_q16;
+    int32_t knockback_velocity_x_q16;
+    int32_t knockback_velocity_y_q16;
+    uint16_t hitlag_ticks;
+    uint16_t hitstun_ticks;
+} pf_ssbm_stored_trace_sample;
+
+typedef struct pf_ssbm_stored_trace_case
+{
+    const char *id;
+    const pf_ssbm_stored_trace_input *inputs;
+} pf_ssbm_stored_trace_case;
+
+typedef uint8_t (*pf_ssbm_stored_trace_case_runner)(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity);
+
+typedef struct pf_ssbm_stored_trace_domain
+{
+    const char *name;
+    const pf_ssbm_stored_trace_case *cases;
+    uint16_t case_count;
+    uint8_t samples_per_case;
+    const char *expected_production_trace_sha256;
+    void *context;
+    pf_ssbm_stored_trace_case_runner run_case;
+} pf_ssbm_stored_trace_domain;
+
+typedef struct pf_ssbm_stored_trace_result
+{
+    char production_trace_sha256[65];
+    const char *failed_operation;
+    const char *failed_case;
+} pf_ssbm_stored_trace_result;
+
 int pf_ssbm_stored_oracle_run(
     const pf_ssbm_stored_oracle_domain *domain,
     pf_ssbm_stored_oracle_result *out_result);
+
+int pf_ssbm_stored_trace_oracle_run(
+    const pf_ssbm_stored_trace_domain *domain,
+    pf_ssbm_stored_trace_result *out_result);
 
 #endif

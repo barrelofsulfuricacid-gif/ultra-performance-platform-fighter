@@ -1854,16 +1854,141 @@ def input_trace(
         )
 
     if damage_hit_only:
-        repeat("damage_hit_settle", 60)
-        repeat(
-            "damage_hit_close_distance",
-            115,
-            main_x=0.7,
-            opponent_main_x=0.3,
+        if checkpoint_isolated:
+            if checkpoint_capture_plan is None:
+                raise ValueError("checkpoint capture plan is required")
+            raw_cases = checkpoint_capture_plan.get("damage_response_cases")
+            if not isinstance(raw_cases, list) or not raw_cases:
+                raise ValueError("damage response checkpoint cases are required")
+
+            def controller_axis(source_axis: object) -> float:
+                if (
+                    not isinstance(source_axis, int)
+                    or isinstance(source_axis, bool)
+                    or not -32767 <= source_axis <= 32767
+                ):
+                    raise ValueError("damage response stick axis is invalid")
+                return (float(source_axis) / 32767.0 + 1.0) * 0.5
+
+            def case_sticks(
+                raw: object,
+            ) -> tuple[float, float, float, float]:
+                if not isinstance(raw, dict):
+                    raise ValueError("damage response input phase must be an object")
+                main = raw.get("main", [0, 0])
+                c_stick = raw.get("c_stick", [0, 0])
+                if (
+                    not isinstance(main, list)
+                    or len(main) != 2
+                    or not isinstance(c_stick, list)
+                    or len(c_stick) != 2
+                ):
+                    raise ValueError("damage response stick pair is invalid")
+                return (
+                    controller_axis(main[0]),
+                    controller_axis(main[1]),
+                    controller_axis(c_stick[0]),
+                    controller_axis(c_stick[1]),
+                )
+
+            case_ids: set[str] = set()
+            for raw_case in raw_cases:
+                if not isinstance(raw_case, dict):
+                    raise ValueError("damage response case must be an object")
+                case_id = raw_case.get("id")
+                if (
+                    not isinstance(case_id, str)
+                    or not case_id
+                    or case_id in case_ids
+                ):
+                    raise ValueError("damage response case id is invalid")
+                case_ids.add(case_id)
+                pre_hit = case_sticks(raw_case.get("pre_hit", {}))
+                raw_hitlag = raw_case.get("hitlag")
+                if not isinstance(raw_hitlag, list) or len(raw_hitlag) != 3:
+                    raise ValueError(
+                        "damage response case must define three hitlag inputs"
+                    )
+                hitlag = tuple(case_sticks(raw) for raw in raw_hitlag)
+                prefix = f"damage_response_{case_id}"
+                place = command(
+                    f"{prefix}_place",
+                    main_x=pre_hit[0],
+                    main_y=pre_hit[1],
+                    c_x=pre_hit[2],
+                    c_y=pre_hit[3],
+                    fighter_x_override=12.0,
+                    fighter_facing_override=-1.0,
+                    opponent_x_override=0.0,
+                    opponent_facing_override=1.0,
+                )
+                trace.append({**place, "restore_before": True})
+                repeat(
+                    f"{prefix}_settle",
+                    8,
+                    main_x=pre_hit[0],
+                    main_y=pre_hit[1],
+                    c_x=pre_hit[2],
+                    c_y=pre_hit[3],
+                    fighter_x_override=12.0,
+                    fighter_facing_override=-1.0,
+                    opponent_x_override=0.0,
+                    opponent_facing_override=1.0,
+                )
+                trace.append(
+                    command(
+                        f"{prefix}_jab",
+                        main_x=pre_hit[0],
+                        main_y=pre_hit[1],
+                        c_x=pre_hit[2],
+                        c_y=pre_hit[3],
+                        opponent_attack=True,
+                        fighter_x_override=12.0,
+                        fighter_facing_override=-1.0,
+                        opponent_x_override=0.0,
+                        opponent_facing_override=1.0,
+                    )
+                )
+                repeat(
+                    f"{prefix}_pre_hit",
+                    2,
+                    main_x=pre_hit[0],
+                    main_y=pre_hit[1],
+                    c_x=pre_hit[2],
+                    c_y=pre_hit[3],
+                    fighter_x_override=12.0,
+                    fighter_facing_override=-1.0,
+                    opponent_x_override=0.0,
+                    opponent_facing_override=1.0,
+                )
+                for hitlag_index, sticks in enumerate(hitlag, start=1):
+                    trace.append(
+                        command(
+                            f"{prefix}_hitlag_{hitlag_index}",
+                            main_x=sticks[0],
+                            main_y=sticks[1],
+                            c_x=sticks[2],
+                            c_y=sticks[3],
+                        )
+                    )
+                repeat(f"{prefix}_observe", 8)
+            return trace
+
+        # Establish a deterministic close-range neutral state directly. The
+        # previous walk-together setup could stop at player-push distance,
+        # leaving Falcon Jab 1 outside the victim's hurt volume.
+        trace.append(
+            command(
+                "damage_hit_place",
+                fighter_x_override=12.0,
+                fighter_facing_override=-1.0,
+                opponent_x_override=0.0,
+                opponent_facing_override=1.0,
+            )
         )
-        repeat("damage_hit_neutral_settle", 20)
+        repeat("damage_hit_neutral_settle", 8)
         trace.append(command("damage_hit_jab", opponent_attack=True))
-        repeat("damage_hit_recovery", 75)
+        repeat("damage_hit_recovery", 40)
         return trace
 
     if defense_state_only:
@@ -4506,11 +4631,12 @@ def parse_args() -> argparse.Namespace:
     if args.oracle_checkpoint_probe and not args.oracle_exiai:
         parser.error("--oracle-checkpoint-probe requires --oracle-exiai")
     if args.oracle_checkpoint_pack and not (
-        args.oracle_exiai and args.common_hurt_geometry_only
+        args.oracle_exiai
+        and (args.common_hurt_geometry_only or args.damage_hit_only)
     ):
         parser.error(
             "--oracle-checkpoint-pack requires --oracle-exiai and "
-            "--common-hurt-geometry-only"
+            "a checkpoint-capable capture mode"
         )
     if args.oracle_checkpoint_probe and args.oracle_checkpoint_pack:
         parser.error("select only one checkpoint mode")

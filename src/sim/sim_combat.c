@@ -2833,11 +2833,11 @@ static pf_status pf_m4_apply_hit_reaction(
                             scratch,
                             target_index)
                       : 0;
-    scratch->pending_velocity_x_q16[target_index] =
+    scratch->knockback_velocity_x_q16[target_index] =
         armored != 0 || reset != 0
             ? INT32_C(0)
             : launch_velocity_x_q16;
-    scratch->pending_velocity_y_q16[target_index] =
+    scratch->knockback_velocity_y_q16[target_index] =
         armored != 0
             ? INT32_C(0)
             : reset != 0
@@ -2847,13 +2847,13 @@ static pf_status pf_m4_apply_hit_reaction(
         armored != 0 ? UINT16_C(0) : hitstun_ticks;
     if (crouch_cancelled != 0)
     {
-        scratch->pending_velocity_x_q16[target_index] =
+        scratch->knockback_velocity_x_q16[target_index] =
             pf_m4_scale_velocity_q16(
-                scratch->pending_velocity_x_q16[target_index],
+                scratch->knockback_velocity_x_q16[target_index],
                 content->fighter.crouch_cancel_velocity_scale_q16);
-        scratch->pending_velocity_y_q16[target_index] =
+        scratch->knockback_velocity_y_q16[target_index] =
             pf_m4_scale_velocity_q16(
-                scratch->pending_velocity_y_q16[target_index],
+                scratch->knockback_velocity_y_q16[target_index],
                 content->fighter.crouch_cancel_velocity_scale_q16);
         scratch->hitstun_ticks[target_index] =
             pf_m4_scale_hitstun_ticks(
@@ -2862,13 +2862,13 @@ static pf_status pf_m4_apply_hit_reaction(
     }
     if (v_cancelled != 0)
     {
-        scratch->pending_velocity_x_q16[target_index] =
+        scratch->knockback_velocity_x_q16[target_index] =
             pf_m4_scale_velocity_q16(
-                scratch->pending_velocity_x_q16[target_index],
+                scratch->knockback_velocity_x_q16[target_index],
                 content->fighter.v_cancel_velocity_scale_q16);
-        scratch->pending_velocity_y_q16[target_index] =
+        scratch->knockback_velocity_y_q16[target_index] =
             pf_m4_scale_velocity_q16(
-                scratch->pending_velocity_y_q16[target_index],
+                scratch->knockback_velocity_y_q16[target_index],
                 content->fighter.v_cancel_velocity_scale_q16);
     }
     scratch->tumble[target_index] =
@@ -2931,8 +2931,8 @@ static pf_status pf_m4_apply_hit_reaction(
             source_player,
             (uint8_t)target_index,
             damage_q16,
-            scratch->pending_velocity_x_q16[target_index],
-            scratch->pending_velocity_y_q16[target_index],
+            scratch->knockback_velocity_x_q16[target_index],
+            scratch->knockback_velocity_y_q16[target_index],
             event_flags,
             event_detail,
             &hit_sequence) != PF_STATUS_OK)
@@ -3127,7 +3127,7 @@ static pf_status pf_m4_resolve_falcon_dive_capture(
         scratch->velocity_x_q16[target_index] = INT32_C(0);
         scratch->velocity_y_q16[target_index] =
             content->fighter.gravity_q16;
-        scratch->pending_velocity_y_q16[target_index] =
+        scratch->knockback_velocity_y_q16[target_index] =
             content->fighter.gravity_q16;
     }
     return PF_STATUS_OK;
@@ -3520,12 +3520,12 @@ static pf_status pf_m4_resolve_grabs(
                 else
                 {
                     scratch->velocity_x_q16[target_index] =
-                        scratch->pending_velocity_x_q16[target_index];
+                        scratch->knockback_velocity_x_q16[target_index];
                     scratch->velocity_y_q16[target_index] =
-                        scratch->pending_velocity_y_q16[target_index];
-                    scratch->pending_velocity_x_q16[target_index] =
+                        scratch->knockback_velocity_y_q16[target_index];
+                    scratch->knockback_velocity_x_q16[target_index] =
                         INT32_C(0);
-                    scratch->pending_velocity_y_q16[target_index] =
+                    scratch->knockback_velocity_y_q16[target_index] =
                         INT32_C(0);
                     scratch->grounded[target_index] = UINT8_C(0);
                     scratch->support[target_index] =
@@ -3752,8 +3752,8 @@ static pf_status pf_m4_resolve_grabs(
                           content->fighter.grabbed_offset_y_q16;
             scratch->velocity_x_q16[target_index] = INT32_C(0);
             scratch->velocity_y_q16[target_index] = INT32_C(0);
-            scratch->pending_velocity_x_q16[target_index] = INT32_C(0);
-            scratch->pending_velocity_y_q16[target_index] = INT32_C(0);
+            scratch->knockback_velocity_x_q16[target_index] = INT32_C(0);
+            scratch->knockback_velocity_y_q16[target_index] = INT32_C(0);
             scratch->hitlag_ticks[target_index] = UINT16_C(0);
             scratch->hitstun_ticks[target_index] = UINT16_C(0);
             scratch->shield_stun_ticks[target_index] = UINT16_C(0);

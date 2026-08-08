@@ -4091,6 +4091,51 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon common open-air damage response
+
+- The prior-art/source sweep mapped pinned doldecomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`, `ftCo_Damage.c`,
+  `fighter.c`, the existing ExiAI checkpoint runner, and the owner
+  `PlCo.dat`. A strict reusable HSD reader now validates the archive root and
+  relocations, then imports all 518 words of `ftCommonData` instead of
+  transcribing selected frame data. The owner archive SHA-256 is
+  `63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c`.
+- Production now uses separate self and knockback velocity channels. In open
+  air it follows the source callback order: ordinary physics, imported 0.051
+  knockback-magnitude decay in Melee coordinates, then integration of both
+  channels. DI uses the source squared-projection formula and 18-degree cap;
+  SDI/ASDI use the source radial 0.7 threshold, four-frame window, analog
+  displacement, and C-stick ASDI priority. Vector operations happen before
+  conversion through the project's different X/Y scales.
+- A six-case checkpoint pack covers neutral, full-right DI, half-right DI,
+  radial diagonal SDI, a below-radial control, and C-stick-priority ASDI. The
+  live pack records 138 rows with stable observation SHA-256
+  `51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95`.
+  It compares every selected hitlag/launch position, self velocity, knockback
+  velocity, hitlag, and hitstun within 0.001 Melee units. Warm capture takes
+  0.665 seconds; full live plus simulation lifecycle takes 3.438 seconds.
+- The generic stored-oracle engine now supports allocation-free numeric trace
+  domains, with no Falcon-specific case loop. The generated production trace
+  SHA-256 is
+  `dd946d72cc6348c502298cd92438d3617866cd5f8798e342b4057a1f200e812b`.
+  Together `falcon-common-hurt` and `falcon-common-damage-response` cover 26
+  registered cases and complete in 205.990 ms on Windows and 285.842 ms in
+  WSL. Replay intentionally advances to corpus/final/event SHA-256 values
+  `0100de6c59b7b31306710bfd55923fa78e367d996c4bd4d1a60dd6efd1db9c16`,
+  `840e3df343bd58e176f80b48a2e05578537f326583ff10f29e162ff83eafaba0`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+- Native Windows passes 21/21 tests in 0.45 seconds, WSL Ubuntu passes 20/20
+  in 1.94 seconds, and WSL ASan/UBSan passes 16/16. The deterministic
+  repeated-match verifier digest is
+  `07cc4f4247d83066`. The synthetic browser ladder fixture explicitly retains
+  its authored minimal decay and therefore does not contaminate production
+  Falcon's imported default. The personal `ssbm-character-importer` skill now
+  records reusable HSD/common-data import, separate velocity channels, source
+  callback order, and air-decay guidance and validates successfully.
+- M4 remains unfinished. Ground knockback/friction and wall, ceiling, floor,
+  tech, bounce, and getup response require their own live qualification before
+  they may enter the stored oracle or be marked equivalent.
+
 ## 2026-08-08 executable-oracle checkpoint pack
 
 - A fresh prior-art sweep covered upstream Dolphin batch/null/NoGUI support,

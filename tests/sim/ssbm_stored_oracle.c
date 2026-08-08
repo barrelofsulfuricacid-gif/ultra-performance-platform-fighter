@@ -216,3 +216,91 @@ int pf_ssbm_stored_oracle_run(
     }
     return 1;
 }
+
+int pf_ssbm_stored_trace_oracle_run(
+    const pf_ssbm_stored_trace_domain *domain,
+    pf_ssbm_stored_trace_result *out_result)
+{
+    pf_ssbm_stored_trace_sample
+        samples[PF_SSBM_STORED_MAX_TRACE_SAMPLES];
+    pf_sha256 hash;
+    uint8_t digest[32];
+    uint16_t case_index;
+
+    if (domain == NULL || out_result == NULL)
+    {
+        return 0;
+    }
+    memset(out_result, 0, sizeof(*out_result));
+    if (domain->name == NULL || domain->cases == NULL ||
+        domain->case_count == UINT16_C(0) ||
+        domain->samples_per_case == UINT8_C(0) ||
+        domain->samples_per_case > PF_SSBM_STORED_MAX_TRACE_SAMPLES ||
+        domain->expected_production_trace_sha256 == NULL ||
+        domain->run_case == NULL)
+    {
+        out_result->failed_operation = "invalid-trace-domain";
+        return 0;
+    }
+
+    pf_sha256_init(&hash);
+    for (case_index = UINT16_C(0);
+         case_index < domain->case_count;
+         ++case_index)
+    {
+        const pf_ssbm_stored_trace_case *stored_case =
+            &domain->cases[case_index];
+        uint8_t sample_count;
+        uint8_t sample_index;
+
+        if (stored_case->id == NULL || stored_case->inputs == NULL)
+        {
+            out_result->failed_operation = "invalid-trace-case";
+            out_result->failed_case = stored_case->id;
+            return 0;
+        }
+        sample_count = domain->run_case(
+            domain->context,
+            stored_case,
+            samples,
+            PF_SSBM_STORED_MAX_TRACE_SAMPLES);
+        if (sample_count != domain->samples_per_case)
+        {
+            out_result->failed_operation = "trace-sample-count";
+            out_result->failed_case = stored_case->id;
+            return 0;
+        }
+        pf_sha256_update(
+            &hash,
+            (const uint8_t *)stored_case->id,
+            strlen(stored_case->id) + (size_t)1);
+        hash_u8(&hash, sample_count);
+        for (sample_index = UINT8_C(0);
+             sample_index < sample_count;
+             ++sample_index)
+        {
+            const pf_ssbm_stored_trace_sample *sample =
+                &samples[sample_index];
+
+            hash_u8(&hash, sample_index);
+            hash_i32_le(&hash, sample->position_x_q16);
+            hash_i32_le(&hash, sample->position_y_q16);
+            hash_i32_le(&hash, sample->self_velocity_x_q16);
+            hash_i32_le(&hash, sample->self_velocity_y_q16);
+            hash_i32_le(&hash, sample->knockback_velocity_x_q16);
+            hash_i32_le(&hash, sample->knockback_velocity_y_q16);
+            hash_u16_le(&hash, sample->hitlag_ticks);
+            hash_u16_le(&hash, sample->hitstun_ticks);
+        }
+    }
+    pf_sha256_finish(&hash, digest);
+    digest_hex(digest, out_result->production_trace_sha256);
+    if (strcmp(
+            out_result->production_trace_sha256,
+            domain->expected_production_trace_sha256) != 0)
+    {
+        out_result->failed_operation = "production-trace-digest";
+        return 0;
+    }
+    return 1;
+}

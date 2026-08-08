@@ -1,6 +1,7 @@
 #include "sim_internal.h"
 #include "sim_falcon_frame_data.h"
 #include "sim_sha256.h"
+#include "sim_ssbm_common_data.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -875,9 +876,13 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u32(hash, fighter->crouch_cancel_max_damage_q16);
     pf_m4_hash_i32(hash, fighter->crouch_cancel_velocity_scale_q16);
     pf_m4_hash_i32(hash, fighter->crouch_cancel_hitstun_scale_q16);
-    pf_m4_hash_i32(hash, fighter->di_max_tangent_q16);
-    pf_m4_hash_i32(hash, fighter->sdi_distance_q16);
-    pf_m4_hash_i32(hash, fighter->asdi_distance_q16);
+    pf_m4_hash_i32(hash, fighter->di_max_angle_radians_q30);
+    pf_m4_hash_i32(hash, fighter->ground_knockback_decay_scale_q16);
+    pf_m4_hash_i32(hash, fighter->air_knockback_decay_q16);
+    pf_m4_hash_i32(hash, fighter->sdi_distance_x_q16);
+    pf_m4_hash_i32(hash, fighter->sdi_distance_y_q16);
+    pf_m4_hash_i32(hash, fighter->asdi_distance_x_q16);
+    pf_m4_hash_i32(hash, fighter->asdi_distance_y_q16);
     pf_m4_hash_i32(hash, fighter->shield_sdi_scale_q16);
     pf_m4_hash_i32(hash, fighter->tech_roll_speed_q16);
     pf_m4_hash_i32(hash, fighter->wall_tech_speed_q16);
@@ -1081,7 +1086,8 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->l_cancel_window_ticks);
     pf_m4_hash_u16(hash, fighter->l_cancel_divisor);
     pf_m4_hash_u16(hash, fighter->v_cancel_window_ticks);
-    pf_m4_hash_u16(hash, fighter->sdi_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->sdi_stick_threshold);
+    pf_m4_hash_u16(hash, fighter->sdi_stick_window_ticks);
     pf_m4_hash_u16(
         hash,
         fighter->light_shield_trigger_threshold);
@@ -1423,6 +1429,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
 {
     const pf_m4_falcon_common_attributes *falcon_attributes;
     const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes;
+    const pf_m4_ssbm_damage_response_attributes *damage_response;
     const pf_m4_melee_stale_move_data *stale_move_data;
     pf_m4_fighter_data *fighter;
     pf_m4_stage_data *stage;
@@ -1439,9 +1446,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
 
     falcon_attributes = pf_m4_falcon_reference_common_attributes();
     air_dodge_attributes = pf_m4_falcon_reference_air_dodge_attributes();
+    damage_response = pf_m4_ssbm_common_reference_damage_response();
     stale_move_data = pf_m4_falcon_reference_stale_move_data();
     if (falcon_attributes == NULL || air_dodge_attributes == NULL ||
-        stale_move_data == NULL)
+        damage_response == NULL || stale_move_data == NULL)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -1794,10 +1802,17 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         UINT32_C(40) * UINT32_C(65536);
     fighter->crouch_cancel_velocity_scale_q16 = PF_Q16_RATIO(2, 3);
     fighter->crouch_cancel_hitstun_scale_q16 = PF_Q16_RATIO(2, 3);
-    fighter->di_max_tangent_q16 = INT32_C(21294);
-    fighter->sdi_distance_q16 = PF_Q16_RATIO(3, 10);
-    fighter->asdi_distance_q16 = PF_Q16_RATIO(3, 20);
-    fighter->shield_sdi_scale_q16 = PF_Q16_RATIO(33, 50);
+    fighter->di_max_angle_radians_q30 =
+        damage_response->di_max_angle_radians_q30;
+    fighter->ground_knockback_decay_scale_q16 =
+        damage_response->ground_knockback_decay_scale_q16;
+    fighter->air_knockback_decay_q16 =
+        damage_response->air_knockback_decay_q16;
+    fighter->sdi_distance_x_q16 = damage_response->sdi_distance_x_q16;
+    fighter->sdi_distance_y_q16 = damage_response->sdi_distance_y_q16;
+    fighter->asdi_distance_x_q16 = damage_response->asdi_distance_x_q16;
+    fighter->asdi_distance_y_q16 = damage_response->asdi_distance_y_q16;
+    fighter->shield_sdi_scale_q16 = damage_response->shield_sdi_scale_q16;
     fighter->tech_roll_speed_q16 = PF_Q16_RATIO(1, 5);
     fighter->wall_tech_speed_q16 = PF_Q16_RATIO(6, 115);
     fighter->wall_tech_jump_speed_x_q16 = PF_Q16_RATIO(84, 575);
@@ -1918,7 +1933,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->run_turnaround_axis_threshold = UINT16_C(12288);
     fighter->run_continue_axis_threshold = UINT16_C(20480);
     fighter->run_turnaround_lockout_ticks = UINT16_C(10);
-    fighter->tilt_axis_threshold = UINT16_C(8192);
+    fighter->tilt_axis_threshold = damage_response->stick_tilt_threshold;
     fighter->tap_jump_axis_threshold = UINT16_C(21709);
     fighter->tap_jump_input_window_ticks = UINT16_C(4);
     fighter->fast_fall_axis_threshold = UINT16_C(21709);
@@ -1961,7 +1976,9 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->l_cancel_window_ticks = UINT16_C(7);
     fighter->l_cancel_divisor = UINT16_C(2);
     fighter->v_cancel_window_ticks = UINT16_C(3);
-    fighter->sdi_axis_threshold = UINT16_C(16384);
+    fighter->sdi_stick_threshold = damage_response->sdi_stick_threshold;
+    fighter->sdi_stick_window_ticks =
+        damage_response->sdi_stick_window_ticks;
     fighter->light_shield_trigger_threshold = UINT16_C(19661);
     fighter->digital_trigger_threshold = UINT16_MAX;
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
@@ -2672,14 +2689,24 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->crouch_cancel_velocity_scale_q16 >= PF_Q16_ONE ||
         fighter->crouch_cancel_hitstun_scale_q16 <= INT32_C(0) ||
         fighter->crouch_cancel_hitstun_scale_q16 >= PF_Q16_ONE ||
-        fighter->di_max_tangent_q16 <= INT32_C(0) ||
-        fighter->di_max_tangent_q16 > PF_Q16_ONE ||
-        fighter->sdi_distance_q16 <= INT32_C(0) ||
-        fighter->sdi_distance_q16 >
+        fighter->di_max_angle_radians_q30 <= INT32_C(0) ||
+        fighter->di_max_angle_radians_q30 > INT32_C(1073741824) ||
+        fighter->ground_knockback_decay_scale_q16 <= INT32_C(0) ||
+        fighter->ground_knockback_decay_scale_q16 > PF_Q16_ONE ||
+        fighter->air_knockback_decay_q16 <= INT32_C(0) ||
+        fighter->air_knockback_decay_q16 > PF_Q16_ONE ||
+        fighter->sdi_distance_x_q16 <= INT32_C(0) ||
+        fighter->sdi_distance_x_q16 >
             INT32_C(4) * PF_Q16_ONE ||
-        fighter->asdi_distance_q16 <= INT32_C(0) ||
-        fighter->asdi_distance_q16 >
-            fighter->sdi_distance_q16 ||
+        fighter->sdi_distance_y_q16 <= INT32_C(0) ||
+        fighter->sdi_distance_y_q16 >
+            INT32_C(4) * PF_Q16_ONE ||
+        fighter->asdi_distance_x_q16 <= INT32_C(0) ||
+        fighter->asdi_distance_x_q16 >
+            fighter->sdi_distance_x_q16 ||
+        fighter->asdi_distance_y_q16 <= INT32_C(0) ||
+        fighter->asdi_distance_y_q16 >
+            fighter->sdi_distance_y_q16 ||
         fighter->shield_sdi_scale_q16 <= INT32_C(0) ||
         fighter->shield_sdi_scale_q16 > PF_Q16_ONE ||
         fighter->tech_roll_speed_q16 <= INT32_C(0) ||
@@ -3094,8 +3121,10 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->v_cancel_window_ticks == UINT16_C(0) ||
         fighter->v_cancel_window_ticks >
             fighter->tech_lockout_ticks ||
-        fighter->sdi_axis_threshold <= fighter->axis_dead_zone ||
-        fighter->sdi_axis_threshold > UINT16_C(32767) ||
+        fighter->sdi_stick_threshold <= fighter->axis_dead_zone ||
+        fighter->sdi_stick_threshold > UINT16_C(32767) ||
+        fighter->sdi_stick_window_ticks == UINT16_C(0) ||
+        fighter->sdi_stick_window_ticks > UINT16_C(254) ||
         fighter->light_shield_trigger_threshold == UINT16_C(0) ||
         fighter->light_shield_trigger_threshold >=
             fighter->digital_trigger_threshold ||

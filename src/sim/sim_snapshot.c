@@ -491,7 +491,7 @@ static void pf_write_payload(
     {
         pf_writer_i32(
             writer,
-            world->pending_velocity_x_q16[player_index]);
+            world->knockback_velocity_x_q16[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -499,7 +499,7 @@ static void pf_write_payload(
     {
         pf_writer_i32(
             writer,
-            world->pending_velocity_y_q16[player_index]);
+            world->knockback_velocity_y_q16[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -975,14 +975,14 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->pending_velocity_x_q16[player_index] =
+        world->knockback_velocity_x_q16[player_index] =
             pf_reader_i32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->pending_velocity_y_q16[player_index] =
+        world->knockback_velocity_y_q16[player_index] =
             pf_reader_i32(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1841,9 +1841,9 @@ static int pf_m4_player_state_consistent(
                world->hitstun_ticks[player_index] == UINT16_C(0) &&
                world->shield_stun_ticks[player_index] == UINT16_C(0) &&
                world->hitlag_resume_action[player_index] == UINT8_C(0) &&
-               world->pending_velocity_x_q16[player_index] ==
+               world->knockback_velocity_x_q16[player_index] ==
                    INT32_C(0) &&
-               world->pending_velocity_y_q16[player_index] ==
+               world->knockback_velocity_y_q16[player_index] ==
                    INT32_C(0) &&
                world->respawn_invulnerability_ticks[player_index] ==
                    UINT16_C(0) &&
@@ -2343,13 +2343,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->tilt_y_age[player_index] > UINT8_C(254) ||
                 world->damage_q16[player_index] >
                     PF_SIM_MAX_DAMAGE_Q16 ||
-                world->pending_velocity_x_q16[player_index] <
+                world->knockback_velocity_x_q16[player_index] <
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->pending_velocity_x_q16[player_index] >
+                world->knockback_velocity_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->pending_velocity_y_q16[player_index] <
+                world->knockback_velocity_y_q16[player_index] <
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->pending_velocity_y_q16[player_index] >
+                world->knockback_velocity_y_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->last_hit_sequence[player_index] >
                     world->combat_event_sequence ||
@@ -2537,30 +2537,18 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                         resume_action) ||
                     resume_action ==
                         (uint8_t)PF_M4_ACTION_REFLECTOR_AIR) &&
-                   world->grounded[player_index] != UINT8_C(0)) ||
-                  world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                  world->pending_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
+                   world->grounded[player_index] != UINT8_C(0)))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
                  (hitstun != UINT16_C(0) ||
                   tumble != UINT8_C(0) ||
                   world->grounded[player_index] != UINT8_C(0) ||
-                  world->action_ticks[player_index] >= UINT16_C(120) ||
-                  world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                   world->pending_velocity_y_q16[player_index] !=
-                       INT32_C(0))) ||
+                  world->action_ticks[player_index] >= UINT16_C(120))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_WALL_JUMP &&
                  (hitstun != UINT16_C(0) ||
                   tumble != UINT8_C(0) ||
-                  world->grounded[player_index] != UINT8_C(0) ||
-                  world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                  world->pending_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
+                  world->grounded[player_index] != UINT8_C(0))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
                  (hitstun != UINT16_C(0) ||
@@ -2569,39 +2557,27 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   world->support[player_index] !=
                       (uint8_t)PF_M4_SURFACE_NONE ||
                   world->velocity_x_q16[player_index] != INT32_C(0) ||
-                  world->velocity_y_q16[player_index] != INT32_C(0) ||
-                  world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                  world->pending_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
+                  world->velocity_y_q16[player_index] != INT32_C(0))) ||
                 ((resume_action == (uint8_t)PF_M4_ACTION_HITSTUN ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
                  (hitstun == UINT16_C(0) ||
-                  (world->pending_velocity_x_q16[player_index] ==
+                  (world->knockback_velocity_x_q16[player_index] ==
                        INT32_C(0) &&
-                   world->pending_velocity_y_q16[player_index] ==
+                   world->knockback_velocity_y_q16[player_index] ==
                        INT32_C(0)))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
                  (shield_stun == UINT16_C(0) ||
                   shield_health == UINT32_C(0) ||
                   hitstun != UINT16_C(0) ||
-                  world->grounded[player_index] == UINT8_C(0) ||
-                  world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                  world->pending_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
+                  world->grounded[player_index] == UINT8_C(0))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                  (shield_stun != UINT16_C(0) ||
                   shield_health != UINT32_C(0) ||
                   hitstun != UINT16_C(0) ||
-                  world->grounded[player_index] == UINT8_C(0) ||
-                  world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                  world->pending_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
+                  world->grounded[player_index] == UINT8_C(0))) ||
                 (hitlag == UINT16_C(0) &&
                  action == (uint8_t)PF_M4_ACTION_HITSTUN &&
                  hitstun == UINT16_C(0)) ||
@@ -2739,11 +2715,6 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (pf_m4_snapshot_action_is_surface_bounce(action) &&
                  (hitlag != UINT16_C(0) ||
                   tumble == UINT8_C(0))) ||
-                (hitlag == UINT16_C(0) &&
-                 (world->pending_velocity_x_q16[player_index] !=
-                      INT32_C(0) ||
-                  world->pending_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
                 (world->last_hit_sequence[player_index] ==
                      UINT32_C(0) &&
                  (world->last_hit_tick[player_index] != UINT64_C(0) ||
@@ -2821,9 +2792,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->tilt_x_age[player_index] != UINT8_C(0) ||
                  world->tilt_y_age[player_index] != UINT8_C(0) ||
                  world->damage_q16[player_index] != UINT32_C(0) ||
-                 world->pending_velocity_x_q16[player_index] !=
+                 world->knockback_velocity_x_q16[player_index] !=
                      INT32_C(0) ||
-                 world->pending_velocity_y_q16[player_index] !=
+                 world->knockback_velocity_y_q16[player_index] !=
                      INT32_C(0) ||
                  world->last_hit_sequence[player_index] != UINT32_C(0) ||
                  world->last_hit_tick[player_index] != UINT64_C(0) ||

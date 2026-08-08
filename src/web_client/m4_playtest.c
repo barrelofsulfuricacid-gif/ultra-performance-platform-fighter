@@ -3030,6 +3030,10 @@ static int pf_web_m4_initialize_ladder_fixture(void)
     pf_web_m4_content.fighter.strong_hitlag_ticks = UINT16_C(4);
     pf_web_m4_content.fighter.hitstun_velocity_per_tick_q16 =
         PF_Q16_ONE / INT32_C(200);
+    /* This is authored probe content, not an SSBM oracle. Preserve its
+     * pre-source-data launch trajectory with the smallest representable
+     * positive decay while the production default uses imported 0.051. */
+    pf_web_m4_content.fighter.air_knockback_decay_q16 = INT32_C(1);
     pf_web_m4_content.fighter.full_hop_speed_q16 =
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
     pf_web_m4_content.fighter.double_jump_speed_q16 =
@@ -10446,13 +10450,13 @@ static int pf_web_m4_run_shield_probe(void)
     pf_m4_inspection inspection;
     const int32_t shield_sdi_distance_q16 =
         (int32_t)(
-            ((int64_t)pf_web_m4_content.fighter.sdi_distance_q16 *
+            ((int64_t)pf_web_m4_content.fighter.sdi_distance_x_q16 *
              (int64_t)pf_web_m4_content.fighter
                  .shield_sdi_scale_q16) /
             (int64_t)PF_Q16_ONE);
     const int32_t shield_asdi_distance_q16 =
         (int32_t)(
-            ((int64_t)pf_web_m4_content.fighter.asdi_distance_q16 *
+            ((int64_t)pf_web_m4_content.fighter.asdi_distance_x_q16 *
              (int64_t)pf_web_m4_content.fighter
                  .shield_sdi_scale_q16) /
             (int64_t)PF_Q16_ONE);

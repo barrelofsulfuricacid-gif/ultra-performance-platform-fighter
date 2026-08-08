@@ -658,10 +658,10 @@ pf_status pf_sim_tick_impl(
             scratch->tilt_y_age[player_index];
         world->damage_q16[player_index] =
             scratch->damage_q16[player_index];
-        world->pending_velocity_x_q16[player_index] =
-            scratch->pending_velocity_x_q16[player_index];
-        world->pending_velocity_y_q16[player_index] =
-            scratch->pending_velocity_y_q16[player_index];
+        world->knockback_velocity_x_q16[player_index] =
+            scratch->knockback_velocity_x_q16[player_index];
+        world->knockback_velocity_y_q16[player_index] =
+            scratch->knockback_velocity_y_q16[player_index];
         world->last_hit_sequence[player_index] =
             scratch->last_hit_sequence[player_index];
         world->last_hit_tick[player_index] =
