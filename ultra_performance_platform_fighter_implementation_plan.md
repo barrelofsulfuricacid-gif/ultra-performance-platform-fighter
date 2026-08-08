@@ -534,7 +534,7 @@ frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
 dash grab, all 17 Falcon special subactions, and the complete 15-frame Initial
 Dash, 28-frame RunBrake, 7-frame CrouchStart, and 10-frame CrouchEnd common
 tracks, all four KneeBend frames, all 32 SpotDodge frames, and both complete
-31-frame roll tracks. Every damaging/grabbing
+31-frame roll tracks, plus all 49 action-owned AirDodge frames. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
 are imported separately as the source's six search spheres rather than being
 misclassified as attacks. The imported special timing, attributes, and

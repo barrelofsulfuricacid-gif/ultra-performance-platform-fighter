@@ -1258,6 +1258,38 @@ def input_trace(
             )
             repeat(f"{prefix}_hold", 35)
             repeat(f"{prefix}_recover", 10)
+        prefix = "common_hurt_air_dodge"
+        # EscapeAir's complete animation cannot be observed near the stage:
+        # Falcon lands before its final displayed pose. Enter it through a
+        # native jump, then relocate the already-airborne fighter high above
+        # Final Destination so all action-owned frames remain collision-free.
+        # Neutral stick plus a fresh digital shoulder produces a zero-force
+        # air dodge and keeps world translation out of the pose oracle.
+        reset_common_hurt_route(prefix)
+        trace.append(
+            command(
+                f"{prefix}_place",
+                fighter_x_override=-20.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=60.0,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat(f"{prefix}_settle", 10)
+        trace.append(command(f"{prefix}_jump", jump=True))
+        repeat(f"{prefix}_jump_rise", 5)
+        trace.append(
+            command(f"{prefix}_elevate", fighter_y_override=80.0)
+        )
+        trace.append(
+            command(
+                f"{prefix}_entry",
+                right_shoulder=1.0,
+                digital_right=True,
+            )
+        )
+        repeat(f"{prefix}_hold", 55)
+        repeat(f"{prefix}_recover", 20)
         for route, distance in (("hit", 31.0), ("miss", 31.5)):
             prefix = f"common_hurt_dash_collision_{route}"
             reset_common_hurt_route(prefix, opponent_main_x=0.0)
@@ -1446,6 +1478,64 @@ def input_trace(
             )
             repeat(f"{route_prefix}_observe", 15)
             repeat(f"{route_prefix}_recover", 60)
+        # Keep the AirDodge target just beyond Final Destination's +85.5657
+        # floor edge. At displayed frame 31 this preserves the requested low
+        # root height without turning the action into LandingFallSpecial.
+        # The +21.0 control intersects Falcon's live capsules while +21.8
+        # misses; Falcon's former generic rectangle misses both positions.
+        # Run the non-damaging control first. The positive route can catch the
+        # ledge during its post-hit observation, and ledge-hang intentionally
+        # ignores position overrides; keeping it last prevents that terminal
+        # state from leaking into another experiment.
+        for route, target_x in (("miss", 86.6), ("hit", 85.8)):
+            route_prefix = f"common_hurt_air_dodge_collision_{route}"
+            reset_common_hurt_route(route_prefix)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=40.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=64.8,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            trace.append(command(f"{route_prefix}_jump", jump=True))
+            repeat(f"{route_prefix}_jump_rise", 5)
+            trace.append(
+                command(
+                    f"{route_prefix}_offstage_place",
+                    fighter_x_override=target_x,
+                    fighter_y_override=1.75,
+                    opponent_x_override=64.8,
+                    opponent_y_override=0.0001,
+                )
+            )
+            trace.append(
+                command(
+                    f"{route_prefix}_entry",
+                    right_shoulder=1.0,
+                    digital_right=True,
+                )
+            )
+            repeat(f"{route_prefix}_advance", 27)
+            trace.append(
+                command(f"{route_prefix}_jab_start", opponent_attack=True)
+            )
+            repeat(f"{route_prefix}_observe", 15)
+            # Relocate before AirDodge/Falcon's Jab damage can reach a ledge,
+            # blast zone, or other state that intentionally ignores memory
+            # placement. Both controls then recover naturally over the stage.
+            trace.append(
+                command(
+                    f"{route_prefix}_post_relocate",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=20.0,
+                    opponent_x_override=20.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_recover", 90)
         return trace
 
     if damage_hit_only:

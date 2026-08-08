@@ -13589,7 +13589,8 @@ static int reference_common_hurt_overlap_at_distance(
     uint16_t action_frame,
     uint16_t jab_frame,
     int8_t facing,
-    uint32_t melee_distance_hundredths)
+    uint32_t melee_distance_hundredths,
+    uint32_t melee_height_hundredths)
 {
     uint8_t hit_sphere_count = UINT8_C(0);
     uint8_t hurt_capsule_count = UINT8_C(0);
@@ -13606,6 +13607,9 @@ static int reference_common_hurt_overlap_at_distance(
     const int64_t distance_q16 = (int64_t)
         melee_distance_hundredths_to_sim_q16(
             melee_distance_hundredths);
+    const int64_t height_q16 = (int64_t)
+        melee_distance_hundredths_to_sim_q16(
+            melee_height_hundredths);
     uint8_t hit_index;
 
     if (hit_spheres == NULL || hit_sphere_count == UINT8_C(0) ||
@@ -13635,13 +13639,15 @@ static int reference_common_hurt_overlap_at_distance(
                 distance_q16 +
                     (int64_t)facing *
                         (int64_t)hurt_capsules[hurt_index].endpoint_a_x_q16,
-                (int64_t)hurt_capsules[hurt_index].endpoint_a_y_q16,
+                -height_q16 +
+                    (int64_t)hurt_capsules[hurt_index].endpoint_a_y_q16,
                 (int64_t)facing *
                     (int64_t)hurt_capsules[hurt_index].endpoint_a_z_q16,
                 distance_q16 +
                     (int64_t)facing *
                         (int64_t)hurt_capsules[hurt_index].endpoint_b_x_q16,
-                (int64_t)hurt_capsules[hurt_index].endpoint_b_y_q16,
+                -height_q16 +
+                    (int64_t)hurt_capsules[hurt_index].endpoint_b_y_q16,
                 (int64_t)facing *
                     (int64_t)hurt_capsules[hurt_index].endpoint_b_z_q16,
                 (int64_t)hurt_capsules[hurt_index].radius_q16};
@@ -13668,13 +13674,15 @@ static int run_reference_common_spot_dodge_hurt_test(void)
             UINT16_C(24),
             UINT16_C(4),
             INT8_C(1),
-            UINT32_C(2100)) == 0 ||
+            UINT32_C(2100),
+            UINT32_C(0)) == 0 ||
         reference_common_hurt_overlap_at_distance(
             (uint8_t)PF_M4_ACTION_SPOT_DODGE,
             UINT16_C(24),
             UINT16_C(4),
             INT8_C(1),
-            UINT32_C(2200)) != 0)
+            UINT32_C(2200),
+            UINT32_C(0)) != 0)
     {
         return fail("reference-common-spot-dodge-hurt");
     }
@@ -13692,27 +13700,56 @@ static int run_reference_common_roll_hurt_test(void)
             UINT16_C(22),
             UINT16_C(3),
             -INT8_C(1),
-            UINT32_C(1298)) == 0 ||
+            UINT32_C(1298),
+            UINT32_C(0)) == 0 ||
         reference_common_hurt_overlap_at_distance(
             (uint8_t)PF_M4_ACTION_ROLL_FORWARD,
             UINT16_C(22),
             UINT16_C(3),
             -INT8_C(1),
-            UINT32_C(1418)) != 0 ||
+            UINT32_C(1418),
+            UINT32_C(0)) != 0 ||
         reference_common_hurt_overlap_at_distance(
             (uint8_t)PF_M4_ACTION_ROLL_BACKWARD,
             UINT16_C(24),
             UINT16_C(5),
             INT8_C(1),
-            UINT32_C(2000)) == 0 ||
+            UINT32_C(2000),
+            UINT32_C(0)) == 0 ||
         reference_common_hurt_overlap_at_distance(
             (uint8_t)PF_M4_ACTION_ROLL_BACKWARD,
             UINT16_C(24),
             UINT16_C(5),
             INT8_C(1),
-            UINT32_C(2075)) != 0)
+            UINT32_C(2075),
+            UINT32_C(0)) != 0)
     {
         return fail("reference-common-roll-hurt");
+    }
+    return 1;
+}
+
+static int run_reference_common_air_dodge_hurt_test(void)
+{
+    /* Same-input Dolphin boundary: Falcon's Jab 1 hits tangible AirDodge
+     * frame 31 at +21.0 Melee units and a +3.0 root height, but misses at
+     * +21.8. The former generic rectangle misses both controls. */
+    if (reference_common_hurt_overlap_at_distance(
+            (uint8_t)PF_M4_ACTION_AIR_DODGE,
+            UINT16_C(31),
+            UINT16_C(3),
+            INT8_C(1),
+            UINT32_C(2100),
+            UINT32_C(300)) == 0 ||
+        reference_common_hurt_overlap_at_distance(
+            (uint8_t)PF_M4_ACTION_AIR_DODGE,
+            UINT16_C(31),
+            UINT16_C(3),
+            INT8_C(1),
+            UINT32_C(2180),
+            UINT32_C(300)) != 0)
+    {
+        return fail("reference-common-air-dodge-hurt");
     }
     return 1;
 }
@@ -22494,6 +22531,8 @@ static int run_falcon_reference_table_test(void)
     uint8_t roll_forward_last_hurt_capsule_count = UINT8_C(0);
     uint8_t roll_backward_hurt_capsule_count = UINT8_C(0);
     uint8_t roll_backward_last_hurt_capsule_count = UINT8_C(0);
+    uint8_t air_dodge_hurt_capsule_count = UINT8_C(0);
+    uint8_t air_dodge_last_hurt_capsule_count = UINT8_C(0);
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
     uint8_t grab_hurt_capsule_count = UINT8_C(0);
@@ -22645,6 +22684,16 @@ static int run_falcon_reference_table_test(void)
             (uint8_t)PF_M4_ACTION_ROLL_BACKWARD,
             UINT16_C(31),
             &roll_backward_last_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *air_dodge_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_AIR_DODGE,
+            UINT16_C(1),
+            &air_dodge_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *air_dodge_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_AIR_DODGE,
+            UINT16_C(49),
+            &air_dodge_last_hurt_capsule_count);
     const pf_m4_reference_hurt_capsule *jab_hurt_capsules =
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
@@ -22755,6 +22804,10 @@ static int run_falcon_reference_table_test(void)
         roll_backward_hurt_capsule_count != UINT8_C(11) ||
         roll_backward_last_hurt_capsules == NULL ||
         roll_backward_last_hurt_capsule_count != UINT8_C(11) ||
+        air_dodge_hurt_capsules == NULL ||
+        air_dodge_hurt_capsule_count != UINT8_C(11) ||
+        air_dodge_last_hurt_capsules == NULL ||
+        air_dodge_last_hurt_capsule_count != UINT8_C(11) ||
         pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             (uint8_t)PF_M4_ACTION_INITIAL_DASH,
             UINT16_C(0),
@@ -22786,6 +22839,10 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             (uint8_t)PF_M4_ACTION_ROLL_BACKWARD,
             UINT16_C(32),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_AIR_DODGE,
+            UINT16_C(50),
             NULL) != NULL)
     {
         return fail("falcon-reference-z-collision-source");
@@ -23519,10 +23576,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x49) ||
-        geometry_sha256[1] != UINT8_C(0x39) ||
-        geometry_sha256[30] != UINT8_C(0x00) ||
-        geometry_sha256[31] != UINT8_C(0x63) ||
+        geometry_sha256[0] != UINT8_C(0x70) ||
+        geometry_sha256[1] != UINT8_C(0xd2) ||
+        geometry_sha256[30] != UINT8_C(0xae) ||
+        geometry_sha256[31] != UINT8_C(0x99) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -24789,6 +24846,7 @@ int main(void)
         !run_reference_common_knee_bend_hurt_test() ||
         !run_reference_common_spot_dodge_hurt_test() ||
         !run_reference_common_roll_hurt_test() ||
+        !run_reference_common_air_dodge_hurt_test() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

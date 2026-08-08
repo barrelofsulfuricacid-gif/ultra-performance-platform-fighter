@@ -4091,6 +4091,55 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon AirDodge hurt poses
+
+- The required prior-art sweep reused pinned `ftCo_EscapeAir.c`, the generated
+  FigaTree/body-state and EscapeAir attribute tables, the existing 48-frame
+  defense/ECB trace, libmelee action mapping, common-pose importer/collision
+  helpers, and the qualified ExiAI runner. No maintained upstream importer
+  supplied the missing complete action-owned hurt-pose track. The pinned
+  callback SHA-256 is
+  `cdff68de39d55855f1ca02b8e4af09ce856a1133cc21b23921a881b23e0dfaf6`.
+- The final oracle contains 3,004 rows. The accepted accelerated capture is
+  `e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055`;
+  its matched unaccelerated control is
+  `64c5d69c495bd37fbc60e335affc9f578afd9219a39dadd08ab65eaa7207ba41`.
+  A/B comparison passes 1,430/849 active fighter/opponent rows and 1,337/829
+  initialized, non-hitlag, action-owned pose rows. The native-jump source
+  route captures exactly AirDodge frames 1-49 with 11 capsules each, unchanged
+  damage, and FallSpecial afterward. Frames 1-3 and 30-49 are vulnerable;
+  frames 4-29 are invulnerable.
+- A low offstage control prevents floor contact while keeping a grounded Jab
+  in reach. Jab 1 hits AirDodge frame 31 at +21.0 Melee units and a +3.0-unit
+  root height, then misses at +21.8. Reconstructed margins are
+  +0.391159288/-0.406612492, while the generic rectangle falsely misses the
+  positive route at -2.563399506. Both controls relocate over safe stage before
+  ledge/death state can ignore placement and contaminate the next experiment.
+- The importer appends one compact 49-frame entry to the existing common index,
+  reuses the single deduplicated capsule pool, and maps public `AIR_DODGE`
+  once. It adds no runtime allocation, float math, capsule representation,
+  snapshot bytes, or per-fighter state. Canonical geometry SHA-256 is
+  `70d25e01c090cc0a2deb12fcf8ea3e7c8c847840f03638a0aa045285ad6eae99`;
+  byte-identical scratch/tracked regeneration produces include SHA-256
+  `dfadbc2bdc54d601099e95e6340310132b54b13ddcd99cba5f5885724c0cfce2`.
+- Native Windows passes 20/20 tests, MinGW passes 15/15, WSL Release passes
+  22/22, and WSL ASan/UBSan passes 15/15. Combat/browser verifiers, live Chrome
+  smoke, the 13-scenario profiler workload, and native/Wasm replay identity all
+  pass with emergent-technique probes skipped. The replay corpus/final/event
+  hashes remain
+  `af5b1bb66a475a4c28e93f15e12355d92c14ced6e08ecdad7bf25dbac82612f7`,
+  `78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  The deterministic verifier digest advances to `c8907b160c578a53`; an
+  unsampled 64-environment run reports 368,931 single-call and 1,652,858
+  batched ticks per second with a 4.4801 boundary speedup.
+- The reusable `ssbm-character-importer` skill now records complete aerial-pose
+  altitude selection, magnifying-glass damage avoidance, low offstage
+  discriminators, and post-observation safe relocation. M4 remains unfinished:
+  additional common hurt poses, aerial-IASA item/tether branches, and wider
+  ledge/tech/damage behavior remain in the exhaustive Falcon-equivalence
+  obligation.
+
 ## 2026-08-08 Falcon RollForward/RollBackward hurt poses
 
 - The prior-art sweep reused pinned decomp `ftCo_Escape.c` at SHA-256

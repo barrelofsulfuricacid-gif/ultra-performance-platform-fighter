@@ -19,7 +19,7 @@ from ssbm_collision import (
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "0bdf1390f8dbee759f58f520c4f30dc2b12c6d793d8aab01eed0b3abf26caf93"
+    "e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055"
 )
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
@@ -35,6 +35,9 @@ EXPECTED_KNEE_SOURCE_SHA256 = (
 )
 EXPECTED_ESCAPE_SOURCE_SHA256 = (
     "762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89"
+)
+EXPECTED_AIR_ESCAPE_SOURCE_SHA256 = (
+    "cdff68de39d55855f1ca02b8e4af09ce856a1133cc21b23921a881b23e0dfaf6"
 )
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
@@ -60,15 +63,16 @@ def active_hurtboxes(memory: dict[str, Any], key: str) -> list[dict[str, Any]]:
 
 def exact_action_frames(
     rows: list[dict[str, Any]],
-    label: str,
+    label: str | tuple[str, ...],
     action: str,
     first_frame: int,
     last_frame: int,
 ) -> list[dict[str, Any]]:
+    labels = (label,) if isinstance(label, str) else label
     selected = [
         row
         for row in rows
-        if row.get("label") == label and row.get("action") == action
+        if row.get("label") in labels and row.get("action") == action
     ]
     observed = [round(float(row["action_frame"])) for row in selected]
     expected = list(range(first_frame, last_frame + 1))
@@ -99,11 +103,15 @@ def verify_collision_outcome(
     final_damage: float,
     damage_action: str,
     target_prefix: str = "opponent_",
+    negative_damage: float | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     positive = route_rows(rows, motion, "hit")
     negative = route_rows(rows, motion, "miss")
     damage_key = f"{target_prefix}damage_percent"
     action_key = f"{target_prefix}action"
+    expected_negative_damage = (
+        final_damage if negative_damage is None else negative_damage
+    )
 
     def close(left: Any, right: float) -> bool:
         return math.isclose(
@@ -115,8 +123,11 @@ def verify_collision_outcome(
         or not close(positive[0][damage_key], initial_damage)
         or not close(positive[-1][damage_key], final_damage)
         or not any(row.get(action_key) == damage_action for row in positive)
-        or not close(negative[0][damage_key], final_damage)
-        or any(not close(row[damage_key], final_damage) for row in negative)
+        or not close(negative[0][damage_key], expected_negative_damage)
+        or any(
+            not close(row[damage_key], expected_negative_damage)
+            for row in negative
+        )
     ):
         raise SystemExit(f"{motion} collision hit/miss outcome mismatch")
     return positive, negative
@@ -126,13 +137,14 @@ def requested_route_distance(
     rows: list[dict[str, Any]],
     target: str = "opponent",
     attacker: str = "fighter",
+    placement_suffix: str = "_place",
 ) -> float:
     target_key = f"requested_{target}_x_override"
     attacker_key = f"requested_{attacker}_x_override"
     distances = {
         float(row[target_key]) - float(row[attacker_key])
         for row in rows
-        if str(row.get("label", "")).endswith("_place")
+        if str(row.get("label", "")).endswith(placement_suffix)
         and not str(row.get("label", "")).endswith("_reset_place")
         and row.get(target_key) is not None
         and row.get(attacker_key) is not None
@@ -310,6 +322,7 @@ def main() -> int:
     parser.add_argument("crouch_source", type=Path)
     parser.add_argument("knee_source", type=Path)
     parser.add_argument("escape_source", type=Path)
+    parser.add_argument("air_escape_source", type=Path)
     args = parser.parse_args()
 
     capture_digest = sha256(args.capture)
@@ -327,6 +340,8 @@ def main() -> int:
         raise SystemExit("unexpected ftCo_KneeBend.c SHA-256")
     if sha256(args.escape_source) != EXPECTED_ESCAPE_SOURCE_SHA256:
         raise SystemExit("unexpected ftCo_Escape.c SHA-256")
+    if sha256(args.air_escape_source) != EXPECTED_AIR_ESCAPE_SOURCE_SHA256:
+        raise SystemExit("unexpected ftCo_EscapeAir.c SHA-256")
 
     capture: dict[str, Any] = json.loads(
         args.capture.read_text(encoding="utf-8")
@@ -350,7 +365,7 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 2427
+        or len(rows) != 3004
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -410,6 +425,16 @@ def main() -> int:
         1,
         31,
     )
+    air_dodge_rows = exact_action_frames(
+        rows,
+        (
+            "common_hurt_air_dodge_entry",
+            "common_hurt_air_dodge_hold",
+        ),
+        "AIRDODGE",
+        1,
+        49,
+    )
     observed_invulnerability = [
         round(float(row["action_frame"]))
         for row in spot_dodge_rows
@@ -434,6 +459,16 @@ def main() -> int:
                 f"{action} invulnerability mismatch: "
                 f"{observed_invulnerability} != {list(range(4, 20))}"
             )
+    observed_invulnerability = [
+        round(float(row["action_frame"]))
+        for row in air_dodge_rows
+        if bool(row["invulnerable"])
+    ]
+    if observed_invulnerability != list(range(4, 30)):
+        raise SystemExit(
+            "AirDodge invulnerability mismatch: "
+            f"{observed_invulnerability} != {list(range(4, 30))}"
+        )
     positive, negative = verify_collision_outcome(
         rows, "dash", 0.0, 2.0, "DAMAGE_HIGH_2"
     )
@@ -711,6 +746,71 @@ def main() -> int:
             f"generic_margin={roll_backward_generic_margin:.9f}"
         )
 
+    air_dodge_positive, air_dodge_negative = verify_collision_outcome(
+        rows,
+        "air_dodge",
+        5.480000019073486,
+        7.0,
+        "DAMAGE_AIR_2",
+        target_prefix="",
+        negative_damage=5.480000019073486,
+    )
+    air_dodge_miss_frame = collision_frame(
+        air_dodge_negative,
+        3,
+        "AIRDODGE",
+        31,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        air_dodge_rows[30],
+        air_dodge_miss_frame,
+        "port-1 AirDodge frame 31",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    air_dodge_target_shift = (
+        requested_route_distance(
+            air_dodge_positive,
+            target="fighter",
+            attacker="opponent",
+            placement_suffix="_offstage_place",
+        )
+        - requested_route_distance(
+            air_dodge_negative,
+            target="fighter",
+            attacker="opponent",
+            placement_suffix="_offstage_place",
+        )
+    )
+    air_dodge_hit_margin, air_dodge_miss_margin = (
+        reconstructed_collision_margins(
+            air_dodge_miss_frame,
+            air_dodge_target_shift,
+            hitbox_key="opponent_hitboxes",
+            hurtbox_key="fighter_hurtboxes",
+        )
+    )
+    air_dodge_generic_margin = generic_rectangle_margin(
+        dict(air_dodge_miss_frame["hitbox_memory"]),
+        air_dodge_target_shift,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        air_dodge_hit_margin < 0.0
+        or air_dodge_miss_margin >= 0.0
+        or air_dodge_generic_margin >= 0.0
+    ):
+        raise SystemExit(
+            "AirDodge collision discriminator failed: "
+            f"hit_margin={air_dodge_hit_margin:.9f} "
+            f"miss_margin={air_dodge_miss_margin:.9f} "
+            f"generic_margin={air_dodge_generic_margin:.9f}"
+        )
+
     print(
         "ssbm-common-hurt=pass "
         f"frames={len(rows)} dash_frames={len(dash_rows)} "
@@ -721,6 +821,7 @@ def main() -> int:
         f"spot_dodge_frames={len(spot_dodge_rows)} "
         f"roll_forward_frames={len(roll_forward_rows)} "
         f"roll_backward_frames={len(roll_backward_rows)} "
+        f"air_dodge_frames={len(air_dodge_rows)} "
         f"dash_hit_margin={dash_hit_margin:.9f} "
         f"dash_miss_margin={dash_miss_margin:.9f} "
         f"dash_generic_margin={dash_generic_margin:.9f} "
@@ -739,6 +840,9 @@ def main() -> int:
         f"roll_backward_hit_margin={roll_backward_hit_margin:.9f} "
         f"roll_backward_miss_margin={roll_backward_miss_margin:.9f} "
         f"roll_backward_generic_margin={roll_backward_generic_margin:.9f} "
+        f"air_dodge_hit_margin={air_dodge_hit_margin:.9f} "
+        f"air_dodge_miss_margin={air_dodge_miss_margin:.9f} "
+        f"air_dodge_generic_margin={air_dodge_generic_margin:.9f} "
         f"capture_sha256={capture_digest}"
     )
     return 0

@@ -83,19 +83,19 @@ build/oracle-toolchain/exiai-python/bin/python \
 
 ## Qualification and measurement
 
-The current qualification trace contains 2,427 rows and eight Falcon common-hurt
+The current qualification trace contains 3,004 rows and nine Falcon common-hurt
 tracks: Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
-RollForward, and RollBackward, including physical hit/miss
+RollForward, RollBackward, and AirDodge, including physical hit/miss
 controls. The automated A/B comparison
 strictly matches every requested and observed input, game frame, initialized
 active action frame, position, velocity, damage, hitlag, collision decision,
-and qualified geometry observation. It covers 1,100 non-standing Falcon rows
-and 721 non-standing opponent rows. Of those, 1,010 Falcon and 704 opponent rows are
+and qualified geometry observation. It covers 1,430 non-standing Falcon rows
+and 849 non-standing opponent rows. Of those, 1,337 Falcon and 829 opponent rows are
 initialized, non-hitlag, action-owned pose samples whose complete capsule
 geometry also matches exactly. The unaccelerated control SHA-256 is
-`2df3834629235db4dfc5a12f71af0fac034786aed1e34f8bdc6156c592c2299c`;
+`64c5d69c495bd37fbc60e335affc9f578afd9219a39dadd08ab65eaa7207ba41`;
 the selected accelerated capture is
-`0bdf1390f8dbee759f58f520c4f30dc2b12c6d793d8aab01eed0b3abf26caf93`.
+`e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055`.
 
 Measured on the local WSL host:
 
@@ -106,10 +106,10 @@ Measured on the local WSL host:
 | ExiAI unaccelerated control, headless, 650 rows | 22.17 s | qualification control |
 | ExiAI headless/null/fast-forward, 650 rows | 16.68 s | selected |
 
-Those timings are the retained 650-row benchmark. The current 2,427-row route,
-including safely isolated SpotDodge and both-roll collision controls, completed
-in about 23 seconds accelerated and 30 seconds unaccelerated on the same host
-without changing the selected runner.
+Those timings are the retained 650-row benchmark. The current 3,004-row route
+adds safely isolated SpotDodge, both-roll, and AirDodge collision controls. Its
+unaccelerated and accelerated outputs remain field-for-field identical without
+changing the selected runner.
 
 The memory probe dominates this geometry-heavy trace, so fast-forward's
 measured benefit is smaller than in ordinary state-only traces. The selected
