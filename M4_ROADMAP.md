@@ -155,7 +155,7 @@ Implemented and cross-platform verified locally after `b3edb14`:
 - [x] Restore every standalone shell verifier's complete simulation source
   graph, then pass native/Wasm replay identity, the browser adapter verifier,
   and the full headless Chrome smoke with the repinned 81-event replay.
-- [ ] Commit and push this qualified slice to PR #3.
+- [x] Commit and push this qualified slice to PR #3 as `9189aa0`.
 
 ## Remaining work, in priority order
 
