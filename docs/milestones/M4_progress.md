@@ -4090,3 +4090,47 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. Other common hurt poses, aerial-IASA item/tether
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
+
+## 2026-08-08 Falcon SpotDodge hurt poses
+
+- The prior-art/source sweep reused the pinned common Escape implementation,
+  generated submotion/body-state catalog, existing defense trace, shared
+  common-pose importer, and ExiAI runner. The pinned `ftCo_Escape.c` SHA-256 is
+  `762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89`.
+  The executable and generated command table agree that SpotDodge frames 1-2
+  are vulnerable, 3-20 are invulnerable, and 21-32 are vulnerable.
+- The expanded common-pose oracle contains 1,099 rows. The unaccelerated
+  same-binary control is
+  `bb75f231b80b3c6397b02355277bf621071a7f6ae2f5a85f3558d27d0b25bfc7`;
+  the accepted ExiAI capture is
+  `dbd01434760f87236d2569b64fbe6bb7d77f6723d7d61322a48c94eab5f0089a`.
+  Their A/B compares 482/295 non-standing fighter/opponent rows and exactly
+  matches 446/284 initialized, non-hitlag, action-owned pose rows. The
+  qualifier now also excludes `GuardReflect` endpoints because the decomp
+  enters it with `Ft_MF_SkipAnim`; gameplay state and collision outcomes stay
+  strict.
+- Both collision controls reset both ports to facing right and zero velocity,
+  preventing the positive hit's victim-facing update from mirroring the
+  negative route. Jab 1 hits the pending SpotDodge frame-24 pose at 21.0 Melee
+  units with reconstructed margin +0.264534944 and misses at 22.0 with
+  -0.272110224. The generic rectangle reports -3.563406944 on the positive
+  route, so the hit specifically discriminates the imported capsule pose. The
+  verifier models the post-frame observer's displayed-pose/collision-report
+  ordering explicitly rather than relabeling the observed frame.
+- Generation appends one 32-frame entry to the existing compact common index,
+  reuses the shared deduplicated capsule pool, and maps public `SPOT_DODGE`
+  once. It adds no runtime allocation, float math, duplicated capsule format,
+  snapshot bytes, or per-fighter state. The canonical geometry digest is
+  `f2124b2cd0068006a13f29cad0e45bf5148dd9b8dc83a1be16332576717ebced`;
+  byte-identical pinned regeneration produces tracked include SHA-256
+  `b81cdeb333382d091b4f01764cb855148d7b436df3cd84e0cfa6eff489ac4dfb`.
+- Native Windows passes 20/20 tests, WSL Release passes 22/22, and WSL
+  ASan/UBSan passes 15/15. The standalone combat and browser verifiers pass
+  while explicitly skipping emergent-technique tests. Wasm rebuilds cleanly;
+  native/Wasm replay output remains byte-identical at the existing
+  corpus/final/event hashes. The deterministic verifier soak digest is
+  `9e249f8c1116e7e9`. A 64-environment unsampled run reports 1,743,765
+  single-world and 1,758,518 batched ticks per second with exact state identity.
+- M4 remains unfinished. Other common hurt poses, aerial-IASA item/tether
+  branches, and wider ledge/tech/damage behavior remain in the exhaustive
+  Falcon equivalence obligation.

@@ -40,8 +40,7 @@ def remove_idle_pose_phase(
 
     # Menu timing can enter the looping idle animation at a different phase.
     # Active actions reset their animation cursor and remain strictly compared.
-    if action_key == "opponent_action":
-        row.pop(action_frame_key, None)
+    row.pop(action_frame_key, None)
     memory = row.get("hitbox_memory")
     if not isinstance(memory, dict):
         return
@@ -63,6 +62,30 @@ def remove_hitlag_pose_sample(
     memory = row.get("hitbox_memory")
     if not isinstance(memory, dict):
         return
+    for hurtbox in memory.get(hurtbox_key, []):
+        for field in POSITION_FIELDS:
+            hurtbox.pop(field, None)
+
+
+def remove_inherited_pose_sample(
+    row: dict[str, Any],
+    *,
+    action_key: str,
+    hurtbox_key: str,
+    ecb_key: str,
+) -> None:
+    # ftCo_8009388C enters GuardReflect with Ft_MF_SkipAnim and the current
+    # animation cursor.  The motion state therefore inherits the preceding
+    # pose instead of defining a GuardReflect pose of its own.  A menu-origin
+    # idle phase can legitimately remain different across launches; continue
+    # comparing all gameplay state and collision outcomes, but never import
+    # these inherited display bones as GuardReflect geometry.
+    if row[action_key] != "SHIELD_REFLECT":
+        return
+    memory = row.get("hitbox_memory")
+    if not isinstance(memory, dict):
+        return
+    memory.pop(ecb_key, None)
     for hurtbox in memory.get(hurtbox_key, []):
         for field in POSITION_FIELDS:
             hurtbox.pop(field, None)
@@ -99,6 +122,18 @@ def normalized_capture(document: dict[str, Any]) -> dict[str, Any]:
             row,
             hitlag_key="opponent_hitlag_left",
             hurtbox_key="opponent_hurtboxes",
+        )
+        remove_inherited_pose_sample(
+            row,
+            action_key="action",
+            hurtbox_key="fighter_hurtboxes",
+            ecb_key="fighter_ecb",
+        )
+        remove_inherited_pose_sample(
+            row,
+            action_key="opponent_action",
+            hurtbox_key="opponent_hurtboxes",
+            ecb_key="opponent_ecb",
         )
     return normalized
 
@@ -157,11 +192,12 @@ def main() -> int:
         row["opponent_action"] != "STANDING" for row in control["rows"]
     )
     qualified_fighter_pose_rows = sum(
-        row["action"] != "STANDING" and row["hitlag_left"] <= 0
+        row["action"] not in {"STANDING", "SHIELD_REFLECT"}
+        and row["hitlag_left"] <= 0
         for row in control["rows"]
     )
     qualified_opponent_pose_rows = sum(
-        row["opponent_action"] != "STANDING"
+        row["opponent_action"] not in {"STANDING", "SHIELD_REFLECT"}
         and row["opponent_hitlag_left"] <= 0
         for row in control["rows"]
     )

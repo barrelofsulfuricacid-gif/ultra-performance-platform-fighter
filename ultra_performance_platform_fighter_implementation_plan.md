@@ -604,7 +604,8 @@ complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
-Initial Dash, RunBrake, CrouchStart, CrouchEnd, and KneeBend remain explicit
+Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, and SpotDodge remain
+explicit
 M4 gaps and must be extracted or qualified rather than approximated with
 invented frame data. Common poses use
 one compact generated state index and reuse the action-pose capsule pool; public
@@ -614,6 +615,13 @@ and rejects the old generic rectangle. A second 17.7-unit hit/17.84-unit miss
 route proves CrouchStart frame 3 and rejects the rectangle's false positive.
 The four-frame KneeBend track is likewise imported; a 16.5-unit hit/16.8-unit
 miss route proves frame 2 and rejects the rectangle's false positive.
+The complete 32-frame SpotDodge track is imported from a pinned active,
+non-hitlag executable trace. Its source body state is vulnerable on frames 1-2,
+invulnerable on frames 3-20, and vulnerable on frames 21-32. A facing-controlled
+Jab 1 route hits the pending frame-24 pose at 21.0 Melee units and misses at
+22.0; the old generic rectangle falsely misses the positive route. The
+post-frame observer's displayed-pose/collision-report ordering and damage-facing
+reset are explicit verifier inputs rather than hidden distance adjustments.
 The executable's previous-to-current
 moving hit-capsule sweep is production-routed and Dolphin-qualified: imported
 collision state distinguishes creation from continuation, continuation finds

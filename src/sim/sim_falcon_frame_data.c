@@ -491,6 +491,9 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
         case PF_M4_ACTION_JUMP_SQUAT:
             track_index = PF_M4_FALCON_COMMON_HURT_KNEE_BEND;
             break;
+        case PF_M4_ACTION_SPOT_DODGE:
+            track_index = PF_M4_FALCON_COMMON_HURT_SPOT_DODGE;
+            break;
         default:
             if (out_count != NULL)
             {

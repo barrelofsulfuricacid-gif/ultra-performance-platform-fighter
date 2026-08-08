@@ -1178,7 +1178,26 @@ def input_trace(
         repeat("common_hurt_crouch_hold", 12, main_y=0.0)
         repeat("common_hurt_crouch_release", 20)
         repeat("common_hurt_knee_bend_hold", 4, jump=True)
-        repeat("common_hurt_knee_bend_recover", 45)
+        # KneeBend launches Falcon into a full jump.  Wait for the ordinary
+        # landing before entering the grounded EscapeN route; otherwise the
+        # same down+shield sample correctly becomes EscapeAir instead.
+        repeat("common_hurt_knee_bend_recover", 110)
+        repeat(
+            "common_hurt_spot_dodge_shield",
+            10,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "common_hurt_spot_dodge_hold",
+                main_y=0.0,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+        )
+        repeat("common_hurt_spot_dodge_hold", 35)
+        repeat("common_hurt_spot_dodge_recover", 10)
         for route, distance in (("hit", 31.0), ("miss", 31.5)):
             prefix = f"common_hurt_dash_collision_{route}"
             trace.append(
@@ -1247,6 +1266,55 @@ def input_trace(
             )
             repeat(f"{prefix}_observe", 11)
             repeat(f"{prefix}_recover", 60)
+        prefix = "common_hurt_spot_dodge_collision"
+        # Port 2 begins facing left.  Reorient both ports before memory
+        # placement so Jab points toward the positive-x SpotDodge target.
+        # Position overrides do not change facing or residual velocity.
+        for route, distance in (("hit", 21.0), ("miss", 22.0)):
+            route_prefix = f"{prefix}_{route}"
+            # Damage turns its victim toward the attacker.  Re-establish the
+            # same facing and zero-velocity state before each route so the
+            # positive and negative controls differ only by separation.
+            repeat(
+                f"{route_prefix}_face_right",
+                3,
+                main_x=1.0,
+                opponent_main_x=1.0,
+            )
+            repeat(f"{route_prefix}_face_right_recover", 45)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=distance,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=0.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            repeat(
+                f"{route_prefix}_shield",
+                10,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+            trace.append(
+                command(
+                    f"{route_prefix}_entry",
+                    main_y=0.0,
+                    left_shoulder=1.0,
+                    digital_left=True,
+                )
+            )
+            # Jab 1's first live geometry is displayed frame 3. Starting it
+            # here aligns frame 3 with tangible SpotDodge frame 22; continued
+            # frame 4 checks the pending frame-24 pose used by the discriminator.
+            repeat(f"{route_prefix}_advance", 18)
+            trace.append(
+                command(f"{route_prefix}_jab_start", opponent_attack=True)
+            )
+            repeat(f"{route_prefix}_observe", 15)
+            repeat(f"{route_prefix}_recover", 60)
         return trace
 
     if damage_hit_only:

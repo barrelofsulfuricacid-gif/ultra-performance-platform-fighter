@@ -19,7 +19,7 @@ from ssbm_collision import (
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "6169379625ff0f972d4bf4cc70b38cffedeb63a7dadea79b4973ee391eb1d1f1"
+    "dbd01434760f87236d2569b64fbe6bb7d77f6723d7d61322a48c94eab5f0089a"
 )
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
@@ -32,6 +32,9 @@ EXPECTED_CROUCH_SOURCE_SHA256 = (
 )
 EXPECTED_KNEE_SOURCE_SHA256 = (
     "91249dcf7a0aa59277e8912bd8b5a82548262df66ef3426d6ed3d27cebdd6c12"
+)
+EXPECTED_ESCAPE_SOURCE_SHA256 = (
+    "762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89"
 )
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
@@ -95,9 +98,13 @@ def verify_collision_outcome(
     initial_damage: float,
     final_damage: float,
     damage_action: str,
+    target_prefix: str = "opponent_",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     positive = route_rows(rows, motion, "hit")
     negative = route_rows(rows, motion, "miss")
+    damage_key = f"{target_prefix}damage_percent"
+    action_key = f"{target_prefix}action"
+
     def close(left: Any, right: float) -> bool:
         return math.isclose(
             float(left), right, rel_tol=0.0, abs_tol=0.000001
@@ -105,26 +112,27 @@ def verify_collision_outcome(
     if (
         not positive
         or not negative
-        or not close(positive[0]["opponent_damage_percent"], initial_damage)
-        or not close(positive[-1]["opponent_damage_percent"], final_damage)
-        or not any(row.get("opponent_action") == damage_action for row in positive)
-        or not close(negative[0]["opponent_damage_percent"], final_damage)
-        or any(
-            not close(row["opponent_damage_percent"], final_damage)
-            for row in negative
-        )
+        or not close(positive[0][damage_key], initial_damage)
+        or not close(positive[-1][damage_key], final_damage)
+        or not any(row.get(action_key) == damage_action for row in positive)
+        or not close(negative[0][damage_key], final_damage)
+        or any(not close(row[damage_key], final_damage) for row in negative)
     ):
         raise SystemExit(f"{motion} collision hit/miss outcome mismatch")
     return positive, negative
 
 
-def requested_route_distance(rows: list[dict[str, Any]]) -> float:
+def requested_route_distance(
+    rows: list[dict[str, Any]],
+    target: str = "opponent",
+    attacker: str = "fighter",
+) -> float:
+    target_key = f"requested_{target}_x_override"
+    attacker_key = f"requested_{attacker}_x_override"
     distances = {
-        float(row["requested_opponent_x_override"])
-        - float(row["requested_fighter_x_override"])
+        float(row[target_key]) - float(row[attacker_key])
         for row in rows
-        if row.get("requested_opponent_x_override") is not None
-        and row.get("requested_fighter_x_override") is not None
+        if row.get(target_key) is not None and row.get(attacker_key) is not None
     }
     if len(distances) != 1:
         raise SystemExit(f"expected one requested route distance, got {distances}")
@@ -136,15 +144,20 @@ def collision_frame(
     attack_frame: int,
     target_action: str,
     target_frame: int,
+    attacker_prefix: str = "",
+    target_prefix: str = "opponent_",
 ) -> dict[str, Any]:
+    attacker_action_key = f"{attacker_prefix}action"
+    attacker_frame_key = f"{attacker_prefix}action_frame"
+    target_action_key = f"{target_prefix}action"
+    target_frame_key = f"{target_prefix}action_frame"
     candidates = [
         row
         for row in rows
-        if row.get("action") == "NEUTRAL_ATTACK_1"
-        and float(row.get("action_frame", -1.0)) == float(attack_frame)
-        and row.get("opponent_action") == target_action
-        and float(row.get("opponent_action_frame", -1.0))
-        == float(target_frame)
+        if row.get(attacker_action_key) == "NEUTRAL_ATTACK_1"
+        and float(row.get(attacker_frame_key, -1.0)) == float(attack_frame)
+        and row.get(target_action_key) == target_action
+        and float(row.get(target_frame_key, -1.0)) == float(target_frame)
     ]
     if len(candidates) != 1:
         raise SystemExit(
@@ -154,10 +167,13 @@ def collision_frame(
     return candidates[0]
 
 
-def verify_cross_port_pose(
+def verify_captured_pose(
     source_row: dict[str, Any],
-    opponent_row: dict[str, Any],
+    observed_row: dict[str, Any],
     label: str,
+    observed_hurtbox_key: str = "opponent_hurtboxes",
+    observed_position_key: str = "opponent_fighter_position",
+    observed_facing_key: str = "opponent_facing",
 ) -> None:
     source_pose = canonical_hurt_pose_q16(
         dict(source_row["hitbox_memory"]),
@@ -166,27 +182,75 @@ def verify_cross_port_pose(
         int(source_row["facing"]),
         MELEE_TO_SIM_Q16,
     )
-    opponent_pose = canonical_hurt_pose_q16(
-        dict(opponent_row["hitbox_memory"]),
-        "opponent_hurtboxes",
-        "opponent_fighter_position",
-        int(opponent_row["opponent_facing"]),
+    observed_pose = canonical_hurt_pose_q16(
+        dict(observed_row["hitbox_memory"]),
+        observed_hurtbox_key,
+        observed_position_key,
+        int(observed_row[observed_facing_key]),
         MELEE_TO_SIM_Q16,
     )
-    if not q16_hurt_poses_equivalent(source_pose, opponent_pose):
-        raise SystemExit(f"port-2 {label} pose does not match captured Falcon pose")
+    if not q16_hurt_poses_equivalent(source_pose, observed_pose):
+        raise SystemExit(f"{label} pose does not match captured Falcon pose")
+
+
+def row_with_pending_fighter_pose(
+    observed_row: dict[str, Any], source_row: dict[str, Any]
+) -> dict[str, Any]:
+    """Install the next displayed fighter pose in an observed collision row."""
+
+    reconstructed = copy.deepcopy(observed_row)
+    memory = dict(reconstructed["hitbox_memory"])
+    source_memory = dict(source_row["hitbox_memory"])
+    target_position = [float(value) for value in memory["fighter_position"]]
+    source_position = [
+        float(value) for value in source_memory["fighter_position"]
+    ]
+    target_facing = int(observed_row["facing"])
+    source_facing = int(source_row["facing"])
+    target_hurtboxes = list(memory["fighter_hurtboxes"])
+    source_hurtboxes = list(source_memory["fighter_hurtboxes"])
+    if (
+        target_facing not in (-1, 1)
+        or source_facing not in (-1, 1)
+        or len(target_hurtboxes) != len(source_hurtboxes)
+    ):
+        raise SystemExit("cannot reconstruct pending fighter hurt pose")
+    for target_hurtbox, source_hurtbox in zip(
+        target_hurtboxes, source_hurtboxes, strict=True
+    ):
+        for suffix in ("a", "b"):
+            source_endpoint = [
+                float(value) for value in source_hurtbox[f"position_{suffix}"]
+            ]
+            local_x = source_facing * (
+                source_endpoint[0] - source_position[0]
+            )
+            local_y = source_endpoint[1] - source_position[1]
+            local_z = source_facing * (
+                source_endpoint[2] - source_position[2]
+            )
+            target_hurtbox[f"collision_position_{suffix}"] = [
+                target_position[0] + target_facing * local_x,
+                target_position[1] + local_y,
+                target_position[2] + target_facing * local_z,
+            ]
+    reconstructed["hitbox_memory"] = memory
+    return reconstructed
 
 
 def reconstructed_collision_margins(
-    miss_row: dict[str, Any], target_shift_x: float
+    miss_row: dict[str, Any],
+    target_shift_x: float,
+    hitbox_key: str = "hitboxes",
+    hurtbox_key: str = "opponent_hurtboxes",
 ) -> tuple[float, float]:
     memory = dict(miss_row["hitbox_memory"])
     hitboxes = [
         dict(hitbox)
-        for hitbox in memory["hitboxes"]
+        for hitbox in memory[hitbox_key]
         if int(hitbox.get("state", 0)) != 0
     ]
-    hurtboxes = active_hurtboxes(memory, "opponent_hurtboxes")
+    hurtboxes = active_hurtboxes(memory, hurtbox_key)
     miss_margin = max(
         captured_collision_margin(hitbox, hurtbox, True)
         for hitbox in hitboxes
@@ -205,15 +269,18 @@ def reconstructed_collision_margins(
 
 
 def generic_rectangle_margin(
-    memory: dict[str, Any], target_shift_x: float
+    memory: dict[str, Any],
+    target_shift_x: float,
+    hitbox_key: str = "hitboxes",
+    target_position_key: str = "opponent_fighter_position",
 ) -> float:
-    target = [float(value) for value in memory["opponent_fighter_position"]]
+    target = [float(value) for value in memory[target_position_key]]
     center_x = target[0] + target_shift_x
     center_y = target[1] + 115.0 * 0.8 / 12.0
     half_width = 115.0 * 0.45 / 12.0
     half_height = 115.0 * 0.8 / 12.0
     margins = []
-    for hitbox in memory["hitboxes"]:
+    for hitbox in memory[hitbox_key]:
         if int(hitbox.get("state", 0)) == 0:
             continue
         position = [float(value) for value in hitbox["position"]]
@@ -239,6 +306,7 @@ def main() -> int:
     parser.add_argument("dash_source", type=Path)
     parser.add_argument("crouch_source", type=Path)
     parser.add_argument("knee_source", type=Path)
+    parser.add_argument("escape_source", type=Path)
     args = parser.parse_args()
 
     capture_digest = sha256(args.capture)
@@ -254,6 +322,8 @@ def main() -> int:
         raise SystemExit("unexpected ftCo_Squat.c SHA-256")
     if sha256(args.knee_source) != EXPECTED_KNEE_SOURCE_SHA256:
         raise SystemExit("unexpected ftCo_KneeBend.c SHA-256")
+    if sha256(args.escape_source) != EXPECTED_ESCAPE_SOURCE_SHA256:
+        raise SystemExit("unexpected ftCo_Escape.c SHA-256")
 
     capture: dict[str, Any] = json.loads(
         args.capture.read_text(encoding="utf-8")
@@ -277,7 +347,7 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 650
+        or len(rows) != 1099
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -316,12 +386,29 @@ def main() -> int:
         1,
         4,
     )
+    spot_dodge_rows = exact_action_frames(
+        rows,
+        "common_hurt_spot_dodge_hold",
+        "SPOTDODGE",
+        1,
+        32,
+    )
+    observed_invulnerability = [
+        round(float(row["action_frame"]))
+        for row in spot_dodge_rows
+        if bool(row["invulnerable"])
+    ]
+    if observed_invulnerability != list(range(3, 21)):
+        raise SystemExit(
+            "SpotDodge invulnerability mismatch: "
+            f"{observed_invulnerability} != {list(range(3, 21))}"
+        )
     positive, negative = verify_collision_outcome(
         rows, "dash", 0.0, 2.0, "DAMAGE_HIGH_2"
     )
 
     dash_miss_frame = collision_frame(negative, 5, "DASHING", 5)
-    verify_cross_port_pose(dash_rows[4], dash_miss_frame, "Dash frame 5")
+    verify_captured_pose(dash_rows[4], dash_miss_frame, "port-2 Dash frame 5")
     dash_target_shift = (
         requested_route_distance(positive)
         - requested_route_distance(negative)
@@ -355,8 +442,8 @@ def main() -> int:
     crouch_miss_frame = collision_frame(
         crouch_negative, 3, "CROUCH_START", 3
     )
-    verify_cross_port_pose(
-        crouch_start_rows[2], crouch_miss_frame, "CrouchStart frame 3"
+    verify_captured_pose(
+        crouch_start_rows[2], crouch_miss_frame, "port-2 CrouchStart frame 3"
     )
     crouch_target_shift = (
         requested_route_distance(crouch_positive)
@@ -390,8 +477,8 @@ def main() -> int:
     knee_miss_frame = collision_frame(
         knee_negative, 3, "KNEE_BEND", 2
     )
-    verify_cross_port_pose(
-        knee_bend_rows[1], knee_miss_frame, "KneeBend frame 2"
+    verify_captured_pose(
+        knee_bend_rows[1], knee_miss_frame, "port-2 KneeBend frame 2"
     )
     knee_target_shift = (
         requested_route_distance(knee_positive)
@@ -415,6 +502,68 @@ def main() -> int:
             f"generic_margin={knee_generic_margin:.9f}"
         )
 
+    spot_positive, spot_negative = verify_collision_outcome(
+        rows,
+        "spot_dodge",
+        0.0,
+        2.0,
+        "DAMAGE_NEUTRAL_2",
+        target_prefix="",
+    )
+    spot_miss_frame = collision_frame(
+        spot_negative,
+        4,
+        "SPOTDODGE",
+        23,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        spot_dodge_rows[22],
+        spot_miss_frame,
+        "port-1 SpotDodge frame 23",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    spot_target_shift = (
+        requested_route_distance(
+            spot_positive, target="fighter", attacker="opponent"
+        )
+        - requested_route_distance(
+            spot_negative, target="fighter", attacker="opponent"
+        )
+    )
+    # The post-frame observer reports the collision on the row after Melee has
+    # evaluated SpotDodge frame 24.  Install that pending pose into the frame-23
+    # observation before reconstructing the frame-4 Jab check.
+    spot_pending_collision_frame = row_with_pending_fighter_pose(
+        spot_miss_frame, spot_dodge_rows[23]
+    )
+    spot_hit_margin, spot_miss_margin = reconstructed_collision_margins(
+        spot_pending_collision_frame,
+        spot_target_shift,
+        hitbox_key="opponent_hitboxes",
+        hurtbox_key="fighter_hurtboxes",
+    )
+    spot_generic_margin = generic_rectangle_margin(
+        dict(spot_miss_frame["hitbox_memory"]),
+        0.0,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        spot_hit_margin < 0.0
+        or spot_miss_margin >= 0.0
+        or spot_generic_margin >= 0.0
+    ):
+        raise SystemExit(
+            "SpotDodge collision discriminator failed: "
+            f"hit_margin={spot_hit_margin:.9f} "
+            f"miss_margin={spot_miss_margin:.9f} "
+            f"generic_margin={spot_generic_margin:.9f}"
+        )
+
     print(
         "ssbm-common-hurt=pass "
         f"frames={len(rows)} dash_frames={len(dash_rows)} "
@@ -422,6 +571,7 @@ def main() -> int:
         f"crouch_start_frames={len(crouch_start_rows)} "
         f"crouch_end_frames={len(crouch_end_rows)} "
         f"knee_bend_frames={len(knee_bend_rows)} "
+        f"spot_dodge_frames={len(spot_dodge_rows)} "
         f"dash_hit_margin={dash_hit_margin:.9f} "
         f"dash_miss_margin={dash_miss_margin:.9f} "
         f"dash_generic_margin={dash_generic_margin:.9f} "
@@ -431,6 +581,9 @@ def main() -> int:
         f"knee_hit_margin={knee_hit_margin:.9f} "
         f"knee_miss_margin={knee_miss_margin:.9f} "
         f"knee_generic_margin={knee_generic_margin:.9f} "
+        f"spot_hit_margin={spot_hit_margin:.9f} "
+        f"spot_miss_margin={spot_miss_margin:.9f} "
+        f"spot_generic_margin={spot_generic_margin:.9f} "
         f"capture_sha256={capture_digest}"
     )
     return 0

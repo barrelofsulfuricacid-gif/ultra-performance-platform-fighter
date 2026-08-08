@@ -83,14 +83,18 @@ build/oracle-toolchain/exiai-python/bin/python \
 
 ## Qualification and measurement
 
-The current qualification trace contains 650 rows and three Falcon common-hurt routes:
-Initial Dash, CrouchStart/CrouchEnd, and KneeBend, including physical hit/miss
-controls. The automated A/B comparison strictly matches every requested and
-observed input, game frame, active action and action frame, position, velocity,
-damage, hitlag, collision decision, and active non-hitlag geometry observation.
-It covers 260 non-standing Falcon rows and 194 non-standing opponent rows.
-Of those, 251 Falcon and 186 opponent rows are non-hitlag active-pose samples
-whose complete capsule geometry also matches exactly.
+The current qualification trace contains 1,099 rows and six Falcon common-hurt
+tracks: Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, and
+SpotDodge, including physical hit/miss controls. The automated A/B comparison
+strictly matches every requested and observed input, game frame, initialized
+active action frame, position, velocity, damage, hitlag, collision decision,
+and qualified geometry observation. It covers 482 non-standing Falcon rows and
+295 non-standing opponent rows. Of those, 446 Falcon and 284 opponent rows are
+initialized, non-hitlag, action-owned pose samples whose complete capsule
+geometry also matches exactly. The unaccelerated control SHA-256 is
+`bb75f231b80b3c6397b02355277bf621071a7f6ae2f5a85f3558d27d0b25bfc7`;
+the selected accelerated capture is
+`dbd01434760f87236d2569b64fbe6bb7d77f6723d7d61322a48c94eab5f0089a`.
 
 Measured on the local WSL host:
 
@@ -100,6 +104,10 @@ Measured on the local WSL host:
 | project-authored WSL NoGUI/software OpenGL, 601 rows | 38.15 s | rejected |
 | ExiAI unaccelerated control, headless, 650 rows | 22.17 s | qualification control |
 | ExiAI headless/null/fast-forward, 650 rows | 16.68 s | selected |
+
+Those timings are the retained 650-row benchmark; the expanded 1,099-row
+qualification adds SpotDodge and facing-controlled collision routes without
+changing the selected runner.
 
 The memory probe dominates this geometry-heavy trace, so fast-forward's
 measured benefit is smaller than in ordinary state-only traces. The selected
@@ -115,8 +123,12 @@ That produces two observation-only differences which the verifier names and
 constrains:
 
 - Menu timing can enter the looping `STANDING` animation at a different phase.
-  Only idle hurtbox endpoints/ECB and the non-participating opponent's idle
-  cursor are excluded. All actions that reset their cursor remain strict.
+  Only idle action cursor, hurtbox endpoints, and ECB are excluded. All actions
+  that reset their cursor remain strict.
+- `ftCo_8009388C` enters `GuardReflect` with `Ft_MF_SkipAnim`, so that motion
+  state intentionally inherits the preceding pose instead of owning a
+  GuardReflect animation sample. Its inherited endpoints and ECB are excluded;
+  action, input, physics, shield behavior, and collision outcomes remain strict.
 - Hurtbox endpoints on post-hit frames with positive hitlag can reflect the
   skipped display-side update. The collision result, damage, action, hitlag,
   and every other gameplay field remain strict, but those endpoints must never
