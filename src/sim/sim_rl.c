@@ -10,8 +10,17 @@
 _Static_assert(
     PF_RL_COMPACT_VALUE_COUNT ==
         PF_RL_COMPACT_GLOBAL_VALUES +
-            PF_SIM_MAX_PLAYERS * PF_RL_COMPACT_PLAYER_STRIDE,
-    "compact RL observation dimensions must cover every player slot");
+            PF_SIM_MAX_PLAYERS * PF_RL_COMPACT_PLAYER_STRIDE +
+            PF_RL_COMPACT_ITEM_VALUES +
+            PF_RL_COMPACT_PROJECTILE_VALUES +
+            PF_RL_COMPACT_CHARGE_VALUES +
+            PF_RL_COMPACT_SMASH_CHARGE_VALUES +
+            PF_RL_COMPACT_SHIELD_STRENGTH_VALUES +
+            PF_RL_COMPACT_SHIELD_HEALTH_VALUES +
+            PF_RL_COMPACT_SHIELD_TILT_VALUES +
+            PF_SIM_MAX_PLAYERS *
+                PF_RL_COMPACT_STALE_MOVE_PLAYER_STRIDE,
+    "compact RL observation dimensions must cover canonical entity state");
 _Static_assert(
     (PF_RL_ENGAGEMENT_REFERENCE_DISTANCE_Q16 >> 9U) ==
         PF_RL_ENGAGEMENT_POTENTIAL_LIMIT_Q16,
@@ -158,6 +167,29 @@ static void pf_rl_transition_init(pf_rl_transition *transition)
         PF_RL_COMPACT_VALUE_COUNT;
 }
 
+static void pf_rl_transition_init_fast(pf_rl_transition *transition)
+{
+    transition->struct_size = (uint32_t)sizeof(*transition);
+    transition->schema_version = PF_RL_TRANSITION_SCHEMA_VERSION;
+    transition->reserved = UINT16_C(0);
+    transition->status = (uint32_t)PF_STATUS_OK;
+    transition->diagnostic_flags = UINT32_C(0);
+    transition->compact_observation.struct_size =
+        (uint32_t)sizeof(transition->compact_observation);
+    transition->compact_observation.schema_version =
+        PF_RL_COMPACT_OBSERVATION_SCHEMA_VERSION;
+    transition->compact_observation.value_count =
+        PF_RL_COMPACT_VALUE_COUNT;
+    (void)memset(
+        transition->reward_q16,
+        0,
+        sizeof(transition->reward_q16));
+    (void)memset(
+        transition->legal_buttons,
+        0,
+        sizeof(transition->legal_buttons));
+}
+
 static void pf_rl_world_result(
     const pf_world_state *world,
     pf_tick_result *result)
@@ -197,7 +229,9 @@ static void pf_rl_fill_compact(
                  ((uint32_t)observation->mode << 8U) |
                  ((uint32_t)observation->terminated << 16U) |
                  ((uint32_t)observation->truncated << 17U) |
-                 ((uint32_t)observation->winner_mask << 24U);
+                 ((uint32_t)observation->sudden_death << 18U) |
+                 ((uint32_t)observation->stock_count << 19U) |
+                 ((uint32_t)observation->winner_mask << 26U);
     compact->values[PF_RL_COMPACT_MATCH_BITS_INDEX] =
         pf_rl_u32_bits(match_bits);
 
@@ -213,7 +247,9 @@ static void pf_rl_fill_compact(
             (uint32_t)player->player_slot |
             ((uint32_t)player->team << 8U) |
             ((uint32_t)player->grounded << 16U) |
-            ((uint32_t)player->active << 17U);
+            ((uint32_t)player->active << 17U) |
+            ((uint32_t)player->recovery_available << 18U) |
+            ((uint32_t)player->prone_orientation << 19U);
 
         compact->values[base] =
             pf_rl_u64_low(player->previous_buttons);
@@ -229,6 +265,184 @@ static void pf_rl_fill_compact(
             player->velocity_y_q16;
         compact->values[base + UINT16_C(6)] =
             pf_rl_u32_bits(player_bits);
+        compact->values[
+            base + PF_RL_COMPACT_PLAYER_STOCKS_OFFSET] =
+            (int32_t)player->stocks_remaining;
+        compact->values[
+            base + PF_RL_COMPACT_PLAYER_RESPAWN_OFFSET] =
+            (int32_t)player->respawn_ticks;
+        compact->values[
+            base +
+            PF_RL_COMPACT_PLAYER_INVULNERABILITY_OFFSET] =
+                (int32_t)player->respawn_invulnerability_ticks;
+    }
+    {
+        const pf_item_observation *item = &observation->item;
+        const uint32_t item_bits =
+            (uint32_t)item->state |
+            ((uint32_t)item->holder_slot << 3U) |
+            ((uint32_t)item->source_slot << 6U) |
+            ((uint32_t)item->throw_direction << 9U) |
+            ((uint32_t)item->hit_mask << 12U);
+
+        compact->values[PF_RL_COMPACT_ITEM_BASE] =
+            item->position_x_q16;
+        compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(1)] =
+            item->position_y_q16;
+        compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(2)] =
+            item->velocity_x_q16;
+        compact->values[PF_RL_COMPACT_ITEM_BASE + UINT16_C(3)] =
+            item->velocity_y_q16;
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_STATE_BITS_OFFSET] =
+            pf_rl_u32_bits(item_bits);
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_LIFETIME_OFFSET] =
+            (int32_t)item->lifetime_ticks;
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_RESPAWN_OFFSET] =
+            (int32_t)item->respawn_ticks;
+        compact->values[
+            PF_RL_COMPACT_ITEM_BASE +
+            PF_RL_COMPACT_ITEM_LOCKOUT_OFFSET] =
+            (int32_t)item->pickup_lockout_ticks;
+    }
+    {
+        const pf_projectile_observation *projectile =
+            &observation->projectile;
+        const uint32_t projectile_bits =
+            (uint32_t)projectile->state |
+            ((uint32_t)projectile->owner_slot << 2U);
+
+        compact->values[PF_RL_COMPACT_PROJECTILE_BASE] =
+            projectile->position_x_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(1)] =
+            projectile->position_y_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(2)] =
+            projectile->velocity_x_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE + UINT16_C(3)] =
+            projectile->velocity_y_q16;
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE +
+            PF_RL_COMPACT_PROJECTILE_STATE_BITS_OFFSET] =
+            pf_rl_u32_bits(projectile_bits);
+        compact->values[
+            PF_RL_COMPACT_PROJECTILE_BASE +
+            PF_RL_COMPACT_PROJECTILE_LIFETIME_OFFSET] =
+            (int32_t)projectile->lifetime_ticks;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        compact->values[
+            PF_RL_COMPACT_CHARGE_BASE + (uint16_t)player_index] =
+            (int32_t)observation->players[player_index].charge_ticks;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        compact->values[
+            PF_RL_COMPACT_SMASH_CHARGE_BASE +
+            (uint16_t)player_index] =
+            (int32_t)observation->players[player_index]
+                .smash_charge_ticks;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        compact->values[
+            PF_RL_COMPACT_SHIELD_STRENGTH_BASE +
+            (uint16_t)player_index] =
+            (int32_t)observation->players[player_index]
+                .shield_strength;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        compact->values[
+            PF_RL_COMPACT_SHIELD_HEALTH_BASE +
+            (uint16_t)player_index] =
+            (int32_t)observation->players[player_index]
+                .shield_health_q16;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const uint16_t base =
+            (uint16_t)(
+                PF_RL_COMPACT_SHIELD_TILT_BASE +
+                (uint16_t)(UINT16_C(2) *
+                           (uint16_t)player_index));
+
+        compact->values[base] =
+            (int32_t)observation->players[player_index]
+                .shield_tilt_x;
+        compact->values[base + UINT16_C(1)] =
+            (int32_t)observation->players[player_index]
+                .shield_tilt_y;
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const pf_player_observation *player =
+            &observation->players[player_index];
+        const uint16_t base =
+            PF_RL_COMPACT_STALE_MOVE_PLAYER_BASE(player_index);
+        if (player->stale_move_count == UINT8_C(0))
+        {
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
+                (int32_t)PF_Q16_ONE;
+            compact->values[
+                base +
+                PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
+                INT32_C(0);
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_IDS_3_6_OFFSET] =
+                INT32_C(0);
+            compact->values[
+                base + PF_RL_COMPACT_STALE_MOVE_IDS_7_8_OFFSET] =
+                INT32_C(0);
+            continue;
+        }
+        const uint32_t count_ids_0_2 =
+            (uint32_t)player->stale_move_count |
+            ((uint32_t)player->stale_move_ids[0] << 8U) |
+            ((uint32_t)player->stale_move_ids[1] << 16U) |
+            ((uint32_t)player->stale_move_ids[2] << 24U);
+        const uint32_t ids_3_6 =
+            (uint32_t)player->stale_move_ids[3] |
+            ((uint32_t)player->stale_move_ids[4] << 8U) |
+            ((uint32_t)player->stale_move_ids[5] << 16U) |
+            ((uint32_t)player->stale_move_ids[6] << 24U);
+        const uint32_t ids_7_8 =
+            (uint32_t)player->stale_move_ids[7] |
+            ((uint32_t)player->stale_move_ids[8] << 8U);
+
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_MULTIPLIER_OFFSET] =
+            (int32_t)player->stale_move_multiplier_q16;
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_COUNT_IDS_0_2_OFFSET] =
+            pf_rl_u32_bits(count_ids_0_2);
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_IDS_3_6_OFFSET] =
+            pf_rl_u32_bits(ids_3_6);
+        compact->values[
+            base + PF_RL_COMPACT_STALE_MOVE_IDS_7_8_OFFSET] =
+            pf_rl_u32_bits(ids_7_8);
     }
 }
 
@@ -274,7 +488,9 @@ static pf_status pf_rl_fill_transition(
              ++player_index)
         {
             transition->legal_buttons[player_index] =
-                PF_INPUT_KNOWN_BUTTONS;
+                sim->world.active[player_index] != UINT8_C(0)
+                    ? PF_INPUT_KNOWN_BUTTONS
+                    : PF_INPUT_BUTTON_FORFEIT;
         }
     }
 
@@ -402,12 +618,13 @@ pf_status pf_rl_step(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
-    pf_rl_transition_init(out_transition);
     if (!pf_sim_is_valid(sim) || sim->has_reset == UINT8_C(0))
     {
+        pf_rl_transition_init(out_transition);
         out_transition->status = (uint32_t)PF_STATUS_INVALID_STATE;
         return PF_STATUS_INVALID_STATE;
     }
+    pf_rl_transition_init_fast(out_transition);
     if (actions == NULL ||
         action_count != (size_t)sim->world.player_count)
     {

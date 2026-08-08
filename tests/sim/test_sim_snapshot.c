@@ -7,9 +7,14 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define TEST_MEMORY_BYTES 2048U
+#define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
-#define TEST_SAVE_CAPACITY 512U
+#define TEST_SAVE_CAPACITY 1024U
+#define TEST_SAVE_HEADER_BYTES 140U
+#define TEST_PAYLOAD_HASH_OFFSET 108U
+#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 535U
+#define TEST_PACKED_RECOVERY_OFFSET                                      \
+    (TEST_SAVE_HEADER_BYTES + TEST_PACKED_RECOVERY_PAYLOAD_OFFSET)
 #define TEST_TRACE_TICKS UINT64_C(73)
 
 typedef struct test_sim_storage
@@ -175,6 +180,25 @@ static int verify_save_digest(
     return 1;
 }
 
+static void rewrite_payload_checksum(
+    uint8_t *save_bytes,
+    size_t save_size)
+{
+    pf_sha256 hash;
+    uint8_t digest[32];
+
+    pf_sha256_init(&hash);
+    pf_sha256_update(
+        &hash,
+        &save_bytes[TEST_SAVE_HEADER_BYTES],
+        save_size - (size_t)TEST_SAVE_HEADER_BYTES);
+    pf_sha256_finish(&hash, digest);
+    (void)memcpy(
+        &save_bytes[TEST_PAYLOAD_HASH_OFFSET],
+        digest,
+        sizeof(digest));
+}
+
 static int state_unchanged(
     pf_sim *sim,
     const pf_state_hash *before,
@@ -206,24 +230,45 @@ static int verify_wire_prefix(
 {
     static const uint8_t expected_magic[8] = {
         UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x30), UINT8_C(0x31)};
+        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x31)};
 
-    if (save_size != (size_t)305 ||
+    if (save_size != (size_t)807 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
-        save_bytes[8] != UINT8_C(1) ||
+        save_bytes[8] != UINT8_C(56) ||
         save_bytes[9] != UINT8_C(0) ||
         save_bytes[10] != UINT8_C(140) ||
         save_bytes[11] != UINT8_C(0) ||
-        save_bytes[12] != UINT8_C(2) ||
+        save_bytes[12] != UINT8_C(4) ||
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
+        save_bytes[16] != UINT8_C(60) ||
+        save_bytes[17] != UINT8_C(0) ||
+        save_bytes[22] != UINT8_C(5) ||
+        save_bytes[23] != UINT8_C(0) ||
         save_bytes[92] != (uint8_t)TEST_TRACE_TICKS ||
         save_bytes[140] != (uint8_t)TEST_TRACE_TICKS)
     {
         (void)fprintf(
             stderr,
-            "sim-snapshot=fail operation=wire-prefix\n");
+            "sim-snapshot=fail operation=wire-prefix "
+            "magic=%c%c%c%c%c%c%c%c format=%u state=%u "
+            "input_schema=%u input_schema_hi=%u "
+            "header_tick=%u payload_tick=%u\n",
+            (int)save_bytes[0],
+            (int)save_bytes[1],
+            (int)save_bytes[2],
+            (int)save_bytes[3],
+            (int)save_bytes[4],
+            (int)save_bytes[5],
+            (int)save_bytes[6],
+            (int)save_bytes[7],
+            (unsigned int)save_bytes[8],
+            (unsigned int)save_bytes[16],
+            (unsigned int)save_bytes[22],
+            (unsigned int)save_bytes[23],
+            (unsigned int)save_bytes[92],
+            (unsigned int)save_bytes[140]);
         return 0;
     }
     return 1;
@@ -321,7 +366,7 @@ int main(void)
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "query-save-size") ||
-        required_bytes != (size_t)305)
+        required_bytes != (size_t)807)
     {
         (void)fprintf(
             stderr,
@@ -413,6 +458,51 @@ int main(void)
     }
 
     (void)memcpy(damaged_bytes, save_bytes, destination.size);
+    damaged_bytes[TEST_PACKED_RECOVERY_OFFSET] = UINT8_C(0x03);
+    rewrite_payload_checksum(damaged_bytes, destination.size);
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_INVALID_STATE,
+            "noncanonical-tech-code") ||
+        !state_unchanged(
+            loaded,
+            &before_invalid,
+            "hash-after-noncanonical-tech-code"))
+    {
+        return 1;
+    }
+
+    (void)memcpy(damaged_bytes, save_bytes, destination.size);
+    damaged_bytes[TEST_PACKED_RECOVERY_OFFSET] = UINT8_C(0x0c);
+    rewrite_payload_checksum(damaged_bytes, destination.size);
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_INVALID_STATE,
+            "noncanonical-prone-orientation") ||
+        !state_unchanged(
+            loaded,
+            &before_invalid,
+            "hash-after-noncanonical-prone-orientation"))
+    {
+        return 1;
+    }
+
+    (void)memcpy(damaged_bytes, save_bytes, destination.size);
+    damaged_bytes[TEST_PACKED_RECOVERY_OFFSET] = UINT8_C(0x10);
+    rewrite_payload_checksum(damaged_bytes, destination.size);
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_INVALID_STATE,
+            "noncanonical-recovery-reserved-bits") ||
+        !state_unchanged(
+            loaded,
+            &before_invalid,
+            "hash-after-noncanonical-recovery-reserved-bits"))
+    {
+        return 1;
+    }
+
+    (void)memcpy(damaged_bytes, save_bytes, destination.size);
     damaged_bytes[92] ^= UINT8_C(1);
     if (!expect_status(
             pf_sim_load(loaded, source_bytes),
@@ -427,7 +517,7 @@ int main(void)
     }
 
     (void)memcpy(damaged_bytes, save_bytes, destination.size);
-    damaged_bytes[8] = UINT8_C(2);
+    damaged_bytes[8] = UINT8_C(99);
     if (!expect_status(
             pf_sim_load(loaded, source_bytes),
             PF_STATUS_UNSUPPORTED_VERSION,

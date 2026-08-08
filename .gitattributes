@@ -1,0 +1,2 @@
+tools/ssbm_exiai_checkpoint.patch -whitespace
+tools/*.sh text eol=lf

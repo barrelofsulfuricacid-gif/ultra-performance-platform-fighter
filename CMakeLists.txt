@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(PFBuildModes)
 include(PFDeterministicBoundary)
 include(PFProjectWarnings)
+include(GenerateM4OwnerChecklist)
 
 option(PF_BUILD_HEADLESS "Build the renderer-free headless product" ON)
 option(PF_BUILD_NATIVE_CLIENT "Build the native-client product boundary" ON)
@@ -28,6 +29,10 @@ option(
     ON)
 option(PF_ENABLE_SANITIZERS "Enable the supported address/UB sanitizers" OFF)
 option(PF_ENABLE_PROFILING "Preserve frame pointers and profiling seams" OFF)
+option(
+    PF_TRACY_TIMER_FALLBACK
+    "Use Tracy's lower-resolution timer on hosts without invariant TSC"
+    OFF)
 option(PF_ENABLE_SDL_CLIENT "Build the native client against locked SDL3" OFF)
 option(
     PF_SDL_UNIX_CONSOLE_BUILD
@@ -61,6 +66,12 @@ if(PF_ENABLE_PROFILING)
     set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy profiling" FORCE)
     set(TRACY_NO_BROADCAST ON CACHE BOOL "Disable Tracy LAN broadcast" FORCE)
     set(
+        TRACY_TIMER_FALLBACK
+        "${PF_TRACY_TIMER_FALLBACK}"
+        CACHE BOOL
+        "Use Tracy's lower-resolution timer"
+        FORCE)
+    set(
         TRACY_NO_VSYNC_CAPTURE
         ON
         CACHE BOOL
@@ -75,7 +86,16 @@ endif()
 set(
     PF_SIM_SOURCES
     src/sim/sim.c
+    src/sim/sim_combat.c
+    src/sim/sim_content.c
+    src/sim/sim_falcon_frame_data.c
+    src/sim/sim_event.c
+    src/sim/sim_item.c
+    src/sim/sim_projectile.c
+    src/sim/sim_reflector.c
+    src/sim/sim_charge.c
     src/sim/sim_internal.h
+    src/sim/sim_movement.c
     src/sim/sim_sha256.c
     src/sim/sim_sha256.h
     src/sim/sim_rl.c
@@ -232,11 +252,27 @@ function(pf_add_smoke_product target product_name render_probe)
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/web_adapter.js")
         set(pf_web_shell
             "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/shell.html")
+        set(pf_m4_technique_registry
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/product/m4_advanced_technique_registry.md")
+        set(pf_m4_owner_checklist
+            "${CMAKE_CURRENT_BINARY_DIR}/generated/m4_owner_checklist.js")
+        set(pf_m4_owner_evidence
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client/m4_owner_evidence.js")
+        set_property(
+            DIRECTORY
+            APPEND
+            PROPERTY CMAKE_CONFIGURE_DEPENDS "${pf_m4_technique_registry}")
+        pf_generate_m4_owner_checklist(
+            "${pf_m4_technique_registry}"
+            "${pf_m4_owner_checklist}")
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=1)
         target_link_options(
             ${target}
             PRIVATE
                 "-sASSERTIONS=1"
+                "-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_pf_web_replay_import,_pf_web_m4_playtest_step,_pf_web_m4_playtest_step_special,_pf_web_m4_playtest_step_dual_trigger_special,_pf_web_m4_playtest_reset,_pf_web_m4_playtest_refresh,_pf_web_m4_playtest_configure_duel,_pf_web_m4_playtest_set_team_lab"
+                "--pre-js=${pf_m4_owner_checklist}"
+                "--pre-js=${pf_m4_owner_evidence}"
                 "--js-library=${pf_web_adapter}"
                 "--shell-file=${pf_web_shell}")
         set_property(
@@ -244,7 +280,10 @@ function(pf_add_smoke_product target product_name render_probe)
             APPEND
             PROPERTY LINK_DEPENDS
                 "${pf_web_adapter}"
-                "${pf_web_shell}")
+                "${pf_web_shell}"
+                "${pf_m4_owner_checklist}"
+                "${pf_m4_owner_evidence}"
+                "${pf_m4_technique_registry}")
         set_target_properties(${target} PROPERTIES SUFFIX ".html")
     else()
         target_compile_definitions(${target} PRIVATE PF_PRODUCT_BROWSER=0)
@@ -256,7 +295,7 @@ function(pf_add_smoke_product target product_name render_probe)
         set_tests_properties(
             ${target}.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "${product_name}-smoke=pass sim_abi=2 tick_hz=60")
+                       "${product_name}-smoke=pass sim_abi=4 tick_hz=60")
     endif()
 endfunction()
 
@@ -279,7 +318,7 @@ if(PF_BUILD_NATIVE_CLIENT)
             set_tests_properties(
                 native_client.smoke
                 PROPERTIES PASS_REGULAR_EXPRESSION
-                           "native-client-smoke=pass sim_abi=2 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
+                           "native-client-smoke=pass sim_abi=4 tick_hz=60 sdl=3.4.12 event=pass gamepad=pass geometry=pass batch_draws=1")
         endif()
     else()
         pf_add_smoke_product(native_client "native-client" 0)
@@ -296,6 +335,7 @@ if(PF_BUILD_WEB_CLIENT)
             web_client
             PRIVATE
                 src/checkpoint/m2_replay_fixture.c
+                src/web_client/m4_playtest.c
                 src/web_client/replay_checkpoint.c)
         target_include_directories(
             web_client
@@ -312,6 +352,23 @@ endif()
 if(PF_BUILD_TOOLS)
     pf_add_smoke_product(tools "tools" 0)
     set_target_properties(tools PROPERTIES OUTPUT_NAME pf_tools)
+
+    add_executable(m4_movement_trace src/tools/m4_movement_trace.c)
+    target_link_libraries(m4_movement_trace PRIVATE sim)
+    target_include_directories(m4_movement_trace PRIVATE src/sim)
+    target_compile_features(m4_movement_trace PRIVATE c_std_17)
+    set_target_properties(
+        m4_movement_trace
+        PROPERTIES
+            C_EXTENSIONS OFF
+            OUTPUT_NAME pf_m4_movement_trace)
+    if(MSVC)
+        target_compile_definitions(
+            m4_movement_trace
+            PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
+    pf_enable_project_warnings(m4_movement_trace)
+    pf_apply_build_mode(m4_movement_trace)
 endif()
 
 if(PF_BUILD_BENCHMARKS)
@@ -417,6 +474,18 @@ if(PF_BUILD_VERIFIER)
 endif()
 
 if(BUILD_TESTING)
+    add_test(
+        NAME docs.m4_technique_registry
+        COMMAND
+            "${CMAKE_COMMAND}"
+            "-DPF_M4_TECHNIQUE_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/docs/product/m4_advanced_technique_registry.md"
+            -P
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyM4TechniqueRegistry.cmake")
+    set_tests_properties(
+        docs.m4_technique_registry
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-technique-registry=pass rows=61")
+
     add_executable(
         render_packet_test
         tests/presentation/test_render_packet.c)
@@ -443,7 +512,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.contract
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-contract=pass abi=2 tick_hz=60")
+                   "sim-contract=pass abi=4 tick_hz=60")
 
     add_executable(sim_world_test tests/sim/test_sim_world.c)
     target_link_libraries(sim_world_test PRIVATE sim)
@@ -475,8 +544,147 @@ if(BUILD_TESTING)
     add_test(NAME sim.snapshot COMMAND sim_snapshot_test)
     set_tests_properties(
         sim.snapshot
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "sim-snapshot=pass bytes=807 hash_algorithm=sha256")
+
+    add_executable(m4_movement_test tests/sim/test_m4_movement.c)
+    target_link_libraries(m4_movement_test PRIVATE sim)
+    target_compile_features(m4_movement_test PRIVATE c_std_17)
+    set_target_properties(m4_movement_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_movement_test)
+    pf_apply_build_mode(m4_movement_test)
+
+    add_test(NAME sim.m4_movement COMMAND m4_movement_test)
+    set_tests_properties(
+        sim.m4_movement
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "sim-snapshot=pass bytes=305 hash_algorithm=sha256")
+                   "m4-movement=pass content_schema=70 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped")
+
+    add_executable(
+        m4_combat_test
+        tests/sim/test_m4_combat.c
+        tests/sim/ssbm_stored_oracle.c
+        tests/sim/ssbm_stored_oracle.h)
+    target_link_libraries(m4_combat_test PRIVATE sim)
+    target_compile_features(m4_combat_test PRIVATE c_std_17)
+    set_target_properties(m4_combat_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_combat_test)
+    pf_apply_build_mode(m4_combat_test)
+
+    add_test(NAME sim.m4_combat COMMAND m4_combat_test)
+    set_tests_properties(
+        sim.m4_combat
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-combat=pass content_schema=70 deterministic_ticks=20000 combat_core=pass journal_invariants=74 weight=1 stale_move=1 prone_getup_roll=4 directional_ground_attacks=1 smash_charge=1 light_shield=1 shield_geometry=1 shield_sdi=1 directional_aerials=1 ledge_attack=1 crouch_cancel=1 double_jump_cancel_counter=1 approach=1 spacing=1 mindgame=1 jab_cancel=1 pummel=1 directional_throws=1 chain_grab=1 team_resolution=1 team_wobble=skipped emergent_technique_tests=skipped")
+
+    add_test(
+        NAME sim.m4_ssbm_falcon_common_hurt
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-hurt)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_common_hurt
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=255 cases=20")
+
+    add_executable(m4_item_test tests/sim/test_m4_item.c)
+    target_link_libraries(m4_item_test PRIVATE sim)
+    target_compile_features(m4_item_test PRIVATE c_std_17)
+    set_target_properties(m4_item_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_item_test)
+    pf_apply_build_mode(m4_item_test)
+
+    add_test(NAME sim.m4_item COMMAND m4_item_test)
+    set_tests_properties(
+        sim.m4_item
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-item=pass content_schema=70 state_schema=60 save_bytes=807 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+
+    add_executable(
+        m4_projectile_test
+        tests/sim/test_m4_projectile.c)
+    target_link_libraries(m4_projectile_test PRIVATE sim)
+    target_compile_features(m4_projectile_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_projectile_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_projectile_test)
+    pf_apply_build_mode(m4_projectile_test)
+
+    add_test(NAME sim.m4_projectile COMMAND m4_projectile_test)
+    set_tests_properties(
+        sim.m4_projectile
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-projectile=pass content_schema=70 state_schema=60 save_bytes=807 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+
+    add_executable(
+        m4_reflector_test
+        tests/sim/test_m4_reflector.c)
+    target_link_libraries(m4_reflector_test PRIVATE sim)
+    target_compile_features(m4_reflector_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_reflector_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_reflector_test)
+    pf_apply_build_mode(m4_reflector_test)
+
+    add_test(NAME sim.m4_reflector COMMAND m4_reflector_test)
+    set_tests_properties(
+        sim.m4_reflector
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-reflector=pass content_schema=70 state_schema=60 save_bytes=807 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+
+    add_executable(
+        m4_charge_test
+        tests/sim/test_m4_charge.c)
+    target_link_libraries(m4_charge_test PRIVATE sim)
+    target_include_directories(
+        m4_charge_test
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
+    target_compile_features(m4_charge_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_charge_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_charge_test)
+    pf_apply_build_mode(m4_charge_test)
+
+    add_test(NAME sim.m4_charge COMMAND m4_charge_test)
+    set_tests_properties(
+        sim.m4_charge
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-charge=pass content_schema=70 state_schema=60 save_bytes=807 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+
+    add_executable(m4_match_test tests/sim/test_m4_match.c)
+    target_link_libraries(m4_match_test PRIVATE sim)
+    target_compile_features(m4_match_test PRIVATE c_std_17)
+    set_target_properties(m4_match_test PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_match_test)
+    pf_apply_build_mode(m4_match_test)
+
+    add_test(NAME sim.m4_match COMMAND m4_match_test)
+    set_tests_properties(
+        sim.m4_match
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-match=pass stocks=4 respawn_delay=60 respawn_invulnerability=120 sudden_death=1 team_result=1 invariants=24 journal_invariants=62 revival_invariants=24")
+
+    add_executable(
+        m4_web_playtest_test
+        src/web_client/m4_playtest.c
+        tests/web/test_m4_playtest.c)
+    target_link_libraries(m4_web_playtest_test PRIVATE sim)
+    target_include_directories(
+        m4_web_playtest_test
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/web_client")
+    target_compile_features(m4_web_playtest_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_web_playtest_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_web_playtest_test)
+    pf_apply_build_mode(m4_web_playtest_test)
+
+    add_test(NAME web.m4_playtest COMMAND m4_web_playtest_test)
+    set_tests_properties(
+        web.m4_playtest
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1")
 
     add_executable(rl_api_test tests/sim/test_rl_api.c)
     target_link_libraries(rl_api_test PRIVATE sim)
@@ -489,14 +697,14 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.rl_api
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "rl-api=pass compact_values=36 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=2")
+                   "rl-api=pass compact_values=102 batch_environments=6 reward_q16=65536 engagement_limit_q16=16384 schema=14")
 
     if(PF_BUILD_DETERMINISM_CORPUS)
         add_test(NAME sim.replay_corpus COMMAND replay_corpus)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=180 players=4 bytes=30997")
+                       "sim-replay=pass ticks=240 players=4 bytes=41579")
     endif()
 
     if(PF_BUILD_HEADLESS)
@@ -504,7 +712,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             headless.smoke
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "headless-smoke=pass sim_abi=2 tick_hz=60")
+                       "headless-smoke=pass sim_abi=4 tick_hz=60")
 
         add_test(
             NAME headless.throughput_smoke
@@ -522,7 +730,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             benchmarks.self_test
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "benchmarks-self-test=pass scenarios=13 available=9 sqlite=3.53.4 schema=1")
+                       "benchmarks-self-test=pass scenarios=13 available=10 sqlite=3.53.4 schema=1")
     endif()
 
     if(PF_BUILD_VERIFIER)
@@ -532,6 +740,6 @@ if(BUILD_TESTING)
         set_tests_properties(
             verifier.self_test
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "verifier-self-test=pass checks=3 seeded_defects=4")
+                       "verifier-self-test=pass checks=4 seeded_defects=4")
     endif()
 endif()

@@ -4,7 +4,7 @@
 
 **Plan basis:** `game(3).txt` plus fresh primary-source technical research performed on 2026-07-27. No previous game analysis is incorporated.
 
-**Status:** Owner decisions resolved on 2026-07-27; ready to execute M0.
+**Status:** Execution active in M4; owner decisions and subsequent binding plan modifications are recorded in `plan_modifications.md`.
 
 ---
 
@@ -26,6 +26,7 @@ Build an original 2D platform fighting game that:
 - Functions as an exceptionally fast deterministic reinforcement-learning environment.
 - Keeps authored simulation, gameplay, client orchestration, tools, and public APIs in C. Unavoidable third-party C++ implementations are isolated behind narrow C ABIs, and online services use the best separately researched language.
 - Makes single-thread simulation throughput the first performance priority. Human-facing clients may use auxiliary threads outside the deterministic simulation.
+- Requires production code to be beautifully structured as well as ultra-fast: use the correct zero-cost abstractions, keep each mechanic and invariant under one canonical authority, and reduce code duplication to the minimum unavoidable at external boundaries.
 - Stores game-design values in well-designed Excel workbooks. Developer builds import `.xlsx` at startup or reload; release, web, and headless builds consume a validated packed artifact generated from the same workbooks, with an explicit diagnostic runtime-import option.
 - Minimizes hardcoded design data, duplicated logic, per-tick allocation, indirection, and unnecessary work.
 - Uses SDL3 for native platform and graphics integration, and Dear ImGui through a C-facing boundary for the developer/debug GUI.
@@ -67,6 +68,9 @@ These are constraints on implementation, not premature choices about data repres
 10. **Excel is authoritative design data, not a per-tick format.** Imported values are validated once and transformed into compact immutable runtime tables.
 11. **Version every deterministic input.** Builds, design-data packs, stages, fighters, controller normalization rules, replays, save states, and network handshakes carry compatible version/content hashes.
 12. **Original expression throughout.** SSBM is a system/feel reference, never an asset source. Every name, image, animation, sound, composition, story element, UI asset, stage layout, and written description must be original or properly licensed.
+13. **Beautiful zero-cost implementation.** Express shared mechanics, formulas, state transitions, validation, serialization, and platform-independent policy once through cohesive C APIs, immutable data, and compile-time or `static inline` composition. An abstraction on a simulation hot path must add no allocation, ownership ambiguity, avoidable data movement, indirect dispatch, branch, or call overhead versus its direct equivalent in optimized builds. Where zero cost is not evident, inspect optimized code or measure it. Authoritative gameplay logic may not be copied among runtime, replay, RL, verifier, native, and web paths; unavoidable adapter or test duplication must be small, explicit, and kept outside the deterministic authority.
+14. **Prior art before implementation.** Before starting every implementation slice, fidelity investigation, tool, experiment harness, or optimization, first search the repository, pinned upstream sources, existing project skills, and maintained public implementations for reusable evidence or machinery. Record the relevant result in the milestone evidence. Implement only after this sweep, and do not replace authoritative source data or an established routine with a guess.
+15. **Massively fast equivalence validation.** Exactness does not excuse a slow edit loop. Run source/import checks, stored identical-input traces, deterministic simulation tests, replay checks, and affected-coverage selection without Dolphin in the ordinary edit loop. A live oracle uses one persistent headless/null/unlimited Dolphin session, checkpoint-isolated cases, coalesced or streamed memory observation, and one machine-readable coverage manifest. Do not relaunch Dolphin, serialize unrequested memory, or issue per-field cross-process reads when one batch can preserve the same evidence. Target at most 2 seconds after build for the no-Dolphin edit suite, 3 seconds for a warm changed-domain live oracle, and 10 seconds for the complete warm Falcon oracle pack; treat misses as active performance defects, not acceptable test overhead.
 
 ---
 
@@ -101,7 +105,7 @@ No dependency is selected because it is fashionable or merely claims to be fast.
 | M1 | Reproducible repository, builds, dependency boundaries, and workflow scaffolding | Yes |
 | M2 | Deterministic headless simulation kernel and RL API | Yes |
 | M3 | Per-commit performance system and verifier agent | Yes |
-| M4 | Playable one-fighter/one-stage 1v1 combat vertical slice | Yes |
+| M4 | Playable combat vertical slice with complete non-character-specific SSBM advanced-technique coverage | Yes |
 | M5 | Excel-driven gameplay data and Dear ImGui debug editing | Yes |
 | M6 | Complete local 1v1, 2v2, hazards framework, and capture the flag | Yes |
 | M7 | Native/web client presentation, menus, audio, and controller support | Yes |
@@ -116,6 +120,24 @@ Execution stops at each marked point until the owner playtests or explicitly wai
 ---
 
 ## 6. Detailed milestones and acceptance criteria
+
+The architecture guardrails are acceptance gates at every milestone, not a
+later refactoring phase. A behaviorally correct or faster change is incomplete
+if it duplicates an authoritative formula or transition, creates parallel
+simulation policy, obscures state ownership or invariants, or introduces an
+avoidable runtime abstraction cost. Review each material implementation for:
+
+- one canonical owner for each mechanic, formula, state transition, and data conversion;
+- reusable, cohesive C interfaces and data-driven composition instead of copied branches;
+- zero per-tick allocation and no abstraction overhead in optimized hot paths;
+- minimal boundary/test scaffolding duplication, with any unavoidable duplication documented; and
+- readable names, explicit invariants, bounded responsibilities, and removal of superseded paths.
+
+When performance and structure appear to conflict, compare equivalent correct
+implementations with the canonical benchmark/profile workflow. Select the
+fastest design that still preserves one clear authority and the smallest
+reasonable duplication; do not accept speculative indirection or speculative
+copying.
 
 ### M0 — Product contract and measured architecture decisions
 
@@ -369,6 +391,342 @@ Implement one original placeholder fighter and one original test stage with:
 - Deterministic collision with floors, pass-through platforms, walls/ceilings where the stage requires them, ledges, and platform motion.
 - Data-driven movement parameters and state transitions.
 
+SSBM executable-oracle equivalence is a binding M4 gate. Every implemented M4
+movement or shared-simulation behavior with an SSBM counterpart must match the
+owner's `GALE01` NTSC 1.02 image in Dolphin, not merely resemble it or pass tests
+derived from this implementation. The only exclusions are explicitly original
+mechanics with no intended SSBM counterpart. Work on fidelity continues until
+the complete applicable identical-input differential corpus agrees; unresolved
+divergences are not deferrable acceptance notes, and M4 work does not stop while
+one remains. Numeric frame-data tables may be imported under the recorded
+fidelity exception, while protected audiovisual, stage,
+character-expression, and executable assets remain outside the project.
+Before implementing combat content with a Captain Falcon counterpart, import
+and validate the complete version-pinned numeric table from the owner's NTSC
+1.02 data. Do not guess routine move timing, damage, angle, knockback growth,
+set weight, base knockback, shield damage, interaction flags, or landing data
+when that authoritative table contains the value. Identical-input Dolphin
+captures verify the imported table and runtime behavior and remain the oracle
+for dynamic semantics that a static frame-data table cannot express.
+
+The verifier must drive Dolphin and this simulation with the same ordered,
+per-frame controller samples and compare at least action/state transitions,
+action frame, facing, grounded state, position, self-induced velocity, and
+relevant timers. Its corpus must cover neutral and nonzero starting momentum,
+both directions, analog threshold boundaries, slow walk entry, direct and
+two-sample dash entry, repeated dash-dance reversals, fox-trot, run, run brake,
+standing turn, run turnaround, and crouch entry/hold/release including its
+distinct start/reverse timings and analog threshold boundaries. Captures must
+identify the Dolphin build, disc revision/hash, fighter, stage/setup, input
+trace, coordinate conversion, and first divergent frame. Internal deterministic
+tests remain required, but cannot substitute for this executable-oracle
+comparison.
+
+The executable oracle is one persistent scenario pack, not one state-leaking
+continuous match. Each short case declares its starting checkpoint, ordered
+inputs, observed fields, source rows/callback branches, and exact or bounded
+comparison policy; the runner restores the checkpoint between cases and emits
+one aggregate artifact. Its coverage manifest must account for every imported
+table row, action-frame pose, transition, callback branch, and physical
+positive/negative boundary claimed by production. The fast at-will suite
+replays stored authoritative inputs/traces without launching Dolphin and
+selects changed cases from that same manifest. A warm live run requalifies the
+affected domain, while the complete pack periodically requalifies the whole
+manifest. No finite scenario proves the absence of every possible anomaly, so
+coverage is explicit and extensible rather than described as universal.
+Source-complete data and action-owned geometry are captured once and verified
+exhaustively by canonical action/frame payload. They must not be re-simulated
+through a long physical route for every row when the same pinned collision
+routine can evaluate those exact capsules offline. Live Dolphin cases are
+reserved for the smallest positive/negative discriminators that prove dynamic
+integration, callbacks, and phase ordering. Benchmark timing and incidental
+idle phase stay outside the authoritative digest; two warm regenerations must
+produce the same canonical payload.
+
+Exact equivalence here is behavioral rather than a demand that Q16.16 fixed
+point reproduce every least-significant bit of Dolphin's single-precision
+positions. Small numeric differences are accepted only when they are bounded,
+recorded by the verifier, and attributable to Q16.16 representation or
+accumulation. State/action transitions, action timing, facing, grounded state,
+input thresholds, and other discrete outcomes remain strict. A collision
+boundary may tolerate at most the corresponding one-tick fixed-point
+quantization transient; tolerances must not hide cumulative drift or a
+materially different route.
+
+Current regression evidence consists of an 8,675-frame Final Destination
+movement/defense/crouch corpus, a separate 348-frame Battlefield platform
+corpus, and a separate 540-frame Final Destination Falcon-versus-Falcon
+grounded-player-push corpus, plus a separate 500-frame Final Destination
+analog-shield-pressure corpus. A focused 329-frame defense-state route covers
+forward roll, spot dodge, backward roll, held-L/fresh-R upward air dodge
+through ordinary-physics handoff and floor landing, then a down-left air dodge
+that enters horizontal LandingFallSpecial above Falcon's walk-speed threshold
+and crosses into the ordinary-friction branch. It compares action, tick,
+grounded state, facing, invulnerability, and velocity exactly. The shield route
+covers sub-threshold, light,
+intermediate, near-dense, both-shoulder, digital-full, release, and regeneration
+samples while comparing action/state, health, and normalized pressure; its
+normalized-pressure allowance is one 16-bit unit. The player-push route
+compares both players'
+actions, action frames, facing, grounded state, positions, and self-induced
+velocities in both approach directions and from both controller ports. It pins
+Falcon's 3.5-unit push radius, the common 0.3-unit nudge, strict overlap
+boundary, and a bounded one-nudge positional allowance for a Q16.16-delayed
+boundary crossing. The Battlefield
+route includes ordinary jump-through and landing,
+a one-frame-down negative control, held-down `Squat` frames 1-3, `Pass` entry
+at the executable's 0.63 downward speed, and same-frame solid-floor landing.
+Three additional 283-frame Final Destination shield-hit captures request
+light, intermediate, and dense pressure. They compare both fighters' strict
+discrete state, self velocity, shield health/pressure, hitlag and shield stun,
+plus position within the established 640-Q16 envelope and the attacker's
+separate recoil within 32 Q16 units, inferred independently from executable
+position delta minus self velocity. These routes qualify integer shield-hit
+conversion, pressure-dependent damage/stun and defender pushback, same-frame
+post-hitlag ordering, and separate ground-decaying attacker recoil. Separate
+270- and 2,158-frame memory-probed shield routes qualify the half-step wrapped
+angle/magnitude smoothing, all eight linear guard-animation keys, Falcon's
+joint-derived center and radius, facing reflection, health/pressure scaling,
+and the anisotropically mapped elliptical collision volume. A 2,568-frame,
+33-decision Jab 1 sweep additionally qualifies exact sphere-versus-shield
+collision at neutral and two diagonal guard offsets, including all three
+last-hit/first-miss boundaries. Aggregate executable-oracle evidence is
+therefore 18,697 qualified frames, including 350 actionable frames from a
+1,250-frame aerial-IASA capture covering one-frame-early/exact fair, back-air,
+up-air, and down-air double-jump interrupts plus neutral-air's no-IASA control,
+and
+116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
+103-frame grounded, 165-frame aerial miss, and 63-frame aerial ledge-approach
+routes with memory-probed ECB,
+internal damage, knockback, and reaction-timer state,
+46-frame Raptor Boost ground-hit, 80-frame ground-miss, 180-frame aerial-miss,
+145-frame aerial-hit-to-floor, 51-frame ground-edge, and 155-frame native
+Capsule item-search routes,
+and a 77-frame Falcon Kick ground-hit route with memory-probed parallel ground
+and self velocities, plus 181 live normal-throw frames covering all four
+release routes, three ordinary hitbox intervals, captured-victim damage and
+hitlag, and zero release hitlag.
+Uncaptured pressure/time/spacing routes and the broader shared-simulation
+inventory remain active work.
+
+Falcon's complete attack-oriented source is imported as a hash-pinned 50-slot
+schema with 48 concrete subactions; the only absent rows are the two angled
+forward-smash variants that Falcon's NTSC 1.02 DAT does not define. It includes
+ordinary attacks, grabs/throws, all five aerials, and the contiguous 17
+character-special subactions. This is complemented by a complete 318-slot
+`PlCa.dat` submotion catalog: all 275 present FigaTree animations and all 43
+source-defined empty slots, with frame endpoints, gameplay last frames,
+action-script event counts/offsets, animation flags, and source byte sizes. The
+import must retain all 2,056 event boundaries and 16,516 raw script bytes, and
+must exhaustively decode/hash all 17,271 animation nodes, 38,560 tracks, and
+308,057 keys. It must also derive one shared O(1) translation pool for all 65
+translation-bearing submotions and their 2,536 X/Y frame samples, using the
+six-bit translation-node field rather than a low-byte approximation. Runtime
+code may keep animation tracks offline until a behavior consumes them, but it
+may not replace a source track or command with an authored approximation or
+generate a second per-action copy of the same translation samples. Default
+dash/turn/brake/landing/crouch/shield-release/dodge/roll/tech/getup/appeal
+timing must consume this catalog rather than repeat literals. The same
+generated source preserves all 97 raw
+common-attribute words and the complete 0x8c-byte, 35-field Falcon special-
+attribute block, plus Falcon's complete `ftData_x44` collision/ledge-snap
+block. A typed zero-cost view supplies the default runtime's mapped
+movement, jump, fall, weight, and landing values directly; it may not be
+replaced by hand-entered approximations. No implemented Falcon-counterpart move
+may use a guessed timing, effect, or character attribute when this source
+contains it.
+
+Roll and air-dodge semantics consume that source through decomp-qualified
+callbacks. Ground rolls replace their ground-velocity channel from the one
+generated TransN stream; they must not add an independent authored roll curve.
+EscapeAir consumes common force/dead-zone/decay attributes from `PlCo.dat`,
+applies decay on the entry frame, and decodes the raw frame-30 variable-0 write
+that changes its physics callback to ordinary aerial input/gravity without
+changing action. Its floor contact consumes the captured 48-frame animated ECB
+bottom. Body-state command windows map through the state-specific displayed-
+frame bias and drive invulnerability rather than duplicated constants.
+
+Future character ports must reuse the installed `ssbm-character-importer`
+workflow and generic source-manifest routine. Each port must maintain separate
+source-available, losslessly-imported, production-consumed, and Dolphin-
+qualified coverage; complete files or tables alone are never an equivalence
+claim. Shared hashing, event validation, fixed-point conversion, span access,
+and Dolphin route construction must be generalized rather than copied into a
+new character-specific implementation.
+
+Hash-pinned Dolphin captures provide transformed hit geometry and complete-
+frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
+dash grab, all 17 Falcon special subactions, and the complete 15-frame Initial
+Dash, 28-frame RunBrake, 7-frame CrouchStart, and 10-frame CrouchEnd common
+tracks, all four KneeBend frames, all 32 SpotDodge frames, and both complete
+31-frame roll tracks, all 49 action-owned AirDodge frames, the complete
+eight-frame looping FallSpecial motion, and LandingFallSpecial's exact
+10-tick source-frame sequence `1,4,...,28`. Every damaging/grabbing
+special phase is represented, while non-damaging Raptor Boost search volumes
+are imported separately as the source's six search spheres rather than being
+misclassified as attacks. The imported special timing, attributes, and
+geometry are not by themselves an equivalence claim. Default reference content
+now routes neutral special through the source Falcon Punch ground/air state
+machine, side special through the source Raptor Boost ground/air start,
+search-hit, miss, landing, and hit states, up special through Falcon Dive
+ground/air start, catch, and throw, and down special through Falcon Kick's
+ground/air start, ground end, air end, landing-hit, edge-fall, and wall-rebound
+states. The original Pulse Bolt, Prism Burst, Vector Ascent, and Arc Reservoir
+are explicit custom-content opt-outs. An at-will 657-frame Dolphin Raptor
+Boost suite covers the 46-frame ground-hit, 80-frame ground-
+miss, 180-frame aerial-miss, 145-frame aerial-hit-to-floor, and 51-frame
+ground-edge routes plus a 155-frame native Capsule search route. The item
+route forces only Melee's item-rule accessors to Very High and runtime kind 0,
+then uses the native ambient spawner, grounded Capsule, Falcon search callback,
+and hit-state transition. Its isolated opponent remains at least 100 Melee units
+away, and the verifier asserts the first live command-variable gate. The
+project's Relay Rod is not a Falcon item-search target because the source
+predicate accepts container kinds 0 through 5, two enemy ranges, and the
+random Pokemon kind rather than ordinary weapon items. The
+aerial-hit route includes search conversion, the imported frame-3 seven-damage
+hit, five-frame hitlag, the complete natural pre-landing recovery tail, the exact air-to-ground
+transition, 40 ticks of hit landing lag, and return to standing. It consumes
+all 45 memory-probed `SpecialAirS` ECB-bottom frames; the former generic body
+extent landed one tick early. The suite strictly matches action transitions
+and velocities and matches position within the bounded 640-Q16 representation
+allowance.
+The ground-edge route matches the decomp's command-variable gate, source root
+motion through floor loss, air-speed clamp, zero-gravity transition row, and
+common `FallSpecial` continuation.
+Both miss routes consume the imported common `FallSpecial` pose cycle; the
+aerial transition applies ordinary common gravity rather than a move-specific
+approximation.
+A separate 116-frame grounded Falcon Dive capture strictly matches catch,
+hitlag, captured-target attachment, throw release, source relocation/root
+motion, fall, and floor landing within the same representation allowance.
+The 92-frame aerial catch/throw differential additionally qualifies the
+victim path: 5% catch, the imported nine-slot stale table's 0.91 first-slot
+multiplier, 15.92% post-throw internal damage, zero launch velocity, ordinary
+gravity, and the source-visible 26-frame damage reaction. Forty-two comparable
+victim frames are strict; the final three victim samples are excluded because
+the legitimate native jump fixture reaches its floor while the isolated
+Dolphin capture remains held at y=500. The static 26-frame boundary remains
+hash-pinned and asserted from that capture/decomp path.
+The 103-frame grounded and 165-frame aerial miss differentials qualify both
+`FallSpecial` transitions. Production consumes the executable's distinct
+eight-frame ECB-bottom cycle rather than substituting the ordinary `Falling`
+pose; the grounded route additionally preserves the executable's incoming
+vertical velocity on the `LandingFallSpecial` transition row. No common-state
+collision value is inferred from the special-move timing table.
+The 63-frame aerial ledge approach strictly matches Falcon Dive action,
+facing, position, and both velocity axes. Its hash-pinned live-memory capture
+then proves the native frame-64 `EdgeCatch` transition and frame-71 `EdgeHang`
+against the decomp's descending ledge probe. Production consumes the DAT's
+exact 9/17/11 ledge-snap block and all 64 observed Falcon Dive ECB right/bottom
+samples; it does not substitute generic body width or hand-tuned reach.
+A 399-frame Falcon Kick differential suite strictly matches the imported
+ground start/end, air start/end, air-to-ground landing, ground-to-air edge, and
+ground-hit and wall-rebound routes, including root translation, velocity,
+decoded traction/air-physics command boundaries, and the source collision conversion's half
+crossing-tick displacement within that same allowance. The ground-hit route
+also qualifies eight ticks of hitlag, 15 damage, the imported 0.6 on-hit speed
+multiplier, and Melee's parallel ground/self velocity update through the ground
+end state. The 58-frame Hyrule wall route additionally qualifies displayed-
+frame-22 wall-hug detection, action 363, preserved entry self velocity, and the
+complete rebound root trajectory. Its speed cap, rebound graph, and all hit
+geometry consume the imported tables; no Falcon Kick dynamic state remains
+without identical-input qualification.
+Hurt capsules and action-command/callback semantics for common actions beyond
+Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
+RollForward, RollBackward, AirDodge, FallSpecial, LandingFallSpecial, and
+ordinary Landing remain
+explicit
+M4 gaps and must be extracted or qualified rather than approximated with
+invented frame data. Common poses use
+one compact generated state index and reuse the action-pose capsule pool; public
+action values are mapped once and no snapshot state or allocation is added. A
+pinned 31.0-unit hit/31.5-unit miss route proves the Dash track against Dolphin
+and rejects the old generic rectangle. A second 17.7-unit hit/17.84-unit miss
+route proves CrouchStart frame 3 and rejects the rectangle's false positive.
+The four-frame KneeBend track is likewise imported; a 16.5-unit hit/16.8-unit
+miss route proves frame 2 and rejects the rectangle's false positive.
+FallSpecial resolves through common submotion 26 rather than the similarly
+named character animation and loops all eight executable poses. Its frame-5
+Jab 1 discriminator hits at 15.5 units and misses at 16.2, where the generic
+rectangle falsely hits the miss. LandingFallSpecial resolves through common
+submotion 36 and plays displayed source frames `1,4,...,28` over the ten-tick
+lag; its source-frame-7 discriminator hits at 18.5 and misses at 19.3, where
+the generic rectangle falsely misses the hit. Runtime lookup uses one
+action-specific tick-to-source-frame adapter so movements that already enter
+at source frame 1 are not shifted, while zero-based KneeBend/dodge/roll/
+FallSpecial/LandingFallSpecial/Landing ticks are converted without duplicate
+tables. Ordinary Landing resolves to common submotion 15 and retains all 30
+displayed poses when no interrupt is supplied even though its input gate opens
+after Falcon's four-frame landing lag. A pending source-frame-22 Jab 1 control
+hits at 20.3 units and misses at 20.6, while the generic rectangle misses both.
+LandingFallSpecial physics follows `ftCo_Landing_Phys -> ft_80084F3C`: entry
+copies horizontal self velocity to ground velocity, each flat-stage tick moves
+by the post-friction velocity, and friction is Falcon's ground friction times
+common multiplier `x6C` only while absolute speed exceeds walk maximum. The
+imported submotion has no TransN stream, so production adds no animation or
+authored root displacement. The 329-frame Dolphin route crosses both friction
+regimes and passes within only the established 640-Q16 position envelope.
+The complete 32-frame SpotDodge track is imported from a pinned active,
+non-hitlag executable trace. Its source body state is vulnerable on frames 1-2,
+invulnerable on frames 3-20, and vulnerable on frames 21-32. A facing-controlled
+Jab 1 route hits the pending frame-24 pose at 21.0 Melee units and misses at
+22.0; the old generic rectangle falsely misses the positive route. The
+post-frame observer's displayed-pose/collision-report ordering and damage-facing
+reset are explicit verifier inputs rather than hidden distance adjustments.
+The two distinct 31-frame roll-pose tracks reuse the same compact table and
+deduplicated capsule pool. Pinned Jab 1 controls hit RollForward frame 22 at
+12.98 Melee units and miss at 14.18, where the generic rectangle falsely hits;
+they hit RollBackward frame 24 at 20.00 and miss at 20.75, where the generic
+rectangle falsely misses the positive route. Each control first pre-places
+both ports safely, settles, establishes explicit facing through controller
+input, fully recovers, and only then applies its final placement, so route
+order cannot leak airborne state, facing, or velocity into the result.
+The executable's previous-to-current
+moving hit-capsule sweep is production-routed and Dolphin-qualified: imported
+collision state distinguishes creation from continuation, continuation finds
+the prior same-ID sphere without enlarging rollback state, and one shared
+zero-allocation 3D capsule-to-capsule predicate serves attacks, grabs, and
+shields. Imported attack spheres and both hurt-capsule endpoints retain source
+X/Y/Z; source Z may not be dropped by collision or inspection.
+The complete submotion catalog closes data availability, not those behavior
+routes. Imported hit and hurt geometry is rooted
+at Melee's fighter origin, and reference hit spheres use the decomp's exact
+radius-sum shield predicate in the uniform source spatial metric; authored
+rectangles retain their separate ellipse collision path.
+These captures qualify only their sampled routes and do not reduce the
+exhaustive obligation below.
+
+The first manifest-selected no-Dolphin regression domain covers those twelve
+Falcon common-hurt tracks. One character-independent registry, generator,
+affected-file selector, C runner, and replay gate validate all 255
+production-accessed poses plus 20 manifest-owned hit/miss cases; Falcon owns
+only its action bindings, coverage rows, and thin production adapters. Five
+warm post-build runs take 116.845-120.355 ms on native Windows MSVC Release and
+148.121-166.786 ms on WSL GCC 13.3 Release, meeting the two-second target. The
+live checkpoint pack serializes only its 255 declared poses and 28 live
+discriminator rows; five fully verified warm runs take 2.635-2.729 seconds and
+meet the separate three-second changed-domain target. Additional behavior
+domains must join the same registry as their live evidence becomes
+source-complete.
+
+This gate is not limited to locomotion. It also covers every implemented shared
+simulation path for which SSBM supplies the intended behavior, including
+shield and light-shield input/health/size, roll, spot dodge, air dodge, jump
+and landing transitions, ledge and collision interaction, hitlag, hitstun,
+knockback, DI/SDI, teching, stale moves, stocks, respawn, and match-state
+transitions. Each applicable route must gain an identical-input Dolphin
+reproducer and comparable-state assertions before it may be called equivalent.
+Project-specific infrastructure and explicitly original content mechanics have
+no SSBM-equivalence claim, but they do not weaken the equivalence requirement
+for the shared engine behavior they use.
+
+Coverage of this gate is exhaustive over the applicable M4 behavior surface;
+it is not limited to owner-reported bugs, the routes in the current corpus, or
+behavior already named in this plan. Passing a finite differential capture is
+only evidence for the sampled routes. Decomp review and systematic route
+inventory must continue to discover and qualify every other applicable state,
+transition, threshold, timer, and momentum condition before M4 can pass.
+
 #### M4.2 — Combat system
 
 Implement:
@@ -385,13 +743,162 @@ Implement:
 - Tune through the approved Excel-data path precursor even before the full workbook UI lands.
 - Run repeated human and verifier matches.
 
+#### M4.4 — Complete SSBM advanced-technique compatibility
+
+Treat the `SSBM = Yes` rows in SmashWiki's
+[List of advanced techniques, revision 2048934](https://www.ssbwiki.com/index.php?title=Advanced_technique&oldid=2048934#List_of_advanced_techniques),
+captured on 2026-07-28, as a binding gameplay requirement. Every unique technique
+in that baseline must be supported and functional before M4 can be accepted. The source table lists
+dash-dancing twice; this plan counts it once, yielding 61 unique required
+techniques:
+
+1. Approach
+2. Auto-canceling
+3. Bat dropping
+4. Boost grab
+5. Camping
+6. Chain grab
+7. Charge storage canceling
+8. Cross-up
+9. Dash cancel
+10. Dash-dancing
+11. Dashing shield
+12. Double jump cancel
+13. Double jump cancel counter
+14. Drop cancel
+15. Edge dashing
+16. Edge hopping
+17. Fox-trotting
+18. Glide toss
+19. Gimp
+20. Infinite
+21. Instant double jump
+22. Jab cancel
+23. Jab reset
+24. Juggling
+25. Jump cancel throw
+26. Jump-canceled grab
+27. Jump-cancelling
+28. Kill confirm
+29. L-cancelling
+30. Ladder
+31. Ledge-cancelling
+32. Mindgame
+33. Moonwalk
+34. Powershield
+35. Pivoting
+36. Planking
+37. Power shield canceling
+38. Scar Jump
+39. Sharking
+40. Shield break combo
+41. Shield platform dropping
+42. Shield-stop
+43. Shine spike
+44. Short hop laser
+45. Short hop air dodge
+46. Short hop fast fall l-cancel
+47. Small step forward smash
+48. Smash directional influence
+49. Spacing
+50. Stage humping
+51. Stage spike
+52. Stalling
+53. Taunt cancelling
+54. Team wobble
+55. Teching
+56. Tech-chasing
+57. Teeter cancel
+58. Turtling
+59. V-cancelling
+60. Wavedash
+61. Zero-to-death combo
+
+This baseline refers specifically to the linked cross-game table, not the page's
+separate character-specific section. D1-A mechanical-counterpart coverage may
+independently require character-specific techniques.
+
+For this requirement, “supported and functional” means:
+
+- A player can perform the technique during an ordinary match with the relevant
+  fighter, stage, item, or team configuration. Debug-only commands and scripted
+  state injection do not count.
+- The underlying input windows, state transitions, momentum/collision rules, and
+  combat outcomes are deterministic in native, browser, and headless builds and
+  survive save/load, replay, rewind, and rollback.
+- Each mechanical technique has positive and negative invariant tests plus a
+  verifier-readable execution trace. Each technique also has a concise human
+  test recipe that can be executed in the browser.
+- Tactical or emergent entries such as approach, camping, gimp, juggling,
+  mindgame, spacing, stalling, and zero-to-death are not hardcoded outcomes.
+  They count only when at least one legal, repeatable match sequence demonstrates
+  the tactic and the constituent mechanics are independently verified.
+- Original fighters, items, animation, audio, and presentation must express the
+  behavior without copying protected SSBM content.
+
+M4 is the completion gate for this entire 61-row non-character-specific
+baseline:
+
+- No row may be deferred to M5, M6, M8, or release hardening. If a technique
+  needs an item, team interaction, projectile, charge state, reflector-like
+  action, or other capability beyond the ordinary 1v1 slice, M4 supplies the
+  narrow original fixture and live browser configuration needed to perform and
+  verify it.
+- M4 maintains a versioned row-by-row registry with dependencies, supporting
+  configuration, implementation state, automated evidence, and browser
+  playtest recipe. M4 acceptance requires every row to be `verified`.
+- M5 may move the already-working timings into authoritative workbooks, and
+  later milestones may broaden content and presentation, but neither may
+  change or remove the accepted behavior without rerunning the M4 oracles and
+  owner playtests.
+- M11 reruns the complete registry as a regression gate. Recheck the live source
+  table before M4 acceptance, at every M8 wave, and before M11; add any newly
+  marked SSBM technique to this registry before accepting the current milestone
+  unless the owner explicitly changes scope.
+
+#### M4.5 — Technique-support fixtures
+
+Implement the smallest original, production-path fixtures required to exercise
+all M4.4 techniques:
+
+- Data-driven pickup, carry, drop, aerial drop, directional throw, item hitbox,
+  despawn/reset, and momentum-transfer rules, plus one original bat-like test
+  item.
+- A narrow multi-fighter/team laboratory configuration for team wobble and any
+  other multi-fighter verification. Full local team setup and mode UX remain in
+  M6.
+- Placeholder-fighter actions needed by the general registry, including charge,
+  projectile, reflector-like, shield, grab/throw, aerial, and ledge
+  interactions. These fixtures use the same action/combat paths later content
+  uses and are not debug-only shortcuts.
+
+**Acceptance criteria**
+
+- Bat dropping, glide toss, jump cancel throw, team wobble, shine spike, and
+  short hop laser can be performed in an ordinary browser match/laboratory
+  configuration and have positive/negative deterministic verifier oracles.
+- Fixture state serializes, hashes, rewinds, replays, rolls back, and remains
+  available to the headless/RL API.
+- Fixtures stay inside the M0 performance and state-size budgets and introduce
+  no copied names, art, audio, animation, or data.
+
 **Acceptance criteria**
 
 - A complete local 1v1 match can be played from start to result with two supported inputs.
 - The selected M0 “Melee-feel” mechanics for the vertical slice are implemented and have invariant tests.
+- The pinned identical-input Dolphin differential corpus has no unresolved
+  divergence for any implemented movement or shared-simulation behavior with
+  an SSBM counterpart. A newly observed owner-playtest divergence adds a
+  reproducer to this corpus and blocks M4 acceptance until resolved.
 - Collision, knockback, hitlag, hitstun, DI, stocks, ledges, and recovery are deterministic and replayable.
 - Performance remains within the M0 1v1 budget with profiling evidence.
 - The owner rates control responsiveness and core combat acceptable on the M0 playtest rubric.
+- The advanced-technique registry records one of `planned`, `primitive-ready`,
+  `playable`, or `verified` for every required row, with dependencies, target
+  milestone, automated evidence, and a browser playtest recipe; no row may be
+  silently omitted.
+- All 61 non-character-specific rows are `verified`; any lesser state blocks M4
+  acceptance and the transition to M5.
 
 **Human checkpoint:** Mandatory combat playtest. Do not scale content until the core feel is approved.
 
@@ -570,11 +1077,30 @@ Scale the approved combat system in waves rather than all at once:
 
 Each fighter receives original naming, silhouette, lore, move expression, animation, effects, voice/sound set, physics/data, AI/verifier scripts, portraits, selection assets, and balance tests.
 
+M8 is the completion gate for character-specific SSBM advanced techniques.
+Before the first fighter wave, create a pinned row-by-row registry from the
+separate
+[character-specific advanced-technique section in revision 2048934](https://www.ssbwiki.com/index.php?title=Advanced_technique&oldid=2048934#List_of_character-specific_advanced_techniques).
+Include every listed technique applicable to a fighter or form in the SSBM
+roster, then map it to the corresponding original D1-A mechanical counterpart.
+Entries exclusive to fighters that are not in SSBM are outside this
+SSBM-counterpart requirement.
+
+Each mapped technique must be performable in an ordinary match, use
+production-path mechanics and original presentation, have deterministic
+positive/negative verifier evidence, and include a browser playtest recipe.
+The supporting fighter wave cannot be accepted until all of its mapped
+techniques are verified; the final M8 fighter wave is blocked until the entire
+character-specific registry is verified.
+
 **Acceptance criteria for each wave**
 
 - Every fighter is complete enough for full 1v1, 2v2, CTF, replay, rollback, and RL use; no “visual-only” roster entries count.
 - Every move/state has valid data, hit/hurt boxes, animation, and required sound/event mappings.
 - Automated matchup smoke tests cover every ordered fighter pair and representative teams.
+- Every character-specific advanced-technique registry row mapped to the wave's
+  fighters is playable and verified; each row identifies the exact supporting
+  fighter/item/stage configuration.
 - Originality/provenance review passes.
 - Worst-case fighter combinations meet state-size and performance budgets.
 - The owner playtests and accepts the wave before the next wave begins.
@@ -582,6 +1108,8 @@ Each fighter receives original naming, silhouette, lore, move expression, animat
 **Final fighter acceptance**
 
 - Every playable SSBM fighter/form has an original D1-A mechanical counterpart preserving substantially the same move functions and matchup identity.
+- Every character-specific SSBM advanced technique mapped to those counterparts
+  is playable, deterministic, verifier-tested, and browser-testable.
 - Names, art, audio, music, animation, writing, and presentation are original.
 - The roster preserves broad matchup and playstyle diversity rather than becoming cosmetic variants.
 
@@ -748,6 +1276,9 @@ The final ten must include:
 - Ranked/unranked netplay, Elo, rank tiers, and leaderboards pass end-to-end tests.
 - Headless/RL builds meet the D3-C relative-performance charter.
 - Every supported platform produces identical deterministic replay hashes for the canonical corpus.
+- Every one of the 61 required SSBM advanced-technique registry rows is playable,
+  deterministic, verifier-tested, browser-testable, and linked to passing
+  evidence for its supporting configuration.
 - No unresolved critical/high issue remains unless the owner explicitly accepts it in writing.
 - The requirement traceability matrix is fully green.
 
@@ -868,6 +1399,8 @@ The plan is not treated as ground truth when measurements or implementation real
 | Source requirement | Acceptance location |
 |---|---|
 | Fun 2D platform fighter, Melee-like play | M0.1, M4, M8.3, M11.3 |
+| All non-character-specific techniques marked available for SSBM in the pinned advanced-technique table | M4.4–M4.5, M11.2 |
+| Character-specific advanced techniques applicable to the SSBM roster | M8.1, M11.2 |
 | Maximum single-thread performance | M0.2–M0.3, M2, M3, M11, M12 |
 | Ultra-fast RL tool | M2.2, M3.1, M11.2 |
 | 1v1 and 2v2 | M6.1, M9, M11.2 |
@@ -888,6 +1421,7 @@ The plan is not treated as ground truth when measurements or implementation real
 | Single-thread engine; client may multithread | Section 3, M1.1, M2 |
 | Excel design data imported at runtime | D6-A, M5.1 |
 | Minimize hardcodes and duplication | Section 3, M5.1, verifier rules |
+| Beautiful implementation, correct zero-cost abstractions, and minimal-to-nonexistent logic duplication | Sections 1, 3, and 6; every milestone code review; M11.1–M11.2 |
 | SDL3 native graphics | Section 4, M7.1 |
 | Reproducible setup scripts | M1.2, M11.1 |
 | Comprehensive performance suite | M3.1 |

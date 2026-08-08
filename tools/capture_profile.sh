@@ -44,6 +44,18 @@ mkdir -p "$pf_output_dir" "$pf_capture_build"
 
 "$PF_REPOSITORY_ROOT/tools/workflow.sh" profile
 
+pf_profile_cache="$PF_REPOSITORY_ROOT/build/profile/CMakeCache.txt"
+pf_timer_fallback=$(
+    sed -n 's/^PF_TRACY_TIMER_FALLBACK:BOOL=//p' "$pf_profile_cache"
+)
+case "$pf_timer_fallback" in
+    ON|OFF)
+        ;;
+    *)
+        pf_fail "profile build did not record its Tracy timer policy"
+        ;;
+esac
+
 "$PF_CMAKE" \
     -S "$PF_REPOSITORY_ROOT/tools/tracy_capture" \
     -B "$pf_capture_build" \
@@ -148,6 +160,7 @@ pf_binary_sha=$(pf_sha256 "$pf_benchmark")
     printf 'dirty\t%s\n' "$pf_dirty"
     printf 'tracy_version\t0.13.1\n'
     printf 'tracy_capture\tpass\n'
+    printf 'tracy_timer_fallback\t%s\n' "$pf_timer_fallback"
     printf 'tracy_trace\t%s\n' "${pf_trace#"$PF_REPOSITORY_ROOT"/}"
     printf 'tracy_trace_sha256\t%s\n' "$pf_trace_sha"
     printf 'tracy_trace_bytes\t%s\n' "$pf_trace_size"
@@ -166,6 +179,7 @@ pf_binary_sha=$(pf_sha256 "$pf_benchmark")
     printf -- '- Trace: `%s`\n' "${pf_trace#"$PF_REPOSITORY_ROOT"/}"
     printf -- '- Trace SHA-256: `%s`\n' "$pf_trace_sha"
     printf -- '- Trace bytes: `%s`\n' "$pf_trace_size"
+    printf -- '- Tracy timer fallback: `%s`\n' "$pf_timer_fallback"
     printf -- '- OS profiler: `%s` (`%s`)\n' \
         "$pf_os_profiler" \
         "$pf_os_reason"
@@ -174,6 +188,7 @@ pf_binary_sha=$(pf_sha256 "$pf_benchmark")
     printf 'creating a recursive per-commit benchmark loop.\n'
 } >"$pf_analysis"
 
-printf 'profile-capture=pass tracy=0.13.1 os_profiler=%s manifest=%s\n' \
+printf 'profile-capture=pass tracy=0.13.1 timer_fallback=%s os_profiler=%s manifest=%s\n' \
+    "$pf_timer_fallback" \
     "$pf_os_profiler" \
     "$pf_manifest"

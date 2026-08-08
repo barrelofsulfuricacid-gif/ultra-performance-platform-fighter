@@ -30,15 +30,19 @@ dictionary:
 
 | Key | Shape / dtype | Meaning |
 |---|---|---|
-| `buttons` | `(4, 2)` / `int8` | Per-player `[jump, forfeit]` bits |
+| `buttons` | `(4, 6)` / `int8` | Per-player `[jump, attack, strong, special, taunt, forfeit]` bits |
 | `main_stick` | `(4, 2)` / `int16` | Per-player x/y in `[-32768, 32767]` |
 | `secondary_stick` | `(4, 2)` / `int16` | Per-player x/y in `[-32768, 32767]` |
 | `triggers` | `(4, 2)` / `uint16` | Per-player left/right in `[0, 65535]` |
 
-The observation is the exact 36-element `int32` compact layout documented in
-`docs/technology_decisions/0008-rl-contract-candidate.md`. Words 2–3 are
-reserved zero, so the reset seed is not exposed to the policy. Gymnasium's
-scalar reward uses the configured `reward_player` (player 0 by default) and
-combines the bounded engagement-potential delta with the terminal match
-outcome. `info["player_rewards_q16"]` retains exact rewards for all four
-slots.
+The observation is the exact 102-element `int32` compact schema-12 layout in
+`include/pf/rl.h`. Words 2–3 are reserved zero, so the reset seed is not
+exposed to the policy. The layout contains global match state, four fixed
+player records, the item and projectile slots, per-player charge, smash,
+shield strength/health/tilt, and packed stale-move records. Existing indices
+remain stable across the append-only compact-schema migrations.
+
+Gymnasium's scalar reward uses the configured `reward_player` (player 0 by
+default) and combines the bounded engagement-potential delta with the terminal
+match outcome. `info["player_rewards_q16"]` retains exact rewards for all four
+slots, and `info["legal_buttons"]` retains the native 64-bit legal-input masks.

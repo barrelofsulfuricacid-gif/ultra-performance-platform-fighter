@@ -118,6 +118,46 @@ pf_record \
     "$PF_REPOSITORY_ROOT/tools/verify_m2_replay.sh" \
     "$pf_artifact_dir/m2_replay"
 pf_record \
+    mechanical-oracle \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_movement.sh" \
+    "$pf_artifact_dir/m4_movement"
+pf_record \
+    m4-combat \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_combat.sh" \
+    "$pf_artifact_dir/m4_combat"
+pf_record \
+    m4-item \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_item.sh" \
+    "$pf_artifact_dir/m4_item"
+pf_record \
+    m4-projectile \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_projectile.sh" \
+    "$pf_artifact_dir/m4_projectile"
+pf_record \
+    m4-reflector \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_reflector.sh" \
+    "$pf_artifact_dir/m4_reflector"
+pf_record \
+    m4-charge \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_charge.sh" \
+    "$pf_artifact_dir/m4_charge"
+pf_record \
+    m4-browser-adapter \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_browser.sh" \
+    "$pf_artifact_dir/m4_browser"
+pf_record \
+    collision-hitbox-overlay \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_collision_overlay.sh" \
+    "$pf_artifact_dir/m4_collision_overlay"
+pf_record \
+    m4-local-match-flow \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_match_flow.sh" \
+    "$pf_artifact_dir/m4_match_flow"
+pf_record \
+    m4-replay-visualization \
+    "$PF_REPOSITORY_ROOT/tools/verify_m4_replay_visualization.sh" \
+    "$pf_artifact_dir/m4_replay_visualization"
+pf_record \
     m3-regression-qualification \
     "$PF_REPOSITORY_ROOT/tools/verify_m3_performance.sh" \
     "$pf_artifact_dir/m3_performance_qualification"
@@ -128,7 +168,7 @@ pf_record \
     "$pf_artifact_dir/m3_performance"
 
 if pf_diff_matches \
-    '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier)/|tests/(presentation|sim)/|tools/(bootstrap|workflow)\.)'
+    '^(CMakeLists\.txt|CMakePresets\.json|cmake/|include/pf/|src/(benchmarks|checkpoint|headless|presentation|sim|verifier|web_client)/|tests/(presentation|sim|web)/|tools/(bootstrap|workflow)\.)'
 then
     pf_record \
         sanitizer \

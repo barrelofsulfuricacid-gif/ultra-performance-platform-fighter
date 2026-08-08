@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Platform Fighter M2 Replay Checkpoint</title>
+    <title>Platform Fighter M4 Browser Playtest</title>
     <style>
       :root {
         color-scheme: dark;
@@ -98,7 +98,7 @@
       <div>
         <h1>Deterministic C17 / WebAssembly</h1>
         <p>
-          Loading the render probe and the shared four-player replay corpus.
+          Loading the render probe, replay corpus, and live M4 simulation.
         </p>
       </div>
       <pre id="pf-status" role="status" aria-live="polite">Loading WebAssembly…</pre>
@@ -109,6 +109,7 @@
       var statusElement = document.getElementById("pf-status");
       var Module = {
         canvas: document.getElementById("canvas"),
+        noExitRuntime: true,
         print: function () {
           var line = Array.prototype.join.call(arguments, " ");
           outputElement.textContent += line + "\n";

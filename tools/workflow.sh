@@ -30,6 +30,22 @@ if [ "$preset" = profile ]; then
         pf_fail "pinned Tracy source is missing; run ./tools/bootstrap.sh"
     PF_TRACY_SOURCE_DIR=$pf_tracy_root
     export PF_TRACY_SOURCE_DIR
+    case ${PF_TRACY_TIMER_FALLBACK:-auto} in
+        auto)
+            PF_TRACY_TIMER_FALLBACK=OFF
+            if [ -r /proc/sys/kernel/osrelease ] &&
+               grep -Eiq 'microsoft|wsl' /proc/sys/kernel/osrelease
+            then
+                PF_TRACY_TIMER_FALLBACK=ON
+            fi
+            ;;
+        ON|OFF)
+            ;;
+        *)
+            pf_fail "PF_TRACY_TIMER_FALLBACK must be auto, ON, or OFF"
+            ;;
+    esac
+    export PF_TRACY_TIMER_FALLBACK
 fi
 
 case "$preset" in

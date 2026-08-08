@@ -205,6 +205,8 @@ git -C "$repository_root" check-ignore -q performance/local/profile-probe ||
 
 grep -Fq -- "--js-library=" "$repository_root/CMakeLists.txt" ||
     fail "web JavaScript adapter is not linked"
+grep -Fq -- "--pre-js=" "$repository_root/CMakeLists.txt" ||
+    fail "web owner-evidence data is not linked"
 grep -Fq "pf_web_set_status" \
     "$repository_root/src/web_client/web_adapter.js" ||
     fail "web JavaScript adapter is missing its status boundary"
@@ -248,6 +250,8 @@ fi
 if command -v node >/dev/null 2>&1; then
     node --check "$repository_root/src/web_client/web_adapter.js" ||
         fail "browser JavaScript adapter has invalid syntax"
+    node --check "$repository_root/src/web_client/m4_owner_evidence.js" ||
+        fail "browser owner-evidence adapter has invalid syntax"
 else
     echo "javascript-syntax=deferred-to-web-ci"
 fi
@@ -256,9 +260,14 @@ action_uses=$(
     sed -n 's/^[[:space:]]*uses:[[:space:]]*//p' "$ci_file" |
         sort -u
 )
-[ "$action_uses" = \
-    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" ] ||
-    fail "CI actions are not restricted to the reviewed checkout commit"
+expected_action_uses=$(
+    printf '%s\n' \
+        "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" \
+        "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" |
+        sort
+)
+[ "$action_uses" = "$expected_action_uses" ] ||
+    fail "CI actions are not restricted to the reviewed commits"
 
 for runner in \
     ubuntu-24.04 \

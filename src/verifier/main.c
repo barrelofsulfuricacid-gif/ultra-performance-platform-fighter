@@ -1,4 +1,6 @@
+#include "pf/m4.h"
 #include "pf/render_packet.h"
+#include "pf/replay.h"
 #include "pf/rl.h"
 #include "pf/sim.h"
 
@@ -11,13 +13,20 @@
 #include <string.h>
 #include <time.h>
 
-#define PF_VERIFIER_MEMORY_BYTES 2048U
+#define PF_VERIFIER_MEMORY_BYTES 4096U
 #define PF_VERIFIER_MEMORY_ALIGNMENT 64U
-#define PF_VERIFIER_SAVE_CAPACITY 512U
+#define PF_VERIFIER_SAVE_CAPACITY 1024U
 #define PF_VERIFIER_MAX_CHECKS 48U
 #define PF_VERIFIER_MAX_ACCEPTANCE 64U
 #define PF_VERIFIER_MAX_EXTERNAL 32U
 #define PF_VERIFIER_TEXT_CAPACITY 512U
+#define PF_VERIFIER_M4_MATCH_COUNT 8U
+#define PF_VERIFIER_M4_MATCH_PLAYERS 2U
+#define PF_VERIFIER_M4_MATCH_MAX_TICKS 720U
+#define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
+#define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
+#define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
+    UINT64_C(0xc408c172ee853571)
 
 typedef struct pf_verifier_storage
 {
@@ -69,7 +78,30 @@ typedef struct pf_diff_summary
     size_t other;
 } pf_diff_summary;
 
+typedef struct pf_verifier_m4_match_summary
+{
+    uint64_t total_ticks;
+    uint64_t digest;
+    uint32_t matches;
+    uint32_t stock_results;
+    uint32_t time_limits;
+    uint32_t result_events;
+    uint32_t combat_events;
+    uint32_t shield_events;
+    uint32_t ko_events;
+    uint32_t projectile_events;
+    uint32_t item_events;
+    uint32_t rollbacks;
+    uint32_t replays;
+} pf_verifier_m4_match_summary;
+
 static pf_verifier_storage pf_verifier_storage_pool[4];
+static pf_input_frame pf_verifier_m4_match_inputs[
+    PF_VERIFIER_M4_MATCH_MAX_TICKS * PF_VERIFIER_M4_MATCH_PLAYERS];
+static pf_state_hash pf_verifier_m4_match_hashes[
+    PF_VERIFIER_M4_MATCH_MAX_TICKS + 1U];
+static uint8_t pf_verifier_m4_match_replay[PF_VERIFIER_M4_REPLAY_CAPACITY];
+static uint8_t pf_verifier_m4_match_checkpoint[PF_VERIFIER_SAVE_CAPACITY];
 
 static int add_check(
     pf_verifier_checks *checks,
@@ -155,6 +187,7 @@ static int initialize_sim(
         return 0;
     }
     config.max_ticks = max_ticks;
+    config.stock_count = UINT8_C(0);
     if (pf_sim_query_memory(&config, &requirements) != PF_STATUS_OK ||
         requirements.state_bytes > (size_t)PF_VERIFIER_MEMORY_BYTES ||
         requirements.scratch_bytes > (size_t)PF_VERIFIER_MEMORY_BYTES ||
@@ -257,6 +290,13 @@ static int transitions_equal(
                right->tick_result.truncated &&
            left->tick_result.winner_mask ==
                right->tick_result.winner_mask &&
+           left->tick_result.event_count ==
+               right->tick_result.event_count &&
+           memcmp(
+               left->tick_result.events,
+               right->tick_result.events,
+               sizeof(left->tick_result.events[0]) *
+                   (size_t)left->tick_result.event_count) == 0 &&
            memcmp(
                left->compact_observation.values,
                right->compact_observation.values,
@@ -269,6 +309,682 @@ static int transitions_equal(
                left->legal_buttons,
                right->legal_buttons,
                sizeof(left->legal_buttons)) == 0;
+}
+
+static int tick_results_equal(
+    const pf_tick_result *left,
+    const pf_tick_result *right)
+{
+    return left->completed_tick == right->completed_tick &&
+           left->fault_flags == right->fault_flags &&
+           left->terminated == right->terminated &&
+           left->truncated == right->truncated &&
+           left->winner_mask == right->winner_mask &&
+           left->event_count == right->event_count &&
+           memcmp(
+               left->events,
+               right->events,
+               sizeof(left->events[0]) *
+                   (size_t)left->event_count) == 0;
+}
+
+static int tick_result_outcomes_equal(
+    const pf_tick_result *left,
+    const pf_tick_result *right)
+{
+    return left->completed_tick == right->completed_tick &&
+           left->fault_flags == right->fault_flags &&
+           left->terminated == right->terminated &&
+           left->truncated == right->truncated &&
+           left->winner_mask == right->winner_mask;
+}
+
+static int make_m4_match_content(
+    pf_m4_content *content,
+    pf_content_view *view)
+{
+    if (pf_m4_default_content(content) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    content->item.enabled = UINT8_C(1);
+    content->item.lifetime_ticks = UINT16_C(3600);
+    content->projectile.enabled = UINT8_C(1);
+    content->reflector.enabled = UINT8_C(1);
+    content->charge.enabled = UINT8_C(1);
+    content->recovery.enabled = UINT8_C(1);
+
+    /* This multi-entity soak validates the authored projectile, reflector,
+     * charge, recovery, and item systems rather than Falcon equivalence. */
+    content->fighter.reference_frame_data_enabled = UINT8_C(0);
+
+    content->stage.floor_left_q16 = -INT32_C(8) * PF_Q16_ONE;
+    content->stage.floor_right_q16 = INT32_C(8) * PF_Q16_ONE;
+    content->stage.platform_center_x_q16 = INT32_C(0);
+    content->stage.platform_half_width_q16 = INT32_C(3) * PF_Q16_ONE;
+    content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content->stage.upper_platform_center_x_q16 =
+        -INT32_C(6) * PF_Q16_ONE;
+    content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
+    content->stage.solid_left_q16 = INT32_C(5) * PF_Q16_ONE;
+    content->stage.solid_right_q16 = INT32_C(6) * PF_Q16_ONE;
+    content->stage.blast_left_q16 = -INT32_C(10) * PF_Q16_ONE;
+    content->stage.blast_right_q16 = INT32_C(10) * PF_Q16_ONE;
+    content->stage.blast_bottom_q16 = INT32_C(34) * PF_Q16_ONE;
+    content->stage.spawn_spacing_q16 =
+        (INT32_C(4) * PF_Q16_ONE) / INT32_C(5);
+
+    return pf_m4_make_content_view(content, view) == PF_STATUS_OK;
+}
+
+static int initialize_m4_match_sim(
+    size_t storage_index,
+    const pf_content_view *content,
+    pf_sim **out_sim)
+{
+    pf_sim_config config;
+    pf_memory_requirements requirements;
+
+    if (storage_index >= (size_t)4 ||
+        pf_sim_default_config(
+            &config,
+            (uint8_t)PF_VERIFIER_M4_MATCH_PLAYERS,
+            PF_SIM_MODE_DUEL) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    config.max_ticks = (uint64_t)PF_VERIFIER_M4_MATCH_MAX_TICKS;
+    config.stock_count = UINT8_C(1);
+    if (pf_sim_query_memory(&config, &requirements) != PF_STATUS_OK ||
+        requirements.state_bytes > (size_t)PF_VERIFIER_MEMORY_BYTES ||
+        requirements.scratch_bytes > (size_t)PF_VERIFIER_MEMORY_BYTES ||
+        requirements.state_alignment >
+            (size_t)PF_VERIFIER_MEMORY_ALIGNMENT ||
+        requirements.scratch_alignment >
+            (size_t)PF_VERIFIER_MEMORY_ALIGNMENT)
+    {
+        return 0;
+    }
+    return pf_sim_init(
+               pf_verifier_storage_pool[storage_index].state,
+               sizeof(pf_verifier_storage_pool[storage_index].state),
+               pf_verifier_storage_pool[storage_index].scratch,
+               sizeof(pf_verifier_storage_pool[storage_index].scratch),
+               content,
+               &config,
+               out_sim) == PF_STATUS_OK;
+}
+
+static void make_m4_match_inputs(
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS],
+    const pf_m4_inspection *inspection,
+    uint64_t seed,
+    uint32_t match_index)
+{
+    const uint64_t fallback_tick =
+        (uint64_t)PF_VERIFIER_M4_MATCH_MAX_TICKS - UINT64_C(180);
+    const uint32_t fallback_player = match_index & UINT32_C(1);
+    uint32_t player_index;
+
+    (void)memset(inputs, 0, sizeof(*inputs) * (size_t)PF_SIM_MAX_PLAYERS);
+    for (player_index = UINT32_C(0);
+         player_index < (uint32_t)PF_VERIFIER_M4_MATCH_PLAYERS;
+         ++player_index)
+    {
+        const uint32_t opponent_index =
+            player_index == UINT32_C(0) ? UINT32_C(1) : UINT32_C(0);
+        const int32_t position =
+            inspection->players[player_index].position_x_q16;
+        const int32_t opponent_position =
+            inspection->players[opponent_index].position_x_q16;
+        const int64_t difference =
+            (int64_t)opponent_position - (int64_t)position;
+        const uint64_t distance =
+            difference < INT64_C(0)
+                ? (uint64_t)(-difference)
+                : (uint64_t)difference;
+        const uint32_t seed_shift = player_index * UINT32_C(8);
+        const uint64_t phase =
+            (inspection->tick +
+             ((seed >> seed_shift) & UINT64_C(63)) +
+             (uint64_t)player_index * UINT64_C(19) +
+             (uint64_t)match_index * UINT64_C(11)) %
+            UINT64_C(96);
+        int16_t direction;
+
+        inputs[player_index].tick = inspection->tick;
+        inputs[player_index].schema_version =
+            PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[player_index].player_slot = (uint8_t)player_index;
+        if (inspection->players[player_index].active == UINT8_C(0))
+        {
+            continue;
+        }
+
+        if (difference > INT64_C(0))
+        {
+            direction = INT16_MAX;
+        }
+        else if (difference < INT64_C(0))
+        {
+            direction = INT16_MIN;
+        }
+        else
+        {
+            direction = player_index == UINT32_C(0)
+                            ? INT16_MAX
+                            : INT16_MIN;
+        }
+        if (position <= -INT32_C(7) * PF_Q16_ONE)
+        {
+            direction = INT16_MAX;
+        }
+        else if (position >= INT32_C(7) * PF_Q16_ONE)
+        {
+            direction = INT16_MIN;
+        }
+
+        if (inspection->tick >= fallback_tick &&
+            player_index == fallback_player)
+        {
+            direction = position < INT32_C(0) ||
+                                (position == INT32_C(0) &&
+                                 player_index == UINT32_C(0))
+                            ? INT16_MIN
+                            : INT16_MAX;
+            inputs[player_index].main_stick_x = direction;
+            continue;
+        }
+
+        inputs[player_index].main_stick_x = direction;
+        if (phase >= UINT64_C(12) && phase <= UINT64_C(16))
+        {
+            inputs[player_index].left_trigger = UINT16_MAX;
+        }
+        if (distance <= UINT64_C(2) * (uint64_t)PF_Q16_ONE &&
+            phase % UINT64_C(18) == UINT64_C(0))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        else if (phase == UINT64_C(4))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_STRONG_ATTACK;
+            inputs[player_index].secondary_stick_x = direction;
+        }
+        else if (phase == UINT64_C(28))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_ATTACK;
+        }
+        else if (phase == UINT64_C(52))
+        {
+            const uint64_t route =
+                (seed + (uint64_t)match_index +
+                 (uint64_t)player_index + inspection->tick / UINT64_C(96)) %
+                UINT64_C(3);
+
+            inputs[player_index].buttons = PF_INPUT_BUTTON_SPECIAL;
+            if (route == UINT64_C(1))
+            {
+                inputs[player_index].main_stick_y = INT16_MIN;
+            }
+            else if (route == UINT64_C(2))
+            {
+                inputs[player_index].main_stick_y = INT16_MAX;
+            }
+        }
+        else if (phase == UINT64_C(76))
+        {
+            inputs[player_index].buttons = PF_INPUT_BUTTON_JUMP;
+        }
+    }
+}
+
+static void record_m4_match_events(
+    pf_verifier_m4_match_summary *summary,
+    const pf_tick_result *result)
+{
+    uint32_t event_index;
+
+    for (event_index = UINT32_C(0);
+         event_index < (uint32_t)result->event_count;
+         ++event_index)
+    {
+        switch ((pf_sim_event_type)result->events[event_index].type)
+        {
+            case PF_SIM_EVENT_HIT:
+            case PF_SIM_EVENT_ITEM_HIT:
+            case PF_SIM_EVENT_PROJECTILE_HIT:
+            case PF_SIM_EVENT_PUMMEL:
+                ++summary->combat_events;
+                break;
+            case PF_SIM_EVENT_SHIELD_BLOCK:
+            case PF_SIM_EVENT_POWERSHIELD:
+                ++summary->shield_events;
+                break;
+            case PF_SIM_EVENT_KO:
+                ++summary->ko_events;
+                break;
+            case PF_SIM_EVENT_PROJECTILE_FIRE:
+            case PF_SIM_EVENT_PROJECTILE_REFLECT:
+                ++summary->projectile_events;
+                break;
+            case PF_SIM_EVENT_ITEM_PICKUP:
+            case PF_SIM_EVENT_ITEM_DROP:
+            case PF_SIM_EVENT_ITEM_THROW:
+            case PF_SIM_EVENT_ITEM_RESET:
+                ++summary->item_events;
+                break;
+            case PF_SIM_EVENT_MATCH_RESULT:
+            case PF_SIM_EVENT_TIME_LIMIT:
+                ++summary->result_events;
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+static uint64_t mix_m4_match_digest_u64(uint64_t digest, uint64_t value)
+{
+    uint32_t byte_index;
+
+    for (byte_index = UINT32_C(0); byte_index < UINT32_C(8); ++byte_index)
+    {
+        digest ^= (value >> (byte_index * 8U)) & UINT64_C(0xff);
+        digest *= UINT64_C(1099511628211);
+    }
+    return digest;
+}
+
+static uint64_t mix_m4_match_hash(
+    uint64_t digest,
+    const pf_state_hash *hash)
+{
+    uint32_t byte_index;
+
+    for (byte_index = UINT32_C(0);
+         byte_index < (uint32_t)sizeof(hash->bytes);
+         ++byte_index)
+    {
+        digest ^= (uint64_t)hash->bytes[byte_index];
+        digest *= UINT64_C(1099511628211);
+    }
+    return digest;
+}
+
+static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
+{
+    pf_m4_content content;
+    pf_content_view content_view;
+    pf_sim *primary = NULL;
+    pf_sim *twin = NULL;
+    pf_sim *initial = NULL;
+    pf_sim *replay_target = NULL;
+    pf_verifier_m4_match_summary summary;
+    uint32_t match_index;
+    int passed = 1;
+    char observed[PF_VERIFIER_TEXT_CAPACITY];
+
+    (void)memset(&summary, 0, sizeof(summary));
+    summary.digest = UINT64_C(14695981039346656037);
+    if (!make_m4_match_content(&content, &content_view) ||
+        !initialize_m4_match_sim((size_t)0, &content_view, &primary) ||
+        !initialize_m4_match_sim((size_t)1, &content_view, &twin) ||
+        !initialize_m4_match_sim((size_t)2, &content_view, &initial) ||
+        !initialize_m4_match_sim(
+            (size_t)3,
+            &content_view,
+            &replay_target))
+    {
+        passed = 0;
+    }
+
+    for (match_index = UINT32_C(0);
+         passed != 0 &&
+         match_index < (uint32_t)PF_VERIFIER_M4_MATCH_COUNT;
+         ++match_index)
+    {
+        const uint64_t seed =
+            UINT64_C(0x4d34564d41544348) +
+            (uint64_t)match_index * UINT64_C(0x9e3779b97f4a7c15);
+        pf_tick_result primary_result;
+        pf_tick_result twin_result;
+        pf_tick_result rollback_result;
+        pf_state_hash primary_hash;
+        pf_state_hash twin_hash;
+        pf_state_hash initial_hash;
+        pf_m4_inspection inspection;
+        pf_replay_source replay_source;
+        pf_replay_verification verification;
+        pf_mut_bytes destination;
+        pf_bytes bytes;
+        uint64_t tick;
+        uint64_t tick_count = UINT64_C(0);
+        size_t checkpoint_size = (size_t)0;
+        size_t replay_size = (size_t)0;
+
+        (void)memset(&primary_result, 0, sizeof(primary_result));
+        (void)memset(&twin_result, 0, sizeof(twin_result));
+        (void)memset(&rollback_result, 0, sizeof(rollback_result));
+        if (pf_sim_reset(primary, seed) != PF_STATUS_OK ||
+            pf_sim_reset(twin, seed) != PF_STATUS_OK ||
+            pf_sim_reset(initial, seed) != PF_STATUS_OK ||
+            pf_sim_reset(replay_target, seed) != PF_STATUS_OK ||
+            pf_sim_hash(primary, &primary_hash) != PF_STATUS_OK ||
+            pf_sim_hash(twin, &twin_hash) != PF_STATUS_OK ||
+            pf_sim_hash(initial, &initial_hash) != PF_STATUS_OK ||
+            !state_hashes_equal(&primary_hash, &twin_hash) ||
+            !state_hashes_equal(&primary_hash, &initial_hash))
+        {
+            passed = 0;
+            break;
+        }
+        pf_verifier_m4_match_hashes[0] = primary_hash;
+
+        for (tick = UINT64_C(0);
+             tick < (uint64_t)PF_VERIFIER_M4_MATCH_MAX_TICKS;
+             ++tick)
+        {
+            const size_t input_offset =
+                (size_t)tick * (size_t)PF_VERIFIER_M4_MATCH_PLAYERS;
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+
+            if (pf_m4_inspect(primary, &inspection) != PF_STATUS_OK)
+            {
+                passed = 0;
+                break;
+            }
+            make_m4_match_inputs(inputs, &inspection, seed, match_index);
+            (void)memcpy(
+                &pf_verifier_m4_match_inputs[input_offset],
+                inputs,
+                sizeof(inputs[0]) *
+                    (size_t)PF_VERIFIER_M4_MATCH_PLAYERS);
+            if (pf_sim_tick(
+                    primary,
+                    inputs,
+                    (size_t)PF_VERIFIER_M4_MATCH_PLAYERS,
+                    &primary_result) != PF_STATUS_OK ||
+                pf_sim_tick(
+                    twin,
+                    inputs,
+                    (size_t)PF_VERIFIER_M4_MATCH_PLAYERS,
+                    &twin_result) != PF_STATUS_OK ||
+                !tick_results_equal(&primary_result, &twin_result) ||
+                primary_result.fault_flags != UINT32_C(0) ||
+                primary_result.completed_tick != tick + UINT64_C(1) ||
+                pf_sim_hash(primary, &primary_hash) != PF_STATUS_OK ||
+                pf_sim_hash(twin, &twin_hash) != PF_STATUS_OK ||
+                !state_hashes_equal(&primary_hash, &twin_hash))
+            {
+                passed = 0;
+                break;
+            }
+            pf_verifier_m4_match_hashes[(size_t)primary_result.completed_tick] =
+                primary_hash;
+            record_m4_match_events(&summary, &primary_result);
+
+            if (primary_result.completed_tick ==
+                (uint64_t)PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK)
+            {
+                destination.bytes = pf_verifier_m4_match_checkpoint;
+                destination.capacity =
+                    sizeof(pf_verifier_m4_match_checkpoint);
+                destination.size = (size_t)0;
+                if (pf_sim_save(primary, &destination) != PF_STATUS_OK)
+                {
+                    passed = 0;
+                    break;
+                }
+                checkpoint_size = destination.size;
+            }
+            if (primary_result.terminated != UINT8_C(0) ||
+                primary_result.truncated != UINT8_C(0))
+            {
+                tick_count = primary_result.completed_tick;
+                break;
+            }
+        }
+        if (passed == 0)
+        {
+            break;
+        }
+        if (tick_count <=
+                (uint64_t)PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK ||
+            tick_count > (uint64_t)PF_VERIFIER_M4_MATCH_MAX_TICKS ||
+            checkpoint_size == (size_t)0 ||
+            (primary_result.terminated == UINT8_C(0) &&
+             primary_result.truncated == UINT8_C(0)))
+        {
+            passed = 0;
+            break;
+        }
+
+        ++summary.matches;
+        summary.total_ticks += tick_count;
+        if (primary_result.terminated != UINT8_C(0))
+        {
+            ++summary.stock_results;
+        }
+        else
+        {
+            ++summary.time_limits;
+        }
+
+        bytes.bytes = pf_verifier_m4_match_checkpoint;
+        bytes.size = checkpoint_size;
+        if (pf_sim_load(twin, bytes) != PF_STATUS_OK)
+        {
+            passed = 0;
+            break;
+        }
+        for (tick = (uint64_t)PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK;
+             tick < tick_count;
+             ++tick)
+        {
+            const size_t input_offset =
+                (size_t)tick * (size_t)PF_VERIFIER_M4_MATCH_PLAYERS;
+
+            if (pf_sim_tick(
+                    twin,
+                    &pf_verifier_m4_match_inputs[input_offset],
+                    (size_t)PF_VERIFIER_M4_MATCH_PLAYERS,
+                    &rollback_result) != PF_STATUS_OK ||
+                pf_sim_hash(twin, &twin_hash) != PF_STATUS_OK ||
+                !state_hashes_equal(
+                    &twin_hash,
+                    &pf_verifier_m4_match_hashes[(size_t)tick + (size_t)1]))
+            {
+                passed = 0;
+                break;
+            }
+        }
+        if (passed == 0 ||
+            !tick_results_equal(&primary_result, &rollback_result))
+        {
+            passed = 0;
+            break;
+        }
+        ++summary.rollbacks;
+
+        (void)memset(&replay_source, 0, sizeof(replay_source));
+        replay_source.struct_size = (uint32_t)sizeof(replay_source);
+        replay_source.schema_version = PF_REPLAY_SCHEMA_VERSION;
+        replay_source.flags = PF_REPLAY_FLAG_PER_TICK_HASHES;
+        replay_source.initial_state = initial;
+        replay_source.input_frames = pf_verifier_m4_match_inputs;
+        replay_source.input_frame_count =
+            (size_t)tick_count *
+            (size_t)PF_VERIFIER_M4_MATCH_PLAYERS;
+        replay_source.state_hashes = pf_verifier_m4_match_hashes;
+        replay_source.state_hash_count = (size_t)tick_count + (size_t)1;
+        replay_source.tick_count = tick_count;
+        replay_source.final_result = primary_result;
+        {
+            const pf_status replay_query_status =
+                pf_replay_query_size(&replay_source, &replay_size);
+
+            if (replay_query_status != PF_STATUS_OK ||
+                replay_size > sizeof(pf_verifier_m4_match_replay))
+            {
+                uint32_t event_index;
+
+                (void)fprintf(
+                    stderr,
+                    "m4-match-replay-query=%s size=%zu tick=%" PRIu64
+                    " completed=%" PRIu64 " faults=%" PRIu32
+                    " terminated=%u truncated=%u winner=%u events=%u\n",
+                    pf_status_name(replay_query_status),
+                    replay_size,
+                    tick_count,
+                    primary_result.completed_tick,
+                    primary_result.fault_flags,
+                    (unsigned int)primary_result.terminated,
+                    (unsigned int)primary_result.truncated,
+                    (unsigned int)primary_result.winner_mask,
+                    (unsigned int)primary_result.event_count);
+                for (event_index = UINT32_C(0);
+                     event_index <
+                         (uint32_t)primary_result.event_count;
+                     ++event_index)
+                {
+                    const pf_sim_event *event =
+                        &primary_result.events[event_index];
+
+                    (void)fprintf(
+                        stderr,
+                        "m4-match-replay-event index=%" PRIu32
+                        " tick=%" PRIu64 " sequence=%" PRIu32
+                        " type=%u source=%u target=%u value=%" PRIu32
+                        " vx=%" PRId32 " vy=%" PRId32
+                        " flags=%u detail=%u\n",
+                        event_index,
+                        event->tick,
+                        event->sequence,
+                        (unsigned int)event->type,
+                        (unsigned int)event->source_player,
+                        (unsigned int)event->target_player,
+                        event->value_q16,
+                        event->velocity_x_q16,
+                        event->velocity_y_q16,
+                        (unsigned int)event->flags,
+                        (unsigned int)event->detail);
+                }
+                passed = 0;
+                break;
+            }
+        }
+        destination.bytes = pf_verifier_m4_match_replay;
+        destination.capacity = sizeof(pf_verifier_m4_match_replay);
+        destination.size = (size_t)0;
+        {
+            const pf_status replay_encode_status =
+                pf_replay_encode(&replay_source, &destination);
+
+            if (replay_encode_status != PF_STATUS_OK ||
+                destination.size != replay_size)
+            {
+                (void)fprintf(
+                    stderr,
+                    "m4-match-replay-encode=%s expected=%zu actual=%zu\n",
+                    pf_status_name(replay_encode_status),
+                    replay_size,
+                    destination.size);
+                passed = 0;
+                break;
+            }
+        }
+        bytes.bytes = pf_verifier_m4_match_replay;
+        bytes.size = replay_size;
+        (void)memset(&verification, 0, sizeof(verification));
+        {
+            const pf_status replay_verify_status =
+                pf_replay_verify(replay_target, bytes, &verification);
+
+            if (replay_verify_status != PF_STATUS_OK ||
+                verification.status != (uint32_t)PF_STATUS_OK ||
+                verification.expected_ticks != tick_count ||
+                verification.verified_ticks != tick_count ||
+                !tick_result_outcomes_equal(
+                    &verification.actual_result,
+                    &primary_result))
+            {
+                (void)fprintf(
+                    stderr,
+                    "m4-match-replay-verify=%s status=%" PRIu32
+                    " expected=%" PRIu64 " verified=%" PRIu64
+                    " actual_tick=%" PRIu64 " final_tick=%" PRIu64 "\n",
+                    pf_status_name(replay_verify_status),
+                    verification.status,
+                    verification.expected_ticks,
+                    verification.verified_ticks,
+                    verification.actual_result.completed_tick,
+                    primary_result.completed_tick);
+                passed = 0;
+                break;
+            }
+        }
+        ++summary.replays;
+        for (tick = UINT64_C(0); tick <= tick_count; ++tick)
+        {
+            summary.digest = mix_m4_match_hash(
+                summary.digest,
+                &pf_verifier_m4_match_hashes[(size_t)tick]);
+        }
+        summary.digest = mix_m4_match_digest_u64(
+            summary.digest,
+            primary_result.completed_tick);
+        summary.digest = mix_m4_match_digest_u64(
+            summary.digest,
+            (uint64_t)primary_result.winner_mask |
+                ((uint64_t)primary_result.terminated << 8U) |
+                ((uint64_t)primary_result.truncated << 16U));
+    }
+
+    if (summary.matches != (uint32_t)PF_VERIFIER_M4_MATCH_COUNT ||
+        summary.rollbacks != (uint32_t)PF_VERIFIER_M4_MATCH_COUNT ||
+        summary.replays != (uint32_t)PF_VERIFIER_M4_MATCH_COUNT ||
+        summary.result_events != (uint32_t)PF_VERIFIER_M4_MATCH_COUNT ||
+        summary.combat_events == UINT32_C(0) ||
+        summary.ko_events == UINT32_C(0) ||
+        summary.projectile_events == UINT32_C(0) ||
+        (PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST != UINT64_C(0) &&
+         summary.digest != PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST))
+    {
+        passed = 0;
+    }
+    (void)snprintf(
+        observed,
+        sizeof(observed),
+        "matches=%" PRIu32 " stock=%" PRIu32 " limits=%" PRIu32
+        " ticks=%" PRIu64 " combat=%" PRIu32 " shield=%" PRIu32
+        " ko=%" PRIu32 " projectile=%" PRIu32 " item=%" PRIu32
+        " rollback=%" PRIu32 " replay=%" PRIu32 " digest=%016" PRIx64,
+        summary.matches,
+        summary.stock_results,
+        summary.time_limits,
+        summary.total_ticks,
+        summary.combat_events,
+        summary.shield_events,
+        summary.ko_events,
+        summary.projectile_events,
+        summary.item_events,
+        summary.rollbacks,
+        summary.replays,
+        summary.digest);
+    (void)printf(
+        "verifier-m4-match-soak=%s %s\n",
+        passed != 0 ? "pass" : "fail",
+        observed);
+    return add_check(
+        checks,
+        "m4-repeated-match-soak",
+        passed,
+        "Eight seeded production M4 duels complete through ordinary player "
+        "inputs with exact twin, save/load rollback, replay, and final hashes.",
+        observed,
+        "public pf_sim_tick, pf_m4_inspect, pf_sim_save/load, and "
+        "pf_replay_encode/verify APIs");
 }
 
 static int run_action_layer_invariant(
@@ -350,7 +1066,7 @@ static int run_action_layer_invariant(
         "Two seeded exploratory runs match exactly; policy views redact "
         "the seed while diagnostic observation retains it.",
         passed != 0
-            ? "240 exploratory ticks matched with the RL schema-2 contract."
+            ? "240 exploratory ticks matched with the RL schema-3 contract."
             : "The exploratory runs, state hashes, or seed visibility diverged.",
         "public pf_rl_reset/pf_rl_step and pf_sim_observe APIs");
 }
@@ -633,6 +1349,7 @@ static int run_internal_checks(pf_verifier_checks *checks)
     (void)memset(checks, 0, sizeof(*checks));
     return run_action_layer_invariant(checks) &&
            run_snapshot_invariant(checks) &&
+           run_m4_match_soak_invariant(checks) &&
            run_render_invariant(checks);
 }
 

@@ -16,3 +16,9 @@ captures canonical benchmark zones through the matching command-line capture
 utility, and attempts the platform profiler (`perf` on Linux or `xctrace` on
 macOS). A missing or permission-blocked OS profiler is recorded explicitly in
 the machine-readable manifest rather than silently treated as a capture.
+
+On WSL, `tools/workflow.sh profile` selects Tracy's lower-resolution timer
+fallback because the WSL kernel can mask invariant-TSC support. Native Linux,
+macOS, and Windows profile builds keep Tracy's hardware-timer path unless
+`PF_TRACY_TIMER_FALLBACK=ON` is set explicitly. Every profile manifest records
+the resolved timer policy.

@@ -184,3 +184,14 @@ jobs:
       - name: Run generated Wasm in Chrome
         shell: bash
         run: ./tools/verify_web_smoke.sh
+
+      - name: Preserve verified browser runtime
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: m4-browser-runtime
+          path: |
+            build/web/web_client.html
+            build/web/web_client.js
+            build/web/web_client.wasm
+          if-no-files-found: error
+          retention-days: 7

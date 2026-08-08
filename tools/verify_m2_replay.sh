@@ -4,7 +4,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 output_dir=${1:-"$root/performance/local/m2_replay"}
 compiler=${CC:-cc}
-expected='sim-replay=pass ticks=180 players=4 bytes=30997 corpus_sha256=fd86a7c0801302d9a5feb203792a6feef939724054a9b3551aeca99f7d11066e final_sha256=7571f4ec1375cecbde2c6dc1b9e8ea00a8d368c876bda87e8adcdb354af83ea7'
+expected='sim-replay=pass ticks=240 players=4 bytes=41579 corpus_sha256=5893af587684844c22c0fc6c7019f13748c4366c586e088ed1a24d4e1819c942 final_sha256=0235c47f05fdd37257bdd59ac5cfd5c7e107316a19f99001eefdeea7d78e951d events_sha256=deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b'
 
 mkdir -p "$output_dir"
 
@@ -30,6 +30,15 @@ common_flags="
     -I"$root/src/checkpoint" \
     -I"$root/src/sim" \
     "$root/src/sim/sim.c" \
+    "$root/src/sim/sim_combat.c" \
+    "$root/src/sim/sim_content.c" \
+    "$root/src/sim/sim_falcon_frame_data.c" \
+    "$root/src/sim/sim_event.c" \
+    "$root/src/sim/sim_item.c" \
+    "$root/src/sim/sim_projectile.c" \
+    "$root/src/sim/sim_reflector.c" \
+    "$root/src/sim/sim_charge.c" \
+    "$root/src/sim/sim_movement.c" \
     "$root/src/sim/sim_replay.c" \
     "$root/src/sim/sim_rl.c" \
     "$root/src/sim/sim_sha256.c" \
@@ -43,7 +52,11 @@ common_flags="
 grep -Fqx "$expected" "$output_dir/native.txt"
 
 web_corpus="$root/build/web/pf_replay_corpus.js"
-if [ -f "$web_corpus" ]; then
+if [ "${PF_REQUIRE_WEB_REPLAY:-0}" = "1" ]; then
+    if [ ! -f "$web_corpus" ]; then
+        echo "M2 replay verification failed: web corpus is missing" >&2
+        exit 1
+    fi
     if ! command -v node >/dev/null 2>&1; then
         echo "M2 replay verification failed: node is not on PATH" >&2
         exit 1
@@ -51,12 +64,9 @@ if [ -f "$web_corpus" ]; then
     node "$web_corpus" >"$output_dir/wasm.txt"
     grep -Fqx "$expected" "$output_dir/wasm.txt"
     cmp "$output_dir/native.txt" "$output_dir/wasm.txt"
-    echo "m2-replay-cross-target=pass native=1 wasm=1 ticks=180"
-elif [ "${PF_REQUIRE_WEB_REPLAY:-0}" = "1" ]; then
-    echo "M2 replay verification failed: web corpus is missing" >&2
-    exit 1
+    echo "m2-replay-cross-target=pass native=1 wasm=1 ticks=240"
 else
-    echo "m2-replay-cross-target=partial native=1 wasm=not-built ticks=180"
+    echo "m2-replay-cross-target=partial native=1 wasm=deferred ticks=240"
 fi
 
-echo "m2-replay-verification=pass bytes=30997 ticks=180 players=4"
+echo "m2-replay-verification=pass bytes=41579 ticks=240 players=4"

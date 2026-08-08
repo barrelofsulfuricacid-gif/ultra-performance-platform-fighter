@@ -54,8 +54,10 @@ data, animation, geometry, formulas, audiovisual expression, or source data.
 - Each counterpart receives original proportions and independently tuned
   collision geometry. Reference silhouettes, costumes, animations, VFX, voice,
   and iconography are prohibited.
-- Extracted game files, decompiled code, copied formulas, frame-data tables, and
-  ripped hitboxes are not inputs to implementation.
+- Under the 2026-08-03 owner-approved exception, numeric gameplay tables and
+  formulas may inform implementation when field-level provenance and conversion
+  records are committed. Extracted game files, executable code, ripped
+  hitboxes, and expressive assets remain prohibited repository inputs.
 
 ## Completion gate
 

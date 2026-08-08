@@ -16,7 +16,7 @@ _Static_assert(sizeof(uint64_t) == 8U,
 _Static_assert(sizeof(int32_t) == 4U,
                "pf_sim requires an exact 32-bit int32_t");
 _Static_assert(PF_SIM_MAX_PLAYERS == UINT32_C(4),
-               "M2 state layout assumes four player slots");
+               "simulation state layout assumes four player slots");
 
 static int pf_is_aligned(const void *memory, size_t alignment)
 {
@@ -44,19 +44,6 @@ static int pf_ranges_overlap(
     left_end = left_begin + (uintptr_t)left_bytes;
     right_end = right_begin + (uintptr_t)right_bytes;
     return left_begin < right_end && right_begin < left_end;
-}
-
-static int32_t pf_clamp_q16(int64_t value, int32_t minimum, int32_t maximum)
-{
-    if (value < (int64_t)minimum)
-    {
-        return minimum;
-    }
-    if (value > (int64_t)maximum)
-    {
-        return maximum;
-    }
-    return (int32_t)value;
 }
 
 uint32_t pf_sim_abi_version(void)
@@ -122,6 +109,11 @@ pf_status pf_sim_default_config(
     out_config->max_ticks = UINT64_C(3600);
     out_config->arena_half_width_q16 = INT32_C(64) * PF_Q16_ONE;
     out_config->arena_ceiling_q16 = INT32_C(64) * PF_Q16_ONE;
+    out_config->stock_count = PF_SIM_DEFAULT_STOCK_COUNT;
+    out_config->respawn_delay_ticks =
+        PF_SIM_DEFAULT_RESPAWN_DELAY_TICKS;
+    out_config->respawn_invulnerability_ticks =
+        PF_SIM_DEFAULT_RESPAWN_INVULNERABILITY_TICKS;
 
     return pf_sim_validate_config(out_config);
 }
@@ -158,6 +150,15 @@ pf_status pf_sim_validate_config(const pf_sim_config *config)
         config->arena_half_width_q16 > maximum_arena_q16 ||
         config->arena_ceiling_q16 < minimum_arena_q16 ||
         config->arena_ceiling_q16 > maximum_arena_q16)
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
+    if (config->reserved2 != UINT8_C(0) ||
+        config->reserved3 != UINT16_C(0) ||
+        config->stock_count > PF_SIM_MAX_STOCK_COUNT ||
+        config->respawn_delay_ticks > PF_SIM_MAX_RESPAWN_TICKS ||
+        config->respawn_invulnerability_ticks >
+            PF_SIM_MAX_RESPAWN_TICKS)
     {
         return PF_STATUS_INVALID_CONFIG;
     }
@@ -205,6 +206,7 @@ pf_status pf_sim_init(
     pf_sim **out_sim)
 {
     pf_memory_requirements requirements;
+    pf_m4_content resolved_content;
     pf_status status;
     pf_sim *sim;
 
@@ -223,6 +225,11 @@ pf_status pf_sim_init(
         (content->byte_count != (size_t)0 && content->bytes == NULL))
     {
         return PF_STATUS_INVALID_ARGUMENT;
+    }
+    status = pf_m4_content_from_view(content, &resolved_content);
+    if (status != PF_STATUS_OK)
+    {
+        return status;
     }
 
     status = pf_sim_query_memory(config, &requirements);
@@ -248,6 +255,16 @@ pf_status pf_sim_init(
     {
         return PF_STATUS_INVALID_ARGUMENT;
     }
+    if (resolved_content.stage.blast_left_q16 <
+            -config->arena_half_width_q16 ||
+        resolved_content.stage.blast_right_q16 >
+            config->arena_half_width_q16 ||
+        resolved_content.stage.blast_top_q16 < INT32_C(0) ||
+        resolved_content.stage.blast_bottom_q16 >
+            config->arena_ceiling_q16)
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
 
     sim = (pf_sim *)state_memory;
     (void)memset(sim, 0, sizeof(*sim));
@@ -255,6 +272,7 @@ pf_status pf_sim_init(
 
     sim->magic = PF_SIM_HANDLE_MAGIC;
     sim->scratch = (pf_sim_scratch *)scratch_memory;
+    sim->content = resolved_content;
     sim->world.content_hash = content->content_hash;
     sim->world.max_ticks = config->max_ticks;
     sim->world.state_schema_version = PF_SIM_STATE_SCHEMA_VERSION;
@@ -263,8 +281,13 @@ pf_status pf_sim_init(
     sim->world.input_schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
     sim->world.arena_half_width_q16 = config->arena_half_width_q16;
     sim->world.arena_ceiling_q16 = config->arena_ceiling_q16;
+    sim->world.respawn_delay_config_ticks =
+        config->respawn_delay_ticks;
+    sim->world.respawn_invulnerability_config_ticks =
+        config->respawn_invulnerability_ticks;
     sim->world.player_count = config->player_count;
     sim->world.mode = config->mode;
+    sim->world.stock_count = config->stock_count;
 
     *out_sim = sim;
     return PF_STATUS_OK;
@@ -316,8 +339,13 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
     sim->world.input_schema_version = preserved.input_schema_version;
     sim->world.arena_half_width_q16 = preserved.arena_half_width_q16;
     sim->world.arena_ceiling_q16 = preserved.arena_ceiling_q16;
+    sim->world.respawn_delay_config_ticks =
+        preserved.respawn_delay_config_ticks;
+    sim->world.respawn_invulnerability_config_ticks =
+        preserved.respawn_invulnerability_config_ticks;
     sim->world.player_count = preserved.player_count;
     sim->world.mode = preserved.mode;
+    sim->world.stock_count = preserved.stock_count;
     sim->world.seed = seed;
     sim->world.rng_state = seed;
 
@@ -325,31 +353,15 @@ pf_status pf_sim_reset(pf_sim *sim, uint64_t seed)
          player_index < (uint32_t)sim->world.player_count;
          ++player_index)
     {
-        const int32_t centered_slot =
-            (int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
-            (int32_t)sim->world.player_count;
-        const int32_t base_position_q16 =
-            centered_slot * INT32_C(8) * PF_Q16_ONE;
-        const uint64_t random_value =
-            pf_sim_rng_next(&sim->world.rng_state);
-        const int32_t jitter_q16 =
-            (int32_t)((random_value >> 48U) & UINT64_C(0xFFFF)) -
-            INT32_C(32768);
-
-        sim->world.position_x_q16[player_index] = pf_clamp_q16(
-            (int64_t)base_position_q16 + (int64_t)jitter_q16,
-            -sim->world.arena_half_width_q16,
-            sim->world.arena_half_width_q16);
-        sim->world.position_y_q16[player_index] = INT32_C(0);
-        sim->world.velocity_x_q16[player_index] = INT32_C(0);
-        sim->world.velocity_y_q16[player_index] = INT32_C(0);
         sim->world.team[player_index] =
             sim->world.mode == (uint8_t)PF_SIM_MODE_TEAMS
                 ? (uint8_t)(player_index & UINT32_C(1))
                 : (uint8_t)player_index;
-        sim->world.grounded[player_index] = UINT8_C(1);
         sim->world.active[player_index] = UINT8_C(1);
+        pf_m4_reset_player(sim, player_index, 0);
     }
+    pf_m4_reset_item(sim);
+    pf_m4_reset_projectile(sim);
 
     (void)memset(sim->scratch, 0, sizeof(*sim->scratch));
     sim->has_reset = UINT8_C(1);
@@ -391,6 +403,42 @@ pf_status pf_sim_observe(
     out_observation->terminated = sim->world.terminated;
     out_observation->truncated = sim->world.truncated;
     out_observation->winner_mask = sim->world.winner_mask;
+    out_observation->sudden_death = sim->world.sudden_death;
+    out_observation->stock_count = sim->world.stock_count;
+    out_observation->item.position_x_q16 =
+        sim->world.item_position_x_q16;
+    out_observation->item.position_y_q16 =
+        sim->world.item_position_y_q16;
+    out_observation->item.velocity_x_q16 =
+        sim->world.item_velocity_x_q16;
+    out_observation->item.velocity_y_q16 =
+        sim->world.item_velocity_y_q16;
+    out_observation->item.lifetime_ticks =
+        sim->world.item_lifetime_ticks;
+    out_observation->item.respawn_ticks =
+        sim->world.item_respawn_ticks;
+    out_observation->item.pickup_lockout_ticks =
+        sim->world.item_pickup_lockout_ticks;
+    out_observation->item.state = sim->world.item_state;
+    out_observation->item.holder_slot = sim->world.item_holder_slot;
+    out_observation->item.source_slot = sim->world.item_source_slot;
+    out_observation->item.throw_direction =
+        sim->world.item_throw_direction;
+    out_observation->item.hit_mask = sim->world.item_hit_mask;
+    out_observation->projectile.position_x_q16 =
+        sim->world.projectile_position_x_q16;
+    out_observation->projectile.position_y_q16 =
+        sim->world.projectile_position_y_q16;
+    out_observation->projectile.velocity_x_q16 =
+        sim->world.projectile_velocity_x_q16;
+    out_observation->projectile.velocity_y_q16 =
+        sim->world.projectile_velocity_y_q16;
+    out_observation->projectile.lifetime_ticks =
+        sim->world.projectile_lifetime_ticks;
+    out_observation->projectile.state =
+        sim->world.projectile_state;
+    out_observation->projectile.owner_slot =
+        sim->world.projectile_owner_slot;
 
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -412,6 +460,57 @@ pf_status pf_sim_observe(
         player->team = sim->world.team[player_index];
         player->grounded = sim->world.grounded[player_index];
         player->active = sim->world.active[player_index];
+        player->stocks_remaining =
+            sim->world.stocks_remaining[player_index];
+        player->recovery_available =
+            sim->world.recovery_available[player_index];
+        player->respawn_ticks =
+            sim->world.respawn_ticks[player_index];
+        player->respawn_invulnerability_ticks =
+            sim->world
+                .respawn_invulnerability_ticks[player_index];
+        player->charge_ticks =
+            sim->world.charge_ticks[player_index];
+        player->smash_charge_ticks =
+            sim->world.smash_charge_ticks[player_index];
+        player->shield_strength =
+            sim->world.shield_strength[player_index];
+        pf_m4_shield_tilt_axes(
+            sim->world.shield_angle_turn[player_index],
+            sim->world.shield_magnitude[player_index],
+            sim->world.facing[player_index],
+            &player->shield_tilt_x,
+            &player->shield_tilt_y);
+        player->shield_health_q16 =
+            sim->world.shield_health_q16[player_index];
+        player->prone_orientation =
+            sim->world.prone_orientation[player_index];
+        player->stale_move_count =
+            sim->world.stale_move_count[player_index];
+        if (player->stale_move_count == UINT8_C(0))
+        {
+            player->stale_move_multiplier_q16 =
+                (uint32_t)PF_Q16_ONE;
+        }
+        else
+        {
+            const uint8_t current_action =
+                sim->world.action_state[player_index] ==
+                        (uint8_t)PF_M4_ACTION_HITLAG
+                    ? sim->world.hitlag_resume_action[player_index]
+                    : sim->world.action_state[player_index];
+
+            player->stale_move_multiplier_q16 =
+                pf_m4_stale_move_multiplier_q16(
+                    &sim->content.fighter,
+                    sim->world.stale_move_ids[player_index],
+                    sim->world.stale_move_count[player_index],
+                    pf_m4_stale_move_id_for_action(current_action));
+            (void)memcpy(
+                player->stale_move_ids,
+                sim->world.stale_move_ids[player_index],
+                (size_t)player->stale_move_count);
+        }
     }
 
     return PF_STATUS_OK;
