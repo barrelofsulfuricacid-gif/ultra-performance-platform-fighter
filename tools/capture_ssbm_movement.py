@@ -62,6 +62,7 @@ def input_trace(
     shield_geometry_sweep_only: bool = False,
     shield_hit_only: bool = False,
     shield_collision_only: bool = False,
+    moving_hit_sweep_only: bool = False,
     damage_hit_only: bool = False,
     defense_state_only: bool = False,
     attack_iasa_only: bool = False,
@@ -98,7 +99,9 @@ def input_trace(
         grab: bool = False,
         taunt: bool = False,
         opponent_main_x: float = 0.5,
+        opponent_main_y: float = 0.5,
         opponent_attack: bool = False,
+        opponent_grab: bool = False,
         opponent_jump: bool = False,
         fighter_x_override: float | None = None,
         fighter_x_from_item_offset: float | None = None,
@@ -123,7 +126,9 @@ def input_trace(
             "grab": grab,
             "taunt": taunt,
             "opponent_main_x": opponent_main_x,
+            "opponent_main_y": opponent_main_y,
             "opponent_attack": opponent_attack,
+            "opponent_grab": opponent_grab,
             "opponent_jump": opponent_jump,
             "fighter_x_override": fighter_x_override,
             "fighter_x_from_item_offset": fighter_x_from_item_offset,
@@ -1085,6 +1090,55 @@ def input_trace(
                     f"{trial}_recover",
                     40,
                 )
+        return trace
+
+    if moving_hit_sweep_only:
+        # Falcon down tilt frame 12 versus standing grab frame 12 is a
+        # source-derived discriminator: at 27.40 units, the live x4c sphere
+        # misses while the continuing x58->x4c capsule hits. Both action hurt
+        # poses are imported, avoiding the incomplete common-idle pose route;
+        # the grab volume has already ended and cannot create a reciprocal hit.
+        repeat("moving_hit_sweep_settle", 60)
+        trace.append(
+            command(
+                "moving_hit_sweep_place",
+                fighter_x_override=0.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=27.4,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("moving_hit_sweep_place_settle", 10)
+        trace.append(
+            command(
+                "moving_hit_sweep_down_tilt_vs_grab",
+                main_y=0.35,
+                attack=True,
+                opponent_grab=True,
+            )
+        )
+        repeat("moving_hit_sweep_observe", 35)
+        repeat("moving_hit_sweep_recover", 60)
+        trace.append(
+            command(
+                "moving_hit_sweep_miss_place",
+                fighter_x_override=0.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=28.3,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("moving_hit_sweep_miss_place_settle", 10)
+        trace.append(
+            command(
+                "moving_hit_sweep_miss_down_tilt_vs_grab",
+                main_y=0.35,
+                attack=True,
+                opponent_grab=True,
+            )
+        )
+        repeat("moving_hit_sweep_miss_observe", 35)
+        repeat("moving_hit_sweep_miss_recover", 60)
         return trace
 
     if damage_hit_only:
@@ -2568,6 +2622,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         args.push_only
                         or args.shield_hit_only
                         or args.shield_collision_only
+                        or args.moving_hit_sweep_only
                         or args.damage_hit_only
                         or args.hitbox_geometry_only
                         or args.throw_geometry_only
@@ -2621,6 +2676,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_geometry_sweep_only=args.shield_geometry_sweep_only,
             shield_hit_only=args.shield_hit_only,
             shield_collision_only=args.shield_collision_only,
+            moving_hit_sweep_only=args.moving_hit_sweep_only,
             damage_hit_only=args.damage_hit_only,
             defense_state_only=args.defense_state_only,
             attack_iasa_only=args.attack_iasa_only,
@@ -2688,10 +2744,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             player_two.tilt_analog(
                 melee.Button.BUTTON_MAIN,
                 float(sample["opponent_main_x"]),
-                0.5,
+                float(sample["opponent_main_y"]),
             )
             if bool(sample["opponent_attack"]):
                 player_two.press_button(melee.Button.BUTTON_A)
+            if bool(sample["opponent_grab"]):
+                player_two.press_button(melee.Button.BUTTON_Z)
             if bool(sample["opponent_jump"]):
                 player_two.press_button(melee.Button.BUTTON_X)
             fighter_x_override = sample["fighter_x_override"]
@@ -2775,8 +2833,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player.controller_state.button[melee.Button.BUTTON_D_UP]
             )
             observed_opponent_x = float(player_two_state.controller_state.main_stick[0])
+            observed_opponent_y = float(player_two_state.controller_state.main_stick[1])
             observed_opponent_attack = bool(
                 player_two_state.controller_state.button[melee.Button.BUTTON_A]
+            )
+            observed_opponent_grab = bool(
+                player_two_state.controller_state.button[melee.Button.BUTTON_Z]
             )
             requested_x = float(scheduled["main_x"])
             requested_y = float(scheduled["main_y"])
@@ -2839,10 +2901,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and observed_taunt == bool(scheduled["taunt"])
             )
             requested_opponent_x = float(scheduled["opponent_main_x"])
+            requested_opponent_y = float(scheduled["opponent_main_y"])
             opponent_axis_aligned = (
                 (requested_opponent_x == 0.5 and abs(observed_opponent_x - 0.5) <= 0.02)
                 or (requested_opponent_x < 0.5 and observed_opponent_x < 0.5)
                 or (requested_opponent_x > 0.5 and observed_opponent_x > 0.5)
+            ) and (
+                (requested_opponent_y == 0.5 and abs(observed_opponent_y - 0.5) <= 0.02)
+                or (requested_opponent_y < 0.5 and observed_opponent_y < 0.5)
+                or (requested_opponent_y > 0.5 and observed_opponent_y > 0.5)
             )
             aligned = (
                 axis_aligned
@@ -2850,6 +2917,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and shoulder_aligned
                 and opponent_axis_aligned
                 and observed_opponent_attack == bool(scheduled["opponent_attack"])
+                and observed_opponent_grab == bool(scheduled["opponent_grab"])
             )
             if not aligned:
                 raise RuntimeError(
@@ -2864,7 +2932,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     f"special={observed_special} grab={observed_grab} "
                     f"taunt={observed_taunt} "
                     f"opponent_x={observed_opponent_x} "
+                    f"opponent_y={observed_opponent_y} "
                     f"opponent_attack={observed_opponent_attack}"
+                    f" opponent_grab={observed_opponent_grab}"
                 )
             if origin_x is None:
                 origin_x = player.position.x
@@ -2888,7 +2958,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "requested_grab": bool(scheduled["grab"]),
                 "requested_taunt": bool(scheduled["taunt"]),
                 "requested_opponent_main_x": requested_opponent_x,
+                "requested_opponent_main_y": requested_opponent_y,
                 "requested_opponent_attack": bool(scheduled["opponent_attack"]),
+                "requested_opponent_grab": bool(scheduled["opponent_grab"]),
                 "requested_opponent_jump": bool(scheduled["opponent_jump"]),
                 "requested_fighter_y_override": scheduled["fighter_y_override"],
                 "requested_fighter_x_override": scheduled["fighter_x_override"],
@@ -2912,7 +2984,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "observed_grab": observed_grab,
                 "observed_taunt": observed_taunt,
                 "observed_opponent_main_x": observed_opponent_x,
+                "observed_opponent_main_y": observed_opponent_y,
                 "observed_opponent_attack": observed_opponent_attack,
+                "observed_opponent_grab": observed_opponent_grab,
                 "action": player.action.name,
                 "action_value": int(player.action.value),
                 "action_frame": float(player.action_frame),
@@ -3007,6 +3081,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     args.push_only
                     or args.shield_hit_only
                     or args.shield_collision_only
+                    or args.moving_hit_sweep_only
                     or args.damage_hit_only
                     or args.hitbox_geometry_only
                     or args.throw_geometry_only
@@ -3111,6 +3186,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-geometry-sweep-only", action="store_true")
     mode.add_argument("--shield-hit-only", action="store_true")
     mode.add_argument("--shield-collision-only", action="store_true")
+    mode.add_argument("--moving-hit-sweep-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--defense-state-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
@@ -3161,8 +3237,13 @@ def parse_args() -> argparse.Namespace:
         or args.special_geometry_only
     ):
         parser.error("--memory-probe-hitbox requires a geometry-only mode")
-    if args.memory_probe_collision and not args.shield_collision_only:
-        parser.error("--memory-probe-collision requires --shield-collision-only")
+    if args.memory_probe_collision and not (
+        args.shield_collision_only or args.moving_hit_sweep_only
+    ):
+        parser.error(
+            "--memory-probe-collision requires --shield-collision-only or "
+            "--moving-hit-sweep-only"
+        )
     if (
         sum(
             (

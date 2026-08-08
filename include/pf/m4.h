@@ -774,7 +774,7 @@ typedef struct pf_m4_hit_sphere_inspection
     uint8_t effect_index;
     uint8_t hitbox_id;
     uint8_t group_id;
-    uint8_t reserved;
+    uint8_t collision_state;
 } pf_m4_hit_sphere_inspection;
 
 typedef struct pf_m4_player_inspection

@@ -193,7 +193,7 @@ typedef struct pf_m4_reference_hit_sphere
     uint8_t effect_index;
     uint8_t hitbox_id;
     uint8_t group_id;
-    uint8_t reserved;
+    uint8_t collision_state;
 } pf_m4_reference_hit_sphere;
 
 typedef struct pf_m4_reference_hurt_capsule

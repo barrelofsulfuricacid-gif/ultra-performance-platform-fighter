@@ -1416,7 +1416,8 @@ static uint8_t pf_m4_reference_hit_spheres_at_world(
             source[sphere_index].hitbox_id;
         out_spheres[sphere_index].group_id =
             source[sphere_index].group_id;
-        out_spheres[sphere_index].reserved = UINT8_C(0);
+        out_spheres[sphere_index].collision_state =
+            source[sphere_index].collision_state;
     }
     return sphere_count;
 }
@@ -2274,6 +2275,7 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
+    const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere,
     const pf_m4_reference_hurt_capsule *capsules,
     uint8_t capsule_count,
@@ -2291,7 +2293,10 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
                 scratch,
                 target_index,
                 &capsules[capsule_index]);
-        const pf_m4_collision_sphere3_q16 collision_sphere = {
+        const pf_m4_collision_capsule3_q16 collision_hit = {
+            (int64_t)previous_sphere->center_x_q16,
+            (int64_t)previous_sphere->center_y_q16,
+            (int64_t)previous_sphere->center_z_q16,
             (int64_t)sphere->center_x_q16,
             (int64_t)sphere->center_y_q16,
             (int64_t)sphere->center_z_q16,
@@ -2302,8 +2307,8 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
         {
             continue;
         }
-        if (pf_m4_collision_sphere_capsule_overlap_q16(
-                &collision_sphere,
+        if (pf_m4_collision_capsule_capsule_overlap_q16(
+                &collision_hit,
                 &capsule))
         {
             return 1;
@@ -2316,6 +2321,7 @@ static int pf_m4_hit_sphere_overlaps_player(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
+    const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere)
 {
     uint8_t capsule_count;
@@ -2332,6 +2338,7 @@ static int pf_m4_hit_sphere_overlaps_player(
             fighter,
             scratch,
             target_index,
+            previous_sphere,
             sphere,
             capsules,
             capsule_count,
@@ -2375,6 +2382,7 @@ static int pf_m4_grab_sphere_overlaps_player(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
     uint32_t target_index,
+    const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere)
 {
     uint8_t capsule_count;
@@ -2391,6 +2399,7 @@ static int pf_m4_grab_sphere_overlaps_player(
             fighter,
             scratch,
             target_index,
+            previous_sphere,
             sphere,
             capsules,
             capsule_count,
@@ -2400,6 +2409,7 @@ static int pf_m4_grab_sphere_overlaps_player(
         fighter,
         scratch,
         target_index,
+        previous_sphere,
         sphere);
 }
 
@@ -2408,17 +2418,21 @@ static int pf_m4_hit_sphere_overlaps_shield(
     const pf_sim_scratch *scratch,
     uint32_t attacker_index,
     uint32_t target_index,
+    int32_t previous_attacker_position_y_q16,
+    const pf_m4_hit_sphere_inspection *previous_sphere,
     const pf_m4_hit_sphere_inspection *sphere)
 {
     pf_m4_shield_volume volume;
+    const int64_t previous_attacker_reference_origin_y =
+        (int64_t)pf_m4_reference_origin_y_q16(
+            fighter,
+            previous_attacker_position_y_q16);
     const int64_t attacker_reference_origin_y =
         (int64_t)pf_m4_reference_origin_y_q16(
             fighter,
             scratch->position_y_q16[attacker_index]);
-    int64_t delta_x;
-    int64_t delta_y;
-    int64_t delta_z;
-    int64_t combined_radius;
+    int64_t previous_center_y;
+    int64_t current_center_y;
 
     if (!pf_m4_shield_volume_for_player(
             fighter,
@@ -2441,23 +2455,84 @@ static int pf_m4_hit_sphere_overlaps_shield(
      * hit-sphere offsets/radii already use the spatial X scale. Convert only
      * each fighter origin and the shield joint back into that metric; keeping
      * the hit offset separate avoids scaling it twice. */
-    delta_x =
-        (int64_t)sphere->center_x_q16 -
-        (int64_t)volume.center_x_q16;
-    delta_y =
+    previous_center_y =
+        (int64_t)volume.center_y_q16 +
+        (previous_attacker_reference_origin_y -
+         (int64_t)volume.center_y_q16) *
+            (int64_t)fighter->shield_radius_x_q16 /
+            (int64_t)fighter->shield_radius_y_q16 +
+        ((int64_t)previous_sphere->center_y_q16 -
+         previous_attacker_reference_origin_y);
+    current_center_y =
+        (int64_t)volume.center_y_q16 +
         (attacker_reference_origin_y -
          (int64_t)volume.center_y_q16) *
             (int64_t)fighter->shield_radius_x_q16 /
             (int64_t)fighter->shield_radius_y_q16 +
         ((int64_t)sphere->center_y_q16 -
          attacker_reference_origin_y);
-    combined_radius =
-        (int64_t)sphere->radius_q16 +
-        (int64_t)volume.radius_x_q16;
-    delta_z = (int64_t)sphere->center_z_q16;
-    return delta_x * delta_x + delta_y * delta_y +
-               delta_z * delta_z <=
-           combined_radius * combined_radius;
+    {
+        const pf_m4_collision_capsule3_q16 hit = {
+            (int64_t)previous_sphere->center_x_q16,
+            previous_center_y,
+            (int64_t)previous_sphere->center_z_q16,
+            (int64_t)sphere->center_x_q16,
+            current_center_y,
+            (int64_t)sphere->center_z_q16,
+            (int64_t)sphere->radius_q16};
+        const pf_m4_collision_capsule3_q16 shield = {
+            (int64_t)volume.center_x_q16,
+            (int64_t)volume.center_y_q16,
+            INT64_C(0),
+            (int64_t)volume.center_x_q16,
+            (int64_t)volume.center_y_q16,
+            INT64_C(0),
+            (int64_t)volume.radius_x_q16};
+
+        return pf_m4_collision_capsule_capsule_overlap_q16(
+            &hit,
+            &shield);
+    }
+}
+
+static const pf_m4_hit_sphere_inspection *
+pf_m4_previous_matching_hit_sphere(
+    const pf_m4_hit_sphere_inspection *sphere,
+    const pf_m4_hit_sphere_inspection
+        previous_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY],
+    uint8_t previous_sphere_count)
+{
+    uint8_t previous_index;
+
+    if (sphere->collision_state != UINT8_C(3))
+    {
+        return sphere;
+    }
+    for (previous_index = UINT8_C(0);
+         previous_index < previous_sphere_count;
+         ++previous_index)
+    {
+        if (previous_spheres[previous_index].hitbox_id ==
+            sphere->hitbox_id)
+        {
+            return &previous_spheres[previous_index];
+        }
+    }
+    return sphere;
+}
+
+static int pf_m4_reference_hit_sphere_can_continue(
+    const pf_world_state *world,
+    const pf_sim_scratch *scratch,
+    uint32_t attacker_index)
+{
+    const uint16_t previous_tick = world->action_ticks[attacker_index];
+    const uint16_t current_tick = scratch->action_ticks[attacker_index];
+
+    return world->action_state[attacker_index] ==
+               scratch->action_state[attacker_index] &&
+           current_tick >= previous_tick &&
+           (uint16_t)(current_tick - previous_tick) <= UINT16_C(1);
 }
 
 static int pf_m4_boxes_overlap(
@@ -3453,7 +3528,10 @@ static pf_status pf_m4_resolve_grabs(
         pf_m4_falcon_move_index geometry_move_index;
         pf_m4_hit_sphere_inspection
             grab_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
+        pf_m4_hit_sphere_inspection
+            previous_grab_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
         uint8_t grab_sphere_count = UINT8_C(0);
+        uint8_t previous_grab_sphere_count = UINT8_C(0);
         const int falcon_dive_grab =
             scratch->action_state[attacker_index] ==
                 (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
@@ -3486,6 +3564,20 @@ static pf_status pf_m4_resolve_grabs(
             if (grab_sphere_count == UINT8_C(0))
             {
                 continue;
+            }
+            if (pf_m4_reference_hit_sphere_can_continue(
+                    world,
+                    scratch,
+                    attacker_index))
+            {
+                previous_grab_sphere_count = pf_m4_grab_hit_spheres(
+                    content,
+                    world->position_x_q16[attacker_index],
+                    world->position_y_q16[attacker_index],
+                    world->facing[attacker_index],
+                    world->action_state[attacker_index],
+                    world->action_ticks[attacker_index],
+                    previous_grab_spheres);
             }
         }
         else if (!pf_m4_grabbox(
@@ -3538,10 +3630,17 @@ static pf_status pf_m4_resolve_grabs(
                      sphere_index < grab_sphere_count;
                      ++sphere_index)
                 {
+                    const pf_m4_hit_sphere_inspection *previous_sphere =
+                        pf_m4_previous_matching_hit_sphere(
+                            &grab_spheres[sphere_index],
+                            previous_grab_spheres,
+                            previous_grab_sphere_count);
+
                     if (pf_m4_grab_sphere_overlaps_player(
                             &content->fighter,
                             scratch,
                             target_index,
+                            previous_sphere,
                             &grab_spheres[sphere_index]))
                     {
                         overlaps_target = 1;
@@ -4206,12 +4305,13 @@ static pf_status pf_m4_resolve_falcon_side_special_searches(
                     .effect_index = UINT8_C(0),
                     .hitbox_id = sphere_index,
                     .group_id = UINT8_C(0),
-                    .reserved = UINT8_C(0)};
+                    .collision_state = UINT8_C(2)};
 
                 if (pf_m4_hit_sphere_overlaps_player(
                         &content->fighter,
                         scratch,
                         target_index,
+                        &sphere,
                         &sphere))
                 {
                     detected = 1;
@@ -4263,8 +4363,12 @@ pf_status pf_m4_resolve_combat(
     pf_m4_hit_sphere_inspection
         attacker_spheres[PF_SIM_MAX_PLAYERS]
                         [PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
+    pf_m4_hit_sphere_inspection
+        attacker_previous_spheres[PF_SIM_MAX_PLAYERS]
+                                 [PF_M4_INSPECTION_HIT_SPHERE_CAPACITY];
     pf_m4_falcon_move_index geometry_move[PF_SIM_MAX_PLAYERS];
     uint8_t attacker_sphere_count[PF_SIM_MAX_PLAYERS];
+    uint8_t attacker_previous_sphere_count[PF_SIM_MAX_PLAYERS];
     uint32_t attacker_index;
     uint32_t target_index;
 
@@ -4299,6 +4403,10 @@ pf_status pf_m4_resolve_combat(
         attacker_sphere_count,
         0,
         sizeof(attacker_sphere_count));
+    (void)memset(
+        attacker_previous_sphere_count,
+        0,
+        sizeof(attacker_previous_sphere_count));
 
     for (attacker_index = UINT32_C(0);
          attacker_index < (uint32_t)world->player_count;
@@ -4345,6 +4453,22 @@ pf_status pf_m4_resolve_combat(
                 scratch->action_state[attacker_index],
                 scratch->action_ticks[attacker_index],
                 attacker_spheres[attacker_index]);
+        if (attacker_sphere_count[attacker_index] != UINT8_C(0) &&
+            pf_m4_reference_hit_sphere_can_continue(
+                world,
+                scratch,
+                attacker_index))
+        {
+            attacker_previous_sphere_count[attacker_index] =
+                pf_m4_attack_hit_spheres(
+                    content,
+                    world->position_x_q16[attacker_index],
+                    world->position_y_q16[attacker_index],
+                    world->facing[attacker_index],
+                    world->action_state[attacker_index],
+                    world->action_ticks[attacker_index],
+                    attacker_previous_spheres[attacker_index]);
+        }
         if (attacker_sphere_count[attacker_index] != UINT8_C(0))
         {
             if (!pf_m4_falcon_reference_move_for_action(
@@ -4443,18 +4567,30 @@ pf_status pf_m4_resolve_combat(
                 {
                     const pf_m4_hit_sphere_inspection *sphere =
                         &attacker_spheres[attacker_index][sphere_index];
+                    const pf_m4_hit_sphere_inspection *previous_sphere =
+                        pf_m4_previous_matching_hit_sphere(
+                            sphere,
+                            attacker_previous_spheres[attacker_index],
+                            attacker_previous_sphere_count[attacker_index]);
+                    const int32_t previous_attacker_position_y_q16 =
+                        previous_sphere == sphere
+                            ? scratch->position_y_q16[attacker_index]
+                            : world->position_y_q16[attacker_index];
                     const int current_shield_overlap =
                         pf_m4_hit_sphere_overlaps_shield(
                             &content->fighter,
                             scratch,
                             attacker_index,
                             target_index,
+                            previous_attacker_position_y_q16,
+                            previous_sphere,
                             sphere);
 
                     if (!pf_m4_hit_sphere_overlaps_player(
                             &content->fighter,
                             scratch,
                             target_index,
+                            previous_sphere,
                             sphere) &&
                         current_shield_overlap == 0)
                     {

@@ -417,13 +417,21 @@ route.
 
 The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
 hash to
-`6a623a51717fc1c163b7b686c02f3dc336e2901ef3d85d501d4f76b037277fce`.
+`d22af093cb93df154a9fd992294e50b2233d282d62f0b38aae9ef9d750b1a92b`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, and all 17 Falcon special
 subactions. Imported hit and hurt geometry is anchored to Melee's fighter root
 at the simulation floor-origin offset, rather than incorrectly treating the
 simulation body center as the source origin.
+
+Each generated sphere also retains the live `ftHit` collision state. State 2
+creates a sphere and resets previous center `x58` to current center `x4C`;
+state 3 continues the same executable hitbox ID and preserves the prior
+transformed center. The importer rejects a state-2 moving center, a state-3
+discontinuity, and inconsistent duplicate hitlag rows. Effect `groupId` is not
+used as lifetime identity because Falcon dash attack changes effect group while
+the executable sphere remains state 3.
 
 A 2,568-row Dolphin 3.4.0 capture, SHA-256
 `2df522e9bc93a09b61d15406f9281f4638f9c81796da349d033d90a112d51289`,
@@ -436,12 +444,20 @@ All decisions match. Last-hit/first-miss boundaries are 28.60/28.65,
 same squared radius-sum predicate without allocation, square root, floating
 point, or the former rectangle/ellipse broad-phase rejection.
 
-Hurt poses for common non-attack actions and the source executable's
-previous-to-current moving hit-capsule sweep remain active fidelity gaps, not
-values to be filled by guessed frame data. The current-point specialization
-now consumes source Z exactly within bounded Q16.16 projection rounding.
-Custom authored content may opt out of reference geometry explicitly; default
-Falcon-counterpart content opts in.
+Hurt poses for common non-attack actions remain an active fidelity gap, not
+values to be filled by guessed frame data. The source executable's moving-hit
+path is now production-routed: previous and current hit centers form one 3D
+capsule and intersect the current hurt or shield capsule using a portable
+allocation-free Q16.16 closest-segment predicate. A 274-frame Slippi Dolphin
+3.5.1 capture, SHA-256
+`d8599ecc80efc567d579d9c3df9c10c70f89909dc38358ad29d602ca6ed3f4ea`,
+hash-pins the same decomp revision and NTSC 1.02 disc. At 27.4 Melee units,
+Falcon down tilt frame 12 deals 12% even though the current sphere misses by
+0.451734762 units; the `x58`-to-`x4C` sweep overlaps by 0.692950483. The
+28.3-unit control remains a miss with margins -1.178471136 and -0.182688971.
+Production Q16.16 tests reproduce both decisions. Custom authored content may
+opt out of reference geometry explicitly; default Falcon-counterpart content
+opts in.
 
 Falcon Punch timing is decoded from the raw `SpecialAirN` event stream rather
 than transcribed: command-variable assignments launch and begin velocity

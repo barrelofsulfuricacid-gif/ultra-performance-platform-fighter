@@ -274,6 +274,23 @@ def collision_keys_q16_equivalent(
     return True
 
 
+def captured_positions_q16_equivalent(
+    left: object, right: object
+) -> bool:
+    left_position = tuple(
+        round(float(value) * MELEE_TO_SIM_Q16) for value in list(left)
+    )
+    right_position = tuple(
+        round(float(value) * MELEE_TO_SIM_Q16) for value in list(right)
+    )
+    return all(
+        abs(left_axis - right_axis) <= 1
+        for left_axis, right_axis in zip(
+            left_position, right_position, strict=True
+        )
+    )
+
+
 def captured_hurt_capsules(
     memory: dict[str, Any],
     hurtbox_key: str,
@@ -423,8 +440,8 @@ def generate(
     ground_assignments = command_variable_assignments(subactions, 303)
     air_assignments = command_variable_assignments(subactions, 305)
     search_specs = (
-        (349, ground_assignments[(0x4C, 1)], ground_assignments[(0x4C, 0)] - 1),
-        (351, air_assignments[(0x4C, 1)], air_assignments[(0x4C, 0)] - 1),
+        (349, ground_assignments[(0, 1)], ground_assignments[(0, 0)] - 1),
+        (351, air_assignments[(0, 1)], air_assignments[(0, 0)] - 1),
     )
     search_spheres: list[tuple[int, ...]] = []
     search_offsets: list[int] = []
@@ -578,6 +595,7 @@ def generate(
             )
             continue
         captured_by_frame: dict[int, dict[str, Any]] = {}
+        last_captured_by_frame: dict[int, dict[str, Any]] = {}
         for row in rows:
             if not row_matches_move(row, capture_move_key):
                 continue
@@ -605,8 +623,10 @@ def generate(
                     raise ValueError(
                         f"{move_key}: inconsistent duplicate frame {action_frame}"
                     )
+                last_captured_by_frame[action_frame] = row
                 continue
             captured_by_frame[action_frame] = row
+            last_captured_by_frame[action_frame] = row
 
         if set(captured_by_frame) != expected_frames:
             raise ValueError(
@@ -665,6 +685,15 @@ def generate(
                     raise ValueError(
                         f"{move_key} frame {action_frame}: too many hitboxes"
                     )
+                previous_row = last_captured_by_frame.get(action_frame - 1)
+                previous_captured_hitboxes = (
+                    [
+                        dict(hitbox)
+                        for hitbox in dict(previous_row["hitbox_memory"])["hitboxes"]
+                    ]
+                    if previous_row is not None
+                    else []
+                )
                 for source_hitbox in source_hitboxes:
                     hitbox_id = int(source_hitbox["id"])
                     captured = captured_hitboxes[hitbox_id]
@@ -672,6 +701,35 @@ def generate(
                         raise ValueError(
                             f"{move_key} frame {action_frame}: "
                             f"hitbox {hitbox_id} is disabled"
+                        )
+                    collision_state = int(captured["state"])
+                    if collision_state == 2:
+                        if not captured_positions_q16_equivalent(
+                            captured["previous_position"],
+                            captured["position"],
+                        ):
+                            raise ValueError(
+                                f"{move_key} frame {action_frame}: newly "
+                                f"created hitbox {hitbox_id} has a moving x58"
+                            )
+                    elif collision_state == 3:
+                        if (
+                            hitbox_id >= len(previous_captured_hitboxes)
+                            or int(previous_captured_hitboxes[hitbox_id]["state"])
+                            == 0
+                            or not captured_positions_q16_equivalent(
+                                captured["previous_position"],
+                                previous_captured_hitboxes[hitbox_id]["position"],
+                            )
+                        ):
+                            raise ValueError(
+                                f"{move_key} frame {action_frame}: continuing "
+                                f"hitbox {hitbox_id} does not preserve x58"
+                            )
+                    else:
+                        raise ValueError(
+                            f"{move_key} frame {action_frame}: active hitbox "
+                            f"{hitbox_id} has collision state {collision_state}"
                         )
                     expected_effect = (
                         int(source_hitbox["damage"]),
@@ -711,6 +769,7 @@ def generate(
                             "effect_index": effect_index,
                             "hitbox_id": hitbox_id,
                             "group_id": int(source_hitbox["groupId"]),
+                            "collision_state": collision_state,
                         }
                     )
             frames.append(
@@ -830,7 +889,8 @@ def generate(
         f"INT32_C({sphere['radius']}), "
         f"UINT8_C({sphere['effect_index']}), "
         f"UINT8_C({sphere['hitbox_id']}), "
-        f"UINT8_C({sphere['group_id']}), UINT8_C(0) "
+        f"UINT8_C({sphere['group_id']}), "
+        f"UINT8_C({sphere['collision_state']}) "
         "},"
         for sphere in spheres
     )

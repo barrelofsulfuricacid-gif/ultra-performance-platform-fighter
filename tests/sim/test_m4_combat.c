@@ -13047,6 +13047,18 @@ static int run_shield_geometry_and_poke_test(
     return 1;
 }
 
+static int32_t melee_distance_hundredths_to_sim_q16(
+    uint32_t melee_distance_hundredths)
+{
+    const int64_t numerator =
+        (int64_t)melee_distance_hundredths *
+        (int64_t)PF_Q16_ONE * INT64_C(12);
+    const int64_t denominator = INT64_C(100) * INT64_C(115);
+
+    return (int32_t)(
+        (numerator + denominator / INT64_C(2)) / denominator);
+}
+
 static int run_reference_shield_boundary_case(
     uint32_t melee_distance_hundredths,
     int16_t shield_axis_x,
@@ -13059,16 +13071,9 @@ static int run_reference_shield_boundary_case(
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     const uint16_t light_trigger = UINT16_C(21064);
-    const int64_t scaled_distance_numerator =
-        (int64_t)melee_distance_hundredths *
-        (int64_t)PF_Q16_ONE * INT64_C(12);
-    const int64_t scaled_distance_denominator =
-        INT64_C(100) * INT64_C(115);
     const int32_t total_distance_q16 =
-        (int32_t)(
-            (scaled_distance_numerator +
-             scaled_distance_denominator / INT64_C(2)) /
-            scaled_distance_denominator);
+        melee_distance_hundredths_to_sim_q16(
+            melee_distance_hundredths);
     uint32_t tick;
     int blocked = 0;
     int hit = 0;
@@ -13197,6 +13202,214 @@ static int run_reference_shield_boundary_test(void)
                UINT32_C(2965),
                INT16_C(-12697),
                INT16_C(13107),
+               0);
+}
+
+static int run_reference_moving_hit_sweep_runtime_case(
+    uint32_t melee_distance_hundredths,
+    int expect_hit)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const int32_t total_distance_q16 =
+        melee_distance_hundredths_to_sim_q16(
+            melee_distance_hundredths);
+    int16_t down_tilt_axis;
+    uint32_t tick;
+    uint16_t hit_action_tick = UINT16_MAX;
+    const pf_sim_event *hit_event = NULL;
+    int saw_grab = 0;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "reference-moving-hit-runtime-default-content"))
+    {
+        return 0;
+    }
+    down_tilt_axis = (int16_t)(
+        content.fighter.dash_axis_threshold - UINT16_C(1));
+    content.stage.spawn_spacing_q16 = total_distance_q16 / INT32_C(2);
+    content.item.enabled = UINT8_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "reference-moving-hit-runtime-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(30); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                down_tilt_axis,
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                tick == UINT32_C(0) ? UINT16_MAX : UINT16_C(0),
+                &inspection))
+        {
+            return fail("reference-moving-hit-runtime-step");
+        }
+        saw_grab |= find_last_tick_event(PF_SIM_EVENT_GRAB) != NULL;
+        hit_event = find_last_tick_event(PF_SIM_EVENT_HIT);
+        if (hit_event != NULL)
+        {
+            hit_action_tick = inspection.players[0].action_ticks;
+            break;
+        }
+    }
+    if (expect_hit != 0)
+    {
+        if (hit_action_tick != UINT16_C(12) ||
+            inspection.players[1].damage_q16 == UINT32_C(0) ||
+            inspection.players[1].last_hit_attacker != UINT8_C(0) ||
+            hit_event == NULL ||
+            hit_event->detail != (uint16_t)PF_M4_ACTION_DOWN_ATTACK ||
+            saw_grab != 0)
+        {
+            return fail("reference-moving-hit-runtime-hit");
+        }
+    }
+    else if (hit_action_tick != UINT16_MAX ||
+             inspection.players[0].damage_q16 != UINT32_C(0) ||
+             inspection.players[1].damage_q16 != UINT32_C(0) ||
+             saw_grab != 0)
+    {
+        return fail("reference-moving-hit-runtime-miss");
+    }
+    return 1;
+}
+
+static int run_reference_moving_hit_sweep_test(void)
+{
+    pf_m4_content content;
+    const int32_t total_distance_q16 =
+        melee_distance_hundredths_to_sim_q16(UINT32_C(2740));
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "reference-moving-hit-default-content"))
+    {
+        return 0;
+    }
+    {
+        uint8_t current_count = UINT8_C(0);
+        uint8_t previous_count = UINT8_C(0);
+        uint8_t hurt_count = UINT8_C(0);
+        const pf_m4_reference_hit_sphere *current =
+            pf_m4_falcon_reference_hit_spheres_at_frame(
+                PF_M4_FALCON_DOWN_TILT,
+                UINT16_C(12),
+                &current_count);
+        const pf_m4_reference_hit_sphere *previous =
+            pf_m4_falcon_reference_hit_spheres_at_frame(
+                PF_M4_FALCON_DOWN_TILT,
+                UINT16_C(11),
+                &previous_count);
+        const pf_m4_reference_hurt_capsule *hurts =
+            pf_m4_falcon_reference_hurt_capsules_at_frame(
+                PF_M4_FALCON_GRAB,
+                UINT16_C(12),
+                &hurt_count);
+        uint8_t sphere_index;
+        int current_hit = 0;
+        int swept_hit = 0;
+
+        if (current == NULL || previous == NULL || hurts == NULL)
+        {
+            return fail("reference-moving-hit-geometry");
+        }
+        for (sphere_index = UINT8_C(0);
+             sphere_index < current_count;
+             ++sphere_index)
+        {
+            uint8_t capsule_index;
+            const pf_m4_reference_hit_sphere *prior =
+                &current[sphere_index];
+            uint8_t previous_index;
+
+            for (previous_index = UINT8_C(0);
+                 previous_index < previous_count;
+                 ++previous_index)
+            {
+                if (current[sphere_index].collision_state == UINT8_C(3) &&
+                    previous[previous_index].hitbox_id ==
+                        current[sphere_index].hitbox_id)
+                {
+                    prior = &previous[previous_index];
+                    break;
+                }
+            }
+            for (capsule_index = UINT8_C(0);
+                 capsule_index < hurt_count;
+                 ++capsule_index)
+            {
+                const pf_m4_collision_capsule3_q16 hurt = {
+                    total_distance_q16 -
+                        hurts[capsule_index].endpoint_a_x_q16,
+                    hurts[capsule_index].endpoint_a_y_q16,
+                    -hurts[capsule_index].endpoint_a_z_q16,
+                    total_distance_q16 -
+                        hurts[capsule_index].endpoint_b_x_q16,
+                    hurts[capsule_index].endpoint_b_y_q16,
+                    -hurts[capsule_index].endpoint_b_z_q16,
+                    hurts[capsule_index].radius_q16};
+                const pf_m4_collision_capsule3_q16 current_hitbox = {
+                    current[sphere_index].offset_x_q16,
+                    current[sphere_index].offset_y_q16,
+                    current[sphere_index].offset_z_q16,
+                    current[sphere_index].offset_x_q16,
+                    current[sphere_index].offset_y_q16,
+                    current[sphere_index].offset_z_q16,
+                    current[sphere_index].radius_q16};
+                const pf_m4_collision_capsule3_q16 swept_hitbox = {
+                    prior->offset_x_q16,
+                    prior->offset_y_q16,
+                    prior->offset_z_q16,
+                    current[sphere_index].offset_x_q16,
+                    current[sphere_index].offset_y_q16,
+                    current[sphere_index].offset_z_q16,
+                    current[sphere_index].radius_q16};
+
+                current_hit |=
+                    pf_m4_collision_capsule_capsule_overlap_q16(
+                        &current_hitbox,
+                        &hurt);
+                swept_hit |=
+                    pf_m4_collision_capsule_capsule_overlap_q16(
+                        &swept_hitbox,
+                        &hurt);
+            }
+        }
+        if (current_hit != 0 || swept_hit == 0)
+        {
+            return fail("reference-moving-hit-discriminator");
+        }
+    }
+    return run_reference_moving_hit_sweep_runtime_case(
+               UINT32_C(2740),
+               1) &&
+           run_reference_moving_hit_sweep_runtime_case(
+               UINT32_C(2830),
                0);
 }
 
@@ -21937,6 +22150,7 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_NEUTRAL_AERIAL,
             UINT16_C(20));
     uint8_t jab_sphere_count = UINT8_C(0);
+    uint8_t jab_continuing_sphere_count = UINT8_C(0);
     uint8_t jab2_sphere_count = UINT8_C(0);
     uint8_t up_smash_sphere_count = UINT8_C(0);
     uint8_t grab_sphere_count = UINT8_C(0);
@@ -21959,6 +22173,11 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_JAB1,
             UINT16_C(3),
             &jab_sphere_count);
+    const pf_m4_reference_hit_sphere *jab_continuing_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_JAB1,
+            UINT16_C(4),
+            &jab_continuing_sphere_count);
     const pf_m4_reference_hit_sphere *jab2_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_JAB2,
@@ -22128,6 +22347,69 @@ static int run_falcon_reference_table_test(void)
                 &capsule))
         {
             return fail("falcon-reference-z-collision-control");
+        }
+    }
+    {
+        const pf_m4_collision_capsule3_q16 moving_hit = {
+            -INT64_C(2) * INT64_C(65536),
+            INT64_C(0),
+            INT64_C(0),
+            INT64_C(2) * INT64_C(65536),
+            INT64_C(0),
+            INT64_C(0),
+            INT64_C(16384)};
+        pf_m4_collision_capsule3_q16 crossing_hurt = {
+            INT64_C(0),
+            -INT64_C(1) * INT64_C(65536),
+            INT64_C(0),
+            INT64_C(0),
+            INT64_C(1) * INT64_C(65536),
+            INT64_C(0),
+            INT64_C(16384)};
+        const pf_m4_collision_sphere3_q16 current_sphere = {
+            INT64_C(2) * INT64_C(65536),
+            INT64_C(0),
+            INT64_C(0),
+            INT64_C(16384)};
+
+        if (pf_m4_collision_sphere_capsule_overlap_q16(
+                &current_sphere,
+                &crossing_hurt) ||
+            !pf_m4_collision_capsule_capsule_overlap_q16(
+                &moving_hit,
+                &crossing_hurt))
+        {
+            return fail("falcon-reference-moving-hit-sweep");
+        }
+        crossing_hurt.endpoint_a_z_q16 = INT64_C(65536);
+        crossing_hurt.endpoint_b_z_q16 = INT64_C(65536);
+        if (pf_m4_collision_capsule_capsule_overlap_q16(
+                &moving_hit,
+                &crossing_hurt))
+        {
+            return fail("falcon-reference-moving-hit-sweep-z-miss");
+        }
+        crossing_hurt.endpoint_a_x_q16 =
+            -INT64_C(1) * INT64_C(65536);
+        crossing_hurt.endpoint_b_x_q16 =
+            INT64_C(1) * INT64_C(65536);
+        crossing_hurt.endpoint_a_y_q16 = INT64_C(24576);
+        crossing_hurt.endpoint_b_y_q16 = INT64_C(24576);
+        crossing_hurt.endpoint_a_z_q16 = INT64_C(0);
+        crossing_hurt.endpoint_b_z_q16 = INT64_C(0);
+        if (!pf_m4_collision_capsule_capsule_overlap_q16(
+                &moving_hit,
+                &crossing_hurt))
+        {
+            return fail("falcon-reference-moving-hit-parallel");
+        }
+        crossing_hurt.endpoint_a_y_q16 = INT64_C(49152);
+        crossing_hurt.endpoint_b_y_q16 = INT64_C(49152);
+        if (pf_m4_collision_capsule_capsule_overlap_q16(
+                &moving_hit,
+                &crossing_hurt))
+        {
+            return fail("falcon-reference-moving-hit-parallel-miss");
         }
     }
 
@@ -22526,6 +22808,10 @@ static int run_falcon_reference_table_test(void)
         jab_spheres[0].effect_index != UINT8_C(0) ||
         jab_spheres[0].hitbox_id != UINT8_C(0) ||
         jab_spheres[0].group_id != UINT8_C(0) ||
+        jab_spheres[0].collision_state != UINT8_C(2) ||
+        jab_continuing_spheres == NULL ||
+        jab_continuing_sphere_count != UINT8_C(3) ||
+        jab_continuing_spheres[0].collision_state != UINT8_C(3) ||
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(2),
@@ -22758,10 +23044,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x6a) ||
-        geometry_sha256[1] != UINT8_C(0x62) ||
-        geometry_sha256[30] != UINT8_C(0x7f) ||
-        geometry_sha256[31] != UINT8_C(0xce) ||
+        geometry_sha256[0] != UINT8_C(0xd2) ||
+        geometry_sha256[1] != UINT8_C(0x2a) ||
+        geometry_sha256[30] != UINT8_C(0xa9) ||
+        geometry_sha256[31] != UINT8_C(0x2b) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -24022,6 +24308,7 @@ int main(void)
             &shield_poke_content,
             &shield_poke_view) ||
         !run_reference_shield_boundary_test() ||
+        !run_reference_moving_hit_sweep_test() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

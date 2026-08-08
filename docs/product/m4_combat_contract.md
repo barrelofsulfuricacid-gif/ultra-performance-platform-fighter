@@ -833,6 +833,13 @@ spatial metric; only the shield-joint displacement is converted back from the
 project's independent world-Y scale. Health, analog density, facing reflection,
 and tilt therefore cannot drift between gameplay and visualization.
 
+An imported state-2 sphere is tested at its current center. A state-3 sphere
+forms a moving capsule from the prior tick's same-ID transformed center to its
+current center, matching `ftHit.x58 -> ftHit.x4C`. The same allocation-free 3D
+capsule-to-capsule helper intersects animated hurt capsules and the shield
+volume; it retains source Z and reconstructs history from the existing prior
+world state, so rollback state does not grow.
+
 Physical attacks, thrown items, and projectiles test the shield volume and the
 hurtbox independently. Shield collision wins wherever both overlap. If an
 attack overlaps only an exposed part of the hurtbox, it is an ordinary hit and

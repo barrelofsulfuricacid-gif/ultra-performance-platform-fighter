@@ -3863,3 +3863,65 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. The sampled route closes double-jump aerial IASA, not
   the shared item throw/pickup and tether candidates, moving hit-capsule sweep,
   common-state hurt poses, or the exhaustive equivalence obligation.
+
+## 2026-08-07 Falcon moving-hit capsule qualification
+
+- Pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7`
+  establishes that `ftHit.x58` is the prior transformed center and `x4C` is
+  the current center. `lbColl_80006E58` intersects that moving hit capsule with
+  the current hurt or shield capsule; its source file SHA-256 is
+  `fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb`.
+- The geometry importer now retains live collision state 2/3 independently
+  from effect `groupId`, rejects new spheres whose previous/current centers
+  differ, and requires continuing spheres to preserve the last temporal
+  same-ID center. The last duplicate hitlag row supplies the next temporal
+  predecessor while the first equivalent row remains canonical generated
+  geometry. The canonical geometry digest is
+  `d22af093cb93df154a9fd992294e50b2233d282d62f0b38aae9ef9d750b1a92b`;
+  pinned regeneration byte-matches the tracked include at SHA-256
+  `5e622abf609a32ec4d15eb2f0654f4f923e037d0a8df66b97874c5b935a27c55`.
+- One shared C17 Q16.16 capsule-to-capsule closest-point predicate now
+  serves attacks, grabs, and shields. It broad-phase rejects separated axes,
+  specializes degenerate segments, and reduces the five dot products to the
+  source float's 23-bit precision before the determinant so every intermediate
+  remains portable `int64_t`. Runtime reconstructs continuation from the prior
+  world state and same hitbox ID, adding no allocation or rollback bytes.
+- A 274-frame Slippi Dolphin 3.5.1 capture at SHA-256
+  `d8599ecc80efc567d579d9c3df9c10c70f89909dc38358ad29d602ca6ed3f4ea`
+  uses Falcon down tilt frame 12 against Falcon grab. At 27.4 Melee units the
+  current sphere misses by 0.451734762 units, the moving capsule overlaps by
+  0.692950483, and the target takes 12%. At 28.3 units both predicates miss
+  with -1.178471136/-0.182688971 margins and damage remains unchanged. The
+  production Q16.16 integration reproduces the positive and negative decisions
+  at will.
+- The deterministic eight-match verifier is stable across repeated Windows
+  and WSL runs at digest `766fb20cbc77ea08`, with unchanged 27 combat, two
+  shield, eight KO, six projectile, eight rollback, and eight replay outcomes.
+  Native and Wasm replay output remains byte-identical at corpus/final/event
+  SHA-256 values
+  `af5b1bb66a475a4c28e93f15e12355d92c14ced6e08ecdad7bf25dbac82612f7`,
+  `78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+- The personal `ssbm-character-importer` skill now records executable hitbox
+  lifetime, duplicate-row and post-hit sampling phases, rollback-free history,
+  portable fixed-point constraints, and the required sweep-only positive plus
+  nearby miss route. Its shared offline 3D segment-margin routine, Python
+  compilation, collision smoke, and skill validation pass.
+- A paired WSL Release diagnostic used the same three scenario binaries with
+  15 repetitions and 50 ms samples. Current/b404807 median rates were
+  1,197,499/1,023,615 representative-1v1 ticks/s,
+  841,991/890,948 representative-2v2 ticks/s, and
+  856,468/624,945 maximum-combat-entity ticks/s. The 2v2 delta is inside the
+  run's high MAD, while the other two medians improve. The history database had
+  no compatible baseline (`invalid_comparisons=10`), so this is diagnostic
+  evidence only and not a regression or profiling qualification.
+- Native Windows MinGW passes 20/20 configured tests; WSL Release passes 22/22
+  and WSL ASan/UBSan passes 15/15. The rebuilt Emscripten playtest reports every
+  startup probe passing, the in-app Browser starts a live match with a clean
+  warning/error console, and the browser-adapter verifier passes. Native and
+  Wasm replay corpus output is byte-identical. WSL's optional headless-Chrome
+  helper was unavailable because Chromium is not installed; rendered Browser
+  QA supplied the web check instead.
+- M4 remains unfinished. This closes the executable moving-hit sweep, not
+  remaining common-action hurt poses, aerial-IASA item/tether branches,
+  ledge/tech/damage semantics, or the exhaustive Falcon equivalence obligation.
