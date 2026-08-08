@@ -482,6 +482,12 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
         case PF_M4_ACTION_RUN_BRAKE:
             track_index = PF_M4_FALCON_COMMON_HURT_RUN_BRAKE;
             break;
+        case PF_M4_ACTION_CROUCH_START:
+            track_index = PF_M4_FALCON_COMMON_HURT_CROUCH_START;
+            break;
+        case PF_M4_ACTION_CROUCH_END:
+            track_index = PF_M4_FALCON_COMMON_HURT_CROUCH_END;
+            break;
         default:
             if (out_count != NULL)
             {

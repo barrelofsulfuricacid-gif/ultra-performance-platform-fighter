@@ -1160,6 +1160,18 @@ def input_trace(
         repeat("common_hurt_dash_place_settle", 10)
         repeat("common_hurt_dash_hold", 18, main_x=1.0)
         repeat("common_hurt_dash_recover", 45)
+        trace.append(
+            command(
+                "common_hurt_crouch_place",
+                fighter_x_override=-20.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=60.0,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("common_hurt_crouch_place_settle", 10)
+        repeat("common_hurt_crouch_hold", 12, main_y=0.0)
+        repeat("common_hurt_crouch_release", 20)
         for route, distance in (("hit", 31.0), ("miss", 31.5)):
             prefix = f"common_hurt_dash_collision_{route}"
             trace.append(
@@ -1180,6 +1192,27 @@ def input_trace(
                 )
             )
             repeat(f"{prefix}_observe", 12, opponent_main_x=0.0)
+            repeat(f"{prefix}_recover", 40)
+        for route, distance in (("hit", 17.7), ("miss", 17.84)):
+            prefix = f"common_hurt_crouch_collision_{route}"
+            trace.append(
+                command(
+                    f"{prefix}_place",
+                    fighter_x_override=0.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=distance,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_settle", 10)
+            trace.append(
+                command(
+                    f"{prefix}_jab_vs_crouch",
+                    attack=True,
+                    opponent_main_y=0.0,
+                )
+            )
+            repeat(f"{prefix}_observe", 12, opponent_main_y=0.0)
             repeat(f"{prefix}_recover", 40)
         return trace
 

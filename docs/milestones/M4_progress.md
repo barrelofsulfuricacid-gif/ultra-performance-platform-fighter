@@ -3976,3 +3976,43 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. Common hurt poses beyond Initial Dash/RunBrake,
   aerial-IASA item/tether branches, and wider ledge/tech/damage behavior remain
   in the exhaustive Falcon equivalence obligation.
+
+## 2026-08-08 Falcon CrouchStart and CrouchEnd hurt poses
+
+- The common-pose oracle now contains 433 Slippi Dolphin 3.5.1 rows at SHA-256
+  `aa64e6261e50130a70c6714e9b3177d44733a6c003de12cdff1581fb557380b0`.
+  It retains the qualified Initial Dash and RunBrake tracks and adds every
+  displayed CrouchStart frame 1-7 and CrouchEnd frame 1-10. Each frame exposes
+  all 11 live Falcon capsules, and the CrouchStart frame-3 port-2 pose matches
+  the independently captured port-1 pose after facing-normalized Q16.16
+  canonicalization.
+- The same-input discriminator places Jab 1 against CrouchStart frame 3.
+  Dolphin hits at 17.7 Melee units with a reconstructed source-float margin of
+  +0.131910442 and misses at 17.84 with -0.005252888. The old generic body
+  rectangle falsely reports +0.596595764 at the miss distance, so the runtime
+  negative case specifically exercises the imported crouch capsules. The
+  verifier hash-pins `lbcollision.c`, `ftCo_Dash.c`, and `ftCo_Squat.c`.
+- Generation appends two tracks to the existing compact common-pose index and
+  reuses the same deduplicated capsule pool as every attack, special, Dash, and
+  RunBrake pose. Public action values map once at the accessor boundary; there
+  is no allocation, runtime float, duplicated capsule representation, or new
+  snapshot state. The canonical geometry digest is
+  `6d9946a838933cf47184f1d782dc84d0db1e384a8f1270a64aadc775a0d0c552`,
+  and two pinned regenerations produce byte-identical include SHA-256
+  `430dc17b4ac5ff57185ba6e740bca38abe64fd82c12e9d623e9b3c0687acba01`.
+- The personal `ssbm-character-importer` skill now records a new source-backed
+  guardrail: looping common animations cannot be flattened from a FigaTree
+  endpoint. Falcon Run was observed at displayed frames `1, 2, 2` while its
+  velocity settled, so it needs exact phase/rate reconstruction; bounded Dash,
+  RunBrake, CrouchStart, and CrouchEnd tracks remain safe after their tick phase
+  is proven. Skill validation and Python compilation pass.
+- Native Windows passes 20/20 tests, WSL Release passes 22/22, and WSL
+  ASan/UBSan passes 15/15. Repeated Windows and WSL verifier runs are stable at
+  digest `31415c22fe408115`. Native and Wasm replay corpus output remains byte-
+  identical; the rebuilt Emscripten client passes the exact Chrome smoke and
+  browser-adapter verifier. The 13-scenario profiler workload passes, and a
+  separate unsampled 64-environment run reports 1,738,207 single-world and
+  1,622,754 batched ticks per second with exact state identity.
+- M4 remains unfinished. Common hurt poses beyond the four qualified bounded
+  tracks, aerial-IASA item/tether branches, and wider ledge/tech/damage behavior
+  remain in the exhaustive Falcon equivalence obligation.

@@ -532,7 +532,8 @@ new character-specific implementation.
 Hash-pinned Dolphin captures provide transformed hit geometry and complete-
 frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
 dash grab, all 17 Falcon special subactions, and the complete 15-frame Initial
-Dash plus 28-frame RunBrake common tracks. Every damaging/grabbing
+Dash, 28-frame RunBrake, 7-frame CrouchStart, and 10-frame CrouchEnd common
+tracks. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
 are imported separately as the source's six search spheres rather than being
 misclassified as attacks. The imported special timing, attributes, and
@@ -603,12 +604,15 @@ complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
-Initial Dash and RunBrake remain explicit M4 gaps and must be extracted or
-qualified rather than approximated with invented frame data. Common poses use
+Initial Dash, RunBrake, CrouchStart, and CrouchEnd remain explicit M4 gaps and
+must be extracted or qualified rather than approximated with invented frame
+data. Common poses use
 one compact generated state index and reuse the action-pose capsule pool; public
 action values are mapped once and no snapshot state or allocation is added. A
 pinned 31.0-unit hit/31.5-unit miss route proves the Dash track against Dolphin
-and rejects the old generic rectangle. The executable's previous-to-current
+and rejects the old generic rectangle. A second 17.7-unit hit/17.84-unit miss
+route proves CrouchStart frame 3 and rejects the rectangle's false positive.
+The executable's previous-to-current
 moving hit-capsule sweep is production-routed and Dolphin-qualified: imported
 collision state distinguishes creation from continuation, continuation finds
 the prior same-ID sphere without enlarging rollback state, and one shared

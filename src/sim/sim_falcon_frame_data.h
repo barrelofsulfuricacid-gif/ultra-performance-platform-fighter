@@ -111,7 +111,9 @@ typedef enum pf_m4_falcon_common_hurt_index
 {
     PF_M4_FALCON_COMMON_HURT_INITIAL_DASH = 0,
     PF_M4_FALCON_COMMON_HURT_RUN_BRAKE = 1,
-    PF_M4_FALCON_COMMON_HURT_COUNT = 2
+    PF_M4_FALCON_COMMON_HURT_CROUCH_START = 2,
+    PF_M4_FALCON_COMMON_HURT_CROUCH_END = 3,
+    PF_M4_FALCON_COMMON_HURT_COUNT = 4
 } pf_m4_falcon_common_hurt_index;
 
 typedef struct pf_m4_falcon_submotion_data

@@ -841,12 +841,13 @@ volume; it retains source Z and reconstructs history from the existing prior
 world state, so rollback state does not grow.
 
 Reference hurt geometry is selected from immutable generated spans. Standing
-uses its phase-pinned pose; Initial Dash frames 1-15 and RunBrake frames 1-28
-use complete executable-captured tracks; routed attacks, grabs, throws, and
-specials use their action-frame tracks. Only unqualified common actions fall
-back to the authored body rectangle. Public action values map once to a compact
-generated common-pose index, and all tracks reuse one deduplicated capsule pool,
-so this adds neither allocation nor canonical rollback state.
+uses its phase-pinned pose; Initial Dash frames 1-15, RunBrake frames 1-28,
+CrouchStart frames 1-7, and CrouchEnd frames 1-10 use complete executable-
+captured tracks; routed attacks, grabs, throws, and specials use their action-
+frame tracks. Only unqualified common actions fall back to the authored body
+rectangle. Public action values map once to a compact generated common-pose
+index, and all tracks reuse one deduplicated capsule pool, so this adds neither
+allocation nor canonical rollback state.
 
 Physical attacks, thrown items, and projectiles test the shield volume and the
 hurtbox independently. Shield collision wins wherever both overlap. If an
