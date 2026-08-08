@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-hurt-geometry",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_cases": [
+    {
+      "id": "dash-poses",
+      "start_label": "common_hurt_dash_place"
+    },
+    {
+      "id": "crouch-kneebend-landing-poses",
+      "start_label": "common_hurt_crouch_place"
+    },
+    {
+      "id": "spot-dodge-poses",
+      "start_label": "common_hurt_spot_dodge_shield"
+    },
+    {
+      "id": "forward-roll-poses",
+      "start_label": "common_hurt_roll_forward_place"
+    },
+    {
+      "id": "backward-roll-poses",
+      "start_label": "common_hurt_roll_backward_place"
+    },
+    {
+      "id": "air-dodge-fall-special-landing-special-poses",
+      "start_label": "common_hurt_air_dodge_place"
+    },
+    {
+      "id": "dash-live-collision-hit",
+      "start_label": "common_hurt_dash_collision_hit_place"
+    },
+    {
+      "id": "dash-live-collision-miss",
+      "start_label": "common_hurt_dash_collision_miss_place"
+    }
+  ],
+  "pose_tracks": [
+    {
+      "action": "DASHING",
+      "frames": { "first": 1, "last": 15, "step": 1 }
+    },
+    {
+      "action": "RUN_BRAKE",
+      "frames": { "first": 1, "last": 28, "step": 1 }
+    },
+    {
+      "action": "CROUCH_START",
+      "frames": { "first": 1, "last": 7, "step": 1 }
+    },
+    {
+      "action": "CROUCH_END",
+      "frames": { "first": 1, "last": 10, "step": 1 }
+    },
+    {
+      "action": "KNEE_BEND",
+      "frames": { "first": 1, "last": 4, "step": 1 }
+    },
+    {
+      "action": "LANDING",
+      "frames": { "first": 1, "last": 30, "step": 1 }
+    },
+    {
+      "action": "SPOTDODGE",
+      "frames": { "first": 1, "last": 32, "step": 1 }
+    },
+    {
+      "action": "ROLL_FORWARD",
+      "frames": { "first": 1, "last": 31, "step": 1 }
+    },
+    {
+      "action": "ROLL_BACKWARD",
+      "frames": { "first": 1, "last": 31, "step": 1 }
+    },
+    {
+      "action": "AIRDODGE",
+      "frames": { "first": 1, "last": 49, "step": 1 }
+    },
+    {
+      "action": "DEAD_FALL",
+      "frames": { "first": 1, "last": 8, "step": 1 },
+      "looping": true
+    },
+    {
+      "action": "LANDING_SPECIAL",
+      "frames": { "first": 1, "last": 28, "step": 3 }
+    }
+  ],
+  "collision_qualification": {
+    "source": "src/melee/lb/lbcollision.c",
+    "offline_pose_actions": [
+      "DASHING",
+      "RUN_BRAKE",
+      "CROUCH_START",
+      "CROUCH_END",
+      "KNEE_BEND",
+      "LANDING",
+      "SPOTDODGE",
+      "ROLL_FORWARD",
+      "ROLL_BACKWARD",
+      "AIRDODGE",
+      "DEAD_FALL",
+      "LANDING_SPECIAL"
+    ],
+    "live_discriminators": [
+      {
+        "action": "DASHING",
+        "frame": 5,
+        "routes": ["hit", "miss"]
+      }
+    ]
+  }
+}

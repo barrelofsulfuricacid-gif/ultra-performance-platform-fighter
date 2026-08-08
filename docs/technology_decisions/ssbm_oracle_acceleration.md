@@ -32,17 +32,20 @@ The selected prior art is:
   replacement for the pinned Slippi 3.5.1 oracle without a separate
   qualification.
 
-A project-authored Slippi 3.5.1 NoGUI/unthrottled build was prototyped before
-the broader sweep. WSL lacked direct render-device access, its software-OpenGL
-601-row run took 38.15 seconds, and maintaining that fork duplicated ExiAI.
-It is rejected as the default. A native binary patch is likewise rejected in
-favor of the published, source-available release.
+A project-authored Slippi 3.5.1 NoGUI/software-OpenGL build was prototyped
+before the broader sweep. Its 601-row run took 38.15 seconds and was rejected.
+Profiling the selected ExiAI path later proved that cold menu setup and
+one-frame Python/DME lockstep still dominated the edit loop. ExiAI already
+contains `SlippiSavestate`, the game-memory rollback primitive used by its
+online path, so the retained native change is a small patch on pinned revision
+`bf1aec4de4856eab412996137287f447daa8ae17`, not a second emulator design.
 
-The sweep found no supported ExiAI/libmelee save-state experiment protocol.
-The maintained reusable mechanisms are fast-forward, the long-lived ENet
-helper, and instant match restart. A custom persistent/save-state layer should
-be considered only if profiling shows meaningful time remains after traces
-with the same configuration are batched.
+The sweep found no maintained external experiment server that supplies this
+checkpoint protocol. `tools/ssbm_exiai_checkpoint.patch` adds an atomic,
+process-owned save/load control channel to NoGUI. It preserves the existing
+ENet observer, services requests only while the game is blocked for EXI input,
+and rebases the restored checkpoint after every load so monotonic Slippi state
+does not outlive the short rollback window for which the primitive was built.
 
 ## Reproducible setup
 
@@ -57,17 +60,29 @@ creates an ignored Python environment, pins `melee==0.47.2` and
 `dolphin-memory-engine==1.3.1`, and validates the launcher identity. It never
 downloads, copies, or modifies the game image.
 
+The warm checkpoint runner additionally requires a source build:
+
+```sh
+tools/bootstrap_ssbm_checkpoint_oracle.sh
+```
+
+That script verifies the published artifact and Python packages as above,
+checks out the pinned ExiAI revision, applies the repository-owned patch, and
+builds only the NoGUI target. Its output remains ignored under
+`build/oracle-toolchain/exiai-checkpoint/`.
+
 An accelerated capture uses the generated paths:
 
 ```sh
 build/oracle-toolchain/exiai-python/bin/python \
   tools/capture_ssbm_movement.py \
-  --dolphin build/oracle-toolchain/exiai-0.2.0/squashfs-root/AppRun \
+  --dolphin build/oracle-toolchain/exiai-checkpoint/Binaries/dolphin-emu \
   --oracle-release-artifact \
     build/oracle-toolchain/exiai-0.2.0/Slippi_Online-x86_64-ExiAI.AppImage \
   --iso /owner/path/to/GALE01.iso \
   --output build/oracle/capture-exiai.json \
-  --common-hurt-geometry-only --memory-probe-hitbox --oracle-exiai
+  --common-hurt-geometry-only --memory-probe-hitbox --oracle-exiai \
+  --oracle-checkpoint-pack
 ```
 
 For acceleration qualification, run the same extracted launcher and Python
@@ -142,10 +157,50 @@ short cases with checkpoint restoration between them. Direct fighter state and
 embedded hurtbox records are read as contiguous snapshots, unique bone matrices
 are coalesced, and only fields declared by the case manifest are serialized.
 Stored authoritative traces cover the ordinary no-Dolphin edit loop. The
-post-build targets are at most 2 seconds for that local suite, 3 seconds for a
-warm changed-domain live run, and 10 seconds for the complete warm Falcon pack.
-A single state-leaking mega-scenario is deliberately rejected: it obscures
-failures and permits earlier state to contaminate later qualifications.
+post-build targets remain at most 2 seconds for that local suite, 3 seconds for
+a warm changed-domain live run, and 10 seconds for the complete warm Falcon
+pack. A single state-leaking mega-scenario is deliberately rejected: it
+obscures failures and permits earlier state to contaminate later
+qualifications.
+
+The first complete checkpoint pack reduces the common-hurt route from 4,198 to
+417 rows and from 26 repeated setup/collision cases to eight isolated cases.
+It still captures all 255 imported action/frame poses across Initial Dash,
+RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge, both rolls, AirDodge,
+FallSpecial, LandingFallSpecial, and ordinary Landing. One live Dash hit/miss
+pair qualifies the end-to-end collision integration. Repeating a long physical
+route for every other pose was removed as duplicate evidence: their boundaries
+are evaluated from the exhaustive captured capsules and the hash-pinned decomp
+collision routine.
+
+Two independent runs produced the same canonical pose digest,
+`3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`,
+and identical live margins: `+0.289212401` for the hit and `-0.156798480` for
+the miss. Compared with the accepted 4,198-row artifact, all 255 poses pass the
+documented Q16.16 comparison; 24 poses contain 30 component differences and
+every difference is exactly one Q16.16 least-significant bit. Repeated measured
+warm runs remain between 4.01 and 4.90 seconds. Lifecycle instrumentation
+showed that the apparent 18-21-second cold invocation was not primarily
+emulation: about nine seconds were spent re-hashing the unchanged 1.4-GB disc
+image. Oracle-input digests are now cached atomically against path, size,
+mtime, and ctime; any change forces a complete re-hash. After the one-time
+qualification, an unchanged capture lifecycle measures 7.27-8.13 seconds
+including process launch, menus, capture, and cleanup.
+
+Linux ExiAI observations use Dolphin's existing read-only MEM1 shared-memory
+mapping behind the same memory-engine interface, eliminating per-field
+`process_vm_readv` calls without duplicating capture logic. The NoGUI control
+poll is 5 ms instead of the upstream 100 ms; eight checkpoint acknowledgements
+take about 0.075 seconds in aggregate. A separate reconnect experiment was
+rejected: controller pipes reconnect, but a new Slippi client resumes with a
+desynchronized event stream and then blocks. Persistence therefore stays
+inside one connected runner/packed invocation rather than relying on unsafe
+cross-process reattachment.
+
+Wall-clock data is emitted on stderr and is not part of authoritative JSON.
+Idle animation phase can vary between otherwise equivalent boots, so the
+verifier pins the ordered action/frame/Q16.16 payload and explicit physical
+discriminator instead of hashing incidental idle rows.
 
 ## Geometry-sampling limitation
 

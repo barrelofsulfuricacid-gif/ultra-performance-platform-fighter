@@ -4091,6 +4091,49 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 executable-oracle checkpoint pack
+
+- A fresh prior-art sweep covered upstream Dolphin batch/null/NoGUI support,
+  Dolphin Memory Engine, libmelee, and ExiAI/Slippi rollback support. The
+  selected base remains ExiAI revision
+  `bf1aec4de4856eab412996137287f447daa8ae17`; its existing
+  `SlippiSavestate` avoids disconnecting the live ENet observer.
+- `tools/ssbm_exiai_checkpoint.patch` adds a small atomic file-control channel
+  to the pinned NoGUI runner. Loads occur while Melee is blocked at the EXI
+  input boundary, preserve the game-side protocol/interrupt fields, and
+  immediately rebase the restored checkpoint. The rebase is required because
+  ExiAI's primitive was designed for a short rollback window, not unlimited
+  reuse of one stale host/game boundary. The reproducible WSL build is
+  `tools/bootstrap_ssbm_checkpoint_oracle.sh`.
+- The DME reader now resolves a fighter with two contiguous reads, snapshots
+  each complete fighter once, and reads each unique bone matrix once. Linux
+  ExiAI capture exposes the same interface over Dolphin's read-only MEM1
+  shared mapping, avoiding per-field `process_vm_readv` calls. A
+  329-row comparison against the accepted defense trace is exact after the
+  already-documented idle-pose normalization.
+- The common-hurt pack is reduced from 4,198 rows/26 repeated cases to 417
+  rows/eight checkpoint-isolated cases. It retains all 255 imported common
+  action poses plus one live Dash collision hit/miss integration pair. The
+  remaining per-pose boundaries use the same exhaustive capsules and pinned
+  decomp collision routine offline instead of duplicating long Dolphin routes.
+- Two independent runs have identical canonical pose SHA-256
+  `3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1`
+  and identical Dash margins `+0.289212401/-0.156798480`. Against the accepted
+  4,198-row artifact, every pose is Q16.16-equivalent; only 30 components in
+  24 poses differ, each by exactly one Q16.16 least-significant bit. Repeated
+  warm pack times are 4.01-4.90 seconds, down from 37.6 seconds. Lifecycle
+  timing isolated a further nine-second repeated cost to hashing the unchanged
+  1.4-GB disc. An atomic stat-keyed digest cache preserves the pinned digest,
+  invalidates on any path/size/mtime/ctime change, and reduces unchanged full
+  capture lifecycle time to 7.27-8.13 seconds. The patched NoGUI runner polls
+  checkpoint requests every 5 ms; all eight acknowledgements take about 0.075
+  seconds. A cross-process Slippi reconnect prototype was rejected after its
+  event stream desynchronized and blocked, so persistence remains one live
+  connection per packed invocation.
+- The reusable `ssbm-character-importer` skill now records the checkpoint,
+  rebasing, coalesced-read, canonical-digest, and non-duplicated discriminator
+  rules and validates successfully. M4 remains unfinished.
+
 ## 2026-08-08 Falcon ordinary Landing hurt poses
 
 - The mandatory prior-art sweep checked the existing common-pose importer and

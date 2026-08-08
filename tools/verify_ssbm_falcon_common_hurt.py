@@ -21,6 +21,9 @@ from ssbm_collision import (
 EXPECTED_CAPTURE_SHA256 = (
     "8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc"
 )
+EXPECTED_CHECKPOINT_POSE_SHA256 = (
+    "3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1"
+)
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
 )
@@ -385,10 +388,11 @@ def main() -> int:
     parser.add_argument("air_escape_source", type=Path)
     parser.add_argument("fall_special_source", type=Path)
     parser.add_argument("landing_source", type=Path)
+    parser.add_argument("--checkpoint-pack", action="store_true")
     args = parser.parse_args()
 
     capture_digest = sha256(args.capture)
-    if capture_digest != EXPECTED_CAPTURE_SHA256:
+    if not args.checkpoint_pack and capture_digest != EXPECTED_CAPTURE_SHA256:
         raise SystemExit(
             f"unexpected common-hurt capture SHA-256: {capture_digest}"
         )
@@ -419,6 +423,16 @@ def main() -> int:
     probe = dict(capture.get("hitbox_memory_probe", {}))
     disc = dict(capture.get("disc", {}))
     execution = dict(capture.get("oracle_execution", {}))
+    checkpoint_pack = dict(capture.get("checkpoint_pack", {}))
+    expected_coverage_manifest = json.loads(
+        Path(__file__)
+        .with_name("ssbm_falcon_common_hurt_coverage.json")
+        .read_text(encoding="utf-8")
+    )
+    expected_case_labels = [
+        str(case["start_label"])
+        for case in expected_coverage_manifest["checkpoint_cases"]
+    ]
     if (
         capture.get("schema") != 9
         or capture.get("fighter") != "CPTFALCON"
@@ -434,7 +448,19 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 4198
+        or len(rows) != (417 if args.checkpoint_pack else 4198)
+        or (
+            args.checkpoint_pack
+            and (
+                checkpoint_pack.get("protocol")
+                != "rebased-slippi-state-file-control-v1"
+                or checkpoint_pack.get("case_count") != len(expected_case_labels)
+                or checkpoint_pack.get("case_start_labels")
+                != expected_case_labels
+                or checkpoint_pack.get("coverage_manifest")
+                != expected_coverage_manifest
+            )
+        )
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -567,8 +593,54 @@ def main() -> int:
             "AirDodge invulnerability mismatch: "
             f"{observed_invulnerability} != {list(range(4, 30))}"
         )
+
+    if args.checkpoint_pack:
+        canonical_poses = []
+        for action, action_rows in (
+            ("DASHING", dash_rows),
+            ("RUN_BRAKE", run_brake_rows),
+            ("CROUCH_START", crouch_start_rows),
+            ("CROUCH_END", crouch_end_rows),
+            ("KNEE_BEND", knee_bend_rows),
+            ("SPOTDODGE", spot_dodge_rows),
+            ("ROLL_FORWARD", roll_forward_rows),
+            ("ROLL_BACKWARD", roll_backward_rows),
+            ("AIRDODGE", air_dodge_rows),
+            ("DEAD_FALL", fall_special_rows),
+            ("LANDING_SPECIAL", landing_fall_special_rows),
+            ("LANDING", landing_rows),
+        ):
+            canonical_poses.extend(
+                (
+                    action,
+                    round(float(row["action_frame"])),
+                    canonical_hurt_pose_q16(
+                        dict(row["hitbox_memory"]),
+                        "fighter_hurtboxes",
+                        "fighter_position",
+                        int(row["facing"]),
+                        MELEE_TO_SIM_Q16,
+                    ),
+                )
+                for row in action_rows
+            )
+        pose_digest = hashlib.sha256(
+            json.dumps(
+                canonical_poses,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        if pose_digest != EXPECTED_CHECKPOINT_POSE_SHA256:
+            raise SystemExit(
+                f"unexpected checkpoint pose SHA-256: {pose_digest}"
+            )
     positive, negative = verify_collision_outcome(
-        rows, "dash", 0.0, 2.0, "DAMAGE_HIGH_2"
+        rows,
+        "dash",
+        0.0,
+        2.0,
+        "DAMAGE_HIGH_2",
+        negative_damage=0.0 if args.checkpoint_pack else None,
     )
 
     dash_miss_frame = collision_frame(negative, 5, "DASHING", 5)
@@ -594,6 +666,16 @@ def main() -> int:
             f"miss_margin={dash_miss_margin:.9f} "
             f"generic_margin={dash_generic_margin:.9f}"
         )
+
+    if args.checkpoint_pack:
+        print(
+            "ssbm-common-hurt-checkpoint=pass "
+            f"rows={len(rows)} poses={len(canonical_poses)} "
+            f"dash_hit_margin={dash_hit_margin:.9f} "
+            f"dash_miss_margin={dash_miss_margin:.9f} "
+            f"pose_sha256={pose_digest}"
+        )
+        return 0
 
     crouch_positive, crouch_negative = verify_collision_outcome(
         rows,

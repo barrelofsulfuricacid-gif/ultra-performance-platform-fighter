@@ -14,10 +14,12 @@ import importlib.metadata
 import inspect
 import json
 import math
+import mmap
 import os
 from pathlib import Path
 import shutil
 import socket
+import struct
 import subprocess
 import sys
 import time
@@ -69,6 +71,7 @@ def input_trace(
     shield_collision_only: bool = False,
     moving_hit_sweep_only: bool = False,
     common_hurt_geometry_only: bool = False,
+    checkpoint_isolated: bool = False,
     damage_hit_only: bool = False,
     defense_state_only: bool = False,
     attack_iasa_only: bool = False,
@@ -112,9 +115,11 @@ def input_trace(
         fighter_x_override: float | None = None,
         fighter_x_from_item_offset: float | None = None,
         fighter_y_override: float | None = None,
+        fighter_facing_override: float | None = None,
         opponent_x_override: float | None = None,
         opponent_x_from_item_offset: float | None = None,
         opponent_y_override: float | None = None,
+        opponent_facing_override: float | None = None,
     ) -> dict[str, object]:
         return {
             "label": label,
@@ -139,9 +144,11 @@ def input_trace(
             "fighter_x_override": fighter_x_override,
             "fighter_x_from_item_offset": fighter_x_from_item_offset,
             "fighter_y_override": fighter_y_override,
+            "fighter_facing_override": fighter_facing_override,
             "opponent_x_override": opponent_x_override,
             "opponent_x_from_item_offset": opponent_x_from_item_offset,
             "opponent_y_override": opponent_y_override,
+            "opponent_facing_override": opponent_facing_override,
         }
 
     def repeat(label: str, count: int, **inputs: object) -> None:
@@ -1148,6 +1155,83 @@ def input_trace(
         return trace
 
     if common_hurt_geometry_only:
+        def checkpoint_isolated_common_hurt_trace(
+            source: list[dict[str, object]],
+        ) -> list[dict[str, object]]:
+            """Replace cross-case settling with checkpoint isolation."""
+
+            result: list[dict[str, object]] = []
+            pending_restore = False
+            retained_source_frames = {
+                # These are not cross-case settling: they are the shortest
+                # prefixes that exercise every source animation frame used by
+                # the importer/verifier.
+                "common_hurt_dash_recover": 28,
+                "common_hurt_knee_bend_recover": 79,
+            }
+            retained_counts = dict.fromkeys(retained_source_frames, 0)
+            direct_boundaries = {
+                "common_hurt_dash_place",
+                "common_hurt_crouch_place",
+                "common_hurt_spot_dodge_shield",
+            }
+            positive_facing_opponent_cases = (
+                "common_hurt_spot_dodge_collision_",
+                "common_hurt_roll_forward_collision_",
+                "common_hurt_roll_backward_collision_",
+                "common_hurt_air_dodge_collision_",
+                "common_hurt_fall_special_collision_",
+                "common_hurt_landing_fall_special_collision_",
+                "common_hurt_landing_collision_",
+            )
+            for sample in source:
+                label = str(sample["label"])
+                # The complete action-owned pose tracks already supply every
+                # capsule used by the importer. Keep one live hit/miss pair to
+                # qualify the end-to-end collision integration; the remaining
+                # per-pose boundaries are zero-I/O offline evaluations of the
+                # same captured capsules against the pinned decomp routine.
+                if (
+                    "_collision_" in label
+                    and not label.startswith("common_hurt_dash_collision_")
+                ):
+                    continue
+                if label in retained_source_frames:
+                    if retained_counts[label] < retained_source_frames[label]:
+                        retained_counts[label] += 1
+                        result.append(sample)
+                    continue
+                if label.endswith("_reset_place"):
+                    pending_restore = True
+                    continue
+                if (
+                    label == "common_hurt_dash_settle"
+                    or label.endswith("_reset_place_settle")
+                    or label.endswith("_face_right")
+                    or label.endswith("_face_right_recover")
+                    or label.endswith("_place_settle")
+                    or label.endswith("_settle")
+                    or (
+                        label.endswith("_recover")
+                        and label != "common_hurt_air_dodge_recover"
+                    )
+                ):
+                    continue
+                isolated = sample
+                if (
+                    label.endswith("_place")
+                    and label.startswith(positive_facing_opponent_cases)
+                ):
+                    isolated = {**isolated, "opponent_facing_override": 1.0}
+                direct_boundary = label in direct_boundaries and (
+                    not result or result[-1]["label"] != label
+                )
+                if pending_restore or direct_boundary:
+                    isolated = {**isolated, "restore_before": True}
+                    pending_restore = False
+                result.append(isolated)
+            return result
+
         def reset_common_hurt_route(
             prefix: str,
             opponent_main_x: float = 1.0,
@@ -1664,7 +1748,11 @@ def input_trace(
             )
             repeat(f"{route_prefix}_observe", 8)
             repeat(f"{route_prefix}_recover", 40)
-        return trace
+        return (
+            checkpoint_isolated_common_hurt_trace(trace)
+            if checkpoint_isolated
+            else trace
+        )
 
     if damage_hit_only:
         repeat("damage_hit_settle", 60)
@@ -2611,23 +2699,153 @@ def read_damage_memory_probe(memory_engine: object) -> dict[str, object]:
     }
 
 
+class BigEndianSnapshot:
+    """One contiguous PowerPC memory observation with typed zero-I/O reads."""
+
+    __slots__ = ("base", "data")
+
+    def __init__(self, base: int, data: bytes) -> None:
+        self.base = base
+        self.data = data
+
+    @classmethod
+    def read(
+        cls, memory_engine: object, base: int, size: int
+    ) -> BigEndianSnapshot:
+        return cls(base, bytes(memory_engine.read_bytes(base, size)))
+
+    def offset(self, address: int, size: int) -> int:
+        offset = address - self.base
+        if offset < 0 or offset + size > len(self.data):
+            raise ValueError(
+                "snapshot access outside observed span: "
+                f"base=0x{self.base:08x} size=0x{len(self.data):x} "
+                f"address=0x{address:08x} access_size=0x{size:x}"
+            )
+        return offset
+
+    def u8(self, address: int) -> int:
+        return self.data[self.offset(address, 1)]
+
+    def u32(self, address: int) -> int:
+        return struct.unpack_from(">I", self.data, self.offset(address, 4))[0]
+
+    def f32(self, address: int) -> float:
+        return struct.unpack_from(">f", self.data, self.offset(address, 4))[0]
+
+    def f32_vector(self, address: int, count: int) -> list[float]:
+        return list(
+            struct.unpack_from(
+                f">{count}f",
+                self.data,
+                self.offset(address, 4 * count),
+            )
+        )
+
+    def bytes_at(self, address: int, size: int) -> bytes:
+        offset = self.offset(address, size)
+        return self.data[offset : offset + size]
+
+
+class LinuxDolphinSharedMemory:
+    """Zero-syscall MEM1 reads with writes delegated to the hooked DME."""
+
+    MEM1_BASE = 0x80000000
+    MEM1_SIZE = 0x02000000
+
+    def __init__(self, delegate: object, dolphin_pid: int) -> None:
+        maps = Path(f"/proc/{dolphin_pid}/maps").read_text(encoding="ascii")
+        shared_path = None
+        for line in maps.splitlines():
+            fields = line.split()
+            if len(fields) < 6 or int(fields[2], 16) != 0:
+                continue
+            start, end = (int(value, 16) for value in fields[0].split("-"))
+            mapped_name = next(
+                (
+                    field
+                    for field in fields[5:]
+                    if field.startswith("/dev/shm/dolphin")
+                ),
+                None,
+            )
+            if (
+                end - start == self.MEM1_SIZE
+                and mapped_name is not None
+            ):
+                mapped_path = Path(mapped_name)
+                if "(deleted)" not in fields:
+                    shared_path = mapped_path
+                    break
+                for descriptor in Path(f"/proc/{dolphin_pid}/fd").iterdir():
+                    try:
+                        if os.readlink(descriptor).startswith(str(mapped_path)):
+                            shared_path = descriptor
+                            break
+                    except OSError:
+                        continue
+                break
+        if shared_path is None:
+            candidates = [
+                line for line in maps.splitlines() if "/dev/shm/dolphin" in line
+            ]
+            raise RuntimeError(
+                "Dolphin MEM1 shared-memory mapping was not found: "
+                + " | ".join(candidates)
+            )
+        self._delegate = delegate
+        self._source = shared_path.open("rb")
+        self._memory = mmap.mmap(
+            self._source.fileno(),
+            self.MEM1_SIZE,
+            access=mmap.ACCESS_READ,
+        )
+
+    def read_bytes(self, address: int, size: int) -> bytes:
+        offset = address - self.MEM1_BASE
+        if offset < 0 or offset + size > self.MEM1_SIZE:
+            return bytes(self._delegate.read_bytes(address, size))
+        return self._memory[offset : offset + size]
+
+    def read_byte(self, address: int) -> int:
+        return self.read_bytes(address, 1)[0]
+
+    def read_word(self, address: int) -> int:
+        return struct.unpack(">I", self.read_bytes(address, 4))[0]
+
+    def read_float(self, address: int) -> float:
+        return struct.unpack(">f", self.read_bytes(address, 4))[0]
+
+    def read_double(self, address: int) -> float:
+        return struct.unpack(">d", self.read_bytes(address, 8))[0]
+
+    def un_hook(self) -> None:
+        self._memory.close()
+        self._source.close()
+        self._delegate.un_hook()
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self._delegate, name)
+
+
 def read_fighter_address(memory_engine: object, player_index: int) -> int:
     """Resolve one of Melee's six StaticPlayer slots to its live Fighter."""
 
     static_player_stride = 0xE90
     player_slot = 0x80453080 + player_index * static_player_stride
-    transformed = memory_engine.read_byte(player_slot + 0x0C)
-    fighter_gobj = memory_engine.read_word(player_slot + 0xB0 + 4 * transformed)
-    return memory_engine.read_word(fighter_gobj + 0x2C)
+    player = BigEndianSnapshot.read(memory_engine, player_slot, 0xC0)
+    transformed = player.u8(player_slot + 0x0C)
+    fighter_gobj = player.u32(player_slot + 0xB0 + 4 * transformed)
+    gobj = BigEndianSnapshot.read(memory_engine, fighter_gobj, 0x30)
+    return gobj.u32(fighter_gobj + 0x2C)
 
 
 def read_fighter_hurt_capsules(
-    memory_engine: object, fighter: int
+    memory_engine: object,
+    fighter: int,
+    fighter_snapshot: BigEndianSnapshot,
 ) -> list[dict[str, object]]:
     """Read live pose-transformed FighterHurtCapsule values."""
-
-    def read_vector(address: int) -> list[float]:
-        return [memory_engine.read_float(address + 4 * axis) for axis in range(3)]
 
     def transform(matrix: list[float], value: list[float]) -> list[float]:
         return [
@@ -2639,31 +2857,40 @@ def read_fighter_hurt_capsules(
         ]
 
     hurtboxes = []
-    hurtbox_count = memory_engine.read_byte(fighter + 0x119E)
+    bone_matrices: dict[int, list[float]] = {}
+    hurtbox_count = fighter_snapshot.u8(fighter + 0x119E)
     if hurtbox_count > 15:
         raise RuntimeError(f"invalid Fighter hurt-capsule count: {hurtbox_count}")
     for index in range(hurtbox_count):
         hurtbox = fighter + 0x11A0 + index * 0x4C
-        bone = memory_engine.read_word(hurtbox + 0x20)
-        offset_a = read_vector(hurtbox + 0x04)
-        offset_b = read_vector(hurtbox + 0x10)
-        bone_matrix = [
-            memory_engine.read_float(bone + 0x44 + 4 * element) for element in range(12)
-        ]
+        bone = fighter_snapshot.u32(hurtbox + 0x20)
+        offset_a = fighter_snapshot.f32_vector(hurtbox + 0x04, 3)
+        offset_b = fighter_snapshot.f32_vector(hurtbox + 0x10, 3)
+        bone_matrix = bone_matrices.get(bone)
+        if bone_matrix is None:
+            matrix_address = bone + 0x44
+            bone_matrix = BigEndianSnapshot.read(
+                memory_engine, matrix_address, 12 * 4
+            ).f32_vector(matrix_address, 12)
+            bone_matrices[bone] = bone_matrix
         hurtboxes.append(
             {
-                "state": memory_engine.read_word(hurtbox),
-                "state_bytes": bytes(memory_engine.read_bytes(hurtbox, 4)).hex(),
-                "radius": memory_engine.read_float(hurtbox + 0x1C),
+                "state": fighter_snapshot.u32(hurtbox),
+                "state_bytes": fighter_snapshot.bytes_at(hurtbox, 4).hex(),
+                "radius": fighter_snapshot.f32(hurtbox + 0x1C),
                 "offset_a": offset_a,
                 "offset_b": offset_b,
                 "position_a": transform(bone_matrix, offset_a),
                 "position_b": transform(bone_matrix, offset_b),
-                "collision_position_a": read_vector(hurtbox + 0x28),
-                "collision_position_b": read_vector(hurtbox + 0x34),
-                "bone_index": memory_engine.read_word(hurtbox + 0x40),
-                "height": memory_engine.read_word(hurtbox + 0x44),
-                "grabbable": memory_engine.read_word(hurtbox + 0x48),
+                "collision_position_a": fighter_snapshot.f32_vector(
+                    hurtbox + 0x28, 3
+                ),
+                "collision_position_b": fighter_snapshot.f32_vector(
+                    hurtbox + 0x34, 3
+                ),
+                "bone_index": fighter_snapshot.u32(hurtbox + 0x40),
+                "height": fighter_snapshot.u32(hurtbox + 0x44),
+                "grabbable": fighter_snapshot.u32(hurtbox + 0x48),
             }
         )
     return hurtboxes
@@ -2674,13 +2901,12 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
 
     common = memory_engine.read_word(0x804D6554)
 
-    def read_ecb(fighter_address: int) -> dict[str, list[float]]:
+    def read_ecb(
+        fighter_address: int, snapshot: BigEndianSnapshot
+    ) -> dict[str, list[float]]:
         ecb = fighter_address + 0x794
         return {
-            name: [
-                memory_engine.read_float(ecb + offset),
-                memory_engine.read_float(ecb + offset + 4),
-            ]
+            name: snapshot.f32_vector(ecb + offset, 2)
             for name, offset in (
                 ("top", 0x00),
                 ("bottom", 0x08),
@@ -2689,65 +2915,53 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
             )
         }
 
-    def read_hitboxes(fighter_address: int) -> list[dict[str, object]]:
+    def read_hitboxes(
+        fighter_address: int, snapshot: BigEndianSnapshot
+    ) -> list[dict[str, object]]:
         hitboxes = []
         for index in range(4):
             hitbox = fighter_address + 0x914 + index * 0x138
             hitboxes.append(
                 {
-                    "state": memory_engine.read_word(hitbox),
-                    "hit_id": memory_engine.read_word(hitbox + 0x04),
-                    "damage_count": memory_engine.read_word(hitbox + 0x08),
-                    "damage": memory_engine.read_float(hitbox + 0x0C),
-                    "bone_offset": [
-                        memory_engine.read_float(hitbox + 0x10 + 4 * axis)
-                        for axis in range(3)
-                    ],
-                    "radius": memory_engine.read_float(hitbox + 0x1C),
-                    "angle": memory_engine.read_word(hitbox + 0x20),
-                    "knockback_growth": memory_engine.read_word(hitbox + 0x24),
-                    "weight_set_knockback": memory_engine.read_word(hitbox + 0x28),
-                    "base_knockback": memory_engine.read_word(hitbox + 0x2C),
-                    "element": memory_engine.read_word(hitbox + 0x30),
-                    "position": [
-                        memory_engine.read_float(hitbox + 0x4C + 4 * axis)
-                        for axis in range(3)
-                    ],
-                    "previous_position": [
-                        memory_engine.read_float(hitbox + 0x58 + 4 * axis)
-                        for axis in range(3)
-                    ],
+                    "state": snapshot.u32(hitbox),
+                    "hit_id": snapshot.u32(hitbox + 0x04),
+                    "damage_count": snapshot.u32(hitbox + 0x08),
+                    "damage": snapshot.f32(hitbox + 0x0C),
+                    "bone_offset": snapshot.f32_vector(hitbox + 0x10, 3),
+                    "radius": snapshot.f32(hitbox + 0x1C),
+                    "angle": snapshot.u32(hitbox + 0x20),
+                    "knockback_growth": snapshot.u32(hitbox + 0x24),
+                    "weight_set_knockback": snapshot.u32(hitbox + 0x28),
+                    "base_knockback": snapshot.u32(hitbox + 0x2C),
+                    "element": snapshot.u32(hitbox + 0x30),
+                    "position": snapshot.f32_vector(hitbox + 0x4C, 3),
+                    "previous_position": snapshot.f32_vector(
+                        hitbox + 0x58, 3
+                    ),
                 }
             )
         return hitboxes
 
     fighter = read_fighter_address(memory_engine, 0)
     opponent = read_fighter_address(memory_engine, 1)
+    fighter_snapshot = BigEndianSnapshot.read(memory_engine, fighter, 0x2350)
+    opponent_snapshot = BigEndianSnapshot.read(memory_engine, opponent, 0x2350)
     return {
         "fighter_address": fighter,
-        "hurtbox_state_flag_byte": memory_engine.read_byte(fighter + 0x221A),
-        "fighter_position": [
-            memory_engine.read_float(fighter + 0xB0 + 4 * axis) for axis in range(3)
-        ],
-        "fighter_scale": [
-            memory_engine.read_float(fighter + 0x34 + 4 * axis) for axis in range(3)
-        ],
-        "hitboxes": read_hitboxes(fighter),
-        "fighter_hurtboxes": read_fighter_hurt_capsules(memory_engine, fighter),
-        "fighter_ecb": read_ecb(fighter),
-        "fighter_ledge_snap": [
-            memory_engine.read_float(fighter + 0x744),
-            memory_engine.read_float(fighter + 0x748),
-            memory_engine.read_float(fighter + 0x74C),
-        ],
-        "fighter_collision_contact": [
-            memory_engine.read_float(fighter + 0x830 + 4 * axis) for axis in range(3)
-        ],
+        "hurtbox_state_flag_byte": fighter_snapshot.u8(fighter + 0x221A),
+        "fighter_position": fighter_snapshot.f32_vector(fighter + 0xB0, 3),
+        "fighter_scale": fighter_snapshot.f32_vector(fighter + 0x34, 3),
+        "hitboxes": read_hitboxes(fighter, fighter_snapshot),
+        "fighter_hurtboxes": read_fighter_hurt_capsules(
+            memory_engine, fighter, fighter_snapshot
+        ),
+        "fighter_ecb": read_ecb(fighter, fighter_snapshot),
+        "fighter_ledge_snap": fighter_snapshot.f32_vector(fighter + 0x744, 3),
+        "fighter_collision_contact": fighter_snapshot.f32_vector(
+            fighter + 0x830, 3
+        ),
         "fighter_collision_positions": {
-            name: [
-                memory_engine.read_float(fighter + offset + 4 * axis)
-                for axis in range(3)
-            ]
+            name: fighter_snapshot.f32_vector(fighter + offset, 3)
             for name, offset in (
                 ("current", 0x6F4),
                 ("previous", 0x700),
@@ -2755,35 +2969,40 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
             )
         },
         "fighter_ledge_ids": [
-            memory_engine.read_word(fighter + 0x730),
-            memory_engine.read_word(fighter + 0x734),
+            fighter_snapshot.u32(fighter + 0x730),
+            fighter_snapshot.u32(fighter + 0x734),
         ],
-        "fighter_environment_flags": memory_engine.read_word(fighter + 0x824),
-        "fighter_previous_environment_flags": memory_engine.read_word(fighter + 0x828),
+        "fighter_environment_flags": fighter_snapshot.u32(fighter + 0x824),
+        "fighter_previous_environment_flags": fighter_snapshot.u32(fighter + 0x828),
         "fighter_command_variables": [
-            memory_engine.read_word(fighter + 0x2200 + 4 * index) for index in range(4)
+            fighter_snapshot.u32(fighter + 0x2200 + 4 * index)
+            for index in range(4)
         ],
-        "fighter_captain_specialhi_flags": memory_engine.read_byte(fighter + 0x2342),
+        "fighter_captain_specialhi_flags": fighter_snapshot.u8(fighter + 0x2342),
         "fighter_captain_specialhi_velocity": [
-            memory_engine.read_float(fighter + 0x2344),
-            memory_engine.read_float(fighter + 0x2348),
+            fighter_snapshot.f32(fighter + 0x2344),
+            fighter_snapshot.f32(fighter + 0x2348),
         ],
         "opponent_fighter_address": opponent,
-        "opponent_fighter_position": [
-            memory_engine.read_float(opponent + 0xB0 + 4 * axis) for axis in range(3)
-        ],
-        "opponent_hitboxes": read_hitboxes(opponent),
-        "opponent_damage_percent_internal": memory_engine.read_float(opponent + 0x1830),
-        "opponent_damage_percent_temp": memory_engine.read_float(opponent + 0x1838),
-        "opponent_knockback_applied": memory_engine.read_float(opponent + 0x1850),
-        "opponent_knockback_magnitude": memory_engine.read_float(opponent + 0x18A4),
-        "opponent_knockback_applied_latched": memory_engine.read_float(
+        "opponent_fighter_position": opponent_snapshot.f32_vector(
+            opponent + 0xB0, 3
+        ),
+        "opponent_hitboxes": read_hitboxes(opponent, opponent_snapshot),
+        "opponent_damage_percent_internal": opponent_snapshot.f32(
+            opponent + 0x1830
+        ),
+        "opponent_damage_percent_temp": opponent_snapshot.f32(opponent + 0x1838),
+        "opponent_knockback_applied": opponent_snapshot.f32(opponent + 0x1850),
+        "opponent_knockback_magnitude": opponent_snapshot.f32(opponent + 0x18A4),
+        "opponent_knockback_applied_latched": opponent_snapshot.f32(
             opponent + 0x18A8
         ),
-        "opponent_damage_state_ticks": memory_engine.read_word(opponent + 0x2340),
+        "opponent_damage_state_ticks": opponent_snapshot.u32(opponent + 0x2340),
         "throw_weight": memory_engine.read_float(common + 0x10C),
-        "opponent_hurtboxes": read_fighter_hurt_capsules(memory_engine, opponent),
-        "opponent_ecb": read_ecb(opponent),
+        "opponent_hurtboxes": read_fighter_hurt_capsules(
+            memory_engine, opponent, opponent_snapshot
+        ),
+        "opponent_ecb": read_ecb(opponent, opponent_snapshot),
     }
 
 
@@ -2793,6 +3012,46 @@ def sha256(path: Path) -> str:
         while block := source.read(1024 * 1024):
             digest.update(block)
     return digest.hexdigest()
+
+
+def cached_sha256(path: Path) -> str:
+    """Hash immutable oracle inputs once per exact filesystem revision."""
+
+    resolved = path.resolve()
+    stat = resolved.stat()
+    fingerprint = {
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+        "ctime_ns": stat.st_ctime_ns,
+    }
+    cache_path = (
+        Path(__file__).resolve().parent.parent
+        / "build"
+        / "oracle-toolchain"
+        / "sha256-cache.json"
+    )
+    cache: dict[str, dict[str, object]] = {}
+    try:
+        cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    key = str(resolved)
+    cached = cache.get(key, {})
+    if cached.get("fingerprint") == fingerprint:
+        digest = cached.get("sha256")
+        if isinstance(digest, str) and len(digest) == 64:
+            return digest
+
+    digest = sha256(resolved)
+    cache[key] = {"fingerprint": fingerprint, "sha256": digest}
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = cache_path.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps(cache, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(cache_path)
+    return digest
 
 
 def wait_for_udp_listener(port: int, timeout: float) -> None:
@@ -2822,6 +3081,59 @@ def wait_for_udp_listener(port: int, timeout: float) -> None:
     raise RuntimeError(f"Dolphin did not bind Slippi UDP port {port}")
 
 
+_CHECKPOINT_TARGET_PIDS: dict[int, int] = {}
+
+
+def request_headless_checkpoint(
+    process: subprocess.Popen[bytes],
+    action: str,
+    timeout: float = 10.0,
+) -> float:
+    """Request an acknowledged in-memory checkpoint operation from NoGUI."""
+
+    if action not in {"saved", "loaded"}:
+        raise ValueError(f"unsupported checkpoint action: {action}")
+    target_pid = _CHECKPOINT_TARGET_PIDS.get(process.pid, process.pid)
+    status_path = Path(f"/tmp/pf-exiai-checkpoint-{target_pid}.status")
+    if not status_path.is_file():
+        ready_statuses = sorted(
+            (
+                path
+                for path in Path("/tmp").glob("pf-exiai-checkpoint-*.status")
+                if path.read_text(encoding="ascii").startswith("ready ")
+            ),
+            key=lambda path: path.stat().st_mtime_ns,
+            reverse=True,
+        )
+        if not ready_statuses:
+            raise RuntimeError("Dolphin checkpoint control endpoint is not ready")
+        status_path = ready_statuses[0]
+        target_pid = int(status_path.stem.rsplit("-", 1)[1])
+        _CHECKPOINT_TARGET_PIDS[process.pid] = target_pid
+    previous = status_path.read_text(encoding="ascii")
+    requested_at = time.monotonic()
+    request_path = Path(f"/tmp/pf-exiai-checkpoint-{target_pid}.request")
+    temporary_request = request_path.with_suffix(".request.tmp")
+    temporary_request.write_text(
+        "save\n" if action == "saved" else "load\n",
+        encoding="ascii",
+    )
+    temporary_request.replace(request_path)
+    deadline = requested_at + timeout
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(
+                f"Dolphin exited during checkpoint {action}: {process.returncode}"
+            )
+        current = status_path.read_text(encoding="ascii")
+        if previous != current:
+            words = current.split(maxsplit=1)
+            if words and words[0] == action:
+                return time.monotonic() - requested_at
+        time.sleep(0.005)
+    raise TimeoutError(f"Dolphin checkpoint {action} timed out")
+
+
 def stop_console(console: melee.Console) -> None:
     """Stop Dolphin and remove libmelee's temporary home without a Windows race."""
 
@@ -2836,6 +3148,12 @@ def stop_console(console: melee.Console) -> None:
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=5.0)
+
+        target_pid = _CHECKPOINT_TARGET_PIDS.pop(process.pid, process.pid)
+        for suffix in ("request", "request.tmp", "status", "status.tmp"):
+            Path(f"/tmp/pf-exiai-checkpoint-{target_pid}.{suffix}").unlink(
+                missing_ok=True
+            )
 
     if temp_dir is None:
         return
@@ -3101,7 +3419,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "--oracle-exiai requires --oracle-release-artifact pointing "
                 "to the pinned ExiAI 0.2.0 AppImage"
             )
-        artifact_sha256 = sha256(exiai_artifact)
+        artifact_sha256 = cached_sha256(exiai_artifact)
         if artifact_sha256 != EXIAI_020_APPIMAGE_SHA256:
             raise ValueError(
                 "unexpected ExiAI release artifact SHA-256: "
@@ -3155,6 +3473,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     player_one = melee.Controller(console, 1, melee.ControllerType.STANDARD)
     player_two = melee.Controller(console, 2, melee.ControllerType.STANDARD)
     started_at = time.monotonic()
+    connected_at: float | None = None
+    menu_ready_at: float | None = None
+    hook_ready_at: float | None = None
     memory_engine = None
 
     try:
@@ -3195,6 +3516,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             raise RuntimeError("Dolphin Slippi stream did not connect")
         if not player_one.connect() or not player_two.connect():
             raise RuntimeError("Dolphin controller pipes did not connect")
+        connected_at = time.monotonic()
 
         gamestate = None
         items_configured = False
@@ -3254,15 +3576,27 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         else:
             state = None if gamestate is None else str(gamestate.menu_state)
             raise TimeoutError(f"Dolphin match setup timed out in {state}")
+        menu_ready_at = time.monotonic()
 
         if (
             args.memory_probe_shield
             or args.memory_probe_damage
             or args.memory_probe_hitbox
             or args.memory_probe_collision
+            or args.oracle_checkpoint_pack
         ):
             if memory_engine is None:
                 memory_engine = wait_for_memory_engine_hook(executable)
+            if (
+                args.oracle_exiai
+                and sys.platform.startswith("linux")
+                and console._process is not None
+            ):
+                memory_engine = LinuxDolphinSharedMemory(
+                    memory_engine,
+                    console._process.pid,
+                )
+        hook_ready_at = time.monotonic()
 
         if (
             args.special_geometry_move
@@ -3277,6 +3611,63 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
 
         player_one.release_all()
         player_two.release_all()
+        checkpoint_probe = None
+        checkpoint_pack_started_at = None
+        checkpoint_pack_save_seconds = 0.0
+        if args.oracle_checkpoint_probe:
+            if console._process is None:
+                raise RuntimeError("checkpoint probe requires a local Dolphin process")
+            saved_game_frame = int(gamestate.frame)
+            saved_position_x = float(gamestate.players[1].position.x)
+            save_seconds = request_headless_checkpoint(console._process, "saved")
+            for _ in range(5):
+                player_one.release_all()
+                player_two.release_all()
+                player_one.tilt_analog(melee.Button.BUTTON_MAIN, 1.0, 0.5)
+                gamestate = console.step()
+                if gamestate is None:
+                    raise RuntimeError("missing game state during checkpoint probe")
+            advanced_game_frame = int(gamestate.frame)
+            advanced_position_x = float(gamestate.players[1].position.x)
+            load_seconds = request_headless_checkpoint(console._process, "loaded")
+            player_one.release_all()
+            player_two.release_all()
+            gamestate = console.step()
+            if gamestate is None:
+                raise RuntimeError("missing game state after checkpoint restore")
+            restored_game_frame = int(gamestate.frame)
+            restored_position_x = float(gamestate.players[1].position.x)
+            if (
+                advanced_position_x <= saved_position_x + 0.01
+                or abs(restored_position_x - saved_position_x) > 0.000001
+            ):
+                raise RuntimeError(
+                    "checkpoint did not restore the captured state: "
+                    f"saved={saved_game_frame} advanced={advanced_game_frame} "
+                    f"restored={restored_game_frame} "
+                    f"saved_x={saved_position_x} advanced_x={advanced_position_x} "
+                    f"restored_x={restored_position_x}"
+                )
+            checkpoint_probe = {
+                "saved_game_frame": saved_game_frame,
+                "advanced_game_frame": advanced_game_frame,
+                "restored_game_frame": restored_game_frame,
+                "saved_position_x": saved_position_x,
+                "advanced_position_x": advanced_position_x,
+                "restored_position_x": restored_position_x,
+                "save_seconds": save_seconds,
+                "load_seconds": load_seconds,
+            }
+        elif args.oracle_checkpoint_pack:
+            if console._process is None:
+                raise RuntimeError("checkpoint pack requires a local Dolphin process")
+            if memory_engine is None:
+                raise RuntimeError("checkpoint pack requires memory placement")
+            checkpoint_pack_save_seconds = request_headless_checkpoint(
+                console._process,
+                "saved",
+            )
+            checkpoint_pack_started_at = time.monotonic()
         rows: list[dict[str, object]] = []
         origin_x: float | None = None
         origin_two_x: float | None = None
@@ -3295,6 +3686,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_collision_only=args.shield_collision_only,
             moving_hit_sweep_only=args.moving_hit_sweep_only,
             common_hurt_geometry_only=args.common_hurt_geometry_only,
+            checkpoint_isolated=args.oracle_checkpoint_pack,
             damage_hit_only=args.damage_hit_only,
             defense_state_only=args.defense_state_only,
             attack_iasa_only=args.attack_iasa_only,
@@ -3331,7 +3723,47 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             }
             for _ in range(pipeline_delay)
         ]
+        checkpoint_restore_seconds = 0.0
+        checkpoint_case_labels: list[str] = []
         for command_index, sample in enumerate(commands):
+            if bool(sample.get("restore_before", False)):
+                if console._process is None:
+                    raise RuntimeError(
+                        "checkpoint-isolated trace requires local Dolphin"
+                    )
+                case_number = len(checkpoint_case_labels) + 1
+                case_started_at = time.monotonic()
+                if args.oracle_checkpoint_pack:
+                    print(
+                        "ssbm-checkpoint-case="
+                        f"{case_number}/{sum(bool(row.get('restore_before')) for row in trace)} "
+                        f"label={sample['label']}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+
+                try:
+                    checkpoint_restore_seconds += request_headless_checkpoint(
+                        console._process,
+                        "loaded",
+                    )
+                except Exception as error:
+                    raise RuntimeError(
+                        "checkpoint restore failed before case "
+                        f"{len(checkpoint_case_labels) + 1} "
+                        f"({sample['label']})"
+                    ) from error
+                origin_x = None
+                origin_two_x = None
+                checkpoint_case_labels.append(str(sample["label"]))
+                if args.oracle_checkpoint_pack:
+                    print(
+                        "ssbm-checkpoint-restore=pass "
+                        f"case={case_number} seconds="
+                        f"{time.monotonic() - case_started_at:.6f}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
             player_one.release_all()
             player_two.release_all()
             player_one.tilt_analog(
@@ -3395,22 +3827,24 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 opponent_x_override = float(
                     gamestate.projectiles[0].position.x
                 ) + float(sample["opponent_x_from_item_offset"])
-            position_overrides = (
+            fighter_overrides = (
                 (0, 0xB0, fighter_x_override),
                 (0, 0xB4, sample["fighter_y_override"]),
+                (0, 0x2C, sample["fighter_facing_override"]),
                 (1, 0xB0, opponent_x_override),
                 (1, 0xB4, sample["opponent_y_override"]),
+                (1, 0x2C, sample["opponent_facing_override"]),
             )
-            if any(value is not None for _, _, value in position_overrides):
+            if any(value is not None for _, _, value in fighter_overrides):
                 if memory_engine is None:
                     raise RuntimeError(
-                        "fighter position override requires a memory probe"
+                        "fighter state override requires a memory probe"
                     )
                 fighter_addresses = (
                     read_fighter_address(memory_engine, 0),
                     read_fighter_address(memory_engine, 1),
                 )
-                for fighter_index, offset, value in position_overrides:
+                for fighter_index, offset, value in fighter_overrides:
                     if value is not None:
                         memory_engine.write_float(
                             fighter_addresses[fighter_index] + offset,
@@ -3588,9 +4022,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "requested_opponent_grab": bool(scheduled["opponent_grab"]),
                 "requested_opponent_jump": bool(scheduled["opponent_jump"]),
                 "requested_fighter_y_override": scheduled["fighter_y_override"],
+                "requested_fighter_facing_override": scheduled[
+                    "fighter_facing_override"
+                ],
                 "requested_fighter_x_override": scheduled["fighter_x_override"],
                 "requested_opponent_x_override": scheduled["opponent_x_override"],
                 "requested_opponent_y_override": scheduled["opponent_y_override"],
+                "requested_opponent_facing_override": scheduled[
+                    "opponent_facing_override"
+                ],
                 "observed_main_x": observed_x,
                 "observed_main_y": observed_y,
                 "observed_c_x": observed_c_x,
@@ -3683,6 +4123,36 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             if args.enable_items and memory_engine is not None
             else None
         )
+        checkpoint_pack_warm_seconds = (
+            time.monotonic() - checkpoint_pack_started_at
+            if checkpoint_pack_started_at is not None
+            else None
+        )
+        if checkpoint_pack_warm_seconds is not None:
+            print(
+                "ssbm-checkpoint-pack-time "
+                f"warm_seconds={checkpoint_pack_warm_seconds:.6f} "
+                f"save_seconds={checkpoint_pack_save_seconds:.6f} "
+                f"restore_seconds={checkpoint_restore_seconds:.6f}",
+                file=sys.stderr,
+                flush=True,
+            )
+        checkpoint_pack = (
+            {
+                "protocol": "rebased-slippi-state-file-control-v1",
+                "case_count": len(checkpoint_case_labels),
+                "case_start_labels": checkpoint_case_labels,
+                "coverage_manifest": json.loads(
+                    (
+                        Path(__file__).with_name(
+                            "ssbm_falcon_common_hurt_coverage.json"
+                        )
+                    ).read_text(encoding="utf-8")
+                ),
+            }
+            if checkpoint_pack_started_at is not None
+            else None
+        )
         return {
             "schema": (
                 10
@@ -3698,16 +4168,26 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "mode": "exiai-headless-null-fast-forward",
                     "release": "exi-ai-0.2.0",
                     "release_artifact_sha256": EXIAI_020_APPIMAGE_SHA256,
-                    "launcher_sha256": sha256(executable),
+                    "launcher_sha256": cached_sha256(executable),
                 }
                 if args.oracle_exiai
                 else {"mode": "stock"}
+            ),
+            **(
+                {"checkpoint_probe": checkpoint_probe}
+                if checkpoint_probe is not None
+                else {}
+            ),
+            **(
+                {"checkpoint_pack": checkpoint_pack}
+                if checkpoint_pack is not None
+                else {}
             ),
             "libmelee_version": importlib.metadata.version("melee"),
             "disc": {
                 "game_id": "GALE01",
                 "revision": 2,
-                "sha256": sha256(iso),
+                "sha256": cached_sha256(iso),
             },
             "fighter": "CPTFALCON",
             "opponent": (
@@ -3801,11 +4281,29 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "rows": rows,
         }
     finally:
+        cleanup_started_at = time.monotonic()
         if memory_engine is not None:
             memory_engine.un_hook()
         player_one.disconnect()
         player_two.disconnect()
         stop_console(console)
+        if args.oracle_checkpoint_pack:
+            finished_at = time.monotonic()
+            print(
+                "ssbm-checkpoint-lifecycle-time "
+                f"launch_connect_seconds="
+                f"{(connected_at or finished_at) - started_at:.6f} "
+                f"menu_seconds="
+                f"{(menu_ready_at or finished_at) - (connected_at or started_at):.6f} "
+                f"hook_seconds="
+                f"{(hook_ready_at or finished_at) - (menu_ready_at or connected_at or started_at):.6f} "
+                f"capture_seconds="
+                f"{cleanup_started_at - (hook_ready_at or menu_ready_at or connected_at or started_at):.6f} "
+                f"cleanup_seconds={finished_at - cleanup_started_at:.6f} "
+                f"total_seconds={finished_at - started_at:.6f}",
+                file=sys.stderr,
+                flush=True,
+            )
 
 
 def parse_args() -> argparse.Namespace:
@@ -3825,6 +4323,16 @@ def parse_args() -> argparse.Namespace:
         "--oracle-release-artifact",
         type=Path,
         help="pinned ExiAI release AppImage used to produce an extracted launcher",
+    )
+    parser.add_argument(
+        "--oracle-checkpoint-probe",
+        action="store_true",
+        help="qualify the checkpoint-enabled NoGUI control protocol",
+    )
+    parser.add_argument(
+        "--oracle-checkpoint-pack",
+        action="store_true",
+        help="replace cross-case settling with checkpoint-isolated cases",
     )
     parser.add_argument("--enable-items", action="store_true")
     mode = parser.add_mutually_exclusive_group()
@@ -3876,6 +4384,17 @@ def parse_args() -> argparse.Namespace:
         parser.error("--oracle-exiai requires --oracle-release-artifact")
     if args.oracle_release_artifact is not None and not args.oracle_exiai:
         parser.error("--oracle-release-artifact requires --oracle-exiai")
+    if args.oracle_checkpoint_probe and not args.oracle_exiai:
+        parser.error("--oracle-checkpoint-probe requires --oracle-exiai")
+    if args.oracle_checkpoint_pack and not (
+        args.oracle_exiai and args.common_hurt_geometry_only
+    ):
+        parser.error(
+            "--oracle-checkpoint-pack requires --oracle-exiai and "
+            "--common-hurt-geometry-only"
+        )
+    if args.oracle_checkpoint_probe and args.oracle_checkpoint_pack:
+        parser.error("select only one checkpoint mode")
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
     if (

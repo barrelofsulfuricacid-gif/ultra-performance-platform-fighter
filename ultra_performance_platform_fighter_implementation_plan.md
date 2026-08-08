@@ -434,6 +434,14 @@ selects changed cases from that same manifest. A warm live run requalifies the
 affected domain, while the complete pack periodically requalifies the whole
 manifest. No finite scenario proves the absence of every possible anomaly, so
 coverage is explicit and extensible rather than described as universal.
+Source-complete data and action-owned geometry are captured once and verified
+exhaustively by canonical action/frame payload. They must not be re-simulated
+through a long physical route for every row when the same pinned collision
+routine can evaluate those exact capsules offline. Live Dolphin cases are
+reserved for the smallest positive/negative discriminators that prove dynamic
+integration, callbacks, and phase ordering. Benchmark timing and incidental
+idle phase stay outside the authoritative digest; two warm regenerations must
+produce the same canonical payload.
 
 Exact equivalence here is behavioral rather than a demand that Q16.16 fixed
 point reproduce every least-significant bit of Dolphin's single-precision
