@@ -2075,6 +2075,18 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     {
         return pf_m4_falcon_reference_standing_hurt_capsules(out_count);
     }
+    {
+        const pf_m4_reference_hurt_capsule *common_pose =
+            pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+                action_state,
+                scratch->action_ticks[target_index],
+                out_count);
+
+        if (common_pose != NULL)
+        {
+            return common_pose;
+        }
+    }
     if (!pf_m4_falcon_reference_move_for_action(
             action_state,
             &move_index))

@@ -16,6 +16,10 @@ from import_ssbm_falcon_frame_data import (
     canonical_sha256,
     command_variable_assignments,
 )
+from ssbm_collision import (
+    canonical_hurt_pose_q16,
+    q16_hurt_poses_equivalent,
+)
 
 
 EXPECTED_FULL_SOURCE_SHA256 = (
@@ -26,6 +30,9 @@ EXPECTED_CAPTURE_SHA256 = (
 )
 EXPECTED_HURT_CAPTURE_SHA256 = (
     "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
+)
+EXPECTED_COMMON_HURT_CAPTURE_SHA256 = (
+    "df7085d40479c81634a34796c830a4be73d81ab64cce10f218c5508d5f8a2958"
 )
 EXPECTED_THROW_CAPTURE_SHA256 = (
     "368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95"
@@ -74,7 +81,13 @@ EXPECTED_DISC_SHA256 = (
 )
 EXPECTED_DECOMP_REVISION = "9509dc04406fb2028bfab01243841ba4787c0fb7"
 EXPECTED_DOLPHIN_VERSION = "3.4.0"
+EXPECTED_COMMON_HURT_DOLPHIN_VERSION = "3.5.1"
 MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
+
+COMMON_HURT_ACTIONS = (
+    ("DASHING", 1, 15),
+    ("RUN_BRAKE", 1, 28),
+)
 
 ACTION_BY_MOVE = {
     "jab1": "NEUTRAL_ATTACK_1",
@@ -298,57 +311,23 @@ def captured_hurt_capsules(
     facing: int,
 ) -> tuple[tuple[int, ...], ...]:
     """Canonicalize one live pose into facing-right simulation space."""
-
-    fighter_position = [float(value) for value in memory[fighter_position_key]]
-    capsules = []
-    for hurtbox_id, source in enumerate(memory[hurtbox_key]):
-        hurtbox = dict(source)
-        if int(hurtbox["state"]) != 0:
-            continue
-        endpoint_a = [float(value) for value in hurtbox["position_a"]]
-        endpoint_b = [float(value) for value in hurtbox["position_b"]]
-        capsules.append(
-            (
-                round(
-                    facing * (endpoint_a[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
-                ),
-                round(-(endpoint_a[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
-                round(
-                    facing * (endpoint_a[2] - fighter_position[2]) * MELEE_TO_SIM_Q16
-                ),
-                round(
-                    facing * (endpoint_b[0] - fighter_position[0]) * MELEE_TO_SIM_Q16
-                ),
-                round(-(endpoint_b[1] - fighter_position[1]) * MELEE_TO_SIM_Q16),
-                round(
-                    facing * (endpoint_b[2] - fighter_position[2]) * MELEE_TO_SIM_Q16
-                ),
-                round(float(hurtbox["radius"]) * MELEE_TO_SIM_Q16),
-                hurtbox_id,
-                int(hurtbox["height"]),
-                int(hurtbox["grabbable"]),
-            )
-        )
-    return tuple(capsules)
-
-
-def hurt_poses_q16_equivalent(
-    left: tuple[tuple[int, ...], ...],
-    right: tuple[tuple[int, ...], ...],
-) -> bool:
-    return len(left) == len(right) and all(
-        left_capsule[7:] == right_capsule[7:]
-        and all(
-            abs(left_value - right_value) <= 1
-            for left_value, right_value in zip(
-                left_capsule[:7], right_capsule[:7], strict=True
-            )
-        )
-        for left_capsule, right_capsule in zip(left, right, strict=True)
+    return canonical_hurt_pose_q16(
+        memory,
+        hurtbox_key,
+        fighter_position_key,
+        facing,
+        MELEE_TO_SIM_Q16,
     )
 
 
-def validate_capture(capture: dict[str, Any], expected_schema: int) -> None:
+hurt_poses_q16_equivalent = q16_hurt_poses_equivalent
+
+
+def validate_capture(
+    capture: dict[str, Any],
+    expected_schema: int,
+    expected_dolphin_version: str = EXPECTED_DOLPHIN_VERSION,
+) -> None:
     if capture.get("schema") != expected_schema:
         raise ValueError("unexpected hit-geometry capture schema")
     if capture.get("fighter") != "CPTFALCON":
@@ -357,7 +336,7 @@ def validate_capture(capture: dict[str, Any], expected_schema: int) -> None:
         raise ValueError("hit-geometry opponent is not Captain Falcon")
     if capture.get("stage") != "FINAL_DESTINATION":
         raise ValueError("hit-geometry capture is not on Final Destination")
-    if capture.get("dolphin_version") != EXPECTED_DOLPHIN_VERSION:
+    if capture.get("dolphin_version") != expected_dolphin_version:
         raise ValueError("unexpected Dolphin version")
     disc = dict(capture.get("disc", {}))
     if (
@@ -411,6 +390,7 @@ def generate(
     dat_data: dict[str, Any],
     hit_capture: dict[str, Any],
     hurt_capture: dict[str, Any],
+    common_hurt_capture: dict[str, Any],
     throw_capture: dict[str, Any],
     special_captures: list[dict[str, Any]],
     special_capture_digests: list[str],
@@ -435,6 +415,7 @@ def generate(
     hurt_frames: list[dict[str, int]] = []
     hurt_capsules: list[tuple[int, ...]] = []
     hurt_moves: list[dict[str, int]] = []
+    common_hurt_moves: list[dict[str, int]] = []
     hurt_pose_offsets: dict[tuple[tuple[int, ...], ...], int] = {}
     subactions = dat_data["nodes"][0]["data"]["subactions"]
     ground_assignments = command_variable_assignments(subactions, 303)
@@ -786,6 +767,68 @@ def generate(
             }
         )
 
+    for action_name, first_frame, last_frame in COMMON_HURT_ACTIONS:
+        hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
+        for row in common_hurt_capture["rows"]:
+            if row.get("action") != action_name:
+                continue
+            raw_frame = float(row["action_frame"])
+            action_frame = round(raw_frame)
+            if abs(raw_frame - action_frame) > 0.000001:
+                raise ValueError(
+                    f"common {action_name}: fractional action frame {raw_frame}"
+                )
+            if action_frame < first_frame or action_frame > last_frame:
+                continue
+            facing = int(row["facing"])
+            if facing not in (-1, 1):
+                raise ValueError(
+                    f"common {action_name}: invalid facing {facing}"
+                )
+            pose = captured_hurt_capsules(
+                dict(row["hitbox_memory"]),
+                "fighter_hurtboxes",
+                "fighter_position",
+                facing,
+            )
+            previous_pose = hurt_by_frame.get(action_frame)
+            if previous_pose is not None and not hurt_poses_q16_equivalent(
+                previous_pose, pose
+            ):
+                raise ValueError(
+                    f"common {action_name}: inconsistent frame {action_frame}"
+                )
+            hurt_by_frame[action_frame] = pose
+        expected_frames = set(range(first_frame, last_frame + 1))
+        if set(hurt_by_frame) != expected_frames:
+            raise ValueError(
+                f"common {action_name}: expected frames "
+                f"{first_frame}-{last_frame}, captured {sorted(hurt_by_frame)}"
+            )
+        frame_offset = len(hurt_frames)
+        for action_frame in range(first_frame, last_frame + 1):
+            pose = hurt_by_frame[action_frame]
+            capsule_offset = hurt_pose_offsets.get(pose)
+            if capsule_offset is None:
+                capsule_offset = len(hurt_capsules)
+                if capsule_offset > 0xFFFF:
+                    raise ValueError("too many Falcon hurt capsules")
+                hurt_pose_offsets[pose] = capsule_offset
+                hurt_capsules.extend(pose)
+            hurt_frames.append(
+                {
+                    "capsule_offset": capsule_offset,
+                    "capsule_count": len(pose),
+                }
+            )
+        common_hurt_moves.append(
+            {
+                "frame_offset": frame_offset,
+                "first_frame": first_frame,
+                "frame_count": last_frame - first_frame + 1,
+            }
+        )
+
     geometry_digest = hashlib.sha256(
         json.dumps(
             {
@@ -793,6 +836,7 @@ def generate(
                 "hit_frames": frames,
                 "hit_spheres": spheres,
                 "hurt_moves": hurt_moves,
+                "common_hurt_moves": common_hurt_moves,
                 "hurt_frames": hurt_frames,
                 "hurt_capsules": hurt_capsules,
                 "standing_hurt_capsules": standing_hurtboxes,
@@ -809,6 +853,8 @@ def generate(
         f"/* full source SHA-256: {EXPECTED_FULL_SOURCE_SHA256} */",
         f"/* hit-sphere capture SHA-256: {EXPECTED_CAPTURE_SHA256} */",
         f"/* hurt-pose capture SHA-256: {EXPECTED_HURT_CAPTURE_SHA256} */",
+        f"/* common hurt-pose capture SHA-256: "
+        f"{EXPECTED_COMMON_HURT_CAPTURE_SHA256} */",
         f"/* throw capture SHA-256: {EXPECTED_THROW_CAPTURE_SHA256} */",
         *(
             f"/* special capture SHA-256: {digest} */"
@@ -914,6 +960,22 @@ def generate(
         (
             "};",
             "",
+            "static const pf_m4_reference_hurt_move",
+            "pf_m4_falcon_common_hurt_moves[PF_M4_FALCON_COMMON_HURT_COUNT] = {",
+        )
+    )
+    lines.extend(
+        "    { "
+        f"UINT16_C({move['frame_offset']}), "
+        f"UINT8_C({move['first_frame']}), "
+        f"UINT8_C({move['frame_count']}) "
+        "},"
+        for move in common_hurt_moves
+    )
+    lines.extend(
+        (
+            "};",
+            "",
             "static const pf_m4_reference_hurt_frame",
             "pf_m4_falcon_hurt_frames[] = {",
         )
@@ -983,6 +1045,7 @@ def main() -> int:
     parser.add_argument("dat_source", type=Path)
     parser.add_argument("hit_capture", type=Path)
     parser.add_argument("hurt_capture", type=Path)
+    parser.add_argument("common_hurt_capture", type=Path)
     parser.add_argument("throw_capture", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--special-capture", action="append", default=[], type=Path)
@@ -1008,6 +1071,12 @@ def main() -> int:
         raise SystemExit(
             "unexpected Dolphin hurt-pose capture SHA-256: " f"{hurt_capture_digest}"
         )
+    common_hurt_capture_digest = file_sha256(args.common_hurt_capture)
+    if common_hurt_capture_digest != EXPECTED_COMMON_HURT_CAPTURE_SHA256:
+        raise SystemExit(
+            "unexpected Dolphin common hurt-pose capture SHA-256: "
+            f"{common_hurt_capture_digest}"
+        )
     throw_capture_digest = file_sha256(args.throw_capture)
     if throw_capture_digest != EXPECTED_THROW_CAPTURE_SHA256:
         raise SystemExit(
@@ -1026,12 +1095,20 @@ def main() -> int:
     dat_data = json.loads(args.dat_source.read_text(encoding="utf-8"))
     hit_capture = json.loads(args.hit_capture.read_text(encoding="utf-8"))
     hurt_capture = json.loads(args.hurt_capture.read_text(encoding="utf-8"))
+    common_hurt_capture = json.loads(
+        args.common_hurt_capture.read_text(encoding="utf-8")
+    )
     throw_capture = json.loads(args.throw_capture.read_text(encoding="utf-8"))
     special_captures = [
         json.loads(path.read_text(encoding="utf-8")) for path in args.special_capture
     ]
     validate_capture(hit_capture, 8)
     validate_capture(hurt_capture, 9)
+    validate_capture(
+        common_hurt_capture,
+        9,
+        EXPECTED_COMMON_HURT_DOLPHIN_VERSION,
+    )
     validate_capture(throw_capture, 9)
     for special_capture in special_captures:
         validate_capture(special_capture, 9)
@@ -1041,6 +1118,7 @@ def main() -> int:
         dat_data,
         hit_capture,
         hurt_capture,
+        common_hurt_capture,
         throw_capture,
         special_captures,
         special_capture_digests,

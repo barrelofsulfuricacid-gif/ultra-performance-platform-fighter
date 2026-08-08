@@ -407,7 +407,13 @@ special subactions. The final wall-rebound row reuses the source-defined Falcon
 Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
-remains the grounded-idle route. A single move/frame lookup feeds exact 2D
+remains the grounded-idle route. A third 262-row Slippi Dolphin 3.5.1 capture,
+SHA-256
+`df7085d40479c81634a34796c830a4be73d81ab64cce10f218c5508d5f8a2958`,
+adds every displayed Initial Dash frame 1-15 and RunBrake frame 1-28. Its
+controller-port cross-check requires both live poses to canonicalize to the
+same Falcon Q16.16 capsules; capture metadata alone is not accepted as proof
+that the menu spawned the requested character. A single move/frame lookup feeds exact 2D
 projection for overlays and full 3D point-versus-capsule intersection for
 reference attacks and grabs without allocation. Both endpoints of every hurt
 capsule and every hit-sphere center retain the executable capture's Z
@@ -415,13 +421,16 @@ coordinate; facing reflection applies to X and Z as it does to the source
 model transform. Authored item/projectile rectangles retain their separate 2D
 route.
 
-The canonicalized timing, hit-sphere, standing-pose, and animated-pose tables
+The canonicalized timing, hit-sphere, standing-pose, action-pose, and common-
+pose tables
 hash to
-`d22af093cb93df154a9fd992294e50b2233d282d62f0b38aae9ef9d750b1a92b`.
+`32d599e74b4d5fe1f0a60e58f2ff6eb5efa2bae057c0e88b5fed55b72bfb24da`.
+Pinned regeneration produces the tracked include at SHA-256
+`c985cf2098a2ca0876f8009d7c8ec7d997628b4347e067fc47d590b72fa170eb`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
-for implemented normals, aerials, grabs, normal throws, and all 17 Falcon special
-subactions. Imported hit and hurt geometry is anchored to Melee's fighter root
+for implemented normals, aerials, grabs, normal throws, all 17 Falcon special
+subactions, Initial Dash, and RunBrake. Imported hit and hurt geometry is anchored to Melee's fighter root
 at the simulation floor-origin offset, rather than incorrectly treating the
 simulation body center as the source origin.
 
@@ -444,8 +453,19 @@ All decisions match. Last-hit/first-miss boundaries are 28.60/28.65,
 same squared radius-sum predicate without allocation, square root, floating
 point, or the former rectangle/ellipse broad-phase rejection.
 
-Hurt poses for common non-attack actions remain an active fidelity gap, not
-values to be filled by guessed frame data. The source executable's moving-hit
+Hurt poses for common non-attack actions other than Initial Dash and RunBrake
+remain an active fidelity gap, not values to be filled by guessed frame data.
+For the qualified Dash collision route, Falcon Jab 1 hits an inward-dashing
+Falcon from 31.0 Melee units with a source-float margin of +0.289213242 and
+misses from 31.5 with -0.156797621. The former misses the old generic body
+rectangle by 3.503404617 units, making the route a discriminator for the
+imported pose rather than a damage-only coincidence. The capture and verifier
+also hash-pin decomp `lbcollision.c` at
+`fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb`
+and `ftCo_Dash.c` at
+`23fd2ad0af701c320fb24f6b5e7406971d7c31060b87916a20b242c076d10f7c`.
+
+The source executable's moving-hit
 path is now production-routed: previous and current hit centers form one 3D
 capsule and intersect the current hurt or shield capsule using a portable
 allocation-free Q16.16 closest-segment predicate. A 274-frame Slippi Dolphin

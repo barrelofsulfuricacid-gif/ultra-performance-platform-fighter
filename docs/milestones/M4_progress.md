@@ -3925,3 +3925,54 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. This closes the executable moving-hit sweep, not
   remaining common-action hurt poses, aerial-IASA item/tether branches,
   ledge/tech/damage semantics, or the exhaustive Falcon equivalence obligation.
+
+## 2026-08-07 Falcon Initial Dash and RunBrake hurt poses
+
+- A 262-row Slippi Dolphin 3.5.1 capture at SHA-256
+  `df7085d40479c81634a34796c830a4be73d81ab64cce10f218c5508d5f8a2958`
+  supplies all 15 displayed Initial Dash poses and all 28 RunBrake poses. The
+  verifier requires every frame to contain Falcon's 11 live capsules and
+  compares port 2 against port 1 after facing-normalized Q16.16
+  canonicalization. This cross-port check caught and prevented an early route
+  whose metadata said Falcon while the menu predicate had actually selected
+  Fox.
+- The pinned positive route places Jab 1 against an inward Falcon Dash at 31.0
+  Melee units: Dolphin deals 2%, and the reconstructed source collision margin
+  is +0.289213242. The 31.5-unit control remains a miss at -0.156797621. The
+  old generic rectangle misses the positive route by 3.503404617 units, so the
+  pair specifically qualifies the animated common pose rather than merely the
+  attack or damage path.
+- Generation appends two compact common-pose tracks to the existing immutable
+  frame table and reuses its deduplicated capsule pool. Runtime maps the public
+  action once, uses the shared bounded span accessor, and adds no allocation,
+  float math, duplicated capsule representation, snapshot bytes, or public
+  action-index coupling. The canonical geometry digest is
+  `32d599e74b4d5fe1f0a60e58f2ff6eb5efa2bae057c0e88b5fed55b72bfb24da`;
+  pinned regeneration produces tracked include SHA-256
+  `c985cf2098a2ca0876f8009d7c8ec7d997628b4347e067fc47d590b72fa170eb`.
+- Shared offline `tools/ssbm_collision.py` now owns source-float segment
+  margins, captured hit/hurt evaluation, Q16.16 pose canonicalization, and
+  bounded pose equality. Both Falcon verifiers reuse it. The personal
+  `ssbm-character-importer` skill records the menu/metadata drift hazard,
+  cross-port proof, generic-rectangle discriminator, compact runtime pattern,
+  and portable pose routines; Python compilation, its pose smoke, and skill
+  validation pass.
+- Native Windows passes 20/20 tests; WSL Release passes 22/22 and WSL
+  ASan/UBSan passes 15/15. Repeated Windows and WSL verifier runs are stable at
+  digest `c29d887a778f876d`. The rebuilt Emscripten playtest passes all startup
+  probes, the browser adapter verifier passes, and native/Wasm replay output is
+  byte-identical at corpus/final/event SHA-256 values
+  `af5b1bb66a475a4c28e93f15e12355d92c14ced6e08ecdad7bf25dbac82612f7`,
+  `78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  The rendered in-app playtest starts a live four-stock match with all probes
+  passing and no console warnings or errors.
+- The prior moving-sweep CI exposed two stale verification pins rather than a
+  target-specific behavior failure: the setup-contract script still expected
+  the old 803-byte checkpoint and pre-sweep replay hashes, while Chrome still
+  expected 84 instead of the current 83 typed replay events. The pins now match
+  the already-qualified 807-byte checkpoint and native/Wasm replay identity;
+  both exact failed workflow commands pass locally with WSL plus native Chrome.
+- M4 remains unfinished. Common hurt poses beyond Initial Dash/RunBrake,
+  aerial-IASA item/tether branches, and wider ledge/tech/damage behavior remain
+  in the exhaustive Falcon equivalence obligation.

@@ -63,6 +63,7 @@ def input_trace(
     shield_hit_only: bool = False,
     shield_collision_only: bool = False,
     moving_hit_sweep_only: bool = False,
+    common_hurt_geometry_only: bool = False,
     damage_hit_only: bool = False,
     defense_state_only: bool = False,
     attack_iasa_only: bool = False,
@@ -1139,6 +1140,47 @@ def input_trace(
         )
         repeat("moving_hit_sweep_miss_observe", 35)
         repeat("moving_hit_sweep_miss_recover", 60)
+        return trace
+
+    if common_hurt_geometry_only:
+        # Initial dash is the first common-state hurt-pose route. Keep the
+        # fighter isolated and hold the same full input through Falcon's
+        # complete 15-frame Dash animation; later common states can append
+        # similarly labelled routes without changing the capture schema.
+        repeat("common_hurt_dash_settle", 60)
+        trace.append(
+            command(
+                "common_hurt_dash_place",
+                fighter_x_override=-20.0,
+                fighter_y_override=0.0001,
+                opponent_x_override=60.0,
+                opponent_y_override=0.0001,
+            )
+        )
+        repeat("common_hurt_dash_place_settle", 10)
+        repeat("common_hurt_dash_hold", 18, main_x=1.0)
+        repeat("common_hurt_dash_recover", 45)
+        for route, distance in (("hit", 31.0), ("miss", 31.5)):
+            prefix = f"common_hurt_dash_collision_{route}"
+            trace.append(
+                command(
+                    f"{prefix}_place",
+                    fighter_x_override=0.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=distance,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_settle", 10)
+            trace.append(
+                command(
+                    f"{prefix}_jab_vs_dash",
+                    attack=True,
+                    opponent_main_x=0.0,
+                )
+            )
+            repeat(f"{prefix}_observe", 12, opponent_main_x=0.0)
+            repeat(f"{prefix}_recover", 40)
         return trace
 
     if damage_hit_only:
@@ -2623,6 +2665,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         or args.shield_hit_only
                         or args.shield_collision_only
                         or args.moving_hit_sweep_only
+                        or args.common_hurt_geometry_only
                         or args.damage_hit_only
                         or args.hitbox_geometry_only
                         or args.throw_geometry_only
@@ -2677,6 +2720,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_hit_only=args.shield_hit_only,
             shield_collision_only=args.shield_collision_only,
             moving_hit_sweep_only=args.moving_hit_sweep_only,
+            common_hurt_geometry_only=args.common_hurt_geometry_only,
             damage_hit_only=args.damage_hit_only,
             defense_state_only=args.defense_state_only,
             attack_iasa_only=args.attack_iasa_only,
@@ -3082,6 +3126,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     or args.shield_hit_only
                     or args.shield_collision_only
                     or args.moving_hit_sweep_only
+                    or args.common_hurt_geometry_only
                     or args.damage_hit_only
                     or args.hitbox_geometry_only
                     or args.throw_geometry_only
@@ -3100,6 +3145,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "damage_hit_route": bool(args.damage_hit_only),
             "defense_state_route": bool(args.defense_state_only),
             "aerial_iasa_route": bool(args.aerial_iasa_only),
+            "common_hurt_geometry_route": bool(
+                args.common_hurt_geometry_only
+            ),
             "controller_postframe_pipeline_delay": pipeline_delay,
             "shield_memory_probe": (
                 {
@@ -3187,6 +3235,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-hit-only", action="store_true")
     mode.add_argument("--shield-collision-only", action="store_true")
     mode.add_argument("--moving-hit-sweep-only", action="store_true")
+    mode.add_argument("--common-hurt-geometry-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--defense-state-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
@@ -3232,6 +3281,7 @@ def parse_args() -> argparse.Namespace:
         parser.error("--memory-probe-damage requires --damage-hit-only")
     if args.memory_probe_hitbox and not (
         args.defense_state_only
+        or args.common_hurt_geometry_only
         or args.hitbox_geometry_only
         or args.throw_geometry_only
         or args.special_geometry_only

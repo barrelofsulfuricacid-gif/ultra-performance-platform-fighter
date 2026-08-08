@@ -104,6 +104,16 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_APPEAL_LEFT = 240
 } pf_m4_falcon_submotion_index;
 
+/* Qualified common-state hurt-pose tracks. Keep this compact index separate
+ * from public action-state values so additional captured common motions append
+ * without widening snapshots or coupling generated data to the API enum. */
+typedef enum pf_m4_falcon_common_hurt_index
+{
+    PF_M4_FALCON_COMMON_HURT_INITIAL_DASH = 0,
+    PF_M4_FALCON_COMMON_HURT_RUN_BRAKE = 1,
+    PF_M4_FALCON_COMMON_HURT_COUNT = 2
+} pf_m4_falcon_common_hurt_index;
+
 typedef struct pf_m4_falcon_submotion_data
 {
     /* Raw FigaTree endpoint count and extractor-compatible last frame. */
@@ -578,6 +588,12 @@ pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count);
 const pf_m4_reference_hurt_capsule *
 pf_m4_falcon_reference_hurt_capsules_at_frame(
     pf_m4_falcon_move_index move_index,
+    uint16_t action_frame,
+    uint8_t *out_count);
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+    uint8_t action_state,
     uint16_t action_frame,
     uint8_t *out_count);
 

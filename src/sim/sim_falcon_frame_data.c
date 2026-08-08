@@ -410,13 +410,12 @@ pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count)
     return pf_m4_falcon_standing_hurt_capsules;
 }
 
-const pf_m4_reference_hurt_capsule *
-pf_m4_falcon_reference_hurt_capsules_at_frame(
-    pf_m4_falcon_move_index move_index,
+static const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_hurt_track_at_frame(
+    const pf_m4_reference_hurt_move *move,
     uint16_t action_frame,
     uint8_t *out_count)
 {
-    const pf_m4_reference_hurt_move *move;
     const pf_m4_reference_hurt_frame *frame;
     uint16_t relative_frame;
 
@@ -424,11 +423,6 @@ pf_m4_falcon_reference_hurt_capsules_at_frame(
     {
         *out_count = UINT8_C(0);
     }
-    if ((uint32_t)move_index >= (uint32_t)PF_M4_FALCON_MOVE_COUNT)
-    {
-        return NULL;
-    }
-    move = &pf_m4_falcon_hurt_moves[move_index];
     if (move->frame_count == UINT8_C(0) ||
         action_frame < (uint16_t)move->first_frame)
     {
@@ -450,6 +444,55 @@ pf_m4_falcon_reference_hurt_capsules_at_frame(
         *out_count = frame->capsule_count;
     }
     return &pf_m4_falcon_hurt_capsules[frame->capsule_offset];
+}
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_hurt_capsules_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame,
+    uint8_t *out_count)
+{
+    if ((uint32_t)move_index >= (uint32_t)PF_M4_FALCON_MOVE_COUNT)
+    {
+        if (out_count != NULL)
+        {
+            *out_count = UINT8_C(0);
+        }
+        return NULL;
+    }
+    return pf_m4_falcon_reference_hurt_track_at_frame(
+        &pf_m4_falcon_hurt_moves[move_index],
+        action_frame,
+        out_count);
+}
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+    uint8_t action_state,
+    uint16_t action_frame,
+    uint8_t *out_count)
+{
+    pf_m4_falcon_common_hurt_index track_index;
+
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_INITIAL_DASH:
+            track_index = PF_M4_FALCON_COMMON_HURT_INITIAL_DASH;
+            break;
+        case PF_M4_ACTION_RUN_BRAKE:
+            track_index = PF_M4_FALCON_COMMON_HURT_RUN_BRAKE;
+            break;
+        default:
+            if (out_count != NULL)
+            {
+                *out_count = UINT8_C(0);
+            }
+            return NULL;
+    }
+    return pf_m4_falcon_reference_hurt_track_at_frame(
+        &pf_m4_falcon_common_hurt_moves[track_index],
+        action_frame,
+        out_count);
 }
 
 int pf_m4_falcon_reference_move_for_action(

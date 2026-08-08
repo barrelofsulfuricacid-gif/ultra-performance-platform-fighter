@@ -635,7 +635,9 @@ tables already folded into the canonical Falcon source identity.
 Content schema 69/fighter schema 62 folds the canonical Falcon geometry digest
 into content identity and routes complete-frame executable-captured pose and
 hit geometry for the 14 production normals/aerials, standing and dash grab,
-and all 17 Falcon special subactions. Raptor Boost's six non-damaging search
+all 17 Falcon special subactions, Initial Dash, and RunBrake. A compact common-
+pose index maps the existing public action at lookup time; its frame spans reuse
+the ordinary deduplicated capsule pool and add no canonical state. Raptor Boost's six non-damaging search
 spheres live in a distinct immutable table so they cannot be mistaken for
 attack hitboxes. The move/frame tables are immutable offset/count arrays;
 collision does one bounded lookup and iterates fixed-capacity spans without

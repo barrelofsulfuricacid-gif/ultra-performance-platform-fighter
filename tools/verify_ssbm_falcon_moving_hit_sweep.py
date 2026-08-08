@@ -10,6 +10,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from ssbm_collision import captured_collision_margin
+
 
 EXPECTED_CAPTURE_SHA256 = (
     "d8599ecc80efc567d579d9c3df9c10c70f89909dc38358ad29d602ca6ed3f4ea"
@@ -25,118 +27,6 @@ EXPECTED_DECOMP_REVISION = "9509dc04406fb2028bfab01243841ba4787c0fb7"
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def subtract(left: list[float], right: list[float]) -> list[float]:
-    return [a - b for a, b in zip(left, right, strict=True)]
-
-
-def dot(left: list[float], right: list[float]) -> float:
-    return sum(a * b for a, b in zip(left, right, strict=True))
-
-
-def point_on_segment(
-    start: list[float], direction: list[float], parameter: float
-) -> list[float]:
-    return [
-        value + parameter * delta
-        for value, delta in zip(start, direction, strict=True)
-    ]
-
-
-def segment_distance(
-    first_start: list[float],
-    first_end: list[float],
-    second_start: list[float],
-    second_end: list[float],
-) -> float:
-    """Closest distance between two finite 3D segments."""
-
-    first_direction = subtract(first_end, first_start)
-    second_direction = subtract(second_end, second_start)
-    start_delta = subtract(first_start, second_start)
-    first_length = dot(first_direction, first_direction)
-    second_length = dot(second_direction, second_direction)
-    second_projection = dot(second_direction, start_delta)
-    epsilon = 1.0e-12
-
-    if first_length <= epsilon and second_length <= epsilon:
-        return math.dist(first_start, second_start)
-    if first_length <= epsilon:
-        first_parameter = 0.0
-        second_parameter = max(
-            0.0, min(1.0, second_projection / second_length)
-        )
-    else:
-        first_projection = dot(first_direction, start_delta)
-        if second_length <= epsilon:
-            second_parameter = 0.0
-            first_parameter = max(
-                0.0, min(1.0, -first_projection / first_length)
-            )
-        else:
-            direction_dot = dot(first_direction, second_direction)
-            denominator = (
-                first_length * second_length - direction_dot * direction_dot
-            )
-            first_parameter = (
-                max(
-                    0.0,
-                    min(
-                        1.0,
-                        (
-                            direction_dot * second_projection
-                            - first_projection * second_length
-                        )
-                        / denominator,
-                    ),
-                )
-                if denominator > epsilon
-                else 0.0
-            )
-            second_parameter = (
-                direction_dot * first_parameter + second_projection
-            ) / second_length
-            if second_parameter < 0.0:
-                second_parameter = 0.0
-                first_parameter = max(
-                    0.0, min(1.0, -first_projection / first_length)
-                )
-            elif second_parameter > 1.0:
-                second_parameter = 1.0
-                first_parameter = max(
-                    0.0,
-                    min(
-                        1.0,
-                        (direction_dot - first_projection) / first_length,
-                    ),
-                )
-    return math.dist(
-        point_on_segment(first_start, first_direction, first_parameter),
-        point_on_segment(second_start, second_direction, second_parameter),
-    )
-
-
-def collision_margin(
-    hitbox: dict[str, Any],
-    hurtbox: dict[str, Any],
-    moving: bool,
-) -> float:
-    current = [float(value) for value in hitbox["position"]]
-    previous = (
-        [float(value) for value in hitbox["previous_position"]]
-        if moving
-        else current
-    )
-    distance = segment_distance(
-        previous,
-        current,
-        [float(value) for value in hurtbox["collision_position_a"]],
-        [float(value) for value in hurtbox["collision_position_b"]],
-    )
-    return (
-        float(hitbox["radius"]) + float(hurtbox["radius"]) - distance
-    )
 
 
 def continuing_hit_margins(
@@ -165,12 +55,12 @@ def continuing_hit_margins(
         return None
     return (
         max(
-            collision_margin(hitbox, hurtbox, True)
+            captured_collision_margin(hitbox, hurtbox, True)
             for hitbox in hitboxes
             for hurtbox in hurtboxes
         ),
         max(
-            collision_margin(hitbox, hurtbox, False)
+            captured_collision_margin(hitbox, hurtbox, False)
             for hitbox in hitboxes
             for hurtbox in hurtboxes
         ),

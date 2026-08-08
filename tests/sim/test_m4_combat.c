@@ -13413,6 +13413,106 @@ static int run_reference_moving_hit_sweep_test(void)
                0);
 }
 
+static int run_reference_common_dash_hurt_runtime_case(
+    uint32_t melee_distance_hundredths,
+    int expect_hit)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const int32_t total_distance_q16 =
+        melee_distance_hundredths_to_sim_q16(
+            melee_distance_hundredths);
+    uint32_t tick;
+    uint16_t hit_action_tick = UINT16_MAX;
+    int saw_dash = 0;
+
+    if (!expect_status(
+            pf_m4_default_content(&content),
+            PF_STATUS_OK,
+            "reference-common-dash-hurt-default-content"))
+    {
+        return 0;
+    }
+    content.stage.spawn_spacing_q16 = total_distance_q16 / INT32_C(2);
+    content.item.enabled = UINT8_C(0);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "reference-common-dash-hurt-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(12); ++tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                tick == UINT32_C(0)
+                    ? PF_INPUT_BUTTON_ATTACK
+                    : UINT64_C(0),
+                UINT16_C(0),
+                -INT16_C(32767),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("reference-common-dash-hurt-step");
+        }
+        saw_dash |= inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH;
+        if (find_last_tick_event(PF_SIM_EVENT_HIT) != NULL)
+        {
+            hit_action_tick = inspection.players[0].action_ticks;
+            break;
+        }
+    }
+    if (saw_dash == 0)
+    {
+        return fail("reference-common-dash-hurt-dash-state");
+    }
+    if (expect_hit != 0)
+    {
+        if (hit_action_tick == UINT16_MAX ||
+            inspection.players[1].damage_q16 == UINT32_C(0) ||
+            inspection.players[1].last_hit_attacker != UINT8_C(0))
+        {
+            return fail("reference-common-dash-hurt-hit");
+        }
+    }
+    else if (hit_action_tick != UINT16_MAX ||
+             inspection.players[0].damage_q16 != UINT32_C(0) ||
+             inspection.players[1].damage_q16 != UINT32_C(0))
+    {
+        return fail("reference-common-dash-hurt-miss");
+    }
+    return 1;
+}
+
+static int run_reference_common_dash_hurt_test(void)
+{
+    /* Same-input Dolphin boundary: Jab 1 versus an inward Falcon Dash hits
+     * from 31.0 Melee units and misses from 31.5. The former is well outside
+     * the old generic rectangle, so this exercises the imported common pose. */
+    return run_reference_common_dash_hurt_runtime_case(
+               UINT32_C(3100),
+               1) &&
+           run_reference_common_dash_hurt_runtime_case(
+               UINT32_C(3150),
+               0);
+}
+
 static int make_shield_break_content(
     pf_m4_content *out_content,
     pf_content_view *out_view)
@@ -22163,6 +22263,10 @@ static int run_falcon_reference_table_test(void)
     uint8_t down_special_air_sphere_count = UINT8_C(0);
     uint8_t down_tilt_sphere_count = UINT8_C(0);
     uint8_t standing_hurt_capsule_count = UINT8_C(0);
+    uint8_t dash_hurt_capsule_count = UINT8_C(0);
+    uint8_t dash_last_hurt_capsule_count = UINT8_C(0);
+    uint8_t run_brake_hurt_capsule_count = UINT8_C(0);
+    uint8_t run_brake_last_hurt_capsule_count = UINT8_C(0);
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
     uint8_t grab_hurt_capsule_count = UINT8_C(0);
@@ -22234,6 +22338,26 @@ static int run_falcon_reference_table_test(void)
     const pf_m4_reference_hurt_capsule *standing_hurt_capsules =
         pf_m4_falcon_reference_standing_hurt_capsules(
             &standing_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *dash_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH,
+            UINT16_C(1),
+            &dash_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *dash_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH,
+            UINT16_C(15),
+            &dash_last_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *run_brake_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE,
+            UINT16_C(1),
+            &run_brake_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *run_brake_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE,
+            UINT16_C(28),
+            &run_brake_last_hurt_capsule_count);
     const pf_m4_reference_hurt_capsule *jab_hurt_capsules =
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
@@ -22311,7 +22435,23 @@ static int run_falcon_reference_table_test(void)
     if (down_tilt_spheres == NULL ||
         down_tilt_sphere_count != UINT8_C(3) ||
         standing_hurt_capsules == NULL ||
-        standing_hurt_capsule_count != UINT8_C(11))
+        standing_hurt_capsule_count != UINT8_C(11) ||
+        dash_hurt_capsules == NULL ||
+        dash_hurt_capsule_count != UINT8_C(11) ||
+        dash_last_hurt_capsules == NULL ||
+        dash_last_hurt_capsule_count != UINT8_C(11) ||
+        run_brake_hurt_capsules == NULL ||
+        run_brake_hurt_capsule_count != UINT8_C(11) ||
+        run_brake_last_hurt_capsules == NULL ||
+        run_brake_last_hurt_capsule_count != UINT8_C(11) ||
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_INITIAL_DASH,
+            UINT16_C(0),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_RUN_BRAKE,
+            UINT16_C(29),
+            NULL) != NULL)
     {
         return fail("falcon-reference-z-collision-source");
     }
@@ -23044,10 +23184,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0xd2) ||
-        geometry_sha256[1] != UINT8_C(0x2a) ||
-        geometry_sha256[30] != UINT8_C(0xa9) ||
-        geometry_sha256[31] != UINT8_C(0x2b) ||
+        geometry_sha256[0] != UINT8_C(0x32) ||
+        geometry_sha256[1] != UINT8_C(0xd5) ||
+        geometry_sha256[30] != UINT8_C(0x24) ||
+        geometry_sha256[31] != UINT8_C(0xda) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -24309,6 +24449,7 @@ int main(void)
             &shield_poke_view) ||
         !run_reference_shield_boundary_test() ||
         !run_reference_moving_hit_sweep_test() ||
+        !run_reference_common_dash_hurt_test() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

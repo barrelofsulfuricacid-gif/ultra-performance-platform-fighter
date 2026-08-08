@@ -531,7 +531,8 @@ new character-specific implementation.
 
 Hash-pinned Dolphin captures provide transformed hit geometry and complete-
 frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
-dash grab, and all 17 Falcon special subactions. Every damaging/grabbing
+dash grab, all 17 Falcon special subactions, and the complete 15-frame Initial
+Dash plus 28-frame RunBrake common tracks. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
 are imported separately as the source's six search spheres rather than being
 misclassified as attacks. The imported special timing, attributes, and
@@ -601,9 +602,13 @@ frame-22 wall-hug detection, action 363, preserved entry self velocity, and the
 complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
-Hurt capsules and action-command/callback semantics for remaining common
-actions remain explicit M4 gaps and must be extracted or qualified rather than
-approximated with invented frame data. The executable's previous-to-current
+Hurt capsules and action-command/callback semantics for common actions beyond
+Initial Dash and RunBrake remain explicit M4 gaps and must be extracted or
+qualified rather than approximated with invented frame data. Common poses use
+one compact generated state index and reuse the action-pose capsule pool; public
+action values are mapped once and no snapshot state or allocation is added. A
+pinned 31.0-unit hit/31.5-unit miss route proves the Dash track against Dolphin
+and rejects the old generic rectangle. The executable's previous-to-current
 moving hit-capsule sweep is production-routed and Dolphin-qualified: imported
 collision state distinguishes creation from continuation, continuation finds
 the prior same-ID sphere without enlarging rollback state, and one shared
