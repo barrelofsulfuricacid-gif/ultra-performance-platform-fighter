@@ -54,7 +54,7 @@ common_flags="
 
 "$output_dir/m4_movement_test" >"$output_dir/m4_movement.txt"
 grep -Fqx \
-    'm4-movement=pass content_schema=69 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped' \
+    'm4-movement=pass content_schema=70 deterministic_ticks=20000 movement_core=pass tap_jump=1 jump_takeoff_momentum=1 player_push=1 teeter_cancel=1 taunt_cancel=1 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped' \
     "$output_dir/m4_movement.txt"
 
 echo "m4-movement-verification=pass movement_core=pass teeter_cancel=1 taunt_cancel=1 deterministic_ticks=20000 double_jump_cancel=1 vector_ascent=1 ledge_roll=1 emergent_technique_tests=skipped"

@@ -24,6 +24,9 @@ Behavior and field meanings were checked against `doldecomp/melee` revision
 common fall/air-physics routines, plus `ftCo_Guard.c` and `fighter.c` for the
 shield-health and pressure formulas, `ftcoll.c` for shield-hit damage
 conversion, and `ftcommon.c` for attacker-recoil initialization and decay.
+Roll and air-dodge callback semantics additionally follow `ftCo_Escape.c`,
+`ftCo_EscapeF.c`, `ftCo_EscapeB.c`, `ftCo_EscapeAir.c`, and the shared
+`ft_80085004`/`ft_80085030` animation-translation path.
 Shield tilt and geometry additionally follow `ftCo_80091BC4`,
 `ftCo_80091E78`, `ftAnim_80070108`, `ftColl_8007B1B8`, and the transformed
 sphere path in `lbcollision.c` at the same pinned revision.
@@ -101,14 +104,61 @@ source stream. Full animation keys remain an offline source surface and are
 emitted as compact Q16 tables only when production behavior consumes a track,
 avoiding a multi-megabyte unused runtime asset.
 
+The generated behavior surface now includes every Falcon submotion whose
+packed animation flags select a translation-N node: 65 submotions and 2,536
+displayed-frame X/Y deltas in one immutable pool. The node index is
+`(flags & 0x3f) - 1`; masking only the low byte is incorrect for flags such as
+EscapeF's `0x800000c2`. Each catalog row stores an O(1) offset/count span, and
+attack/root-motion accessors reuse the same pool rather than generating
+parallel tables. Regeneration produces
+`generated/data/m4_falcon_ntsc102_frame_data.inc` byte-for-byte at SHA-256
+`ffc2c3fb3ba2b2cb7591fb857b7396d6bc901a3e34a7cd5cb24c47334bfa86d3`.
+The expanded behavior-bearing source digest is
+`c7cf308115511ee2872fa9fe610f0bb264a7dde34f3f3edc357cbfe73822a015`;
+the separate logical catalog digest remains stable because derived spans do
+not change its original source fields.
+
 A generated 318-row body-collision command view decodes raw `waitUntil`,
 `waitFor`, state-2, and state-0 bytes without relying on extractor labels.
 Production tech-in-place/roll invulnerability duration now comes from the three
 matching frame-0-to-20 source windows, and neutral getup validates both prone
 orientations' matching frame-0-to-23 windows. The duplicate authored 20/23
-assignments were removed. Dodge, getup-attack, ledge, and other windows are
+assignments were removed. Getup-attack, ledge, and other unaudited windows are
 retained as source commands but are not equated with runtime invulnerability
 until their state-specific displayed-frame semantics are qualified.
+
+EscapeN, EscapeF, EscapeB, and EscapeAir are now qualified rather than merely
+retained. Ground-dodge displayed frames map directly to production action
+ticks; EscapeAir maps displayed frame `n` to tick `n-1`. Raw body-state
+commands drive the invulnerability intervals. Forward and backward roll use
+the single generated translation stream selected by the decomp callback:
+`ft_80085030` replaces ground velocity from the TransN offset, so production
+does not add a second authored displacement channel. Direction is a facing
+transform of that same source stream, and forward roll's exact frame-29 delta
+is 280 Q16 units.
+
+EscapeAir common values come from `PlCo.dat` offsets `0x32c` through `0x340`:
+equal-axis dead zone 0.25, three-tick early item-throw window, force 3.1, and
+decay 0.9. The item-throw timer is retained for the later common-item IASA
+route; the no-item defense capture does not claim to qualify it.
+Because EscapeAir physics runs on its entry frame, the generated runtime view
+stores the first visible converted X/Y velocities (19,080/32,440 Q16), not a
+second pre-decay transient, plus decay 58,982 Q16 and dead zone 8,192. Raw
+opcode `0x4c` is decoded as command-variable index `encoded[0] & 3` plus a
+24-bit value; EscapeAir writes variable 0 to 1 on displayed frame 30. Before
+that gate the callback decays both axes; from it onward the same EscapeAir
+action executes ordinary aerial input and gravity, exactly as
+`ftCo_EscapeAir_Phys` delegates to `ft_80084DB0`.
+
+Floor contact during EscapeAir uses a 48-frame animated ECB-bottom sequence
+from the same schema-9 live-memory route, rather than the generic body extent
+that landed one frame early. The complete 285-frame Final Destination defense
+capture has SHA-256
+`1118a7a6e26ae98862e7457caee59ff45260076f30ce2e3e09ba71f249dc6084`.
+It covers forward roll, spot dodge, backward roll, held-L/fresh-R upward air
+dodge, ordinary-physics handoff, and landing while strictly comparing action,
+tick, grounded state, facing, invulnerability, and velocity; position stays
+within the established 640-Q16 representation envelope.
 
 Default production timing for dash, standing/run turn, run brake, ordinary
 landing, crouch start/reverse, shield release, spot dodge, both rolls, air

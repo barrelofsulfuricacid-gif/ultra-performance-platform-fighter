@@ -19,6 +19,30 @@ static uint16_t pf_m4_falcon_reference_hitlag_ticks(uint8_t damage)
     return (uint16_t)(damage / UINT8_C(3) + UINT8_C(3));
 }
 
+static int pf_m4_falcon_reference_body_collision_window(
+    uint16_t submotion_index,
+    uint16_t displayed_frame_bias,
+    uint16_t *out_begin_tick,
+    uint16_t *out_end_tick)
+{
+    const pf_m4_falcon_body_collision_timing *timing =
+        pf_m4_falcon_reference_body_collision_timing(submotion_index);
+
+    if (timing == NULL || out_begin_tick == NULL || out_end_tick == NULL ||
+        timing->state_two_frame == UINT16_MAX ||
+        timing->state_zero_frame == UINT16_MAX ||
+        timing->state_two_frame < displayed_frame_bias ||
+        timing->state_zero_frame <= timing->state_two_frame)
+    {
+        return 0;
+    }
+    *out_begin_tick =
+        (uint16_t)(timing->state_two_frame - displayed_frame_bias);
+    *out_end_tick =
+        (uint16_t)(timing->state_zero_frame - displayed_frame_bias);
+    return 1;
+}
+
 static int pf_m4_apply_falcon_reference_common_action_timings(
     pf_m4_fighter_data *fighter)
 {
@@ -49,6 +73,8 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
             PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD);
     const pf_m4_falcon_submotion_data *air_dodge =
         pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_AIR_DODGE);
+    const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes =
+        pf_m4_falcon_reference_air_dodge_attributes();
     const pf_m4_falcon_submotion_data *getup_neutral =
         pf_m4_falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_BACK);
@@ -92,11 +118,20 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     const pf_m4_falcon_body_collision_timing *tech_roll_backward_collision =
         pf_m4_falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD);
+    uint16_t spot_dodge_invulnerability_begin_tick;
+    uint16_t spot_dodge_invulnerability_end_tick;
+    uint16_t roll_forward_invulnerability_begin_tick;
+    uint16_t roll_forward_invulnerability_end_tick;
+    uint16_t roll_backward_invulnerability_begin_tick;
+    uint16_t roll_backward_invulnerability_end_tick;
+    uint16_t air_dodge_invulnerability_begin_tick;
+    uint16_t air_dodge_invulnerability_end_tick;
 
     if (fighter == NULL || dash == NULL || turn == NULL || turn_run == NULL ||
         run_brake == NULL || landing == NULL || squat == NULL ||
         squat_reverse == NULL || guard_off == NULL || spot_dodge == NULL ||
         roll_forward == NULL || roll_backward == NULL || air_dodge == NULL ||
+        air_dodge_attributes == NULL ||
         getup_neutral == NULL || getup_attack == NULL ||
         getup_roll_forward == NULL || getup_roll_backward == NULL ||
         tech_in_place == NULL || tech_roll_forward == NULL ||
@@ -109,7 +144,8 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         dash->animation_frame_count == UINT16_C(0) ||
         run_brake->animation_frame_count == UINT16_MAX ||
         appeal_right->animation_frame_count !=
-            appeal_left->animation_frame_count ||
+        appeal_left->animation_frame_count ||
+        air_dodge_attributes->ordinary_physics_begin_frame == UINT16_C(0) ||
         getup_roll_forward->gameplay_frame_count !=
             getup_roll_backward->gameplay_frame_count ||
         tech_roll_forward->animation_frame_count !=
@@ -126,7 +162,33 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         tech_roll_forward_collision->state_zero_frame !=
             tech_in_place_collision->state_zero_frame ||
         tech_roll_backward_collision->state_zero_frame !=
-            tech_in_place_collision->state_zero_frame)
+            tech_in_place_collision->state_zero_frame ||
+        !pf_m4_falcon_reference_body_collision_window(
+            PF_M4_FALCON_SUBMOTION_SPOT_DODGE,
+            UINT16_C(0),
+            &spot_dodge_invulnerability_begin_tick,
+            &spot_dodge_invulnerability_end_tick) ||
+        !pf_m4_falcon_reference_body_collision_window(
+            PF_M4_FALCON_SUBMOTION_ROLL_FORWARD,
+            UINT16_C(0),
+            &roll_forward_invulnerability_begin_tick,
+            &roll_forward_invulnerability_end_tick) ||
+        !pf_m4_falcon_reference_body_collision_window(
+            PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD,
+            UINT16_C(0),
+            &roll_backward_invulnerability_begin_tick,
+            &roll_backward_invulnerability_end_tick) ||
+        roll_forward_invulnerability_begin_tick !=
+            roll_backward_invulnerability_begin_tick ||
+        roll_forward_invulnerability_end_tick !=
+            roll_backward_invulnerability_end_tick ||
+        /* Dolphin exposes EscapeAir displayed frame 1 at M4 action tick 0;
+         * ground escapes expose displayed frame 1 at action tick 1. */
+        !pf_m4_falcon_reference_body_collision_window(
+            PF_M4_FALCON_SUBMOTION_AIR_DODGE,
+            UINT16_C(1),
+            &air_dodge_invulnerability_begin_tick,
+            &air_dodge_invulnerability_end_tick))
     {
         return 0;
     }
@@ -150,6 +212,22 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     fighter->forward_roll_ticks = roll_forward->gameplay_frame_count;
     fighter->backward_roll_ticks = roll_backward->gameplay_frame_count;
     fighter->air_dodge_ticks = air_dodge->gameplay_frame_count;
+    fighter->air_dodge_invulnerability_begin_tick =
+        air_dodge_invulnerability_begin_tick;
+    fighter->air_dodge_invulnerability_end_tick =
+        air_dodge_invulnerability_end_tick;
+    fighter->air_dodge_ordinary_physics_begin_tick =
+        (uint16_t)(
+            air_dodge_attributes->ordinary_physics_begin_frame -
+            UINT16_C(1));
+    fighter->roll_invulnerability_begin_tick =
+        roll_forward_invulnerability_begin_tick;
+    fighter->roll_invulnerability_end_tick =
+        roll_forward_invulnerability_end_tick;
+    fighter->spot_dodge_invulnerability_begin_tick =
+        spot_dodge_invulnerability_begin_tick;
+    fighter->spot_dodge_invulnerability_end_tick =
+        spot_dodge_invulnerability_end_tick;
     fighter->getup_neutral_ticks = getup_neutral->animation_frame_count;
     fighter->getup_attack_ticks = getup_attack->gameplay_frame_count;
     fighter->getup_roll_ticks = getup_roll_forward->gameplay_frame_count;
@@ -929,6 +1007,9 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(
         hash,
         fighter->air_dodge_invulnerability_end_tick);
+    pf_m4_hash_u16(
+        hash,
+        fighter->air_dodge_ordinary_physics_begin_tick);
     pf_m4_hash_u16(hash, fighter->ledge_invulnerability_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_regrab_lockout_ticks);
     pf_m4_hash_u16(hash, fighter->ledge_transition_ticks);
@@ -1341,6 +1422,7 @@ const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
 pf_status pf_m4_default_content(pf_m4_content *out_content)
 {
     const pf_m4_falcon_common_attributes *falcon_attributes;
+    const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes;
     const pf_m4_melee_stale_move_data *stale_move_data;
     pf_m4_fighter_data *fighter;
     pf_m4_stage_data *stage;
@@ -1356,8 +1438,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     }
 
     falcon_attributes = pf_m4_falcon_reference_common_attributes();
+    air_dodge_attributes = pf_m4_falcon_reference_air_dodge_attributes();
     stale_move_data = pf_m4_falcon_reference_stale_move_data();
-    if (falcon_attributes == NULL || stale_move_data == NULL)
+    if (falcon_attributes == NULL || air_dodge_attributes == NULL ||
+        stale_move_data == NULL)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
     }
@@ -1438,9 +1522,11 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         falcon_attributes->ledge_jump_vertical_velocity_q16;
     fighter->ledge_roll_distance_q16 = PF_Q16_RATIO(7, 4);
     fighter->drop_cancel_snap_distance_q16 = PF_Q16_RATIO(5, 8);
-    fighter->air_dodge_speed_x_q16 = PF_Q16_RATIO(837, 2875);
-    fighter->air_dodge_speed_y_q16 = PF_Q16_RATIO(3069, 6200);
-    fighter->air_dodge_decay_q16 = PF_Q16_RATIO(9, 10);
+    fighter->air_dodge_speed_x_q16 =
+        air_dodge_attributes->initial_velocity_x_q16;
+    fighter->air_dodge_speed_y_q16 =
+        air_dodge_attributes->initial_velocity_y_q16;
+    fighter->air_dodge_decay_q16 = air_dodge_attributes->decay_q16;
     fighter->fall_special_mobility_q16 = PF_Q16_RATIO(1008, 14375);
     fighter->shield_break_launch_speed_q16 =
         falcon_attributes->shield_break_initial_velocity_q16;
@@ -1819,8 +1905,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->landing_interruptible_tick = UINT16_C(4);
     fighter->platform_drop_ticks = UINT16_C(9);
     fighter->platform_drop_startup_ticks = UINT16_C(3);
-    fighter->air_dodge_invulnerability_begin_tick = UINT16_C(3);
-    fighter->air_dodge_invulnerability_end_tick = UINT16_C(29);
     fighter->ledge_invulnerability_ticks = UINT16_C(37);
     fighter->ledge_regrab_lockout_ticks = UINT16_C(29);
     fighter->ledge_transition_ticks = UINT16_C(8);
@@ -1839,7 +1923,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->tap_jump_input_window_ticks = UINT16_C(4);
     fighter->fast_fall_axis_threshold = UINT16_C(21709);
     fighter->fast_fall_input_window_ticks = UINT16_C(4);
-    fighter->air_dodge_dead_zone = UINT16_C(8192);
+    fighter->air_dodge_dead_zone = air_dodge_attributes->dead_zone;
     fighter->crouch_axis_threshold = UINT16_C(22528);
     fighter->shield_drop_axis_threshold = UINT16_C(12288);
     fighter->dash_attack_startup_ticks = UINT16_C(4);
@@ -1918,10 +2002,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->getup_attack_hitlag_ticks = UINT16_C(3);
     fighter->roll_movement_begin_tick = UINT16_C(3);
     fighter->roll_movement_end_tick = UINT16_C(20);
-    fighter->roll_invulnerability_begin_tick = UINT16_C(4);
-    fighter->roll_invulnerability_end_tick = UINT16_C(17);
-    fighter->spot_dodge_invulnerability_begin_tick = UINT16_C(3);
-    fighter->spot_dodge_invulnerability_end_tick = UINT16_C(16);
     fighter->shield_minimum_hold_ticks = UINT16_C(8);
     fighter->powershield_window_ticks = UINT16_C(4);
     fighter->powershield_cancel_delay_ticks = UINT16_C(1);
@@ -2854,6 +2934,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->air_dodge_invulnerability_begin_tick >=
             fighter->air_dodge_invulnerability_end_tick ||
         fighter->air_dodge_invulnerability_end_tick >
+            fighter->air_dodge_ticks ||
+        fighter->air_dodge_ordinary_physics_begin_tick == UINT16_C(0) ||
+        fighter->air_dodge_ordinary_physics_begin_tick >=
             fighter->air_dodge_ticks ||
         fighter->ledge_invulnerability_ticks == UINT16_C(0) ||
         fighter->ledge_invulnerability_ticks > UINT16_C(600) ||

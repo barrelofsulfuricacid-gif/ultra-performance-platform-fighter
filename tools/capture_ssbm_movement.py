@@ -15,6 +15,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import socket
 import subprocess
 import sys
@@ -62,6 +63,7 @@ def input_trace(
     shield_hit_only: bool = False,
     shield_collision_only: bool = False,
     damage_hit_only: bool = False,
+    defense_state_only: bool = False,
     attack_iasa_only: bool = False,
     ground_attack_iasa_only: bool = False,
     hitbox_geometry_only: bool = False,
@@ -1051,6 +1053,90 @@ def input_trace(
         repeat("damage_hit_recovery", 75)
         return trace
 
+    if defense_state_only:
+        repeat("defense_state_settle", 60)
+        repeat(
+            "defense_state_forward_roll_shield",
+            10,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_forward_roll_entry",
+                main_x=1.0,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+        )
+        repeat("defense_state_forward_roll_observe", 40)
+
+        repeat(
+            "defense_state_spot_dodge_shield",
+            10,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_spot_dodge_entry",
+                main_y=0.0,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+        )
+        repeat("defense_state_spot_dodge_observe", 35)
+
+        repeat(
+            "defense_state_backward_roll_shield",
+            10,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_backward_roll_entry",
+                main_x=1.0,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+        )
+        repeat("defense_state_backward_roll_observe", 45)
+
+        repeat(
+            "defense_state_air_dodge_shield",
+            10,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_air_dodge_jump",
+                left_shoulder=1.0,
+                digital_left=True,
+                jump=True,
+            )
+        )
+        repeat(
+            "defense_state_air_dodge_jump_squat",
+            5,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_air_dodge_entry",
+                main_x=1.0,
+                main_y=1.0,
+                left_shoulder=1.0,
+                right_shoulder=1.0,
+                digital_left=True,
+                digital_right=True,
+            )
+        )
+        repeat("defense_state_air_dodge_observe", 55)
+        return trace
+
     if platform_only:
         repeat("platform_settle", 60)
         trace.append(command("platform_jump", jump=True))
@@ -1903,6 +1989,7 @@ def read_fighter_hurt_capsules(
         hurtboxes.append(
             {
                 "state": memory_engine.read_word(hurtbox),
+                "state_bytes": bytes(memory_engine.read_bytes(hurtbox, 4)).hex(),
                 "radius": memory_engine.read_float(hurtbox + 0x1C),
                 "offset_a": offset_a,
                 "offset_b": offset_b,
@@ -1974,6 +2061,7 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     opponent = read_fighter_address(memory_engine, 1)
     return {
         "fighter_address": fighter,
+        "hurtbox_state_flag_byte": memory_engine.read_byte(fighter + 0x221A),
         "fighter_position": [
             memory_engine.read_float(fighter + 0xB0 + 4 * axis) for axis in range(3)
         ],
@@ -2055,13 +2143,46 @@ def wait_for_udp_listener(port: int, timeout: float) -> None:
     while time.monotonic() < deadline:
         probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            probe.bind(("127.0.0.1", port))
+            if os.name == "nt":
+                # Windows permits a loopback UDP bind alongside an existing
+                # wildcard bind unless the probe itself is exclusive. Slippi
+                # listens on 0.0.0.0, so probe the same address and request
+                # exclusive ownership to avoid a false "port is free" result.
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            probe.bind(("0.0.0.0", port))
         except OSError:
             return
         finally:
             probe.close()
         time.sleep(0.05)
     raise RuntimeError(f"Dolphin did not bind Slippi UDP port {port}")
+
+
+def stop_console(console: melee.Console) -> None:
+    """Stop Dolphin and remove libmelee's temporary home without a Windows race."""
+
+    process = console._process
+    temp_dir = console.temp_dir
+    console.temp_dir = None
+    console.stop()
+
+    if process is not None:
+        try:
+            process.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5.0)
+
+    if temp_dir is None:
+        return
+    for attempt in range(50):
+        try:
+            shutil.rmtree(temp_dir)
+            return
+        except PermissionError:
+            if os.name != "nt" or attempt == 49:
+                raise
+            time.sleep(0.1)
 
 
 def choose_match(
@@ -2162,11 +2283,16 @@ def wait_for_grounded_capsule(
 def hook_memory_engine(dolphin: Path) -> object:
     """Hook DME, including extracted-AppImage process-name discovery."""
 
-    if "DME_DOLPHIN_PROCESS_NAME" not in os.environ and (
-        dolphin.suffix.lower() == ".appimage"
-        or dolphin.name.lower() in {"apprun", "apprun.wrapped"}
-    ):
-        os.environ["DME_DOLPHIN_PROCESS_NAME"] = "AppRun.wrapped"
+    if "DME_DOLPHIN_PROCESS_NAME" not in os.environ:
+        if os.name == "nt" and dolphin.suffix.lower() == ".exe":
+            # DME otherwise searches only Dolphin.exe/DolphinQt2.exe/
+            # DolphinWx.exe. Slippi's executable has a distinct process name.
+            os.environ["DME_DOLPHIN_PROCESS_NAME"] = dolphin.name
+        elif dolphin.suffix.lower() == ".appimage" or dolphin.name.lower() in {
+            "apprun",
+            "apprun.wrapped",
+        }:
+            os.environ["DME_DOLPHIN_PROCESS_NAME"] = "AppRun.wrapped"
     try:
         import dolphin_memory_engine as memory_engine_module
     except ImportError as error:
@@ -2277,10 +2403,20 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     dolphin = Path(args.dolphin).resolve()
     iso = Path(args.iso).resolve()
     if dolphin.is_dir():
-        if not (dolphin / "dolphin-emu").is_file():
-            raise FileNotFoundError(f"missing dolphin-emu under {dolphin}")
+        executable_candidates = (
+            dolphin / "Slippi Dolphin.exe",
+            dolphin / "dolphin-emu",
+        )
+        executable = next(
+            (candidate for candidate in executable_candidates if candidate.is_file()),
+            None,
+        )
+        if executable is None:
+            raise FileNotFoundError(f"missing Slippi Dolphin under {dolphin}")
     elif not dolphin.is_file():
         raise FileNotFoundError(f"missing Dolphin executable or AppImage: {dolphin}")
+    else:
+        executable = dolphin
     if not iso.is_file():
         raise FileNotFoundError(f"missing GALE01 image: {iso}")
     wall_geometry_route = bool(
@@ -2293,8 +2429,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "down_ground_wall uses Hyrule Temple and must be captured alone"
         )
 
+    console_path = (
+        dolphin.parent
+        if os.name == "nt" and dolphin.is_file()
+        else dolphin
+    )
     console = melee.Console(
-        path=str(dolphin),
+        path=str(console_path),
         blocking_input=True,
         polling_mode=False,
         tmp_home_directory=True,
@@ -2318,7 +2459,6 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             # keeps the oracle runnable without installing a kernel component.
             environment = {"APPIMAGE_EXTRACT_AND_RUN": "1"}
         if args.batch:
-            executable = dolphin / "dolphin-emu" if dolphin.is_dir() else dolphin
             dolphin_environment = os.environ.copy()
             if environment is not None:
                 dolphin_environment.update(environment)
@@ -2356,7 +2496,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and not items_configured
                 and gamestate.menu_state == melee.Menu.MAIN_MENU
             ):
-                memory_engine = wait_for_memory_engine_hook(dolphin)
+                memory_engine = wait_for_memory_engine_hook(executable)
                 set_native_capsule_preferences(memory_engine)
                 items_configured = True
             if (
@@ -2403,7 +2543,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             or args.memory_probe_collision
         ):
             if memory_engine is None:
-                memory_engine = wait_for_memory_engine_hook(dolphin)
+                memory_engine = wait_for_memory_engine_hook(executable)
 
         if (
             args.special_geometry_move
@@ -2435,6 +2575,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             shield_hit_only=args.shield_hit_only,
             shield_collision_only=args.shield_collision_only,
             damage_hit_only=args.damage_hit_only,
+            defense_state_only=args.defense_state_only,
             attack_iasa_only=args.attack_iasa_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
             hitbox_geometry_only=args.hitbox_geometry_only,
@@ -2739,6 +2880,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "attack_velocity_y": float(player.speed_y_attack),
                 "hitlag_left": float(player.hitlag_left),
                 "hitstun_left": float(player.hitstun_frames_left),
+                "invulnerable": bool(player.invulnerable),
+                "invulnerability_left": int(player.invulnerability_left),
+                "iasa": bool(player.iasa),
                 "damage_percent": float(player.percent),
                 "shield_health": float(player.shield_strength),
                 "opponent_action": player_two_state.action.name,
@@ -2831,6 +2975,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 args.shield_hit_pressure if args.shield_hit_only else None
             ),
             "damage_hit_route": bool(args.damage_hit_only),
+            "defense_state_route": bool(args.defense_state_only),
             "controller_postframe_pipeline_delay": pipeline_delay,
             "shield_memory_probe": (
                 {
@@ -2897,7 +3042,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             memory_engine.un_hook()
         player_one.disconnect()
         player_two.disconnect()
-        console.stop()
+        stop_console(console)
 
 
 def parse_args() -> argparse.Namespace:
@@ -2918,6 +3063,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--shield-hit-only", action="store_true")
     mode.add_argument("--shield-collision-only", action="store_true")
     mode.add_argument("--damage-hit-only", action="store_true")
+    mode.add_argument("--defense-state-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
     mode.add_argument("--hitbox-geometry-only", action="store_true")
@@ -2959,7 +3105,8 @@ def parse_args() -> argparse.Namespace:
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
     if args.memory_probe_hitbox and not (
-        args.hitbox_geometry_only
+        args.defense_state_only
+        or args.hitbox_geometry_only
         or args.throw_geometry_only
         or args.special_geometry_only
     ):

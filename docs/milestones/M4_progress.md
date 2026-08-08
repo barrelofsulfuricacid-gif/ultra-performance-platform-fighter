@@ -3760,3 +3760,67 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   configured tests after refreshing the verifier soak digest for the changed
   content identity. The remaining collision gap is the executable's moving
   previous-to-current hit-capsule sweep, not source-Z data loss.
+
+## 2026-08-07 source-routed Falcon defense callbacks
+
+- The exhaustive Falcon animation import now emits one translation pool for
+  all 65 translation-bearing submotions and 2,536 X/Y displayed-frame samples.
+  The decoder uses `(flags & 0x3f) - 1`, which correctly resolves EscapeF's
+  `0x800000c2`; a low-byte mask does not. Each of the 318 catalog rows exposes
+  an O(1) span, and attack/root-motion accessors reuse it without duplicate
+  generated arrays or runtime allocation.
+- Forward and backward roll no longer use three authored velocity/displacement
+  curves. Pinned decomp `ftCo_Escape_Phys -> ft_80085004 -> ft_80085030`
+  proves that TransN offset replaces the ground-velocity channel. Both roll
+  directions now consume the same source samples through a facing transform,
+  including the exact 280-Q16 forward-roll frame-29 delta; the former additive
+  backward displacement is removed.
+- EscapeN/EscapeF/EscapeB/EscapeAir body-state commands now generate the
+  production invulnerability windows with their state-specific displayed-
+  frame bias. The comparator treats invulnerability as an exact discrete
+  field. EscapeAir force, 0.25 dead zone, three-tick early item-throw window,
+  and 0.9 decay come from `PlCo.dat`; entry-frame decay produces visible converted
+  X/Y velocities 19,080/32,440 Q16.
+- The raw EscapeAir opcode `0x4c` is decoded into variable index plus 24-bit
+  value. Its displayed-frame-30 write of variable 0 to 1 switches the unchanged
+  action from dual-axis decay to ordinary aerial input and gravity, matching
+  `ftCo_EscapeAir_Phys`. A captured 48-frame EscapeAir ECB-bottom sequence
+  replaces the generic extent that landed one tick early.
+- The 285-frame Final Destination defense capture at SHA-256
+  `1118a7a6e26ae98862e7457caee59ff45260076f30ce2e3e09ba71f249dc6084`
+  passes end-to-end. It covers forward roll, spot dodge, backward roll, held-L/
+  fresh-R upward air dodge, the ordinary-physics handoff, and landing with
+  strict action/tick/grounded/facing/invulnerability/velocity checks and the
+  established 640-Q16 position allowance. Aggregate executable qualification
+  is now 17,923 frames.
+- Pinned regeneration byte-matches at generated-include SHA-256
+  `ffc2c3fb3ba2b2cb7591fb857b7396d6bc901a3e34a7cd5cb24c47334bfa86d3`;
+  the expanded complete-source digest is
+  `c7cf308115511ee2872fa9fe610f0bb264a7dde34f3f3edc357cbfe73822a015`.
+  Replay corpus/final/event SHA-256 values are
+  `af5b1bb66a475a4c28e93f15e12355d92c14ced6e08ecdad7bf25dbac82612f7`,
+  `78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  Content schema 70/fighter schema 63 hash and fail closed on the new callback
+  boundary. WSL GCC, WSL ASan/UBSan, and native Windows MinGW each pass 15/15
+  fidelity tests; the milestone combat verifier passes 61 registry rows, 74
+  journal invariants, and the 20,000-tick deterministic trace. The repeated-
+  match verifier is stable at
+  `837cef55c577079e` after the fail-closed schema bump.
+- The fresh WSL release benchmark self-test passes all ten available scenarios.
+  A separate unsampled three-repetition throughput smoke reports 1,986,808
+  representative-1v1 ticks/s, 1,083,197 representative-2v2 ticks/s, and
+  1,084,402 maximum-combat-entity ticks/s. This short local smoke has no
+  compatible history baseline and is not substituted for sampled profiling.
+- The personal `ssbm-character-importer` skill gained reusable, repo-independent
+  routines for validated action-script timelines, command-variable writes,
+  body-state intervals, displayed-frame biases, six-bit translation-node
+  selection, and caller-supplied Q16 translation sampling. Its inspector now
+  verifies per-row translation nodes and Falcon's 65 translation submotions;
+  skill validation, Python compilation, and the pinned Falcon inspection pass.
+  The skill records the newly proven replacement/addition callback distinction,
+  entry-frame decay ordering, same-action physics switches, animated-ECB
+  landing, and Windows Slippi/Dolphin Memory Engine capture gotchas.
+- M4 remains unfinished. This closes the sampled defense callback route, not
+  common-action hurt poses, moving hit-capsule sweeps, remaining ledge/tech/
+  damage semantics, or the exhaustive Falcon equivalence obligation.

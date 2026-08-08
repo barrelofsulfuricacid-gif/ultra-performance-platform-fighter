@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(69)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(62)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(70)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(63)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -581,6 +581,7 @@ typedef struct pf_m4_fighter_data
     uint16_t air_dodge_ticks;
     uint16_t air_dodge_invulnerability_begin_tick;
     uint16_t air_dodge_invulnerability_end_tick;
+    uint16_t air_dodge_ordinary_physics_begin_tick;
     uint16_t ledge_invulnerability_ticks;
     uint16_t ledge_regrab_lockout_ticks;
     uint16_t ledge_transition_ticks;

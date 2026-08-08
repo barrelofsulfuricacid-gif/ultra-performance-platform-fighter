@@ -1539,24 +1539,61 @@ static int prepare_v_cancel_fall_special_target(
             return 0;
         }
     }
-    return out_inspection->players[1].action_state ==
-               (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
-           out_inspection->players[1].tech_lockout_ticks == UINT16_C(0);
+    if (out_inspection->players[1].action_state !=
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+        out_inspection->players[1].tech_lockout_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-combat=fail operation=prepare-v-cancel-fall-special"
+            " action=%u tick=%u grounded=%u tech_lockout=%u\n",
+            (unsigned int)out_inspection->players[1].action_state,
+            (unsigned int)out_inspection->players[1].action_ticks,
+            (unsigned int)out_inspection->players[1].grounded,
+            (unsigned int)out_inspection->players[1].tech_lockout_ticks);
+        return 0;
+    }
+    return 1;
+}
+
+static int make_v_cancel_fall_special_setup(
+    const pf_m4_content *content,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    *out_content = *content;
+    /* This setup isolates FallSpecial V-cancel behavior. Production
+     * EscapeAir duration, gravity, and landing are verified independently. */
+    out_content->fighter.air_dodge_ticks = UINT16_C(41);
+    out_content->fighter.air_dodge_invulnerability_begin_tick = UINT16_C(0);
+    out_content->fighter.air_dodge_invulnerability_end_tick = UINT16_C(1);
+    out_content->fighter.air_dodge_ordinary_physics_begin_tick = UINT16_C(1);
+    out_content->fighter.gravity_q16 = INT32_C(1);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "v-cancel-fall-special-setup-content");
 }
 
 static int run_v_cancel_fall_special_case(
-    const pf_content_view *view,
+    const pf_m4_content *content,
     uint32_t trigger_lead_ticks,
     test_v_cancel_result *out_result)
 {
     test_sim_storage storage;
+    pf_m4_content setup_content;
+    pf_content_view setup_view;
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
     uint32_t tick;
 
-    if (!initialize_sim(
+    if (!make_v_cancel_fall_special_setup(
+            content,
+            &setup_content,
+            &setup_view) ||
+        !initialize_sim(
             &storage,
-            view,
+            &setup_view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
             1,
@@ -1629,6 +1666,13 @@ static int run_v_cancel_fall_special_case(
             return 1;
         }
     }
+    (void)fprintf(
+        stderr,
+        "m4-combat=fail operation=v-cancel-fall-special-hit"
+        " target_action=%u target_x=%" PRId32 " target_y=%" PRId32 "\n",
+        (unsigned int)inspection.players[1].action_state,
+        inspection.players[1].position_x_q16,
+        inspection.players[1].position_y_q16);
     return 0;
 }
 
@@ -3788,10 +3832,10 @@ static int run_v_cancel_test(
             content, view, UINT32_C(1), 0, 0, &age_one))
         return fail("v-cancel-air-age-one-route");
     if (!run_v_cancel_fall_special_case(
-            view, UINT32_C(2), &age_two))
+            content, UINT32_C(2), &age_two))
         return fail("v-cancel-fall-special-age-two-route");
     if (!run_v_cancel_fall_special_case(
-            view, UINT32_C(3), &age_three))
+            content, UINT32_C(3), &age_three))
         return fail("v-cancel-fall-special-age-three-route");
     if (!run_v_cancel_air_case(
             content, view, UINT32_C(0), 1, 0, &attacking))
@@ -3808,10 +3852,10 @@ static int run_v_cancel_test(
     if (!run_v_cancel_jump_case(view, 1, &jump_cancelled))
         return fail("v-cancel-jump-trigger-route");
     if (!run_v_cancel_fall_special_case(
-            view, UINT32_MAX, &fall_special_ordinary))
+            content, UINT32_MAX, &fall_special_ordinary))
         return fail("v-cancel-fall-special-route");
     if (!run_v_cancel_fall_special_case(
-            view, UINT32_C(0), &fall_special_cancelled))
+            content, UINT32_C(0), &fall_special_cancelled))
         return fail("v-cancel-fall-special-trigger-route");
     expected_x = (int32_t)(
         ((int64_t)ordinary.velocity_x_q16 *
@@ -3943,10 +3987,12 @@ static int prepare_v_cancel_snapshot(
 }
 
 static int run_v_cancel_snapshot_test(
-    const pf_content_view *view)
+    const pf_m4_content *content)
 {
     test_sim_storage source_storage;
     test_sim_storage loaded_storage;
+    pf_m4_content setup_content;
+    pf_content_view setup_view;
     pf_sim *source = NULL;
     pf_sim *loaded = NULL;
     pf_m4_inspection source_inspection;
@@ -3960,16 +4006,20 @@ static int run_v_cancel_snapshot_test(
     size_t save_size = (size_t)0;
     uint32_t tick;
 
-    if (!initialize_sim(
+    if (!make_v_cancel_fall_special_setup(
+            content,
+            &setup_content,
+            &setup_view) ||
+        !initialize_sim(
             &source_storage,
-            view,
+            &setup_view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
             1,
             &source) ||
         !initialize_sim(
             &loaded_storage,
-            view,
+            &setup_view,
             UINT8_C(2),
             PF_SIM_MODE_DUEL,
             0,
@@ -22015,6 +22065,8 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_special_attributes();
     const pf_m4_falcon_common_special_attributes *common_special_attributes =
         pf_m4_falcon_reference_common_special_attributes();
+    const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes =
+        pf_m4_falcon_reference_air_dodge_attributes();
     const pf_m4_falcon_collision_pose *collision_pose =
         pf_m4_falcon_reference_collision_pose();
     const pf_m4_melee_stale_move_data *stale_move_data =
@@ -22031,6 +22083,8 @@ static int run_falcon_reference_table_test(void)
     uint32_t empty_submotion_count = UINT32_C(0);
     uint32_t script_event_count = UINT32_C(0);
     uint32_t script_byte_count = UINT32_C(0);
+    uint32_t translation_submotion_count = UINT32_C(0);
+    uint32_t translation_sample_count = UINT32_C(0);
     uint16_t submotion_index;
 
     if (down_tilt_spheres == NULL ||
@@ -22096,6 +22150,57 @@ static int run_falcon_reference_table_test(void)
         if ((uint32_t)submotion->event_offset != script_event_count)
         {
             return fail("falcon-reference-submotion-event-span");
+        }
+        if ((uint32_t)submotion->translation_offset !=
+            translation_sample_count)
+        {
+            return fail("falcon-reference-translation-span");
+        }
+        if (submotion->translation_count != UINT16_C(0))
+        {
+            uint16_t displayed_frame;
+
+            if ((submotion->animation_flags & UINT32_C(0x80000000)) ==
+                    UINT32_C(0) ||
+                submotion->translation_count !=
+                    submotion->gameplay_frame_count)
+            {
+                return fail("falcon-reference-translation-metadata");
+            }
+            for (displayed_frame = UINT16_C(1);
+                 displayed_frame <= submotion->translation_count;
+                 ++displayed_frame)
+            {
+                if (!pf_m4_falcon_reference_translation_q16(
+                        submotion_index,
+                        displayed_frame,
+                        NULL,
+                        NULL))
+                {
+                    return fail("falcon-reference-translation-sample");
+                }
+            }
+            if (pf_m4_falcon_reference_translation_q16(
+                    submotion_index,
+                    UINT16_C(0),
+                    NULL,
+                    NULL) ||
+                pf_m4_falcon_reference_translation_q16(
+                    submotion_index,
+                    (uint16_t)(submotion->translation_count + UINT16_C(1)),
+                    NULL,
+                    NULL))
+            {
+                return fail("falcon-reference-translation-bounds");
+            }
+            ++translation_submotion_count;
+            translation_sample_count +=
+                (uint32_t)submotion->translation_count;
+        }
+        else if ((submotion->animation_flags & UINT32_C(0x80000000)) !=
+                 UINT32_C(0))
+        {
+            return fail("falcon-reference-missing-translation-span");
         }
         for (event_index = UINT16_C(0);
              event_index < submotion->event_count;
@@ -22195,6 +22300,9 @@ static int run_falcon_reference_table_test(void)
             NULL ||
         animated_submotion_count != UINT32_C(275) ||
         empty_submotion_count != UINT32_C(43) ||
+        translation_submotion_count != UINT32_C(65) ||
+        translation_sample_count !=
+            (uint32_t)PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT ||
         script_event_count !=
             (uint32_t)PF_M4_FALCON_SCRIPT_EVENT_COUNT ||
         script_byte_count !=
@@ -22531,8 +22639,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xaf) ||
-        complete_source_sha256[31] != UINT8_C(0x2c) ||
+        complete_source_sha256[0] != UINT8_C(0xc7) ||
+        complete_source_sha256[31] != UINT8_C(0x15) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -22584,7 +22692,18 @@ static int run_falcon_reference_table_test(void)
             INT32_C(13107) ||
         common_special_attributes->air_drift_dead_zone_q16 !=
             INT32_C(6554) ||
+        air_dodge_attributes == NULL ||
+        air_dodge_attributes->initial_velocity_x_q16 != INT32_C(19080) ||
+        air_dodge_attributes->initial_velocity_y_q16 != INT32_C(32440) ||
+        air_dodge_attributes->decay_q16 != INT32_C(58982) ||
+        air_dodge_attributes->dead_zone != UINT16_C(8192) ||
+        air_dodge_attributes->item_throw_window_ticks != UINT16_C(3) ||
+        air_dodge_attributes->ordinary_physics_begin_frame != UINT16_C(30) ||
         collision_pose == NULL ||
+        collision_pose->air_dodge_bottom_y_from_origin_q16[0] !=
+            INT32_C(0) ||
+        collision_pose->air_dodge_bottom_y_from_origin_q16[47] !=
+            INT32_C(24795) ||
         collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[0] !=
             INT32_C(25701) ||
         collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[34] !=
@@ -23813,7 +23932,7 @@ int main(void)
             &ledge_attack_content,
             &ledge_attack_view) ||
         !run_v_cancel_test(&v_cancel_content, &v_cancel_view) ||
-        !run_v_cancel_snapshot_test(&v_cancel_view) ||
+        !run_v_cancel_snapshot_test(&v_cancel_content) ||
         !run_crouch_cancel_test(&content, &view) ||
         !run_double_jump_cancel_counter_test(
             &double_jump_cancel_counter_content,

@@ -37,6 +37,16 @@ _Static_assert(
         (size_t)PF_M4_FALCON_SUBMOTION_COUNT,
     "Falcon body-collision timing table must cover every source slot");
 _Static_assert(
+    sizeof(pf_m4_falcon_translation_x_q16) /
+            sizeof(pf_m4_falcon_translation_x_q16[0]) ==
+        (size_t)PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT,
+    "Falcon X translation table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_translation_y_q16) /
+            sizeof(pf_m4_falcon_translation_y_q16[0]) ==
+        (size_t)PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT,
+    "Falcon Y translation table must be complete");
+_Static_assert(
     sizeof(pf_m4_falcon_script_bytes) /
             sizeof(pf_m4_falcon_script_bytes[0]) ==
         (size_t)PF_M4_FALCON_SCRIPT_BYTE_COUNT,
@@ -157,6 +167,12 @@ const pf_m4_falcon_common_special_attributes *
 pf_m4_falcon_reference_common_special_attributes(void)
 {
     return &pf_m4_falcon_common_special_attribute_data;
+}
+
+const pf_m4_falcon_air_dodge_attributes *
+pf_m4_falcon_reference_air_dodge_attributes(void)
+{
+    return &pf_m4_falcon_air_dodge_attribute_data;
 }
 
 const pf_m4_melee_stale_move_data *
@@ -720,6 +736,43 @@ int pf_m4_falcon_reference_special_iasa_active(
                (uint32_t)move->iasa_frame;
 }
 
+int pf_m4_falcon_reference_translation_q16(
+    uint16_t submotion_index,
+    uint16_t displayed_frame,
+    int32_t *out_translation_x_q16,
+    int32_t *out_translation_y_q16)
+{
+    const pf_m4_falcon_submotion_data *submotion;
+    uint32_t sample_index;
+
+    if (displayed_frame == UINT16_C(0))
+    {
+        return 0;
+    }
+    submotion = pf_m4_falcon_reference_submotion(submotion_index);
+    if (submotion == NULL || displayed_frame > submotion->translation_count)
+    {
+        return 0;
+    }
+    sample_index = (uint32_t)submotion->translation_offset +
+                   (uint32_t)displayed_frame - UINT32_C(1);
+    if (sample_index >= (uint32_t)PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT)
+    {
+        return 0;
+    }
+    if (out_translation_x_q16 != NULL)
+    {
+        *out_translation_x_q16 =
+            pf_m4_falcon_translation_x_q16[sample_index];
+    }
+    if (out_translation_y_q16 != NULL)
+    {
+        *out_translation_y_q16 =
+            pf_m4_falcon_translation_y_q16[sample_index];
+    }
+    return 1;
+}
+
 int pf_m4_falcon_reference_motion_x_q16(
     uint8_t action_state,
     uint16_t action_frame,
@@ -736,17 +789,15 @@ int pf_m4_falcon_reference_motion_x_q16(
         return 0;
     }
     move = pf_m4_falcon_reference_move(move_index);
-    if (move == NULL || action_frame > move->motion_count)
+    if (move == NULL)
     {
         return 0;
     }
-    if (out_motion_x_q16 != NULL)
-    {
-        *out_motion_x_q16 =
-            pf_m4_falcon_motion_x_q16[
-                move->motion_offset + action_frame - UINT16_C(1)];
-    }
-    return 1;
+    return pf_m4_falcon_reference_translation_q16(
+        move->subaction_index,
+        action_frame,
+        out_motion_x_q16,
+        NULL);
 }
 
 int pf_m4_falcon_reference_motion_y_q16(
@@ -765,17 +816,15 @@ int pf_m4_falcon_reference_motion_y_q16(
         return 0;
     }
     move = pf_m4_falcon_reference_move(move_index);
-    if (move == NULL || action_frame > move->motion_count)
+    if (move == NULL)
     {
         return 0;
     }
-    if (out_motion_y_q16 != NULL)
-    {
-        *out_motion_y_q16 =
-            pf_m4_falcon_motion_y_q16[
-                move->motion_offset + action_frame - UINT16_C(1)];
-    }
-    return 1;
+    return pf_m4_falcon_reference_translation_q16(
+        move->subaction_index,
+        action_frame,
+        NULL,
+        out_motion_y_q16);
 }
 
 int pf_m4_falcon_reference_landing_lag_active(

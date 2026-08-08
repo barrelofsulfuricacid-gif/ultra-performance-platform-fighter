@@ -919,6 +919,7 @@ int main(int argc, char **argv)
         "shield_magnitude,shield_center_offset_x_q16,"
         "shield_center_offset_y_q16,shield_radius_x_q16,shield_radius_y_q16,"
         "powershield,hitlag_ticks,shield_stun_ticks,"
+        "invulnerable,"
         "opponent_action_state,opponent_action_ticks,opponent_hitlag_ticks,"
         "opponent_hitstun_ticks,"
         "opponent_facing,opponent_grounded,"
@@ -1009,7 +1010,7 @@ int main(int argc, char **argv)
             ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
-            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
+            ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
             ",%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRIu32 "\n",
             trace_frame,
             input_x,
@@ -1054,6 +1055,7 @@ int main(int argc, char **argv)
             (unsigned int)inspection.players[0].powershield,
             (unsigned int)inspection.players[0].hitlag_ticks,
             (unsigned int)inspection.players[0].shield_stun_ticks,
+            (unsigned int)inspection.players[0].invulnerable,
             (unsigned int)inspection.players[1].action_state,
             (unsigned int)inspection.players[1].action_ticks,
             (unsigned int)inspection.players[1].hitlag_ticks,

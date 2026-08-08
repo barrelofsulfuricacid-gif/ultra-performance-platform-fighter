@@ -7,8 +7,10 @@
 #define PF_M4_FALCON_SUBMOTION_COUNT UINT16_C(318)
 #define PF_M4_FALCON_SCRIPT_EVENT_COUNT UINT16_C(2056)
 #define PF_M4_FALCON_SCRIPT_BYTE_COUNT UINT16_C(16516)
+#define PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT UINT16_C(2536)
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
+#define PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT UINT16_C(48)
 #define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
 #define PF_M4_FALCON_DIVE_ECB_FRAME_COUNT UINT16_C(64)
 
@@ -109,6 +111,8 @@ typedef struct pf_m4_falcon_submotion_data
     uint16_t gameplay_frame_count;
     uint16_t event_count;
     uint16_t event_offset;
+    uint16_t translation_offset;
+    uint16_t translation_count;
     uint32_t animation_flags;
     uint32_t animation_size;
 } pf_m4_falcon_submotion_data;
@@ -332,6 +336,18 @@ typedef struct pf_m4_falcon_common_special_attributes
     int32_t air_drift_dead_zone_q16;
 } pf_m4_falcon_common_special_attributes;
 
+typedef struct pf_m4_falcon_air_dodge_attributes
+{
+    int32_t initial_velocity_x_q16;
+    int32_t initial_velocity_y_q16;
+    int32_t decay_q16;
+    uint16_t dead_zone;
+    uint16_t item_throw_window_ticks;
+    /* Raw EscapeAir displayed frame from command-variable zero becoming one. */
+    uint16_t ordinary_physics_begin_frame;
+    uint16_t reserved;
+} pf_m4_falcon_air_dodge_attributes;
+
 typedef struct pf_m4_falcon_neutral_special_timing
 {
     uint16_t launch_frame;
@@ -382,6 +398,8 @@ typedef struct pf_m4_falcon_down_special_timing
 typedef struct pf_m4_falcon_collision_pose
 {
     int32_t falling_bottom_y_from_origin_q16;
+    int32_t air_dodge_bottom_y_from_origin_q16[
+        PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT];
     int32_t fall_special_bottom_y_from_origin_q16[
         PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT];
     int32_t raptor_boost_hit_air_bottom_y_from_origin_q16[
@@ -495,6 +513,9 @@ pf_m4_falcon_reference_special_attributes(void);
 const pf_m4_falcon_common_special_attributes *
 pf_m4_falcon_reference_common_special_attributes(void);
 
+const pf_m4_falcon_air_dodge_attributes *
+pf_m4_falcon_reference_air_dodge_attributes(void);
+
 const pf_m4_melee_stale_move_data *
 pf_m4_falcon_reference_stale_move_data(void);
 
@@ -589,6 +610,17 @@ pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state);
 int pf_m4_falcon_reference_special_iasa_active(
     uint8_t action_state,
     uint16_t action_ticks);
+
+/*
+ * Returns the source animation TransN delta for a one-based displayed frame.
+ * This accessor deliberately does not decide whether a state callback replaces
+ * velocity, adds displacement, or ignores the track.
+ */
+int pf_m4_falcon_reference_translation_q16(
+    uint16_t submotion_index,
+    uint16_t displayed_frame,
+    int32_t *out_translation_x_q16,
+    int32_t *out_translation_y_q16);
 
 int pf_m4_falcon_reference_motion_x_q16(
     uint8_t action_state,

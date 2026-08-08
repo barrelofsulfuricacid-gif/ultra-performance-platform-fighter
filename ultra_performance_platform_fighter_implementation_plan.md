@@ -434,7 +434,11 @@ Current regression evidence consists of an 8,675-frame Final Destination
 movement/defense/crouch corpus, a separate 348-frame Battlefield platform
 corpus, and a separate 540-frame Final Destination Falcon-versus-Falcon
 grounded-player-push corpus, plus a separate 500-frame Final Destination
-analog-shield-pressure corpus. The shield route covers sub-threshold, light,
+analog-shield-pressure corpus. A focused 285-frame defense-state route covers
+forward roll, spot dodge, backward roll, and held-L/fresh-R upward air dodge
+through ordinary-physics handoff and floor landing, with exact action, tick,
+grounded, facing, invulnerability, and velocity comparison. The shield route
+covers sub-threshold, light,
 intermediate, near-dense, both-shoulder, digital-full, release, and regeneration
 samples while comparing action/state, health, and normalized pressure; its
 normalized-pressure allowance is one 16-bit unit. The player-push route
@@ -462,7 +466,7 @@ and the anisotropically mapped elliptical collision volume. A 2,568-frame,
 33-decision Jab 1 sweep additionally qualifies exact sphere-versus-shield
 collision at neutral and two diagonal guard offsets, including all three
 last-hit/first-miss boundaries. Aggregate executable-oracle evidence is
-therefore 17,638 qualified frames, including
+therefore 17,923 qualified frames, including
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
 103-frame grounded, 165-frame aerial miss, and 63-frame aerial ledge-approach
 routes with memory-probed ECB,
@@ -487,9 +491,12 @@ source-defined empty slots, with frame endpoints, gameplay last frames,
 action-script event counts/offsets, animation flags, and source byte sizes. The
 import must retain all 2,056 event boundaries and 16,516 raw script bytes, and
 must exhaustively decode/hash all 17,271 animation nodes, 38,560 tracks, and
-308,057 keys. Runtime code may keep animation tracks offline until a behavior
-consumes them, but it may not replace a source track or command with an authored
-approximation. Default
+308,057 keys. It must also derive one shared O(1) translation pool for all 65
+translation-bearing submotions and their 2,536 X/Y frame samples, using the
+six-bit translation-node field rather than a low-byte approximation. Runtime
+code may keep animation tracks offline until a behavior consumes them, but it
+may not replace a source track or command with an authored approximation or
+generate a second per-action copy of the same translation samples. Default
 dash/turn/brake/landing/crouch/shield-release/dodge/roll/tech/getup/appeal
 timing must consume this catalog rather than repeat literals. The same
 generated source preserves all 97 raw
@@ -500,6 +507,16 @@ movement, jump, fall, weight, and landing values directly; it may not be
 replaced by hand-entered approximations. No implemented Falcon-counterpart move
 may use a guessed timing, effect, or character attribute when this source
 contains it.
+
+Roll and air-dodge semantics consume that source through decomp-qualified
+callbacks. Ground rolls replace their ground-velocity channel from the one
+generated TransN stream; they must not add an independent authored roll curve.
+EscapeAir consumes common force/dead-zone/decay attributes from `PlCo.dat`,
+applies decay on the entry frame, and decodes the raw frame-30 variable-0 write
+that changes its physics callback to ordinary aerial input/gravity without
+changing action. Its floor contact consumes the captured 48-frame animated ECB
+bottom. Body-state command windows map through the state-specific displayed-
+frame bias and drive invulnerability rather than duplicated constants.
 
 Future character ports must reuse the installed `ssbm-character-importer`
 workflow and generic source-manifest routine. Each port must maintain separate

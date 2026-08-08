@@ -492,6 +492,11 @@ static int run_air_dodge_test(
     const pf_m4_content *default_content,
     const pf_content_view *view)
 {
+    const pf_m4_falcon_body_collision_timing *air_dodge_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_AIR_DODGE);
+    const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes =
+        pf_m4_falcon_reference_air_dodge_attributes();
     test_sim_storage storage;
     test_sim_storage platform_storage;
     pf_sim *sim = NULL;
@@ -508,6 +513,32 @@ static int run_air_dodge_test(
     int32_t landing_velocity_x;
     int8_t takeoff_facing;
     uint32_t tick;
+    int saw_ordinary_physics = 0;
+
+    if (air_dodge_collision == NULL || air_dodge_attributes == NULL ||
+        default_content->fighter.air_dodge_speed_x_q16 !=
+            air_dodge_attributes->initial_velocity_x_q16 ||
+        default_content->fighter.air_dodge_speed_y_q16 !=
+            air_dodge_attributes->initial_velocity_y_q16 ||
+        default_content->fighter.air_dodge_decay_q16 !=
+            air_dodge_attributes->decay_q16 ||
+        default_content->fighter.air_dodge_dead_zone !=
+            air_dodge_attributes->dead_zone ||
+        (uint32_t)default_content->fighter
+                .air_dodge_ordinary_physics_begin_tick +
+                UINT32_C(1) !=
+            (uint32_t)air_dodge_attributes->ordinary_physics_begin_frame ||
+        (uint32_t)default_content->fighter
+                .air_dodge_invulnerability_begin_tick +
+                UINT32_C(1) !=
+            (uint32_t)air_dodge_collision->state_two_frame ||
+        (uint32_t)default_content->fighter
+                .air_dodge_invulnerability_end_tick +
+                UINT32_C(1) !=
+            (uint32_t)air_dodge_collision->state_zero_frame)
+    {
+        return 0;
+    }
 
     invalid_content.fighter.air_dodge_decay_q16 =
         PF_Q16_ONE + INT32_C(1);
@@ -754,15 +785,32 @@ static int run_air_dodge_test(
              (uint8_t)PF_M4_ACTION_AIR_DODGE;
          ++tick)
     {
+        const int entering_ordinary_physics =
+            (uint32_t)inspection.players[0].action_ticks + UINT32_C(1) ==
+            (uint32_t)default_content->fighter
+                .air_dodge_ordinary_physics_begin_tick;
+        const int32_t previous_velocity_y_q16 =
+            inspection.players[0].velocity_y_q16;
+
         if (!step_duel_trigger(
                 sim,
-                INT16_MIN,
-                INT16_MAX,
+                INT16_C(0),
+                INT16_C(0),
                 UINT64_C(0),
                 UINT16_MAX,
                 &inspection))
         {
             return 0;
+        }
+        if (entering_ordinary_physics != 0)
+        {
+            if (inspection.players[0].velocity_y_q16 !=
+                previous_velocity_y_q16 +
+                    default_content->fighter.gravity_q16)
+            {
+                return 0;
+            }
+            saw_ordinary_physics = 1;
         }
         if (inspection.players[0].action_state ==
                 (uint8_t)PF_M4_ACTION_AIR_DODGE &&
@@ -777,11 +825,27 @@ static int run_air_dodge_test(
             return 0;
         }
     }
-    if (inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+    if (saw_ordinary_physics == 0 ||
         inspection.players[0].invulnerable != UINT8_C(0) ||
         inspection.players[0].facing != takeoff_facing ||
-        !step_duel_trigger(
+        (inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
+         inspection.players[0].action_state !=
+             (uint8_t)PF_M4_ACTION_SPECIAL_LANDING))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=air-dodge-fall-special"
+            " action=%u tick=%u grounded=%u ordinary=%d\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded,
+            saw_ordinary_physics);
+        return 0;
+    }
+    if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL &&
+        (!step_duel_trigger(
             sim,
             INT16_C(0),
             INT16_C(0),
@@ -796,12 +860,11 @@ static int run_air_dodge_test(
             UINT16_MAX,
             &inspection) ||
         inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_FALL_SPECIAL)
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL))
     {
         (void)fprintf(
             stderr,
-            "m4-movement=fail operation=air-dodge-fall-special"
-            " or-held-retrigger\n");
+            "m4-movement=fail operation=air-dodge-held-retrigger\n");
         return 0;
     }
 
@@ -1441,6 +1504,15 @@ static int run_ground_dodge_test(
     const pf_m4_content *default_content,
     const pf_content_view *default_view)
 {
+    const pf_m4_falcon_body_collision_timing *spot_dodge_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_SPOT_DODGE);
+    const pf_m4_falcon_body_collision_timing *roll_forward_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_ROLL_FORWARD);
+    const pf_m4_falcon_body_collision_timing *roll_backward_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD);
     test_sim_storage storage;
     test_sim_storage wall_storage;
     test_sim_storage edge_storage;
@@ -1457,23 +1529,71 @@ static int run_ground_dodge_test(
     int32_t expected_x;
     int8_t facing;
     uint32_t elapsed;
-    const int32_t forward_roll_displacement_q16 = INT32_C(232174);
-    const int32_t backward_roll_displacement_q16 = INT32_C(109416);
+    int32_t forward_roll_displacement_q16 = INT32_C(0);
+    int32_t backward_roll_displacement_q16 = INT32_C(0);
+    uint16_t translation_frame;
 
-    if (default_content->fighter.forward_roll_ticks != UINT16_C(31) ||
+    for (translation_frame = UINT16_C(1);
+         translation_frame <= UINT16_C(31);
+         ++translation_frame)
+    {
+        int32_t forward_x_q16;
+        int32_t forward_y_q16;
+        int32_t backward_x_q16;
+        int32_t backward_y_q16;
+
+        if (!pf_m4_falcon_reference_translation_q16(
+                PF_M4_FALCON_SUBMOTION_ROLL_FORWARD,
+                translation_frame,
+                &forward_x_q16,
+                &forward_y_q16) ||
+            !pf_m4_falcon_reference_translation_q16(
+                PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD,
+                translation_frame,
+                &backward_x_q16,
+                &backward_y_q16) ||
+            forward_y_q16 != INT32_C(0) ||
+            backward_y_q16 != INT32_C(0))
+        {
+            return 0;
+        }
+        forward_roll_displacement_q16 += forward_x_q16;
+        backward_roll_displacement_q16 += backward_x_q16;
+        if ((translation_frame == UINT16_C(1) &&
+             (forward_x_q16 != INT32_C(20944) ||
+              backward_x_q16 != INT32_C(1))) ||
+            (translation_frame == UINT16_C(4) &&
+             backward_x_q16 != INT32_C(-5740)) ||
+            (translation_frame == UINT16_C(29) &&
+             forward_x_q16 != INT32_C(280)) ||
+            (translation_frame == UINT16_C(31) &&
+             (forward_x_q16 != INT32_C(47) ||
+              backward_x_q16 != INT32_C(-170))))
+        {
+            return 0;
+        }
+    }
+
+    if (spot_dodge_collision == NULL || roll_forward_collision == NULL ||
+        roll_backward_collision == NULL ||
+        default_content->fighter.forward_roll_ticks != UINT16_C(31) ||
         default_content->fighter.backward_roll_ticks != UINT16_C(31) ||
         default_content->fighter.roll_movement_begin_tick != UINT16_C(3) ||
         default_content->fighter.roll_movement_end_tick != UINT16_C(20) ||
         default_content->fighter.roll_invulnerability_begin_tick !=
-            UINT16_C(4) ||
+            roll_forward_collision->state_two_frame ||
         default_content->fighter.roll_invulnerability_end_tick !=
-            UINT16_C(17) ||
+            roll_forward_collision->state_zero_frame ||
+        roll_backward_collision->state_two_frame !=
+            roll_forward_collision->state_two_frame ||
+        roll_backward_collision->state_zero_frame !=
+            roll_forward_collision->state_zero_frame ||
         default_content->fighter.spot_dodge_ticks != UINT16_C(32) ||
         default_content->fighter
                 .spot_dodge_invulnerability_begin_tick !=
-            UINT16_C(3) ||
+            spot_dodge_collision->state_two_frame ||
         default_content->fighter.spot_dodge_invulnerability_end_tick !=
-            UINT16_C(16))
+            spot_dodge_collision->state_zero_frame)
     {
         return 0;
     }
@@ -1653,7 +1773,7 @@ static int run_ground_dodge_test(
         ++elapsed;
     }
     expected_x =
-        start_x -
+        start_x +
         (int32_t)facing * backward_roll_displacement_q16;
     if (elapsed !=
             (uint32_t)default_content->fighter.backward_roll_ticks +

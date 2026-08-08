@@ -156,6 +156,7 @@ ELEMENTS = {
 }
 
 ANIMATION_TRANSLATION_FLAG = 0x80000000
+ANIMATION_TRANSLATION_NODE_MASK = 0x3F
 MELEE_X_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
 MELEE_Y_TO_SIM_Q16 = 65536.0 * 11.0 / 62.0
 
@@ -198,6 +199,62 @@ FALL_SPECIAL_ECB_BOTTOM_Y_MELEE = (
     2.7656466960906982,
     2.499094247817993,
     2.2265543937683105,
+)
+
+# EscapeAir displayed frames 1 through 48 from the pinned defense-state
+# capture SHA-256 1118a7a6e26ae98862e7457caee59ff45260076f30ce2e3e09ba71f249dc6084.
+# The final two airborne samples are what defer floor contact until Melee's
+# displayed frame 49; substituting Falcon's standing extent lands one frame
+# early. Frames 1 through 7 expose the source ECB's zero-bottom fallback.
+AIR_DODGE_ECB_BOTTOM_Y_MELEE = (
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.9960927963256836,
+    1.9618406295776367,
+    1.9201927185058594,
+    1.872711181640625,
+    1.8209609985351562,
+    1.7664909362792969,
+    1.7107677459716797,
+    1.6551704406738281,
+    1.600931167602539,
+    1.54913330078125,
+    1.5006866455078125,
+    1.4557933807373047,
+    1.413930892944336,
+    1.374969482421875,
+    1.338998794555664,
+    1.306365966796875,
+    1.277730941772461,
+    1.2541141510009766,
+    1.2452125549316406,
+    1.2524890899658203,
+    1.2624645233154297,
+    1.2417945861816406,
+    1.1859264373779297,
+    1.0185871124267578,
+    0.7817115783691406,
+    0.6812477111816406,
+    0.6629657745361328,
+    0.7087917327880859,
+    0.7791938781738281,
+    0.8813133239746094,
+    1.3754844665527344,
+    1.1521835327148438,
+    0.8825883865356445,
+    0.902409553527832,
+    1.2359085083007812,
+    1.5895023345947266,
+    1.9857282638549805,
+    1.8570032119750977,
+    1.821122169494629,
+    1.967071533203125,
+    2.132474660873413,
 )
 
 # SpecialAirS is collision-animated independently of the common airborne body.
@@ -454,6 +511,95 @@ def hash_figatree(
     return len(nodes), track_count, key_count
 
 
+def animation_translation_node(action_flags: int) -> int | None:
+    """Decode HSD's one-based TransN node field from packed action flags."""
+
+    if not action_flags & ANIMATION_TRANSLATION_FLAG:
+        return None
+    encoded_node = action_flags & ANIMATION_TRANSLATION_NODE_MASK
+    if encoded_node == 0:
+        raise ValueError(
+            "animation-translation flag has no encoded TransN node"
+        )
+    return encoded_node - 1
+
+
+def animation_translation_q16(
+    tree: Any,
+    action_flags: int,
+    model_scaling: float,
+) -> tuple[list[int], list[int]]:
+    """Sample one source TransN delta per displayed gameplay frame.
+
+    The packed node field is six bits wide. Bits 6 and 7 have independent
+    action semantics, so treating the entire low byte as the node number
+    breaks animations such as EscapeF (0x800000c2).
+    """
+
+    translation_node = animation_translation_node(action_flags)
+    if translation_node is None:
+        return [], []
+    if not 0 <= translation_node < len(tree.nodes):
+        raise ValueError(f"invalid translation node {translation_node}")
+
+    translation_x_tracks = [
+        track
+        for track in tree.nodes[translation_node]
+        if track.track_type == TRACK_TRANSLATE_Z
+    ]
+    translation_y_tracks = [
+        track
+        for track in tree.nodes[translation_node]
+        if track.track_type == TRACK_TRANSLATE_Y
+    ]
+    if len(translation_x_tracks) > 1:
+        raise ValueError(
+            "expected at most one translation-Z track, "
+            f"found {len(translation_x_tracks)}"
+        )
+    if len(translation_y_tracks) > 1:
+        raise ValueError(
+            "expected at most one translation-Y track, "
+            f"found {len(translation_y_tracks)}"
+        )
+
+    frame_count = round(tree.frame_count)
+    positions_x = (
+        [
+            sample_track(translation_x_tracks[0], float(frame))
+            for frame in range(frame_count)
+        ]
+        if translation_x_tracks
+        else [0.0] * frame_count
+    )
+    positions_y = (
+        [
+            sample_track(translation_y_tracks[0], float(frame))
+            for frame in range(frame_count)
+        ]
+        if translation_y_tracks
+        else [0.0] * frame_count
+    )
+    return (
+        [
+            round(
+                (positions_x[frame] - positions_x[frame - 1])
+                * model_scaling
+                * MELEE_X_TO_SIM_Q16
+            )
+            for frame in range(1, frame_count)
+        ],
+        [
+            round(
+                -(positions_y[frame] - positions_y[frame - 1])
+                * model_scaling
+                * MELEE_Y_TO_SIM_Q16
+            )
+            for frame in range(1, frame_count)
+        ],
+    )
+
+
 def body_collision_timing(subaction: dict[str, Any]) -> tuple[int, int]:
     """Decode the first state-2 interval without assigning gameplay meaning."""
 
@@ -585,8 +731,8 @@ def source_collision_attributes(source_dat: bytes) -> dict[str, float]:
     }
 
 
-def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
-    """Decode the common-data fields used by Falcon's runtime simulation."""
+def source_common_data(common_dat: bytes) -> tuple[bytes, tuple[int, ...]]:
+    """Return the pinned ftCommonData block and its root pointer table."""
 
     if len(common_dat) < 0x20:
         raise ValueError("truncated PlCo.dat header")
@@ -608,6 +754,13 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
     if root_offset + 4 > len(data):
         raise ValueError("ftLoadCommonData root is out of bounds")
     common_offsets = struct.unpack_from(">23I", data, root_offset)
+    return data, common_offsets
+
+
+def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
+    """Decode the common-data fields used by Falcon's runtime simulation."""
+
+    data, common_offsets = source_common_data(common_dat)
     common_offset = common_offsets[0]
     if common_offset + 0x25C > len(data):
         raise ValueError("ftCommonData is out of bounds")
@@ -638,6 +791,39 @@ def source_common_special_attributes(common_dat: bytes) -> dict[str, Any]:
     }
 
 
+def source_air_dodge_attributes(common_dat: bytes) -> dict[str, int]:
+    """Decode EscapeAir's common attributes with simulator-unit conversion."""
+
+    data, common_offsets = source_common_data(common_dat)
+    common_offset = common_offsets[0]
+    if common_offset + 0x348 > len(data):
+        raise ValueError("ftCommonData EscapeAir attributes are out of bounds")
+    dead_zone_x, dead_zone_y = struct.unpack_from(
+        ">2f", data, common_offset + 0x32C
+    )
+    item_throw_window_ticks = struct.unpack_from(
+        ">i", data, common_offset + 0x334
+    )[0]
+    force, decay = struct.unpack_from(">2f", data, common_offset + 0x338)
+    if dead_zone_x != dead_zone_y or not 0.0 < dead_zone_x < 1.0:
+        raise ValueError("unexpected asymmetric EscapeAir dead zone")
+    if item_throw_window_ticks < 0 or item_throw_window_ticks > 0xFFFF:
+        raise ValueError("EscapeAir item-throw window does not fit runtime timing")
+    return {
+        # EscapeAir physics runs on the entry frame. Store the first visible
+        # velocity so the fixed-point runtime does not need a wider transient.
+        "initial_velocity_x_q16": round(
+            force * decay * MELEE_X_TO_SIM_Q16
+        ),
+        "initial_velocity_y_q16": round(
+            force * decay * MELEE_Y_TO_SIM_Q16
+        ),
+        "decay_q16": q16(decay),
+        "dead_zone": round(dead_zone_x * 32767.0),
+        "item_throw_window_ticks": item_throw_window_ticks,
+    }
+
+
 def command_variable_assignments(
     subactions: list[dict[str, Any]], subaction_index: int
 ) -> dict[tuple[int, int], int]:
@@ -653,8 +839,16 @@ def command_variable_assignments(
         elif command_id == 0x04:
             frame += int(fields["frames"])
         command = bytes.fromhex(str(event["bytes"]))
-        if len(command) == 4 and command[0] in (0x4C, 0x4D, 0x4E):
-            assignments[(command[0], command[3])] = frame
+        if command_id == 0x4C and len(command) == 4:
+            variable_index = command[0] & 0x03
+            value = int.from_bytes(command[1:4], "big")
+            key = (variable_index, value)
+            if key in assignments:
+                raise ValueError(
+                    f"subaction {subaction_index}: duplicate command-variable "
+                    f"assignment {key}"
+                )
+            assignments[key] = frame
     return assignments
 
 
@@ -767,6 +961,35 @@ def generate(
             source_dat_block,
             subactions_offset + submotion_index * 0x18 + 0x10,
         )[0]
+        motion_offset = len(motion_x_q16)
+        if animation_flags & ANIMATION_TRANSLATION_FLAG:
+            if tree is None:
+                raise ValueError(
+                    f"submotion {submotion_index}: translation without animation"
+                )
+            submotion_motion_x_q16, submotion_motion_y_q16 = (
+                animation_translation_q16(
+                    tree,
+                    animation_flags,
+                    model_scaling,
+                )
+            )
+            if (
+                len(submotion_motion_x_q16) != animation_frame_count - 1
+                or len(submotion_motion_y_q16) != animation_frame_count - 1
+            ):
+                raise ValueError(
+                    f"submotion {submotion_index}: incomplete translation samples"
+                )
+            motion_x_q16.extend(submotion_motion_x_q16)
+            motion_y_q16.extend(submotion_motion_y_q16)
+        motion_count = len(motion_x_q16) - motion_offset
+        if len(motion_x_q16) != len(motion_y_q16):
+            raise ValueError(
+                f"submotion {submotion_index}: mismatched translation samples"
+            )
+        if motion_offset > 0xFFFF or motion_count > 0xFFFF:
+            raise ValueError("Falcon translation table exceeds compact offsets")
         event_count = len(subaction["events"])
         if event_count > 0xFFFF:
             raise ValueError(f"submotion {submotion_index}: too many events")
@@ -811,6 +1034,8 @@ def generate(
                 "event_offset": event_offset,
                 "animation_flags": animation_flags,
                 "animation_size": animation_size,
+                "motion_offset": motion_offset,
+                "motion_count": motion_count,
             }
         )
         body_collision_timings.append(body_collision_timing(subaction))
@@ -828,6 +1053,16 @@ def generate(
             "unexpected complete Falcon animation-track coverage: "
             f"nodes={animation_node_count} tracks={animation_track_count} "
             f"keys={animation_key_count}"
+        )
+    if (
+        sum(row["motion_count"] != 0 for row in submotion_catalog) != 65
+        or len(motion_x_q16) != 2536
+        or len(motion_y_q16) != 2536
+    ):
+        raise ValueError(
+            "unexpected complete Falcon translation coverage: "
+            f"submotions={sum(row['motion_count'] != 0 for row in submotion_catalog)} "
+            f"samples={len(motion_x_q16)}"
         )
     animation_tracks_sha256 = animation_tracks_digest.hexdigest()
     submotion_catalog_digest = hashlib.sha256(
@@ -873,9 +1108,9 @@ def generate(
 
     special_air_n_assignments = command_variable_assignments(subactions, 302)
     try:
-        specialn_launch_frame = special_air_n_assignments[(0x4C, 1)]
-        specialn_scale_begin_frame = special_air_n_assignments[(0x4D, 1)]
-        specialn_air_physics_begin_frame = special_air_n_assignments[(0x4D, 2)]
+        specialn_launch_frame = special_air_n_assignments[(0, 1)]
+        specialn_scale_begin_frame = special_air_n_assignments[(1, 1)]
+        specialn_air_physics_begin_frame = special_air_n_assignments[(1, 2)]
     except KeyError as error:
         raise ValueError("incomplete SpecialAirN command-variable timeline") from error
     if not (
@@ -886,11 +1121,11 @@ def generate(
     special_s_ground_assignments = command_variable_assignments(subactions, 303)
     special_s_air_assignments = command_variable_assignments(subactions, 305)
     try:
-        specials_ground_search_begin = special_s_ground_assignments[(0x4C, 1)]
-        specials_ground_search_end = special_s_ground_assignments[(0x4C, 0)] - 1
-        specials_air_search_begin = special_s_air_assignments[(0x4C, 1)]
-        specials_air_search_end = special_s_air_assignments[(0x4C, 0)] - 1
-        specials_air_gravity_begin = special_s_air_assignments[(0x4D, 1)]
+        specials_ground_search_begin = special_s_ground_assignments[(0, 1)]
+        specials_ground_search_end = special_s_ground_assignments[(0, 0)] - 1
+        specials_air_search_begin = special_s_air_assignments[(0, 1)]
+        specials_air_search_end = special_s_air_assignments[(0, 0)] - 1
+        specials_air_gravity_begin = special_s_air_assignments[(1, 1)]
     except KeyError as error:
         raise ValueError("incomplete SpecialS command-variable timeline") from error
     if not (
@@ -900,13 +1135,21 @@ def generate(
     ):
         raise ValueError("invalid SpecialS command-variable ordering")
     common_special_attributes = source_common_special_attributes(common_dat)
+    air_dodge_attributes = source_air_dodge_attributes(common_dat)
+    air_dodge_assignments = command_variable_assignments(subactions, 44)
+    try:
+        air_dodge_ordinary_physics_begin_frame = air_dodge_assignments[(0, 1)]
+    except KeyError as error:
+        raise ValueError("incomplete EscapeAir command-variable timeline") from error
+    if air_dodge_ordinary_physics_begin_frame != 30:
+        raise ValueError("unexpected EscapeAir ordinary-physics transition")
     special_hi_ground_assignments = command_variable_assignments(subactions, 307)
     special_hi_air_assignments = command_variable_assignments(subactions, 308)
     special_hi_throw_assignments = command_variable_assignments(subactions, 310)
     try:
-        specialhi_ground_control_begin = special_hi_ground_assignments[(0x4C, 1)]
-        specialhi_air_control_begin = special_hi_air_assignments[(0x4C, 1)]
-        specialhi_throw_gravity_begin = special_hi_throw_assignments[(0x4C, 1)]
+        specialhi_ground_control_begin = special_hi_ground_assignments[(0, 1)]
+        specialhi_air_control_begin = special_hi_air_assignments[(0, 1)]
+        specialhi_throw_gravity_begin = special_hi_throw_assignments[(0, 1)]
     except KeyError as error:
         raise ValueError("incomplete SpecialHi command-variable timeline") from error
     if not (
@@ -923,24 +1166,24 @@ def generate(
         subactions, 315
     )
     try:
-        speciallw_ground_wall_rebound_begin = special_lw_ground_assignments[(0x4C, 1)]
-        speciallw_air_wall_rebound_begin = special_lw_air_assignments[(0x4C, 1)]
+        speciallw_ground_wall_rebound_begin = special_lw_ground_assignments[(0, 1)]
+        speciallw_air_wall_rebound_begin = special_lw_air_assignments[(0, 1)]
         speciallw_ground_end_traction_begin = special_lw_end_ground_assignments[
-            (0x4E, 1)
+            (2, 1)
         ]
         speciallw_ground_end_traction_end = (
-            special_lw_end_ground_assignments[(0x4E, 0)] - 1
+            special_lw_end_ground_assignments[(2, 0)] - 1
         )
         speciallw_ground_end_edge_fall_begin = special_lw_end_ground_assignments[
-            (0x4D, 1)
+            (1, 1)
         ]
-        speciallw_landing_traction_begin = special_lw_landing_assignments[(0x4E, 1)]
-        speciallw_landing_traction_end = special_lw_landing_assignments[(0x4E, 0)] - 1
+        speciallw_landing_traction_begin = special_lw_landing_assignments[(2, 1)]
+        speciallw_landing_traction_end = special_lw_landing_assignments[(2, 0)] - 1
         speciallw_ground_origin_air_physics_begin = (
-            special_lw_end_air_from_ground_assignments[(0x4C, 1)]
+            special_lw_end_air_from_ground_assignments[(0, 1)]
         )
         speciallw_ground_origin_edge_fall_begin = (
-            special_lw_end_air_from_ground_assignments[(0x4D, 1)]
+            special_lw_end_air_from_ground_assignments[(1, 1)]
         )
     except KeyError as error:
         raise ValueError("incomplete SpecialLw command-variable timeline") from error
@@ -1062,6 +1305,12 @@ def generate(
         + json.dumps(
             {
                 "common_special": common_special_attributes,
+                "air_dodge": {
+                    **air_dodge_attributes,
+                    "ordinary_physics_begin_frame": (
+                        air_dodge_ordinary_physics_begin_frame
+                    ),
+                },
                 "falcon_dive_victim_release_hitstun_ticks": (
                     SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS
                 ),
@@ -1081,6 +1330,9 @@ def generate(
                 },
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
+                },
+                "falcon_air_dodge_collision_pose_melee": {
+                    "bottom_y_from_origin": AIR_DODGE_ECB_BOTTOM_Y_MELEE,
                 },
                 "falcon_raptor_boost_hit_air_collision_pose_melee": {
                     "bottom_y_from_origin": (RAPTOR_BOOST_HIT_AIR_ECB_BOTTOM_Y_MELEE),
@@ -1141,67 +1393,10 @@ def generate(
             source_dat_block,
             subactions_offset + subaction_index * 0x18 + 0x10,
         )[0]
-        motion_offset = len(motion_x_q16)
-        if action_flags & ANIMATION_TRANSLATION_FLAG:
-            subaction = subactions[subaction_index]
-            animation_offset = int(subaction["animOffset"])
-            animation_size = int(subaction["animSize"])
-            tree = decode_figatree(
-                animation_dat[animation_offset : animation_offset + animation_size]
-            )
-            translation_node = (action_flags & 0xFF) - 1
-            if not 0 <= translation_node < len(tree.nodes):
-                raise ValueError(f"{key}: invalid translation node {translation_node}")
-            translation_x_tracks = [
-                track
-                for track in tree.nodes[translation_node]
-                if track.track_type == TRACK_TRANSLATE_Z
-            ]
-            translation_y_tracks = [
-                track
-                for track in tree.nodes[translation_node]
-                if track.track_type == TRACK_TRANSLATE_Y
-            ]
-            if len(translation_x_tracks) != 1:
-                raise ValueError(
-                    f"{key}: expected one translation-Z track, "
-                    f"found {len(translation_x_tracks)}"
-                )
-            if len(translation_y_tracks) > 1:
-                raise ValueError(
-                    f"{key}: expected at most one translation-Y track, "
-                    f"found {len(translation_y_tracks)}"
-                )
-            positions_x = [
-                sample_track(translation_x_tracks[0], float(frame))
-                for frame in range(int(move["totalFrames"]) + 1)
-            ]
-            motion_x_q16.extend(
-                round(
-                    (positions_x[frame] - positions_x[frame - 1])
-                    * model_scaling
-                    * MELEE_X_TO_SIM_Q16
-                )
-                for frame in range(1, len(positions_x))
-            )
-            positions_y = (
-                [
-                    sample_track(translation_y_tracks[0], float(frame))
-                    for frame in range(int(move["totalFrames"]) + 1)
-                ]
-                if translation_y_tracks
-                else [0.0] * (int(move["totalFrames"]) + 1)
-            )
-            motion_y_q16.extend(
-                round(
-                    -(positions_y[frame] - positions_y[frame - 1])
-                    * model_scaling
-                    * MELEE_Y_TO_SIM_Q16
-                )
-                for frame in range(1, len(positions_y))
-            )
-        if len(motion_x_q16) != len(motion_y_q16):
-            raise ValueError(f"{key}: mismatched translation table lengths")
+        motion_offset = submotion_catalog[subaction_index]["motion_offset"]
+        motion_count = submotion_catalog[subaction_index]["motion_count"]
+        if bool(action_flags & ANIMATION_TRANSLATION_FLAG) != bool(motion_count):
+            raise ValueError(f"{key}: inconsistent translation span")
         moves.append(
             {
                 "present": 1,
@@ -1220,7 +1415,7 @@ def generate(
                 "effect_count": len(move_effects),
                 "animation_flags": action_flags,
                 "motion_offset": motion_offset,
-                "motion_count": len(motion_x_q16) - motion_offset,
+                "motion_count": motion_count,
             }
         )
 
@@ -1295,6 +1490,8 @@ def generate(
         f"UINT16_C({row['gameplay_frame_count']}), "
         f"UINT16_C({row['event_count']}), "
         f"UINT16_C({row['event_offset']}), "
+        f"UINT16_C({row['motion_offset']}), "
+        f"UINT16_C({row['motion_count']}), "
         f"UINT32_C(0x{row['animation_flags']:08x}), "
         f"UINT32_C({row['animation_size']}) }},"
         for row in submotion_catalog
@@ -1392,6 +1589,23 @@ def generate(
     )
     lines.extend(
         (
+            "};",
+            "",
+            "static const pf_m4_falcon_air_dodge_attributes",
+            "pf_m4_falcon_air_dodge_attribute_data = {",
+            "    .initial_velocity_x_q16 = "
+            f"INT32_C({air_dodge_attributes['initial_velocity_x_q16']}),",
+            "    .initial_velocity_y_q16 = "
+            f"INT32_C({air_dodge_attributes['initial_velocity_y_q16']}),",
+            "    .decay_q16 = "
+            f"INT32_C({air_dodge_attributes['decay_q16']}),",
+            "    .dead_zone = "
+            f"UINT16_C({air_dodge_attributes['dead_zone']}),",
+            "    .item_throw_window_ticks = "
+            f"UINT16_C({air_dodge_attributes['item_throw_window_ticks']}),",
+            "    .ordinary_physics_begin_frame = "
+            f"UINT16_C({air_dodge_ordinary_physics_begin_frame}),",
+            "    .reserved = UINT16_C(0),",
             "};",
             "",
             "static const pf_m4_melee_stale_move_data",
@@ -1494,6 +1708,14 @@ def generate(
             "    .falling_bottom_y_from_origin_q16 = INT32_C("
             f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
+            "    .air_dodge_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in AIR_DODGE_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
             "    .fall_special_bottom_y_from_origin_q16 = {",
             "        "
             + ", ".join(
@@ -1598,14 +1820,28 @@ def generate(
             f"UINT16_C({move['motion_offset']}), "
             f"UINT16_C({move['motion_count']}) }},"
         )
-    lines.extend(("};", "", "static const int32_t pf_m4_falcon_motion_x_q16[] = {"))
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const int32_t "
+            "pf_m4_falcon_translation_x_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
+        )
+    )
     lines.extend(
         "    "
         + ", ".join(f"INT32_C({value})" for value in motion_x_q16[index : index + 8])
         + ","
         for index in range(0, len(motion_x_q16), 8)
     )
-    lines.extend(("};", "", "static const int32_t pf_m4_falcon_motion_y_q16[] = {"))
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const int32_t "
+            "pf_m4_falcon_translation_y_q16[PF_M4_FALCON_TRANSLATION_SAMPLE_COUNT] = {",
+        )
+    )
     lines.extend(
         "    "
         + ", ".join(f"INT32_C({value})" for value in motion_y_q16[index : index + 8])
@@ -1657,6 +1893,7 @@ def main() -> int:
         f"script_events=2056 script_bytes=16516 "
         f"animation_nodes=17271 animation_tracks=38560 "
         f"animation_keys=308057 "
+        f"translation_submotions=65 translation_samples=2536 "
         f"source_sha256={digest} output={args.output}"
     )
     return 0

@@ -5,41 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 
-/* Falcon's NTSC 1.02 forward-escape root motion, converted from GALE01's
- * world scale to the M4 laboratory scale. Index zero is displayed action
- * frame one. */
-static const int32_t pf_m4_falcon_forward_roll_velocity_q16[31] = {
-    INT32_C(20944), INT32_C(19646), INT32_C(18390), INT32_C(17175),
-    INT32_C(16002), INT32_C(14870), INT32_C(13779), INT32_C(12730),
-    INT32_C(11723), INT32_C(10757), INT32_C(9832),  INT32_C(8949),
-    INT32_C(8107),  INT32_C(7307),  INT32_C(6548),  INT32_C(5831),
-    INT32_C(5155),  INT32_C(4521),  INT32_C(3928),  INT32_C(3376),
-    INT32_C(2866),  INT32_C(2398),  INT32_C(1971),  INT32_C(1585),
-    INT32_C(1241),  INT32_C(939),   INT32_C(677),   INT32_C(458),
-    INT32_C(279),   INT32_C(143),   INT32_C(47)};
-
-/* Backward escape has separate physical velocity and animation root motion.
- * The latter cancels the physical component during the stationary recovery
- * portion. Both tables are mirrored by the requested escape direction. */
-static const int32_t pf_m4_falcon_backward_roll_velocity_q16[31] = {
-    INT32_C(-1),    INT32_C(-1),    INT32_C(3),     INT32_C(5740),
-    INT32_C(14342), INT32_C(18646), INT32_C(18653), INT32_C(16396),
-    INT32_C(14839), INT32_C(13429), INT32_C(12165), INT32_C(11048),
-    INT32_C(10077), INT32_C(9253),  INT32_C(8575),  INT32_C(8043),
-    INT32_C(7658),  INT32_C(7420),  INT32_C(7327),  INT32_C(7382),
-    INT32_C(7124),  INT32_C(6454),  INT32_C(5778),  INT32_C(5096),
-    INT32_C(4409),  INT32_C(3717),  INT32_C(3018),  INT32_C(2315),
-    INT32_C(1605),  INT32_C(891),   INT32_C(170)};
-static const int32_t pf_m4_falcon_backward_roll_root_motion_q16[31] = {
-    INT32_C(-1),    INT32_C(0),      INT32_C(0),      INT32_C(0),
-    INT32_C(0),     INT32_C(0),      INT32_C(0),      INT32_C(0),
-    INT32_C(0),     INT32_C(1),      INT32_C(-4965),  INT32_C(-11048),
-    INT32_C(-10077),INT32_C(-9253),  INT32_C(-8575),  INT32_C(-8043),
-    INT32_C(-7658), INT32_C(-7420),  INT32_C(-7327),  INT32_C(-7382),
-    INT32_C(-7124), INT32_C(-6454),  INT32_C(-5778),  INT32_C(-5096),
-    INT32_C(-4409), INT32_C(-3717),  INT32_C(-3018),  INT32_C(-2315),
-    INT32_C(-1605), INT32_C(-891),   INT32_C(0)};
-
 static int pf_m4_checked_i32(int64_t value, int32_t *out_value)
 {
     if (value < (int64_t)INT32_MIN || value > (int64_t)INT32_MAX)
@@ -1449,7 +1414,20 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
     {
         return fighter->half_height_q16;
     }
-    if (action_state == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR)
+    if (action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE)
+    {
+        const uint16_t frame_index =
+            action_ticks < PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT
+                ? action_ticks
+                : (uint16_t)(
+                      PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT -
+                      UINT16_C(1));
+
+        bottom_y_from_origin_q16 =
+            pose->air_dodge_bottom_y_from_origin_q16[frame_index];
+        has_reference_pose = 1;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR)
     {
         const uint16_t frame_index =
             action_ticks <
@@ -6877,36 +6855,32 @@ pf_status pf_m4_step_player(
                     : fighter->backward_roll_ticks;
             const int8_t direction = dash_direction != INT8_C(0)
                                          ? dash_direction
-                                         : (int8_t)-facing;
-            if (forward != 0 &&
-                action_ticks <
-                    (uint16_t)(
-                        sizeof(pf_m4_falcon_forward_roll_velocity_q16) /
-                        sizeof(pf_m4_falcon_forward_roll_velocity_q16[0])))
+                                         : (forward != 0 ? facing
+                                                         : (int8_t)-facing);
+            const int8_t source_facing =
+                forward != 0 ? direction : (int8_t)-direction;
+            const uint16_t submotion_index =
+                forward != 0
+                    ? (uint16_t)PF_M4_FALCON_SUBMOTION_ROLL_FORWARD
+                    : (uint16_t)PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD;
+            int32_t translation_x_q16;
+
+            if (pf_m4_falcon_reference_translation_q16(
+                    submotion_index,
+                    (uint16_t)(action_ticks + UINT16_C(1)),
+                    &translation_x_q16,
+                    NULL))
             {
                 velocity_x =
-                    (int32_t)direction *
-                    pf_m4_falcon_forward_roll_velocity_q16[action_ticks];
-                if (action_ticks == UINT16_C(19))
-                {
-                    facing = (int8_t)-direction;
-                }
+                    (int32_t)source_facing * translation_x_q16;
             }
-            else if (forward == 0 &&
-                     action_ticks <
-                         (uint16_t)(
-                             sizeof(
-                                 pf_m4_falcon_backward_roll_velocity_q16) /
-                             sizeof(
-                                 pf_m4_falcon_backward_roll_velocity_q16[0])))
+            else
             {
-                velocity_x =
-                    (int32_t)direction *
-                    pf_m4_falcon_backward_roll_velocity_q16[action_ticks];
-                animation_motion_x_q16 +=
-                    (int32_t)direction *
-                    pf_m4_falcon_backward_roll_root_motion_q16[
-                        action_ticks];
+                velocity_x = INT32_C(0);
+            }
+            if (forward != 0 && action_ticks == UINT16_C(19))
+            {
+                facing = (int8_t)-direction;
             }
             ++action_ticks;
             if (action_ticks > total_ticks)
@@ -8161,7 +8135,9 @@ pf_status pf_m4_step_player(
                     (uint8_t)PF_M4_ACTION_FALL_SPECIAL;
                 action_ticks = UINT16_C(0);
             }
-            else
+            else if (
+                action_ticks <
+                fighter->air_dodge_ordinary_physics_begin_tick)
             {
                 velocity_x = pf_m4_multiply_q16(
                     velocity_x,
@@ -8169,6 +8145,14 @@ pf_status pf_m4_step_player(
                 velocity_y = pf_m4_multiply_q16(
                     velocity_y,
                     fighter->air_dodge_decay_q16);
+            }
+            else
+            {
+                velocity_x = pf_m4_apply_air_input(
+                    fighter,
+                    velocity_x,
+                    input->main_stick_x,
+                    fighter->air_max_horizontal_speed_q16);
             }
         }
         else if (action_state ==
@@ -9307,7 +9291,9 @@ pf_status pf_m4_step_player(
             velocity_y = INT32_C(0);
         }
         else if (
-            action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE)
+            action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE &&
+            action_ticks <
+                fighter->air_dodge_ordinary_physics_begin_tick)
         {
             fast_fall = UINT8_C(0);
         }

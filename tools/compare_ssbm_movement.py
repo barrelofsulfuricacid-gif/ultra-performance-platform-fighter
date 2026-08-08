@@ -1159,6 +1159,12 @@ def main() -> int:
         actual_shield_strength = int(native["shield_strength"])
         expected_hitlag = round(float(oracle.get("hitlag_left", 0.0)))
         actual_hitlag = int(native["hitlag_ticks"])
+        expected_invulnerable = (
+            int(bool(oracle["invulnerable"]))
+            if "invulnerable" in oracle
+            else None
+        )
+        actual_invulnerable = int(native["invulnerable"])
         differences: list[str] = []
         if expected_action is None:
             differences.append(f"unsupported_action={action_name}")
@@ -1169,6 +1175,14 @@ def main() -> int:
         elif expected_ticks is not None and actual_ticks != expected_ticks:
             differences.append(
                 f"action_ticks expected={expected_ticks} actual={actual_ticks}"
+            )
+        if (
+            expected_invulnerable is not None
+            and actual_invulnerable != expected_invulnerable
+        ):
+            differences.append(
+                "invulnerable "
+                f"expected={expected_invulnerable} actual={actual_invulnerable}"
             )
         if actual_facing != expected_facing:
             differences.append(
