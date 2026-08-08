@@ -1148,6 +1148,30 @@ def input_trace(
         return trace
 
     if common_hurt_geometry_only:
+        def reset_common_hurt_route(
+            prefix: str,
+            opponent_main_x: float = 1.0,
+        ) -> None:
+            """Give both ports safe, explicit-facing, zero-velocity entry."""
+
+            trace.append(
+                command(
+                    f"{prefix}_reset_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=20.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_reset_place_settle", 10)
+            repeat(
+                f"{prefix}_face_right",
+                3,
+                main_x=1.0,
+                opponent_main_x=opponent_main_x,
+            )
+            repeat(f"{prefix}_face_right_recover", 45)
+
         # Initial dash is the first common-state hurt-pose route. Keep the
         # fighter isolated and hold the same full input through Falcon's
         # complete 15-frame Dash animation; later common states can append
@@ -1198,8 +1222,45 @@ def input_trace(
         )
         repeat("common_hurt_spot_dodge_hold", 35)
         repeat("common_hurt_spot_dodge_recover", 10)
+        for motion, main_x in (
+            ("roll_forward", 1.0),
+            ("roll_backward", -1.0),
+        ):
+            prefix = f"common_hurt_{motion}"
+            # EscapeF flips facing during its animation, and position
+            # overrides do not clear residual motion.  Give each source track
+            # the same facing-right, fully settled entry state so the two
+            # animation poses can be compared and imported independently.
+            reset_common_hurt_route(prefix)
+            trace.append(
+                command(
+                    f"{prefix}_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_settle", 10)
+            repeat(
+                f"{prefix}_shield",
+                10,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+            trace.append(
+                command(
+                    f"{prefix}_hold",
+                    main_x=main_x,
+                    left_shoulder=1.0,
+                    digital_left=True,
+                )
+            )
+            repeat(f"{prefix}_hold", 35)
+            repeat(f"{prefix}_recover", 10)
         for route, distance in (("hit", 31.0), ("miss", 31.5)):
             prefix = f"common_hurt_dash_collision_{route}"
+            reset_common_hurt_route(prefix, opponent_main_x=0.0)
             trace.append(
                 command(
                     f"{prefix}_place",
@@ -1221,6 +1282,7 @@ def input_trace(
             repeat(f"{prefix}_recover", 40)
         for route, distance in (("hit", 17.7), ("miss", 17.84)):
             prefix = f"common_hurt_crouch_collision_{route}"
+            reset_common_hurt_route(prefix, opponent_main_x=0.0)
             trace.append(
                 command(
                     f"{prefix}_place",
@@ -1242,6 +1304,7 @@ def input_trace(
             repeat(f"{prefix}_recover", 40)
         for route, distance in (("hit", 16.5), ("miss", 16.8)):
             prefix = f"common_hurt_knee_bend_collision_{route}"
+            reset_common_hurt_route(prefix, opponent_main_x=0.0)
             trace.append(
                 command(
                     f"{prefix}_place",
@@ -1275,13 +1338,7 @@ def input_trace(
             # Damage turns its victim toward the attacker.  Re-establish the
             # same facing and zero-velocity state before each route so the
             # positive and negative controls differ only by separation.
-            repeat(
-                f"{route_prefix}_face_right",
-                3,
-                main_x=1.0,
-                opponent_main_x=1.0,
-            )
-            repeat(f"{route_prefix}_face_right_recover", 45)
+            reset_common_hurt_route(route_prefix)
             trace.append(
                 command(
                     f"{route_prefix}_place",
@@ -1309,6 +1366,80 @@ def input_trace(
             # Jab 1's first live geometry is displayed frame 3. Starting it
             # here aligns frame 3 with tangible SpotDodge frame 22; continued
             # frame 4 checks the pending frame-24 pose used by the discriminator.
+            repeat(f"{route_prefix}_advance", 18)
+            trace.append(
+                command(f"{route_prefix}_jab_start", opponent_attack=True)
+            )
+            repeat(f"{route_prefix}_observe", 15)
+            repeat(f"{route_prefix}_recover", 60)
+        # The source TransN stream moves EscapeF about +33.38 Melee units by
+        # the frame-22 collision pose.  These start positions place that pose
+        # at the pre-swept +12.98/+14.18 boundaries: the real hurt
+        # capsules miss the latter while the generic rectangle still hits.
+        for route, start_x in (("hit", -20.4), ("miss", -19.2)):
+            route_prefix = f"common_hurt_roll_forward_collision_{route}"
+            reset_common_hurt_route(route_prefix)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=start_x,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=0.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            repeat(
+                f"{route_prefix}_shield",
+                10,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+            trace.append(
+                command(
+                    f"{route_prefix}_entry",
+                    main_x=1.0,
+                    left_shoulder=1.0,
+                    digital_left=True,
+                )
+            )
+            repeat(f"{route_prefix}_advance", 18)
+            trace.append(
+                command(f"{route_prefix}_jab_start", opponent_attack=True)
+            )
+            repeat(f"{route_prefix}_observe", 15)
+            repeat(f"{route_prefix}_recover", 60)
+        # EscapeB from facing right moves about 31.51 Melee units left by the
+        # frame-24 pose.  The chosen controls put it at +20.0/+20.75: the
+        # real capsules hit only the first, while the generic rectangle misses
+        # even that positive route.
+        for route, start_x in (("hit", 51.5), ("miss", 52.25)):
+            route_prefix = f"common_hurt_roll_backward_collision_{route}"
+            reset_common_hurt_route(route_prefix)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=start_x,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=0.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            repeat(
+                f"{route_prefix}_shield",
+                10,
+                left_shoulder=1.0,
+                digital_left=True,
+            )
+            trace.append(
+                command(
+                    f"{route_prefix}_entry",
+                    main_x=-1.0,
+                    left_shoulder=1.0,
+                    digital_left=True,
+                )
+            )
             repeat(f"{route_prefix}_advance", 18)
             trace.append(
                 command(f"{route_prefix}_jab_start", opponent_attack=True)

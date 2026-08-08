@@ -407,26 +407,38 @@ special subactions. The final wall-rebound row reuses the source-defined Falcon
 Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
-remains the grounded-idle route. A third 1,099-row Slippi Dolphin 3.5.1 ExiAI
+remains the grounded-idle route. A third 2,427-row Slippi Dolphin 3.5.1 ExiAI
 capture,
 SHA-256
-`dbd01434760f87236d2569b64fbe6bb7d77f6723d7d61322a48c94eab5f0089a`,
+`0bdf1390f8dbee759f58f520c4f30dc2b12c6d793d8aab01eed0b3abf26caf93`,
 adds every displayed Initial Dash frame 1-15, RunBrake frame 1-28, CrouchStart
-frame 1-7, CrouchEnd frame 1-10, KneeBend frame 1-4, and SpotDodge frame 1-32. Its
+frame 1-7, CrouchEnd frame 1-10, KneeBend frame 1-4, SpotDodge frame 1-32,
+RollForward frame 1-31, and RollBackward frame 1-31. Its
 controller-port cross-check requires both live poses to canonicalize to the
 same Falcon Q16.16 capsules; capture metadata alone is not accepted as proof
 that the menu spawned the requested character. The ExiAI path is separately
 qualified against an unaccelerated same-binary control at SHA-256
-`bb75f231b80b3c6397b02355277bf621071a7f6ae2f5a85f3558d27d0b25bfc7`;
+`2df3834629235db4dfc5a12f71af0fac034786aed1e34f8bdc6156c592c2299c`;
+the A/B comparison covers 1,100/721 active fighter/opponent rows and
+1,010/704 qualified action-owned pose rows. Every collision control first
+pre-places both ports safely, settles them, establishes explicit facing, and
+fully recovers before final placement; this prevents preceding routes from
+leaking airborne state, facing, or velocity.
 looping idle, `Ft_MF_SkipAnim` GuardReflect inheritance, and positive-hitlag
-bone endpoints are forbidden as geometry sources, so every imported KneeBend
-and SpotDodge sample comes from a dedicated active, non-hitlag track. The
+bone endpoints are forbidden as geometry sources, so every imported KneeBend,
+SpotDodge, RollForward, and RollBackward sample comes from a dedicated active,
+non-hitlag track. The
 pinned `ftCo_Escape.c` SHA-256 is
 `762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89`;
 its generated state-two/state-zero commands and executable trace agree on
 SpotDodge invulnerability frames 3-20. A facing-controlled Jab 1 route hits the
 pending frame-24 pose at 21.0 Melee units and misses at 22.0, while the generic
-rectangle falsely misses the positive route. A single move/frame lookup feeds
+rectangle falsely misses the positive route. The same source commands and
+executable agree that both rolls are vulnerable on frames 1-3, invulnerable on
+4-19, and vulnerable on 20-31. Jab 1 hits RollForward frame 22 at 12.98 and
+misses at 14.18, where the generic rectangle falsely hits; it hits RollBackward
+frame 24 at 20.00 and misses at 20.75, where the rectangle falsely misses the
+positive route. A single move/frame lookup feeds
 exact 2D
 projection for overlays and full 3D point-versus-capsule intersection for
 reference attacks and grabs without allocation. Both endpoints of every hurt
@@ -438,14 +450,14 @@ route.
 The canonicalized timing, hit-sphere, standing-pose, action-pose, and common-
 pose tables
 hash to
-`f2124b2cd0068006a13f29cad0e45bf5148dd9b8dc83a1be16332576717ebced`.
+`4939ad7ab5ea7c446be5427c6f91aa45a4802f62083e20ca62fcdff27dd40063`.
 Pinned regeneration produces the tracked include at SHA-256
-`b81cdeb333382d091b4f01764cb855148d7b436df3cd84e0cfa6eff489ac4dfb`.
+`80106a687936b75e9e2ebfc33d289468ddec8fffebb60959dc167a6165070475`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, all 17 Falcon special
 subactions, Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, and
-SpotDodge.
+SpotDodge, RollForward, and RollBackward.
 Imported hit and hurt geometry is anchored to Melee's fighter root
 at the simulation floor-origin offset, rather than incorrectly treating the
 simulation body center as the source origin.

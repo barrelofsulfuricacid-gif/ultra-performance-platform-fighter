@@ -533,7 +533,8 @@ Hash-pinned Dolphin captures provide transformed hit geometry and complete-
 frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
 dash grab, all 17 Falcon special subactions, and the complete 15-frame Initial
 Dash, 28-frame RunBrake, 7-frame CrouchStart, and 10-frame CrouchEnd common
-tracks. Every damaging/grabbing
+tracks, all four KneeBend frames, all 32 SpotDodge frames, and both complete
+31-frame roll tracks. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
 are imported separately as the source's six search spheres rather than being
 misclassified as attacks. The imported special timing, attributes, and
@@ -604,7 +605,8 @@ complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
-Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, and SpotDodge remain
+Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
+RollForward, and RollBackward remain
 explicit
 M4 gaps and must be extracted or qualified rather than approximated with
 invented frame data. Common poses use
@@ -622,6 +624,14 @@ Jab 1 route hits the pending frame-24 pose at 21.0 Melee units and misses at
 22.0; the old generic rectangle falsely misses the positive route. The
 post-frame observer's displayed-pose/collision-report ordering and damage-facing
 reset are explicit verifier inputs rather than hidden distance adjustments.
+The two distinct 31-frame roll-pose tracks reuse the same compact table and
+deduplicated capsule pool. Pinned Jab 1 controls hit RollForward frame 22 at
+12.98 Melee units and miss at 14.18, where the generic rectangle falsely hits;
+they hit RollBackward frame 24 at 20.00 and miss at 20.75, where the generic
+rectangle falsely misses the positive route. Each control first pre-places
+both ports safely, settles, establishes explicit facing through controller
+input, fully recovers, and only then applies its final placement, so route
+order cannot leak airborne state, facing, or velocity into the result.
 The executable's previous-to-current
 moving hit-capsule sweep is production-routed and Dolphin-qualified: imported
 collision state distinguishes creation from continuation, continuation finds

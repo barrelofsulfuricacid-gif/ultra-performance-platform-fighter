@@ -4091,6 +4091,58 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon RollForward/RollBackward hurt poses
+
+- The prior-art sweep reused pinned decomp `ftCo_Escape.c` at SHA-256
+  `762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89`,
+  the generated submotion/body-state and TransN tables, the existing 285-frame
+  defense capture, the shared common-pose importer/collision helpers, libmelee
+  action mapping, and the qualified ExiAI runner. No maintained upstream tool
+  supplied a more complete roll-pose import path. The older defense evidence
+  established that the two animations remain distinct after facing
+  canonicalization: each has 31 unique displayed poses.
+- The finalized common-pose oracle contains 2,427 rows. Its accepted ExiAI
+  capture is
+  `0bdf1390f8dbee759f58f520c4f30dc2b12c6d793d8aab01eed0b3abf26caf93`;
+  the same-binary stock control is
+  `2df3834629235db4dfc5a12f71af0fac034786aed1e34f8bdc6156c592c2299c`.
+  A/B comparison passes 1,100/721 active fighter/opponent rows and 1,010/704
+  qualified action-owned pose rows. Every source and collision route now
+  pre-places both ports safely, settles, establishes explicit facing through
+  controller input, fully recovers, and only then applies final placement.
+  This makes the trace independent of prior damage-facing updates, residual
+  velocity, edge position, and airborne state.
+- Both executable and generated state commands report roll frames 1-3
+  vulnerable, 4-19 invulnerable, and 20-31 vulnerable. Jab 1 hits the
+  facing-left RollForward frame-22 pose at 12.98 Melee units and misses at
+  14.18; reconstructed margins are +0.792811248/-0.129717661 and the generic
+  rectangle falsely reports +3.515399933 on the miss. Jab 1 hits facing-right
+  RollBackward frame 24 at 20.00 and misses at 20.75; margins are
+  +0.332847599/-0.293575032 and the generic rectangle falsely reports
+  -1.558547020 on the positive route.
+- The importer appends two compact 31-frame entries, reuses the one
+  deduplicated capsule pool, and maps public `ROLL_FORWARD`/`ROLL_BACKWARD`
+  once. It adds no allocation, float math, new capsule representation,
+  snapshot bytes, or per-fighter state. Canonical geometry SHA-256 is
+  `4939ad7ab5ea7c446be5427c6f91aa45a4802f62083e20ca62fcdff27dd40063`;
+  byte-identical scratch/tracked regeneration produces include SHA-256
+  `80106a687936b75e9e2ebfc33d289468ddec8fffebb60959dc167a6165070475`.
+- Native Windows passes 20/20 tests, WSL Release passes 22/22, and WSL
+  ASan/UBSan passes 15/15. Combat, browser-adapter, and live Chrome smoke
+  verifiers pass while emergent-technique probes remain skipped. Native/Wasm
+  replay output is byte-identical at corpus/final/event SHA-256 values
+  `af5b1bb66a475a4c28e93f15e12355d92c14ced6e08ecdad7bf25dbac82612f7`,
+  `78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  The verifier soak digest is `9a538aa99be7742a`; a 64-environment
+  unsampled run reports 1,783,497 single-world and 1,811,566 batched ticks per
+  second with exact state identity.
+- The reusable `ssbm-character-importer` skill now records the safe
+  pre-placement/settle/facing/recovery routine discovered by this slice and
+  validates successfully. M4 remains unfinished: further common hurt poses,
+  aerial-IASA item/tether branches, and wider ledge/tech/damage behavior remain
+  in the exhaustive Falcon-equivalence obligation.
+
 ## 2026-08-08 Falcon SpotDodge hurt poses
 
 - The prior-art/source sweep reused the pinned common Escape implementation,

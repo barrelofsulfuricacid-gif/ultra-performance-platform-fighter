@@ -83,18 +83,19 @@ build/oracle-toolchain/exiai-python/bin/python \
 
 ## Qualification and measurement
 
-The current qualification trace contains 1,099 rows and six Falcon common-hurt
-tracks: Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, and
-SpotDodge, including physical hit/miss controls. The automated A/B comparison
+The current qualification trace contains 2,427 rows and eight Falcon common-hurt
+tracks: Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
+RollForward, and RollBackward, including physical hit/miss
+controls. The automated A/B comparison
 strictly matches every requested and observed input, game frame, initialized
 active action frame, position, velocity, damage, hitlag, collision decision,
-and qualified geometry observation. It covers 482 non-standing Falcon rows and
-295 non-standing opponent rows. Of those, 446 Falcon and 284 opponent rows are
+and qualified geometry observation. It covers 1,100 non-standing Falcon rows
+and 721 non-standing opponent rows. Of those, 1,010 Falcon and 704 opponent rows are
 initialized, non-hitlag, action-owned pose samples whose complete capsule
 geometry also matches exactly. The unaccelerated control SHA-256 is
-`bb75f231b80b3c6397b02355277bf621071a7f6ae2f5a85f3558d27d0b25bfc7`;
+`2df3834629235db4dfc5a12f71af0fac034786aed1e34f8bdc6156c592c2299c`;
 the selected accelerated capture is
-`dbd01434760f87236d2569b64fbe6bb7d77f6723d7d61322a48c94eab5f0089a`.
+`0bdf1390f8dbee759f58f520c4f30dc2b12c6d793d8aab01eed0b3abf26caf93`.
 
 Measured on the local WSL host:
 
@@ -105,9 +106,10 @@ Measured on the local WSL host:
 | ExiAI unaccelerated control, headless, 650 rows | 22.17 s | qualification control |
 | ExiAI headless/null/fast-forward, 650 rows | 16.68 s | selected |
 
-Those timings are the retained 650-row benchmark; the expanded 1,099-row
-qualification adds SpotDodge and facing-controlled collision routes without
-changing the selected runner.
+Those timings are the retained 650-row benchmark. The current 2,427-row route,
+including safely isolated SpotDodge and both-roll collision controls, completed
+in about 23 seconds accelerated and 30 seconds unaccelerated on the same host
+without changing the selected runner.
 
 The memory probe dominates this geometry-heavy trace, so fast-forward's
 measured benefit is smaller than in ordinary state-only traces. The selected

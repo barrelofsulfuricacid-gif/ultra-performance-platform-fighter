@@ -19,7 +19,7 @@ from ssbm_collision import (
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "dbd01434760f87236d2569b64fbe6bb7d77f6723d7d61322a48c94eab5f0089a"
+    "0bdf1390f8dbee759f58f520c4f30dc2b12c6d793d8aab01eed0b3abf26caf93"
 )
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
@@ -132,7 +132,10 @@ def requested_route_distance(
     distances = {
         float(row[target_key]) - float(row[attacker_key])
         for row in rows
-        if row.get(target_key) is not None and row.get(attacker_key) is not None
+        if str(row.get("label", "")).endswith("_place")
+        and not str(row.get("label", "")).endswith("_reset_place")
+        and row.get(target_key) is not None
+        and row.get(attacker_key) is not None
     }
     if len(distances) != 1:
         raise SystemExit(f"expected one requested route distance, got {distances}")
@@ -347,7 +350,7 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 1099
+        or len(rows) != 2427
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -393,6 +396,20 @@ def main() -> int:
         1,
         32,
     )
+    roll_forward_rows = exact_action_frames(
+        rows,
+        "common_hurt_roll_forward_hold",
+        "ROLL_FORWARD",
+        1,
+        31,
+    )
+    roll_backward_rows = exact_action_frames(
+        rows,
+        "common_hurt_roll_backward_hold",
+        "ROLL_BACKWARD",
+        1,
+        31,
+    )
     observed_invulnerability = [
         round(float(row["action_frame"]))
         for row in spot_dodge_rows
@@ -403,6 +420,20 @@ def main() -> int:
             "SpotDodge invulnerability mismatch: "
             f"{observed_invulnerability} != {list(range(3, 21))}"
         )
+    for action, action_rows in (
+        ("ROLL_FORWARD", roll_forward_rows),
+        ("ROLL_BACKWARD", roll_backward_rows),
+    ):
+        observed_invulnerability = [
+            round(float(row["action_frame"]))
+            for row in action_rows
+            if bool(row["invulnerable"])
+        ]
+        if observed_invulnerability != list(range(4, 20)):
+            raise SystemExit(
+                f"{action} invulnerability mismatch: "
+                f"{observed_invulnerability} != {list(range(4, 20))}"
+            )
     positive, negative = verify_collision_outcome(
         rows, "dash", 0.0, 2.0, "DAMAGE_HIGH_2"
     )
@@ -564,6 +595,122 @@ def main() -> int:
             f"generic_margin={spot_generic_margin:.9f}"
         )
 
+    roll_forward_positive, roll_forward_negative = verify_collision_outcome(
+        rows,
+        "roll_forward",
+        2.0,
+        3.819999933242798,
+        "DAMAGE_NEUTRAL_2",
+        target_prefix="",
+    )
+    roll_forward_miss_frame = collision_frame(
+        roll_forward_negative,
+        3,
+        "ROLL_FORWARD",
+        22,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        roll_forward_rows[21],
+        roll_forward_miss_frame,
+        "port-1 RollForward frame 22",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    roll_forward_target_shift = (
+        requested_route_distance(
+            roll_forward_positive, target="fighter", attacker="opponent"
+        )
+        - requested_route_distance(
+            roll_forward_negative, target="fighter", attacker="opponent"
+        )
+    )
+    roll_forward_hit_margin, roll_forward_miss_margin = (
+        reconstructed_collision_margins(
+            roll_forward_miss_frame,
+            roll_forward_target_shift,
+            hitbox_key="opponent_hitboxes",
+            hurtbox_key="fighter_hurtboxes",
+        )
+    )
+    roll_forward_generic_margin = generic_rectangle_margin(
+        dict(roll_forward_miss_frame["hitbox_memory"]),
+        0.0,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        roll_forward_hit_margin < 0.0
+        or roll_forward_miss_margin >= 0.0
+        or roll_forward_generic_margin < 0.0
+    ):
+        raise SystemExit(
+            "RollForward collision discriminator failed: "
+            f"hit_margin={roll_forward_hit_margin:.9f} "
+            f"miss_margin={roll_forward_miss_margin:.9f} "
+            f"generic_margin={roll_forward_generic_margin:.9f}"
+        )
+
+    roll_backward_positive, roll_backward_negative = verify_collision_outcome(
+        rows,
+        "roll_backward",
+        3.819999933242798,
+        5.480000019073486,
+        "DAMAGE_NEUTRAL_2",
+        target_prefix="",
+    )
+    roll_backward_miss_frame = collision_frame(
+        roll_backward_negative,
+        5,
+        "ROLL_BACKWARD",
+        24,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        roll_backward_rows[23],
+        roll_backward_miss_frame,
+        "port-1 RollBackward frame 24",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    roll_backward_target_shift = (
+        requested_route_distance(
+            roll_backward_positive, target="fighter", attacker="opponent"
+        )
+        - requested_route_distance(
+            roll_backward_negative, target="fighter", attacker="opponent"
+        )
+    )
+    roll_backward_hit_margin, roll_backward_miss_margin = (
+        reconstructed_collision_margins(
+            roll_backward_miss_frame,
+            roll_backward_target_shift,
+            hitbox_key="opponent_hitboxes",
+            hurtbox_key="fighter_hurtboxes",
+        )
+    )
+    roll_backward_generic_margin = generic_rectangle_margin(
+        dict(roll_backward_miss_frame["hitbox_memory"]),
+        roll_backward_target_shift,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        roll_backward_hit_margin < 0.0
+        or roll_backward_miss_margin >= 0.0
+        or roll_backward_generic_margin >= 0.0
+    ):
+        raise SystemExit(
+            "RollBackward collision discriminator failed: "
+            f"hit_margin={roll_backward_hit_margin:.9f} "
+            f"miss_margin={roll_backward_miss_margin:.9f} "
+            f"generic_margin={roll_backward_generic_margin:.9f}"
+        )
+
     print(
         "ssbm-common-hurt=pass "
         f"frames={len(rows)} dash_frames={len(dash_rows)} "
@@ -572,6 +719,8 @@ def main() -> int:
         f"crouch_end_frames={len(crouch_end_rows)} "
         f"knee_bend_frames={len(knee_bend_rows)} "
         f"spot_dodge_frames={len(spot_dodge_rows)} "
+        f"roll_forward_frames={len(roll_forward_rows)} "
+        f"roll_backward_frames={len(roll_backward_rows)} "
         f"dash_hit_margin={dash_hit_margin:.9f} "
         f"dash_miss_margin={dash_miss_margin:.9f} "
         f"dash_generic_margin={dash_generic_margin:.9f} "
@@ -584,6 +733,12 @@ def main() -> int:
         f"spot_hit_margin={spot_hit_margin:.9f} "
         f"spot_miss_margin={spot_miss_margin:.9f} "
         f"spot_generic_margin={spot_generic_margin:.9f} "
+        f"roll_forward_hit_margin={roll_forward_hit_margin:.9f} "
+        f"roll_forward_miss_margin={roll_forward_miss_margin:.9f} "
+        f"roll_forward_generic_margin={roll_forward_generic_margin:.9f} "
+        f"roll_backward_hit_margin={roll_backward_hit_margin:.9f} "
+        f"roll_backward_miss_margin={roll_backward_miss_margin:.9f} "
+        f"roll_backward_generic_margin={roll_backward_generic_margin:.9f} "
         f"capture_sha256={capture_digest}"
     )
     return 0
