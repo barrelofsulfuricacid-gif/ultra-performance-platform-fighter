@@ -153,13 +153,18 @@ action executes ordinary aerial input and gravity, exactly as
 
 Floor contact during EscapeAir uses a 48-frame animated ECB-bottom sequence
 from the same schema-9 live-memory route, rather than the generic body extent
-that landed one frame early. The complete 285-frame Final Destination defense
+that landed one frame early. The complete 329-frame Final Destination defense
 capture has SHA-256
-`1118a7a6e26ae98862e7457caee59ff45260076f30ce2e3e09ba71f249dc6084`.
+`d9dfebcb6e42f5e71ece08490429b61083f81bee067def379b5fdd6270d96b95`.
 It covers forward roll, spot dodge, backward roll, held-L/fresh-R upward air
-dodge, ordinary-physics handoff, and landing while strictly comparing action,
-tick, grounded state, facing, invulnerability, and velocity; position stays
-within the established 640-Q16 representation envelope.
+dodge, ordinary-physics handoff, and landing, then a fresh down-left air dodge
+whose horizontal LandingFallSpecial route crosses Falcon's walk-speed friction
+threshold. Action, tick, grounded state, facing, invulnerability, and velocity
+compare strictly; position stays within the established 640-Q16 representation
+envelope. Its same-binary unaccelerated control has SHA-256
+`d78abcfe3d252d0f87409aba3343cd838efb739d6311494d520f2f076eb5255f`;
+the accelerated/control comparison passes all 329 rows, including 225 active-
+fighter rows and 185 qualified active-pose rows.
 
 Default production timing for dash, standing/run turn, run brake, ordinary
 landing, crouch start/reverse, shield release, spot dodge, both rolls, air
@@ -471,6 +476,23 @@ margins +0.563753525/-0.130038736; the generic rectangle falsely hits the miss
 at +2.936591339. A pending LandingFallSpecial source-frame-7 control hits at
 18.5 and misses at 19.3, with margins +0.509528504/-0.137582566; the generic
 rectangle falsely misses the hit at -0.063411903.
+
+The same pinned landing source proves there is no LandingFallSpecial root-
+motion correction. `ftCo_Landing_Enter` grounds the fighter through
+`ftCommon_8007D7FC`, which copies horizontal self velocity to ground velocity;
+`ftCo_Landing_Phys` then calls only `ft_80084F3C`. The latter uses Falcon's
+ground friction multiplied by common value `x6C` while absolute ground speed
+is greater than walk maximum, otherwise ordinary ground friction, before
+calling `ftCommon_ApplyGroundMovement`. The pinned `ft_084E.c` SHA-256 is
+`0b14d8214bd4f4f5cd47269d658ecf829ede9b42a756c1492ca21a38abb7e9ad`;
+the pinned `ftcommon.c` SHA-256 is
+`6a85efe9ef6997a23e5b91fb3c6165e70ca00aac0c617d46c92dc28a5bb86194`.
+The imported common submotion 36 has no translation stream. In the qualified
+flat-stage rows, every position delta equals the post-friction velocity: the
+first five landing velocities decrease by 0.16 Melee units per tick above the
+threshold, then by 0.08 below it. Before removal, the parallel authored shim
+caused the first divergence at capture row 310/source frame 4 by 1,889 Q16
+position units while velocity already matched.
 
 The canonicalized timing, hit-sphere, standing-pose, action-pose, and common-
 pose tables

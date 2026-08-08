@@ -3405,12 +3405,7 @@ static void pf_m4_land_from_air(
         *air_jumps_remaining = fighter->air_jump_count;
         *short_hop_latched = UINT8_C(0);
         *fast_fall = UINT8_C(0);
-        *dash_direction =
-            incoming_velocity_x < INT32_C(0)
-                ? INT8_C(-1)
-                : (incoming_velocity_x > INT32_C(0)
-                       ? INT8_C(1)
-                       : INT8_C(0));
+        *dash_direction = INT8_C(0);
         scratch->hitstun_ticks[player_index] = UINT16_C(0);
         scratch->tumble[player_index] = UINT8_C(0);
         scratch->tech_direction[player_index] = INT8_C(0);
@@ -7260,13 +7255,6 @@ pf_status pf_m4_step_player(
              action_state ==
                  (uint8_t)PF_M4_ACTION_SPECIAL_LANDING)
     {
-        const int32_t root_motion_q16 = INT32_C(2051);
-
-        animation_motion_x_q16 =
-            (int32_t)dash_direction *
-            (action_ticks < UINT16_C(5)
-                 ? -root_motion_q16
-                 : root_motion_q16);
         velocity_x = pf_m4_approach(
             velocity_x,
             INT32_C(0),
@@ -7279,7 +7267,7 @@ pf_status pf_m4_step_player(
         {
             action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
             action_ticks = UINT16_C(0);
-            dash_direction = (int8_t)(dash_direction * INT8_C(2));
+            dash_direction = INT8_C(0);
         }
     }
     else if (!ledge_motion_handled &&

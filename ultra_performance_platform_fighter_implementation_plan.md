@@ -69,6 +69,7 @@ These are constraints on implementation, not premature choices about data repres
 11. **Version every deterministic input.** Builds, design-data packs, stages, fighters, controller normalization rules, replays, save states, and network handshakes carry compatible version/content hashes.
 12. **Original expression throughout.** SSBM is a system/feel reference, never an asset source. Every name, image, animation, sound, composition, story element, UI asset, stage layout, and written description must be original or properly licensed.
 13. **Beautiful zero-cost implementation.** Express shared mechanics, formulas, state transitions, validation, serialization, and platform-independent policy once through cohesive C APIs, immutable data, and compile-time or `static inline` composition. An abstraction on a simulation hot path must add no allocation, ownership ambiguity, avoidable data movement, indirect dispatch, branch, or call overhead versus its direct equivalent in optimized builds. Where zero cost is not evident, inspect optimized code or measure it. Authoritative gameplay logic may not be copied among runtime, replay, RL, verifier, native, and web paths; unavoidable adapter or test duplication must be small, explicit, and kept outside the deterministic authority.
+14. **Prior art before implementation.** Before starting every implementation slice, fidelity investigation, tool, experiment harness, or optimization, first search the repository, pinned upstream sources, existing project skills, and maintained public implementations for reusable evidence or machinery. Record the relevant result in the milestone evidence. Implement only after this sweep, and do not replace authoritative source data or an established routine with a guess.
 
 ---
 
@@ -434,10 +435,12 @@ Current regression evidence consists of an 8,675-frame Final Destination
 movement/defense/crouch corpus, a separate 348-frame Battlefield platform
 corpus, and a separate 540-frame Final Destination Falcon-versus-Falcon
 grounded-player-push corpus, plus a separate 500-frame Final Destination
-analog-shield-pressure corpus. A focused 285-frame defense-state route covers
-forward roll, spot dodge, backward roll, and held-L/fresh-R upward air dodge
-through ordinary-physics handoff and floor landing, with exact action, tick,
-grounded, facing, invulnerability, and velocity comparison. The shield route
+analog-shield-pressure corpus. A focused 329-frame defense-state route covers
+forward roll, spot dodge, backward roll, held-L/fresh-R upward air dodge
+through ordinary-physics handoff and floor landing, then a down-left air dodge
+that enters horizontal LandingFallSpecial above Falcon's walk-speed threshold
+and crosses into the ordinary-friction branch. It compares action, tick,
+grounded state, facing, invulnerability, and velocity exactly. The shield route
 covers sub-threshold, light,
 intermediate, near-dense, both-shoulder, digital-full, release, and regeneration
 samples while comparing action/state, health, and normalized pressure; its
@@ -466,7 +469,7 @@ and the anisotropically mapped elliptical collision volume. A 2,568-frame,
 33-decision Jab 1 sweep additionally qualifies exact sphere-versus-shield
 collision at neutral and two diagonal guard offsets, including all three
 last-hit/first-miss boundaries. Aggregate executable-oracle evidence is
-therefore 18,273 qualified frames, including 350 actionable frames from a
+therefore 18,317 qualified frames, including 350 actionable frames from a
 1,250-frame aerial-IASA capture covering one-frame-early/exact fair, back-air,
 up-air, and down-air double-jump interrupts plus neutral-air's no-IASA control,
 and
@@ -629,6 +632,13 @@ the generic rectangle falsely misses the hit. Runtime lookup uses one
 action-specific tick-to-source-frame adapter so movements that already enter
 at source frame 1 are not shifted, while zero-based KneeBend/dodge/roll/
 FallSpecial/LandingFallSpecial ticks are converted without duplicate tables.
+LandingFallSpecial physics follows `ftCo_Landing_Phys -> ft_80084F3C`: entry
+copies horizontal self velocity to ground velocity, each flat-stage tick moves
+by the post-friction velocity, and friction is Falcon's ground friction times
+common multiplier `x6C` only while absolute speed exceeds walk maximum. The
+imported submotion has no TransN stream, so production adds no animation or
+authored root displacement. The 329-frame Dolphin route crosses both friction
+regimes and passes within only the established 640-Q16 position envelope.
 The complete 32-frame SpotDodge track is imported from a pinned active,
 non-hitlag executable trace. Its source body state is vulnerable on frames 1-2,
 invulnerable on frames 3-20, and vulnerable on frames 21-32. A facing-controlled

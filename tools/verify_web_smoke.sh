@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=0235c47f05fdd37257bdd59ac5cfd5c7e107316a19f99001eefdeea7d78e951d'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'

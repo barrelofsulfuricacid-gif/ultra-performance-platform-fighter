@@ -1732,7 +1732,45 @@ def input_trace(
                 digital_right=True,
             )
         )
-        repeat("defense_state_air_dodge_observe", 55)
+        repeat("defense_state_air_dodge_observe", 62)
+
+        # The earlier upward air dodge reaches LandingFallSpecial with zero
+        # horizontal velocity, so it cannot qualify the state's ground-
+        # friction callback.  A fresh down-left air dodge from jump height
+        # lands with above-walk-speed horizontal momentum and exposes all ten
+        # special-landing ticks without relying on a memory override.
+        repeat(
+            "defense_state_horizontal_landing_shield",
+            10,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_horizontal_landing_jump",
+                left_shoulder=1.0,
+                digital_left=True,
+                jump=True,
+            )
+        )
+        repeat(
+            "defense_state_horizontal_landing_jump_squat",
+            5,
+            left_shoulder=1.0,
+            digital_left=True,
+        )
+        trace.append(
+            command(
+                "defense_state_horizontal_landing_entry",
+                main_x=0.0,
+                main_y=0.0,
+                left_shoulder=1.0,
+                right_shoulder=1.0,
+                digital_left=True,
+                digital_right=True,
+            )
+        )
+        repeat("defense_state_horizontal_landing_observe", 20)
         return trace
 
     if platform_only:

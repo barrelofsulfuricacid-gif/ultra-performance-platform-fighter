@@ -511,6 +511,7 @@ static int run_air_dodge_test(
     int32_t expected_entry_velocity_y;
     int32_t landing_x;
     int32_t landing_velocity_x;
+    int32_t previous_landing_x;
     int8_t takeoff_facing;
     uint32_t tick;
     int saw_ordinary_physics = 0;
@@ -927,6 +928,7 @@ static int run_air_dodge_test(
          tick < (uint32_t)default_content->fighter.special_landing_ticks;
          ++tick)
     {
+        previous_landing_x = inspection.players[0].position_x_q16;
         if (!step_duel_trigger(
                 sim,
                 INT16_MIN,
@@ -936,7 +938,9 @@ static int run_air_dodge_test(
                 &inspection) ||
             inspection.players[0].action_state !=
                 (uint8_t)PF_M4_ACTION_SPECIAL_LANDING ||
-            inspection.players[0].action_ticks != (uint16_t)tick)
+            inspection.players[0].action_ticks != (uint16_t)tick ||
+            inspection.players[0].position_x_q16 - previous_landing_x !=
+                inspection.players[0].velocity_x_q16)
         {
             (void)fprintf(
                 stderr,
@@ -946,6 +950,7 @@ static int run_air_dodge_test(
             return 0;
         }
     }
+    previous_landing_x = inspection.players[0].position_x_q16;
     if (!step_duel_trigger(
             sim,
             INT16_MIN,
@@ -955,6 +960,8 @@ static int run_air_dodge_test(
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+        inspection.players[0].position_x_q16 - previous_landing_x !=
+            inspection.players[0].velocity_x_q16 ||
         inspection.players[0].position_x_q16 <= landing_x ||
         inspection.players[0].velocity_x_q16 >= landing_velocity_x)
     {

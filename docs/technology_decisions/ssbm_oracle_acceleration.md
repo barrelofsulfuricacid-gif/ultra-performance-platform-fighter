@@ -113,6 +113,14 @@ LandingFallSpecial collision controls. Its
 unaccelerated and accelerated outputs remain field-for-field identical without
 changing the selected runner.
 
+The separate 329-row defense-state movement route is also qualified against a
+same-binary unaccelerated control. Accelerated SHA-256
+`d9dfebcb6e42f5e71ece08490429b61083f81bee067def379b5fdd6270d96b95`
+and control SHA-256
+`d78abcfe3d252d0f87409aba3343cd838efb739d6311494d520f2f076eb5255f`
+compare field-for-field across all rows, including the new above-walk-speed
+horizontal LandingFallSpecial route.
+
 The memory probe dominates this geometry-heavy trace, so fast-forward's
 measured benefit is smaller than in ordinary state-only traces. The selected
 path still runs a larger capture about 41% faster than the previous stock runner,

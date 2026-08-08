@@ -4091,6 +4091,51 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon horizontal LandingFallSpecial physics
+
+- The mandatory prior-art sweep checked the existing movement implementation,
+  defense comparator/capture route, imported common submotion catalog, reusable
+  `ssbm-character-importer` skill, maintained public import/extractor work, and
+  pinned decomp revision `9509dc04406fb2028bfab01243841ba4787c0fb7` before
+  implementation. No maintained upstream importer supplied a more complete
+  runtime route. The pinned decomp establishes
+  `ftCo_Landing_Phys -> ft_80084F3C -> ftCommon_ApplyGroundMovement`, while
+  common LandingFallSpecial submotion 36 contains no TransN stream.
+- The previous 285-frame defense capture entered LandingFallSpecial only with
+  zero horizontal velocity and therefore could not qualify the friction
+  callback. The expanded 329-frame route adds a natural down-left air dodge
+  that lands above Falcon's walk maximum, crosses the source's high-speed and
+  ordinary-friction branches, and observes all ten landing ticks. Accelerated
+  SHA-256 is
+  `d9dfebcb6e42f5e71ece08490429b61083f81bee067def379b5fdd6270d96b95`;
+  same-binary unaccelerated control SHA-256 is
+  `d78abcfe3d252d0f87409aba3343cd838efb739d6311494d520f2f076eb5255f`.
+  A/B comparison passes all 329 rows, 225 active-fighter rows, and 185
+  qualified active-pose rows.
+- Production no longer invents a ten-tick +/-2,051-Q16 animation displacement
+  or stores its sign in `dash_direction`. Entry copies incoming horizontal
+  speed into the existing ground-velocity channel; friction is 0.16 Melee
+  units per tick while speed exceeds walk maximum and 0.08 afterward. On the
+  flat captured stage every position delta is the post-friction velocity. The
+  removed shim first diverged at capture row 310/source frame 4 by 1,889 Q16
+  position units even though velocity already matched.
+- The source comparator passes all 329 rows with only the established 640-Q16
+  representation envelope. Windows MSVC and WSL Release pass 22/22, WSL
+  ASan/UBSan and Windows MinGW pass 15/15, and combat/browser verifiers pass
+  while emergent-technique-specific tests stay skipped. Native/Wasm replay
+  output is byte-identical at corpus/final/event SHA-256 values
+  `5893af587684844c22c0fc6c7019f13748c4366c586e088ed1a24d4e1819c942`,
+  `0235c47f05fdd37257bdd59ac5cfd5c7e107316a19f99001eefdeea7d78e951d`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  Live-browser smoke reports the new final replay hash, all probes pass, the
+  PC-mode adapter exposes `controllers 2/2 · GameCube 4/4`, and browser logs
+  are empty. The 13-scenario profile workload passes. An unsampled 64-
+  environment boundary reports 255,418 single-call and 1,529,695 batched ticks
+  per second, a 5.9890x speedup with exact state identity. The deterministic
+  verifier agrees across Windows and WSL at digest `b1417182d96ecd2d`.
+  The canonical invariant that position delta equals post-friction velocity
+  adds no duplicate state or per-tick abstraction. M4 remains unfinished.
+
 ## 2026-08-08 Falcon FallSpecial/LandingFallSpecial hurt poses
 
 - The mandatory prior-art sweep inspected pinned doldecomp revision

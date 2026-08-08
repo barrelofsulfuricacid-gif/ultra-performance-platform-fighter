@@ -357,10 +357,14 @@ dodge.
 
 Touching the floor, a pass-through platform, or the solid block's top during
 `AIR DODGE` or `FALL SPECIAL` enters `SPECIAL LANDING`. Vertical velocity is
-cleared, horizontal momentum is preserved, and the fighter slides under its
-normal traction while all control remains locked for ten ticks. A downward
-air dodge collides with a pass-through platform rather than inheriting the
-ordinary down-held drop-through rule.
+cleared, horizontal momentum becomes ground velocity, and the fighter slides
+under Falcon's source landing callback while all control remains locked for ten
+ticks. On flat ground, each position delta is exactly the post-friction
+velocity. Above walk maximum the callback applies the common high-speed
+multiplier to ground friction; at or below it, ordinary ground friction applies.
+The source submotion has no TransN data, so no animation displacement is added.
+A downward air dodge collides with a pass-through platform rather than
+inheriting the ordinary down-held drop-through rule.
 
 This transition intentionally makes wavedash and waveland production
 mechanics: short hop or descend toward a surface, air dodge diagonally into it,
@@ -496,7 +500,8 @@ bounds, and blast zones.
   `FALL SPECIAL`, mid-action save/load continuation, and the ordinary-input
   first-airborne-frame short-hop air dodge;
 - diagonal floor wavedash and pass-through-platform waveland, preserved
-  horizontal momentum, traction slide, and exact ten-tick special landing;
+  horizontal momentum, exact above/below-walk-speed landing-friction branches,
+  no authored root displacement, and exact ten-tick special landing;
 - near-edge waveland momentum cancelling `SPECIAL LANDING` into `AIRBORNE` on
   the first recovery tick, the full ten-tick center-platform control, and
   matching future hashes after a save taken on landing;
