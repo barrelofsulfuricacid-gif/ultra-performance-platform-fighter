@@ -534,7 +534,9 @@ frame 11-capsule hurt poses for the 14 production normals/aerials, standing and
 dash grab, all 17 Falcon special subactions, and the complete 15-frame Initial
 Dash, 28-frame RunBrake, 7-frame CrouchStart, and 10-frame CrouchEnd common
 tracks, all four KneeBend frames, all 32 SpotDodge frames, and both complete
-31-frame roll tracks, plus all 49 action-owned AirDodge frames. Every damaging/grabbing
+31-frame roll tracks, all 49 action-owned AirDodge frames, the complete
+eight-frame looping FallSpecial motion, and LandingFallSpecial's exact
+10-tick source-frame sequence `1,4,...,28`. Every damaging/grabbing
 special phase is represented, while non-damaging Raptor Boost search volumes
 are imported separately as the source's six search spheres rather than being
 misclassified as attacks. The imported special timing, attributes, and
@@ -606,7 +608,7 @@ geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
 Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
-RollForward, and RollBackward remain
+RollForward, RollBackward, AirDodge, FallSpecial, and LandingFallSpecial remain
 explicit
 M4 gaps and must be extracted or qualified rather than approximated with
 invented frame data. Common poses use
@@ -617,6 +619,16 @@ and rejects the old generic rectangle. A second 17.7-unit hit/17.84-unit miss
 route proves CrouchStart frame 3 and rejects the rectangle's false positive.
 The four-frame KneeBend track is likewise imported; a 16.5-unit hit/16.8-unit
 miss route proves frame 2 and rejects the rectangle's false positive.
+FallSpecial resolves through common submotion 26 rather than the similarly
+named character animation and loops all eight executable poses. Its frame-5
+Jab 1 discriminator hits at 15.5 units and misses at 16.2, where the generic
+rectangle falsely hits the miss. LandingFallSpecial resolves through common
+submotion 36 and plays displayed source frames `1,4,...,28` over the ten-tick
+lag; its source-frame-7 discriminator hits at 18.5 and misses at 19.3, where
+the generic rectangle falsely misses the hit. Runtime lookup uses one
+action-specific tick-to-source-frame adapter so movements that already enter
+at source frame 1 are not shifted, while zero-based KneeBend/dodge/roll/
+FallSpecial/LandingFallSpecial ticks are converted without duplicate tables.
 The complete 32-frame SpotDodge track is imported from a pinned active,
 non-hitlag executable trace. Its source body state is vulnerable on frames 1-2,
 invulnerable on frames 3-20, and vulnerable on frames 21-32. A facing-controlled

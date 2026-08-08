@@ -620,7 +620,7 @@ counter per fixed player slot and extend the canonical action domain through
 the seven source down-special states. The canonical payload is 667 bytes and
 the checkpoint is 807 bytes. Reset, inactive-slot zeroing, hitlag resume,
 save/load validation, replay transitions, native/Wasm hashing, and inspection
-all share that state. Content schema 69/fighter schema 62 remain current: the
+all share that state. Content schema 70/fighter schema 63 remain current: the
 generated Falcon source already owns the imported down-special scripts,
 attributes, geometry, and root motion folded into content identity.
 
@@ -628,17 +628,21 @@ State schema 59/save format 55 extend the canonical action domain with the
 source-routed Falcon Dive ground/air start, catch, throw, fall, and landing
 states. The payload and 803-byte checkpoint size are unchanged, but old peers,
 replays, and saves fail closed because the serialized action byte now has new
-meanings. Content schema 69/fighter schema 62 remain current because the
+meanings. Content schema 70/fighter schema 63 remain current because the
 generated collision pose and up-special views are immutable internal source
 tables already folded into the canonical Falcon source identity.
 
-Content schema 69/fighter schema 62 folds the canonical Falcon geometry digest
+Content schema 70/fighter schema 63 folds the canonical Falcon geometry digest
 into content identity and routes complete-frame executable-captured pose and
 hit geometry for the 14 production normals/aerials, standing and dash grab,
 all 17 Falcon special subactions, Initial Dash, RunBrake, CrouchStart, and
-CrouchEnd. A compact common-pose index maps the existing public action at lookup
-time; its frame spans reuse the ordinary deduplicated capsule pool and add no
-canonical state. Raptor Boost's six non-damaging search
+CrouchEnd, KneeBend, SpotDodge, both rolls, AirDodge, looping FallSpecial, and
+the speed-scaled LandingFallSpecial sequence. A compact common-pose index maps
+the existing public action at lookup time; one inlined action-tick adapter
+preserves the source-frame-1 convention of dash/brake/squat while mapping the
+zero-based common states to their one-based source poses. Its frame spans reuse
+the ordinary deduplicated capsule pool and add no canonical state. Raptor
+Boost's six non-damaging search
 spheres live in a distinct immutable table so they cannot be mistaken for
 attack hitboxes. The move/frame tables are immutable offset/count arrays;
 collision does one bounded lookup and iterates fixed-capacity spans without

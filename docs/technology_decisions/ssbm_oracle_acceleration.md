@@ -83,19 +83,20 @@ build/oracle-toolchain/exiai-python/bin/python \
 
 ## Qualification and measurement
 
-The current qualification trace contains 3,004 rows and nine Falcon common-hurt
+The current qualification trace contains 3,818 rows and eleven Falcon common-hurt
 tracks: Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
-RollForward, RollBackward, and AirDodge, including physical hit/miss
+RollForward, RollBackward, AirDodge, FallSpecial, and LandingFallSpecial,
+including physical hit/miss
 controls. The automated A/B comparison
 strictly matches every requested and observed input, game frame, initialized
 active action frame, position, velocity, damage, hitlag, collision decision,
-and qualified geometry observation. It covers 1,430 non-standing Falcon rows
-and 849 non-standing opponent rows. Of those, 1,337 Falcon and 829 opponent rows are
+and qualified geometry observation. It covers 1,773 non-standing Falcon rows
+and 1,049 non-standing opponent rows. Of those, 1,674 Falcon and 1,023 opponent rows are
 initialized, non-hitlag, action-owned pose samples whose complete capsule
 geometry also matches exactly. The unaccelerated control SHA-256 is
-`64c5d69c495bd37fbc60e335affc9f578afd9219a39dadd08ab65eaa7207ba41`;
+`8f27b27e82cbcb3f50db6595f050580c921ad7316a40f1b819489c73df12da1c`;
 the selected accelerated capture is
-`e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055`.
+`ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e`.
 
 Measured on the local WSL host:
 
@@ -106,8 +107,9 @@ Measured on the local WSL host:
 | ExiAI unaccelerated control, headless, 650 rows | 22.17 s | qualification control |
 | ExiAI headless/null/fast-forward, 650 rows | 16.68 s | selected |
 
-Those timings are the retained 650-row benchmark. The current 3,004-row route
-adds safely isolated SpotDodge, both-roll, and AirDodge collision controls. Its
+Those timings are the retained 650-row benchmark. The current 3,818-row route
+adds safely isolated SpotDodge, both-roll, AirDodge, FallSpecial, and
+LandingFallSpecial collision controls. Its
 unaccelerated and accelerated outputs remain field-for-field identical without
 changing the selected runner.
 

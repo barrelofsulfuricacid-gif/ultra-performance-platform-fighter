@@ -1289,7 +1289,10 @@ def input_trace(
             )
         )
         repeat(f"{prefix}_hold", 55)
-        repeat(f"{prefix}_recover", 20)
+        # The first twelve recovery samples finish two FallSpecial cycles;
+        # ten more then expose LandingFallSpecial's complete 10-tick,
+        # animation-speed-scaled 1,4,...,28 displayed-frame sequence.
+        repeat(f"{prefix}_recover", 22)
         for route, distance in (("hit", 31.0), ("miss", 31.5)):
             prefix = f"common_hurt_dash_collision_{route}"
             reset_common_hurt_route(prefix, opponent_main_x=0.0)
@@ -1535,6 +1538,103 @@ def input_trace(
                     opponent_y_override=0.0001,
                 )
             )
+            repeat(f"{route_prefix}_recover", 90)
+        # FallSpecial is an eight-frame looping common motion.  Enter it
+        # natively through EscapeAir before relocating the already-helpless
+        # fighter for a low, offstage collision probe.  Holding down during
+        # the probe suppresses the otherwise eligible ledge grab without
+        # changing the already-entered helpless animation.
+        # Jab 1 frame 3 is observed beside FallSpecial frame 4 and evaluates
+        # the pending frame-5 pose: the robust 15.5/16.2 controls hit and miss
+        # respectively, while the old generic rectangle hits both.
+        for route, target_x in (("miss", 86.8), ("hit", 86.1)):
+            route_prefix = f"common_hurt_fall_special_collision_{route}"
+            reset_common_hurt_route(route_prefix)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            trace.append(command(f"{route_prefix}_jump", jump=True))
+            repeat(f"{route_prefix}_jump_rise", 5)
+            trace.append(
+                command(
+                    f"{route_prefix}_elevate",
+                    fighter_y_override=80.0,
+                )
+            )
+            trace.append(
+                command(
+                    f"{route_prefix}_air_dodge_entry",
+                    right_shoulder=1.0,
+                    digital_right=True,
+                )
+            )
+            # EscapeAir contributes frames 2-49; the final sample enters
+            # FallSpecial frame 1.  Relocation on the following command is
+            # pre-physics; the held-down fast fall makes 13.5 produce the
+            # requested frame-4 root near y=3.0.
+            repeat(f"{route_prefix}_advance", 49)
+            trace.append(
+                command(
+                    f"{route_prefix}_jab_start",
+                    fighter_x_override=target_x,
+                    fighter_y_override=13.5,
+                    opponent_x_override=70.6,
+                    opponent_y_override=0.0001,
+                    main_y=0.0,
+                    opponent_attack=True,
+                )
+            )
+            repeat(f"{route_prefix}_observe", 8, main_y=0.0)
+            trace.append(
+                command(
+                    f"{route_prefix}_post_relocate",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=20.0,
+                    opponent_x_override=20.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_recover", 90)
+        # A native downward EscapeAir from jump height enters
+        # LandingFallSpecial on the following sample.  Starting Jab 1 with
+        # EscapeAir aligns its first live frame with the second landing tick
+        # (displayed frame 4), whose collision evaluates the pending frame-7
+        # pose.  The robust 18.5/19.3 controls hit and miss respectively,
+        # while the former generic rectangle misses both.
+        for route, target_x in (("miss", 19.3), ("hit", 18.5)):
+            route_prefix = (
+                f"common_hurt_landing_fall_special_collision_{route}"
+            )
+            reset_common_hurt_route(route_prefix)
+            trace.append(
+                command(
+                    f"{route_prefix}_place",
+                    fighter_x_override=target_x,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=0.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{route_prefix}_settle", 10)
+            trace.append(command(f"{route_prefix}_jump", jump=True))
+            repeat(f"{route_prefix}_jump_rise", 5)
+            trace.append(
+                command(
+                    f"{route_prefix}_entry_and_jab",
+                    main_y=0.0,
+                    right_shoulder=1.0,
+                    digital_right=True,
+                    opponent_attack=True,
+                )
+            )
+            repeat(f"{route_prefix}_observe", 12, main_y=0.0)
             repeat(f"{route_prefix}_recover", 90)
         return trace
 

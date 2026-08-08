@@ -2048,6 +2048,29 @@ int pf_m4_shield_box(
 
 typedef pf_m4_collision_capsule3_q16 pf_m4_world_hurt_capsule;
 
+static inline uint16_t pf_m4_reference_common_hurt_frame(
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    /* Dash, RunBrake, and squat transitions enter the movement scratch at
+     * source frame 1.  The remaining imported common motions enter at tick 0,
+     * so their source frame is one-based relative to the stored tick. */
+    if (action_ticks == UINT16_MAX)
+    {
+        return UINT16_MAX;
+    }
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_INITIAL_DASH:
+        case PF_M4_ACTION_RUN_BRAKE:
+        case PF_M4_ACTION_CROUCH_START:
+        case PF_M4_ACTION_CROUCH_END:
+            return action_ticks;
+        default:
+            return (uint16_t)(action_ticks + UINT16_C(1));
+    }
+}
+
 static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     const pf_m4_fighter_data *fighter,
     const pf_sim_scratch *scratch,
@@ -2079,7 +2102,9 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         const pf_m4_reference_hurt_capsule *common_pose =
             pf_m4_falcon_reference_common_hurt_capsules_at_frame(
                 action_state,
-                scratch->action_ticks[target_index],
+                pf_m4_reference_common_hurt_frame(
+                    action_state,
+                    scratch->action_ticks[target_index]),
                 out_count);
 
         if (common_pose != NULL)

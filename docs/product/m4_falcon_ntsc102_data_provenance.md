@@ -21,7 +21,8 @@ Behavior and field meanings were checked against `doldecomp/melee` revision
 `ft/inlines.h`, `ftCo_Dash.c`, `ftCo_Run.c`, `ftCo_RunBrake.c`,
 `ftCo_TurnRun.c`, `ftCo_KneeBend.c`, `ftCo_Jump.c`, `ftCo_JumpAerial.c`, and
 `ftCo_Squat.c`, `ftCo_SquatWait.c`, `ftCo_SquatRv.c`, `ftCo_Damage.c`, and the
-common fall/air-physics routines, plus `ftCo_Guard.c` and `fighter.c` for the
+common fall/air-physics routines in `ftCo_FallSpecial.c`, plus
+`ftCo_Landing.c`, `ftCo_Guard.c`, and `fighter.c` for the
 shield-health and pressure formulas, `ftcoll.c` for shield-hit damage
 conversion, and `ftcommon.c` for attacker-recoil initialization and decay.
 Roll and air-dodge callback semantics additionally follow `ftCo_Escape.c`,
@@ -407,27 +408,29 @@ special subactions. The final wall-rebound row reuses the source-defined Falcon
 Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
-remains the grounded-idle route. A third 3,004-row Slippi Dolphin 3.5.1 ExiAI
+remains the grounded-idle route. A third 3,818-row Slippi Dolphin 3.5.1 ExiAI
 capture,
 SHA-256
-`e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055`,
+`ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e`,
 adds every displayed Initial Dash frame 1-15, RunBrake frame 1-28, CrouchStart
 frame 1-7, CrouchEnd frame 1-10, KneeBend frame 1-4, SpotDodge frame 1-32,
-RollForward frame 1-31, RollBackward frame 1-31, and AirDodge frame 1-49. Its
+RollForward frame 1-31, RollBackward frame 1-31, AirDodge frame 1-49,
+FallSpecial frame 1-8, and speed-scaled LandingFallSpecial source frames
+1, 4, 7, 10, 13, 16, 19, 22, 25, and 28. Its
 controller-port cross-check requires both live poses to canonicalize to the
 same Falcon Q16.16 capsules; capture metadata alone is not accepted as proof
 that the menu spawned the requested character. The ExiAI path is separately
 qualified against an unaccelerated same-binary control at SHA-256
-`64c5d69c495bd37fbc60e335affc9f578afd9219a39dadd08ab65eaa7207ba41`;
-the A/B comparison covers 1,430/849 active fighter/opponent rows and
-1,337/829 qualified action-owned pose rows. Every collision control first
+`8f27b27e82cbcb3f50db6595f050580c921ad7316a40f1b819489c73df12da1c`;
+the A/B comparison covers 1,773/1,049 active fighter/opponent rows and
+1,674/1,023 qualified action-owned pose rows. Every collision control first
 pre-places both ports safely, settles them, establishes explicit facing, and
 fully recovers before final placement; this prevents preceding routes from
 leaking airborne state, facing, or velocity.
-looping idle, `Ft_MF_SkipAnim` GuardReflect inheritance, and positive-hitlag
+Looping idle, `Ft_MF_SkipAnim` GuardReflect inheritance, and positive-hitlag
 bone endpoints are forbidden as geometry sources, so every imported KneeBend,
-SpotDodge, RollForward, RollBackward, and AirDodge sample comes from a dedicated active,
-non-hitlag track. The
+SpotDodge, RollForward, RollBackward, AirDodge, FallSpecial, and
+LandingFallSpecial sample comes from a dedicated active, non-hitlag track. The
 pinned `ftCo_Escape.c` SHA-256 is
 `762d18265d193e9d4b0b701a7a8048bb8824a4de5f505ceef00e316c1e56fb89`;
 its generated state-two/state-zero commands and executable trace agree on
@@ -454,17 +457,33 @@ coordinate; facing reflection applies to X and Z as it does to the source
 model transform. Authored item/projectile rectangles retain their separate 2D
 route.
 
+The pinned `ftCo_FallSpecial.c` SHA-256 is
+`19217b0e24dc138f601b4c9914975da0879ece0a71ef968272fac75238aad6f4`;
+the pinned `ftCo_Landing.c` SHA-256 is
+`7e33d64809df680df293eeec1189299ab0f77d633f39c00dcd6756faab7d08e8`.
+The motion-state table resolves common state 35 to common submotion 26 and
+LandingFallSpecial state 43 to common submotion 36; similar character-local
+names are not accepted as substitutes. FallSpecial exposes its complete
+eight-pose loop. LandingFallSpecial's animation rate exposes the ordered ten-
+pose sequence above, rather than all 30 source frames. A pending FallSpecial
+frame-5 control hits at 15.5 Melee units and misses at 16.2, with reconstructed
+margins +0.563753525/-0.130038736; the generic rectangle falsely hits the miss
+at +2.936591339. A pending LandingFallSpecial source-frame-7 control hits at
+18.5 and misses at 19.3, with margins +0.509528504/-0.137582566; the generic
+rectangle falsely misses the hit at -0.063411903.
+
 The canonicalized timing, hit-sphere, standing-pose, action-pose, and common-
 pose tables
 hash to
-`70d25e01c090cc0a2deb12fcf8ea3e7c8c847840f03638a0aa045285ad6eae99`.
+`181c614a07192564a18c779515c53e7f906c34a1d6ececf67e912cb8ed8d2e42`.
 Pinned regeneration produces the tracked include at SHA-256
-`dfadbc2bdc54d601099e95e6340310132b54b13ddcd99cba5f5885724c0cfce2`.
+`f9e823f41da8ae4684791ba1aa667f903e422bc23d237139634118230607e6df`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, all 17 Falcon special
-subactions, Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, and
-SpotDodge, RollForward, RollBackward, and AirDodge.
+subactions, Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend,
+SpotDodge, RollForward, RollBackward, AirDodge, FallSpecial, and
+LandingFallSpecial.
 Imported hit and hurt geometry is anchored to Melee's fighter root
 at the simulation floor-origin offset, rather than incorrectly treating the
 simulation body center as the source origin.
@@ -488,9 +507,9 @@ All decisions match. Last-hit/first-miss boundaries are 28.60/28.65,
 same squared radius-sum predicate without allocation, square root, floating
 point, or the former rectangle/ellipse broad-phase rejection.
 
-Hurt poses for common non-attack actions other than Initial Dash, RunBrake,
-CrouchStart, and CrouchEnd remain an active fidelity gap, not values to be
-filled by guessed frame data. Looping common animations are not flattened from
+Hurt poses for common non-attack actions outside the eleven qualified tracks
+remain an active fidelity gap, not values to be filled by guessed frame data.
+Looping common animations are not flattened from
 their FigaTree endpoints: the Run capture exposes displayed frames `1, 2, 2`
 while velocity settles, proving that its animation rate depends on live state.
 Run therefore remains unimported until its exact phase/rate inputs are modeled.

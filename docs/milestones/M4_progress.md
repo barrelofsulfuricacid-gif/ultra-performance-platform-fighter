@@ -4091,6 +4091,64 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon FallSpecial/LandingFallSpecial hurt poses
+
+- The mandatory prior-art sweep inspected pinned doldecomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`, libmelee, the Melee frame-data
+  extractor, the complete common submotion catalog, and the existing shared
+  pose importer. No maintained upstream tool supplied a complete production-
+  ready common-hurt importer. Common motion state 35 resolves exactly to
+  submotion 26; LandingFallSpecial state 43 resolves to submotion 36 rather
+  than a similarly named character-local motion. Pinned SHA-256 values are
+  `19217b0e24dc138f601b4c9914975da0879ece0a71ef968272fac75238aad6f4`
+  for `ftCo_FallSpecial.c` and
+  `7e33d64809df680df293eeec1189299ab0f77d633f39c00dcd6756faab7d08e8`
+  for `ftCo_Landing.c`.
+- The final 3,818-row oracle imports FallSpecial's full displayed frame-1-8
+  loop and LandingFallSpecial's speed-scaled source-frame sequence
+  `1, 4, 7, 10, 13, 16, 19, 22, 25, 28`, each with all 11 capsules and zero
+  source damage. Its accelerated SHA-256 is
+  `ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e`;
+  the exact same ExiAI binary without fast-forward produces control SHA-256
+  `8f27b27e82cbcb3f50db6595f050580c921ad7316a40f1b819489c73df12da1c`.
+  Their strict A/B comparison passes 1,773/1,049 active fighter/opponent rows
+  and 1,674/1,023 initialized, non-hitlag, action-owned pose rows.
+- A pending FallSpecial frame-5 control hits at 15.5 Melee units and misses at
+  16.2, with reconstructed margins +0.563753525/-0.130038736; the generic
+  rectangle falsely hits the miss at +2.936591339. A pending
+  LandingFallSpecial source-frame-7 control hits at 18.5 and misses at 19.3,
+  with margins +0.509528504/-0.137582566; the generic rectangle falsely misses
+  the hit at -0.063411903. These are physical geometry discriminators, not
+  action-name or damage-only assertions.
+- The importer appends two compact tracks to the existing deduplicated capsule
+  pool. A single inlined action-specific source-frame adapter maps states that
+  enter at source frame 1 separately from zero-based public action timers. It
+  adds no allocation, float math, duplicated capsule representation, snapshot
+  bytes, or per-fighter state. Canonical geometry SHA-256 is
+  `181c614a07192564a18c779515c53e7f906c34a1d6ececf67e912cb8ed8d2e42`;
+  byte-identical regeneration produces tracked include SHA-256
+  `f9e823f41da8ae4684791ba1aa667f903e422bc23d237139634118230607e6df`.
+- Native Windows passes 22/22 tests, MinGW passes 15/15, WSL Release passes
+  22/22, and WSL ASan/UBSan passes 15/15. Combat/browser verifiers, rebuilt
+  Wasm native/Wasm replay identity, the 13-scenario Tracy-instrumented
+  workload, and live in-app-browser QA all pass. Reset restarts the served
+  match from tick 740 to tick 15 with no console warnings or errors. Replay
+  corpus/final/event SHA-256 values remain
+  `af5b1bb66a475a4c28e93f15e12355d92c14ced6e08ecdad7bf25dbac82612f7`,
+  `78f7eb6380ace1601da971dd021b90a60f53dd08d11a58ebdf930012b2ff0f12`,
+  and `deef8e9aa4b32bac5cb4597f8383f91056fc1b0e7d98d34d0e71202e7dea675b`.
+  The deterministic verifier digest advances to `152f4a132141f83c`.
+  Separately, the unsampled 64-environment boundary reports 315,095 single-
+  call and 1,675,603 batched ticks per second, a 5.3178x speedup with exact
+  state identity.
+- The reusable `ssbm-character-importer` skill now records Linux process-name
+  truncation, same-binary oracle qualification, exact motion/submotion
+  resolution, looping versus non-looping frame counts, speed-scaled source-
+  frame sequences, and action-specific runtime pose adapters. It validates
+  successfully. M4 remains unfinished: additional common hurt poses,
+  aerial-IASA item/tether branches, and wider ledge/tech/damage behavior remain
+  in the exhaustive Falcon-equivalence obligation.
+
 ## 2026-08-08 Falcon AirDodge hurt poses
 
 - The required prior-art sweep reused pinned `ftCo_EscapeAir.c`, the generated

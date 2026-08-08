@@ -32,7 +32,7 @@ EXPECTED_HURT_CAPTURE_SHA256 = (
     "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
 )
 EXPECTED_COMMON_HURT_CAPTURE_SHA256 = (
-    "e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055"
+    "ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e"
 )
 EXPECTED_THROW_CAPTURE_SHA256 = (
     "368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95"
@@ -89,15 +89,19 @@ EXPECTED_COMMON_HURT_ORACLE_SHA256 = (
 MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
 
 COMMON_HURT_ACTIONS = (
-    ("DASHING", 1, 15),
-    ("RUN_BRAKE", 1, 28),
-    ("CROUCH_START", 1, 7),
-    ("CROUCH_END", 1, 10),
-    ("KNEE_BEND", 1, 4),
-    ("SPOTDODGE", 1, 32),
-    ("ROLL_FORWARD", 1, 31),
-    ("ROLL_BACKWARD", 1, 31),
-    ("AIRDODGE", 1, 49),
+    ("DASHING", tuple(range(1, 16))),
+    ("RUN_BRAKE", tuple(range(1, 29))),
+    ("CROUCH_START", tuple(range(1, 8))),
+    ("CROUCH_END", tuple(range(1, 11))),
+    ("KNEE_BEND", tuple(range(1, 5))),
+    ("SPOTDODGE", tuple(range(1, 33))),
+    ("ROLL_FORWARD", tuple(range(1, 32))),
+    ("ROLL_BACKWARD", tuple(range(1, 32))),
+    ("AIRDODGE", tuple(range(1, 50))),
+    ("DEAD_FALL", tuple(range(1, 9))),
+    # LandingFallSpecial plays Falcon's 29-frame source motion at 3.0
+    # animation frames per simulation tick for the common 10-frame lag.
+    ("LANDING_SPECIAL", tuple(range(1, 29, 3))),
 )
 
 ACTION_BY_MOVE = {
@@ -778,7 +782,8 @@ def generate(
             }
         )
 
-    for action_name, first_frame, last_frame in COMMON_HURT_ACTIONS:
+    for action_name, source_frames in COMMON_HURT_ACTIONS:
+        first_frame = 1
         hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
         for row in common_hurt_capture["rows"]:
             if row.get("action") != action_name:
@@ -789,7 +794,7 @@ def generate(
                 raise ValueError(
                     f"common {action_name}: fractional action frame {raw_frame}"
                 )
-            if action_frame < first_frame or action_frame > last_frame:
+            if action_frame not in source_frames:
                 continue
             facing = int(row["facing"])
             if facing not in (-1, 1):
@@ -810,14 +815,14 @@ def generate(
                     f"common {action_name}: inconsistent frame {action_frame}"
                 )
             hurt_by_frame[action_frame] = pose
-        expected_frames = set(range(first_frame, last_frame + 1))
+        expected_frames = set(source_frames)
         if set(hurt_by_frame) != expected_frames:
             raise ValueError(
                 f"common {action_name}: expected frames "
-                f"{first_frame}-{last_frame}, captured {sorted(hurt_by_frame)}"
+                f"{list(source_frames)}, captured {sorted(hurt_by_frame)}"
             )
         frame_offset = len(hurt_frames)
-        for action_frame in range(first_frame, last_frame + 1):
+        for action_frame in source_frames:
             pose = hurt_by_frame[action_frame]
             capsule_offset = hurt_pose_offsets.get(pose)
             if capsule_offset is None:
@@ -836,7 +841,7 @@ def generate(
             {
                 "frame_offset": frame_offset,
                 "first_frame": first_frame,
-                "frame_count": last_frame - first_frame + 1,
+                "frame_count": len(source_frames),
             }
         )
 

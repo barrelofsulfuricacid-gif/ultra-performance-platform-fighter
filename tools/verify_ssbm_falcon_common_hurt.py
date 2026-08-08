@@ -19,7 +19,7 @@ from ssbm_collision import (
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "e0eb4279e1ce19690cebf57142f20342fdb42ee1bfe78cfa84d702fc4c705055"
+    "ccfbb5edaa952760a4058a98213ee3fb6b54cd3bd9900e8c25aaa2535e4c8a5e"
 )
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
@@ -38,6 +38,12 @@ EXPECTED_ESCAPE_SOURCE_SHA256 = (
 )
 EXPECTED_AIR_ESCAPE_SOURCE_SHA256 = (
     "cdff68de39d55855f1ca02b8e4af09ce856a1133cc21b23921a881b23e0dfaf6"
+)
+EXPECTED_FALL_SPECIAL_SOURCE_SHA256 = (
+    "19217b0e24dc138f601b4c9914975da0879ece0a71ef968272fac75238aad6f4"
+)
+EXPECTED_LANDING_SOURCE_SHA256 = (
+    "7e33d64809df680df293eeec1189299ab0f77d633f39c00dcd6756faab7d08e8"
 )
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
@@ -79,6 +85,60 @@ def exact_action_frames(
     if observed != expected:
         raise SystemExit(
             f"{action} frame coverage mismatch: {observed} != {expected}"
+        )
+    if any(
+        len(active_hurtboxes(dict(row["hitbox_memory"]), "fighter_hurtboxes"))
+        != 11
+        for row in selected
+    ):
+        raise SystemExit(f"{action} did not expose 11 live hurt capsules")
+    return selected
+
+
+def exact_looping_action_frames(
+    rows: list[dict[str, Any]],
+    labels: tuple[str, ...],
+    action: str,
+    frame_count: int,
+) -> list[dict[str, Any]]:
+    selected = [
+        row
+        for row in rows
+        if row.get("label") in labels and row.get("action") == action
+    ]
+    observed = [round(float(row["action_frame"])) for row in selected]
+    expected = [index % frame_count + 1 for index in range(len(selected))]
+    if len(selected) < frame_count or observed != expected:
+        raise SystemExit(
+            f"{action} looping frame coverage mismatch: "
+            f"{observed} != {expected}"
+        )
+    first_cycle = selected[:frame_count]
+    if any(
+        len(active_hurtboxes(dict(row["hitbox_memory"]), "fighter_hurtboxes"))
+        != 11
+        for row in selected
+    ):
+        raise SystemExit(f"{action} did not expose 11 live hurt capsules")
+    return first_cycle
+
+
+def exact_action_frame_sequence(
+    rows: list[dict[str, Any]],
+    label: str,
+    action: str,
+    expected_frames: tuple[int, ...],
+) -> list[dict[str, Any]]:
+    selected = [
+        row
+        for row in rows
+        if row.get("label") == label and row.get("action") == action
+    ]
+    observed = tuple(round(float(row["action_frame"])) for row in selected)
+    if observed != expected_frames:
+        raise SystemExit(
+            f"{action} frame sequence mismatch: "
+            f"{observed} != {expected_frames}"
         )
     if any(
         len(active_hurtboxes(dict(row["hitbox_memory"]), "fighter_hurtboxes"))
@@ -323,6 +383,8 @@ def main() -> int:
     parser.add_argument("knee_source", type=Path)
     parser.add_argument("escape_source", type=Path)
     parser.add_argument("air_escape_source", type=Path)
+    parser.add_argument("fall_special_source", type=Path)
+    parser.add_argument("landing_source", type=Path)
     args = parser.parse_args()
 
     capture_digest = sha256(args.capture)
@@ -342,6 +404,13 @@ def main() -> int:
         raise SystemExit("unexpected ftCo_Escape.c SHA-256")
     if sha256(args.air_escape_source) != EXPECTED_AIR_ESCAPE_SOURCE_SHA256:
         raise SystemExit("unexpected ftCo_EscapeAir.c SHA-256")
+    if (
+        sha256(args.fall_special_source)
+        != EXPECTED_FALL_SPECIAL_SOURCE_SHA256
+    ):
+        raise SystemExit("unexpected ftCo_FallSpecial.c SHA-256")
+    if sha256(args.landing_source) != EXPECTED_LANDING_SOURCE_SHA256:
+        raise SystemExit("unexpected ftCo_Landing.c SHA-256")
 
     capture: dict[str, Any] = json.loads(
         args.capture.read_text(encoding="utf-8")
@@ -365,7 +434,7 @@ def main() -> int:
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 3004
+        or len(rows) != 3818
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -435,6 +504,28 @@ def main() -> int:
         1,
         49,
     )
+    fall_special_rows = exact_looping_action_frames(
+        rows,
+        (
+            "common_hurt_air_dodge_hold",
+            "common_hurt_air_dodge_recover",
+        ),
+        "DEAD_FALL",
+        8,
+    )
+    landing_fall_special_rows = exact_action_frame_sequence(
+        rows,
+        "common_hurt_air_dodge_recover",
+        "LANDING_SPECIAL",
+        tuple(range(1, 29, 3)),
+    )
+    if any(
+        float(row["damage_percent"]) != 0.0
+        for row in fall_special_rows + landing_fall_special_rows
+    ):
+        raise SystemExit(
+            "FallSpecial/LandingFallSpecial source route changed damage"
+        )
     observed_invulnerability = [
         round(float(row["action_frame"]))
         for row in spot_dodge_rows
@@ -811,6 +902,140 @@ def main() -> int:
             f"generic_margin={air_dodge_generic_margin:.9f}"
         )
 
+    fall_special_positive, fall_special_negative = verify_collision_outcome(
+        rows,
+        "fall_special",
+        7.0,
+        8.399999618530273,
+        "DAMAGE_AIR_2",
+        target_prefix="",
+        negative_damage=7.0,
+    )
+    fall_special_miss_frame = collision_frame(
+        fall_special_negative,
+        3,
+        "DEAD_FALL",
+        4,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        fall_special_rows[3],
+        fall_special_miss_frame,
+        "port-1 FallSpecial frame 4",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    fall_special_target_shift = (
+        requested_route_distance(
+            fall_special_positive,
+            target="fighter",
+            attacker="opponent",
+            placement_suffix="_jab_start",
+        )
+        - requested_route_distance(
+            fall_special_negative,
+            target="fighter",
+            attacker="opponent",
+            placement_suffix="_jab_start",
+        )
+    )
+    fall_special_pending_frame = row_with_pending_fighter_pose(
+        fall_special_miss_frame, fall_special_rows[4]
+    )
+    fall_special_hit_margin, fall_special_miss_margin = (
+        reconstructed_collision_margins(
+            fall_special_pending_frame,
+            fall_special_target_shift,
+            hitbox_key="opponent_hitboxes",
+            hurtbox_key="fighter_hurtboxes",
+        )
+    )
+    fall_special_generic_margin = generic_rectangle_margin(
+        dict(fall_special_pending_frame["hitbox_memory"]),
+        fall_special_target_shift,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        fall_special_hit_margin < 0.0
+        or fall_special_miss_margin >= 0.0
+        or fall_special_generic_margin < 0.0
+    ):
+        raise SystemExit(
+            "FallSpecial collision discriminator failed: "
+            f"hit_margin={fall_special_hit_margin:.9f} "
+            f"miss_margin={fall_special_miss_margin:.9f} "
+            f"generic_margin={fall_special_generic_margin:.9f}"
+        )
+
+    landing_positive, landing_negative = verify_collision_outcome(
+        rows,
+        "landing_fall_special",
+        8.399999618530273,
+        9.699999809265137,
+        "DAMAGE_NEUTRAL_2",
+        target_prefix="",
+        negative_damage=8.399999618530273,
+    )
+    landing_miss_frame = collision_frame(
+        landing_negative,
+        3,
+        "LANDING_SPECIAL",
+        4,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    verify_captured_pose(
+        landing_fall_special_rows[1],
+        landing_miss_frame,
+        "port-1 LandingFallSpecial frame 4",
+        observed_hurtbox_key="fighter_hurtboxes",
+        observed_position_key="fighter_position",
+        observed_facing_key="facing",
+    )
+    landing_target_shift = (
+        requested_route_distance(
+            landing_positive,
+            target="fighter",
+            attacker="opponent",
+        )
+        - requested_route_distance(
+            landing_negative,
+            target="fighter",
+            attacker="opponent",
+        )
+    )
+    landing_pending_frame = row_with_pending_fighter_pose(
+        landing_miss_frame, landing_fall_special_rows[2]
+    )
+    landing_hit_margin, landing_miss_margin = (
+        reconstructed_collision_margins(
+            landing_pending_frame,
+            landing_target_shift,
+            hitbox_key="opponent_hitboxes",
+            hurtbox_key="fighter_hurtboxes",
+        )
+    )
+    landing_generic_margin = generic_rectangle_margin(
+        dict(landing_pending_frame["hitbox_memory"]),
+        landing_target_shift,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if (
+        landing_hit_margin < 0.0
+        or landing_miss_margin >= 0.0
+        or landing_generic_margin >= 0.0
+    ):
+        raise SystemExit(
+            "LandingFallSpecial collision discriminator failed: "
+            f"hit_margin={landing_hit_margin:.9f} "
+            f"miss_margin={landing_miss_margin:.9f} "
+            f"generic_margin={landing_generic_margin:.9f}"
+        )
+
     print(
         "ssbm-common-hurt=pass "
         f"frames={len(rows)} dash_frames={len(dash_rows)} "
@@ -822,6 +1047,8 @@ def main() -> int:
         f"roll_forward_frames={len(roll_forward_rows)} "
         f"roll_backward_frames={len(roll_backward_rows)} "
         f"air_dodge_frames={len(air_dodge_rows)} "
+        f"fall_special_frames={len(fall_special_rows)} "
+        f"landing_fall_special_frames={len(landing_fall_special_rows)} "
         f"dash_hit_margin={dash_hit_margin:.9f} "
         f"dash_miss_margin={dash_miss_margin:.9f} "
         f"dash_generic_margin={dash_generic_margin:.9f} "
@@ -843,6 +1070,12 @@ def main() -> int:
         f"air_dodge_hit_margin={air_dodge_hit_margin:.9f} "
         f"air_dodge_miss_margin={air_dodge_miss_margin:.9f} "
         f"air_dodge_generic_margin={air_dodge_generic_margin:.9f} "
+        f"fall_special_hit_margin={fall_special_hit_margin:.9f} "
+        f"fall_special_miss_margin={fall_special_miss_margin:.9f} "
+        f"fall_special_generic_margin={fall_special_generic_margin:.9f} "
+        f"landing_fall_special_hit_margin={landing_hit_margin:.9f} "
+        f"landing_fall_special_miss_margin={landing_miss_margin:.9f} "
+        f"landing_fall_special_generic_margin={landing_generic_margin:.9f} "
         f"capture_sha256={capture_digest}"
     )
     return 0
