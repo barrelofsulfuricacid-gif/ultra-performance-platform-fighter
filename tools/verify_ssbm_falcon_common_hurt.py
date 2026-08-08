@@ -19,7 +19,7 @@ from ssbm_collision import (
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "aa64e6261e50130a70c6714e9b3177d44733a6c003de12cdff1581fb557380b0"
+    "6169379625ff0f972d4bf4cc70b38cffedeb63a7dadea79b4973ee391eb1d1f1"
 )
 EXPECTED_COLLISION_SOURCE_SHA256 = (
     "fa47d275f86956edb3c3a228a7fcc160e6f467c2d4bfd5f86d71f1d55e13e1fb"
@@ -30,10 +30,16 @@ EXPECTED_DASH_SOURCE_SHA256 = (
 EXPECTED_CROUCH_SOURCE_SHA256 = (
     "80c2e71e50622e942754bfcdd3bd89f3762fe4df2400d8055f059ab6cc4b8082"
 )
+EXPECTED_KNEE_SOURCE_SHA256 = (
+    "91249dcf7a0aa59277e8912bd8b5a82548262df66ef3426d6ed3d27cebdd6c12"
+)
 EXPECTED_DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
 )
 EXPECTED_DECOMP_REVISION = "9509dc04406fb2028bfab01243841ba4787c0fb7"
+EXPECTED_EXIAI_SHA256 = (
+    "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd"
+)
 MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
 
 
@@ -81,6 +87,35 @@ def route_rows(
 ) -> list[dict[str, Any]]:
     prefix = f"common_hurt_{motion}_collision_{route}"
     return [row for row in rows if str(row.get("label", "")).startswith(prefix)]
+
+
+def verify_collision_outcome(
+    rows: list[dict[str, Any]],
+    motion: str,
+    initial_damage: float,
+    final_damage: float,
+    damage_action: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    positive = route_rows(rows, motion, "hit")
+    negative = route_rows(rows, motion, "miss")
+    def close(left: Any, right: float) -> bool:
+        return math.isclose(
+            float(left), right, rel_tol=0.0, abs_tol=0.000001
+        )
+    if (
+        not positive
+        or not negative
+        or not close(positive[0]["opponent_damage_percent"], initial_damage)
+        or not close(positive[-1]["opponent_damage_percent"], final_damage)
+        or not any(row.get("opponent_action") == damage_action for row in positive)
+        or not close(negative[0]["opponent_damage_percent"], final_damage)
+        or any(
+            not close(row["opponent_damage_percent"], final_damage)
+            for row in negative
+        )
+    ):
+        raise SystemExit(f"{motion} collision hit/miss outcome mismatch")
+    return positive, negative
 
 
 def requested_route_distance(rows: list[dict[str, Any]]) -> float:
@@ -203,6 +238,7 @@ def main() -> int:
     parser.add_argument("collision_source", type=Path)
     parser.add_argument("dash_source", type=Path)
     parser.add_argument("crouch_source", type=Path)
+    parser.add_argument("knee_source", type=Path)
     args = parser.parse_args()
 
     capture_digest = sha256(args.capture)
@@ -216,6 +252,8 @@ def main() -> int:
         raise SystemExit("unexpected ftCo_Dash.c SHA-256")
     if sha256(args.crouch_source) != EXPECTED_CROUCH_SOURCE_SHA256:
         raise SystemExit("unexpected ftCo_Squat.c SHA-256")
+    if sha256(args.knee_source) != EXPECTED_KNEE_SOURCE_SHA256:
+        raise SystemExit("unexpected ftCo_KneeBend.c SHA-256")
 
     capture: dict[str, Any] = json.loads(
         args.capture.read_text(encoding="utf-8")
@@ -223,18 +261,23 @@ def main() -> int:
     rows: list[dict[str, Any]] = list(capture.get("rows", []))
     probe = dict(capture.get("hitbox_memory_probe", {}))
     disc = dict(capture.get("disc", {}))
+    execution = dict(capture.get("oracle_execution", {}))
     if (
         capture.get("schema") != 9
         or capture.get("fighter") != "CPTFALCON"
         or capture.get("opponent") != "CPTFALCON"
         or capture.get("stage") != "FINAL_DESTINATION"
         or capture.get("dolphin_version") != "3.5.1"
+        or capture.get("libmelee_version") != "0.47.2"
+        or execution.get("mode") != "exiai-headless-null-fast-forward"
+        or execution.get("release") != "exi-ai-0.2.0"
+        or execution.get("release_artifact_sha256") != EXPECTED_EXIAI_SHA256
         or capture.get("common_hurt_geometry_route") is not True
         or disc.get("game_id") != "GALE01"
         or disc.get("revision") != 2
         or disc.get("sha256") != EXPECTED_DISC_SHA256
         or probe.get("decomp_revision") != EXPECTED_DECOMP_REVISION
-        or len(rows) != 433
+        or len(rows) != 650
     ):
         raise SystemExit("unexpected common-hurt capture provenance")
 
@@ -266,18 +309,16 @@ def main() -> int:
         1,
         10,
     )
-    positive = route_rows(rows, "dash", "hit")
-    negative = route_rows(rows, "dash", "miss")
-    if (
-        not positive
-        or not negative
-        or float(positive[0]["opponent_damage_percent"]) != 0.0
-        or float(positive[-1]["opponent_damage_percent"]) != 2.0
-        or not any(row.get("opponent_action") == "DAMAGE_HIGH_2" for row in positive)
-        or float(negative[0]["opponent_damage_percent"]) != 2.0
-        or any(float(row["opponent_damage_percent"]) != 2.0 for row in negative)
-    ):
-        raise SystemExit("dash collision hit/miss outcome mismatch")
+    knee_bend_rows = exact_action_frames(
+        rows,
+        "common_hurt_knee_bend_hold",
+        "KNEE_BEND",
+        1,
+        4,
+    )
+    positive, negative = verify_collision_outcome(
+        rows, "dash", 0.0, 2.0, "DAMAGE_HIGH_2"
+    )
 
     dash_miss_frame = collision_frame(negative, 5, "DASHING", 5)
     verify_cross_port_pose(dash_rows[4], dash_miss_frame, "Dash frame 5")
@@ -303,24 +344,13 @@ def main() -> int:
             f"generic_margin={dash_generic_margin:.9f}"
         )
 
-    crouch_positive = route_rows(rows, "crouch", "hit")
-    crouch_negative = route_rows(rows, "crouch", "miss")
-    if (
-        not crouch_positive
-        or not crouch_negative
-        or float(crouch_positive[0]["opponent_damage_percent"]) != 2.0
-        or float(crouch_positive[-1]["opponent_damage_percent"]) != 3.0
-        or not any(
-            row.get("opponent_action") == "DAMAGE_NEUTRAL_1"
-            for row in crouch_positive
-        )
-        or float(crouch_negative[0]["opponent_damage_percent"]) != 3.0
-        or any(
-            float(row["opponent_damage_percent"]) != 3.0
-            for row in crouch_negative
-        )
-    ):
-        raise SystemExit("crouch collision hit/miss outcome mismatch")
+    crouch_positive, crouch_negative = verify_collision_outcome(
+        rows,
+        "crouch",
+        2.0,
+        3.819999933242798,
+        "DAMAGE_NEUTRAL_1",
+    )
 
     crouch_miss_frame = collision_frame(
         crouch_negative, 3, "CROUCH_START", 3
@@ -350,18 +380,57 @@ def main() -> int:
             f"generic_margin={crouch_generic_margin:.9f}"
         )
 
+    knee_positive, knee_negative = verify_collision_outcome(
+        rows,
+        "knee_bend",
+        3.819999933242798,
+        5.480000019073486,
+        "DAMAGE_HIGH_2",
+    )
+    knee_miss_frame = collision_frame(
+        knee_negative, 3, "KNEE_BEND", 2
+    )
+    verify_cross_port_pose(
+        knee_bend_rows[1], knee_miss_frame, "KneeBend frame 2"
+    )
+    knee_target_shift = (
+        requested_route_distance(knee_positive)
+        - requested_route_distance(knee_negative)
+    )
+    knee_hit_margin, knee_miss_margin = reconstructed_collision_margins(
+        knee_miss_frame, knee_target_shift
+    )
+    knee_generic_margin = generic_rectangle_margin(
+        dict(knee_miss_frame["hitbox_memory"]), 0.0
+    )
+    if (
+        knee_hit_margin < 0.0
+        or knee_miss_margin >= 0.0
+        or knee_generic_margin < 0.0
+    ):
+        raise SystemExit(
+            "KneeBend collision discriminator failed: "
+            f"hit_margin={knee_hit_margin:.9f} "
+            f"miss_margin={knee_miss_margin:.9f} "
+            f"generic_margin={knee_generic_margin:.9f}"
+        )
+
     print(
         "ssbm-common-hurt=pass "
         f"frames={len(rows)} dash_frames={len(dash_rows)} "
         f"run_brake_frames={len(run_brake_rows)} "
         f"crouch_start_frames={len(crouch_start_rows)} "
         f"crouch_end_frames={len(crouch_end_rows)} "
+        f"knee_bend_frames={len(knee_bend_rows)} "
         f"dash_hit_margin={dash_hit_margin:.9f} "
         f"dash_miss_margin={dash_miss_margin:.9f} "
         f"dash_generic_margin={dash_generic_margin:.9f} "
         f"crouch_hit_margin={crouch_hit_margin:.9f} "
         f"crouch_miss_margin={crouch_miss_margin:.9f} "
         f"crouch_generic_margin={crouch_generic_margin:.9f} "
+        f"knee_hit_margin={knee_hit_margin:.9f} "
+        f"knee_miss_margin={knee_miss_margin:.9f} "
+        f"knee_generic_margin={knee_generic_margin:.9f} "
         f"capture_sha256={capture_digest}"
     )
     return 0

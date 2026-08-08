@@ -32,7 +32,7 @@ EXPECTED_HURT_CAPTURE_SHA256 = (
     "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
 )
 EXPECTED_COMMON_HURT_CAPTURE_SHA256 = (
-    "aa64e6261e50130a70c6714e9b3177d44733a6c003de12cdff1581fb557380b0"
+    "6169379625ff0f972d4bf4cc70b38cffedeb63a7dadea79b4973ee391eb1d1f1"
 )
 EXPECTED_THROW_CAPTURE_SHA256 = (
     "368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95"
@@ -82,6 +82,10 @@ EXPECTED_DISC_SHA256 = (
 EXPECTED_DECOMP_REVISION = "9509dc04406fb2028bfab01243841ba4787c0fb7"
 EXPECTED_DOLPHIN_VERSION = "3.4.0"
 EXPECTED_COMMON_HURT_DOLPHIN_VERSION = "3.5.1"
+EXPECTED_COMMON_HURT_LIBMELEE_VERSION = "0.47.2"
+EXPECTED_COMMON_HURT_ORACLE_SHA256 = (
+    "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd"
+)
 MELEE_TO_SIM_Q16 = 65536.0 * 12.0 / 115.0
 
 COMMON_HURT_ACTIONS = (
@@ -89,6 +93,7 @@ COMMON_HURT_ACTIONS = (
     ("RUN_BRAKE", 1, 28),
     ("CROUCH_START", 1, 7),
     ("CROUCH_END", 1, 10),
+    ("KNEE_BEND", 1, 4),
 )
 
 ACTION_BY_MOVE = {
@@ -1100,6 +1105,16 @@ def main() -> int:
     common_hurt_capture = json.loads(
         args.common_hurt_capture.read_text(encoding="utf-8")
     )
+    common_execution = dict(common_hurt_capture.get("oracle_execution", {}))
+    if (
+        common_execution.get("mode") != "exiai-headless-null-fast-forward"
+        or common_execution.get("release") != "exi-ai-0.2.0"
+        or common_execution.get("release_artifact_sha256")
+        != EXPECTED_COMMON_HURT_ORACLE_SHA256
+        or common_hurt_capture.get("libmelee_version")
+        != EXPECTED_COMMON_HURT_LIBMELEE_VERSION
+    ):
+        raise SystemExit("unexpected accelerated common-hurt oracle provenance")
     throw_capture = json.loads(args.throw_capture.read_text(encoding="utf-8"))
     special_captures = [
         json.loads(path.read_text(encoding="utf-8")) for path in args.special_capture

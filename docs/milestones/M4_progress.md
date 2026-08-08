@@ -4016,3 +4016,77 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. Common hurt poses beyond the four qualified bounded
   tracks, aerial-IASA item/tether branches, and wider ledge/tech/damage behavior
   remain in the exhaustive Falcon equivalence obligation.
+
+## 2026-08-08 ExiAI executable-oracle acceleration
+
+- A prior-art sweep found Vlad Firoiu's maintained ExiAI Slippi/libmelee path,
+  which already supplies a headless Linux AppImage, null video, EXI controller
+  input, game-side fast-forward, a long-lived ENet helper, and instant match
+  restart. The project now pins ExiAI 0.2.0's published AppImage at SHA-256
+  `87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd`,
+  `melee==0.47.2`, and `dolphin-memory-engine==1.3.1`. A WSL bootstrap verifies
+  and extracts the ignored toolchain without touching the owner disc image.
+- The rejected custom path was an exact Slippi 3.5.1 NoGUI/unthrottled build.
+  WSL software OpenGL made its 601-row run take 38.15 seconds, so retaining a
+  project fork would be both slower and duplicative. The binding plan now
+  requires a prior-art sweep before any substantive implementation or tooling
+  work and requires batched same-configuration experiment traces rather than
+  one GUI launch per candidate.
+- An unaccelerated/accelerated A/B using the same ExiAI executable, libmelee,
+  memory observer, match, and 601-row Initial Dash/CrouchStart/CrouchEnd/
+  KneeBend trace passes the automated acceleration verifier. All inputs, game
+  frames, active states and action frames, movement, damage, hitlag, collision
+  decisions, and active non-hitlag geometry are exact across 200 active Falcon
+  and 194 active opponent rows, including 191 and 186 complete non-hitlag pose
+  samples respectively.
+- The verifier excludes only process-local addresses, menu-origin looping idle
+  pose phase, and hurtbox endpoints while hitlag is positive. ExiAI skips
+  display-side bone work in those frames; they are forbidden as imported
+  geometry, while their already-completed collision decision and complete
+  gameplay response stay strict. No other tolerance or field exclusion is
+  permitted.
+- The accelerated geometry-heavy route takes 15.02-15.27 seconds versus about
+  28.3 seconds for the previous Windows stock path, a roughly 46% wall-time
+  reduction with no GUI. The unaccelerated headless A/B control takes 17.01
+  seconds because per-row memory probing dominates this trace. The full setup,
+  commands, measurements, limitations, and upstream revisions are recorded in
+  `docs/technology_decisions/ssbm_oracle_acceleration.md`.
+- M4 remains unfinished. The accelerated oracle improves the evidence loop but
+  does not itself close KneeBend, the remaining common hurt poses,
+  aerial-IASA item/tether branches, or wider ledge/tech/damage behavior.
+
+## 2026-08-08 Falcon KneeBend hurt poses
+
+- The common-pose oracle now contains 650 ExiAI Slippi 3.5.1 rows at SHA-256
+  `6169379625ff0f972d4bf4cc70b38cffedeb63a7dadea79b4973ee391eb1d1f1`.
+  Its dedicated active, non-hitlag track captures all four displayed KneeBend
+  frames with 11 live capsules each. KneeBend frame 2 canonicalizes identically
+  across both controller ports. The pinned `ftCo_KneeBend.c` SHA-256 is
+  `91249dcf7a0aa59277e8912bd8b5a82548262df66ef3426d6ed3d27cebdd6c12`.
+- A same-input Jab 1 boundary hits KneeBend frame 2 at 16.5 Melee units with a
+  reconstructed source margin of +0.153751175 and misses at 16.8 with
+  -0.106885775. The old generic rectangle falsely reports +1.636596680 on the
+  miss, so the negative route specifically qualifies the imported pose.
+- A fresh 650-row unaccelerated/accelerated same-binary A/B passes all strict
+  gameplay fields and 251 active non-hitlag Falcon pose rows. The control takes
+  22.17 seconds and the selected headless/null/fast-forward run 16.68 seconds.
+  The accelerated raw capture is accepted only because the imported KneeBend
+  samples are active and non-hitlag; the verifier still forbids its idle and
+  hitlag-only bone endpoints.
+- Generation appends one compact four-frame track to the existing common index
+  and reuses the shared deduplicated capsule pool. Runtime maps public
+  `JUMP_SQUAT` once to KneeBend and adds no allocation, float math, capsule
+  representation, snapshot bytes, or per-fighter state. The canonical geometry
+  digest is
+  `515b82d61819d8ab152b96e86595f9f2b18dae181ba1cdc053f6382c0d1782bb`;
+  pinned regeneration produces tracked include SHA-256
+  `0343852f516363f5f9f056d54728d2b7ff36d5e532fcbd07e21429a12a13af31`.
+- Native Windows passes 20/20 tests, WSL Release passes 22/22, and WSL
+  ASan/UBSan passes 15/15. The rebuilt Wasm target passes the browser-adapter
+  verifier; native and Wasm replay output remains byte-identical at the prior
+  corpus/final/event hashes. The verifier soak digest advances to
+  `0d7e6b4d2930738f`, and a 64-environment unsampled run reports 1,762,812
+  single-world and 1,779,525 batched ticks per second with exact state identity.
+- M4 remains unfinished. Other common hurt poses, aerial-IASA item/tether
+  branches, and wider ledge/tech/damage behavior remain in the exhaustive
+  Falcon equivalence obligation.

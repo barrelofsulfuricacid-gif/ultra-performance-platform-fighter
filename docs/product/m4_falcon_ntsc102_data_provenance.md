@@ -407,14 +407,19 @@ special subactions. The final wall-rebound row reuses the source-defined Falcon
 Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
-remains the grounded-idle route. A third 433-row Slippi Dolphin 3.5.1 capture,
+remains the grounded-idle route. A third 650-row Slippi Dolphin 3.5.1 ExiAI
+capture,
 SHA-256
-`aa64e6261e50130a70c6714e9b3177d44733a6c003de12cdff1581fb557380b0`,
+`6169379625ff0f972d4bf4cc70b38cffedeb63a7dadea79b4973ee391eb1d1f1`,
 adds every displayed Initial Dash frame 1-15, RunBrake frame 1-28, CrouchStart
-frame 1-7, and CrouchEnd frame 1-10. Its
+frame 1-7, CrouchEnd frame 1-10, and KneeBend frame 1-4. Its
 controller-port cross-check requires both live poses to canonicalize to the
 same Falcon Q16.16 capsules; capture metadata alone is not accepted as proof
-that the menu spawned the requested character. A single move/frame lookup feeds exact 2D
+that the menu spawned the requested character. The ExiAI path is separately
+qualified against an unaccelerated same-binary control; looping idle and
+positive-hitlag bone endpoints are forbidden as geometry sources, so every
+imported KneeBend sample comes from its dedicated active, non-hitlag track. A
+single move/frame lookup feeds exact 2D
 projection for overlays and full 3D point-versus-capsule intersection for
 reference attacks and grabs without allocation. Both endpoints of every hurt
 capsule and every hit-sphere center retain the executable capture's Z
@@ -425,14 +430,14 @@ route.
 The canonicalized timing, hit-sphere, standing-pose, action-pose, and common-
 pose tables
 hash to
-`6d9946a838933cf47184f1d782dc84d0db1e384a8f1270a64aadc775a0d0c552`.
+`515b82d61819d8ab152b96e86595f9f2b18dae181ba1cdc053f6382c0d1782bb`.
 Pinned regeneration produces the tracked include at SHA-256
-`430dc17b4ac5ff57185ba6e740bca38abe64fd82c12e9d623e9b3c0687acba01`.
+`0343852f516363f5f9f056d54728d2b7ff36d5e532fcbd07e21429a12a13af31`.
 That digest is compiled into every M4 content hash, so changing geometry cannot
 retain an old compatibility identity. Production combat queries this table
 for implemented normals, aerials, grabs, normal throws, all 17 Falcon special
-subactions, Initial Dash, RunBrake, CrouchStart, and CrouchEnd. Imported hit
-and hurt geometry is anchored to Melee's fighter root
+subactions, Initial Dash, RunBrake, CrouchStart, CrouchEnd, and KneeBend.
+Imported hit and hurt geometry is anchored to Melee's fighter root
 at the simulation floor-origin offset, rather than incorrectly treating the
 simulation body center as the source origin.
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.metadata
+import inspect
 import json
 import math
 import os
@@ -46,6 +47,10 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "down_air": "0x139",
     "down_air_land": "0x13a",
 }
+
+EXIAI_020_APPIMAGE_SHA256 = (
+    "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd"
+)
 
 # MnSlMap.usd's stage-entry table maps St_Kind_Shrine (0x0E) to entry 5. The
 # matching x90 anchor animation resolves to (-3.3, 15.7), and odd entry 5 uses
@@ -1172,6 +1177,8 @@ def input_trace(
         repeat("common_hurt_crouch_place_settle", 10)
         repeat("common_hurt_crouch_hold", 12, main_y=0.0)
         repeat("common_hurt_crouch_release", 20)
+        repeat("common_hurt_knee_bend_hold", 4, jump=True)
+        repeat("common_hurt_knee_bend_recover", 45)
         for route, distance in (("hit", 31.0), ("miss", 31.5)):
             prefix = f"common_hurt_dash_collision_{route}"
             trace.append(
@@ -1214,6 +1221,32 @@ def input_trace(
             )
             repeat(f"{prefix}_observe", 12, opponent_main_y=0.0)
             repeat(f"{prefix}_recover", 40)
+        for route, distance in (("hit", 16.5), ("miss", 16.8)):
+            prefix = f"common_hurt_knee_bend_collision_{route}"
+            trace.append(
+                command(
+                    f"{prefix}_place",
+                    fighter_x_override=0.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=distance,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat(f"{prefix}_settle", 10)
+            trace.append(
+                command(
+                    f"{prefix}_jab_start",
+                    attack=True,
+                )
+            )
+            trace.append(
+                command(
+                    f"{prefix}_knee_bend_start",
+                    opponent_jump=True,
+                )
+            )
+            repeat(f"{prefix}_observe", 11)
+            repeat(f"{prefix}_recover", 60)
         return trace
 
     if damage_hit_only:
@@ -2366,6 +2399,8 @@ def choose_match(
     player_one: melee.Controller,
     player_two: melee.Controller,
     stage: melee.Stage,
+    menu_helper: melee.MenuHelper,
+    modern_menu_helper: bool,
     opponent: melee.Character = melee.Character.FOX,
     stage_cursor: tuple[float, float] | None = None,
 ) -> None:
@@ -2373,7 +2408,7 @@ def choose_match(
         melee.Menu.CHARACTER_SELECT,
         melee.Menu.SLIPPI_ONLINE_CSS,
     ):
-        melee.MenuHelper.choose_character(
+        menu_helper.choose_character(
             opponent,
             gamestate,
             player_two,
@@ -2381,7 +2416,7 @@ def choose_match(
             swag=False,
             start=False,
         )
-        melee.MenuHelper.choose_character(
+        menu_helper.choose_character(
             melee.Character.CPTFALCON,
             gamestate,
             player_one,
@@ -2392,12 +2427,21 @@ def choose_match(
     elif gamestate.menu_state == melee.Menu.STAGE_SELECT:
         player_two.release_all()
         if stage_cursor is None:
-            melee.MenuHelper.choose_stage(stage, gamestate, player_one)
+            if modern_menu_helper:
+                menu_helper.choose_stage(
+                    stage,
+                    gamestate,
+                    player_one,
+                    melee.Character.CPTFALCON,
+                    autostart=True,
+                )
+            else:
+                menu_helper.choose_stage(stage, gamestate, player_one)
         else:
             choose_stage_at(gamestate, player_one, *stage_cursor)
     elif gamestate.menu_state in (melee.Menu.PRESS_START, melee.Menu.MAIN_MENU):
         player_two.release_all()
-        melee.MenuHelper.choose_versus_mode(gamestate, player_one)
+        menu_helper.choose_versus_mode(gamestate, player_one)
     else:
         player_one.release_all()
         player_two.release_all()
@@ -2595,6 +2639,21 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         executable = dolphin
     if not iso.is_file():
         raise FileNotFoundError(f"missing GALE01 image: {iso}")
+    if args.oracle_exiai:
+        exiai_artifact = args.oracle_release_artifact.resolve()
+        if not exiai_artifact.is_file():
+            raise FileNotFoundError(
+                "--oracle-exiai requires --oracle-release-artifact pointing "
+                "to the pinned ExiAI 0.2.0 AppImage"
+            )
+        artifact_sha256 = sha256(exiai_artifact)
+        if artifact_sha256 != EXIAI_020_APPIMAGE_SHA256:
+            raise ValueError(
+                "unexpected ExiAI release artifact SHA-256: "
+                f"{artifact_sha256}"
+            )
+        if importlib.metadata.version("melee") != "0.47.2":
+            raise RuntimeError("--oracle-exiai requires pinned melee 0.47.2")
     wall_geometry_route = bool(
         args.special_geometry_only
         and args.special_geometry_move
@@ -2610,7 +2669,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         if os.name == "nt" and dolphin.is_file()
         else dolphin
     )
-    console = melee.Console(
+    console_parameters = inspect.signature(melee.Console).parameters
+    console_kwargs: dict[str, object] = dict(
         path=str(console_path),
         blocking_input=True,
         polling_mode=False,
@@ -2621,6 +2681,20 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         disable_audio=True,
         save_replays=False,
     )
+    if args.oracle_exiai:
+        required_parameters = {"use_exi_inputs", "enable_ffw"}
+        if not required_parameters.issubset(console_parameters):
+            raise RuntimeError(
+                "--oracle-exiai requires libmelee with ExiAI/FFW support "
+                "(tested with melee 0.47.2)"
+            )
+        console_kwargs.update(
+            gfx_backend="Null",
+            use_exi_inputs=True,
+            enable_ffw=True,
+            online_delay=0,
+        )
+    console = melee.Console(**console_kwargs)
     if args.enable_items:
         enable_native_capsule_gecko(console)
     player_one = melee.Controller(console, 1, melee.ControllerType.STANDARD)
@@ -2654,7 +2728,13 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 env=dolphin_environment,
             )
         else:
-            console.run(iso_path=str(iso), environment_vars=environment)
+            run_kwargs: dict[str, object] = {
+                "iso_path": str(iso),
+                "environment_vars": environment,
+            }
+            if "exe_name" in inspect.signature(console.run).parameters:
+                run_kwargs["exe_name"] = executable.name
+            console.run(**run_kwargs)
         wait_for_udp_listener(console.slippi_port, 30.0)
         if not console.connect():
             raise RuntimeError("Dolphin Slippi stream did not connect")
@@ -2663,6 +2743,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
 
         gamestate = None
         items_configured = False
+        menu_helper = melee.MenuHelper()
+        modern_menu_helper = (
+            "character" in inspect.signature(menu_helper.choose_stage).parameters
+        )
         while time.monotonic() - started_at < args.menu_timeout:
             gamestate = console.step()
             if gamestate is None:
@@ -2691,6 +2775,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     if args.platform_only
                     else melee.Stage.FINAL_DESTINATION
                 ),
+                menu_helper,
+                modern_menu_helper,
                 (
                     melee.Character.CPTFALCON
                     if (
@@ -2773,7 +2859,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             falcon_frame_data=falcon_frame_data,
             shield_hit_pressure=args.shield_hit_pressure,
         )
-        pipeline_delay = 2
+        # libmelee's modern blocking-input scheduler applies each command to
+        # the immediately returned post-frame. The legacy scheduler used by
+        # our 0.40.1 captures reports it two frames later.
+        pipeline_delay = (
+            0
+            if "use_exi_inputs" in console_parameters
+            else 2
+        )
         commands = trace + [
             {
                 **trace[0],
@@ -3145,6 +3238,16 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             "oracle": "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi",
             "dolphin_version": console.version,
+            "oracle_execution": (
+                {
+                    "mode": "exiai-headless-null-fast-forward",
+                    "release": "exi-ai-0.2.0",
+                    "release_artifact_sha256": EXIAI_020_APPIMAGE_SHA256,
+                    "launcher_sha256": sha256(executable),
+                }
+                if args.oracle_exiai
+                else {"mode": "stock"}
+            ),
             "libmelee_version": importlib.metadata.version("melee"),
             "disc": {
                 "game_id": "GALE01",
@@ -3258,6 +3361,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--menu-timeout", type=float, default=120.0)
     parser.add_argument("--start-frame", type=int, default=120)
     parser.add_argument("--batch", action="store_true")
+    parser.add_argument(
+        "--oracle-exiai",
+        action="store_true",
+        help="use the pinned ExiAI 0.2.0 headless Null-video fast-forward path",
+    )
+    parser.add_argument(
+        "--oracle-release-artifact",
+        type=Path,
+        help="pinned ExiAI release AppImage used to produce an extracted launcher",
+    )
     parser.add_argument("--enable-items", action="store_true")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
@@ -3302,6 +3415,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--memory-probe-collision", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args()
+    if args.oracle_exiai and args.batch:
+        parser.error("--oracle-exiai launches its own headless process")
+    if args.oracle_exiai and args.oracle_release_artifact is None:
+        parser.error("--oracle-exiai requires --oracle-release-artifact")
+    if args.oracle_release_artifact is not None and not args.oracle_exiai:
+        parser.error("--oracle-release-artifact requires --oracle-exiai")
     if not 0.30 <= args.shield_hit_pressure <= 1.0:
         parser.error("--shield-hit-pressure must be in [0.30, 1.0]")
     if (

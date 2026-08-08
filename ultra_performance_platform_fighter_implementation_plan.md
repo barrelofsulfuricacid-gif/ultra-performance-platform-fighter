@@ -604,14 +604,16 @@ complete rebound root trajectory. Its speed cap, rebound graph, and all hit
 geometry consume the imported tables; no Falcon Kick dynamic state remains
 without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
-Initial Dash, RunBrake, CrouchStart, and CrouchEnd remain explicit M4 gaps and
-must be extracted or qualified rather than approximated with invented frame
-data. Common poses use
+Initial Dash, RunBrake, CrouchStart, CrouchEnd, and KneeBend remain explicit
+M4 gaps and must be extracted or qualified rather than approximated with
+invented frame data. Common poses use
 one compact generated state index and reuse the action-pose capsule pool; public
 action values are mapped once and no snapshot state or allocation is added. A
 pinned 31.0-unit hit/31.5-unit miss route proves the Dash track against Dolphin
 and rejects the old generic rectangle. A second 17.7-unit hit/17.84-unit miss
 route proves CrouchStart frame 3 and rejects the rectangle's false positive.
+The four-frame KneeBend track is likewise imported; a 16.5-unit hit/16.8-unit
+miss route proves frame 2 and rejects the rectangle's false positive.
 The executable's previous-to-current
 moving hit-capsule sweep is production-routed and Dolphin-qualified: imported
 collision state distinguishes creation from continuation, continuation finds

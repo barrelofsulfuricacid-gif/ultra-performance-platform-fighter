@@ -171,3 +171,26 @@ the same project support. These passing traces are regression slices, not
 evidence that every applicable movement or shared-simulation route is
 equivalent; the other remaining systems still require identical-input Dolphin
 reproducers and comparable-state assertions.
+
+## 2026-08-08 - Prior-art-first gate
+
+Before starting any substantive implementation, tooling, infrastructure,
+algorithm, data-format, or behavior-fidelity work item, perform a focused
+prior-art sweep. Check the authoritative upstream, maintained forks, releases,
+issues, documentation, and established workflows that could already solve or
+materially simplify the item. Record the relevant source revision or release,
+the reusable part, and why it was selected or rejected before building a
+custom replacement. A custom implementation is allowed only after this sweep
+shows that the maintained prior art is missing, incompatible, insufficiently
+exact, or slower after measurement.
+
+For Dolphin executable-oracle acceleration, the first qualified candidate is
+Vlad Firoiu's ExiAI Slippi/libmelee path rather than a project-authored Dolphin
+fork. The project must pin its release artifact and Python package versions,
+run headless with null video and disabled audio, enable its EXI-input
+fast-forward path, and prove identical relevant game state and collision
+observations against an unaccelerated control before accepting captures as M4
+evidence. Experiment traces sharing a match configuration should be batched in
+one process; repeated GUI launches at real-time speed are not an acceptable
+default workflow. Save-state or persistent-process extensions remain optional
+only when measurements show material benefit beyond the qualified prior art.

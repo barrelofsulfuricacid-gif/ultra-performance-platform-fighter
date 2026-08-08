@@ -13417,6 +13417,8 @@ static int run_reference_common_hurt_runtime_case(
     uint32_t melee_distance_hundredths,
     int16_t target_main_x,
     int16_t target_main_y,
+    uint64_t target_buttons,
+    uint16_t target_button_delay_ticks,
     uint8_t expected_target_action,
     uint16_t expected_hit_action_tick,
     int expect_hit)
@@ -13468,7 +13470,9 @@ static int run_reference_common_hurt_runtime_case(
                 UINT16_C(0),
                 target_main_x,
                 target_main_y,
-                UINT64_C(0),
+                tick >= (uint32_t)target_button_delay_ticks
+                    ? target_buttons
+                    : UINT64_C(0),
                 UINT16_C(0),
                 &inspection))
         {
@@ -13514,6 +13518,8 @@ static int run_reference_common_dash_hurt_test(void)
                UINT32_C(3100),
                -INT16_C(32767),
                INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
                (uint8_t)PF_M4_ACTION_INITIAL_DASH,
                UINT16_C(5),
                1) &&
@@ -13521,6 +13527,8 @@ static int run_reference_common_dash_hurt_test(void)
                UINT32_C(3150),
                -INT16_C(32767),
                INT16_C(0),
+               UINT64_C(0),
+               UINT16_C(0),
                (uint8_t)PF_M4_ACTION_INITIAL_DASH,
                UINT16_C(5),
                0);
@@ -13535,6 +13543,8 @@ static int run_reference_common_crouch_hurt_test(void)
                UINT32_C(1770),
                INT16_C(0),
                INT16_C(32767),
+               UINT64_C(0),
+               UINT16_C(0),
                (uint8_t)PF_M4_ACTION_CROUCH_START,
                UINT16_C(3),
                1) &&
@@ -13542,7 +13552,34 @@ static int run_reference_common_crouch_hurt_test(void)
                UINT32_C(1784),
                INT16_C(0),
                INT16_C(32767),
+               UINT64_C(0),
+               UINT16_C(0),
                (uint8_t)PF_M4_ACTION_CROUCH_START,
+               UINT16_C(3),
+               0);
+}
+
+static int run_reference_common_knee_bend_hurt_test(void)
+{
+    /* Same-input Dolphin boundary: Jab 1 versus Falcon KneeBend frame 2 hits
+     * at 16.5 Melee units and misses at 16.8. The generic rectangle hits both,
+     * so the negative case discriminates the imported jump-squat pose. */
+    return run_reference_common_hurt_runtime_case(
+               UINT32_C(1650),
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_JUMP,
+               UINT16_C(1),
+               (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
+               UINT16_C(3),
+               1) &&
+           run_reference_common_hurt_runtime_case(
+               UINT32_C(1680),
+               INT16_C(0),
+               INT16_C(0),
+               PF_INPUT_BUTTON_JUMP,
+               UINT16_C(1),
+               (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
                UINT16_C(3),
                0);
 }
@@ -22305,6 +22342,8 @@ static int run_falcon_reference_table_test(void)
     uint8_t crouch_start_last_hurt_capsule_count = UINT8_C(0);
     uint8_t crouch_end_hurt_capsule_count = UINT8_C(0);
     uint8_t crouch_end_last_hurt_capsule_count = UINT8_C(0);
+    uint8_t knee_bend_hurt_capsule_count = UINT8_C(0);
+    uint8_t knee_bend_last_hurt_capsule_count = UINT8_C(0);
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
     uint8_t grab_hurt_capsule_count = UINT8_C(0);
@@ -22416,6 +22455,16 @@ static int run_falcon_reference_table_test(void)
             (uint8_t)PF_M4_ACTION_CROUCH_END,
             UINT16_C(10),
             &crouch_end_last_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *knee_bend_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
+            UINT16_C(1),
+            &knee_bend_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *knee_bend_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
+            UINT16_C(4),
+            &knee_bend_last_hurt_capsule_count);
     const pf_m4_reference_hurt_capsule *jab_hurt_capsules =
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
@@ -22510,6 +22559,10 @@ static int run_falcon_reference_table_test(void)
         crouch_end_hurt_capsule_count != UINT8_C(11) ||
         crouch_end_last_hurt_capsules == NULL ||
         crouch_end_last_hurt_capsule_count != UINT8_C(11) ||
+        knee_bend_hurt_capsules == NULL ||
+        knee_bend_hurt_capsule_count != UINT8_C(11) ||
+        knee_bend_last_hurt_capsules == NULL ||
+        knee_bend_last_hurt_capsule_count != UINT8_C(11) ||
         pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             (uint8_t)PF_M4_ACTION_INITIAL_DASH,
             UINT16_C(0),
@@ -22525,6 +22578,10 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_common_hurt_capsules_at_frame(
             (uint8_t)PF_M4_ACTION_CROUCH_END,
             UINT16_C(11),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT,
+            UINT16_C(5),
             NULL) != NULL)
     {
         return fail("falcon-reference-z-collision-source");
@@ -23258,10 +23315,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x6d) ||
-        geometry_sha256[1] != UINT8_C(0x99) ||
-        geometry_sha256[30] != UINT8_C(0xc5) ||
-        geometry_sha256[31] != UINT8_C(0x52) ||
+        geometry_sha256[0] != UINT8_C(0x51) ||
+        geometry_sha256[1] != UINT8_C(0x5b) ||
+        geometry_sha256[30] != UINT8_C(0x82) ||
+        geometry_sha256[31] != UINT8_C(0xbb) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -24525,6 +24582,7 @@ int main(void)
         !run_reference_moving_hit_sweep_test() ||
         !run_reference_common_dash_hurt_test() ||
         !run_reference_common_crouch_hurt_test() ||
+        !run_reference_common_knee_bend_hurt_test() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||
