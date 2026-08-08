@@ -607,6 +607,10 @@ pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
 pf_m4_reference_ground_physics
 pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state);
 
+int pf_m4_falcon_reference_iasa_active(
+    uint8_t action_state,
+    uint32_t displayed_frame);
+
 int pf_m4_falcon_reference_special_iasa_active(
     uint8_t action_state,
     uint16_t action_ticks);

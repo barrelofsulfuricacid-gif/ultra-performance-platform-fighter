@@ -65,6 +65,7 @@ def input_trace(
     damage_hit_only: bool = False,
     defense_state_only: bool = False,
     attack_iasa_only: bool = False,
+    aerial_iasa_only: bool = False,
     ground_attack_iasa_only: bool = False,
     hitbox_geometry_only: bool = False,
     throw_geometry_only: bool = False,
@@ -196,6 +197,52 @@ def input_trace(
         trace.append(command("attack_iasa_walk_jab", attack=True))
         repeat("attack_iasa_walk_hold", 30, main_x=1.0)
         repeat("attack_iasa_walk_recover", 60)
+        return trace
+
+    if aerial_iasa_only:
+        if falcon_frame_data is None:
+            raise ValueError("aerial IASA capture requires Falcon frame data")
+
+        attack_inputs: dict[str, dict[str, object]] = {
+            "nair": {"attack": True},
+            "fair": {"c_x": 1.0},
+            "bair": {"c_x": 0.0},
+            "uair": {"c_y": 1.0},
+            "dair": {"c_y": 0.0},
+        }
+
+        def aerial_interrupt_route(
+            move: str,
+            route: str,
+            interrupt_frame: int,
+        ) -> None:
+            prefix = f"aerial_iasa_{move}_{route}"
+            repeat(f"{prefix}_settle", 45)
+            trace.append(command(f"{prefix}_jump", jump=True))
+            repeat(f"{prefix}_jump_squat", 4, jump=True)
+            trace.append(
+                command(
+                    f"{prefix}_start",
+                    **attack_inputs[move],
+                )
+            )
+            repeat(f"{prefix}_before", interrupt_frame - 2)
+            trace.append(command(f"{prefix}_jump_interrupt", jump=True))
+            repeat(f"{prefix}_recover", 55)
+
+        for move in ("fair", "bair", "uair", "dair"):
+            iasa = int(dict(falcon_frame_data[move])["iasa"])
+            aerial_interrupt_route(move, "jump_early", iasa - 1)
+            aerial_interrupt_route(move, "jump_exact", iasa)
+
+        # Falcon's neutral aerial has no IASA command. A penultimate-frame
+        # jump edge must remain locked and must not buffer into the following
+        # ordinary Fall state.
+        aerial_interrupt_route(
+            "nair",
+            "jump_no_iasa",
+            int(dict(falcon_frame_data["nair"])["totalFrames"]) - 1,
+        )
         return trace
 
     if hitbox_geometry_only:
@@ -2577,6 +2624,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             damage_hit_only=args.damage_hit_only,
             defense_state_only=args.defense_state_only,
             attack_iasa_only=args.attack_iasa_only,
+            aerial_iasa_only=args.aerial_iasa_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
             hitbox_geometry_only=args.hitbox_geometry_only,
             throw_geometry_only=args.throw_geometry_only,
@@ -2976,6 +3024,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             "damage_hit_route": bool(args.damage_hit_only),
             "defense_state_route": bool(args.defense_state_only),
+            "aerial_iasa_route": bool(args.aerial_iasa_only),
             "controller_postframe_pipeline_delay": pipeline_delay,
             "shield_memory_probe": (
                 {
@@ -3065,6 +3114,7 @@ def parse_args() -> argparse.Namespace:
     mode.add_argument("--damage-hit-only", action="store_true")
     mode.add_argument("--defense-state-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
+    mode.add_argument("--aerial-iasa-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
     mode.add_argument("--hitbox-geometry-only", action="store_true")
     mode.add_argument("--throw-geometry-only", action="store_true")

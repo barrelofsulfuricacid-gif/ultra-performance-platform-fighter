@@ -62,6 +62,11 @@ SSBM_TO_M4_ACTION = {
     "FALLING_AERIAL_FORWARD": 6,
     "FALLING_AERIAL_BACKWARD": 6,
     "AIRDODGE": 32,
+    "NAIR": 35,
+    "FAIR": 81,
+    "BAIR": 82,
+    "UAIR": 83,
+    "DAIR": 84,
     "LANDING_SPECIAL": 34,
     "LANDING": 7,
     "TAUNT_RIGHT": 75,
@@ -308,6 +313,19 @@ def main() -> int:
         )
         return 1
     oracle_rows = capture["rows"]
+    aerial_iasa_mode = bool(capture.get("aerial_iasa_route", False))
+    aerial_iasa_qualified_frames = (
+        sum(
+            1
+            for row in oracle_rows
+            if not (
+                str(row.get("label", "")).endswith("_settle")
+                or str(row.get("label", "")).endswith("_recover")
+            )
+        )
+        if aerial_iasa_mode
+        else 0
+    )
     if args.special_geometry_route is not None:
         start_label = f"special_geometry_{args.special_geometry_route}_start"
         first_special_row = next(
@@ -1166,6 +1184,34 @@ def main() -> int:
         )
         actual_invulnerable = int(native["invulnerable"])
         differences: list[str] = []
+        if aerial_iasa_mode:
+            qualifies_boundary = not (
+                label.endswith("_settle") or label.endswith("_recover")
+            )
+            if qualifies_boundary:
+                if expected_action is None:
+                    differences.append(f"unsupported_action={action_name}")
+                elif actual_action != expected_action:
+                    differences.append(
+                        f"action expected={action_name}/{expected_action} "
+                        f"actual={actual_action}"
+                    )
+                elif expected_ticks is not None and actual_ticks != expected_ticks:
+                    differences.append(
+                        f"action_ticks expected={expected_ticks} "
+                        f"actual={actual_ticks}"
+                    )
+            if differences:
+                print(
+                    "ssbm-movement-compare=fail "
+                    f"frame={frame} label={oracle['label']} "
+                    + " | ".join(differences)
+                )
+                return 1
+            previous_oracle = oracle
+            previous_native = native
+            previous_label = label
+            continue
         if expected_action is None:
             differences.append(f"unsupported_action={action_name}")
         elif actual_action != expected_action:
@@ -1584,6 +1630,10 @@ def main() -> int:
         if falcon_dive_air_catch_mode
         else ""
     )
+    if aerial_iasa_mode:
+        target_summary += (
+            f" aerial_iasa_action_frames={aerial_iasa_qualified_frames}"
+        )
     print(
         f"ssbm-movement-compare=pass frames={len(oracle_rows)} "
         f"position_tolerance_q16={position_tolerance_q16}"

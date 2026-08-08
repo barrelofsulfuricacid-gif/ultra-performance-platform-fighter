@@ -710,20 +710,13 @@ pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state)
     }
 }
 
-int pf_m4_falcon_reference_special_iasa_active(
+int pf_m4_falcon_reference_iasa_active(
     uint8_t action_state,
-    uint16_t action_ticks)
+    uint32_t displayed_frame)
 {
     pf_m4_falcon_move_index move_index;
     const pf_m4_reference_move *move;
-    const pf_m4_reference_iasa_policy policy =
-        pf_m4_falcon_reference_iasa_policy_for_action(action_state);
 
-    if (policy != PF_M4_REFERENCE_IASA_WAIT &&
-        policy != PF_M4_REFERENCE_IASA_FORWARD_SMASH)
-    {
-        return 0;
-    }
     if (!pf_m4_falcon_reference_move_for_action(
             action_state,
             &move_index))
@@ -732,8 +725,21 @@ int pf_m4_falcon_reference_special_iasa_active(
     }
     move = pf_m4_falcon_reference_move(move_index);
     return move != NULL && move->iasa_frame != UINT16_C(0) &&
-           (uint32_t)action_ticks + UINT32_C(1) >=
-               (uint32_t)move->iasa_frame;
+           displayed_frame >= (uint32_t)move->iasa_frame;
+}
+
+int pf_m4_falcon_reference_special_iasa_active(
+    uint8_t action_state,
+    uint16_t action_ticks)
+{
+    const pf_m4_reference_iasa_policy policy =
+        pf_m4_falcon_reference_iasa_policy_for_action(action_state);
+
+    return (policy == PF_M4_REFERENCE_IASA_WAIT ||
+            policy == PF_M4_REFERENCE_IASA_FORWARD_SMASH) &&
+           pf_m4_falcon_reference_iasa_active(
+               action_state,
+               (uint32_t)action_ticks + UINT32_C(1));
 }
 
 int pf_m4_falcon_reference_translation_q16(

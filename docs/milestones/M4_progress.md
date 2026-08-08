@@ -3824,3 +3824,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. This closes the sampled defense callback route, not
   common-action hurt poses, moving hit-capsule sweeps, remaining ledge/tech/
   damage semantics, or the exhaustive Falcon equivalence obligation.
+
+## 2026-08-07 Falcon aerial-IASA executable-oracle slice
+
+- The complete Falcon move table supplies fair/back-air/up-air/down-air IASA
+  frames 36/29/30/38 and neutral air's source zero. The zero is treated as no
+  IASA, not as an immediate interrupt.
+- Pinned common aerial callbacks route an allowed interrupt through the shared
+  double-jump primitive. One allocation-free generated predicate now accepts a
+  displayed frame and serves grounded normals, special preprocessing, and
+  aerials. One shared double-jump helper replaces duplicated wall-jump and
+  ordinary-air transition code.
+- Runtime output tick 0 is displayed frame 1, while the aerial interrupt
+  callback evaluates the pending displayed frame. Primitive tests therefore
+  exercise pre-step tick `IASA - 3` as the one-frame-early negative boundary
+  and `IASA - 2` as the exact positive boundary for all four interruptible
+  aerials. Nair receives a penultimate-frame negative control.
+- Melee C-stick aerials now select the same directional Falcon scripts as the
+  corresponding A-button direction. The route is guarded by exact imported
+  Falcon timing/damage/landing-lag identity, so custom content continues to use
+  its authored strong aerial.
+- The 1,250-frame Final Destination capture at SHA-256
+  `3a03c28fa78cf0c4de8fb7b4f4c873dee5df9ca44f46740b0f053da62cc2efaf`
+  passes the at-will comparator for all 350 actionable jump, jumpsquat, aerial,
+  and interrupt frames; settle/recovery rows are not counted as evidence.
+  Aggregate executable qualification is now 18,273 frames. The affected
+  deterministic eight-match verifier reproduces digest `8e6e4e326df3164f`
+  twice after the new C-stick/IASA route.
+- The `ssbm-character-importer` skill now records C-stick aerial aliasing,
+  zero-IASA handling, and the independent state-entry/callback display biases.
+  Its reusable `iasa_boundary` routine returns exact and adjacent-negative
+  pre-step ticks; skill validation, Python compilation, and its Falcon-frame-36
+  smoke check pass.
+- Native Windows MinGW passes 15/15 fidelity tests; WSL release passes 22/22,
+  and WSL ASan/UBSan passes 15/15. The rebuilt Emscripten playtest and headless
+  Chrome/browser-adapter verifier pass, as do the focused movement/combat
+  workflows and byte-identical native/Wasm 240-tick replay corpus.
+- M4 remains unfinished. The sampled route closes double-jump aerial IASA, not
+  the shared item throw/pickup and tether candidates, moving hit-capsule sweep,
+  common-state hurt poses, or the exhaustive equivalence obligation.

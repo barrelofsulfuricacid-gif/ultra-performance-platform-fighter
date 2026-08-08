@@ -21870,6 +21870,8 @@ static int run_falcon_reference_table_test(void)
         UINT16_C(4), UINT16_C(7), UINT16_C(7), UINT16_C(1), UINT16_C(4)};
     static const uint16_t autocancel_after[5] = {
         UINT16_C(33), UINT16_C(34), UINT16_C(20), UINT16_C(21), UINT16_C(35)};
+    static const uint16_t aerial_iasa_frames[5] = {
+        UINT16_C(0), UINT16_C(36), UINT16_C(29), UINT16_C(30), UINT16_C(38)};
     uint32_t aerial_index;
     pf_m4_falcon_move_index mapped_move = PF_M4_FALCON_MOVE_COUNT;
     const pf_m4_reference_move *jab =
@@ -22880,8 +22882,29 @@ static int run_falcon_reference_table_test(void)
     {
         const uint16_t before = autocancel_before[aerial_index];
         const uint16_t after = autocancel_after[aerial_index];
+        const uint16_t iasa_frame = aerial_iasa_frames[aerial_index];
+        const pf_m4_reference_move *aerial_move;
 
-        if (pf_m4_falcon_reference_landing_lag_active(
+        if (!pf_m4_falcon_reference_move_for_action(
+                aerial_actions[aerial_index],
+                &mapped_move))
+        {
+            return fail("falcon-reference-aerial-action-map");
+        }
+        aerial_move = pf_m4_falcon_reference_move(mapped_move);
+
+        if (aerial_move == NULL ||
+            aerial_move->iasa_frame != iasa_frame ||
+            pf_m4_falcon_reference_iasa_active(
+                aerial_actions[aerial_index],
+                iasa_frame == UINT16_C(0)
+                    ? (uint32_t)aerial_move->total_frames
+                    : (uint32_t)(iasa_frame - UINT16_C(1))) != 0 ||
+            (iasa_frame != UINT16_C(0) &&
+             pf_m4_falcon_reference_iasa_active(
+                 aerial_actions[aerial_index],
+                 (uint32_t)iasa_frame) == 0) ||
+            pf_m4_falcon_reference_landing_lag_active(
                 aerial_actions[aerial_index],
                 (uint16_t)(before - UINT16_C(1))) != 0 ||
             pf_m4_falcon_reference_landing_lag_active(

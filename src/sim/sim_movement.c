@@ -2257,16 +2257,6 @@ static uint8_t pf_m4_falcon_ground_iasa_capabilities(
     }
 }
 
-static int pf_m4_falcon_ground_iasa_active(
-    const pf_m4_reference_move *move,
-    uint16_t action_ticks)
-{
-
-    return move != NULL && move->iasa_frame != UINT16_C(0) &&
-           (uint32_t)action_ticks + UINT32_C(1) >=
-               (uint32_t)move->iasa_frame;
-}
-
 static uint8_t pf_m4_select_ground_light_attack_action(
     const pf_m4_fighter_data *fighter,
     int8_t facing,
@@ -2464,6 +2454,45 @@ static uint8_t pf_m4_select_light_aerial_action(
                    : (uint8_t)PF_M4_ACTION_BACK_AERIAL;
     }
     return (uint8_t)PF_M4_ACTION_AERIAL_ATTACK;
+}
+
+static uint8_t pf_m4_select_aerial_attack_action(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    int8_t facing,
+    int strong_attack_pressed)
+{
+    if (strong_attack_pressed != 0)
+    {
+        const int secondary_stick_active =
+            pf_m4_axis_magnitude(input->secondary_stick_x) >=
+                fighter->axis_dead_zone ||
+            pf_m4_axis_magnitude(input->secondary_stick_y) >=
+                fighter->axis_dead_zone;
+        const uint8_t c_stick_action =
+            pf_m4_select_light_aerial_action(
+                fighter,
+                input->secondary_stick_x,
+                input->secondary_stick_y,
+                facing);
+
+        /* Melee's C-stick is an alternate directional input for the same
+         * aerial scripts. Retain the authored strong-aerial extension for
+         * custom content that does not exactly match the Falcon catalog. */
+        if (secondary_stick_active != 0 &&
+            pf_m4_falcon_aerial_reference_matches(
+                fighter,
+                c_stick_action))
+        {
+            return c_stick_action;
+        }
+        return (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK;
+    }
+    return pf_m4_select_light_aerial_action(
+        fighter,
+        input->main_stick_x,
+        input->main_stick_y,
+        facing);
 }
 
 static int pf_m4_action_can_enter_teeter(uint8_t action_state)
@@ -3961,6 +3990,28 @@ static void pf_m4_enter_wall_jump(
     *facing = away_direction;
 }
 
+static void pf_m4_enter_double_jump(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    int32_t *velocity_x,
+    int32_t *velocity_y,
+    uint8_t *air_jumps_remaining,
+    uint8_t *fast_fall,
+    uint8_t *action_state,
+    uint16_t *action_ticks)
+{
+    *velocity_x = pf_m4_scale_axis_q16(
+        input->main_stick_x,
+        fighter->double_jump_horizontal_speed_q16);
+    *velocity_y = -fighter->double_jump_speed_q16;
+    --*air_jumps_remaining;
+    *fast_fall = UINT8_C(0);
+    *action_state = fighter->double_jump_cancel_ticks > UINT16_C(0)
+                        ? (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP
+                        : (uint8_t)PF_M4_ACTION_AIRBORNE;
+    *action_ticks = UINT16_C(0);
+}
+
 static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
 {
     return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
@@ -4271,9 +4322,10 @@ pf_status pf_m4_step_player(
                   world->action_state[player_index])
             : PF_M4_REFERENCE_IASA_NONE;
     const int ground_attack_iasa =
-        pf_m4_falcon_ground_iasa_active(
-            ground_reference_attack,
-            world->action_ticks[player_index]);
+        ground_reference_attack != NULL &&
+        pf_m4_falcon_reference_iasa_active(
+            world->action_state[player_index],
+            (uint32_t)world->action_ticks[player_index] + UINT32_C(1));
     const uint8_t ground_iasa_capabilities =
         ground_attack_iasa != 0
             ? pf_m4_falcon_ground_iasa_capabilities(
@@ -8212,22 +8264,14 @@ pf_status pf_m4_step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_WALL_JUMP)
         {
-            if (strong_attack_pressed != 0)
+            if (strong_attack_pressed != 0 ||
+                light_attack_pressed != 0)
             {
-                action_state =
-                    (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK;
-                action_ticks = UINT16_C(0);
-                scratch->attack_hit_mask[player_index] = UINT8_C(0);
-                scratch->attack_stale_registered[player_index] =
-                    UINT8_C(0);
-            }
-            else if (light_attack_pressed != 0)
-            {
-                action_state = pf_m4_select_light_aerial_action(
+                action_state = pf_m4_select_aerial_attack_action(
                     fighter,
-                    input->main_stick_x,
-                    input->main_stick_y,
-                    facing);
+                    input,
+                    facing,
+                    strong_attack_pressed);
                 action_ticks = UINT16_C(0);
                 scratch->attack_hit_mask[player_index] = UINT8_C(0);
                 scratch->attack_stale_registered[player_index] =
@@ -8236,23 +8280,15 @@ pf_status pf_m4_step_player(
             else if (jump_pressed != 0 &&
                      air_jumps_remaining > UINT8_C(0))
             {
-                velocity_x = pf_m4_scale_axis_q16(
-                    input->main_stick_x,
-                    fighter->double_jump_horizontal_speed_q16);
-                velocity_y = -fighter->double_jump_speed_q16;
-                --air_jumps_remaining;
-                fast_fall = UINT8_C(0);
-                if (fighter->double_jump_cancel_ticks > UINT16_C(0))
-                {
-                    action_state =
-                        (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP;
-                    action_ticks = UINT16_C(0);
-                }
-                else
-                {
-                    action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
-                    action_ticks = UINT16_C(0);
-                }
+                pf_m4_enter_double_jump(
+                    fighter,
+                    input,
+                    &velocity_x,
+                    &velocity_y,
+                    &air_jumps_remaining,
+                    &fast_fall,
+                    &action_state,
+                    &action_ticks);
             }
             else
             {
@@ -8747,21 +8783,48 @@ pf_status pf_m4_step_player(
                 const uint32_t aerial_attack_ticks =
                     pf_m4_light_aerial_ticks(fighter, action_state);
 
-                velocity_x = pf_m4_apply_air_input(
-                    fighter,
-                    velocity_x,
-                    input->main_stick_x,
-                    fighter->air_speed_q16);
-                ++action_ticks;
-                if ((uint32_t)action_ticks >= aerial_attack_ticks)
+                if (pf_m4_falcon_aerial_reference_matches(
+                        fighter,
+                        action_state) &&
+                    pf_m4_falcon_reference_iasa_active(
+                        action_state,
+                        (uint32_t)action_ticks + UINT32_C(2)) &&
+                    jump_pressed != 0 &&
+                    air_jumps_remaining > UINT8_C(0))
                 {
-                    action_state =
-                        (uint8_t)PF_M4_ACTION_AIRBORNE;
-                    action_ticks = UINT16_C(0);
+                    pf_m4_enter_double_jump(
+                        fighter,
+                        input,
+                        &velocity_x,
+                        &velocity_y,
+                        &air_jumps_remaining,
+                        &fast_fall,
+                        &action_state,
+                        &action_ticks);
+                    scratch->tumble[player_index] = UINT8_C(0);
                     scratch->attack_hit_mask[player_index] =
                         UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
+                }
+                else
+                {
+                    velocity_x = pf_m4_apply_air_input(
+                        fighter,
+                        velocity_x,
+                        input->main_stick_x,
+                        fighter->air_speed_q16);
+                    ++action_ticks;
+                    if ((uint32_t)action_ticks >= aerial_attack_ticks)
+                    {
+                        action_state =
+                            (uint8_t)PF_M4_ACTION_AIRBORNE;
+                        action_ticks = UINT16_C(0);
+                        scratch->attack_hit_mask[player_index] =
+                            UINT8_C(0);
+                        scratch->attack_stale_registered[player_index] =
+                            UINT8_C(0);
+                    }
                 }
             }
             else if (
@@ -8799,38 +8862,19 @@ pf_status pf_m4_step_player(
                 launched_this_tick = 1;
                 fast_fall = UINT8_C(0);
             }
-            else if (strong_attack_pressed &&
+            else if ((strong_attack_pressed != 0 ||
+                      light_attack_pressed != 0) &&
                      scratch->tumble[player_index] == UINT8_C(0))
             {
                 if (double_jump_cancel_window != 0)
                 {
                     velocity_y = INT32_C(0);
                 }
-                action_state =
-                    (uint8_t)PF_M4_ACTION_STRONG_AERIAL_ATTACK;
-                action_ticks = UINT16_C(0);
-                scratch->attack_hit_mask[player_index] =
-                    UINT8_C(0);
-                scratch->attack_stale_registered[player_index] =
-                    UINT8_C(0);
-                velocity_x = pf_m4_apply_air_input(
+                action_state = pf_m4_select_aerial_attack_action(
                     fighter,
-                    velocity_x,
-                    input->main_stick_x,
-                    fighter->air_speed_q16);
-            }
-            else if (light_attack_pressed &&
-                     scratch->tumble[player_index] == UINT8_C(0))
-            {
-                if (double_jump_cancel_window != 0)
-                {
-                    velocity_y = INT32_C(0);
-                }
-                action_state = pf_m4_select_light_aerial_action(
-                    fighter,
-                    input->main_stick_x,
-                    input->main_stick_y,
-                    facing);
+                    input,
+                    facing,
+                    strong_attack_pressed);
                 action_ticks = UINT16_C(0);
                 scratch->attack_hit_mask[player_index] =
                     UINT8_C(0);
@@ -8899,19 +8943,16 @@ pf_status pf_m4_step_player(
                 jump_pressed &&
                 air_jumps_remaining > UINT8_C(0))
             {
-                velocity_x = pf_m4_scale_axis_q16(
-                    input->main_stick_x,
-                    fighter->double_jump_horizontal_speed_q16);
-                velocity_y = -fighter->double_jump_speed_q16;
-                --air_jumps_remaining;
-                fast_fall = UINT8_C(0);
+                pf_m4_enter_double_jump(
+                    fighter,
+                    input,
+                    &velocity_x,
+                    &velocity_y,
+                    &air_jumps_remaining,
+                    &fast_fall,
+                    &action_state,
+                    &action_ticks);
                 scratch->tumble[player_index] = UINT8_C(0);
-                if (fighter->double_jump_cancel_ticks > UINT16_C(0))
-                {
-                    action_state =
-                        (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP;
-                    action_ticks = UINT16_C(0);
-                }
             }
         }
     }

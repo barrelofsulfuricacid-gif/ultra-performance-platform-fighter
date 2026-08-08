@@ -466,7 +466,10 @@ and the anisotropically mapped elliptical collision volume. A 2,568-frame,
 33-decision Jab 1 sweep additionally qualifies exact sphere-versus-shield
 collision at neutral and two diagonal guard offsets, including all three
 last-hit/first-miss boundaries. Aggregate executable-oracle evidence is
-therefore 17,923 qualified frames, including
+therefore 18,273 qualified frames, including 350 actionable frames from a
+1,250-frame aerial-IASA capture covering one-frame-early/exact fair, back-air,
+up-air, and down-air double-jump interrupts plus neutral-air's no-IASA control,
+and
 116-frame grounded and 92-frame aerial Falcon Dive catch/throw routes plus
 103-frame grounded, 165-frame aerial miss, and 63-frame aerial ledge-approach
 routes with memory-probed ECB,

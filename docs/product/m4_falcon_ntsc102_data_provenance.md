@@ -306,6 +306,31 @@ selection is driven by the source main-stick input-age timer, not action age;
 facing-relative tilt selection likewise preserves the source backward-A
 fallthrough to Jab.
 
+Aerial interruption consumes the same generated move rows. Falcon fair, back
+air, up air, and down air expose IASA frames 36, 29, 30, and 38; neutral air's
+zero value is retained as no IASA. Pinned `ftCo_AttackAir.c` routes those
+boundaries through the shared double-jump check after item/tether candidates.
+The runtime's entry output maps displayed frame 1 to action tick 0, and its
+interrupt callback evaluates the pending displayed frame, so the exact
+pre-step tick is `IASA - 2`; `IASA - 3` is the adjacent negative boundary.
+One generated IASA predicate accepts an explicit displayed frame and is reused
+by ground, special-preprocessing, and aerial call sites without duplicating
+tables. One double-jump transition helper likewise owns velocity, jump-count,
+fast-fall, state, and tick updates.
+
+The 1,250-frame Final Destination Dolphin capture at SHA-256
+`3a03c28fa78cf0c4de8fb7b4f4c873dee5df9ca44f46740b0f053da62cc2efaf`
+passes the identical-input comparator across its 350 actionable jump,
+jumpsquat, aerial, and interrupt frames; settle/recovery rows advance both
+sims but are not counted as qualified evidence. It covers a jump pulse one
+displayed frame before and exactly on every nonzero aerial IASA, plus a
+penultimate-frame neutral-air negative control. It also proves that C-stick aerial input selects
+the same directional action scripts as A-button direction. The production
+route gates this mapping on exact Falcon reference content, preserving the
+project's authored strong aerial for customized content. This capture qualifies
+the double-jump branch only; item throw/pickup and tether candidates remain
+separate executable-oracle work.
+
 Standing grab and dash grab are distinct production states. Their generated
 startup/active/recovery schedules are 5/2/22 and 9/2/28 respectively (active
 frames 6-7 and 10-11; total animations 29 and 39). Direct grabs from Dash or

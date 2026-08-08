@@ -8220,6 +8220,143 @@ static int run_double_jump_cancel_test(
     return 1;
 }
 
+static int run_falcon_aerial_iasa_route(
+    const pf_content_view *view,
+    uint8_t action_state,
+    int16_t c_stick_x,
+    int16_t c_stick_y,
+    uint16_t interrupt_frame,
+    int should_interrupt)
+{
+    test_sim_storage storage;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    const uint64_t attack_button =
+        action_state == (uint8_t)PF_M4_ACTION_AERIAL_ATTACK
+            ? PF_INPUT_BUTTON_ATTACK
+            : PF_INPUT_BUTTON_STRONG_ATTACK;
+    uint32_t tick;
+
+    if (!initialize_sim(
+            &storage,
+            view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0xa31a5a)),
+            PF_STATUS_OK,
+            "falcon-aerial-iasa-reset") ||
+        !launch_player0(sim, 0, &inspection) ||
+        !step_duel_secondary_trigger(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            c_stick_x,
+            c_stick_y,
+            attack_button,
+            UINT16_C(0),
+            &inspection) ||
+        inspection.players[0].action_state != action_state ||
+        inspection.players[0].action_ticks != UINT16_C(0))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0);
+         tick + UINT32_C(2) < (uint32_t)interrupt_frame;
+         ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_JUMP,
+            &inspection))
+    {
+        return 0;
+    }
+    if (should_interrupt != 0)
+    {
+        if (inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+            inspection.players[0].action_ticks != UINT16_C(0) ||
+            inspection.players[0].air_jumps_remaining != UINT8_C(0))
+        {
+            return 0;
+        }
+    }
+    else if (inspection.players[0].action_state != action_state ||
+             inspection.players[0].air_jumps_remaining != UINT8_C(1))
+    {
+        return 0;
+    }
+    return 1;
+}
+
+static int run_falcon_aerial_iasa_test(const pf_content_view *view)
+{
+    static const uint8_t actions[4] = {
+        (uint8_t)PF_M4_ACTION_FORWARD_AERIAL,
+        (uint8_t)PF_M4_ACTION_BACK_AERIAL,
+        (uint8_t)PF_M4_ACTION_UP_AERIAL,
+        (uint8_t)PF_M4_ACTION_DOWN_AERIAL};
+    static const int16_t c_stick_x[4] = {
+        INT16_MAX, INT16_MIN, INT16_C(0), INT16_C(0)};
+    static const int16_t c_stick_y[4] = {
+        INT16_C(0), INT16_C(0), INT16_MIN, INT16_MAX};
+    static const uint16_t iasa_frames[4] = {
+        UINT16_C(36), UINT16_C(29), UINT16_C(30), UINT16_C(38)};
+    uint32_t index;
+
+    for (index = UINT32_C(0); index < UINT32_C(4); ++index)
+    {
+        if (!run_falcon_aerial_iasa_route(
+                view,
+                actions[index],
+                c_stick_x[index],
+                c_stick_y[index],
+                (uint16_t)(iasa_frames[index] - UINT16_C(1)),
+                0) ||
+            !run_falcon_aerial_iasa_route(
+                view,
+                actions[index],
+                c_stick_x[index],
+                c_stick_y[index],
+                iasa_frames[index],
+                1))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement=fail operation=falcon-aerial-iasa"
+                " action=%u\n",
+                (unsigned int)actions[index]);
+            return 0;
+        }
+    }
+    if (!run_falcon_aerial_iasa_route(
+            view,
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK,
+            INT16_C(0),
+            INT16_C(0),
+            UINT16_C(43),
+            0))
+    {
+        return 0;
+    }
+    return 1;
+}
+
 static int run_air_facing_lock_test(const pf_content_view *view)
 {
     test_sim_storage storage;
@@ -14789,6 +14926,7 @@ int main(void)
             run_instant_double_jump_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(
             run_double_jump_cancel_test(&content, &view)) ||
+        !RUN_MOVEMENT_TEST(run_falcon_aerial_iasa_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_air_facing_lock_test(&view)) ||
         !RUN_MOVEMENT_TEST(run_air_dodge_test(&content, &view)) ||
         (0 && !run_ledge_cancel_test(&content)) ||
