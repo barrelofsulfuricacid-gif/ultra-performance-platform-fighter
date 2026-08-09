@@ -2646,7 +2646,9 @@ static int pf_m4_action_is_recovery_invulnerable(
     return action_state ==
                (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
            action_ticks <
-               fighter->getup_attack_invulnerability_ticks;
+               pf_m4_getup_attack_invulnerability_ticks_for(
+                   fighter,
+                   prone_orientation);
 }
 
 static uint8_t pf_m4_ledge_from_state(
@@ -2992,7 +2994,7 @@ void pf_m4_reset_player(
         centered_slot <= INT32_C(0) ? INT8_C(1) : INT8_C(-1);
     sim->world.dash_direction[player_index] = INT8_C(0);
     sim->world.previous_strong_direction[player_index] = INT8_C(0);
-    sim->world.previous_dodge_down[player_index] = UINT8_C(0);
+    sim->world.previous_directional_input_flags[player_index] = UINT8_C(0);
     sim->world.previous_tilt_x_direction[player_index] = INT8_C(0);
     sim->world.previous_tilt_y_direction[player_index] = INT8_C(0);
     sim->world.tilt_x_age[player_index] = UINT8_C(254);
@@ -3023,6 +3025,7 @@ void pf_m4_reset_player(
     sim->world.last_hit_attacker[player_index] = UINT8_C(0);
     sim->world.shield_held[player_index] = UINT8_C(0);
     sim->world.trigger_input_age[player_index] = UINT8_MAX;
+    sim->world.prone_attack_input_age[player_index] = UINT8_MAX;
     sim->world.powershield[player_index] = UINT8_C(0);
     sim->world.tumble[player_index] = UINT8_C(0);
     sim->world.sdi_pulse_count[player_index] = UINT8_C(0);
@@ -3682,7 +3685,7 @@ static void pf_m4_write_scratch(
     int8_t facing,
     int8_t dash_direction,
     int8_t previous_strong_direction,
-    uint8_t previous_dodge_down,
+    uint8_t directional_input_flags,
     int8_t tilt_x_direction,
     int8_t tilt_y_direction,
     uint8_t tilt_x_age,
@@ -3714,8 +3717,8 @@ static void pf_m4_write_scratch(
     scratch->dash_direction[player_index] = dash_direction;
     scratch->previous_strong_direction[player_index] =
         previous_strong_direction;
-    scratch->previous_dodge_down[player_index] =
-        previous_dodge_down;
+    scratch->previous_directional_input_flags[player_index] =
+        directional_input_flags;
     scratch->previous_tilt_x_direction[player_index] =
         tilt_x_direction;
     scratch->previous_tilt_y_direction[player_index] =
@@ -3797,6 +3800,8 @@ static void pf_m4_copy_combat_scratch(
         world->shield_held[player_index];
     scratch->trigger_input_age[player_index] =
         world->trigger_input_age[player_index];
+    scratch->prone_attack_input_age[player_index] =
+        world->prone_attack_input_age[player_index];
     scratch->powershield[player_index] =
         world->powershield[player_index];
     scratch->tumble[player_index] =
@@ -3852,7 +3857,7 @@ static void pf_m4_prepare_spawn(
     int8_t *facing,
     int8_t *dash_direction,
     int8_t *previous_strong_direction,
-    uint8_t *previous_dodge_down)
+    uint8_t *directional_input_flags)
 {
     const int32_t centered_slot =
         (int32_t)(UINT32_C(2) * player_index + UINT32_C(1)) -
@@ -3875,7 +3880,7 @@ static void pf_m4_prepare_spawn(
         centered_slot <= INT32_C(0) ? INT8_C(1) : INT8_C(-1);
     *dash_direction = INT8_C(0);
     *previous_strong_direction = INT8_C(0);
-    *previous_dodge_down = UINT8_C(0);
+    *directional_input_flags = UINT8_C(0);
     scratch->damage_q16[player_index] = UINT32_C(0);
     scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
     scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
@@ -3902,6 +3907,7 @@ static void pf_m4_prepare_spawn(
     scratch->last_hit_attacker[player_index] = UINT8_C(0);
     scratch->shield_held[player_index] = UINT8_C(0);
     scratch->trigger_input_age[player_index] = UINT8_MAX;
+    scratch->prone_attack_input_age[player_index] = UINT8_MAX;
     scratch->powershield[player_index] = UINT8_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
     scratch->sdi_pulse_count[player_index] = UINT8_C(0);
@@ -3981,11 +3987,170 @@ static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_SHIELD_RELEASE;
 }
 
+typedef enum pf_m4_prone_option
+{
+    PF_M4_PRONE_OPTION_NONE = 0,
+    PF_M4_PRONE_OPTION_ATTACK = 1,
+    PF_M4_PRONE_OPTION_ROLL = 2,
+    PF_M4_PRONE_OPTION_NEUTRAL = 3
+} pf_m4_prone_option;
+
+static int pf_m4_axis_is_in_prone_horizontal_wedge(
+    int16_t axis_x,
+    int16_t axis_y,
+    uint16_t threshold,
+    int32_t angle_tan_q16)
+{
+    const uint32_t magnitude_x = pf_m4_axis_magnitude(axis_x);
+    const uint32_t magnitude_y = pf_m4_axis_magnitude(axis_y);
+
+    return magnitude_x >= threshold &&
+           (uint64_t)magnitude_y * UINT64_C(65536) <
+               (uint64_t)magnitude_x * (uint32_t)angle_tan_q16;
+}
+
+static pf_m4_prone_option pf_m4_select_prone_option(
+    const pf_m4_fighter_data *fighter,
+    const pf_input_frame *input,
+    uint8_t previous_directional_input_flags,
+    uint8_t prone_attack_input_age,
+    int shield_pressed,
+    int8_t *out_roll_direction)
+{
+    const int previous_c_up =
+        (previous_directional_input_flags &
+         PF_M4_DIRECTIONAL_INPUT_C_UP) != UINT8_C(0);
+    const int8_t previous_c_roll_direction =
+        (previous_directional_input_flags &
+         PF_M4_DIRECTIONAL_INPUT_C_LEFT) != UINT8_C(0)
+            ? INT8_C(-1)
+            : ((previous_directional_input_flags &
+                PF_M4_DIRECTIONAL_INPUT_C_RIGHT) != UINT8_C(0)
+                   ? INT8_C(1)
+                   : INT8_C(0));
+    /* A one-tick C-stick pulse on the terminal DownBound source frame is
+     * visible through the prior controller sample when the response callback
+     * runs. Accepting either threshold transition preserves that edge without
+     * adding a second buffered-input channel; an entry edge in DownWait is
+     * still consumed immediately, so its later release cannot select again. */
+    const int c_up_pressed =
+        (previous_c_up == 0 &&
+         input->secondary_stick_y <=
+             -(int16_t)fighter->down_c_up_axis_threshold) ||
+        (previous_c_up != 0 &&
+         input->secondary_stick_y >
+             -(int16_t)fighter->down_c_up_axis_threshold);
+    const int current_c_roll =
+        pf_m4_axis_is_in_prone_horizontal_wedge(
+            input->secondary_stick_x,
+            input->secondary_stick_y,
+            fighter->down_horizontal_axis_threshold,
+            fighter->down_horizontal_angle_tan_q16);
+    const int c_roll_pressed =
+        (previous_c_roll_direction == INT8_C(0) && current_c_roll != 0) ||
+        (previous_c_roll_direction != INT8_C(0) && current_c_roll == 0);
+    const int main_roll_held =
+        pf_m4_axis_is_in_prone_horizontal_wedge(
+            input->main_stick_x,
+            input->main_stick_y,
+            fighter->down_horizontal_axis_threshold,
+            fighter->down_horizontal_angle_tan_q16);
+    const uint32_t main_up_magnitude =
+        input->main_stick_y < INT16_C(0)
+            ? (uint32_t)(-(int32_t)input->main_stick_y)
+            : UINT32_C(0);
+    const int main_up_held =
+        main_up_magnitude >= fighter->down_up_axis_threshold &&
+        (uint64_t)main_up_magnitude * UINT64_C(65536) >=
+            (uint64_t)pf_m4_axis_magnitude(input->main_stick_x) *
+                (uint32_t)fighter->down_horizontal_angle_tan_q16;
+
+    *out_roll_direction = INT8_C(0);
+    if (prone_attack_input_age <
+            fighter->down_attack_input_window_ticks ||
+        c_up_pressed != 0)
+    {
+        return PF_M4_PRONE_OPTION_ATTACK;
+    }
+    if (c_roll_pressed != 0 || main_roll_held != 0)
+    {
+        *out_roll_direction = c_roll_pressed != 0
+                                  ? (current_c_roll != 0
+                                         ? (input->secondary_stick_x <
+                                                    INT16_C(0)
+                                                ? INT8_C(-1)
+                                                : INT8_C(1))
+                                         : previous_c_roll_direction)
+                                  : (input->main_stick_x < INT16_C(0)
+                                         ? INT8_C(-1)
+                                         : INT8_C(1));
+        return PF_M4_PRONE_OPTION_ROLL;
+    }
+    if (main_up_held != 0 || shield_pressed != 0)
+    {
+        return PF_M4_PRONE_OPTION_NEUTRAL;
+    }
+    return PF_M4_PRONE_OPTION_NONE;
+}
+
+static pf_status pf_m4_enter_prone_option(
+    pf_m4_prone_option option,
+    int8_t roll_direction,
+    uint8_t prone_orientation,
+    int8_t facing,
+    int32_t *velocity_x,
+    uint8_t *action_state,
+    uint16_t *action_ticks,
+    pf_sim_scratch *scratch,
+    uint32_t player_index)
+{
+    *action_ticks = UINT16_C(0);
+    *velocity_x = INT32_C(0);
+    scratch->tech_direction[player_index] = INT8_C(0);
+    if (option == PF_M4_PRONE_OPTION_ATTACK)
+    {
+        *action_state = (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
+        scratch->attack_hit_mask[player_index] = UINT8_C(0);
+        scratch->attack_stale_registered[player_index] = UINT8_C(0);
+        return PF_STATUS_OK;
+    }
+    if (option == PF_M4_PRONE_OPTION_ROLL)
+    {
+        const uint16_t submotion_index =
+            pf_m4_getup_roll_submotion_for(
+                prone_orientation,
+                roll_direction,
+                facing);
+        int32_t translation_x_q16;
+
+        if (submotion_index == UINT16_MAX ||
+            !pf_m4_falcon_reference_translation_q16(
+                submotion_index,
+                UINT16_C(1),
+                &translation_x_q16,
+                NULL))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        *action_state = (uint8_t)PF_M4_ACTION_GETUP_ROLL;
+        *velocity_x = (int32_t)facing * translation_x_q16;
+        scratch->tech_direction[player_index] = roll_direction;
+        return PF_STATUS_OK;
+    }
+    if (option == PF_M4_PRONE_OPTION_NEUTRAL)
+    {
+        *action_state = (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL;
+        return PF_STATUS_OK;
+    }
+    return PF_STATUS_INVALID_ARGUMENT;
+}
+
 pf_status pf_m4_step_player(
     const pf_m4_content *content,
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
+    const pf_input_frame *raw_input,
     uint32_t player_index,
     int32_t player_nudge_x_q16)
 {
@@ -3993,6 +4158,12 @@ pf_status pf_m4_step_player(
     const pf_m4_stage_data *stage = &content->stage;
     const uint64_t previous_buttons =
         world->previous_buttons[player_index];
+    const int raw_attack_pressed =
+        (raw_input->buttons & PF_INPUT_BUTTON_ATTACK) != UINT64_C(0) &&
+        (previous_buttons & PF_INPUT_BUTTON_ATTACK) == UINT64_C(0);
+    const int raw_special_pressed =
+        (raw_input->buttons & PF_INPUT_BUTTON_SPECIAL) != UINT64_C(0) &&
+        (previous_buttons & PF_INPUT_BUTTON_SPECIAL) == UINT64_C(0);
     int8_t input_tilt_x_direction;
     const uint8_t input_tilt_x_age = pf_m4_tilt_age(
         input->main_stick_x,
@@ -4207,7 +4378,8 @@ pf_status pf_m4_step_player(
     const int main_stick_spot_dodge_pressed =
         shield_held != 0 &&
         dodge_down_held != 0 &&
-        world->previous_dodge_down[player_index] == UINT8_C(0);
+        (world->previous_directional_input_flags[player_index] &
+         PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN) == UINT8_C(0);
     const int secondary_stick_spot_dodge_buffered =
         shield_held != 0 &&
         secondary_dodge_down_held != 0 &&
@@ -4242,7 +4414,8 @@ pf_status pf_m4_step_player(
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_SHIELD_RELEASE &&
         ((dodge_down_held != 0 &&
-          world->previous_dodge_down[player_index] == UINT8_C(0)) ||
+          (world->previous_directional_input_flags[player_index] &
+           PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN) == UINT8_C(0)) ||
          secondary_dodge_down_held != 0);
     const int shield_release_jump_pressed =
         world->action_state[player_index] ==
@@ -4314,8 +4487,24 @@ pf_status pf_m4_step_player(
         world->dash_direction[player_index];
     int8_t previous_strong_direction =
         world->previous_strong_direction[player_index];
-    uint8_t previous_dodge_down =
-        dodge_down_held != 0 ? UINT8_C(1) : UINT8_C(0);
+    uint8_t directional_input_flags =
+        (uint8_t)(
+            (dodge_down_held != 0
+                 ? PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN
+                 : UINT8_C(0)) |
+            (input->secondary_stick_y <=
+                     -(int16_t)fighter->down_c_up_axis_threshold
+                 ? PF_M4_DIRECTIONAL_INPUT_C_UP
+                 : UINT8_C(0)) |
+            (pf_m4_axis_is_in_prone_horizontal_wedge(
+                 input->secondary_stick_x,
+                 input->secondary_stick_y,
+                 fighter->down_horizontal_axis_threshold,
+                 fighter->down_horizontal_angle_tan_q16)
+                 ? (input->secondary_stick_x < INT16_C(0)
+                        ? PF_M4_DIRECTIONAL_INPUT_C_LEFT
+                        : PF_M4_DIRECTIONAL_INPUT_C_RIGHT)
+                 : UINT8_C(0)));
     int8_t tilt_x_direction = input_tilt_x_direction;
     int8_t tilt_y_direction = input_tilt_y_direction;
     uint8_t tilt_x_age = input_tilt_x_age;
@@ -4416,7 +4605,7 @@ pf_status pf_m4_step_player(
                     &facing,
                     &dash_direction,
                     &previous_strong_direction,
-                    &previous_dodge_down);
+                    &directional_input_flags);
                 scratch->active[player_index] = UINT8_C(1);
                 scratch->respawn_invulnerability_ticks[player_index] =
                     UINT16_C(0);
@@ -4483,7 +4672,7 @@ pf_status pf_m4_step_player(
             facing,
             dash_direction,
             previous_strong_direction,
-            previous_dodge_down,
+            directional_input_flags,
             tilt_x_direction,
             tilt_y_direction,
             tilt_x_age,
@@ -4580,7 +4769,7 @@ pf_status pf_m4_step_player(
             facing,
             dash_direction,
             previous_strong_direction,
-            previous_dodge_down,
+            directional_input_flags,
             tilt_x_direction,
             tilt_y_direction,
             tilt_x_age,
@@ -4625,6 +4814,14 @@ pf_status pf_m4_step_player(
     else if (scratch->trigger_input_age[player_index] < UINT8_MAX)
     {
         ++scratch->trigger_input_age[player_index];
+    }
+    if (raw_attack_pressed != 0 || raw_special_pressed != 0)
+    {
+        scratch->prone_attack_input_age[player_index] = UINT8_C(0);
+    }
+    else if (scratch->prone_attack_input_age[player_index] < UINT8_MAX)
+    {
+        ++scratch->prone_attack_input_age[player_index];
     }
 
     if (scratch->hitlag_ticks[player_index] > UINT16_C(0) ||
@@ -4948,7 +5145,7 @@ pf_status pf_m4_step_player(
                 facing,
                 dash_direction,
                 previous_strong_direction,
-                previous_dodge_down,
+                directional_input_flags,
                 tilt_x_direction,
                 tilt_y_direction,
                 tilt_x_age,
@@ -6107,8 +6304,8 @@ pf_status pf_m4_step_player(
             ++mash_pulses;
         }
         if (dodge_down_held != 0 &&
-            world->previous_dodge_down[player_index] ==
-                UINT8_C(0))
+            (world->previous_directional_input_flags[player_index] &
+             PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN) == UINT8_C(0))
         {
             ++mash_pulses;
         }
@@ -6272,8 +6469,8 @@ pf_status pf_m4_step_player(
                 ++mash_pulses;
             }
             if (dodge_down_held != 0 &&
-                world->previous_dodge_down[player_index] ==
-                    UINT8_C(0))
+                (world->previous_directional_input_flags[player_index] &
+                 PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN) == UINT8_C(0))
             {
                 ++mash_pulses;
             }
@@ -6744,6 +6941,19 @@ pf_status pf_m4_step_player(
         action_state !=
             (uint8_t)PF_M4_ACTION_FALCON_DIVE_LANDING)
     {
+        int8_t prone_roll_direction = INT8_C(0);
+        const pf_m4_prone_option prone_option =
+            action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+                    action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT
+                ? pf_m4_select_prone_option(
+                      fighter,
+                      input,
+                      world->previous_directional_input_flags[player_index],
+                      scratch->prone_attack_input_age[player_index],
+                      shield_pressed,
+                      &prone_roll_direction)
+                : PF_M4_PRONE_OPTION_NONE;
+
         velocity_x = INT32_C(0);
         if (action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
         {
@@ -6773,56 +6983,50 @@ pf_status pf_m4_step_player(
             ++action_ticks;
             if (action_ticks >= fighter->knockdown_ticks)
             {
-                action_state = (uint8_t)PF_M4_ACTION_DOWN_WAIT;
-                action_ticks = UINT16_C(0);
+                if (prone_option == PF_M4_PRONE_OPTION_NONE)
+                {
+                    action_state = (uint8_t)PF_M4_ACTION_DOWN_WAIT;
+                    action_ticks = UINT16_C(0);
+                }
+                else
+                {
+                    const pf_status prone_status =
+                        pf_m4_enter_prone_option(
+                        prone_option,
+                        prone_roll_direction,
+                        scratch->prone_orientation[player_index],
+                        facing,
+                        &velocity_x,
+                        &action_state,
+                        &action_ticks,
+                        scratch,
+                        player_index);
+                    if (prone_status != PF_STATUS_OK)
+                    {
+                        return prone_status;
+                    }
+                }
             }
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_DOWN_WAIT)
         {
-            const int up_held =
-                input->main_stick_y <=
-                -(int16_t)fighter->crouch_axis_threshold;
-
-            if (attack_pressed)
+            if (prone_option != PF_M4_PRONE_OPTION_NONE)
             {
-                action_state =
-                    (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
-                action_ticks = UINT16_C(0);
-                scratch->attack_hit_mask[player_index] =
-                    UINT8_C(0);
-                scratch->attack_stale_registered[player_index] =
-                    UINT8_C(0);
-                scratch->tech_direction[player_index] =
-                    INT8_C(0);
-            }
-            else if (horizontal_direction != INT8_C(0))
-            {
-                const pf_m4_getup_roll_timing *timing;
-
-                action_state =
-                    (uint8_t)PF_M4_ACTION_GETUP_ROLL;
-                action_ticks = UINT16_C(0);
-                scratch->tech_direction[player_index] =
-                    horizontal_direction;
-                timing = pf_m4_getup_roll_timing_for(
-                    fighter,
+                const pf_status prone_status =
+                    pf_m4_enter_prone_option(
+                    prone_option,
+                    prone_roll_direction,
                     scratch->prone_orientation[player_index],
-                    horizontal_direction,
-                    facing);
-                velocity_x = timing != NULL &&
-                                     timing->movement_begin_tick ==
-                                         UINT16_C(1)
-                                 ? (int32_t)horizontal_direction *
-                                       fighter->getup_roll_speed_q16
-                                 : INT32_C(0);
-            }
-            else if (up_held || shield_pressed)
-            {
-                action_state =
-                    (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL;
-                action_ticks = UINT16_C(0);
-                scratch->tech_direction[player_index] =
-                    INT8_C(0);
+                    facing,
+                    &velocity_x,
+                    &action_state,
+                    &action_ticks,
+                    scratch,
+                    player_index);
+                if (prone_status != PF_STATUS_OK)
+                {
+                    return prone_status;
+                }
             }
             else
             {
@@ -6897,12 +7101,12 @@ pf_status pf_m4_step_player(
         else if (
             action_state == (uint8_t)PF_M4_ACTION_GETUP_ROLL)
         {
-            const pf_m4_getup_roll_timing *timing =
-                pf_m4_getup_roll_timing_for(
-                    fighter,
+            const uint16_t submotion_index =
+                pf_m4_getup_roll_submotion_for(
                     scratch->prone_orientation[player_index],
                     scratch->tech_direction[player_index],
                     facing);
+            int32_t translation_x_q16;
 
             ++action_ticks;
             if (action_ticks >= fighter->getup_roll_ticks)
@@ -6916,17 +7120,18 @@ pf_status pf_m4_step_player(
                 scratch->prone_orientation[player_index] =
                     (uint8_t)PF_M4_PRONE_NONE;
             }
-            else if (timing != NULL &&
-                     (uint16_t)(action_ticks + UINT16_C(1)) >=
-                         timing->movement_begin_tick)
+            else if (submotion_index == UINT16_MAX ||
+                     !pf_m4_falcon_reference_translation_q16(
+                         submotion_index,
+                         (uint16_t)(action_ticks + UINT16_C(1)),
+                         &translation_x_q16,
+                         NULL))
             {
-                velocity_x =
-                    (int32_t)scratch->tech_direction[player_index] *
-                    fighter->getup_roll_speed_q16;
+                return PF_STATUS_DETERMINISTIC_FAULT;
             }
             else
             {
-                velocity_x = INT32_C(0);
+                velocity_x = (int32_t)facing * translation_x_q16;
             }
         }
         else if (
@@ -9837,7 +10042,7 @@ pf_status pf_m4_step_player(
             &facing,
             &dash_direction,
             &previous_strong_direction,
-            &previous_dodge_down);
+            &directional_input_flags);
         recovery_available = UINT8_C(1);
         if (respawn_count != UINT16_MAX)
         {
@@ -9974,7 +10179,7 @@ pf_status pf_m4_step_player(
         facing,
             dash_direction,
             previous_strong_direction,
-            previous_dodge_down,
+            directional_input_flags,
             tilt_x_direction,
             tilt_y_direction,
             tilt_x_age,

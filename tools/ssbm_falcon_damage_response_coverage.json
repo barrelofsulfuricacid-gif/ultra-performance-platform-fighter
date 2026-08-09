@@ -92,7 +92,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95",
-    "production_trace_sha256": "91f1664c3c81795cf10bcfd6777a6d5934f48017cb073dabe9fb4d98fe9b745e",
+    "production_trace_sha256": "13495d1a278888bd67c023b4803b4e3dfcbaaea72b655d0289b99f815fd4c32f",
     "samples_per_case": 3,
     "c": {
       "symbol_prefix": "pf_m4_ssbm_falcon_damage_response",

@@ -1866,8 +1866,170 @@ def input_trace(
                     or isinstance(source_axis, bool)
                     or not -32767 <= source_axis <= 32767
                 ):
-                    raise ValueError("damage response stick axis is invalid")
+                    raise ValueError("checkpoint stick axis is invalid")
                 return (float(source_axis) / 32767.0 + 1.0) * 0.5
+
+            def response_observation_segments(
+                raw_segments: object,
+                fallback_main: list[object],
+            ) -> list[
+                tuple[
+                    str,
+                    int,
+                    dict[str, object],
+                    dict[str, object] | None,
+                ]
+            ]:
+                if not isinstance(raw_segments, list) or not raw_segments:
+                    raise ValueError("response observation segments are invalid")
+                segments: list[
+                    tuple[
+                        str,
+                        int,
+                        dict[str, object],
+                        dict[str, object] | None,
+                    ]
+                ] = []
+                segment_ids: set[str] = set()
+                total_ticks = 0
+                for raw_segment in raw_segments:
+                    if not isinstance(raw_segment, dict):
+                        raise ValueError(
+                            "response observation segment must be an object"
+                        )
+                    segment_id = raw_segment.get("id")
+                    ticks = raw_segment.get("ticks")
+                    main = raw_segment.get("main", fallback_main)
+                    secondary = raw_segment.get("secondary", [0, 0])
+                    button_fields = (
+                        "digital_left",
+                        "digital_right",
+                        "jump",
+                        "attack",
+                        "special",
+                        "grab",
+                        "taunt",
+                    )
+                    allowed_fields = {
+                        "id",
+                        "ticks",
+                        "main",
+                        "secondary",
+                        "conditional_edge",
+                        *button_fields,
+                    }
+                    raw_conditional_edge = raw_segment.get(
+                        "conditional_edge"
+                    )
+                    if (
+                        not isinstance(segment_id, str)
+                        or not segment_id
+                        or segment_id in segment_ids
+                        or any(
+                            character
+                            not in "abcdefghijklmnopqrstuvwxyz0123456789_-"
+                            for character in segment_id
+                        )
+                        or not isinstance(ticks, int)
+                        or isinstance(ticks, bool)
+                        or not 1 <= ticks <= 360
+                        or not isinstance(main, list)
+                        or len(main) != 2
+                        or not isinstance(secondary, list)
+                        or len(secondary) != 2
+                        or not set(raw_segment).issubset(allowed_fields)
+                        or any(
+                            not isinstance(raw_segment.get(field, False), bool)
+                            for field in button_fields
+                        )
+                    ):
+                        raise ValueError(
+                            f"invalid response observation segment {segment_id!r}"
+                        )
+                    inputs: dict[str, object] = {
+                        "main_x": controller_axis(main[0]),
+                        "main_y": controller_axis(main[1]),
+                        "c_x": controller_axis(secondary[0]),
+                        "c_y": controller_axis(secondary[1]),
+                    }
+                    inputs.update(
+                        {
+                            field: raw_segment.get(field, False)
+                            for field in button_fields
+                        }
+                    )
+                    conditional_edge: dict[str, object] | None = None
+                    if raw_conditional_edge is not None:
+                        if not isinstance(raw_conditional_edge, dict):
+                            raise ValueError(
+                                "conditional response edge must be an object"
+                            )
+                        edge_action = raw_conditional_edge.get("action")
+                        edge_frame = raw_conditional_edge.get("frame")
+                        edge_main = raw_conditional_edge.get("main", main)
+                        edge_secondary = raw_conditional_edge.get(
+                            "secondary",
+                            secondary,
+                        )
+                        edge_allowed_fields = {
+                            "action",
+                            "frame",
+                            "main",
+                            "secondary",
+                            *button_fields,
+                        }
+                        if (
+                            not isinstance(edge_action, str)
+                            or edge_action not in melee.Action.__members__
+                            or not isinstance(edge_frame, int)
+                            or isinstance(edge_frame, bool)
+                            or not 0 <= edge_frame <= 500
+                            or not isinstance(edge_main, list)
+                            or len(edge_main) != 2
+                            or not isinstance(edge_secondary, list)
+                            or len(edge_secondary) != 2
+                            or not set(raw_conditional_edge).issubset(
+                                edge_allowed_fields
+                            )
+                            or any(
+                                not isinstance(
+                                    raw_conditional_edge.get(field, False),
+                                    bool,
+                                )
+                                for field in button_fields
+                            )
+                        ):
+                            raise ValueError(
+                                f"invalid conditional response edge in "
+                                f"{segment_id!r}"
+                            )
+                        edge_inputs: dict[str, object] = {
+                            "main_x": controller_axis(edge_main[0]),
+                            "main_y": controller_axis(edge_main[1]),
+                            "c_x": controller_axis(edge_secondary[0]),
+                            "c_y": controller_axis(edge_secondary[1]),
+                        }
+                        edge_inputs.update(
+                            {
+                                field: raw_conditional_edge.get(field, False)
+                                for field in button_fields
+                            }
+                        )
+                        conditional_edge = {
+                            "action": edge_action,
+                            "frame": edge_frame,
+                            "inputs": edge_inputs,
+                        }
+                    segment_ids.add(segment_id)
+                    total_ticks += ticks
+                    segments.append(
+                        (segment_id, ticks, inputs, conditional_edge)
+                    )
+                if total_ticks > 480:
+                    raise ValueError(
+                        "response observation segments exceed 480 ticks"
+                    )
+                return segments
 
             raw_surface_cases = checkpoint_capture_plan.get(
                 "surface_response_cases"
@@ -1891,6 +2053,7 @@ def input_trace(
                     damage = raw_case.get("damage_percent")
                     impact_x = raw_case.get("impact_x")
                     impact_y = raw_case.get("impact_y")
+                    impact_opponent_x = raw_case.get("impact_opponent_x")
                     impact_waypoints = raw_case.get("impact_waypoints", [])
                     impact_waypoint_main = raw_case.get(
                         "impact_waypoint_main", [0, 0]
@@ -1901,6 +2064,23 @@ def input_trace(
                     target_start = raw_case.get("target_start")
                     opponent_start = raw_case.get("opponent_start")
                     approach_main = raw_case.get("approach_main")
+                    attack_main = raw_case.get(
+                        "attack_main",
+                        [approach_main, 0],
+                    )
+                    default_facing = (
+                        -1
+                        if isinstance(approach_main, int) and approach_main < 0
+                        else 1
+                    )
+                    target_facing = raw_case.get(
+                        "target_facing",
+                        default_facing,
+                    )
+                    opponent_facing = raw_case.get(
+                        "opponent_facing",
+                        default_facing,
+                    )
                     setup_settle_ticks = raw_case.get("setup_settle_ticks", 5)
                     setup_jump_ticks = raw_case.get("setup_jump_ticks", 4)
                     setup_air_wait_ticks = raw_case.get("setup_air_wait_ticks", 12)
@@ -1908,7 +2088,11 @@ def input_trace(
                     settle_ticks = raw_case.get("settle_ticks", 30)
                     approach_ticks = raw_case.get("approach_ticks", 4)
                     post_hit_ticks = raw_case.get("post_hit_ticks", 8)
-                    observe_ticks = raw_case.get("observe_ticks", 60)
+                    raw_observe_segments = raw_case.get("observe_segments")
+                    observe_ticks = raw_case.get(
+                        "observe_ticks",
+                        60 if raw_observe_segments is None else None,
+                    )
                     main = raw_case.get("impact_main", [0, 0])
                     pre_impact_y = raw_case.get("pre_impact_y")
                     impact_input_delay_ticks = raw_case.get(
@@ -1939,6 +2123,14 @@ def input_trace(
                                     or not isinstance(impact_y, (int, float))
                                     or isinstance(impact_y, bool)
                                 )
+                            )
+                        )
+                        or (
+                            impact_opponent_x is not None
+                            and (
+                                not isinstance(impact_opponent_x, (int, float))
+                                or isinstance(impact_opponent_x, bool)
+                                or impact_x is None
                             )
                         )
                         or not isinstance(impact_waypoints, list)
@@ -1987,7 +2179,12 @@ def input_trace(
                         or not isinstance(approach_main, int)
                         or isinstance(approach_main, bool)
                         or not -32767 <= approach_main <= 32767
-                        or approach_main == 0
+                        or not isinstance(attack_main, list)
+                        or len(attack_main) != 2
+                        or target_facing not in {-1, 1}
+                        or isinstance(target_facing, bool)
+                        or opponent_facing not in {-1, 1}
+                        or isinstance(opponent_facing, bool)
                         or not isinstance(setup_settle_ticks, int)
                         or isinstance(setup_settle_ticks, bool)
                         or not 1 <= setup_settle_ticks <= 30
@@ -2009,9 +2206,18 @@ def input_trace(
                         or not isinstance(post_hit_ticks, int)
                         or isinstance(post_hit_ticks, bool)
                         or not 1 <= post_hit_ticks <= 120
-                        or not isinstance(observe_ticks, int)
-                        or isinstance(observe_ticks, bool)
-                        or not 1 <= observe_ticks <= 180
+                        or (
+                            raw_observe_segments is None
+                            and (
+                                not isinstance(observe_ticks, int)
+                                or isinstance(observe_ticks, bool)
+                                or not 1 <= observe_ticks <= 180
+                            )
+                        )
+                        or (
+                            raw_observe_segments is not None
+                            and "observe_ticks" in raw_case
+                        )
                         or not isinstance(main, list)
                         or len(main) != 2
                         or (
@@ -2047,6 +2253,21 @@ def input_trace(
                         )
                     main_x = controller_axis(main[0])
                     main_y = controller_axis(main[1])
+                    observe_segments = (
+                        response_observation_segments(
+                            raw_observe_segments,
+                            main,
+                        )
+                        if raw_observe_segments is not None
+                        else [
+                            (
+                                "observe",
+                                observe_ticks,
+                                {"main_x": main_x, "main_y": main_y},
+                                None,
+                            )
+                        ]
+                    )
                     waypoint_main_x = controller_axis(
                         impact_waypoint_main[0]
                     )
@@ -2054,6 +2275,8 @@ def input_trace(
                         impact_waypoint_main[1]
                     )
                     approach_x = controller_axis(approach_main)
+                    attack_main_x = controller_axis(attack_main[0])
+                    attack_main_y = controller_axis(attack_main[1])
                     case_ids.add(case_id)
                     prefix = f"{surface_response_prefix}_{case_id}"
                     setup = command(
@@ -2073,15 +2296,11 @@ def input_trace(
                         f"{prefix}_place",
                         fighter_x_override=float(target_start[0]),
                         fighter_y_override=float(target_start[1]),
-                        fighter_facing_override=(
-                            -1.0 if approach_main < 0 else 1.0
-                        ),
+                        fighter_facing_override=float(target_facing),
                         fighter_damage_override=float(damage),
                         opponent_x_override=float(opponent_start[0]),
                         opponent_y_override=float(opponent_start[1]),
-                        opponent_facing_override=(
-                            -1.0 if approach_main < 0 else 1.0
-                        ),
+                        opponent_facing_override=float(opponent_facing),
                     )
                     trace.append(place)
                     if placement_ticks > 1:
@@ -2090,15 +2309,11 @@ def input_trace(
                             placement_ticks - 1,
                             fighter_x_override=float(target_start[0]),
                             fighter_y_override=float(target_start[1]),
-                            fighter_facing_override=(
-                                -1.0 if approach_main < 0 else 1.0
-                            ),
+                            fighter_facing_override=float(target_facing),
                             fighter_damage_override=float(damage),
                             opponent_x_override=float(opponent_start[0]),
                             opponent_y_override=float(opponent_start[1]),
-                            opponent_facing_override=(
-                                -1.0 if approach_main < 0 else 1.0
-                            ),
+                            opponent_facing_override=float(opponent_facing),
                         )
                     repeat(f"{prefix}_settle", settle_ticks)
                     repeat(
@@ -2109,7 +2324,8 @@ def input_trace(
                     trace.append(
                         command(
                             f"{prefix}_attack",
-                            opponent_main_x=approach_x,
+                            opponent_main_x=attack_main_x,
+                            opponent_main_y=attack_main_y,
                             opponent_attack=True,
                         )
                     )
@@ -2132,6 +2348,11 @@ def input_trace(
                                 f"{prefix}_impact_place",
                                 fighter_x_override=float(impact_x),
                                 fighter_y_override=float(impact_y),
+                                opponent_x_override=(
+                                    float(impact_opponent_x)
+                                    if impact_opponent_x is not None
+                                    else None
+                                ),
                             )
                         )
                         for hold_index in range(impact_x_hold_ticks):
@@ -2216,12 +2437,34 @@ def input_trace(
                             ),
                         )
                     )
-                    repeat(
-                        f"{prefix}_observe",
-                        observe_ticks,
-                        main_x=main_x,
-                        main_y=main_y,
-                    )
+                    for (
+                        segment_id,
+                        segment_ticks,
+                        segment_inputs,
+                        conditional_edge,
+                    ) in observe_segments:
+                        segment_label = (
+                            f"{prefix}_observe"
+                            if raw_observe_segments is None
+                            else f"{prefix}_observe_{segment_id}"
+                        )
+                        segment_commands = [
+                            command(
+                                segment_label,
+                                **segment_inputs,
+                            )
+                            for _ in range(segment_ticks)
+                        ]
+                        if conditional_edge is not None:
+                            edge = {
+                                **conditional_edge,
+                                "id": f"{prefix}:{segment_id}",
+                            }
+                            for segment_command in segment_commands:
+                                segment_command["conditional_edge"] = edge
+                        trace.extend(
+                            segment_commands
+                        )
                 return trace
 
             raw_ground_cases = checkpoint_capture_plan.get(
@@ -3486,13 +3729,27 @@ class LinuxDolphinSharedMemory:
 def read_fighter_address(memory_engine: object, player_index: int) -> int:
     """Resolve one of Melee's six StaticPlayer slots to its live Fighter."""
 
+    def require_mem1_pointer(value: int, label: str) -> int:
+        if not 0x80000000 <= value < 0x81800000:
+            raise RuntimeError(
+                f"invalid {label} MEM1 pointer for player {player_index + 1}: "
+                f"0x{value:08x}"
+            )
+        return value
+
     static_player_stride = 0xE90
     player_slot = 0x80453080 + player_index * static_player_stride
     player = BigEndianSnapshot.read(memory_engine, player_slot, 0xC0)
     transformed = player.u8(player_slot + 0x0C)
-    fighter_gobj = player.u32(player_slot + 0xB0 + 4 * transformed)
+    fighter_gobj = require_mem1_pointer(
+        player.u32(player_slot + 0xB0 + 4 * transformed),
+        "fighter GObj",
+    )
     gobj = BigEndianSnapshot.read(memory_engine, fighter_gobj, 0x30)
-    return gobj.u32(fighter_gobj + 0x2C)
+    return require_mem1_pointer(
+        gobj.u32(fighter_gobj + 0x2C),
+        "fighter data",
+    )
 
 
 def read_fighter_hurt_capsules(
@@ -4546,6 +4803,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             }
             for _ in range(pipeline_delay)
         ]
+        expected_conditional_edges = {
+            str(edge["id"])
+            for trace_command in trace
+            if (edge := trace_command.get("conditional_edge")) is not None
+        }
+        fired_conditional_edges: set[str] = set()
         checkpoint_restore_seconds = 0.0
         checkpoint_case_labels: list[str] = []
         for command_index, sample in enumerate(commands):
@@ -4588,6 +4851,26 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         file=sys.stderr,
                         flush=True,
                     )
+            conditional_edge = sample.get("conditional_edge")
+            if conditional_edge is not None:
+                if pipeline_delay != 0:
+                    raise RuntimeError(
+                        "conditional response edges require the zero-delay "
+                        "EXI input pipeline"
+                    )
+                edge_id = str(conditional_edge["id"])
+                player_before_step = gamestate.players.get(1)
+                if (
+                    edge_id not in fired_conditional_edges
+                    and player_before_step is not None
+                    and player_before_step.action.name
+                    == conditional_edge["action"]
+                    and int(player_before_step.action_frame)
+                    == conditional_edge["frame"]
+                ):
+                    sample.update(conditional_edge["inputs"])
+                    sample["label"] = f"{sample['label']}_edge"
+                    fired_conditional_edges.add(edge_id)
             player_one.release_all()
             player_two.release_all()
             player_one.tilt_analog(
@@ -4744,12 +5027,23 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 # sweep components to neutral. The recorded post-frame sample
                 # remains the authoritative input for this extraction route.
                 axis_aligned = True
+            # Melee reports sub-0.2 C-stick components as neutral. Preserve
+            # that expected collapse so threshold-negative routes can still
+            # prove the requested raw input and observed source response.
             c_axis_aligned = (
                 (requested_c_x == 0.5 and abs(observed_c_x - 0.5) <= 0.02)
+                or (
+                    abs(requested_c_x - 0.5) < 0.10
+                    and abs(observed_c_x - 0.5) <= 0.02
+                )
                 or (requested_c_x < 0.5 and observed_c_x < 0.5)
                 or (requested_c_x > 0.5 and observed_c_x > 0.5)
             ) and (
                 (requested_c_y == 0.5 and abs(observed_c_y - 0.5) <= 0.02)
+                or (
+                    abs(requested_c_y - 0.5) < 0.10
+                    and abs(observed_c_y - 0.5) <= 0.02
+                )
                 or (requested_c_y < 0.5 and observed_c_y < 0.5)
                 or (requested_c_y > 0.5 and observed_c_y > 0.5)
             )
@@ -4962,6 +5256,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         read_surface_collision_memory_probe(memory_engine)
                     )
             rows.append(row)
+
+        missing_conditional_edges = (
+            expected_conditional_edges - fired_conditional_edges
+        )
+        if missing_conditional_edges:
+            raise RuntimeError(
+                "conditional response edges did not fire: "
+                + ",".join(sorted(missing_conditional_edges))
+            )
 
         item_rules = (
             read_native_item_rules(memory_engine)

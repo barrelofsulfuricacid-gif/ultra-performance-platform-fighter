@@ -98,6 +98,10 @@ typedef struct pf_ssbm_stored_trace_input
     int16_t main_stick_y;
     int16_t secondary_stick_x;
     int16_t secondary_stick_y;
+    uint64_t buttons;
+    uint16_t left_trigger;
+    uint16_t right_trigger;
+    uint16_t advance_ticks;
 } pf_ssbm_stored_trace_input;
 
 typedef struct pf_ssbm_stored_trace_sample
@@ -117,6 +121,9 @@ typedef struct pf_ssbm_stored_trace_sample
     uint8_t hitlag_resume_action;
     uint8_t grounded;
     uint8_t tumble;
+    uint8_t invulnerable;
+    int8_t tech_direction;
+    uint8_t prone_orientation;
 } pf_ssbm_stored_trace_sample;
 
 typedef struct pf_ssbm_stored_trace_case

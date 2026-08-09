@@ -45,6 +45,11 @@ typedef struct pf_m4_ssbm_surface_response_attributes
     uint16_t tech_lockout_ticks;
     uint16_t tech_roll_axis_threshold;
     uint16_t down_wait_ticks;
+    int32_t down_horizontal_angle_tan_q16;
+    uint16_t down_up_axis_threshold;
+    uint16_t down_horizontal_axis_threshold;
+    uint16_t down_attack_input_window_ticks;
+    uint16_t down_c_up_axis_threshold;
 } pf_m4_ssbm_surface_response_attributes;
 
 const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);

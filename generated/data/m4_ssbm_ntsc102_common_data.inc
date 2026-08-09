@@ -137,4 +137,9 @@ pf_m4_ssbm_surface_response_attribute_data = {
     UINT16_C(40),
     UINT16_C(6553),
     UINT16_C(220),
+    INT32_C(78103),
+    UINT16_C(6553),
+    UINT16_C(6553),
+    UINT16_C(60),
+    UINT16_C(21708),
 };

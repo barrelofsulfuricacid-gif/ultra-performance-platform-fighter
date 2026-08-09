@@ -120,6 +120,19 @@ static inline uint8_t pf_m4_input_trigger_state(
     return state;
 }
 
+enum
+{
+    PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN = UINT8_C(1) << 0,
+    PF_M4_DIRECTIONAL_INPUT_C_UP = UINT8_C(1) << 1,
+    PF_M4_DIRECTIONAL_INPUT_C_LEFT = UINT8_C(1) << 2,
+    PF_M4_DIRECTIONAL_INPUT_C_RIGHT = UINT8_C(1) << 3,
+    PF_M4_DIRECTIONAL_INPUT_ALL =
+        PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN |
+        PF_M4_DIRECTIONAL_INPUT_C_UP |
+        PF_M4_DIRECTIONAL_INPUT_C_LEFT |
+        PF_M4_DIRECTIONAL_INPUT_C_RIGHT
+};
+
 typedef struct pf_world_state
 {
     pf_hash256 content_hash;
@@ -177,7 +190,7 @@ typedef struct pf_world_state
     int8_t facing[PF_SIM_MAX_PLAYERS];
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_strong_direction[PF_SIM_MAX_PLAYERS];
-    uint8_t previous_dodge_down[PF_SIM_MAX_PLAYERS];
+    uint8_t previous_directional_input_flags[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_x_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_y_direction[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
@@ -205,6 +218,7 @@ typedef struct pf_world_state
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
+    uint8_t prone_attack_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
@@ -270,7 +284,7 @@ typedef struct pf_sim_scratch
     int8_t facing[PF_SIM_MAX_PLAYERS];
     int8_t dash_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_strong_direction[PF_SIM_MAX_PLAYERS];
-    uint8_t previous_dodge_down[PF_SIM_MAX_PLAYERS];
+    uint8_t previous_directional_input_flags[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_x_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_y_direction[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
@@ -298,6 +312,7 @@ typedef struct pf_sim_scratch
     uint8_t last_hit_attacker[PF_SIM_MAX_PLAYERS];
     uint8_t shield_held[PF_SIM_MAX_PLAYERS];
     uint8_t trigger_input_age[PF_SIM_MAX_PLAYERS];
+    uint8_t prone_attack_input_age[PF_SIM_MAX_PLAYERS];
     uint8_t powershield[PF_SIM_MAX_PLAYERS];
     uint8_t tumble[PF_SIM_MAX_PLAYERS];
     uint8_t sdi_pulse_count[PF_SIM_MAX_PLAYERS];
@@ -480,6 +495,7 @@ pf_status pf_m4_step_player(
     const pf_world_state *world,
     pf_sim_scratch *scratch,
     const pf_input_frame *input,
+    const pf_input_frame *raw_input,
     uint32_t player_index,
     int32_t player_nudge_x_q16);
 pf_status pf_m4_resolve_combat(
@@ -497,6 +513,13 @@ const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
     uint8_t prone_orientation,
     int8_t roll_direction,
     int8_t facing);
+uint16_t pf_m4_getup_roll_submotion_for(
+    uint8_t prone_orientation,
+    int8_t roll_direction,
+    int8_t facing);
+uint16_t pf_m4_getup_attack_invulnerability_ticks_for(
+    const pf_m4_fighter_data *fighter,
+    uint8_t prone_orientation);
 int pf_m4_attack_hitbox(
     const pf_m4_content *content,
     int32_t position_x_q16,

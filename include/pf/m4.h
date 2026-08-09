@@ -520,7 +520,6 @@ typedef struct pf_m4_fighter_data
     int32_t surface_collision_threshold_x_q16;
     int32_t surface_collision_threshold_y_q16;
     int32_t surface_bounce_multiplier_q16;
-    int32_t getup_roll_speed_q16;
     int32_t forward_roll_speed_q16;
     int32_t backward_roll_speed_q16;
     int32_t getup_attack_hitbox_offset_x_q16;
@@ -675,6 +674,11 @@ typedef struct pf_m4_fighter_data
     uint16_t ceiling_tech_ticks;
     uint16_t knockdown_ticks;
     uint16_t down_wait_ticks;
+    int32_t down_horizontal_angle_tan_q16;
+    uint16_t down_up_axis_threshold;
+    uint16_t down_horizontal_axis_threshold;
+    uint16_t down_attack_input_window_ticks;
+    uint16_t down_c_up_axis_threshold;
     uint16_t getup_neutral_ticks;
     uint16_t getup_neutral_invulnerability_ticks;
     uint16_t getup_roll_ticks;
@@ -683,7 +687,8 @@ typedef struct pf_m4_fighter_data
     pf_m4_getup_roll_timing getup_roll_stomach_forward;
     pf_m4_getup_roll_timing getup_roll_stomach_backward;
     uint16_t getup_attack_ticks;
-    uint16_t getup_attack_invulnerability_ticks;
+    uint16_t getup_attack_back_invulnerability_ticks;
+    uint16_t getup_attack_stomach_invulnerability_ticks;
     uint16_t getup_attack_front_active_begin_tick;
     uint16_t getup_attack_front_active_end_tick;
     uint16_t getup_attack_back_active_begin_tick;

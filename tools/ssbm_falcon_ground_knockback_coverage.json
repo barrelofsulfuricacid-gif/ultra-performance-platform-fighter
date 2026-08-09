@@ -48,7 +48,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "e08d7149e3f46d814d5c4a709e316cf3063208bb9673141effe6b1958f03fc79",
-    "production_trace_sha256": "954931140122b77790e334b4d1742709c853fcc060fdc692fc9e45522ff7a379",
+    "production_trace_sha256": "219be7ec53b035dfb2e3aa35d2aeea0903551a2047340be005d185df944bc4ca",
     "samples_per_case": 15,
     "cases": [
       { "id": "late_dash_attack_flat" }

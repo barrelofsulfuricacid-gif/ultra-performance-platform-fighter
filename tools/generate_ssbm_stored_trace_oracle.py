@@ -10,6 +10,15 @@ import re
 from typing import Any
 
 
+BUTTONS = {
+    "attack": "PF_INPUT_BUTTON_ATTACK",
+    "strong_attack": "PF_INPUT_BUTTON_STRONG_ATTACK",
+    "special": "PF_INPUT_BUTTON_SPECIAL",
+    "jump": "PF_INPUT_BUTTON_JUMP",
+    "taunt": "PF_INPUT_BUTTON_TAUNT",
+}
+
+
 def identifier(value: Any, field: str) -> str:
     if not isinstance(value, str) or re.fullmatch(
         r"[A-Za-z_][A-Za-z0-9_]*", value
@@ -36,6 +45,26 @@ def axis(value: Any, field: str) -> int:
     ):
         raise ValueError(f"{field} must be a signed controller axis")
     return value
+
+
+def unsigned_16(value: Any, field: str) -> int:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or not 0 <= value <= 65535
+    ):
+        raise ValueError(f"{field} must be an unsigned 16-bit integer")
+    return value
+
+
+def buttons(value: Any, field: str) -> str:
+    if value is None:
+        return "UINT64_C(0)"
+    if not isinstance(value, list) or any(name not in BUTTONS for name in value):
+        raise ValueError(f"{field} contains an unsupported button")
+    if len(set(value)) != len(value):
+        raise ValueError(f"{field} contains duplicate buttons")
+    return " | ".join(BUTTONS[name] for name in value) or "UINT64_C(0)"
 
 
 def stick(
@@ -141,10 +170,32 @@ def generate(manifest: dict[str, Any]) -> str:
                 f"{case_id}.{sample_key}[{sample_index}].c_stick",
                 invert_y=True,
             )
+            button_bits = buttons(
+                sample.get("buttons"),
+                f"{case_id}.{sample_key}[{sample_index}].buttons",
+            )
+            left_trigger = unsigned_16(
+                sample.get("left_trigger", 0),
+                f"{case_id}.{sample_key}[{sample_index}].left_trigger",
+            )
+            right_trigger = unsigned_16(
+                sample.get("right_trigger", 0),
+                f"{case_id}.{sample_key}[{sample_index}].right_trigger",
+            )
+            advance_ticks = unsigned_16(
+                sample.get("advance_ticks", 1),
+                f"{case_id}.{sample_key}[{sample_index}].advance_ticks",
+            )
+            if advance_ticks == 0:
+                raise ValueError(
+                    f"{case_id}.{sample_key}[{sample_index}].advance_ticks must be positive"
+                )
             rows.append(
                 "    { "
                 f"INT16_C({main_x}), INT16_C({main_y}), "
-                f"INT16_C({c_x}), INT16_C({c_y})"
+                f"INT16_C({c_x}), INT16_C({c_y}), "
+                f"{button_bits}, UINT16_C({left_trigger}), "
+                f"UINT16_C({right_trigger}), UINT16_C({advance_ticks})"
                 " },"
             )
         rows.extend(["};", ""])

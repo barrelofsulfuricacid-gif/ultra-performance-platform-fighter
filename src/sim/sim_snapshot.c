@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)667)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)671)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -31,7 +31,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x31)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x32)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -448,7 +448,7 @@ static void pf_write_payload(
     {
         pf_writer_u8(
             writer,
-            world->previous_dodge_down[player_index]);
+            world->previous_directional_input_flags[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -606,6 +606,12 @@ static void pf_write_payload(
         pf_writer_u8(
             writer,
             world->trigger_input_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->prone_attack_input_age[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -935,7 +941,7 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->previous_dodge_down[player_index] =
+        world->previous_directional_input_flags[player_index] =
             pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -986,7 +992,7 @@ static void pf_read_payload(
             pf_reader_i32(reader);
         /* Every current M4 surface has a flat tangent, so xF0 is the exact X
          * projection already serialized in x8c. Reconstructing it preserves
-         * the canonical PFSAVE51 layout without omitting behavior state. A
+         * the compact canonical layout without omitting behavior state. A
          * sloped-stage milestone must serialize the independent scalar. */
         world->ground_knockback_velocity_q16[player_index] =
             world->grounded[player_index] != UINT8_C(0) &&
@@ -1102,6 +1108,13 @@ static void pf_read_payload(
          ++player_index)
     {
         world->trigger_input_age[player_index] =
+            pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->prone_attack_input_age[player_index] =
             pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -2377,8 +2390,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(-1) ||
                 world->previous_strong_direction[player_index] >
                     INT8_C(1) ||
-                world->previous_dodge_down[player_index] >
-                    UINT8_C(1) ||
+                (world->previous_directional_input_flags[player_index] &
+                 (uint8_t)~PF_M4_DIRECTIONAL_INPUT_ALL) != UINT8_C(0) ||
                 world->previous_tilt_x_direction[player_index] <
                     INT8_C(-1) ||
                 world->previous_tilt_x_direction[player_index] >
@@ -2837,7 +2850,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->dash_direction[player_index] != INT8_C(0) ||
                  world->previous_strong_direction[player_index] !=
                      INT8_C(0) ||
-                 world->previous_dodge_down[player_index] !=
+                 world->previous_directional_input_flags[player_index] !=
                      UINT8_C(0) ||
                  world->previous_tilt_x_direction[player_index] !=
                      INT8_C(0) ||
@@ -2871,6 +2884,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      UINT32_C(0) ||
                  world->shield_held[player_index] != UINT8_C(0) ||
                  world->trigger_input_age[player_index] != UINT8_C(0) ||
+                 world->prone_attack_input_age[player_index] !=
+                     UINT8_C(0) ||
                  world->powershield[player_index] != UINT8_C(0) ||
                  world->tumble[player_index] != UINT8_C(0) ||
                  world->sdi_pulse_count[player_index] != UINT8_C(0) ||

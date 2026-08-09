@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for five domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, and flat-floor response: 36 cases plus deterministic replay in 0.564 seconds on WSL and 0.543 seconds on Windows. |
-| Fast live Dolphin oracle | done for registered live domains | One headless/null/unlimited ExiAI process per compatible pack. The newest floor-response pack runs four checkpoint-isolated cases and 804 rows in 2.752 seconds warm on the final qualification run. |
+| Fast stored equivalence | done for six domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, and prone/getup response: 46 cases plus deterministic replay in 0.465 seconds on WSL and 0.628 seconds on Windows. |
+| Fast live Dolphin oracle | done for registered live domains | One headless/null/unlimited ExiAI process per compatible pack. The prone-response pack runs ten checkpoint-isolated cases and 2,370 rows within its 22-second warm budget; two independent captures have the same semantic digest. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Many captured routes pass, including wall/ceiling response and flat-floor missed/neutral/directional techs, but slopes, getup branches, ECB pose behavior, pushboxes, and other fidelity-audit rows remain. |
+| Falcon movement and combat | partial | Captured routes now include wall/ceiling response, flat-floor missed/neutral/directional techs, and Down-orientation prone/getup branches. Slopes, opposite prone orientation, ECB pose behavior, pushboxes, and other fidelity-audit rows remain. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -260,6 +260,56 @@ Execution results:
   The unavailable Visual Studio installation is not counted as a Windows
   result; the direct native Windows compiler lane is the recorded evidence.
 
+## Completed locally: Down-orientation prone/getup response
+
+Prior-art/source sweep completed before implementation:
+
+- The current `doldecomp/melee` head leaves the pinned DownBound, DownWait,
+  DownStand, DownAttack, and input-helper callbacks unchanged. `libmelee`
+  exposes the needed action labels but no replacement state semantics; the
+  existing Slippi/ExiAI checkpoint transport therefore remains the reusable
+  live-oracle path.
+- Source option priority is buffered A/B or upward C-stick getup attack,
+  horizontal C-stick edge or angle-qualified main-stick roll, then upward
+  main-stick or fresh L/R neutral getup. Timeout selects neutral getup after
+  the imported 220-frame DownWait timer.
+- `PlCo.dat` owns the 0.2 main/C-stick magnitude threshold, 50-degree
+  horizontal angle limit, 60-frame A/B buffer, and 0.6625 upward C-stick
+  threshold. Falcon's generated catalog already contains the two 26-frame
+  DownBound poses, two 70-frame DownWait poses, both 30-frame neutral getups,
+  both 50-frame getup attacks, and all four 36-frame getup-roll `TransN`
+  tracks.
+
+Execution results:
+
+- [x] Add one manifest-driven observation-segment primitive to the existing
+  checkpoint route so delayed button/stick edges do not require another
+  character-specific capture mode.
+- [x] Capture and qualify the Down orientation across buffered A/B and upward-C
+  getup attacks, main/C-stick rolls, neutral getup, option priority, timeout,
+  exact action lengths, invulnerability, and root translation. Two independent
+  2,370-row captures share semantic digest
+  `fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438`.
+- [ ] Capture the opposite orientation and implement the separately assigned
+  DownBound ECB-driven grounded transitions; neither is implied by the current
+  Down-orientation result.
+- [x] Replace the authored getup thresholds, buffer, and constant roll speed
+  only after live qualification; preserve the source input priority in one
+  allocation-free common-state path.
+- [x] Preserve raw A/B edges before projectile/item/special adapters consume
+  effective inputs, pack C-stick edge state into the existing directional byte,
+  and add only four bytes of canonical state for the combined A/B buffer age.
+- [x] Register the resulting domain in the fast stored gate and rerun WSL,
+  native Windows, sanitizer, browser, and replay validation.
+- [x] Compare the same sparse production routes against both independent live
+  captures on action/frame, invulnerability, option priority, roll direction,
+  and root velocity within 0.0015 source units. Position, DownBound grounded
+  toggles, and the opposite orientation remain explicit separate domains.
+- [x] Pass the latest WSL release 25/25 in 0.92 seconds, native Windows MinGW
+  18/18 in 0.75 seconds, and focused WSL ASan/UBSan 5/5 in 6.80 seconds. The
+  latest six-domain stored gate covers 46 cases and 120 prone samples in 0.465
+  seconds on WSL and 0.628 seconds on Windows.
+
 ## Remaining work, in priority order
 
 ### Falcon equivalence
@@ -273,9 +323,9 @@ Execution results:
 - [x] Qualify wall and ceiling tech/bounce behavior against a live source route.
 - [x] Qualify flat-floor landing plus missed, neutral, forward, and backward
   tech response against a live source route.
-- [ ] Qualify DownBound ECB pose-grounding, DownWait/getup branches, slopes,
-  ledge departure during floor recovery, and player-pushbox interactions in
-  their own live source routes.
+- [ ] Qualify DownBound ECB pose-grounding, the opposite prone orientation,
+  slopes, ledge departure during floor recovery, and player-pushbox
+  interactions in their own live source routes.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -288,15 +338,16 @@ Execution results:
 
 ### Test infrastructure
 
-- [ ] Generalize checkpoint-pack route selection beyond the original
+- [x] Generalize checkpoint-pack route selection beyond the original
   common-hurt command-line mode.
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
 - [x] Keep changed-domain local validation comfortably below two seconds. The
-  current five-domain stored gate is 0.564 seconds on WSL and 0.543 seconds on
+  current six-domain stored gate is 0.465 seconds on WSL and 0.628 seconds on
   Windows. Live manifests carry explicit per-pack budgets: wall/ceiling is
   2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on
-  its final run with a four-second guardrail.
+  its final run with a four-second guardrail; the 2,370-row prone pack has a
+  22-second guardrail.
 - [ ] Maintain explicit coverage ledgers; no finite scenario may be described
   as detecting every possible anomaly.
 

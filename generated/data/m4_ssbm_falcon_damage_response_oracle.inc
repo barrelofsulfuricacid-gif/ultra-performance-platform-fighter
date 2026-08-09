@@ -4,44 +4,44 @@
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_damage_response_neutral_inputs[] = {
-    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_damage_response_di_full_right_inputs[] = {
-    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_damage_response_di_half_right_inputs[] = {
-    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(16384), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(16384), INT16_C(0), INT16_C(0), INT16_C(0) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(16384), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(16384), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs[] = {
-    { INT16_C(16384), INT16_C(-16384), INT16_C(0), INT16_C(0) },
-    { INT16_C(16384), INT16_C(-16384), INT16_C(0), INT16_C(0) },
-    { INT16_C(16384), INT16_C(-16384), INT16_C(0), INT16_C(0) },
+    { INT16_C(16384), INT16_C(-16384), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(16384), INT16_C(-16384), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(16384), INT16_C(-16384), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs[] = {
-    { INT16_C(16100), INT16_C(-16100), INT16_C(0), INT16_C(0) },
-    { INT16_C(16100), INT16_C(-16100), INT16_C(0), INT16_C(0) },
-    { INT16_C(16100), INT16_C(-16100), INT16_C(0), INT16_C(0) },
+    { INT16_C(16100), INT16_C(-16100), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(16100), INT16_C(-16100), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(16100), INT16_C(-16100), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs[] = {
-    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0) },
-    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(-32767) },
-    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(-32767) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(-32767), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(-32767), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
 static const pf_ssbm_stored_trace_case
@@ -59,7 +59,7 @@ pf_m4_ssbm_falcon_damage_response_cases[] = {
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SOURCE_TRACE_SHA256 \
     "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95"
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "91f1664c3c81795cf10bcfd6777a6d5934f48017cb073dabe9fb4d98fe9b745e"
+    "13495d1a278888bd67c023b4803b4e3dfcbaaea72b655d0289b99f815fd4c32f"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_damage_response_cases) /

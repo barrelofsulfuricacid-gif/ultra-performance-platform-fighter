@@ -70,8 +70,8 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
-`PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, or `PFSAVE51`.
-The active M4 runtime emits and accepts format 51 with state schema 52. Earlier
+`PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, `PFSAVE51`, or `PFSAVE52`.
+The active M4 runtime emits and accepts format 58 with state schema 62. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

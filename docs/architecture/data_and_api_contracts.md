@@ -615,6 +615,12 @@ must byte-match the offline packer for identical workbooks.
 
 ## Compatibility identity
 
+State schema 62/save format 58 add one source-equivalent prone A/B input-age
+byte per fixed player slot. Prior C-stick edge state shares the existing
+directional-input history byte, so the canonical payload grows by only four
+bytes to 671 bytes and the checkpoint to 811 bytes. `PFSAVE52` fails closed
+against peers that do not preserve the new buffered-input state.
+
 State schema 61/save format 57 extend the canonical action domain through
 `DAMAGE_LOW_1`, `DAMAGE_LOW_2`, and `DAMAGE_LOW_3` while retaining the
 667-byte payload and 807-byte checkpoint. Flat-stage load reconstructs the

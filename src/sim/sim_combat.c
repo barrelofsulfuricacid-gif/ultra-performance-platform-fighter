@@ -423,7 +423,9 @@ static int pf_m4_action_is_recovery_invulnerable(
     return action_state ==
                (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
            action_ticks <
-               fighter->getup_attack_invulnerability_ticks;
+               pf_m4_getup_attack_invulnerability_ticks_for(
+                   fighter,
+                   prone_orientation);
 }
 
 typedef struct pf_m4_attack_runtime

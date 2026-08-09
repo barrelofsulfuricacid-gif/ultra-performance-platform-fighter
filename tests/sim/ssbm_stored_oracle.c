@@ -309,6 +309,9 @@ int pf_ssbm_stored_trace_oracle_run(
             hash_u8(&hash, sample->hitlag_resume_action);
             hash_u8(&hash, sample->grounded);
             hash_u8(&hash, sample->tumble);
+            hash_u8(&hash, sample->invulnerable);
+            hash_u8(&hash, (uint8_t)sample->tech_direction);
+            hash_u8(&hash, sample->prone_orientation);
         }
     }
     pf_sha256_finish(&hash, digest);

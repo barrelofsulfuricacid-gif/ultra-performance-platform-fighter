@@ -88,12 +88,21 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     const pf_m4_falcon_submotion_data *getup_attack =
         pf_m4_falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_BACK);
+    const pf_m4_falcon_submotion_data *getup_attack_stomach =
+        pf_m4_falcon_reference_submotion(
+            PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_STOMACH);
     const pf_m4_falcon_submotion_data *getup_roll_forward =
         pf_m4_falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK);
     const pf_m4_falcon_submotion_data *getup_roll_backward =
         pf_m4_falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK);
+    const pf_m4_falcon_submotion_data *getup_roll_forward_stomach =
+        pf_m4_falcon_reference_submotion(
+            PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_STOMACH);
+    const pf_m4_falcon_submotion_data *getup_roll_backward_stomach =
+        pf_m4_falcon_reference_submotion(
+            PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_STOMACH);
     const pf_m4_falcon_submotion_data *tech_in_place =
         pf_m4_falcon_reference_submotion(
             PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE);
@@ -125,6 +134,29 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         getup_neutral_stomach_collision =
             pf_m4_falcon_reference_body_collision_timing(
                 PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_STOMACH);
+    const pf_m4_falcon_body_collision_timing *getup_attack_back_collision =
+        pf_m4_falcon_reference_body_collision_timing(
+            PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_BACK);
+    const pf_m4_falcon_body_collision_timing *
+        getup_attack_stomach_collision =
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_GETUP_ATTACK_STOMACH);
+    const pf_m4_falcon_body_collision_timing *
+        getup_roll_back_forward_collision =
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK);
+    const pf_m4_falcon_body_collision_timing *
+        getup_roll_back_backward_collision =
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK);
+    const pf_m4_falcon_body_collision_timing *
+        getup_roll_stomach_forward_collision =
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_STOMACH);
+    const pf_m4_falcon_body_collision_timing *
+        getup_roll_stomach_backward_collision =
+            pf_m4_falcon_reference_body_collision_timing(
+                PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_STOMACH);
     const pf_m4_falcon_body_collision_timing *tech_in_place_collision =
         pf_m4_falcon_reference_body_collision_timing(
             PF_M4_FALCON_SUBMOTION_TECH_IN_PLACE);
@@ -153,13 +185,21 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         down_bound_back == NULL || down_bound_stomach == NULL ||
         air_dodge_attributes == NULL ||
         getup_neutral == NULL || getup_attack == NULL ||
-        getup_roll_forward == NULL || getup_roll_backward == NULL ||
+        getup_attack_stomach == NULL || getup_roll_forward == NULL ||
+        getup_roll_backward == NULL || getup_roll_forward_stomach == NULL ||
+        getup_roll_backward_stomach == NULL ||
         tech_in_place == NULL || tech_roll_forward == NULL ||
         tech_roll_backward == NULL || wall_tech == NULL ||
         wall_tech_jump == NULL || ceiling_tech == NULL ||
         appeal_right == NULL ||
         appeal_left == NULL || getup_neutral_back_collision == NULL ||
         getup_neutral_stomach_collision == NULL ||
+        getup_attack_back_collision == NULL ||
+        getup_attack_stomach_collision == NULL ||
+        getup_roll_back_forward_collision == NULL ||
+        getup_roll_back_backward_collision == NULL ||
+        getup_roll_stomach_forward_collision == NULL ||
+        getup_roll_stomach_backward_collision == NULL ||
         tech_in_place_collision == NULL ||
         tech_roll_forward_collision == NULL ||
         tech_roll_backward_collision == NULL ||
@@ -171,6 +211,12 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         air_dodge_attributes->ordinary_physics_begin_frame == UINT16_C(0) ||
         getup_roll_forward->gameplay_frame_count !=
             getup_roll_backward->gameplay_frame_count ||
+        getup_roll_forward_stomach->gameplay_frame_count !=
+            getup_roll_forward->gameplay_frame_count ||
+        getup_roll_backward_stomach->gameplay_frame_count !=
+            getup_roll_forward->gameplay_frame_count ||
+        getup_attack_stomach->gameplay_frame_count !=
+            getup_attack->gameplay_frame_count ||
         tech_roll_forward->animation_frame_count !=
             tech_roll_backward->animation_frame_count ||
         down_bound_back->animation_frame_count == UINT16_C(0) ||
@@ -181,6 +227,18 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         getup_neutral_stomach_collision->state_two_frame != UINT16_C(0) ||
         getup_neutral_stomach_collision->state_zero_frame !=
             getup_neutral_back_collision->state_zero_frame ||
+        getup_attack_back_collision->state_two_frame != UINT16_C(0) ||
+        getup_attack_back_collision->state_zero_frame <= UINT16_C(1) ||
+        getup_attack_stomach_collision->state_two_frame != UINT16_C(0) ||
+        getup_attack_stomach_collision->state_zero_frame <= UINT16_C(1) ||
+        getup_roll_back_forward_collision->state_two_frame != UINT16_C(0) ||
+        getup_roll_back_forward_collision->state_zero_frame <= UINT16_C(1) ||
+        getup_roll_back_backward_collision->state_two_frame != UINT16_C(0) ||
+        getup_roll_back_backward_collision->state_zero_frame <= UINT16_C(1) ||
+        getup_roll_stomach_forward_collision->state_two_frame != UINT16_C(0) ||
+        getup_roll_stomach_forward_collision->state_zero_frame <= UINT16_C(1) ||
+        getup_roll_stomach_backward_collision->state_two_frame != UINT16_C(0) ||
+        getup_roll_stomach_backward_collision->state_zero_frame <= UINT16_C(1) ||
         tech_in_place_collision->state_two_frame != UINT16_C(0) ||
         tech_roll_forward_collision->state_two_frame != UINT16_C(0) ||
         tech_roll_backward_collision->state_two_frame != UINT16_C(0) ||
@@ -264,6 +322,26 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     fighter->getup_neutral_ticks = getup_neutral->animation_frame_count;
     fighter->getup_attack_ticks = getup_attack->gameplay_frame_count;
     fighter->getup_roll_ticks = getup_roll_forward->gameplay_frame_count;
+    fighter->getup_roll_back_forward.movement_begin_tick = UINT8_C(1);
+    fighter->getup_roll_back_forward.invulnerability_begin_tick = UINT8_C(1);
+    fighter->getup_roll_back_forward.invulnerability_end_tick = (uint8_t)(
+        getup_roll_back_forward_collision->state_zero_frame - UINT16_C(1));
+    fighter->getup_roll_back_backward.movement_begin_tick = UINT8_C(1);
+    fighter->getup_roll_back_backward.invulnerability_begin_tick = UINT8_C(1);
+    fighter->getup_roll_back_backward.invulnerability_end_tick = (uint8_t)(
+        getup_roll_back_backward_collision->state_zero_frame - UINT16_C(1));
+    fighter->getup_roll_stomach_forward.movement_begin_tick = UINT8_C(1);
+    fighter->getup_roll_stomach_forward.invulnerability_begin_tick = UINT8_C(1);
+    fighter->getup_roll_stomach_forward.invulnerability_end_tick = (uint8_t)(
+        getup_roll_stomach_forward_collision->state_zero_frame - UINT16_C(1));
+    fighter->getup_roll_stomach_backward.movement_begin_tick = UINT8_C(1);
+    fighter->getup_roll_stomach_backward.invulnerability_begin_tick = UINT8_C(1);
+    fighter->getup_roll_stomach_backward.invulnerability_end_tick = (uint8_t)(
+        getup_roll_stomach_backward_collision->state_zero_frame - UINT16_C(1));
+    fighter->getup_attack_back_invulnerability_ticks = (uint16_t)(
+        getup_attack_back_collision->state_zero_frame - UINT16_C(1));
+    fighter->getup_attack_stomach_invulnerability_ticks = (uint16_t)(
+        getup_attack_stomach_collision->state_zero_frame - UINT16_C(1));
     fighter->tech_in_place_ticks = tech_in_place->animation_frame_count;
     fighter->tech_roll_ticks = tech_roll_forward->animation_frame_count;
     fighter->tech_invulnerability_ticks =
@@ -935,7 +1013,6 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_i32(hash, fighter->surface_collision_threshold_x_q16);
     pf_m4_hash_i32(hash, fighter->surface_collision_threshold_y_q16);
     pf_m4_hash_i32(hash, fighter->surface_bounce_multiplier_q16);
-    pf_m4_hash_i32(hash, fighter->getup_roll_speed_q16);
     pf_m4_hash_i32(hash, fighter->forward_roll_speed_q16);
     pf_m4_hash_i32(hash, fighter->backward_roll_speed_q16);
     pf_m4_hash_i32(
@@ -1158,6 +1235,11 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->ceiling_tech_ticks);
     pf_m4_hash_u16(hash, fighter->knockdown_ticks);
     pf_m4_hash_u16(hash, fighter->down_wait_ticks);
+    pf_m4_hash_i32(hash, fighter->down_horizontal_angle_tan_q16);
+    pf_m4_hash_u16(hash, fighter->down_up_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->down_horizontal_axis_threshold);
+    pf_m4_hash_u16(hash, fighter->down_attack_input_window_ticks);
+    pf_m4_hash_u16(hash, fighter->down_c_up_axis_threshold);
     pf_m4_hash_u16(hash, fighter->getup_neutral_ticks);
     pf_m4_hash_u16(
         hash,
@@ -1178,7 +1260,10 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->getup_attack_ticks);
     pf_m4_hash_u16(
         hash,
-        fighter->getup_attack_invulnerability_ticks);
+        fighter->getup_attack_back_invulnerability_ticks);
+    pf_m4_hash_u16(
+        hash,
+        fighter->getup_attack_stomach_invulnerability_ticks);
     pf_m4_hash_u16(
         hash,
         fighter->getup_attack_front_active_begin_tick);
@@ -1476,6 +1561,57 @@ const pf_m4_getup_roll_timing *pf_m4_getup_roll_timing_for(
                           : &fighter->getup_roll_stomach_backward;
     }
     return NULL;
+}
+
+uint16_t pf_m4_getup_roll_submotion_for(
+    uint8_t prone_orientation,
+    int8_t roll_direction,
+    int8_t facing)
+{
+    const int is_forward = roll_direction == facing;
+
+    if ((roll_direction != INT8_C(-1) &&
+         roll_direction != INT8_C(1)) ||
+        (facing != INT8_C(-1) && facing != INT8_C(1)))
+    {
+        return UINT16_MAX;
+    }
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_BACK)
+    {
+        return is_forward != 0
+                   ? (uint16_t)
+                         PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_BACK
+                   : (uint16_t)
+                         PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_BACK;
+    }
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_STOMACH)
+    {
+        return is_forward != 0
+                   ? (uint16_t)
+                         PF_M4_FALCON_SUBMOTION_GETUP_ROLL_FORWARD_STOMACH
+                   : (uint16_t)
+                         PF_M4_FALCON_SUBMOTION_GETUP_ROLL_BACKWARD_STOMACH;
+    }
+    return UINT16_MAX;
+}
+
+uint16_t pf_m4_getup_attack_invulnerability_ticks_for(
+    const pf_m4_fighter_data *fighter,
+    uint8_t prone_orientation)
+{
+    if (fighter == NULL)
+    {
+        return UINT16_C(0);
+    }
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_BACK)
+    {
+        return fighter->getup_attack_back_invulnerability_ticks;
+    }
+    if (prone_orientation == (uint8_t)PF_M4_PRONE_STOMACH)
+    {
+        return fighter->getup_attack_stomach_invulnerability_ticks;
+    }
+    return UINT16_C(0);
 }
 
 pf_status pf_m4_default_content(pf_m4_content *out_content)
@@ -1884,7 +2020,6 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         surface_response->collision_threshold_y_q16;
     fighter->surface_bounce_multiplier_q16 =
         surface_response->bounce_multiplier_q16;
-    fighter->getup_roll_speed_q16 = PF_Q16_RATIO(1, 5);
     fighter->forward_roll_speed_q16 = PF_Q16_RATIO(9, 50);
     fighter->backward_roll_speed_q16 = PF_Q16_RATIO(4, 25);
     fighter->getup_attack_hitbox_offset_x_q16 =
@@ -2058,27 +2193,16 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->wall_jump_ticks = UINT16_C(24);
     fighter->wall_jump_invulnerability_ticks = UINT16_C(4);
     fighter->down_wait_ticks = surface_response->down_wait_ticks;
-    fighter->getup_roll_back_forward.movement_begin_tick = UINT8_C(6);
-    fighter->getup_roll_back_forward.invulnerability_begin_tick =
-        UINT8_C(1);
-    fighter->getup_roll_back_forward.invulnerability_end_tick =
-        UINT8_C(19);
-    fighter->getup_roll_back_backward.movement_begin_tick = UINT8_C(12);
-    fighter->getup_roll_back_backward.invulnerability_begin_tick =
-        UINT8_C(12);
-    fighter->getup_roll_back_backward.invulnerability_end_tick =
-        UINT8_C(29);
-    fighter->getup_roll_stomach_forward.movement_begin_tick = UINT8_C(8);
-    fighter->getup_roll_stomach_forward.invulnerability_begin_tick =
-        UINT8_C(1);
-    fighter->getup_roll_stomach_forward.invulnerability_end_tick =
-        UINT8_C(19);
-    fighter->getup_roll_stomach_backward.movement_begin_tick = UINT8_C(5);
-    fighter->getup_roll_stomach_backward.invulnerability_begin_tick =
-        UINT8_C(1);
-    fighter->getup_roll_stomach_backward.invulnerability_end_tick =
-        UINT8_C(24);
-    fighter->getup_attack_invulnerability_ticks = UINT16_C(26);
+    fighter->down_horizontal_angle_tan_q16 =
+        surface_response->down_horizontal_angle_tan_q16;
+    fighter->down_up_axis_threshold =
+        surface_response->down_up_axis_threshold;
+    fighter->down_horizontal_axis_threshold =
+        surface_response->down_horizontal_axis_threshold;
+    fighter->down_attack_input_window_ticks =
+        surface_response->down_attack_input_window_ticks;
+    fighter->down_c_up_axis_threshold =
+        surface_response->down_c_up_axis_threshold;
     fighter->getup_attack_front_active_begin_tick = UINT16_C(17);
     fighter->getup_attack_front_active_end_tick = UINT16_C(19);
     fighter->getup_attack_back_active_begin_tick = UINT16_C(24);
@@ -2712,9 +2836,6 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->aerial_base_knockback_x_q16 <= INT32_C(0) ||
         fighter->aerial_base_knockback_y_q16 <= INT32_C(0) ||
         fighter->aerial_knockback_growth_q16 <= INT32_C(0) ||
-        fighter->getup_roll_speed_q16 <= INT32_C(0) ||
-        fighter->getup_roll_speed_q16 >
-            PF_SIM_MAX_MOTION_SPEED_Q16 ||
         fighter->forward_roll_speed_q16 <= INT32_C(0) ||
         fighter->forward_roll_speed_q16 >
             PF_SIM_MAX_MOTION_SPEED_Q16 ||
@@ -3251,6 +3372,15 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->knockdown_ticks > UINT16_C(480) ||
         fighter->down_wait_ticks == UINT16_C(0) ||
         fighter->down_wait_ticks > UINT16_C(480) ||
+        fighter->down_horizontal_angle_tan_q16 <= INT32_C(0) ||
+        fighter->down_up_axis_threshold == UINT16_C(0) ||
+        fighter->down_up_axis_threshold > UINT16_C(32767) ||
+        fighter->down_horizontal_axis_threshold == UINT16_C(0) ||
+        fighter->down_horizontal_axis_threshold > UINT16_C(32767) ||
+        fighter->down_attack_input_window_ticks == UINT16_C(0) ||
+        fighter->down_attack_input_window_ticks > UINT16_C(254) ||
+        fighter->down_c_up_axis_threshold == UINT16_C(0) ||
+        fighter->down_c_up_axis_threshold > UINT16_C(32767) ||
         fighter->getup_neutral_ticks == UINT16_C(0) ||
         fighter->getup_neutral_ticks > UINT16_C(240) ||
         fighter->getup_neutral_invulnerability_ticks ==
@@ -3273,9 +3403,13 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->getup_roll_ticks) ||
         fighter->getup_attack_ticks == UINT16_C(0) ||
         fighter->getup_attack_ticks > UINT16_C(240) ||
-        fighter->getup_attack_invulnerability_ticks ==
+        fighter->getup_attack_back_invulnerability_ticks ==
             UINT16_C(0) ||
-        fighter->getup_attack_invulnerability_ticks >
+        fighter->getup_attack_back_invulnerability_ticks >
+            fighter->getup_attack_ticks ||
+        fighter->getup_attack_stomach_invulnerability_ticks ==
+            UINT16_C(0) ||
+        fighter->getup_attack_stomach_invulnerability_ticks >
             fighter->getup_attack_ticks ||
         fighter->getup_attack_front_active_begin_tick ==
             UINT16_C(0) ||

@@ -4624,3 +4624,47 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `2f8ea9f2d6d1bd78`. M4 remains unfinished: DownBound ECB poses, DownWait/getup
   choices, slopes, ledge departure, pushboxes, and the remaining fidelity-audit
   rows are next.
+
+## 2026-08-08 Falcon Down-orientation prone/getup response
+
+- A fresh prior-art and pinned-source sweep covered `ftCo_DownBound.c`,
+  `ftCo_Down.c`, `ftCo_DownAttack.c`, `ftCo_DownStand.c`, the common input
+  helpers, current doldecomp head, and libmelee. The decomp callbacks remain
+  unchanged from the pinned revision, and no upstream route replaces the
+  existing checkpointed ExiAI oracle. `PlCo.dat` now supplies the 0.2 stick
+  threshold, 50-degree horizontal wedge, 60-frame A/B buffer, 0.6625 upward
+  C-stick threshold, and 220-frame DownWait timeout. Falcon's imported
+  submotions and body-state/`TransN` tracks supply every response duration,
+  invulnerability boundary, and roll displacement.
+- The manifest-driven capture path now supports action/frame-conditioned input
+  edges and segmented observation windows without adding another
+  character-specific transport. Ten checkpoint-isolated cases cover timeout,
+  buffered A/B, upward C-stick, forward C-stick roll, backward main-stick roll,
+  upward-stick and shield neutral getup, attack-over-roll priority, and a
+  threshold-adjacent C-stick negative. Two independent 2,370-row captures have
+  the same semantic SHA-256
+  `fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438`.
+- Production routes raw A/B edges into the common-state buffer before
+  projectile/item/special adapters consume effective inputs. C-stick edge
+  history shares the existing directional byte, while the combined A/B age
+  adds four canonical bytes. Getup rolls consume the imported orientation- and
+  direction-specific root track each frame; no authored roll-speed duplicate
+  remains. The save is now 811 bytes (`PFSAVE52`), state schema 62, and save
+  format 58.
+- One hundred twenty sparse production samples agree with both live captures
+  on action/frame, option priority, invulnerability, roll direction, prone
+  orientation, and root velocity within 0.0015 source units. Position is
+  explicitly assigned to the stage/pushbox domain; DownBound's 4-grounded,
+  18-airborne, 4-grounded ECB sequence and the opposite prone orientation
+  remain named gaps rather than inferred successes.
+- The generic stored lane now covers six domains / 46 cases plus replay in
+  0.465 seconds on WSL and 0.628 seconds on native Windows. WSL Release passes
+  25/25 in 0.92 seconds, native Windows MinGW passes 18/18 in 0.75 seconds,
+  focused WSL ASan/UBSan passes 5/5 in 6.80 seconds, and the browser adapter
+  passes. Replay corpus/final/event digests are
+  `7c0a7c7a332e95e34fe414436c7d0c9d34faafc460264e4488dc83c66f0f820d`,
+  `466a56f8b8767534b22ba11e8c61643c68f5b559cba9006b2095fb2259fc9745`,
+  and `509d826181cd7d047a2241b06fda4cb4c875477bd5b0828fcafcb65865b80ae5`.
+  The reusable importer skill now records the conditional-edge, raw-input,
+  compact-buffer, sparse-comparison, and live-object-override rules learned by
+  this slice. M4 remains unfinished.

@@ -504,6 +504,7 @@ pf_status pf_sim_tick_impl(
             world,
             scratch,
             &effective_input,
+            input,
             player_index,
             player_nudge_x_q16[player_index]);
         if (status != PF_STATUS_OK)
@@ -646,8 +647,8 @@ pf_status pf_sim_tick_impl(
             scratch->dash_direction[player_index];
         world->previous_strong_direction[player_index] =
             scratch->previous_strong_direction[player_index];
-        world->previous_dodge_down[player_index] =
-            scratch->previous_dodge_down[player_index];
+        world->previous_directional_input_flags[player_index] =
+            scratch->previous_directional_input_flags[player_index];
         world->previous_tilt_x_direction[player_index] =
             scratch->previous_tilt_x_direction[player_index];
         world->previous_tilt_y_direction[player_index] =
@@ -696,6 +697,8 @@ pf_status pf_sim_tick_impl(
             scratch->shield_held[player_index];
         world->trigger_input_age[player_index] =
             scratch->trigger_input_age[player_index];
+        world->prone_attack_input_age[player_index] =
+            scratch->prone_attack_input_age[player_index];
         world->powershield[player_index] =
             scratch->powershield[player_index];
         world->tumble[player_index] =

@@ -57,6 +57,11 @@ def generate(raw: bytes) -> str:
     tech_window_ticks = f32(0x250)
     tech_roll_axis_threshold = f32(0x254)
     down_wait_ticks = f32(0x424)
+    down_horizontal_angle = f32(0x020)
+    down_up_axis_threshold = f32(0x244)
+    down_horizontal_axis_threshold = f32(0x248)
+    down_attack_input_window_ticks = f32(0x24C)
+    down_c_up_axis_threshold = f32(0x7F4)
     if (
         not 0 < wall_tech_stall_ticks <= 0xFFFF
         or not 0 < wall_tech_invulnerability_ticks <= 0xFFFF
@@ -69,6 +74,12 @@ def generate(raw: bytes) -> str:
         or not 0.0 < tech_roll_axis_threshold <= 1.0
         or not down_wait_ticks.is_integer()
         or not 0 < down_wait_ticks <= 0xFFFF
+        or not 0.0 < down_horizontal_angle < math.pi / 2.0
+        or not 0.0 < down_up_axis_threshold <= 1.0
+        or not 0.0 < down_horizontal_axis_threshold <= 1.0
+        or not down_attack_input_window_ticks.is_integer()
+        or not 0 < down_attack_input_window_ticks <= 0xFFFF
+        or not 0.0 < down_c_up_axis_threshold <= 1.0
     ):
         raise ValueError("common surface-response timing does not fit uint16_t")
 
@@ -121,6 +132,21 @@ def generate(raw: bytes) -> str:
             tech_roll_axis_threshold * 32767.0
         ),
         "down_wait_ticks": int(down_wait_ticks),
+        "down_horizontal_angle_tan_q16": q16(
+            math.tan(down_horizontal_angle)
+        ),
+        "down_up_axis_threshold": round(
+            down_up_axis_threshold * 32767.0
+        ),
+        "down_horizontal_axis_threshold": round(
+            down_horizontal_axis_threshold * 32767.0
+        ),
+        "down_attack_input_window_ticks": int(
+            down_attack_input_window_ticks
+        ),
+        "down_c_up_axis_threshold": round(
+            down_c_up_axis_threshold * 32767.0
+        ),
     }
 
     lines = [
@@ -191,6 +217,11 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({surface_attributes['tech_lockout_ticks']}),",
             f"    UINT16_C({surface_attributes['tech_roll_axis_threshold']}),",
             f"    UINT16_C({surface_attributes['down_wait_ticks']}),",
+            f"    INT32_C({surface_attributes['down_horizontal_angle_tan_q16']}),",
+            f"    UINT16_C({surface_attributes['down_up_axis_threshold']}),",
+            f"    UINT16_C({surface_attributes['down_horizontal_axis_threshold']}),",
+            f"    UINT16_C({surface_attributes['down_attack_input_window_ticks']}),",
+            f"    UINT16_C({surface_attributes['down_c_up_axis_threshold']}),",
             "};",
             "",
         ]
