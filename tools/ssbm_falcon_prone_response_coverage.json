@@ -554,6 +554,7 @@
       "tests/sim/test_m4_combat.c",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
       "tools/import_ssbm_common_data.py",
       "tools/merge_ssbm_checkpoint_captures.py",
       "tools/ssbm_falcon_prone_response_coverage.json",
@@ -563,8 +564,8 @@
   },
   "stored_oracle": {
     "kind": "numeric-trace-v1",
-      "source_trace_sha256": "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d",
-      "production_trace_sha256": "e4e6554506bf01ba299628a205dbe911db967e257812f3142225bd1afc606256",
+    "source_trace_sha256": "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d",
+    "production_trace_sha256": "dc416f87ccd228a045c61e87350af2619bad244e6a83dc0708502b414886fefb",
     "samples_per_case": 12,
     "cases": [
       {

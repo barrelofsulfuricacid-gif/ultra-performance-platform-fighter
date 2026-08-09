@@ -1981,6 +1981,15 @@ static int pf_m4_player_state_consistent(
                 falcon_dive_landing != 0 ||
                 ground_falcon_kick != 0);
     }
+    if (action == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
+    {
+        /* DownBound retains its source floor line while the animated ECB has
+         * no active floor contact on displayed frames 5 through 22. */
+        return support != (uint8_t)PF_M4_SURFACE_NONE &&
+               world->velocity_y_q16[player_index] == INT32_C(0) &&
+               world->fast_fall[player_index] == UINT8_C(0) &&
+               world->recovery_available[player_index] == UINT8_C(1);
+    }
     if (support != (uint8_t)PF_M4_SURFACE_NONE)
     {
         return 0;

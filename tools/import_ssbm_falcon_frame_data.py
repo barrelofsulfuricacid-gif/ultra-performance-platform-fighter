@@ -38,6 +38,9 @@ SOURCE_COMMON_DAT_SHA256 = (
 SPECIALHI_LEDGE_ECB_CAPTURE_SHA256 = (
     "5a5b295d0fc7a8d1c06512dc704176a131a7c01a931a0a2b92f6d7ff8c3a8295"
 )
+DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256 = (
+    "6c8d97ff1076075616ed06f88c742528eff9c2fb18ab9f2cce09ba895147e556"
+)
 
 COMMON_ATTRIBUTE_COUNT = 97
 SUBMOTION_COUNT = 318
@@ -177,6 +180,15 @@ SPECIALHI_GROUNDED_THROW_REPOSITION_Y_MELEE = 2.545643227005005
 # 59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f)
 # and follows ftCo_800DE2A8 -> ftCo_800DE7C0 -> ftCo_Damage in the decomp.
 SPECIALHI_CAPTURE_VICTIM_RELEASE_HITSTUN_TICKS = 26
+
+# DownBoundU and DownBoundD both retain floor contact for displayed frames
+# 1..4, lose it for frames 5..22 as their JObj-driven ECB rises, and regain it
+# for frames 23..26. These complete schedules were captured independently for
+# both orientations in the pinned 1,515-row prone-response oracle. The digest
+# above covers the canonical pair of 26 booleans; one bit per displayed frame
+# keeps the runtime table allocation-free and branch-light.
+DOWN_BOUND_BACK_FLOOR_CONTACT_MASK = 0x03C0000F
+DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK = 0x03C0000F
 
 # Falcon's Falling ECB bottom is animation-derived, not the authored gameplay
 # body's half-height. Captured directly at fighter+0x794 from the same NTSC
@@ -1297,6 +1309,13 @@ def generate(
                 ),
                 "fighter_special": special_attributes,
                 "fighter_collision": collision_attributes,
+                "down_bound_floor_contact_capture_sha256": (
+                    DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256
+                ),
+                "down_bound_floor_contact_masks": {
+                    "back": DOWN_BOUND_BACK_FLOOR_CONTACT_MASK,
+                    "stomach": DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK,
+                },
                 "falcon_dive_ledge_ecb_capture_sha256": (
                     SPECIALHI_LEDGE_ECB_CAPTURE_SHA256
                 ),
@@ -1689,6 +1708,10 @@ def generate(
             "    .falling_bottom_y_from_origin_q16 = INT32_C("
             f"{round(FALLING_ECB_BOTTOM_Y_MELEE * MELEE_Y_TO_SIM_Q16)}"
             "),",
+            "    .down_bound_back_floor_contact_mask = "
+            f"UINT32_C({DOWN_BOUND_BACK_FLOOR_CONTACT_MASK}),",
+            "    .down_bound_stomach_floor_contact_mask = "
+            f"UINT32_C({DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK}),",
             "    .air_dodge_bottom_y_from_origin_q16 = {",
             "        "
             + ", ".join(

@@ -375,6 +375,11 @@ def compare_sim(
                     f"{case_id} {expected_action} frame {action_tick + 1}: "
                     "invulnerability mismatch"
                 )
+            if produced["grounded"] != int(bool(source_row["grounded"])):
+                raise SystemExit(
+                    f"{case_id} {expected_action} frame {action_tick + 1}: "
+                    "ECB floor-contact mismatch"
+                )
             if action == 25:
                 close(
                     sim_x_to_source(produced["self_vx"]),
@@ -397,7 +402,7 @@ def compare_sim(
                 raise SystemExit(f"{case_id}: simulation prone orientation changed")
 
     print("prone-response-position-comparison=excluded-stage-pushbox-domain")
-    print("prone-response-grounded-comparison=excluded-downbound-ecb-domain")
+    print("prone-response-grounded-comparison=qualified-downbound-ecb")
     print("prone-response-orientation-comparison=back-and-stomach")
 
 

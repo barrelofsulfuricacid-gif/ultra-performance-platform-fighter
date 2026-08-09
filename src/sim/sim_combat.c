@@ -2915,6 +2915,13 @@ static pf_status pf_m4_apply_hit_reaction(
                              ? damage_level
                              : UINT8_C(2)))
             : (uint8_t)PF_M4_ACTION_HITSTUN;
+    /* DownBound can retain its floor line while its animated ECB reports no
+     * contact. Once a hit replaces that action with airborne damage, the
+     * retained line is no longer an active support constraint. */
+    if (scratch->grounded[target_index] == UINT8_C(0))
+    {
+        scratch->support[target_index] = (uint8_t)PF_M4_SURFACE_NONE;
+    }
     pf_m4_set_action_state(
         world,
         scratch,

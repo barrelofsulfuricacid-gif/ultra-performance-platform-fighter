@@ -1448,6 +1448,30 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
     return fighter->half_height_q16;
 }
 
+static uint8_t pf_m4_down_bound_floor_contact(
+    uint8_t prone_orientation,
+    uint16_t action_ticks)
+{
+    const pf_m4_falcon_collision_pose *pose =
+        pf_m4_falcon_reference_collision_pose();
+    uint32_t contact_mask;
+    const uint16_t displayed_frame = action_ticks + UINT16_C(1);
+
+    if (pose == NULL ||
+        displayed_frame > PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT)
+    {
+        return UINT8_C(1);
+    }
+    contact_mask =
+        prone_orientation == (uint8_t)PF_M4_PRONE_BACK
+            ? pose->down_bound_back_floor_contact_mask
+            : pose->down_bound_stomach_floor_contact_mask;
+    return (contact_mask &
+            (UINT32_C(1) << (displayed_frame - UINT16_C(1)))) != UINT32_C(0)
+               ? UINT8_C(1)
+               : UINT8_C(0);
+}
+
 static int pf_m4_surface_is_pass_through(uint8_t support)
 {
     return support == (uint8_t)PF_M4_SURFACE_PLATFORM ||
@@ -6949,7 +6973,8 @@ pf_status pf_m4_step_player(
         }
     }
     else if (!ledge_motion_handled &&
-        grounded != UINT8_C(0) &&
+        (grounded != UINT8_C(0) ||
+         action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN) &&
         pf_m4_action_locks_ground_control(action_state) &&
         action_state !=
             (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_LANDING_MISS &&
@@ -8442,7 +8467,8 @@ pf_status pf_m4_step_player(
         }
     }
     else if (!ledge_motion_handled &&
-        grounded == UINT8_C(0))
+        grounded == UINT8_C(0) &&
+        action_state != (uint8_t)PF_M4_ACTION_KNOCKDOWN)
     {
         dash_direction = INT8_C(0);
         if (hitstun_locked)
@@ -9652,7 +9678,8 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
-        grounded == UINT8_C(0))
+        grounded == UINT8_C(0) &&
+        action_state != (uint8_t)PF_M4_ACTION_KNOCKDOWN)
     {
         const int32_t previous_bottom =
             position_y + fighter->half_height_q16;
@@ -10142,6 +10169,16 @@ pf_status pf_m4_step_player(
             scratch->hitlag_resume_action[player_index]))
     {
         scratch->shield_strength[player_index] = UINT16_C(0);
+    }
+
+    /* Melee's DownBound collision callback keeps the ground action and its
+     * retained floor line while the animated ECB temporarily reports no floor
+     * contact. Do not route those frames through ordinary airborne physics. */
+    if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
+    {
+        grounded = pf_m4_down_bound_floor_contact(
+            scratch->prone_orientation[player_index],
+            action_ticks);
     }
 
     /* xF0 is a ground-tangent scalar. Ground-to-air conversions keep the

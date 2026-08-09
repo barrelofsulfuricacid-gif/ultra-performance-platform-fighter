@@ -113,9 +113,9 @@ EscapeF's `0x800000c2`. Each catalog row stores an O(1) offset/count span, and
 attack/root-motion accessors reuse the same pool rather than generating
 parallel tables. Regeneration produces
 `generated/data/m4_falcon_ntsc102_frame_data.inc` byte-for-byte at SHA-256
-`ffc2c3fb3ba2b2cb7591fb857b7396d6bc901a3e34a7cd5cb24c47334bfa86d3`.
+`d6e2700a293450bf8f8e5d075881e6284cf09bb56a41e68590a36d779f72004e`.
 The expanded behavior-bearing source digest is
-`c7cf308115511ee2872fa9fe610f0bb264a7dde34f3f3edc357cbfe73822a015`;
+`7b34f2eb4e8edf0c491ea410c27b9790f2127d90a560865c56ebc68bea98c170`;
 the separate logical catalog digest remains stable because derived spans do
 not change its original source fields.
 
@@ -165,6 +165,17 @@ envelope. Its same-binary unaccelerated control has SHA-256
 `d78abcfe3d252d0f87409aba3343cd838efb739d6311494d520f2f076eb5255f`;
 the accelerated/control comparison passes all 329 rows, including 225 active-
 fighter rows and 185 qualified active-pose rows.
+
+DownBoundU and DownBoundD likewise keep their ground-action physics and retained
+floor line separate from their animated ECB contact result. Both imported
+26-frame schedules report contact on displayed frames 1-4, no contact on frames
+5-22, and contact again on frames 23-26. The canonical two-orientation schedule
+has SHA-256
+`6c8d97ff1076075616ed06f88c742528eff9c2fb18ab9f2cce09ba895147e556`
+and is stored as one allocation-free 32-bit mask per orientation. Production
+therefore preserves DownBound friction, root motion, and support identity while
+matching the live contact flag; it never converts the middle 18 frames into an
+ordinary airborne fall action.
 
 Default production timing for dash, standing/run turn, run brake, ordinary
 landing, crouch start/reverse, shield release, spot dodge, both rolls, air

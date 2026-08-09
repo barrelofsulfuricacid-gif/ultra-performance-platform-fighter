@@ -24962,8 +24962,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xc7) ||
-        complete_source_sha256[31] != UINT8_C(0x15) ||
+        complete_source_sha256[0] != UINT8_C(0x7b) ||
+        complete_source_sha256[31] != UINT8_C(0x70) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||

@@ -7,7 +7,7 @@
 /* PlCaAJ.dat SHA-256: a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a */
 /* PlCa.dat JSON SHA-256: fa18647a5d94826429ef6f961461e66118dcb18e0a30fa124d1bbf03c6476266 */
 /* PlCo.dat SHA-256: 63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c */
-/* complete Falcon source SHA-256: c7cf308115511ee2872fa9fe610f0bb264a7dde34f3f3edc357cbfe73822a015 */
+/* complete Falcon source SHA-256: 7b34f2eb4e8edf0c491ea410c27b9790f2127d90a560865c56ebc68bea98c170 */
 /* complete 318-submotion catalog SHA-256: 9bd124115e6eb66db0f6152dd6fade2886c85d1ae2368b4ae88b9084c7cc67ce */
 /* complete action-script SHA-256: 6bf1021da93ea2f829c812b2bc425fe310808c8ad6e6e75eaf103c42b7ea4cfe */
 /* complete decoded animation-track SHA-256: d8a09bf451ce547d8d24634f40f654564e42cbf14ad5339a0c7d93ff7edc15dc */
@@ -17,7 +17,7 @@ static const uint8_t pf_m4_falcon_source_sha256[32] = {
 };
 
 static const uint8_t pf_m4_falcon_complete_source_sha256[32] = {
-    UINT8_C(0xc7), UINT8_C(0xcf), UINT8_C(0x30), UINT8_C(0x81), UINT8_C(0x15), UINT8_C(0x51), UINT8_C(0x1e), UINT8_C(0xe2), UINT8_C(0x87), UINT8_C(0x2f), UINT8_C(0xa9), UINT8_C(0xfe), UINT8_C(0x61), UINT8_C(0x0f), UINT8_C(0x0b), UINT8_C(0xb2), UINT8_C(0x64), UINT8_C(0xa7), UINT8_C(0xdd), UINT8_C(0xe3), UINT8_C(0x4f), UINT8_C(0x3f), UINT8_C(0x3e), UINT8_C(0xdc), UINT8_C(0x35), UINT8_C(0x7c), UINT8_C(0xbf), UINT8_C(0xe7), UINT8_C(0x38), UINT8_C(0x22), UINT8_C(0xa0), UINT8_C(0x15)
+    UINT8_C(0x7b), UINT8_C(0x34), UINT8_C(0xf2), UINT8_C(0xeb), UINT8_C(0x4e), UINT8_C(0x8e), UINT8_C(0xdf), UINT8_C(0x0c), UINT8_C(0x49), UINT8_C(0x1e), UINT8_C(0xa4), UINT8_C(0x10), UINT8_C(0xc2), UINT8_C(0x7b), UINT8_C(0x97), UINT8_C(0x90), UINT8_C(0xf2), UINT8_C(0x12), UINT8_C(0x7d), UINT8_C(0x90), UINT8_C(0xa5), UINT8_C(0x60), UINT8_C(0x86), UINT8_C(0x5c), UINT8_C(0x56), UINT8_C(0xeb), UINT8_C(0xc6), UINT8_C(0x8b), UINT8_C(0xea), UINT8_C(0x98), UINT8_C(0xc1), UINT8_C(0x70)
 };
 
 static const uint8_t pf_m4_falcon_submotion_catalog_sha256[32] = {
@@ -4304,6 +4304,8 @@ pf_m4_falcon_down_special_timing_data = {
 static const pf_m4_falcon_collision_pose
 pf_m4_falcon_collision_pose_data = {
     .falling_bottom_y_from_origin_q16 = INT32_C(92238),
+    .down_bound_back_floor_contact_mask = UINT32_C(62914575),
+    .down_bound_stomach_floor_contact_mask = UINT32_C(62914575),
     .air_dodge_bottom_y_from_origin_q16 = {
         INT32_C(0), INT32_C(0), INT32_C(0), INT32_C(0), INT32_C(0), INT32_C(0), INT32_C(0), INT32_C(23209), INT32_C(22811), INT32_C(22327), INT32_C(21775), INT32_C(21173), INT32_C(20540), INT32_C(19892), INT32_C(19245), INT32_C(18615), INT32_C(18012), INT32_C(17449), INT32_C(16927), INT32_C(16440), INT32_C(15987), INT32_C(15569), INT32_C(15190), INT32_C(14857), INT32_C(14582), INT32_C(14479), INT32_C(14563), INT32_C(14679), INT32_C(14439), INT32_C(13789), INT32_C(11843), INT32_C(9089), INT32_C(7921), INT32_C(7709), INT32_C(8241), INT32_C(9060), INT32_C(10247), INT32_C(15993), INT32_C(13397), INT32_C(10262), INT32_C(10493), INT32_C(14370), INT32_C(18482), INT32_C(23089), INT32_C(21592), INT32_C(21175), INT32_C(22872), INT32_C(24795),
     },

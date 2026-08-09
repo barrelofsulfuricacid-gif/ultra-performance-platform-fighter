@@ -125,6 +125,13 @@ def qualify_live(cases: dict[str, list[dict[str, Any]]]) -> None:
         )
         if [bool(row["invulnerable"]) for row in response] != expected_invulnerability:
             raise SystemExit(f"{case_id} invulnerability boundary mismatch")
+        expected_grounded = (
+            [True] * 4 + [False] * 18 + [True] * 4
+            if case_id == "flat_floor_missed_tech"
+            else [True] * duration
+        )
+        if [bool(row["grounded"]) for row in response] != expected_grounded:
+            raise SystemExit(f"{case_id} ECB floor-contact boundary mismatch")
     missed_rows = cases["flat_floor_missed_tech"]
     missed_start = next(
         index for index, row in enumerate(missed_rows)
@@ -162,7 +169,16 @@ def compare_sim(live: dict[str, list[dict[str, Any]]], sim_path: Path) -> None:
             for actual, expected, label in (
                 (produced["frame"], index + 1, "sample"),
                 (produced["action"], expected_actions[case_id], "action"),
-                (produced["invulnerable"], int(bool(source["invulnerable"])), "invulnerable"),
+                (
+                    produced["grounded"],
+                    int(bool(source["grounded"])),
+                    "ECB floor contact",
+                ),
+                (
+                    produced["invulnerable"],
+                    int(bool(source["invulnerable"])),
+                    "invulnerable",
+                ),
             ):
                 if actual != expected:
                     raise SystemExit(f"{case_id} frame {index + 1}: {label} {actual} != {expected}")
@@ -177,7 +193,7 @@ def compare_sim(live: dict[str, list[dict[str, Any]]], sim_path: Path) -> None:
                     f"{case_id} frame {index + 1} root velocity",
                 )
     print("floor-response-position-comparison=excluded-stage-pushbox-domain")
-    print("floor-response-grounded-comparison=excluded-downbound-ecb-domain")
+    print("floor-response-grounded-comparison=qualified-downbound-ecb")
 
 
 def main() -> int:

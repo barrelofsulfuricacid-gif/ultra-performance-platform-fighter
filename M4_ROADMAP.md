@@ -130,9 +130,41 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
   Release suite 25/25 in 1.44 seconds, and WSL ASan/UBSan suite 18/18 in
   12.04 seconds. The Windows SDL smoke also builds cleanly with the unnecessary
   `SDL_main` wrapper removed from the console executable.
-- [ ] Import and qualify `DownBound` ECB pose-grounding, including its observed
-  4-grounded / 18-airborne / 4-grounded sequence, without treating the action
-  as ordinary airborne fall.
+- [x] Import and qualify `DownBound` ECB pose-grounding, including its observed
+  4-contact / 18-no-contact / 4-contact sequence, without treating the action
+  as ordinary airborne fall. Both orientations now consume one imported
+  26-frame bit mask each, retain the source floor line and ground physics
+  during the no-contact interval, and discard that retained support if
+  airborne damage replaces DownBound.
+
+Current DownBound prior-art/source sweep:
+
+- The pinned decomp and current `doldecomp/melee` head have no relevant change
+  in `ftCo_DownBound.c`, `ft_081B.c`, or `mpcoll.c`; current forks and issues
+  expose no maintained reusable DownBound/ECB importer.
+- `ftCo_DownBound_Phys` keeps ground-friction/root physics, while
+  `ftCo_DownBound_Coll` runs `ft_80082708` over the JObj-derived ECB. The live
+  action remains DownBound while the reported contact flag changes, so these
+  frames must not be converted into ordinary airborne fall.
+- Existing live memory evidence contains both Falcon orientations. Their ECB
+  shapes differ, but both exact 26-frame contact schedules are frames 1-4 on,
+  5-22 off, and 23-26 on. The canonical schedule-pair digest is
+  `6c8d97ff1076075616ed06f88c742528eff9c2fb18ab9f2cce09ba895147e556`.
+- Fresh identical-input qualification passes all 804 flat-floor rows / 232
+  response samples with strict ECB contact comparison. The accelerated pack's
+  warm capture took 3.032 seconds and the complete run took 6.065 seconds.
+- The pinned ISO/DAT/JSON toolchain regenerates
+  `m4_falcon_ntsc102_frame_data.inc` byte-identically at
+  `d6e2700a293450bf8f8e5d075881e6284cf09bb56a41e68590a36d779f72004e`;
+  its expanded complete-source digest is
+  `7b34f2eb4e8edf0c491ea410c27b9790f2127d90a560865c56ebc68bea98c170`.
+- The floor-response production trace is
+  `bbf01b67f222d78e915f5077eecd9a45282f77e7d32efb4cf7bf8d79b513eb2f`;
+  the two-orientation prone trace remains
+  `dc416f87ccd228a045c61e87350af2619bad244e6a83dc0708502b414886fefb`.
+- Final gates pass native Windows Release 25/25 in 3.90 seconds, WSL Release
+  25/25 in 1.72 seconds, WSL ASan/UBSan 18/18 in 11.91 seconds, and all six
+  stored domains / 50 cases plus replay in 0.744 seconds on Windows.
 
 Primary sources:
 
@@ -315,8 +347,8 @@ Execution results:
   declared response semantics.
 - [x] Compare 48 production samples on action/tick, invulnerability, preserved
   hitstun memory, and directional root translation within 0.0015 source units.
-  Position remains assigned to stage/pushbox qualification, and DownBound's
-  source ECB-grounded toggles remain an explicit unimplemented pose domain.
+  Position remains assigned to stage/pushbox qualification. DownBound's source
+  ECB contact toggles are now strictly qualified by the later pose slice.
 - [x] Register the fifth stored domain. The root gate now covers 36 cases plus
   replay in 0.564 seconds on WSL and 0.543 seconds on Windows.
 - [x] Pass WSL release 24/24 in 1.45 seconds, native Windows MinGW release 17/17
@@ -356,8 +388,8 @@ Execution results:
   `fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438`.
 - [x] Capture the opposite orientation and qualify posture-specific getup
   attack/neutral timing plus the source-selected roll motion and timing.
-- [ ] Implement the separately assigned DownBound ECB-driven grounded
-  transitions; they are not implied by the current response result.
+- [x] Implement and live-qualify the separately assigned DownBound ECB-driven
+  contact transitions for both prone orientations.
 - [x] Replace the authored getup thresholds, buffer, and constant roll speed
   only after live qualification; preserve the source input priority in one
   allocation-free common-state path.
@@ -368,8 +400,8 @@ Execution results:
   native Windows, sanitizer, browser, and replay validation.
 - [x] Compare sparse production routes against independent live captures on
   action/frame, posture, invulnerability, option priority, roll direction, and
-  root velocity within 0.0015 source units. Position and DownBound grounded
-  toggles remain explicit separate domains.
+  root velocity within 0.0015 source units. Position remains an explicit
+  separate pushbox/stage domain; DownBound contact is now strictly qualified.
 - [x] Pass the latest WSL release 25/25 in 0.92 seconds, native Windows MinGW
   18/18 in 0.75 seconds, and focused WSL ASan/UBSan 5/5 in 6.80 seconds. The
   latest six-domain stored gate covers 46 cases and 120 prone samples in 0.465
@@ -388,9 +420,9 @@ Execution results:
 - [x] Qualify wall and ceiling tech/bounce behavior against a live source route.
 - [x] Qualify flat-floor landing plus missed, neutral, forward, and backward
   tech response against a live source route.
-- [ ] Qualify DownBound ECB pose-grounding, slopes, ledge departure during
-  floor recovery, and player-pushbox interactions in their own live source
-  routes.
+- [x] Qualify DownBound ECB pose-grounding in its own live source route.
+- [ ] Qualify slopes, ledge departure during floor recovery, and player-pushbox
+  interactions in their own live source routes.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
