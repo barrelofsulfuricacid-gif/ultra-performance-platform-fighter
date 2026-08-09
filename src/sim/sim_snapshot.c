@@ -1399,6 +1399,17 @@ static int pf_m4_snapshot_action_is_surface_bounce(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
 }
 
+static int pf_m4_snapshot_hitstun_is_memory(
+    uint8_t action,
+    uint32_t last_hit_sequence)
+{
+    return last_hit_sequence != UINT32_C(0) &&
+           action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+           !pf_m4_action_is_damage(action) &&
+           action != (uint8_t)PF_M4_ACTION_RESET_BOUND &&
+           !pf_m4_snapshot_action_is_surface_bounce(action);
+}
+
 static int pf_m4_snapshot_action_is_shield_break(uint8_t action)
 {
     return action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
@@ -1936,6 +1947,10 @@ static int pf_m4_player_state_consistent(
                  action == (uint8_t)PF_M4_ACTION_HITLAG ||
                  (pf_m4_snapshot_action_is_landing(action) &&
                   world->action_ticks[player_index] == UINT16_C(0)) ||
+                 ((action == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+                   action == (uint8_t)PF_M4_ACTION_TECH_IN_PLACE ||
+                   action == (uint8_t)PF_M4_ACTION_TECH_ROLL) &&
+                  world->action_ticks[player_index] == UINT16_C(0)) ||
                  ground_falcon_dive_start != 0) &&
                world->fast_fall[player_index] == UINT8_C(0) &&
                (world->recovery_available[player_index] == UINT8_C(1) ||
@@ -2258,6 +2273,19 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->shield_health_q16[player_index];
             const uint8_t resume_action =
                 world->hitlag_resume_action[player_index];
+            const int hitstun_is_memory =
+                hitstun != UINT16_C(0) &&
+                pf_m4_snapshot_hitstun_is_memory(
+                    action,
+                    world->last_hit_sequence[player_index]) &&
+                !(action == (uint8_t)PF_M4_ACTION_HITLAG &&
+                  (pf_m4_action_is_damage(resume_action) ||
+                   resume_action ==
+                       (uint8_t)PF_M4_ACTION_RESET_BOUND ||
+                   pf_m4_snapshot_action_is_surface_bounce(
+                       resume_action)));
+            const int hitstun_is_active =
+                hitstun != UINT16_C(0) && hitstun_is_memory == 0;
             const uint8_t powershield =
                 world->powershield[player_index];
             const uint8_t tumble = world->tumble[player_index];
@@ -2547,7 +2575,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_GETUP_ATTACK ||
                   pf_m4_snapshot_action_is_throw(resume_action)) &&
-                 (hitstun != UINT16_C(0) ||
+                 (hitstun_is_active != 0 ||
                   (!pf_m4_snapshot_action_is_aerial_attack(
                        resume_action) &&
                    resume_action !=
@@ -2560,18 +2588,18 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                    world->grounded[player_index] != UINT8_C(0)))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP &&
-                 (hitstun != UINT16_C(0) ||
+                 (hitstun_is_active != 0 ||
                   tumble != UINT8_C(0) ||
                   world->grounded[player_index] != UINT8_C(0) ||
                   world->action_ticks[player_index] >= UINT16_C(120))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_WALL_JUMP &&
-                 (hitstun != UINT16_C(0) ||
+                 (hitstun_is_active != 0 ||
                   tumble != UINT8_C(0) ||
                   world->grounded[player_index] != UINT8_C(0))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
-                 (hitstun != UINT16_C(0) ||
+                 (hitstun_is_active != 0 ||
                   tumble != UINT8_C(0) ||
                   world->grounded[player_index] != UINT8_C(0) ||
                   world->support[player_index] !=
@@ -2590,19 +2618,19 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
                  (shield_stun == UINT16_C(0) ||
                   shield_health == UINT32_C(0) ||
-                  hitstun != UINT16_C(0) ||
+                  hitstun_is_active != 0 ||
                   world->grounded[player_index] == UINT8_C(0))) ||
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK &&
                  (shield_stun != UINT16_C(0) ||
                   shield_health != UINT32_C(0) ||
-                  hitstun != UINT16_C(0) ||
+                  hitstun_is_active != 0 ||
                   world->grounded[player_index] == UINT8_C(0))) ||
                 (hitlag == UINT16_C(0) &&
                  action == (uint8_t)PF_M4_ACTION_HITSTUN &&
                  hitstun == UINT16_C(0)) ||
                 (hitlag == UINT16_C(0) &&
-                 hitstun > UINT16_C(0) &&
+                 hitstun_is_active != 0 &&
                  !pf_m4_action_is_damage(action) &&
                  action != (uint8_t)PF_M4_ACTION_RESET_BOUND &&
                  !pf_m4_snapshot_action_is_surface_bounce(action)) ||
@@ -2633,7 +2661,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  (shield_health != UINT32_C(0) ||
                   shield_stun != UINT16_C(0) ||
                   hitlag != UINT16_C(0) ||
-                  hitstun != UINT16_C(0) ||
+                  hitstun_is_active != 0 ||
                   (action ==
                        (uint8_t)PF_M4_ACTION_SHIELD_BREAK
                        ? world->grounded[player_index] !=
@@ -2648,7 +2676,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  (shield_health == UINT32_C(0) ||
                   shield_stun != UINT16_C(0) ||
                   hitlag != UINT16_C(0) ||
-                  hitstun != UINT16_C(0) ||
+                  hitstun_is_active != 0 ||
                   world->grounded[player_index] == UINT8_C(0))) ||
                 (powershield != UINT8_C(0) &&
                  action != (uint8_t)PF_M4_ACTION_SHIELD &&
@@ -2734,9 +2762,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                    action == (uint8_t)PF_M4_ACTION_TAUNT ||
                    action == (uint8_t)PF_M4_ACTION_WALL_JUMP ||
                    action == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
-                  pf_m4_snapshot_action_is_surface_tech(action)) &&
+                 pf_m4_snapshot_action_is_surface_tech(action)) &&
                  (hitlag != UINT16_C(0) ||
-                  hitstun != UINT16_C(0) ||
+                  hitstun_is_active != 0 ||
                   tumble != UINT8_C(0))) ||
                 (pf_m4_snapshot_action_is_surface_bounce(action) &&
                  (hitlag != UINT16_C(0) ||

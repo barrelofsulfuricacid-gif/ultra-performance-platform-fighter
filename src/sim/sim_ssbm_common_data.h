@@ -41,6 +41,10 @@ typedef struct pf_m4_ssbm_surface_response_attributes
     uint16_t wall_tech_invulnerability_ticks;
     uint16_t bounce_invulnerability_ticks;
     uint16_t bounce_collision_lockout_ticks;
+    uint16_t tech_window_ticks;
+    uint16_t tech_lockout_ticks;
+    uint16_t tech_roll_axis_threshold;
+    uint16_t down_wait_ticks;
 } pf_m4_ssbm_surface_response_attributes;
 
 const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);

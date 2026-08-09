@@ -3145,7 +3145,7 @@ static void pf_m4_land_from_air(
     const int8_t roll_direction =
         pf_m4_axis_direction(
             horizontal_input,
-            fighter->axis_dead_zone);
+            fighter->tech_roll_axis_threshold);
     const int32_t incoming_velocity_x = pf_m4_total_velocity_q16(
         *velocity_x,
         scratch->knockback_velocity_x_q16[player_index]);
@@ -3441,7 +3441,6 @@ static void pf_m4_land_from_air(
     }
 
     *position_y = surface_y_q16 - fighter->half_height_q16;
-    *velocity_y = INT32_C(0);
     *action_ticks = UINT16_C(0);
     *grounded = UINT8_C(1);
     *support = surface;
@@ -3449,13 +3448,10 @@ static void pf_m4_land_from_air(
     *short_hop_latched = UINT8_C(0);
     *fast_fall = UINT8_C(0);
     *dash_direction = INT8_C(0);
-    scratch->hitstun_ticks[player_index] = UINT16_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
-    /* Ground knockback transfer/friction is a separate live-qualification
-     * slice. Preserve the previously qualified landing behavior until that
-     * source route replaces this boundary deliberately. */
-    scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
-    scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
+    /* The collision callback exposes the incoming air channels on its entry
+     * frame. Ground projection and 0.08 traction decay begin on the following
+     * tick, matching Fighter_procUpdate ordering. */
     scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
 
     if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
@@ -3470,9 +3466,7 @@ static void pf_m4_land_from_air(
         }
         else
         {
-            *velocity_x =
-                (int32_t)roll_direction *
-                fighter->tech_roll_speed_q16;
+            *velocity_x = INT32_C(0);
             *action_state = (uint8_t)PF_M4_ACTION_TECH_ROLL;
             scratch->tech_direction[player_index] = roll_direction;
         }
@@ -6843,9 +6837,26 @@ pf_status pf_m4_step_player(
         }
         else if (action_state == (uint8_t)PF_M4_ACTION_TECH_ROLL)
         {
-            velocity_x =
-                (int32_t)scratch->tech_direction[player_index] *
-                fighter->tech_roll_speed_q16;
+            const uint16_t submotion_index =
+                scratch->tech_direction[player_index] == facing
+                    ? (uint16_t)
+                          PF_M4_FALCON_SUBMOTION_TECH_ROLL_FORWARD
+                    : (uint16_t)
+                          PF_M4_FALCON_SUBMOTION_TECH_ROLL_BACKWARD;
+            int32_t translation_x_q16;
+
+            if (pf_m4_falcon_reference_translation_q16(
+                    submotion_index,
+                    (uint16_t)(action_ticks + UINT16_C(1)),
+                    &translation_x_q16,
+                    NULL))
+            {
+                velocity_x = (int32_t)facing * translation_x_q16;
+            }
+            else
+            {
+                velocity_x = INT32_C(0);
+            }
             ++action_ticks;
             if (action_ticks >= fighter->tech_roll_ticks)
             {

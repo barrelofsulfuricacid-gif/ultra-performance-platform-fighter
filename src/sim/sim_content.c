@@ -74,6 +74,12 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
             PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD);
     const pf_m4_falcon_submotion_data *air_dodge =
         pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_AIR_DODGE);
+    const pf_m4_falcon_submotion_data *down_bound_back =
+        pf_m4_falcon_reference_submotion(
+            PF_M4_FALCON_SUBMOTION_DOWN_BOUND_BACK);
+    const pf_m4_falcon_submotion_data *down_bound_stomach =
+        pf_m4_falcon_reference_submotion(
+            PF_M4_FALCON_SUBMOTION_DOWN_BOUND_STOMACH);
     const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes =
         pf_m4_falcon_reference_air_dodge_attributes();
     const pf_m4_falcon_submotion_data *getup_neutral =
@@ -144,6 +150,7 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
         run_brake == NULL || landing == NULL || squat == NULL ||
         squat_reverse == NULL || guard_off == NULL || spot_dodge == NULL ||
         roll_forward == NULL || roll_backward == NULL || air_dodge == NULL ||
+        down_bound_back == NULL || down_bound_stomach == NULL ||
         air_dodge_attributes == NULL ||
         getup_neutral == NULL || getup_attack == NULL ||
         getup_roll_forward == NULL || getup_roll_backward == NULL ||
@@ -166,6 +173,9 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
             getup_roll_backward->gameplay_frame_count ||
         tech_roll_forward->animation_frame_count !=
             tech_roll_backward->animation_frame_count ||
+        down_bound_back->animation_frame_count == UINT16_C(0) ||
+        down_bound_back->animation_frame_count !=
+            down_bound_stomach->animation_frame_count ||
         getup_neutral_back_collision->state_two_frame != UINT16_C(0) ||
         getup_neutral_back_collision->state_zero_frame != UINT16_C(23) ||
         getup_neutral_stomach_collision->state_two_frame != UINT16_C(0) ||
@@ -266,6 +276,7 @@ static int pf_m4_apply_falcon_reference_common_action_timings(
     fighter->ceiling_tech_control_tick =
         ceiling_tech_collision->state_zero_frame;
     fighter->ceiling_tech_ticks = ceiling_tech->animation_frame_count;
+    fighter->knockdown_ticks = down_bound_back->animation_frame_count;
     fighter->getup_neutral_invulnerability_ticks =
         getup_neutral_back_collision->state_zero_frame;
     fighter->taunt_ticks =
@@ -1127,6 +1138,7 @@ static void pf_m4_hash_fighter(
     pf_m4_hash_u16(hash, fighter->tumble_hitstun_threshold_ticks);
     pf_m4_hash_u16(hash, fighter->tech_window_ticks);
     pf_m4_hash_u16(hash, fighter->tech_lockout_ticks);
+    pf_m4_hash_u16(hash, fighter->tech_roll_axis_threshold);
     pf_m4_hash_u16(hash, fighter->tech_in_place_ticks);
     pf_m4_hash_u16(hash, fighter->tech_roll_ticks);
     pf_m4_hash_u16(hash, fighter->tech_invulnerability_ticks);
@@ -2031,8 +2043,10 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->light_shield_trigger_threshold = UINT16_C(19661);
     fighter->digital_trigger_threshold = UINT16_MAX;
     fighter->tumble_hitstun_threshold_ticks = UINT16_C(32);
-    fighter->tech_window_ticks = UINT16_C(20);
-    fighter->tech_lockout_ticks = UINT16_C(40);
+    fighter->tech_window_ticks = surface_response->tech_window_ticks;
+    fighter->tech_lockout_ticks = surface_response->tech_lockout_ticks;
+    fighter->tech_roll_axis_threshold =
+        surface_response->tech_roll_axis_threshold;
     fighter->wall_tech_stall_ticks =
         surface_response->wall_tech_stall_ticks;
     fighter->wall_tech_invulnerability_ticks =
@@ -2043,8 +2057,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
         surface_response->bounce_collision_lockout_ticks;
     fighter->wall_jump_ticks = UINT16_C(24);
     fighter->wall_jump_invulnerability_ticks = UINT16_C(4);
-    fighter->knockdown_ticks = UINT16_C(26);
-    fighter->down_wait_ticks = UINT16_C(180);
+    fighter->down_wait_ticks = surface_response->down_wait_ticks;
     fighter->getup_roll_back_forward.movement_begin_tick = UINT8_C(6);
     fighter->getup_roll_back_forward.invulnerability_begin_tick =
         UINT8_C(1);
@@ -3197,6 +3210,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->tech_lockout_ticks <
             fighter->tech_window_ticks ||
         fighter->tech_lockout_ticks > UINT16_C(240) ||
+        fighter->tech_roll_axis_threshold == UINT16_C(0) ||
+        fighter->tech_roll_axis_threshold > UINT16_C(32767) ||
         fighter->tech_in_place_ticks == UINT16_C(0) ||
         fighter->tech_in_place_ticks > UINT16_C(240) ||
         fighter->tech_roll_ticks == UINT16_C(0) ||

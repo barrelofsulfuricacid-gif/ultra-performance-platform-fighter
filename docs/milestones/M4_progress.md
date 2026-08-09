@@ -4596,3 +4596,31 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - M4 remains unfinished. Other common hurt poses, aerial-IASA item/tether
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
+
+## 2026-08-08 Falcon flat-floor impact and tech response
+
+- Prior-art and pinned-decomp review established directional-tech,
+  neutral-tech, then missed-tech landing
+  priority. The common-data importer now owns the 20-frame tech window,
+  40-frame lockout, 0.2 direction threshold, and 220-frame DownWait value;
+  Falcon's generated submotions and `TransN` tracks own the 26/26/40/40
+  response lifecycles and directional root motion. Production preserves the
+  incoming self/knockback channels and hitstun memory on the callback frame,
+  projects/decays ground knockback on the following tick, and snapshot
+  validation distinguishes retained source memory from active stun.
+- The new `falcon-common-floor-response` domain captures four Final Destination
+  cases over 804 rows / 232 focused observations. Three independent captures
+  share semantic SHA-256
+  `85fd93638bcb26b8b6e405cb1008a396acf05d132e07c7f9dcc3b6993034dd3f`.
+  Forty-eight production samples agree on action/tick, invulnerability,
+  preserved hitstun memory, and forward/backward imported root translation
+  within 0.0015 source units. Position is explicitly deferred to the stage and
+  pushbox domain; DownBound's source ECB-grounded toggles remain a named gap.
+- The generic stored gate now covers five domains / 36 cases plus replay in
+  0.564 seconds on WSL and 0.543 seconds on Windows. WSL release passes 24/24
+  in 1.45 seconds, native Windows MinGW release passes 17/17 in 1.05 seconds,
+  focused WSL ASan/UBSan passes 4/4, and the browser adapter passes. The
+  deterministic verifier digest is now
+  `2f8ea9f2d6d1bd78`. M4 remains unfinished: DownBound ECB poses, DownWait/getup
+  choices, slopes, ledge departure, pushboxes, and the remaining fidelity-audit
+  rows are next.

@@ -22,15 +22,15 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for four domains | Common hurt, open-air damage, flat-ground knockback, and wall/ceiling response: 32 cases plus deterministic replay in 0.404 seconds on WSL and 0.401 seconds on Windows. |
-| Fast live Dolphin oracle | done for registered live domains | One headless/null/unlimited ExiAI process per compatible pack. The newest wall/ceiling pack runs five checkpoint-isolated cases and 719 rows in 2.759 seconds warm. |
+| Fast stored equivalence | done for five domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, and flat-floor response: 36 cases plus deterministic replay in 0.564 seconds on WSL and 0.543 seconds on Windows. |
+| Fast live Dolphin oracle | done for registered live domains | One headless/null/unlimited ExiAI process per compatible pack. The newest floor-response pack runs four checkpoint-isolated cases and 804 rows in 2.752 seconds warm on the final qualification run. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Many captured routes pass, including wall/ceiling tech and reflection, but the fidelity audit still lists unqualified combinations and incomplete behavior. |
+| Falcon movement and combat | partial | Many captured routes pass, including wall/ceiling response and flat-floor missed/neutral/directional techs, but slopes, getup branches, ECB pose behavior, pushboxes, and other fidelity-audit rows remain. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
 | Native Battlefield frontend | not complete | Existing SDL target is only an early render-packet spike, not the M4 playtest client. |
-| Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, and physical surface-route guidance. |
+| Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, and semantic-digest guidance. |
 
 ## Completed and verified
 
@@ -212,6 +212,54 @@ Execution results:
   `MapCollData`, physical-waypoint, pre-contact trigger, response-field, and
   stage-geometry exclusion routine.
 
+## Completed locally: flat-floor impact, missed tech, and tech response
+
+Prior-art/source sweep completed before implementation:
+
+- The pinned decomp route establishes the exact landing priority as directional
+  tech roll (`ftCo_80098928`), neutral tech (`ftCo_8009872C`), then missed tech
+  (`ftCo_80097D40`). No authored timing was accepted as source truth.
+- `PlCo.dat` supplies the 20-frame tech window, 40-frame lockout, 0.2 roll-axis
+  threshold, and 220-frame DownWait value. Falcon submotions supply 26-frame
+  DownBound/neutral-tech and 40-frame directional-tech lifecycles plus the
+  exact forward/backward `TransN` root tracks.
+- Existing probes and tests did not form a pinned, same-input flat-floor domain;
+  the new pack reuses the generic checkpoint, numeric trace, digest, and replay
+  machinery.
+
+Execution results:
+
+- [x] Generalize the surface-response capture route once for both wall/ceiling
+  and flat-floor manifests, including native collision during an X-only
+  placement hold and a separately timed pre-contact trigger edge.
+- [x] Import and validate the source tech window, lockout, direction threshold,
+  and DownWait fields; content schema is now 74 and fighter schema is 67.
+- [x] Preserve incoming self/knockback channels and stale hitstun memory on the
+  landing callback frame, then project and decay ground knockback on the next
+  tick in source order.
+- [x] Replace the authored constant tech-roll speed with Falcon's imported
+  forward/backward translation tracks through the existing allocation-free
+  frame-data lookup.
+- [x] Make snapshot validation distinguish active stun from Melee's retained
+  hitstun memory so canonical hash/save validation accepts subsequent normal
+  actions without weakening active-damage invariants.
+- [x] Qualify four live cases over 804 rows / 232 focused observations. The
+  stable semantic digest is
+  `85fd93638bcb26b8b6e405cb1008a396acf05d132e07c7f9dcc3b6993034dd3f`;
+  three independent captures agree after normalizing only landing-phase attack
+  velocity and the two valid retained-hitstun magnitudes outside this domain's
+  declared response semantics.
+- [x] Compare 48 production samples on action/tick, invulnerability, preserved
+  hitstun memory, and directional root translation within 0.0015 source units.
+  Position remains assigned to stage/pushbox qualification, and DownBound's
+  source ECB-grounded toggles remain an explicit unimplemented pose domain.
+- [x] Register the fifth stored domain. The root gate now covers 36 cases plus
+  replay in 0.564 seconds on WSL and 0.543 seconds on Windows.
+- [x] Pass WSL release 24/24 in 1.45 seconds, native Windows MinGW release 17/17
+  in 1.05 seconds, focused WSL ASan/UBSan 4/4, and the browser adapter gate.
+  The unavailable Visual Studio installation is not counted as a Windows
+  result; the direct native Windows compiler lane is the recorded evidence.
+
 ## Remaining work, in priority order
 
 ### Falcon equivalence
@@ -223,8 +271,11 @@ Execution results:
 - [x] Qualify flat-ground knockback/friction decay and grounded damage-action
   release against a live source route.
 - [x] Qualify wall and ceiling tech/bounce behavior against a live source route.
-- [ ] Qualify floor landing, floor tech/bounce/getup, slopes, and player-pushbox
-  interactions against their own live source routes.
+- [x] Qualify flat-floor landing plus missed, neutral, forward, and backward
+  tech response against a live source route.
+- [ ] Qualify DownBound ECB pose-grounding, DownWait/getup branches, slopes,
+  ledge departure during floor recovery, and player-pushbox interactions in
+  their own live source routes.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -241,11 +292,11 @@ Execution results:
   common-hurt command-line mode.
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
-- [x] Keep changed-domain local validation comfortably below two seconds and
-  warm live changed-domain validation below three seconds where the manifest
-  declares that budget. Current four-domain stored gate is 0.404 seconds on
-  WSL; the accepted surface live pack is 2.759 seconds warm and 5.493 seconds
-  end to end.
+- [x] Keep changed-domain local validation comfortably below two seconds. The
+  current five-domain stored gate is 0.564 seconds on WSL and 0.543 seconds on
+  Windows. Live manifests carry explicit per-pack budgets: wall/ceiling is
+  2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on
+  its final run with a four-second guardrail.
 - [ ] Maintain explicit coverage ledgers; no finite scenario may be described
   as detecting every possible anomaly.
 

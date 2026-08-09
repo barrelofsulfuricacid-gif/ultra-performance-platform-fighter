@@ -20,6 +20,7 @@
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_floor_response_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -618,15 +619,21 @@ static int make_reaction_content(
     }
 
     out_content->fighter.jab_base_knockback_x_q16 =
-        (INT32_C(9) * PF_Q16_ONE) / INT32_C(10);
+        PF_Q16_ONE / INT32_C(5);
     out_content->fighter.jab_base_knockback_y_q16 =
-        PF_Q16_ONE / INT32_C(10);
+        (INT32_C(9) * PF_Q16_ONE) / INT32_C(10);
     out_content->fighter.jab_knockback_growth_q16 =
         PF_Q16_ONE / INT32_C(4096);
     out_content->fighter.jab_melee_knockback.enabled = UINT8_C(0);
     out_content->fighter.reference_frame_data_enabled = UINT8_C(0);
     out_content->fighter.tumble_hitstun_threshold_ticks =
         UINT16_C(20);
+    /* Keep reaction-state unit routes away from an unrelated ledge now that
+     * source-authentic grounded knockback survives floor impact. */
+    out_content->stage.floor_left_q16 =
+        -INT32_C(48) * PF_Q16_ONE;
+    out_content->stage.floor_right_q16 =
+        INT32_C(48) * PF_Q16_ONE;
     return expect_status(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -15516,7 +15523,9 @@ static int run_until_reaction_landing(
         const int16_t target_x =
             tech_mode > 1 &&
                     (should_trigger || trigger_sent != 0)
-                ? INT16_C(32767)
+                ? (tech_mode == 3
+                       ? INT16_C(-32767)
+                       : INT16_C(32767))
                 : INT16_C(0);
 
         if (!step_reaction_duel(
@@ -16078,6 +16087,202 @@ static int run_knockdown_and_tech_test(
     {
         return fail("tech-invulnerability-exact-end");
     }
+    return 1;
+}
+
+static uint8_t run_ssbm_floor_response_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    int tech_mode;
+    uint16_t turn_tick;
+    uint8_t sample_index;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL ||
+        capacity < PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE)
+    {
+        return UINT8_C(0);
+    }
+    if (strcmp(stored_case->id, "flat_floor_missed_tech") == 0)
+    {
+        tech_mode = 0;
+    }
+    else if (strcmp(stored_case->id, "flat_floor_neutral_tech") == 0)
+    {
+        tech_mode = 1;
+    }
+    else if (strcmp(stored_case->id, "flat_floor_forward_tech") == 0)
+    {
+        tech_mode = 2;
+    }
+    else if (strcmp(stored_case->id, "flat_floor_backward_tech") == 0)
+    {
+        tech_mode = 3;
+    }
+    else
+    {
+        return UINT8_C(0);
+    }
+    if (!make_reaction_content(&content, &view))
+    {
+        return UINT8_C(0);
+    }
+    /* Keep active hitstun at the landing boundary so this trace proves the
+     * source field survives every floor response instead of expiring during
+     * the compact fixture's flight. */
+    content.fighter.jab_base_knockback_x_q16 =
+        (INT32_C(9) * PF_Q16_ONE) / INT32_C(10);
+    content.fighter.jab_base_knockback_y_q16 =
+        PF_Q16_ONE / INT32_C(10);
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "floor-response-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            INT16_C(13500),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
+            &inspection))
+    {
+        return UINT8_C(0);
+    }
+    for (turn_tick = UINT16_C(1);
+         turn_tick < content.fighter.standing_turn_facing_tick;
+         ++turn_tick)
+    {
+        if (!step_reaction_duel(
+                sim,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+    }
+    if (inspection.players[1].facing != INT8_C(1) ||
+        !run_until_reaction_landing(sim, tech_mode, &inspection))
+    {
+        return UINT8_C(0);
+    }
+
+    for (sample_index = UINT8_C(0);
+         sample_index < PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE;
+         ++sample_index)
+    {
+        pf_ssbm_stored_trace_sample *sample = &out_samples[sample_index];
+
+        if (sample_index != UINT8_C(0))
+        {
+            const pf_ssbm_stored_trace_input *input =
+                &stored_case->inputs[sample_index];
+
+            if (!step_ssbm_damage_duel(
+                    sim,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    input->secondary_stick_x,
+                    input->secondary_stick_y,
+                    UINT64_C(0),
+                    &inspection))
+            {
+                return UINT8_C(0);
+            }
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-floor-response-observation case=%s frame=%u"
+                " action=%u action_tick=%u grounded=%u tumble=%u"
+                " hitstun=%u invulnerable=%u self_vx=%" PRId32
+                " self_vy=%" PRId32 " kb_vx=%" PRId32
+                " kb_vy=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitstun_ticks,
+                (unsigned int)inspection.players[1].invulnerable,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16);
+        }
+    }
+    return PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE;
+}
+
+static int run_ssbm_floor_response_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-floor-response",
+        pf_m4_ssbm_falcon_floor_response_cases,
+        PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT,
+        PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_FLOOR_RESPONSE_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_floor_response_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL ? result.failed_operation : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass domain=falcon-common-floor-response "
+        "poses=0 cases=%u samples=%u source_trace_sha256=%s "
+        "production_trace_sha256=%s\n",
+        (unsigned int)PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT,
+        (unsigned int)(PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT *
+                       PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE),
+        PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
     return 1;
 }
 
@@ -16676,7 +16881,7 @@ static int run_floor_getup_option_test(
         roll_inspection.players[1].tech_direction != INT8_C(-1) ||
         roll_inspection.players[1].prone_orientation !=
             (uint8_t)PF_M4_PRONE_BACK ||
-        roll_inspection.players[1].velocity_x_q16 != INT32_C(0) ||
+        roll_inspection.players[1].self_velocity_x_q16 != INT32_C(0) ||
         roll_inspection.players[1].invulnerable != UINT8_C(1) ||
         !step_reaction_duel(
             attack,
@@ -17105,7 +17310,7 @@ static int run_floor_recovery_snapshot_test(
         source_inspection.players[1].tech_direction != INT8_C(1) ||
         source_inspection.players[1].prone_orientation !=
             (uint8_t)PF_M4_PRONE_BACK ||
-        source_inspection.players[1].velocity_x_q16 != INT32_C(0) ||
+        source_inspection.players[1].self_velocity_x_q16 != INT32_C(0) ||
         source_inspection.players[1].invulnerable != UINT8_C(0) ||
         !expect_status(
             pf_sim_query_save_size(source, &save_size),
@@ -17139,7 +17344,7 @@ static int run_floor_recovery_snapshot_test(
         loaded_inspection.players[1].tech_direction != INT8_C(1) ||
         loaded_inspection.players[1].prone_orientation !=
             (uint8_t)PF_M4_PRONE_BACK ||
-        loaded_inspection.players[1].velocity_x_q16 != INT32_C(0) ||
+        loaded_inspection.players[1].self_velocity_x_q16 != INT32_C(0) ||
         loaded_inspection.players[1].invulnerable != UINT8_C(0) ||
         !expect_status(
             pf_sim_hash(source, &source_hash),
@@ -25436,6 +25641,11 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-surface-response") == 0)
         {
             return run_ssbm_surface_response_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-floor-response") == 0)
+        {
+            return run_ssbm_floor_response_observation_oracle() ? 0 : 1;
         }
         (void)fprintf(
             stderr,

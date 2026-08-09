@@ -1872,6 +1872,12 @@ def input_trace(
             raw_surface_cases = checkpoint_capture_plan.get(
                 "surface_response_cases"
             )
+            surface_response_prefix = "surface_response"
+            if raw_surface_cases is None:
+                raw_surface_cases = checkpoint_capture_plan.get(
+                    "floor_response_cases"
+                )
+                surface_response_prefix = "floor_response"
             if raw_surface_cases is not None:
                 if not isinstance(raw_surface_cases, list) or not raw_surface_cases:
                     raise ValueError("surface response cases are invalid")
@@ -1907,6 +1913,12 @@ def input_trace(
                     pre_impact_y = raw_case.get("pre_impact_y")
                     impact_input_delay_ticks = raw_case.get(
                         "impact_input_delay_ticks", 0
+                    )
+                    impact_x_hold_ticks = raw_case.get(
+                        "impact_x_hold_ticks", 0
+                    )
+                    impact_trigger_hold_index = raw_case.get(
+                        "impact_trigger_hold_index"
                     )
                     trigger = raw_case.get("trigger", "none")
                     jump = raw_case.get("jump", False)
@@ -1996,7 +2008,7 @@ def input_trace(
                         or not 1 <= approach_ticks <= 30
                         or not isinstance(post_hit_ticks, int)
                         or isinstance(post_hit_ticks, bool)
-                        or not 1 <= post_hit_ticks <= 30
+                        or not 1 <= post_hit_ticks <= 120
                         or not isinstance(observe_ticks, int)
                         or isinstance(observe_ticks, bool)
                         or not 1 <= observe_ticks <= 180
@@ -2012,6 +2024,21 @@ def input_trace(
                         or not isinstance(impact_input_delay_ticks, int)
                         or isinstance(impact_input_delay_ticks, bool)
                         or not 0 <= impact_input_delay_ticks <= 10
+                        or not isinstance(impact_x_hold_ticks, int)
+                        or isinstance(impact_x_hold_ticks, bool)
+                        or not 0 <= impact_x_hold_ticks <= 60
+                        or (impact_x_hold_ticks != 0 and impact_x is None)
+                        or (
+                            impact_trigger_hold_index is not None
+                            and (
+                                not isinstance(impact_trigger_hold_index, int)
+                                or isinstance(impact_trigger_hold_index, bool)
+                                or trigger == "none"
+                                or not 0
+                                <= impact_trigger_hold_index
+                                < impact_x_hold_ticks
+                            )
+                        )
                         or trigger not in {"none", "left", "right"}
                         or not isinstance(jump, bool)
                     ):
@@ -2028,7 +2055,7 @@ def input_trace(
                     )
                     approach_x = controller_axis(approach_main)
                     case_ids.add(case_id)
-                    prefix = f"surface_response_{case_id}"
+                    prefix = f"{surface_response_prefix}_{case_id}"
                     setup = command(
                         f"{prefix}_setup",
                         fighter_damage_override=float(damage),
@@ -2107,6 +2134,32 @@ def input_trace(
                                 fighter_y_override=float(impact_y),
                             )
                         )
+                        for hold_index in range(impact_x_hold_ticks):
+                            trigger_active = (
+                                trigger != "none"
+                                and (
+                                    impact_trigger_hold_index is None
+                                    or hold_index
+                                    >= impact_trigger_hold_index
+                                )
+                            )
+                            trace.append(
+                                command(
+                                    f"{prefix}_impact_x_hold",
+                                    main_x=main_x,
+                                    main_y=main_y,
+                                    digital_left=(
+                                        trigger_active
+                                        and trigger == "left"
+                                    ),
+                                    digital_right=(
+                                        trigger_active
+                                        and trigger == "right"
+                                    ),
+                                    jump=trigger_active and jump,
+                                    fighter_x_override=float(impact_x),
+                                )
+                            )
                         repeat(
                             f"{prefix}_impact_wait",
                             impact_input_delay_ticks,
@@ -2148,13 +2201,19 @@ def input_trace(
                             main_y=main_y,
                             digital_left=(
                                 trigger_waypoint_index is None
+                                and impact_x_hold_ticks == 0
                                 and trigger == "left"
                             ),
                             digital_right=(
                                 trigger_waypoint_index is None
+                                and impact_x_hold_ticks == 0
                                 and trigger == "right"
                             ),
-                            jump=trigger_waypoint_index is None and jump,
+                            jump=(
+                                trigger_waypoint_index is None
+                                and impact_x_hold_ticks == 0
+                                and jump
+                            ),
                         )
                     )
                     repeat(

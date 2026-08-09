@@ -53,12 +53,22 @@ def generate(raw: bytes) -> str:
     wall_tech_invulnerability_ticks = i32(0x764)
     bounce_invulnerability_ticks = i32(0x1B8)
     bounce_collision_lockout = f32(0x1C0)
+    tech_lockout_ticks = i32(0x01C)
+    tech_window_ticks = f32(0x250)
+    tech_roll_axis_threshold = f32(0x254)
+    down_wait_ticks = f32(0x424)
     if (
         not 0 < wall_tech_stall_ticks <= 0xFFFF
         or not 0 < wall_tech_invulnerability_ticks <= 0xFFFF
         or not 0 < bounce_invulnerability_ticks <= 0xFFFF
         or not bounce_collision_lockout.is_integer()
         or not 0 < bounce_collision_lockout <= 0xFFFF
+        or not 0 < tech_lockout_ticks <= 0xFFFF
+        or not tech_window_ticks.is_integer()
+        or not 0 < tech_window_ticks <= 0xFFFF
+        or not 0.0 < tech_roll_axis_threshold <= 1.0
+        or not down_wait_ticks.is_integer()
+        or not 0 < down_wait_ticks <= 0xFFFF
     ):
         raise ValueError("common surface-response timing does not fit uint16_t")
 
@@ -105,6 +115,12 @@ def generate(raw: bytes) -> str:
         "wall_tech_invulnerability_ticks": wall_tech_invulnerability_ticks,
         "bounce_invulnerability_ticks": bounce_invulnerability_ticks,
         "bounce_collision_lockout_ticks": int(bounce_collision_lockout),
+        "tech_window_ticks": int(tech_window_ticks),
+        "tech_lockout_ticks": tech_lockout_ticks,
+        "tech_roll_axis_threshold": round(
+            tech_roll_axis_threshold * 32767.0
+        ),
+        "down_wait_ticks": int(down_wait_ticks),
     }
 
     lines = [
@@ -171,6 +187,10 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({surface_attributes['wall_tech_invulnerability_ticks']}),",
             f"    UINT16_C({surface_attributes['bounce_invulnerability_ticks']}),",
             f"    UINT16_C({surface_attributes['bounce_collision_lockout_ticks']}),",
+            f"    UINT16_C({surface_attributes['tech_window_ticks']}),",
+            f"    UINT16_C({surface_attributes['tech_lockout_ticks']}),",
+            f"    UINT16_C({surface_attributes['tech_roll_axis_threshold']}),",
+            f"    UINT16_C({surface_attributes['down_wait_ticks']}),",
             "};",
             "",
         ]
