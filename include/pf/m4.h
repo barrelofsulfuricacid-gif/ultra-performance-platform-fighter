@@ -162,7 +162,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_FALCON_KICK_WALL_REBOUND = 129,
     PF_M4_ACTION_DAMAGE_LOW_1 = 130,
     PF_M4_ACTION_DAMAGE_LOW_2 = 131,
-    PF_M4_ACTION_DAMAGE_LOW_3 = 132
+    PF_M4_ACTION_DAMAGE_LOW_3 = 132,
+    PF_M4_ACTION_LEDGE_CATCH = 133
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state

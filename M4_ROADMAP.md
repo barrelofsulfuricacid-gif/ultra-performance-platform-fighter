@@ -245,10 +245,28 @@ Current DownBound prior-art/source sweep:
   passes 20/20, and the cross-platform verifier soak digest is
   `7f584c16f3d23773`.
 
+## Completed and verified: distinct CliffCatch and CliffWait entry
+
+- [x] Reuse the already-qualified Hyrule route and current/pinned decomp sweep;
+  no redundant Dolphin boot or new character-specific capture lane was needed.
+- [x] Import live-qualified absolute frame-one catch/wait roots, reuse decoded
+  `TransN` deltas, preserve seven displayed catch frames, and enter wait only
+  on source animation completion.
+- [x] Expand the live comparison to 110 production samples with source digest
+  `0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3`
+  and production digest
+  `9c562426f42c4b01b08a7bbea9c667f56661a2787d107870a14208f326ccd94e`.
+- [x] Validate catch in snapshot/hash and exclusive ledge ownership, and count
+  its seven elapsed invulnerability frames without restarting at wait.
+- [x] Pass WSL Release 27/27, Windows MSVC Release 27/27, WSL ASan/UBSan 20/20,
+  the 0.605/0.805-second WSL/Windows stored gates, Emscripten rebuild,
+  browser adapter, native/Wasm replay identity, and Windows Chrome DOM smoke.
+- [x] Update provenance, fidelity audit, roadmap, and importer skill.
+
 Remaining scope is explicit: ordinary Fall animation-clock equivalence,
-separate EdgeCatch/EdgeWait pose and root tracks, post-wall-contact absolute X,
-broader stage topology, the other incomplete fidelity-audit rows, and the
-native Battlefield frontend.
+later wait/ledge-option behavior and geometry, post-wall-contact absolute X,
+broader stage topology, the other incomplete fidelity-audit rows, and the native
+Battlefield frontend.
 
 Primary sources:
 
@@ -507,6 +525,9 @@ Execution results:
 - [x] Qualify DownBound ECB pose-grounding in its own live source route.
 - [x] Qualify imported Hyrule slope and ordinary ledge departure during floor
   recovery and promote the player-push route to the generic stored architecture.
+- [x] Preserve all seven displayed `CliffCatch` frames, import absolute
+  `CliffCatch`/`CliffWait` root anchors, and qualify the first wait frame rather
+  than collapsing ledge acquisition directly into hang.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -524,7 +545,7 @@ Execution results:
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
 - [x] Keep changed-domain local validation comfortably below two seconds. The
-  current eight-domain stored gate is 0.778 seconds on WSL and 0.804 seconds on
+  current eight-domain stored gate is 0.605 seconds on WSL and 0.805 seconds on
   Windows. Live manifests carry explicit per-pack budgets: paired player push
   is 0.090 seconds warm; wall/ceiling is
   2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on
@@ -586,6 +607,9 @@ other stage/pushbox topologies.
   vector operations.
 - [x] Document separate self/knockback velocity channels, source callback
   ordering, and imported air-magnitude decay for reuse by later characters.
+- [x] Document absolute animation-root placement for `CliffCatch`/`CliffWait`,
+  body-center conversion, catch lifecycle qualification, and snapshot/ledge-
+  ownership validation.
 - [x] Validate the current skill update and exercise its `PlCo.dat` reader
   against the owner extract (145824-byte data block, 23 pointers).
 - [ ] Forward-test a future character-style task when an update is substantial

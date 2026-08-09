@@ -519,8 +519,8 @@ static int pf_replay_action_transition_event_valid(
 
         if (player_index < (uint32_t)player_count)
         {
-            if (previous_action > (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3 ||
-                next_action > (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3 ||
+            if (previous_action > (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
+                next_action > (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
                 changed !=
                     ((event->detail &
                       (uint16_t)(UINT16_C(1) << player_index)) !=

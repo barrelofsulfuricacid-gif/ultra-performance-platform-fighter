@@ -618,7 +618,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_ssbm_falcon_slope_ledge_response
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-ssbm-stored-oracle=pass domain=falcon-common-slope-ledge-response poses=0 cases=2 samples=96")
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-slope-ledge-response poses=0 cases=2 samples=110")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)

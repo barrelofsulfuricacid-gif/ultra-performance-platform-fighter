@@ -12892,8 +12892,10 @@ static int run_ledge_test(
     pf_content_view tuned_view;
     pf_sim *sim = NULL;
     pf_m4_inspection inspection;
+    const pf_m4_falcon_submotion_data *ledge_catch;
     int32_t hang_x;
     int32_t hang_y;
+    uint16_t remaining_ledge_invulnerability_ticks;
     uint32_t tick;
 
     invalid_content.fighter.ledge_invulnerability_ticks =
@@ -13034,9 +13036,24 @@ static int run_ledge_test(
     {
         return 0;
     }
+    ledge_catch = pf_m4_falcon_reference_submotion(
+        PF_M4_FALCON_SUBMOTION_LEDGE_CATCH);
+    remaining_ledge_invulnerability_ticks =
+        inspection.players[0].ledge_invulnerability_ticks;
+    if (ledge_catch == NULL ||
+        remaining_ledge_invulnerability_ticks !=
+            (uint16_t)(content->fighter.ledge_invulnerability_ticks -
+                       ledge_catch->gameplay_frame_count))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=ledge-catch-invulnerability-elapse"
+            " remaining=%u\n",
+            (unsigned int)remaining_ledge_invulnerability_ticks);
+        return 0;
+    }
     for (tick = UINT32_C(1);
-         tick < (uint32_t)
-             content->fighter.ledge_invulnerability_ticks;
+         tick < (uint32_t)remaining_ledge_invulnerability_ticks;
          ++tick)
     {
         if (!step_duel(

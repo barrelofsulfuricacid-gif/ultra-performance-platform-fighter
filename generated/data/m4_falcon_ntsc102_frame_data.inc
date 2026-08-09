@@ -4193,6 +4193,15 @@ pf_m4_falcon_ledge_attribute_data = {
     .snap_height_q16 = INT32_C(127901),
 };
 
+/* qualified ledge-root capture SHA-256: 0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3 */
+static const pf_m4_falcon_ledge_root_positions
+pf_m4_falcon_ledge_root_position_data = {
+    .catch_frame_one_x_q16 = INT32_C(-40395),
+    .catch_frame_one_y_q16 = INT32_C(233882),
+    .wait_frame_one_x_q16 = INT32_C(-16773),
+    .wait_frame_one_y_q16 = INT32_C(268548),
+};
+
 static const pf_m4_falcon_common_special_attributes
 pf_m4_falcon_common_special_attribute_data = {
     .fast_ground_friction_multiplier_q16 = INT32_C(131072),

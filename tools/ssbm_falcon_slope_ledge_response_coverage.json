@@ -96,9 +96,9 @@
   },
   "stored_oracle": {
     "kind": "numeric-trace-v1",
-    "source_trace_sha256": "8c62ce678732b38d157f1e3cee2409b0da22835bc63c906c41e765ce1a879a6d",
-    "production_trace_sha256": "4dce7db6baa8a11fb90b77438ef5e423b500e5e5a3f7a4da835bfc979d6f0167",
-    "samples_per_case": 48,
+    "source_trace_sha256": "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3",
+    "production_trace_sha256": "9c562426f42c4b01b08a7bbea9c667f56661a2787d107870a14208f326ccd94e",
+    "samples_per_case": 55,
     "serialized_fields": [
       "self_velocity_x",
       "self_velocity_y",
@@ -140,14 +140,14 @@
         "input_phases": [
           { "ticks": 1, "lanes": [{ "advance_ticks": 24 }] },
           { "ticks": 1, "lanes": [{ "c_stick": [32767, 0] }] },
-          { "ticks": 46, "lanes": [{}] }
+          { "ticks": 53, "lanes": [{}] }
         ]
       },
       {
         "id": "hyrule_line36_to_line37_natural_hit_departure",
         "initial_facing": -1,
         "input_phases": [
-          { "ticks": 48, "lanes": [{}] }
+          { "ticks": 55, "lanes": [{}] }
         ]
       }
     ],
@@ -158,6 +158,7 @@
           "response_action_ticks",
           "grounded",
           "support_transition",
+          "edge_catch_wait_transition",
           "hitstun_storage_ticks",
           "invulnerable",
           "facing"
@@ -196,10 +197,9 @@
         "position_tolerance_q16": 192,
         "excluded_fields": [
           "post_wall_contact_position_x",
-          "edge_catch_animation_position",
           "ordinary_fall_animation_clock"
         ],
-        "exclusion_reason": "The line 36/37 response position is qualified through sample 43 for X and sample 47 for Y. The adjacent wall response is already a separate surface domain. The simulator currently combines Melee EdgeCatch and EdgeWait into one timed LEDGE_HANG state, so the exact catch frame is strict while its following animation root track is outside this response domain. Ordinary Fall pose timing is a separately named fidelity-ledger concern rather than a widened numeric tolerance."
+        "exclusion_reason": "The line 36/37 response X position is qualified through sample 43 and again for the source-owned EdgeCatch/EdgeWait root positions at samples 48-55; Y is qualified throughout. Samples 44-47 remain assigned to the adjacent wall-response domain. Ordinary Fall pose timing is a separately named fidelity-ledger concern rather than a widened numeric tolerance."
       }
     },
     "c": {

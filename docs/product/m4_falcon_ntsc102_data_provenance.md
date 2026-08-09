@@ -113,7 +113,7 @@ EscapeF's `0x800000c2`. Each catalog row stores an O(1) offset/count span, and
 attack/root-motion accessors reuse the same pool rather than generating
 parallel tables. Regeneration produces
 `generated/data/m4_falcon_ntsc102_frame_data.inc` byte-for-byte at SHA-256
-`eb36c7db410efdb20b59adddc345f5ff729f8582a51e164d10414c1caa98defa`.
+`baa5d0bd55cc116fa5c6451179b71763b7df5ebd86183f82ce7e531874764df2`.
 The expanded behavior-bearing source digest is
 `77dc51740b77c3f80e55571bf44aa321a56cef3b22b76f7b320982675421da41`;
 the separate logical catalog digest remains stable because derived spans do
@@ -851,6 +851,27 @@ their original field mask and preserve all five prior production digests.
 Repeated input phases expand offline into immutable C arrays with compile-time
 lane counts; production adds no allocation, parsing, float work, or character
 switch for this generalization.
+
+The ordinary ledge route distinguishes decoded animation deltas from callbacks
+that place from an absolute animation root. Pinned `ftcliffcommon.c` positions
+`CliffCatch` and `CliffWait` from `x68C_transNPos` plus the selected endpoint on
+every physics update. The live-qualified frame-one source roots are
+`(-5.906890869140625, -20.114771366119385)` for catch and
+`(-2.4527130126953125, -23.096231937408447)` for wait. Offline conversion emits
+catch `(-40395, 233882)` and wait `(-16773, 268548)` Q16 anchors; subsequent
+catch frames reuse the existing decoded `TransN` delta pool. Runtime converts
+the source root to its body-center convention once and retains a distinct
+allocation-free `LEDGE_CATCH` action for all seven displayed frames.
+
+The expanded Hyrule response theorem compares 110 production samples across
+the two existing cases, including `CliffCatch` frames 1-7 and the first
+`CliffWait` frame. Its source semantic SHA-256 is
+`0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3` and its
+production trace SHA-256 is
+`9c562426f42c4b01b08a7bbea9c667f56661a2787d107870a14208f326ccd94e`.
+Snapshot validation and exclusive ledge ownership accept the distinct catch
+state; invulnerability continues to elapse from acquisition rather than being
+restarted at wait.
 
 ## Repository controls
 

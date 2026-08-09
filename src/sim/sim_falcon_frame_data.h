@@ -115,6 +115,8 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_WALL_TECH = 202,
     PF_M4_FALCON_SUBMOTION_WALL_TECH_JUMP = 203,
     PF_M4_FALCON_SUBMOTION_CEILING_TECH = 204,
+    PF_M4_FALCON_SUBMOTION_LEDGE_CATCH = 216,
+    PF_M4_FALCON_SUBMOTION_LEDGE_WAIT = 217,
     PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT = 239,
     PF_M4_FALCON_SUBMOTION_APPEAL_LEFT = 240
 } pf_m4_falcon_submotion_index;
@@ -316,6 +318,14 @@ typedef struct pf_m4_falcon_ledge_attributes
     int32_t snap_y_q16;
     int32_t snap_height_q16;
 } pf_m4_falcon_ledge_attributes;
+
+typedef struct pf_m4_falcon_ledge_root_positions
+{
+    int32_t catch_frame_one_x_q16;
+    int32_t catch_frame_one_y_q16;
+    int32_t wait_frame_one_x_q16;
+    int32_t wait_frame_one_y_q16;
+} pf_m4_falcon_ledge_root_positions;
 
 /*
  * Exact deterministic view of the 0x8c-byte ftCaptain_DatAttrs block. Float
@@ -545,6 +555,9 @@ pf_m4_falcon_reference_common_attributes(void);
 
 const pf_m4_falcon_ledge_attributes *
 pf_m4_falcon_reference_ledge_attributes(void);
+
+const pf_m4_falcon_ledge_root_positions *
+pf_m4_falcon_reference_ledge_root_positions(void);
 
 const pf_m4_falcon_special_attributes *
 pf_m4_falcon_reference_special_attributes(void);

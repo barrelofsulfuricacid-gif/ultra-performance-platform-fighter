@@ -1975,6 +1975,7 @@ static int pf_m4_player_state_consistent(
                 falcon_dive_capture != 0 ||
                 ground_falcon_kick != 0) &&
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
+               action != (uint8_t)PF_M4_ACTION_LEDGE_CATCH &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
@@ -2030,7 +2031,8 @@ static int pf_m4_player_state_consistent(
     {
         return 1;
     }
-    return (action == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+    return (action == (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
+            action == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
             action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK) &&
@@ -2381,7 +2383,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->shield_recoil_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->action_ticks[player_index] > UINT16_C(600) ||
-                action > (uint8_t)PF_M4_ACTION_DAMAGE_LOW_3 ||
+                action > (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2840,6 +2842,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 return PF_STATUS_INVALID_STATE;
             }
             if (world->action_state[player_index] ==
+                    (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
+                world->action_state[player_index] ==
                     (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
                 world->action_state[player_index] ==
                     (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||

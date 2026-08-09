@@ -44,6 +44,16 @@ DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256 = (
 DAMAGE_FLY_ECB_CAPTURE_SHA256 = (
     "d011c9bb79f93840d1d97fbf241b754cedf5669c2578c9f1f7f85b45a3f6bd84"
 )
+LEDGE_ROOT_CAPTURE_SHA256 = (
+    "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3"
+)
+
+# Absolute frame-one TransN positions from the live-qualified Hyrule line-37
+# route. The generic translation pool stores deltas for physics callbacks;
+# CliffCatch/CliffWait physics instead positions from absolute TransN relative
+# to the ledge endpoint every frame.
+LEDGE_CATCH_FRAME_ONE_ROOT_MELEE = (-5.906890869140625, -20.114771366119385)
+LEDGE_WAIT_FRAME_ONE_ROOT_MELEE = (-2.4527130126953125, -23.096231937408447)
 
 COMMON_ATTRIBUTE_COUNT = 97
 SUBMOTION_COUNT = 318
@@ -1615,6 +1625,23 @@ def generate(
     )
     lines.extend(
         (
+            "};",
+            "",
+            f"/* qualified ledge-root capture SHA-256: {LEDGE_ROOT_CAPTURE_SHA256} */",
+            "static const pf_m4_falcon_ledge_root_positions",
+            "pf_m4_falcon_ledge_root_position_data = {",
+            "    .catch_frame_one_x_q16 = INT32_C("
+            f"{round(LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM_Q16)}"
+            "),",
+            "    .catch_frame_one_y_q16 = INT32_C("
+            f"{round(-LEDGE_CATCH_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM_Q16)}"
+            "),",
+            "    .wait_frame_one_x_q16 = INT32_C("
+            f"{round(LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[0] * MELEE_X_TO_SIM_Q16)}"
+            "),",
+            "    .wait_frame_one_y_q16 = INT32_C("
+            f"{round(-LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM_Q16)}"
+            "),",
             "};",
             "",
             "static const pf_m4_falcon_common_special_attributes",

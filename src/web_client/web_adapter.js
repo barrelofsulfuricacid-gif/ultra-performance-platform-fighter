@@ -3311,6 +3311,7 @@ mergeInto(LibraryManager.library, {
       "DAMAGE LOW 1",
       "DAMAGE LOW 2",
       "DAMAGE LOW 3",
+      "LEDGE CATCH",
     ];
 
     if (view[1] < previousTick) {

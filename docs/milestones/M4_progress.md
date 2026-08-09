@@ -4738,3 +4738,44 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   M4 remains unfinished: ordinary Fall animation phase, distinct
   EdgeCatch/EdgeWait pose/root behavior, broader stage topology, remaining
   fidelity-audit rows, and the native Battlefield frontend are open.
+
+## 2026-08-09 Falcon CliffCatch to CliffWait equivalence
+
+- The prior-art sweep compared pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` with current upstream
+  `013091add6d46d2d809d163371deab97ab5e37eb`. `ftcliffcommon.c`,
+  `ftCo_CliffWait.c`, `ftCo_Fall.c`, and `ftanim.c` are unchanged, and no
+  maintained Slippi/libmelee route replaces the existing checkpoint oracle.
+  The already-qualified Hyrule trace contains the needed rows, so this
+  extension required no redundant Dolphin boot.
+- Pinned source enters `CliffCatch` submotion 216 for seven displayed frames,
+  then `CliffWait` 217. Its physics positions from absolute
+  `x68C_transNPos` plus the selected endpoint rather than consuming only a root
+  delta. The importer now emits live-qualified frame-one catch/wait anchors and
+  reuses the existing decoded catch `TransN` deltas. Production exposes a
+  distinct public `LEDGE_CATCH` action, converts source root to body center
+  exactly once, ignores catch inputs, and enters wait only on animation
+  completion.
+- The expanded live theorem covers 180 selected rows / 110 production samples.
+  It strictly checks the seven catch frames, first wait frame, endpoint/facing,
+  invulnerability, action clock, zero velocity, and bounded Q16 position. Its
+  source semantic SHA-256 is
+  `0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3`;
+  production is
+  `9c562426f42c4b01b08a7bbea9c667f56661a2787d107870a14208f326ccd94e`.
+  Snapshot/hash validation and exclusive ledge ownership now include catch,
+  and the ledge-invulnerability regression correctly counts the seven elapsed
+  catch frames instead of restarting protection at wait.
+- The generic eight-domain / 54-case stored gate passes in 0.605 seconds on
+  WSL and 0.805 seconds on native Windows MSVC. WSL Release passes 27/27 in
+  1.00 seconds, Windows MSVC Release passes 27/27, and WSL ASan/UBSan passes
+  20/20 in 8.55 seconds. The Emscripten client rebuilds; browser-adapter,
+  native/Wasm replay identity, and Windows Chrome DOM/Wasm smoke pass. Two
+  standalone validation scripts now link the source-derived stage-data module,
+  and the browser smoke pins the current canonical 75-event replay rather than
+  its stale pre-repin count.
+- The reusable importer skill now records the absolute-root-versus-delta rule,
+  body-center conversion, full catch lifecycle, and snapshot/ownership gotcha.
+  M4 remains unfinished: ordinary Fall animation phase, later wait/ledge-option
+  behavior and geometry, broader stage topology, remaining fidelity-audit rows,
+  and the native Battlefield frontend are open.

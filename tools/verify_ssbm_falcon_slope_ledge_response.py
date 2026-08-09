@@ -62,7 +62,7 @@ EXPECTED_SOURCE_SHA256 = {
 ROUTE = "surface_response"
 SLOPE_CASE = "hyrule_line34_forward_getup_roll"
 LEDGE_CASE = "hyrule_line36_to_line37_natural_hit_departure"
-SAMPLES_PER_CASE = 48
+SAMPLES_PER_CASE = 55
 
 # Thin Python bindings for the public production action enum.  The comparator
 # remains generic over integer observations; only this source-action mapping is
@@ -74,6 +74,7 @@ ACTION_HITLAG = 13
 ACTION_HITSTUN = 14
 ACTION_KNOCKDOWN = 15
 ACTION_ROLL = 25
+ACTION_LEDGE_CATCH = 133
 
 
 def source_cases(capture: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -92,8 +93,8 @@ def source_cases(capture: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     require_equal(len(slope), 90, "slope live row count")
     require_equal(len(ledge), 90, "ledge live row count")
     return {
-        SLOPE_CASE: slope[24:72],
-        LEDGE_CASE: ledge[:48],
+        SLOPE_CASE: slope[24:79],
+        LEDGE_CASE: ledge[:55],
     }
 
 
@@ -186,7 +187,7 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]], stage: dict[str, Any]
             "TECH_MISS_DOWN",
             "TECH_MISS_DOWN",
             *(["GROUND_ROLL_FORWARD_DOWN"] * 35),
-            *(["STANDING"] * 11),
+            *(["STANDING"] * 18),
         ],
         "slope response action boundary",
     )
@@ -216,7 +217,8 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]], stage: dict[str, Any]
             *(["DAMAGE_FLY_NEUTRAL"] * 27),
             *(["TECH_MISS_UP"] * 7),
             *(["FALLING"] * 13),
-            "EDGE_CATCHING",
+            *(["EDGE_CATCHING"] * 7),
+            "EDGE_HANGING",
         ],
         "ledge response action boundary",
     )
@@ -238,19 +240,24 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]], stage: dict[str, Any]
     require_equal(
         [row["surface_collision_memory"]["surfaces"]["floor"]["index"]
          for row in ledge],
-        [*([36] * 27), *([37] * 21)],
+        [*([36] * 27), *([37] * 28)],
         "line 36 to line 37 route",
     )
-    catch = ledge[-1]
-    contact = catch["surface_collision_memory"]["contact"]
+    wait = ledge[-1]
+    contact = ledge[47]["surface_collision_memory"]["contact"]
     endpoint = stage["lines"][37]["end"]
     if not (
         math.isclose(float(contact[0]), float(endpoint[0]), abs_tol=1.0e-4)
         and math.isclose(float(contact[1]), float(endpoint[1]), abs_tol=1.0e-4)
-        and bool(catch["invulnerable"])
-        and int(catch["facing"]) == -1
+        and all(bool(row["invulnerable"]) for row in ledge[47:])
+        and int(wait["facing"]) == -1
     ):
         raise SystemExit("ordinary ledge-catch endpoint discriminator mismatch")
+    require_equal(
+        [int(row["action_frame"]) for row in ledge[47:]],
+        [*range(1, 8), 1],
+        "EdgeCatch to EdgeWait animation clock",
+    )
 
 
 def mapped_source_action(row: dict[str, Any], sample: int) -> int:
@@ -266,6 +273,8 @@ def mapped_source_action(row: dict[str, Any], sample: int) -> int:
     if action == "FALLING":
         return ACTION_AIRBORNE
     if action == "EDGE_CATCHING":
+        return ACTION_LEDGE_CATCH
+    if action == "EDGE_HANGING":
         return ACTION_LEDGE_HANG
     raise SystemExit(f"sample {sample}: unmapped source action {action}")
 
@@ -354,21 +363,22 @@ def compare_case(
 
             # The compact runtime stage reproduces line 36/37 motion through
             # the response. X becomes a wall-response domain after sample 43;
-            # EdgeCatch's animation root begins on sample 48.
-            if index <= 43:
+            # The intervening wall-contact X span remains owned by the
+            # separate surface domain. EdgeCatch/EdgeWait are source-root
+            # relative again and re-enter the position comparison.
+            if index <= 43 or index >= 48:
                 require_q16_close(
                     actual["dx"],
                     source_x_to_sim_q16(float(row["position_x"]) - origin_x),
                     position_tolerance,
                     f"{prefix} position x",
                 )
-            if index <= 47:
-                require_q16_close(
-                    actual["dy"],
-                    source_y_to_sim_q16(float(row["position_y"]) - origin_y),
-                    position_tolerance,
-                    f"{prefix} position y",
-                )
+            require_q16_close(
+                actual["dy"],
+                source_y_to_sim_q16(float(row["position_y"]) - origin_y),
+                position_tolerance,
+                f"{prefix} position y",
+            )
 
 
 def compare_sim(

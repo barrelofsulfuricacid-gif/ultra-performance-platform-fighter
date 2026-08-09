@@ -52,10 +52,17 @@ pf_m4_ssbm_falcon_slope_ledge_response_hyrule_line34_forward_getup_roll_inputs[]
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_slope_ledge_response_hyrule_line34_forward_getup_roll_inputs) / sizeof(pf_m4_ssbm_falcon_slope_ledge_response_hyrule_line34_forward_getup_roll_inputs[0]) ==
-        UINT16_C(48),
+        UINT16_C(55),
     "stored trace input lanes are incomplete for hyrule_line34_forward_getup_roll");
 
 static const pf_ssbm_stored_trace_input
@@ -108,10 +115,17 @@ pf_m4_ssbm_falcon_slope_ledge_response_hyrule_line36_to_line37_natural_hit_depar
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_slope_ledge_response_hyrule_line36_to_line37_natural_hit_departure_inputs) / sizeof(pf_m4_ssbm_falcon_slope_ledge_response_hyrule_line36_to_line37_natural_hit_departure_inputs[0]) ==
-        UINT16_C(48),
+        UINT16_C(55),
     "stored trace input lanes are incomplete for hyrule_line36_to_line37_natural_hit_departure");
 
 static const pf_ssbm_stored_trace_case
@@ -121,14 +135,14 @@ pf_m4_ssbm_falcon_slope_ledge_response_cases[] = {
 };
 
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_CASE_COUNT UINT16_C(2)
-#define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE UINT8_C(48)
+#define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE UINT8_C(55)
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_LANES_PER_SAMPLE UINT8_C(1)
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SERIALIZED_FIELDS \
     (PF_SSBM_TRACE_SELF_VELOCITY_X | PF_SSBM_TRACE_SELF_VELOCITY_Y | PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X | PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y | PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY | PF_SSBM_TRACE_ACTION_TICKS | PF_SSBM_TRACE_HITLAG_TICKS | PF_SSBM_TRACE_HITSTUN_TICKS | PF_SSBM_TRACE_ACTION_STATE | PF_SSBM_TRACE_HITLAG_RESUME_ACTION | PF_SSBM_TRACE_GROUNDED | PF_SSBM_TRACE_TUMBLE | PF_SSBM_TRACE_INVULNERABLE | PF_SSBM_TRACE_TECH_DIRECTION | PF_SSBM_TRACE_PRONE_ORIENTATION | PF_SSBM_TRACE_FACING)
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SOURCE_TRACE_SHA256 \
-    "8c62ce678732b38d157f1e3cee2409b0da22835bc63c906c41e765ce1a879a6d"
+    "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3"
 #define PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "4dce7db6baa8a11fb90b77438ef5e423b500e5e5a3f7a4da835bfc979d6f0167"
+    "9c562426f42c4b01b08a7bbea9c667f56661a2787d107870a14208f326ccd94e"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_slope_ledge_response_cases) /
