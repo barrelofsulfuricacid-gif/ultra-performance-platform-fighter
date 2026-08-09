@@ -15,6 +15,7 @@
 #define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
 #define PF_M4_FALCON_DIVE_ECB_FRAME_COUNT UINT16_C(64)
 #define PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT UINT16_C(26)
+#define PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT UINT16_C(24)
 
 typedef enum pf_m4_falcon_move_index
 {
@@ -434,6 +435,8 @@ typedef struct pf_m4_falcon_collision_pose
     int32_t falling_bottom_y_from_origin_q16;
     uint32_t down_bound_back_floor_contact_mask;
     uint32_t down_bound_stomach_floor_contact_mask;
+    int32_t damage_fly_bottom_y_from_origin_q16[
+        PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
     int32_t air_dodge_bottom_y_from_origin_q16[
         PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT];
     int32_t fall_special_bottom_y_from_origin_q16[

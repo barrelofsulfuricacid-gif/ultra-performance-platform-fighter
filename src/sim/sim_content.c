@@ -2,6 +2,7 @@
 #include "sim_falcon_frame_data.h"
 #include "sim_sha256.h"
 #include "sim_ssbm_common_data.h"
+#include "sim_ssbm_stage_data.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -1342,7 +1343,19 @@ static void pf_m4_hash_stage(
     pf_sha256 *hash,
     const pf_m4_stage_data *stage)
 {
+    const pf_m4_ssbm_stage_collision_profile *reference_stage =
+        pf_m4_ssbm_reference_stage_collision(
+            stage->reference_collision_profile);
+
     pf_m4_hash_u16(hash, stage->schema_version);
+    pf_m4_hash_u16(hash, stage->reference_collision_profile);
+    if (reference_stage != NULL)
+    {
+        pf_sha256_update(
+            hash,
+            reference_stage->source_sha256,
+            (size_t)32);
+    }
     pf_m4_hash_i32(hash, stage->floor_left_q16);
     pf_m4_hash_i32(hash, stage->floor_right_q16);
     pf_m4_hash_i32(hash, stage->floor_y_q16);
@@ -1360,6 +1373,8 @@ static void pf_m4_hash_stage(
     pf_m4_hash_i32(hash, stage->blast_bottom_q16);
     pf_m4_hash_i32(hash, stage->spawn_spacing_q16);
     pf_m4_hash_u16(hash, stage->platform_motion_period_ticks);
+    pf_m4_hash_u16(hash, stage->reference_spawn_line);
+    pf_m4_hash_i32(hash, stage->reference_spawn_x_q16);
     pf_m4_hash_i32(hash, stage->revival_platform_start_y_q16);
     pf_m4_hash_i32(hash, stage->revival_platform_end_y_q16);
     pf_m4_hash_i32(hash, stage->revival_platform_half_width_q16);
@@ -2249,6 +2264,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     stage = &out_content->stage;
     stage->struct_size = (uint32_t)sizeof(*stage);
     stage->schema_version = PF_M4_STAGE_SCHEMA_VERSION;
+    stage->reference_collision_profile =
+        (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED;
     stage->floor_left_q16 = -INT32_C(32) * PF_Q16_ONE;
     stage->floor_right_q16 = INT32_C(32) * PF_Q16_ONE;
     stage->floor_y_q16 = INT32_C(32) * PF_Q16_ONE;
@@ -2267,6 +2284,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     stage->blast_bottom_q16 = INT32_C(58) * PF_Q16_ONE;
     stage->spawn_spacing_q16 = INT32_C(8) * PF_Q16_ONE;
     stage->platform_motion_period_ticks = UINT16_C(120);
+    stage->reference_spawn_line = UINT16_C(0);
+    stage->reference_spawn_x_q16 = INT32_C(0);
     stage->revival_platform_start_y_q16 =
         INT32_C(4) * PF_Q16_ONE;
     stage->revival_platform_end_y_q16 =
@@ -2393,6 +2412,8 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
 {
     const pf_m4_fighter_data *fighter;
     const pf_m4_stage_data *stage;
+    const pf_m4_ssbm_stage_collision_profile *reference_stage;
+    const pf_m4_ssbm_stage_collision_line *reference_spawn_line;
     const pf_m4_item_data *item;
     const pf_m4_projectile_data *projectile;
     const pf_m4_reflector_data *reflector;
@@ -2483,8 +2504,6 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         content->fighter.reserved != UINT8_C(0) ||
         content->fighter.smash_charge_reserved != UINT16_C(0) ||
         content->fighter.reserved2 != UINT8_C(0) ||
-        content->stage.reserved != UINT16_C(0) ||
-        content->stage.reserved2 != UINT16_C(0) ||
         content->item.reserved != UINT8_C(0) ||
         content->item.reserved2 != UINT16_C(0) ||
         content->projectile.reserved != UINT8_C(0) ||
@@ -3538,6 +3557,37 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     }
 
     stage = &content->stage;
+    reference_stage = pf_m4_ssbm_reference_stage_collision(
+        stage->reference_collision_profile);
+    reference_spawn_line = NULL;
+    if (stage->reference_collision_profile ==
+        (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
+    {
+        if (stage->reference_spawn_line != UINT16_C(0) ||
+            stage->reference_spawn_x_q16 != INT32_C(0))
+        {
+            return PF_STATUS_INVALID_CONFIG;
+        }
+    }
+    else
+    {
+        if (reference_stage == NULL ||
+            stage->reference_spawn_line >= reference_stage->line_count)
+        {
+            return PF_STATUS_INVALID_CONFIG;
+        }
+        reference_spawn_line =
+            &reference_stage->lines[stage->reference_spawn_line];
+        if (reference_spawn_line->kind !=
+                (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+            pf_m4_ssbm_stage_support_valid(
+                stage->reference_collision_profile,
+                (uint8_t)(stage->reference_spawn_line + UINT16_C(1)),
+                UINT8_C(1)) == 0)
+        {
+            return PF_STATUS_INVALID_CONFIG;
+        }
+    }
     platform_left_extent =
         (int64_t)stage->platform_center_x_q16 -
         (int64_t)stage->platform_motion_amplitude_q16 -
@@ -3547,9 +3597,11 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         (int64_t)stage->platform_motion_amplitude_q16 +
         (int64_t)stage->platform_half_width_q16;
     spawn_left_extent =
-        -INT64_C(3) * (int64_t)stage->spawn_spacing_q16 -
+        (int64_t)stage->reference_spawn_x_q16 -
+        INT64_C(3) * (int64_t)stage->spawn_spacing_q16 -
         (int64_t)fighter->half_width_q16;
     spawn_right_extent =
+        (int64_t)stage->reference_spawn_x_q16 +
         INT64_C(3) * (int64_t)stage->spawn_spacing_q16 +
         (int64_t)fighter->half_width_q16;
     revival_left_extent =
@@ -3610,6 +3662,17 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         upper_overlaps_platform != 0 ||
         upper_overlaps_revival != 0 ||
         upper_overlaps_solid != 0 ||
+        (reference_spawn_line != NULL &&
+         (spawn_left_extent <
+              (int64_t)(reference_spawn_line->start_x_q16 <
+                                reference_spawn_line->end_x_q16
+                            ? reference_spawn_line->start_x_q16
+                            : reference_spawn_line->end_x_q16) ||
+          spawn_right_extent >
+              (int64_t)(reference_spawn_line->start_x_q16 >
+                                reference_spawn_line->end_x_q16
+                            ? reference_spawn_line->start_x_q16
+                            : reference_spawn_line->end_x_q16))) ||
         stage->spawn_spacing_q16 <= INT32_C(0) ||
         spawn_right_extent > (int64_t)stage->floor_right_q16 ||
         spawn_left_extent < (int64_t)stage->floor_left_q16 ||

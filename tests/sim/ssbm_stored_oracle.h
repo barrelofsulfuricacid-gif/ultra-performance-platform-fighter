@@ -174,6 +174,9 @@ typedef struct pf_ssbm_stored_trace_case
     uint8_t initial_state_variant;
     /* Optional exact source-facing override after domain setup. */
     int8_t initial_facing;
+    /* Optional case-specific semantic subset. Zero inherits the domain mask,
+       preserving every previously generated numeric-trace oracle. */
+    uint32_t serialized_fields;
 } pf_ssbm_stored_trace_case;
 
 typedef uint8_t (*pf_ssbm_stored_trace_case_runner)(

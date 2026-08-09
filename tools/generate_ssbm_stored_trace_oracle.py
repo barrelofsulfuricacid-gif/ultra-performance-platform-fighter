@@ -212,6 +212,7 @@ def generate(manifest: dict[str, Any]) -> str:
         ids.add(case_id)
         initial_state_variant = case.get("initial_state_variant", 0)
         initial_facing = case.get("initial_facing", 0)
+        case_raw_fields = case.get("serialized_fields")
         if (
             not isinstance(initial_state_variant, int)
             or isinstance(initial_state_variant, bool)
@@ -227,6 +228,21 @@ def generate(manifest: dict[str, Any]) -> str:
         ):
             raise ValueError(
                 f"{case_id}.initial_facing must be -1, 0, or 1"
+            )
+        if case_raw_fields is None:
+            case_fields = None
+        elif (
+            not isinstance(case_raw_fields, list)
+            or not case_raw_fields
+            or any(field not in TRACE_FIELDS for field in case_raw_fields)
+            or len(set(case_raw_fields)) != len(case_raw_fields)
+        ):
+            raise ValueError(
+                f"{case_id}.serialized_fields contains an unsupported field"
+            )
+        else:
+            case_fields = " | ".join(
+                TRACE_FIELDS[field] for field in case_raw_fields
             )
         input_symbol = f"{symbol_prefix}_{case_id}_inputs"
         rows.extend(
@@ -306,9 +322,13 @@ def generate(manifest: dict[str, Any]) -> str:
                 "",
             ]
         )
+        explicit_case_fields = (
+            "UINT32_C(0)" if case_fields is None else f"({case_fields})"
+        )
         case_rows.append(
             f'    {{ {json.dumps(case_id)}, {input_symbol}, '
-            f'UINT8_C({initial_state_variant}), INT8_C({initial_facing}) }},'
+            f'UINT8_C({initial_state_variant}), '
+            f'INT8_C({initial_facing}), {explicit_case_fields} }},'
         )
 
     return "\n".join(

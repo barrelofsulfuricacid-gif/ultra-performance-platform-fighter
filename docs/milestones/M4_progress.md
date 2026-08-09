@@ -4701,3 +4701,40 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   two-port qualification rules. M4 remains unfinished: slopes, broader
   ECB/stage topology, remaining fidelity-audit rows, and the native Battlefield
   frontend are still open.
+
+## 2026-08-09 imported Hyrule slope and ordinary-ledge equivalence
+
+- A prior-art sweep of pinned/current `doldecomp/melee`, ExiAI, Slippi, and
+  libmelee found observation transport but no maintained importer or exact
+  stage-response equivalence domain. The accepted importer converts Hyrule
+  MapCollData lines 34-37 from source joint-local coordinates to immutable
+  runtime world-space lines. Its semantic source digest is
+  `4a0dd57bb8d9532589d3ecd129213d3a0876538a2dc7f733eca6c1e73c04db9c`.
+- Falcon's generated frame data now includes the 24-frame DamageFly ECB-bottom
+  track and ledge-snap attributes. Production projects landing attack
+  knockback onto the imported slope tangent, preserves source landing-entry
+  ordering, evaluates DownBound contact before decay, leaves support only at
+  the exact endpoint boundary, clears hitstun on collision-driven Fall, and
+  checks ordinary ledges using source root/ECB coordinates.
+- Two checkpoint-isolated cases qualify line-34 forward getup roll and the
+  natural line-36-to-line-37 departure through exact ordinary ledge catch. Two
+  fresh Dolphin boots reproduce source digest
+  `8c62ce678732b38d157f1e3cee2409b0da22835bc63c906c41e765ce1a879a6d`;
+  production digest is
+  `4dce7db6baa8a11fb90b77438ef5e423b500e5e5a3f7a4da835bfc979d6f0167`.
+  The final live gate took 1.234 seconds warm / 4.859 seconds end to end.
+- The generic numeric oracle supports per-case serialized-field masks without
+  runtime dispatch. Explicit inherited-zero initializers keep GCC `-Werror`
+  and MSVC portable. The corrected DamageFly clock/grounding and landing order
+  were also requalified in the existing damage and floor packs.
+- The complete stored lane now has eight domains / 54 cases plus replay and
+  takes 0.804 seconds on Windows and 0.778 seconds in WSL. Windows and WSL
+  Release pass 27/27; WSL ASan/UBSan passes 20/20; the verifier soak is stable
+  across both hosts at `7f584c16f3d23773`. Current replay is 41,599 bytes with
+  corpus/final/event digests
+  `0d1c16c1e231d29c89a49d193f6b10deb081297821d5448239307cae4d33f4ad`,
+  `6c648e4463b070ad4b7e3b013ea620e21463b281fe39b00980cf0cbf558bfcd5`,
+  and `0cf114479e7cec86ebe0b89b08fd6eabc74209d99ed053fb92b397d26d6eab8e`.
+  M4 remains unfinished: ordinary Fall animation phase, distinct
+  EdgeCatch/EdgeWait pose/root behavior, broader stage topology, remaining
+  fidelity-audit rows, and the native Battlefield frontend are open.

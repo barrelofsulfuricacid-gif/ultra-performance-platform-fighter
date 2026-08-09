@@ -75,6 +75,7 @@
       "generated/data/m4_ssbm_falcon_damage_response_oracle.inc",
       "tools/import_ssbm_common_data.py",
       "tools/ssbm_dat.py",
+      "tools/ssbm_live_trace.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/ssbm_falcon_damage_response_coverage.json",
       "tools/verify_ssbm_falcon_damage_response.py",
@@ -92,7 +93,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95",
-    "production_trace_sha256": "13495d1a278888bd67c023b4803b4e3dfcbaaea72b655d0289b99f815fd4c32f",
+    "production_trace_sha256": "53471e3af8475959868a5f64361200151bc9fd9b640dbb5b3d66e4cd5031db4b",
     "samples_per_case": 3,
     "c": {
       "symbol_prefix": "pf_m4_ssbm_falcon_damage_response",

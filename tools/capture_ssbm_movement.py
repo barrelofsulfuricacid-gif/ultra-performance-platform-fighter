@@ -4131,7 +4131,13 @@ def read_surface_collision_memory_probe(
 def read_stage_collision_memory_probe(
     memory_engine: object,
 ) -> dict[str, object]:
-    """Read the loaded stage's source MapCollData line catalog once."""
+    """Read source topology and the runtime world-space collision catalog.
+
+    MapCollData vertices are joint-local.  Melee collision queries use the
+    transformed ``groundCollVtx[*].pos`` array instead, so committing only the
+    source vertices silently misplaces collision lines owned by translated or
+    animated stage joints.
+    """
 
     map_coll_data = memory_engine.read_word(0x804D64B4)
     header = BigEndianSnapshot.read(memory_engine, map_coll_data, 0x30)
@@ -4147,10 +4153,27 @@ def read_stage_collision_memory_probe(
     vertices_snapshot = BigEndianSnapshot.read(
         memory_engine, vertices_address, vertex_count * 8
     )
-    vertices = [
+    source_vertices = [
         vertices_snapshot.f32_vector(vertices_address + index * 8, 2)
         for index in range(vertex_count)
     ]
+    runtime_vertices_address = memory_engine.read_word(0x804D64B8)
+    runtime_lines_address = memory_engine.read_word(0x804D64BC)
+    if runtime_vertices_address == 0 or runtime_lines_address == 0:
+        raise RuntimeError("runtime stage collision catalog is not loaded")
+    runtime_vertices_snapshot = BigEndianSnapshot.read(
+        memory_engine, runtime_vertices_address, vertex_count * 0x18
+    )
+    runtime_vertices = [
+        runtime_vertices_snapshot.f32_vector(
+            runtime_vertices_address + index * 0x18 + 0x08,
+            2,
+        )
+        for index in range(vertex_count)
+    ]
+    runtime_lines_snapshot = BigEndianSnapshot.read(
+        memory_engine, runtime_lines_address, line_count * 8
+    )
     lines_snapshot = BigEndianSnapshot.read(
         memory_engine, lines_address, line_count * 0x10
     )
@@ -4185,26 +4208,40 @@ def read_stage_collision_memory_probe(
             raise RuntimeError(
                 f"stage collision line {index} has an invalid vertex index"
             )
+        runtime_line_address = runtime_lines_address + index * 8
+        runtime_source_line = runtime_lines_snapshot.u32(runtime_line_address)
+        expected_source_line = lines_address + index * 0x10
+        if runtime_source_line != expected_source_line:
+            raise RuntimeError(
+                f"runtime stage collision line {index} has an invalid source pointer"
+            )
         lines.append(
             {
                 "index": index,
                 "kind": line_kind(index),
                 "vertices": [v0, v1],
-                "start": vertices[v0],
-                "end": vertices[v1],
+                "start": source_vertices[v0],
+                "end": source_vertices[v1],
+                "world_start": runtime_vertices[v0],
+                "world_end": runtime_vertices[v1],
                 "neighbors": [
                     lines_snapshot.i16(address + offset)
                     for offset in (0x04, 0x06, 0x08, 0x0A)
                 ],
                 "hi_flags": lines_snapshot.u16(address + 0x0C),
                 "lo_flags": lines_snapshot.u16(address + 0x0E),
+                "runtime_flags": runtime_lines_snapshot.u32(
+                    runtime_line_address + 0x04
+                ),
             }
         )
     return {
         "map_coll_data_address": map_coll_data,
         "vertices_address": vertices_address,
+        "runtime_vertices_address": runtime_vertices_address,
         "vertex_count": vertex_count,
         "lines_address": lines_address,
+        "runtime_lines_address": runtime_lines_address,
         "line_count": line_count,
         "ranges": ranges,
         "lines": lines,

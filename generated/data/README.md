@@ -51,3 +51,12 @@ digests, and hit/miss cases before emitting immutable rows. It contains no
 second copy of hurt capsules. A thin Falcon adapter lets the shared C runner
 hash the production `m4_falcon_ntsc102_hit_geometry.inc` accessor output
 directly, so a stale or modified production table fails the pinned digest.
+
+`m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
+catalog generated from the reviewed Hyrule MapCollData subset. Its authored
+JSON preserves source joint-local vertices and transform provenance; the
+generated catalog stores runtime world-space lines, normals, endpoints, and
+ledge flags. `m4_ssbm_falcon_slope_ledge_response_oracle.inc` is the test-only
+two-case numeric trace for slope landing, DownBound endpoint departure, Fall,
+and ordinary ledge catch. Both are regenerated and digest-checked by the
+manifest-selected equivalence lane.

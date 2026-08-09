@@ -111,7 +111,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "85fd93638bcb26b8b6e405cb1008a396acf05d132e07c7f9dcc3b6993034dd3f",
-    "production_trace_sha256": "bbf01b67f222d78e915f5077eecd9a45282f77e7d32efb4cf7bf8d79b513eb2f",
+    "production_trace_sha256": "0596ba59ba2f03076b8b6828bae662eda6a7861ff8222af8788b47738aeece16",
     "samples_per_case": 12,
     "cases": [
       { "id": "flat_floor_missed_tech" },

@@ -2915,6 +2915,14 @@ static pf_status pf_m4_apply_hit_reaction(
                              ? damage_level
                              : UINT8_C(2)))
             : (uint8_t)PF_M4_ACTION_HITSTUN;
+    /* DamageFly is airborne from its entry frame, including the hitlag-held
+     * rows before its physics callback first advances.  Ground damage keeps
+     * the source floor only when the imported knockback result selected a
+     * grounded launch. */
+    if (armored == 0 && reset == 0 && launch_grounded == 0)
+    {
+        scratch->grounded[target_index] = UINT8_C(0);
+    }
     /* DownBound can retain its floor line while its animated ECB reports no
      * contact. Once a hit replaces that action with airborne damage, the
      * retained line is no longer an active support constraint. */

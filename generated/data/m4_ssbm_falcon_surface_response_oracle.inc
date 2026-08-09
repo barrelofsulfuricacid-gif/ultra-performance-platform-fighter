@@ -104,11 +104,11 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_surface_response_cases[] = {
-    { "right_pillar_wall_bounce", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs, UINT8_C(0), INT8_C(0) },
-    { "right_pillar_wall_tech", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs, UINT8_C(0), INT8_C(0) },
-    { "right_pillar_wall_tech_jump", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs, UINT8_C(0), INT8_C(0) },
-    { "cave_ceiling_bounce", pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs, UINT8_C(0), INT8_C(0) },
-    { "cave_ceiling_tech_drift", pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs, UINT8_C(0), INT8_C(0) },
+    { "right_pillar_wall_bounce", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "right_pillar_wall_tech", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "right_pillar_wall_tech_jump", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "cave_ceiling_bounce", pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "cave_ceiling_tech_drift", pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT UINT16_C(5)

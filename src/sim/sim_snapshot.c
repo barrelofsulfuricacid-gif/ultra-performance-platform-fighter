@@ -1,6 +1,7 @@
 #include "sim_internal.h"
 #include "sim_falcon_frame_data.h"
 #include "sim_sha256.h"
+#include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
 #include <stddef.h>
@@ -8,7 +9,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)671)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)687)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -31,7 +32,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x32)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x33)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -500,6 +501,14 @@ static void pf_write_payload(
         pf_writer_i32(
             writer,
             world->knockback_velocity_y_q16[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i32(
+            writer,
+            world->ground_knockback_velocity_q16[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -993,16 +1002,13 @@ static void pf_read_payload(
     {
         world->knockback_velocity_y_q16[player_index] =
             pf_reader_i32(reader);
-        /* Every current M4 surface has a flat tangent, so xF0 is the exact X
-         * projection already serialized in x8c. Reconstructing it preserves
-         * the compact canonical layout without omitting behavior state. A
-         * sloped-stage milestone must serialize the independent scalar. */
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->ground_knockback_velocity_q16[player_index] =
-            world->grounded[player_index] != UINT8_C(0) &&
-                    world->knockback_velocity_y_q16[player_index] ==
-                        INT32_C(0)
-                ? world->knockback_velocity_x_q16[player_index]
-                : INT32_C(0);
+            pf_reader_i32(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1689,6 +1695,14 @@ static int pf_m4_snapshot_content_state_consistent(
             (uint32_t)charge->release_recovery_ticks;
         const int recovery_action =
             action == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT;
+
+        if (!pf_m4_ssbm_stage_support_valid(
+                content->stage.reference_collision_profile,
+                world->support[player_index],
+                world->grounded[player_index]))
+        {
+            return 0;
+        }
         const uint32_t ledge_attack_ticks =
             (uint32_t)content->fighter.ledge_attack.startup_ticks +
             (uint32_t)content->fighter.ledge_attack.active_ticks +
@@ -2361,11 +2375,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 (world->ground_knockback_velocity_q16[player_index] !=
                      INT32_C(0) &&
-                 (world->grounded[player_index] == UINT8_C(0) ||
-                  world->knockback_velocity_x_q16[player_index] !=
-                      world->ground_knockback_velocity_q16[player_index] ||
-                  world->knockback_velocity_y_q16[player_index] !=
-                      INT32_C(0))) ||
+                 world->grounded[player_index] == UINT8_C(0)) ||
                 world->shield_recoil_x_q16[player_index] <
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->shield_recoil_x_q16[player_index] >
@@ -2395,8 +2405,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (world->active[player_index] != UINT8_C(0) &&
                  world->stock_count != UINT8_C(0) &&
                  world->stocks_remaining[player_index] == UINT8_C(0)) ||
-                world->support[player_index] >
-                    (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM ||
+                world->support[player_index] == UINT8_MAX ||
                 world->air_jumps_remaining[player_index] > UINT8_C(8) ||
                 world->recovery_available[player_index] > UINT8_C(1) ||
                 world->short_hop_latched[player_index] > UINT8_C(2) ||

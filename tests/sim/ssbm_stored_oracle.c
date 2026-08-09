@@ -267,12 +267,23 @@ int pf_ssbm_stored_trace_oracle_run(
     {
         const pf_ssbm_stored_trace_case *stored_case =
             &domain->cases[case_index];
+        const uint32_t serialized_fields =
+            stored_case->serialized_fields != UINT32_C(0)
+                ? stored_case->serialized_fields
+                : domain->serialized_fields;
         uint8_t sample_count;
         uint8_t sample_index;
 
         if (stored_case->id == NULL || stored_case->inputs == NULL)
         {
             out_result->failed_operation = "invalid-trace-case";
+            out_result->failed_case = stored_case->id;
+            return 0;
+        }
+        if ((serialized_fields &
+             ~((uint32_t)PF_SSBM_STORED_TRACE_FIELDS_ALL)) != UINT32_C(0))
+        {
+            out_result->failed_operation = "invalid-trace-case-fields";
             out_result->failed_case = stored_case->id;
             return 0;
         }
@@ -311,7 +322,7 @@ int pf_ssbm_stored_trace_oracle_run(
 #define PF_HASH_TRACE_FIELD(bit, statement) \
     do \
     { \
-        if ((domain->serialized_fields & (uint32_t)(bit)) != UINT32_C(0)) \
+        if ((serialized_fields & (uint32_t)(bit)) != UINT32_C(0)) \
         { \
             statement; \
         } \

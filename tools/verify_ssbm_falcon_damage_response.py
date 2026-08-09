@@ -10,6 +10,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from ssbm_live_trace import normalized_sha256
+
 
 EXPECTED_OBSERVATION_SHA256 = (
     "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95"
@@ -29,7 +31,7 @@ EXPECTED_EXIAI_SHA256 = (
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return normalized_sha256(path)
 
 
 def observation_sha256(rows: list[dict[str, Any]]) -> str:

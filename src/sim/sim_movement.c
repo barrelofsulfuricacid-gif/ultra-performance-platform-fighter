@@ -2,6 +2,7 @@
 #include "sim_falcon_frame_data.h"
 #include "sim_ssbm_common_data.h"
 #include "sim_ssbm_damage.h"
+#include "sim_ssbm_stage_data.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -1354,8 +1355,18 @@ static int pf_m4_find_drop_cancel_platform(
 
 static int32_t pf_m4_surface_y_q16(
     const pf_m4_content *content,
-    uint8_t support)
+    uint8_t support,
+    int32_t position_x_q16)
 {
+    const pf_m4_ssbm_stage_collision_line *line =
+        pf_m4_ssbm_reference_stage_line(
+            content->stage.reference_collision_profile,
+            support);
+
+    if (line != NULL)
+    {
+        return pf_m4_ssbm_stage_line_y_q16(line, position_x_q16);
+    }
     if (support == (uint8_t)PF_M4_SURFACE_PLATFORM)
     {
         return content->stage.platform_y_q16;
@@ -1369,6 +1380,56 @@ static int32_t pf_m4_surface_y_q16(
         return content->stage.upper_platform_y_q16;
     }
     return content->stage.floor_y_q16;
+}
+
+static void pf_m4_surface_ground_projection_q16(
+    const pf_m4_content *content,
+    uint8_t support,
+    int32_t *out_x_q16,
+    int32_t *out_y_q16)
+{
+    const pf_m4_ssbm_stage_collision_line *line =
+        pf_m4_ssbm_reference_stage_line(
+            content->stage.reference_collision_profile,
+            support);
+
+    if (line != NULL)
+    {
+        *out_x_q16 = line->ground_projection_x_q16;
+        *out_y_q16 = line->ground_projection_y_q16;
+        return;
+    }
+    *out_x_q16 = PF_Q16_ONE;
+    *out_y_q16 = INT32_C(0);
+}
+
+static void pf_m4_project_ground_scalar_q16(
+    const pf_m4_content *content,
+    uint8_t support,
+    int32_t scalar_q16,
+    int32_t *out_x_q16,
+    int32_t *out_y_q16)
+{
+    int32_t projection_x_q16;
+    int32_t projection_y_q16;
+
+    pf_m4_surface_ground_projection_q16(
+        content,
+        support,
+        &projection_x_q16,
+        &projection_y_q16);
+    *out_x_q16 = pf_m4_multiply_q16(scalar_q16, projection_x_q16);
+    *out_y_q16 = pf_m4_multiply_q16(scalar_q16, projection_y_q16);
+}
+
+static uint8_t pf_m4_stage_spawn_support(const pf_m4_stage_data *stage)
+{
+    if (stage->reference_collision_profile !=
+        (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
+    {
+        return (uint8_t)(stage->reference_spawn_line + UINT16_C(1));
+    }
+    return (uint8_t)PF_M4_SURFACE_FLOOR;
 }
 
 static int pf_m4_action_uses_fall_special_pose(uint8_t action_state)
@@ -1406,6 +1467,19 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
 
         bottom_y_from_origin_q16 =
             pose->air_dodge_bottom_y_from_origin_q16[frame_index];
+        has_reference_pose = 1;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+    {
+        const uint16_t frame_index =
+            action_ticks < PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT
+                ? action_ticks
+                : (uint16_t)(
+                      PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT -
+                      UINT16_C(1));
+
+        bottom_y_from_origin_q16 =
+            pose->damage_fly_bottom_y_from_origin_q16[frame_index];
         has_reference_pose = 1;
     }
     else if (action_state == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR)
@@ -1472,8 +1546,21 @@ static uint8_t pf_m4_down_bound_floor_contact(
                : UINT8_C(0);
 }
 
-static int pf_m4_surface_is_pass_through(uint8_t support)
+static int pf_m4_surface_is_pass_through(
+    const pf_m4_content *content,
+    uint8_t support)
 {
+    const pf_m4_ssbm_stage_collision_line *line =
+        pf_m4_ssbm_reference_stage_line(
+            content->stage.reference_collision_profile,
+            support);
+
+    if (line != NULL)
+    {
+        const uint8_t property_flags =
+            (uint8_t)(line->property_material_flags >> UINT16_C(8));
+        return (property_flags & UINT8_C(1)) != UINT8_C(0);
+    }
     return support == (uint8_t)PF_M4_SURFACE_PLATFORM ||
            support == (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
 }
@@ -1485,6 +1572,21 @@ static void pf_m4_surface_bounds_q16(
     int32_t *out_left,
     int32_t *out_right)
 {
+    const pf_m4_ssbm_stage_collision_line *line =
+        pf_m4_ssbm_reference_stage_line(
+            content->stage.reference_collision_profile,
+            support);
+
+    if (line != NULL)
+    {
+        *out_left = line->start_x_q16 < line->end_x_q16
+                        ? line->start_x_q16
+                        : line->end_x_q16;
+        *out_right = line->start_x_q16 > line->end_x_q16
+                         ? line->start_x_q16
+                         : line->end_x_q16;
+        return;
+    }
     if (support == (uint8_t)PF_M4_SURFACE_PLATFORM)
     {
         const int32_t center =
@@ -1511,6 +1613,93 @@ static void pf_m4_surface_bounds_q16(
         *out_left = content->stage.floor_left_q16;
         *out_right = content->stage.floor_right_q16;
     }
+}
+
+static int pf_m4_reference_stage_find_floor_landing(
+    const pf_m4_content *content,
+    int32_t position_x_q16,
+    int32_t previous_floor_contact_q16,
+    int32_t new_floor_contact_q16,
+    uint8_t action_state,
+    uint8_t fast_fall,
+    int pass_through_allowed,
+    uint8_t platform_drop_ticks,
+    int32_t *out_surface_y_q16,
+    uint8_t *out_support)
+{
+    const pf_m4_ssbm_stage_collision_profile *profile =
+        pf_m4_ssbm_reference_stage_collision(
+            content->stage.reference_collision_profile);
+    int32_t best_surface_y_q16 = INT32_MAX;
+    uint16_t floor_offset;
+
+    if (profile == NULL || out_surface_y_q16 == NULL ||
+        out_support == NULL)
+    {
+        return 0;
+    }
+    for (floor_offset = UINT16_C(0);
+         floor_offset < profile->floor_count;
+         ++floor_offset)
+    {
+        const uint16_t line_index =
+            profile->floor_start + floor_offset;
+        const pf_m4_ssbm_stage_collision_line *line =
+            &profile->lines[line_index];
+        const uint8_t support = (uint8_t)(line_index + UINT16_C(1));
+        const int32_t left =
+            line->start_x_q16 < line->end_x_q16
+                ? line->start_x_q16
+                : line->end_x_q16;
+        const int32_t right =
+            line->start_x_q16 > line->end_x_q16
+                ? line->start_x_q16
+                : line->end_x_q16;
+        const int is_pass_through =
+            pf_m4_surface_is_pass_through(content, support);
+        int32_t surface_y_q16;
+        int crosses_surface;
+
+        if ((line->runtime_flags & UINT32_C(0x00010000)) == UINT32_C(0) ||
+            (line->runtime_flags & UINT32_C(0x00040000)) != UINT32_C(0) ||
+            line->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+            position_x_q16 < left || position_x_q16 > right ||
+            (is_pass_through != 0 &&
+             (pass_through_allowed == 0 ||
+              platform_drop_ticks != UINT8_C(0))))
+        {
+            continue;
+        }
+        surface_y_q16 =
+            pf_m4_surface_y_q16(content, support, position_x_q16);
+        if (is_pass_through != 0 &&
+            action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
+        {
+            crosses_surface =
+                previous_floor_contact_q16 > surface_y_q16 ||
+                (fast_fall != UINT8_C(0) &&
+                 previous_floor_contact_q16 <= surface_y_q16 &&
+                 new_floor_contact_q16 >= surface_y_q16);
+        }
+        else
+        {
+            crosses_surface =
+                previous_floor_contact_q16 <= surface_y_q16 &&
+                new_floor_contact_q16 >= surface_y_q16;
+        }
+        if (crosses_surface != 0 &&
+            surface_y_q16 < best_surface_y_q16)
+        {
+            best_surface_y_q16 = surface_y_q16;
+            *out_support = support;
+        }
+    }
+    if (*out_support == (uint8_t)PF_M4_SURFACE_NONE)
+    {
+        return 0;
+    }
+    *out_surface_y_q16 = best_surface_y_q16;
+    return 1;
 }
 
 static int pf_m4_body_overlaps_solid(
@@ -1612,7 +1801,7 @@ static pf_status pf_m4_apply_hitlag_shift(
     {
         const uint8_t support = scratch->support[player_index];
         const int32_t surface_y =
-            pf_m4_surface_y_q16(content, support);
+            pf_m4_surface_y_q16(content, support, next_x);
         const int32_t standing_y =
             surface_y - fighter->half_height_q16;
         int32_t surface_left;
@@ -2809,39 +2998,24 @@ static int pf_m4_try_grab_ledge(
     int use_melee_ledge_probe = 0;
     uint8_t ledge = (uint8_t)PF_M4_LEDGE_NONE;
 
-    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-        (action_state_before_catch ==
-             (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
-         action_state_before_catch ==
-             (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR))
+    if (fighter->reference_frame_data_enabled != UINT8_C(0))
     {
         const pf_m4_falcon_ledge_attributes *ledge_attributes =
             pf_m4_falcon_reference_ledge_attributes();
-        const pf_m4_falcon_collision_pose *pose =
-            pf_m4_falcon_reference_collision_pose();
 
-        if (ledge_attributes != NULL && pose != NULL)
+        if (ledge_attributes != NULL)
         {
-            const uint16_t frame_index =
-                action_ticks_before_catch > UINT16_C(0) &&
-                        action_ticks_before_catch <=
-                            PF_M4_FALCON_DIVE_ECB_FRAME_COUNT
-                    ? (uint16_t)(action_ticks_before_catch - UINT16_C(1))
-                    : (uint16_t)(
-                          PF_M4_FALCON_DIVE_ECB_FRAME_COUNT - UINT16_C(1));
-
             horizontal_reach =
                 (int64_t)ledge_attributes->snap_x_q16 +
-                (int64_t)pose
-                    ->falcon_dive_right_x_from_origin_q16[frame_index];
-            melee_bottom_extent_q16 =
-                pose->falcon_dive_bottom_y_from_origin_q16[frame_index];
+                (int64_t)fighter->half_width_q16;
             catch_top =
                 stage->floor_y_q16 + ledge_attributes->snap_y_q16 -
-                ledge_attributes->snap_height_q16 / INT32_C(2);
+                ledge_attributes->snap_height_q16 / INT32_C(2) -
+                fighter->half_height_q16;
             catch_bottom =
                 stage->floor_y_q16 + ledge_attributes->snap_y_q16 +
-                ledge_attributes->snap_height_q16 / INT32_C(2);
+                ledge_attributes->snap_height_q16 / INT32_C(2) -
+                fighter->half_height_q16;
             left_probe_position_x =
                 previous_position_x > *position_x
                     ? previous_position_x
@@ -2851,6 +3025,35 @@ static int pf_m4_try_grab_ledge(
                     ? previous_position_x
                     : *position_x;
             use_melee_ledge_probe = 1;
+
+            if (action_state_before_catch ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+                action_state_before_catch ==
+                    (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
+            {
+                const pf_m4_falcon_collision_pose *pose =
+                    pf_m4_falcon_reference_collision_pose();
+
+                if (pose != NULL)
+                {
+                    const uint16_t frame_index =
+                        action_ticks_before_catch > UINT16_C(0) &&
+                                action_ticks_before_catch <=
+                                    PF_M4_FALCON_DIVE_ECB_FRAME_COUNT
+                            ? (uint16_t)(
+                                  action_ticks_before_catch - UINT16_C(1))
+                            : (uint16_t)(
+                                  PF_M4_FALCON_DIVE_ECB_FRAME_COUNT -
+                                  UINT16_C(1));
+
+                    horizontal_reach =
+                        (int64_t)ledge_attributes->snap_x_q16 +
+                        (int64_t)pose
+                            ->falcon_dive_right_x_from_origin_q16[frame_index];
+                    melee_bottom_extent_q16 =
+                        pose->falcon_dive_bottom_y_from_origin_q16[frame_index];
+                }
+            }
         }
     }
 
@@ -2863,7 +3066,8 @@ static int pf_m4_try_grab_ledge(
          (int64_t)*position_y - (int64_t)*velocity_y >
              (int64_t)catch_bottom) ||
         (use_melee_ledge_probe != 0 &&
-         (int64_t)*position_y - (int64_t)melee_bottom_extent_q16 <=
+         (int64_t)*position_y + (int64_t)fighter->half_height_q16 -
+                 (int64_t)melee_bottom_extent_q16 <=
              (int64_t)stage->floor_y_q16))
     {
         return 0;
@@ -2935,6 +3139,7 @@ void pf_m4_reset_player(
                          UINT16_C(1))
                    : UINT16_MAX)
             : UINT16_C(0);
+    const uint8_t spawn_support = pf_m4_stage_spawn_support(stage);
     uint32_t other_index;
 
     for (other_index = UINT32_C(0);
@@ -2974,9 +3179,17 @@ void pf_m4_reset_player(
 
     sim->world.previous_buttons[player_index] = UINT64_C(0);
     sim->world.position_x_q16[player_index] =
-        centered_slot * stage->spawn_spacing_q16;
+        centered_slot * stage->spawn_spacing_q16 +
+        (stage->reference_collision_profile !=
+                 (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED
+             ? stage->reference_spawn_x_q16
+             : INT32_C(0));
     sim->world.position_y_q16[player_index] =
-        stage->floor_y_q16 - fighter->half_height_q16;
+        pf_m4_surface_y_q16(
+            &sim->content,
+            spawn_support,
+            sim->world.position_x_q16[player_index]) -
+        fighter->half_height_q16;
     sim->world.velocity_x_q16[player_index] = INT32_C(0);
     sim->world.velocity_y_q16[player_index] = INT32_C(0);
     sim->world.shield_recoil_x_q16[player_index] = INT32_C(0);
@@ -3008,7 +3221,7 @@ void pf_m4_reset_player(
     sim->world.action_state[player_index] =
         (uint8_t)PF_M4_ACTION_GROUND_IDLE;
     sim->world.support[player_index] =
-        (uint8_t)PF_M4_SURFACE_FLOOR;
+        spawn_support;
     sim->world.air_jumps_remaining[player_index] =
         fighter->air_jump_count;
     sim->world.recovery_available[player_index] = UINT8_C(1);
@@ -3153,7 +3366,7 @@ static void pf_m4_transfer_air_knockback_to_flat_ground(
 }
 
 static void pf_m4_land_from_air(
-    const pf_m4_fighter_data *fighter,
+    const pf_m4_content *content,
     int32_t surface_y_q16,
     uint8_t surface,
     int16_t horizontal_input,
@@ -3172,6 +3385,7 @@ static void pf_m4_land_from_air(
     uint8_t *fast_fall,
     int8_t *dash_direction)
 {
+    const pf_m4_fighter_data *fighter = &content->fighter;
     const int8_t roll_direction =
         pf_m4_axis_direction(
             horizontal_input,
@@ -3480,8 +3694,14 @@ static void pf_m4_land_from_air(
     *dash_direction = INT8_C(0);
     scratch->tumble[player_index] = UINT8_C(0);
     /* The collision callback exposes the incoming air channels on its entry
-     * frame. Ground projection and 0.08 traction decay begin on the following
-     * tick, matching Fighter_procUpdate ordering. */
+     * frame. x8c is projected onto the selected floor immediately; xF0
+     * initialization and 0.08 traction decay begin on the following tick. */
+    pf_m4_project_ground_scalar_q16(
+        content,
+        surface,
+        scratch->knockback_velocity_x_q16[player_index],
+        &scratch->knockback_velocity_x_q16[player_index],
+        &scratch->knockback_velocity_y_q16[player_index]);
     scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
 
     if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
@@ -4197,6 +4417,14 @@ pf_status pf_m4_step_player(
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
     const pf_m4_stage_data *stage = &content->stage;
+
+    if (!pf_m4_ssbm_stage_support_valid(
+            stage->reference_collision_profile,
+            world->support[player_index],
+            world->grounded[player_index]))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
     const uint64_t previous_buttons =
         world->previous_buttons[player_index];
     const int raw_attack_pressed =
@@ -4466,6 +4694,7 @@ pf_status pf_m4_step_player(
         shield_held != 0 &&
         world->grounded[player_index] != UINT8_C(0) &&
         pf_m4_surface_is_pass_through(
+            content,
             world->support[player_index]) != 0 &&
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_SHIELD &&
@@ -4559,6 +4788,10 @@ pf_status pf_m4_step_player(
     int resumed_hitlag_motion_this_tick = 0;
     int32_t initial_dash_entry_motion_velocity_x = velocity_x;
     int32_t animation_motion_x_q16 = INT32_C(0);
+    int32_t integrated_self_x_q16;
+    int32_t integrated_self_y_q16;
+    int32_t integrated_animation_x_q16;
+    int32_t integrated_animation_y_q16;
     int hitstun_locked;
     int32_t previous_position_x;
     int64_t next_position;
@@ -4909,7 +5142,7 @@ pf_status pf_m4_step_player(
                     scratch->hitlag_resume_action[player_index];
 
                 pf_m4_land_from_air(
-                    fighter,
+                    content,
                     drop_cancel_surface_y_q16,
                     drop_cancel_support,
                     input->main_stick_x,
@@ -7580,7 +7813,7 @@ pf_status pf_m4_step_player(
              action_state ==
                  (uint8_t)PF_M4_ACTION_CROUCH_START)
     {
-        if (pf_m4_surface_is_pass_through(support) != 0 &&
+        if (pf_m4_surface_is_pass_through(content, support) != 0 &&
             input->main_stick_y >=
                 (int16_t)fighter->crouch_axis_threshold &&
             action_ticks >= fighter->platform_drop_startup_ticks)
@@ -8483,6 +8716,15 @@ pf_status pf_m4_step_player(
             }
             else
             {
+                if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN &&
+                    action_ticks < UINT16_MAX)
+                {
+                    ++action_ticks;
+                }
+                else if (action_state != (uint8_t)PF_M4_ACTION_HITSTUN)
+                {
+                    action_ticks = UINT16_C(0);
+                }
                 action_state = (uint8_t)PF_M4_ACTION_HITSTUN;
             }
         }
@@ -9314,6 +9556,17 @@ pf_status pf_m4_step_player(
         }
     }
 
+    /* Evaluate DownBound's animated ECB contact before selecting the xF0/x8c
+     * knockback-decay channel. The action and retained support stay grounded
+     * semantics, but source contactless frames use air-vector decay starting
+     * on the same displayed frame. */
+    if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
+    {
+        grounded = pf_m4_down_bound_floor_contact(
+            scratch->prone_orientation[player_index],
+            action_ticks);
+    }
+
     /* Fighter_procUpdate runs the action physics callback first, then decays
      * x8c_kb_vel, then adds self velocity and knockback to position. The
      * dedicated knockback channel remains distinct from ordinary velocity
@@ -9339,12 +9592,12 @@ pf_status pf_m4_step_player(
                     scratch->ground_knockback_velocity_q16[player_index],
                     INT32_C(0),
                     ground_decay_q16);
-            /* All currently authored surfaces are flat. Keeping the source
-             * scalar separate makes the later normal/tangent projection a
-             * zero-duplication extension rather than a state migration. */
-            scratch->knockback_velocity_x_q16[player_index] =
-                scratch->ground_knockback_velocity_q16[player_index];
-            scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
+            pf_m4_project_ground_scalar_q16(
+                content,
+                support,
+                scratch->ground_knockback_velocity_q16[player_index],
+                &scratch->knockback_velocity_x_q16[player_index],
+                &scratch->knockback_velocity_y_q16[player_index]);
         }
         else
         {
@@ -9361,16 +9614,39 @@ pf_status pf_m4_step_player(
         }
     }
 
+    integrated_self_x_q16 =
+        initial_dash_entered_this_tick != 0
+            ? initial_dash_entry_motion_velocity_x
+            : velocity_x;
+    integrated_self_y_q16 = velocity_y;
+    integrated_animation_x_q16 = animation_motion_x_q16;
+    integrated_animation_y_q16 = INT32_C(0);
+    if (grounded != UINT8_C(0) &&
+        stage->reference_collision_profile !=
+            (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
+    {
+        pf_m4_project_ground_scalar_q16(
+            content,
+            support,
+            integrated_self_x_q16,
+            &integrated_self_x_q16,
+            &integrated_self_y_q16);
+        pf_m4_project_ground_scalar_q16(
+            content,
+            support,
+            animation_motion_x_q16,
+            &integrated_animation_x_q16,
+            &integrated_animation_y_q16);
+    }
+
     previous_position_x = position_x;
     next_position =
         (int64_t)position_x +
         (int64_t)player_nudge_x_q16 +
-        (int64_t)(initial_dash_entered_this_tick != 0
-                      ? initial_dash_entry_motion_velocity_x
-                      : velocity_x) +
+        (int64_t)integrated_self_x_q16 +
         (int64_t)scratch->knockback_velocity_x_q16[player_index] +
         (int64_t)shield_recoil_x +
-        (int64_t)animation_motion_x_q16;
+        (int64_t)integrated_animation_x_q16;
     if (!ledge_motion_handled &&
         !pf_m4_checked_i32(next_position, &position_x))
     {
@@ -9380,8 +9656,9 @@ pf_status pf_m4_step_player(
     if (!ledge_motion_handled)
     {
         const int64_t future_y =
-            (int64_t)position_y + (int64_t)velocity_y +
-            (int64_t)scratch->knockback_velocity_y_q16[player_index];
+            (int64_t)position_y + (int64_t)integrated_self_y_q16 +
+            (int64_t)scratch->knockback_velocity_y_q16[player_index] +
+            (int64_t)integrated_animation_y_q16;
         const int64_t swept_center_top =
             future_y < (int64_t)position_y
                 ? future_y
@@ -9521,7 +9798,9 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
-        grounded != UINT8_C(0))
+        (grounded != UINT8_C(0) ||
+         (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN &&
+          support != (uint8_t)PF_M4_SURFACE_NONE)))
     {
         int32_t surface_left;
         int32_t surface_right;
@@ -9535,6 +9814,17 @@ pf_status pf_m4_step_player(
             &surface_right);
         retains_surface =
             position_x >= surface_left && position_x <= surface_right;
+        if (retains_surface == 0 &&
+            action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN &&
+            grounded == UINT8_C(0))
+        {
+            /* DownBound's retained floor identity is consumed by its
+             * collision callback one update after the contactless ECB root
+             * crosses the line endpoint. */
+            retains_surface =
+                previous_position_x >= surface_left &&
+                previous_position_x <= surface_right;
+        }
         if (support == (uint8_t)PF_M4_SURFACE_SOLID_TOP)
         {
             retains_surface =
@@ -9575,6 +9865,8 @@ pf_status pf_m4_step_player(
         }
         else if (retains_surface == 0)
         {
+            const int down_bound_fall =
+                action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN;
             const int shield_break_fall =
                 pf_m4_action_is_shield_break(action_state);
             const int falcon_punch_fall =
@@ -9628,6 +9920,21 @@ pf_status pf_m4_step_player(
                 launched_this_tick = 1;
             }
 
+            if (stage->reference_collision_profile !=
+                (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
+            {
+                pf_m4_project_ground_scalar_q16(
+                    content,
+                    support,
+                    velocity_x,
+                    &velocity_x,
+                    &velocity_y);
+                /* The ground callback owns the edge-conversion frame. Air
+                 * gravity begins on the next tick, after the tangent velocity
+                 * has committed this frame's displacement. */
+                launched_this_tick = 1;
+            }
+
             grounded = UINT8_C(0);
             support = (uint8_t)PF_M4_SURFACE_NONE;
             action_state =
@@ -9659,13 +9966,19 @@ pf_status pf_m4_step_player(
             dash_direction = INT8_C(0);
             scratch->shield_stun_ticks[player_index] =
                 UINT16_C(0);
+            if (down_bound_fall != 0)
+            {
+                /* DownBound_Coll enters Fall without a keep-state flag; the
+                 * source transition clears its retained damage timer. */
+                scratch->hitstun_ticks[player_index] = UINT16_C(0);
+            }
             scratch->powershield[player_index] = UINT8_C(0);
             scratch->tech_direction[player_index] = INT8_C(0);
         }
         else
         {
             position_y =
-                pf_m4_surface_y_q16(content, support) -
+                pf_m4_surface_y_q16(content, support, position_x) -
                 fighter->half_height_q16;
             if (action_state !=
                     (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND &&
@@ -9799,67 +10112,86 @@ pf_status pf_m4_step_player(
             uint8_t landing_support =
                 (uint8_t)PF_M4_SURFACE_NONE;
 
-            if (pf_m4_body_overlaps_horizontal_interval(
+            if (stage->reference_collision_profile !=
+                (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED)
+            {
+                (void)pf_m4_reference_stage_find_floor_landing(
+                    content,
                     position_x,
-                    fighter->half_width_q16,
-                    stage->solid_left_q16,
-                    stage->solid_right_q16) &&
-                previous_bottom <= stage->solid_top_q16 &&
-                new_bottom >= stage->solid_top_q16)
-            {
-                landing_y_q16 = stage->solid_top_q16;
-                landing_support =
-                    (uint8_t)PF_M4_SURFACE_SOLID_TOP;
+                    previous_floor_contact,
+                    new_floor_contact,
+                    action_state,
+                    fast_fall,
+                    pass_through_allowed,
+                    platform_drop_ticks,
+                    &landing_y_q16,
+                    &landing_support);
             }
-            if (pass_through_allowed != 0 &&
-                platform_drop_ticks == UINT8_C(0) &&
-                position_x >= platform_left &&
-                position_x <= platform_right &&
-                ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  (previous_bottom > stage->platform_y_q16 ||
-                   (fast_fall != UINT8_C(0) &&
-                    previous_bottom <= stage->platform_y_q16 &&
-                    new_bottom >= stage->platform_y_q16))) ||
-                 (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  previous_bottom <= stage->platform_y_q16 &&
-                  new_bottom >= stage->platform_y_q16)) &&
-                stage->platform_y_q16 < landing_y_q16)
+            else
             {
-                landing_y_q16 = stage->platform_y_q16;
-                landing_support =
-                    (uint8_t)PF_M4_SURFACE_PLATFORM;
-            }
-            if (pass_through_allowed != 0 &&
-                platform_drop_ticks == UINT8_C(0) &&
-                position_x >= upper_platform_left &&
-                position_x <= upper_platform_right &&
-                ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  (previous_bottom > stage->upper_platform_y_q16 ||
-                   (fast_fall != UINT8_C(0) &&
-                    previous_bottom <= stage->upper_platform_y_q16 &&
-                    new_bottom >= stage->upper_platform_y_q16))) ||
-                 (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  previous_bottom <= stage->upper_platform_y_q16 &&
-                  new_bottom >= stage->upper_platform_y_q16)) &&
-                stage->upper_platform_y_q16 < landing_y_q16)
-            {
-                landing_y_q16 = stage->upper_platform_y_q16;
-                landing_support =
-                    (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
-            }
-            if (position_x >= stage->floor_left_q16 &&
-                position_x <= stage->floor_right_q16 &&
-                ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  (previous_floor_contact > stage->floor_y_q16 ||
-                   (previous_floor_contact <= stage->floor_y_q16 &&
-                    new_floor_contact >= stage->floor_y_q16))) ||
-                 (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
-                  previous_floor_contact <= stage->floor_y_q16 &&
-                  new_floor_contact >= stage->floor_y_q16)) &&
-                stage->floor_y_q16 < landing_y_q16)
-            {
-                landing_y_q16 = stage->floor_y_q16;
-                landing_support = (uint8_t)PF_M4_SURFACE_FLOOR;
+                if (pf_m4_body_overlaps_horizontal_interval(
+                        position_x,
+                        fighter->half_width_q16,
+                        stage->solid_left_q16,
+                        stage->solid_right_q16) &&
+                    previous_bottom <= stage->solid_top_q16 &&
+                    new_bottom >= stage->solid_top_q16)
+                {
+                    landing_y_q16 = stage->solid_top_q16;
+                    landing_support =
+                        (uint8_t)PF_M4_SURFACE_SOLID_TOP;
+                }
+                if (pass_through_allowed != 0 &&
+                    platform_drop_ticks == UINT8_C(0) &&
+                    position_x >= platform_left &&
+                    position_x <= platform_right &&
+                    ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                      (previous_bottom > stage->platform_y_q16 ||
+                       (fast_fall != UINT8_C(0) &&
+                        previous_bottom <= stage->platform_y_q16 &&
+                        new_bottom >= stage->platform_y_q16))) ||
+                     (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                      previous_bottom <= stage->platform_y_q16 &&
+                      new_bottom >= stage->platform_y_q16)) &&
+                    stage->platform_y_q16 < landing_y_q16)
+                {
+                    landing_y_q16 = stage->platform_y_q16;
+                    landing_support =
+                        (uint8_t)PF_M4_SURFACE_PLATFORM;
+                }
+                if (pass_through_allowed != 0 &&
+                    platform_drop_ticks == UINT8_C(0) &&
+                    position_x >= upper_platform_left &&
+                    position_x <= upper_platform_right &&
+                    ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                      (previous_bottom > stage->upper_platform_y_q16 ||
+                       (fast_fall != UINT8_C(0) &&
+                        previous_bottom <= stage->upper_platform_y_q16 &&
+                        new_bottom >= stage->upper_platform_y_q16))) ||
+                     (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                      previous_bottom <= stage->upper_platform_y_q16 &&
+                      new_bottom >= stage->upper_platform_y_q16)) &&
+                    stage->upper_platform_y_q16 < landing_y_q16)
+                {
+                    landing_y_q16 = stage->upper_platform_y_q16;
+                    landing_support =
+                        (uint8_t)PF_M4_SURFACE_UPPER_PLATFORM;
+                }
+                if (position_x >= stage->floor_left_q16 &&
+                    position_x <= stage->floor_right_q16 &&
+                    ((action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                      (previous_floor_contact > stage->floor_y_q16 ||
+                       (previous_floor_contact <= stage->floor_y_q16 &&
+                        new_floor_contact >= stage->floor_y_q16))) ||
+                     (action_state != (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                      previous_floor_contact <= stage->floor_y_q16 &&
+                      new_floor_contact >= stage->floor_y_q16)) &&
+                    stage->floor_y_q16 < landing_y_q16)
+                {
+                    landing_y_q16 = stage->floor_y_q16;
+                    landing_support =
+                        (uint8_t)PF_M4_SURFACE_FLOOR;
+                }
             }
             if (landing_support != (uint8_t)PF_M4_SURFACE_NONE)
             {
@@ -9870,7 +10202,7 @@ pf_status pf_m4_step_player(
                     action_ticks;
 
                 pf_m4_land_from_air(
-                    fighter,
+                    content,
                     landing_y_q16,
                     landing_support,
                     input->main_stick_x,
@@ -10171,16 +10503,6 @@ pf_status pf_m4_step_player(
         scratch->shield_strength[player_index] = UINT16_C(0);
     }
 
-    /* Melee's DownBound collision callback keeps the ground action and its
-     * retained floor line while the animated ECB temporarily reports no floor
-     * contact. Do not route those frames through ordinary airborne physics. */
-    if (action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN)
-    {
-        grounded = pf_m4_down_bound_floor_contact(
-            scratch->prone_orientation[player_index],
-            action_ticks);
-    }
-
     /* xF0 is a ground-tangent scalar. Ground-to-air conversions keep the
      * already projected x8c launch velocity but must not retain xF0 as a
      * second, stale motion channel. */
@@ -10415,18 +10737,34 @@ pf_status pf_m4_inspect(
             sim->world.position_x_q16[player_index];
         player->position_y_q16 =
             sim->world.position_y_q16[player_index];
-        player->velocity_x_q16 =
-            pf_m4_total_velocity_q16(
-                sim->world.velocity_x_q16[player_index],
-                sim->world.knockback_velocity_x_q16[player_index]);
-        player->velocity_y_q16 =
-            pf_m4_total_velocity_q16(
-                sim->world.velocity_y_q16[player_index],
-                sim->world.knockback_velocity_y_q16[player_index]);
         player->self_velocity_x_q16 =
             sim->world.velocity_x_q16[player_index];
         player->self_velocity_y_q16 =
             sim->world.velocity_y_q16[player_index];
+        if (sim->world.grounded[player_index] != UINT8_C(0) &&
+            sim->content.stage.reference_collision_profile !=
+                (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED &&
+            !(sim->world.action_ticks[player_index] == UINT16_C(0) &&
+              (sim->world.action_state[player_index] ==
+                   (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
+               pf_m4_action_is_surface_tech(
+                   sim->world.action_state[player_index]))))
+        {
+            pf_m4_project_ground_scalar_q16(
+                &sim->content,
+                sim->world.support[player_index],
+                sim->world.velocity_x_q16[player_index],
+                &player->self_velocity_x_q16,
+                &player->self_velocity_y_q16);
+        }
+        player->velocity_x_q16 =
+            pf_m4_total_velocity_q16(
+                player->self_velocity_x_q16,
+                sim->world.knockback_velocity_x_q16[player_index]);
+        player->velocity_y_q16 =
+            pf_m4_total_velocity_q16(
+                player->self_velocity_y_q16,
+                sim->world.knockback_velocity_y_q16[player_index]);
         player->knockback_velocity_x_q16 =
             sim->world.knockback_velocity_x_q16[player_index];
         player->knockback_velocity_y_q16 =

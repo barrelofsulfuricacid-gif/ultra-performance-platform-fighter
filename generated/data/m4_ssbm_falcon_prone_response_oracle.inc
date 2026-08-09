@@ -284,20 +284,20 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_prone_response_cases[] = {
-    { "timeout", pf_m4_ssbm_falcon_prone_response_timeout_inputs, UINT8_C(2), INT8_C(0) },
-    { "buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs, UINT8_C(2), INT8_C(0) },
-    { "buffered_b_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs, UINT8_C(2), INT8_C(0) },
-    { "c_up_getup_attack", pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs, UINT8_C(2), INT8_C(0) },
-    { "c_roll_forward", pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs, UINT8_C(2), INT8_C(0) },
-    { "main_roll_backward", pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs, UINT8_C(2), INT8_C(0) },
-    { "up_neutral_getup", pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs, UINT8_C(2), INT8_C(0) },
-    { "shield_neutral_getup", pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs, UINT8_C(2), INT8_C(0) },
-    { "attack_over_roll_priority", pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs, UINT8_C(2), INT8_C(0) },
-    { "c_roll_below_threshold", pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs, UINT8_C(2), INT8_C(0) },
-    { "up_timeout", pf_m4_ssbm_falcon_prone_response_up_timeout_inputs, UINT8_C(1), INT8_C(1) },
-    { "up_buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs, UINT8_C(1), INT8_C(1) },
-    { "up_c_roll_forward", pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs, UINT8_C(1), INT8_C(1) },
-    { "up_main_roll_backward", pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs, UINT8_C(1), INT8_C(1) },
+    { "timeout", pf_m4_ssbm_falcon_prone_response_timeout_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "buffered_b_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "c_up_getup_attack", pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "c_roll_forward", pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "main_roll_backward", pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "up_neutral_getup", pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "shield_neutral_getup", pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "attack_over_roll_priority", pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "c_roll_below_threshold", pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs, UINT8_C(2), INT8_C(0), UINT32_C(0) },
+    { "up_timeout", pf_m4_ssbm_falcon_prone_response_up_timeout_inputs, UINT8_C(1), INT8_C(1), UINT32_C(0) },
+    { "up_buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs, UINT8_C(1), INT8_C(1), UINT32_C(0) },
+    { "up_c_roll_forward", pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs, UINT8_C(1), INT8_C(1), UINT32_C(0) },
+    { "up_main_roll_backward", pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs, UINT8_C(1), INT8_C(1), UINT32_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT UINT16_C(14)

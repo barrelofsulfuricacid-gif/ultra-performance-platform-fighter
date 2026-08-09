@@ -8,6 +8,7 @@
 #include "../../src/sim/sim_melee.h"
 #include "../../src/sim/sim_ssbm_common_data.h"
 #include "../../src/sim/sim_ssbm_damage.h"
+#include "../../src/sim/sim_ssbm_stage_data.h"
 #include "ssbm_stored_oracle.h"
 
 #include <inttypes.h>
@@ -24,6 +25,7 @@
 #include "../../generated/data/m4_ssbm_falcon_floor_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_prone_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_player_push_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -2428,7 +2430,7 @@ static int run_directional_attack_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "directional-attack-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("directional-attack-hitlag-snapshot-boundary");
     }
@@ -2588,7 +2590,7 @@ static int run_smash_charge_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "smash-charge-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("smash-charge-save-size");
     }
@@ -2600,7 +2602,7 @@ static int run_smash_charge_snapshot_test(
             PF_STATUS_OK,
             "smash-charge-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE52", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE53", (size_t)8) != 0)
     {
         return fail("smash-charge-save-format");
     }
@@ -3611,7 +3613,7 @@ static int run_directional_aerial_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "directional-aerial-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("directional-aerial-hitlag-snapshot-boundary");
     }
@@ -3624,7 +3626,7 @@ static int run_directional_aerial_snapshot_test(
             PF_STATUS_OK,
             "directional-aerial-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE52", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE53", (size_t)8) != 0)
     {
         return fail("directional-aerial-save-format");
     }
@@ -4144,7 +4146,7 @@ static int run_v_cancel_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-v-cancel-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("v-cancel-snapshot-setup");
     }
@@ -4550,7 +4552,7 @@ static int run_crouch_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-crouch-cancel-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("crouch-cancel-snapshot-setup");
     }
@@ -5084,7 +5086,7 @@ static int run_double_jump_cancel_counter_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-counter-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("double-jump-cancel-counter-save-size-contract");
     }
@@ -6014,7 +6016,7 @@ static int run_small_step_forward_smash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "small-step-forward-smash-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("small-step-forward-smash-window-boundary");
     }
@@ -6442,7 +6444,7 @@ static int run_drop_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "drop-cancel-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("drop-cancel-first-airborne-frame");
     }
@@ -6988,7 +6990,7 @@ static int run_sharking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "sharking-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("sharking-hit-setup");
     }
@@ -7393,7 +7395,7 @@ static int run_cross_up_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "cross-up-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("cross-up-setup");
     }
@@ -7696,7 +7698,7 @@ static int run_juggling_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "juggling-query-save-size") ||
-            save_size != (size_t)811 ||
+            save_size != (size_t)827 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -8482,7 +8484,7 @@ static int run_kill_confirm_route(
                 pf_sim_query_save_size(sim, &save_size),
                 PF_STATUS_OK,
                 "kill-confirm-query-save-size") ||
-            save_size != (size_t)811 ||
+            save_size != (size_t)827 ||
             !expect_status(
                 pf_sim_save(sim, &destination),
                 PF_STATUS_OK,
@@ -8808,7 +8810,7 @@ static int run_zero_to_death_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "zero-to-death-query-save-size") ||
-                save_size != (size_t)811 ||
+                save_size != (size_t)827 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -9121,7 +9123,7 @@ static int run_ladder_route(
                     pf_sim_query_save_size(sim, &save_size),
                     PF_STATUS_OK,
                     "ladder-query-save-size") ||
-                save_size != (size_t)811 ||
+                save_size != (size_t)827 ||
                 !expect_status(
                     pf_sim_save(sim, &destination),
                     PF_STATUS_OK,
@@ -11032,7 +11034,7 @@ static int run_light_shield_state_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "light-shield-query-save") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("light-shield-minimum-depletion");
     }
@@ -11292,7 +11294,7 @@ static int run_dashing_shield_test(
             pf_sim_query_save_size(tap, &save_size),
             PF_STATUS_OK,
             "dashing-shield-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("dashing-shield-entry");
     }
@@ -11601,7 +11603,7 @@ static int run_spacing_counter_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "spacing-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("spacing-safe-tip-setup");
     }
@@ -14170,7 +14172,7 @@ static int run_shield_break_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-break-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("shield-break-snapshot-setup");
     }
@@ -16714,6 +16716,431 @@ static int run_ssbm_prone_response_observation_oracle(void)
     return 1;
 }
 
+static int32_t ssbm_source_x_hundredths_to_sim_q16(int32_t value)
+{
+    const int64_t numerator =
+        (int64_t)value * INT64_C(12) * (int64_t)PF_Q16_ONE;
+    const int64_t denominator = INT64_C(11500);
+
+    return numerator < INT64_C(0)
+               ? (int32_t)(
+                     -((-numerator + denominator / INT64_C(2)) /
+                       denominator))
+               : (int32_t)(
+                     (numerator + denominator / INT64_C(2)) /
+                     denominator);
+}
+
+static int make_hyrule_response_content(
+    uint16_t spawn_line,
+    int32_t spawn_x_q16,
+    int32_t spawn_spacing_q16,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    const pf_m4_ssbm_stage_collision_profile *profile =
+        pf_m4_ssbm_reference_stage_collision(
+            (uint16_t)PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE);
+    const pf_m4_ssbm_stage_collision_line *left_ledge;
+    const pf_m4_ssbm_stage_collision_line *right_ledge;
+    pf_m4_stage_data *stage;
+
+    if (profile == NULL || profile->line_count <= UINT16_C(37) ||
+        !make_reaction_content(out_content, out_view))
+    {
+        return 0;
+    }
+    left_ledge = &profile->lines[0];
+    right_ledge = &profile->lines[37];
+    stage = &out_content->stage;
+    stage->reference_collision_profile =
+        (uint16_t)PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE;
+    stage->reference_spawn_line = spawn_line;
+    stage->reference_spawn_x_q16 = spawn_x_q16;
+    stage->spawn_spacing_q16 = spawn_spacing_q16;
+
+    /* The current compact stage contract still exposes one outer ledge pair.
+     * Bind it to Hyrule's actual enabled outer floor endpoints while all floor
+     * contact and tangent projection comes from the imported line catalog. */
+    stage->floor_left_q16 =
+        left_ledge->start_x_q16 < left_ledge->end_x_q16
+            ? left_ledge->start_x_q16
+            : left_ledge->end_x_q16;
+    stage->floor_right_q16 =
+        right_ledge->start_x_q16 > right_ledge->end_x_q16
+            ? right_ledge->start_x_q16
+            : right_ledge->end_x_q16;
+    stage->floor_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+        right_ledge,
+        stage->floor_right_q16);
+
+    /* Authored primitives are inert for imported collision, but remain valid
+     * deterministic render/debug data until the public stage packet itself is
+     * table-backed. */
+    stage->blast_left_q16 = stage->floor_left_q16 -
+                            INT32_C(8) * PF_Q16_ONE;
+    stage->blast_right_q16 = stage->floor_right_q16 +
+                             INT32_C(8) * PF_Q16_ONE;
+    stage->blast_top_q16 = INT32_C(0);
+    stage->blast_bottom_q16 = INT32_C(60) * PF_Q16_ONE;
+    stage->platform_center_x_q16 = INT32_C(0);
+    stage->platform_y_q16 = INT32_C(4) * PF_Q16_ONE;
+    stage->platform_half_width_q16 = PF_Q16_ONE;
+    stage->platform_motion_amplitude_q16 = INT32_C(0);
+    stage->upper_platform_center_x_q16 = INT32_C(6) * PF_Q16_ONE;
+    stage->upper_platform_y_q16 = INT32_C(6) * PF_Q16_ONE;
+    stage->upper_platform_half_width_q16 = PF_Q16_ONE;
+    stage->solid_left_q16 = -INT32_C(15) * PF_Q16_ONE;
+    stage->solid_right_q16 = -INT32_C(13) * PF_Q16_ONE;
+    stage->solid_top_q16 = INT32_C(8) * PF_Q16_ONE;
+    stage->solid_bottom_q16 = INT32_C(20) * PF_Q16_ONE;
+    stage->revival_platform_start_y_q16 =
+        PF_Q16_ONE;
+    stage->revival_platform_end_y_q16 =
+        INT32_C(7) * PF_Q16_ONE;
+    stage->revival_platform_half_width_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "hyrule-response-content-view");
+}
+
+static int place_player_on_reference_floor(
+    pf_sim *sim,
+    uint32_t player_index,
+    uint16_t line_index,
+    int32_t position_x_q16,
+    int8_t facing)
+{
+    const pf_m4_ssbm_stage_collision_profile *profile =
+        pf_m4_ssbm_reference_stage_collision(
+            sim->content.stage.reference_collision_profile);
+    const pf_m4_ssbm_stage_collision_line *line;
+    int32_t left;
+    int32_t right;
+
+    if (profile == NULL || player_index >= sim->world.player_count ||
+        line_index >= profile->line_count)
+    {
+        return 0;
+    }
+    line = &profile->lines[line_index];
+    left = line->start_x_q16 < line->end_x_q16
+               ? line->start_x_q16
+               : line->end_x_q16;
+    right = line->start_x_q16 > line->end_x_q16
+                ? line->start_x_q16
+                : line->end_x_q16;
+    if (line->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+        position_x_q16 < left || position_x_q16 > right)
+    {
+        return 0;
+    }
+    sim->world.position_x_q16[player_index] = position_x_q16;
+    sim->world.position_y_q16[player_index] =
+        pf_m4_ssbm_stage_line_y_q16(line, position_x_q16) -
+        sim->content.fighter.half_height_q16;
+    sim->world.velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    sim->world.action_state[player_index] =
+        (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+    sim->world.action_ticks[player_index] = UINT16_C(0);
+    sim->world.grounded[player_index] = UINT8_C(1);
+    sim->world.support[player_index] =
+        (uint8_t)(line_index + UINT16_C(1));
+    sim->world.facing[player_index] = facing;
+    return 1;
+}
+
+static int prepare_hyrule_slope_roll(
+    const pf_m4_content *content,
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    const int32_t target_x_q16 =
+        ssbm_source_x_hundredths_to_sim_q16(INT32_C(7560));
+    const int32_t attacker_x_q16 =
+        ssbm_source_x_hundredths_to_sim_q16(INT32_C(6760));
+
+    if (!place_player_on_reference_floor(
+            sim,
+            UINT32_C(1),
+            UINT16_C(34),
+            target_x_q16,
+            INT8_C(-1)) ||
+        !place_player_on_reference_floor(
+            sim,
+            UINT32_C(0),
+            UINT16_C(33),
+            attacker_x_q16,
+            INT8_C(1)))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-slope-ledge-response=fail operation=slope-placement\n");
+        return 0;
+    }
+    if (!prepare_floor_knockdown_orientation(
+            content,
+            sim,
+            (uint8_t)PF_M4_PRONE_STOMACH,
+            out_inspection))
+    {
+        (void)pf_m4_inspect(sim, out_inspection);
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-slope-ledge-response=fail operation=slope-setup"
+            " action=%u tick=%u support=%u facing=%d prone=%u x=%" PRId32
+            " y=%" PRId32 " grounded=%u\n",
+            (unsigned int)out_inspection->players[1].action_state,
+            (unsigned int)out_inspection->players[1].action_ticks,
+            (unsigned int)out_inspection->players[1].support,
+            (int)out_inspection->players[1].facing,
+            (unsigned int)out_inspection->players[1].prone_orientation,
+            out_inspection->players[1].position_x_q16,
+            out_inspection->players[1].position_y_q16,
+            (unsigned int)out_inspection->players[1].grounded);
+        return 0;
+    }
+    return 1;
+}
+
+static int prepare_hyrule_ledge_departure(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    sim->world.damage_q16[1] = UINT32_C(50) * UINT32_C(65536);
+    if (!start_reaction_hit(sim, out_inspection))
+    {
+        return 0;
+    }
+    return out_inspection->players[1].action_state ==
+               (uint8_t)PF_M4_ACTION_HITLAG &&
+           out_inspection->players[1].hitlag_resume_action ==
+               (uint8_t)PF_M4_ACTION_HITSTUN &&
+           out_inspection->players[1].facing == INT8_C(-1);
+}
+
+static uint8_t run_ssbm_slope_ledge_response_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    int slope_case;
+    uint8_t sample_index;
+    int32_t origin_x_q16;
+    int32_t origin_y_q16;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL ||
+        capacity <
+            PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE)
+    {
+        return UINT8_C(0);
+    }
+    slope_case = strcmp(
+        stored_case->id,
+        "hyrule_line34_forward_getup_roll") == 0;
+    if (slope_case == 0 &&
+        strcmp(
+            stored_case->id,
+            "hyrule_line36_to_line37_natural_hit_departure") != 0)
+    {
+        return UINT8_C(0);
+    }
+
+    if (slope_case != 0)
+    {
+        const pf_m4_ssbm_stage_collision_line *line =
+            pf_m4_ssbm_reference_stage_line(
+                (uint16_t)PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE,
+                UINT8_C(35));
+
+        if (line == NULL ||
+            !make_hyrule_response_content(
+                UINT16_C(34),
+                (line->start_x_q16 + line->end_x_q16) / INT32_C(2),
+                PF_Q16_ONE / INT32_C(3),
+                &content,
+                &view))
+        {
+            return UINT8_C(0);
+        }
+        content.fighter.jab_hitbox_half_height_q16 = PF_Q16_ONE;
+        content.fighter.jab_base_knockback_x_q16 =
+            PF_Q16_ONE / INT32_C(100);
+        content.fighter.jab_base_knockback_y_q16 =
+            PF_Q16_ONE / INT32_C(5);
+        content.fighter.jab_knockback_growth_q16 = INT32_C(1);
+        content.fighter.hitstun_velocity_per_tick_q16 = INT32_C(515);
+        content.fighter.tumble_hitstun_threshold_ticks = UINT16_C(13);
+    }
+    else
+    {
+        const int32_t target_x_q16 =
+            ssbm_source_x_hundredths_to_sim_q16(INT32_C(19000));
+        const int32_t spacing_q16 =
+            (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+
+        if (!make_hyrule_response_content(
+                UINT16_C(36),
+                target_x_q16 - spacing_q16,
+                spacing_q16,
+                &content,
+                &view))
+        {
+            return UINT8_C(0);
+        }
+        content.fighter.jab_damage_q16 =
+            UINT32_C(10) * UINT32_C(65536);
+        content.fighter.jab_hitlag_ticks = UINT16_C(4);
+        content.fighter.jab_base_knockback_x_q16 = INT32_C(12140);
+        content.fighter.jab_base_knockback_y_q16 = INT32_C(20002);
+        content.fighter.reference_frame_data_enabled = UINT8_C(1);
+        content.fighter.jab_knockback_growth_q16 = INT32_C(1);
+        content.fighter.hitstun_velocity_per_tick_q16 = INT32_C(977);
+    }
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "slope-ledge-response-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        (slope_case != 0
+             ? !prepare_hyrule_slope_roll(
+                   &content,
+                   sim,
+                   &inspection)
+             : !prepare_hyrule_ledge_departure(sim, &inspection)))
+    {
+        return UINT8_C(0);
+    }
+
+    origin_x_q16 = inspection.players[1].position_x_q16;
+    origin_y_q16 = inspection.players[1].position_y_q16;
+    for (sample_index = UINT8_C(0);
+         sample_index <
+             PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE;
+         ++sample_index)
+    {
+        const pf_ssbm_stored_trace_input *input =
+            &stored_case->inputs[sample_index];
+        uint16_t tick;
+
+        if (slope_case != 0 || sample_index != UINT8_C(0))
+        {
+            for (tick = UINT16_C(0); tick < input->advance_ticks; ++tick)
+            {
+                if (!step_ssbm_trace_duel(sim, input, &inspection))
+                {
+                    return UINT8_C(0);
+                }
+            }
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            origin_x_q16,
+            origin_y_q16,
+            &out_samples[sample_index]);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            const pf_ssbm_stored_trace_sample *sample =
+                &out_samples[sample_index];
+
+            (void)printf(
+                "m4-ssbm-slope-ledge-response-observation case=%s"
+                " sample=%u action=%u resume=%u action_tick=%u"
+                " grounded=%u support=%u tumble=%u hitlag=%u hitstun=%u"
+                " invulnerable=%u tech=%d prone=%u facing=%d dx=%" PRId32
+                " dy=%" PRId32 " self_vx=%" PRId32
+                " self_vy=%" PRId32 " kb_vx=%" PRId32
+                " kb_vy=%" PRId32 " ground_kb=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->hitlag_resume_action,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)inspection.players[1].support,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitlag_ticks,
+                (unsigned int)sample->hitstun_ticks,
+                (unsigned int)sample->invulnerable,
+                (int)sample->tech_direction,
+                (unsigned int)sample->prone_orientation,
+                (int)sample->facing,
+                sample->position_x_q16,
+                sample->position_y_q16,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16,
+                sample->ground_knockback_velocity_q16);
+        }
+    }
+    return PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE;
+}
+
+static int run_ssbm_slope_ledge_response_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-slope-ledge-response",
+        pf_m4_ssbm_falcon_slope_ledge_response_cases,
+        PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_CASE_COUNT,
+        PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_slope_ledge_response_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL ? result.failed_operation : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass "
+        "domain=falcon-common-slope-ledge-response poses=0 cases=%u "
+        "samples=%u source_trace_sha256=%s production_trace_sha256=%s\n",
+        (unsigned int)PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_CASE_COUNT,
+        (unsigned int)(
+            PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_CASE_COUNT *
+            PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE),
+        PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
 static int16_t tech_chase_axis(
     const pf_m4_content *content,
     const pf_m4_inspection *inspection)
@@ -17030,7 +17457,7 @@ static int run_tech_chase_test(
             pf_sim_query_save_size(roll, &save_size),
             PF_STATUS_OK,
             "tech-chase-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("tech-chase-roll-snapshot-boundary");
     }
@@ -17760,7 +18187,7 @@ static int run_floor_recovery_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-floor-recovery-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("floor-recovery-snapshot-setup");
     }
@@ -18525,7 +18952,7 @@ static int run_hitlag_snapshot_test(const pf_content_view *view)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-combat-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("mid-hitlag-save-setup");
     }
@@ -18646,7 +19073,7 @@ static int run_shield_hitlag_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-shield-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("mid-shield-hitlag-save-setup");
     }
@@ -19465,7 +19892,7 @@ static int run_jab_reset_test(
                     pf_sim_query_save_size(sdi, &save_size),
                     PF_STATUS_OK,
                     "jab-reset-hitlag-query-save-size") ||
-                save_size != (size_t)811)
+                save_size != (size_t)827)
             {
                 return fail("jab-reset-hitlag-snapshot-setup");
             }
@@ -19607,7 +20034,7 @@ static int run_jab_reset_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jab-reset-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("jab-reset-snapshot-boundary");
     }
@@ -20026,7 +20453,7 @@ static int run_jab_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jab-cancel-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("jab-cancel-snapshot-boundary");
     }
@@ -20616,7 +21043,7 @@ static int run_boost_grab_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "boost-grab-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("boost-grab-snapshot-boundary");
     }
@@ -20804,7 +21231,7 @@ static int run_jump_cancelled_grab_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "grab-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("grab-shield-capture");
     }
@@ -21568,7 +21995,7 @@ static int run_jump_cancelling_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "jump-cancel-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("jump-cancel-save-setup");
     }
@@ -22659,7 +23086,7 @@ static int run_pummel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pummel-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("pummel-entry");
     }
@@ -23237,7 +23664,7 @@ static int run_chain_grab_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "chain-grab-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("chain-grab-snapshot-setup");
     }
@@ -23779,7 +24206,7 @@ static int run_ledge_attack_snapshot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "ledge-attack-query-save-size") ||
-        save_size != (size_t)811)
+        save_size != (size_t)827)
     {
         return fail("ledge-attack-snapshot-size");
     }
@@ -23791,7 +24218,7 @@ static int run_ledge_attack_snapshot_test(
             PF_STATUS_OK,
             "ledge-attack-save") ||
         destination.size != save_size ||
-        memcmp(save_bytes, "PFSAVE52", (size_t)8) != 0)
+        memcmp(save_bytes, "PFSAVE53", (size_t)8) != 0)
     {
         return fail("ledge-attack-save-format");
     }
@@ -25188,8 +25615,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x7b) ||
-        complete_source_sha256[31] != UINT8_C(0x70) ||
+        complete_source_sha256[0] != UINT8_C(0x77) ||
+        complete_source_sha256[31] != UINT8_C(0x41) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -26102,6 +26529,15 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-player-push") == 0)
         {
             return run_ssbm_player_push_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(
+                argv[2],
+                "falcon-common-slope-ledge-response") == 0)
+        {
+            return run_ssbm_slope_ledge_response_observation_oracle()
+                       ? 0
+                       : 1;
         }
         (void)fprintf(
             stderr,

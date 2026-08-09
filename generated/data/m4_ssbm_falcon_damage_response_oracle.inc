@@ -70,12 +70,12 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_damage_response_cases[] = {
-    { "neutral", pf_m4_ssbm_falcon_damage_response_neutral_inputs, UINT8_C(0), INT8_C(0) },
-    { "di_full_right", pf_m4_ssbm_falcon_damage_response_di_full_right_inputs, UINT8_C(0), INT8_C(0) },
-    { "di_half_right", pf_m4_ssbm_falcon_damage_response_di_half_right_inputs, UINT8_C(0), INT8_C(0) },
-    { "sdi_radial_diagonal", pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs, UINT8_C(0), INT8_C(0) },
-    { "sdi_below_radial", pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs, UINT8_C(0), INT8_C(0) },
-    { "asdi_c_priority", pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs, UINT8_C(0), INT8_C(0) },
+    { "neutral", pf_m4_ssbm_falcon_damage_response_neutral_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "di_full_right", pf_m4_ssbm_falcon_damage_response_di_full_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "di_half_right", pf_m4_ssbm_falcon_damage_response_di_half_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "sdi_radial_diagonal", pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "sdi_below_radial", pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "asdi_c_priority", pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT UINT16_C(6)
@@ -86,7 +86,7 @@ pf_m4_ssbm_falcon_damage_response_cases[] = {
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SOURCE_TRACE_SHA256 \
     "51402cd3605ba2761e3c11ed6baab74eb1b7ab22136822507b39d0a00cc40d95"
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "13495d1a278888bd67c023b4803b4e3dfcbaaea72b655d0289b99f815fd4c32f"
+    "53471e3af8475959868a5f64361200151bc9fd9b640dbb5b3d66e4cd5031db4b"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_damage_response_cases) /

@@ -27,7 +27,7 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_ground_knockback_cases[] = {
-    { "late_dash_attack_flat", pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs, UINT8_C(0), INT8_C(0) },
+    { "late_dash_attack_flat", pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT UINT16_C(1)

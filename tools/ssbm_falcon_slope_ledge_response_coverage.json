@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-slope-ledge-response",
+  "domain": "falcon-common-slope-ledge-response",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 180,
+    "warm_budget_seconds": 3.0,
+    "capture_plan": {
+      "record_response_only": true,
+      "source_random_seed": 1,
+      "source_random_seed_post_hit_index": 5,
+      "surface_response_cases": [
+        {
+          "id": "hyrule_line34_forward_getup_roll",
+          "damage_percent": 200.0,
+          "target_start": [160.0, 10.0],
+          "opponent_start": [185.0, 10.0],
+          "approach_main": -32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 30,
+          "impact_x": 110.0,
+          "impact_opponent_x": 85.0,
+          "impact_y": 0.0,
+          "impact_x_hold_ticks": 40,
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90,
+              "conditional_edge": {
+                "action": "TECH_MISS_DOWN",
+                "frame": 25,
+                "secondary": [32767, 0]
+              }
+            }
+          ]
+        },
+        {
+          "id": "hyrule_line36_to_line37_natural_hit_departure",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "hyrule-line34-forward-getup-roll",
+      "start_label": "surface_response_hyrule_line34_forward_getup_roll_setup"
+    },
+    {
+      "id": "hyrule-line36-to-line37-natural-hit-departure",
+      "start_label": "surface_response_hyrule_line36_to_line37_natural_hit_departure_setup"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc",
+      "generated/data/m4_ssbm_ntsc102_hyrule_collision.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_content.c",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "src/sim/sim_ssbm_stage_data.c",
+      "src/sim/sim_ssbm_stage_data.h",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/data/ssbm_ntsc102_hyrule_collision.json",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_stage_collision.py",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_falcon_slope_ledge_response_coverage.json",
+      "tools/verify_ssbm_falcon_slope_ledge_response.py",
+      "tools/verify_ssbm_falcon_slope_ledge_response.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "8c62ce678732b38d157f1e3cee2409b0da22835bc63c906c41e765ce1a879a6d",
+    "production_trace_sha256": "4dce7db6baa8a11fb90b77438ef5e423b500e5e5a3f7a4da835bfc979d6f0167",
+    "samples_per_case": 48,
+    "serialized_fields": [
+      "self_velocity_x",
+      "self_velocity_y",
+      "knockback_velocity_x",
+      "knockback_velocity_y",
+      "ground_knockback_velocity",
+      "action_ticks",
+      "hitlag_ticks",
+      "hitstun_ticks",
+      "action_state",
+      "hitlag_resume_action",
+      "grounded",
+      "tumble",
+      "invulnerable",
+      "tech_direction",
+      "prone_orientation",
+      "facing"
+    ],
+    "cases": [
+      {
+        "id": "hyrule_line34_forward_getup_roll",
+        "initial_state_variant": 2,
+        "initial_facing": 1,
+        "serialized_fields": [
+          "self_velocity_x",
+          "self_velocity_y",
+          "action_ticks",
+          "hitlag_ticks",
+          "hitstun_ticks",
+          "action_state",
+          "hitlag_resume_action",
+          "grounded",
+          "tumble",
+          "invulnerable",
+          "tech_direction",
+          "prone_orientation",
+          "facing"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "advance_ticks": 24 }] },
+          { "ticks": 1, "lanes": [{ "c_stick": [32767, 0] }] },
+          { "ticks": 46, "lanes": [{}] }
+        ]
+      },
+      {
+        "id": "hyrule_line36_to_line37_natural_hit_departure",
+        "initial_facing": -1,
+        "input_phases": [
+          { "ticks": 48, "lanes": [{}] }
+        ]
+      }
+    ],
+    "live_comparison": {
+      "hyrule_line34_forward_getup_roll": {
+        "strict_fields": [
+          "action_state",
+          "response_action_ticks",
+          "grounded",
+          "support_transition",
+          "hitstun_storage_ticks",
+          "invulnerable",
+          "facing"
+        ],
+        "q16_fields": ["root_velocity_x", "root_velocity_y"],
+        "q16_tolerance": 12,
+        "excluded_fields": [
+          "position",
+          "incoming_attack_velocity",
+          "ground_knockback",
+          "idle_animation_clock"
+        ],
+        "exclusion_reason": "The physical compact setup reproduces the imported roll root track but intentionally does not reproduce the source setup attack's residual knockback and pre-roll push displacement. GroundIdle owns no simulator gameplay timer after the exact Standing entry boundary; its visual pose loop is qualified by the common-hurt domain."
+      },
+      "hyrule_line36_to_line37_natural_hit_departure": {
+        "strict_fields": [
+          "action_state",
+          "response_action_ticks",
+          "grounded",
+          "support_transition",
+          "hitlag_ticks",
+          "hitstun_storage_ticks",
+          "tumble",
+          "invulnerable",
+          "facing"
+        ],
+        "q16_fields": [
+          "position_x",
+          "position_y",
+          "self_velocity_x",
+          "self_velocity_y",
+          "knockback_velocity_x",
+          "knockback_velocity_y"
+        ],
+        "velocity_tolerance_q16": 32,
+        "position_tolerance_q16": 192,
+        "excluded_fields": [
+          "post_wall_contact_position_x",
+          "edge_catch_animation_position",
+          "ordinary_fall_animation_clock"
+        ],
+        "exclusion_reason": "The line 36/37 response position is qualified through sample 43 for X and sample 47 for Y. The adjacent wall response is already a separate surface domain. The simulator currently combines Melee EdgeCatch and EdgeWait into one timed LEDGE_HANG state, so the exact catch frame is strict while its following animation root track is outside this response domain. Ordinary Fall pose timing is a separately named fidelity-ledger concern rather than a widened numeric tolerance."
+      }
+    },
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_slope_ledge_response",
+      "macro_prefix": "PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-slope-ledge-response"]
+    }
+  }
+}

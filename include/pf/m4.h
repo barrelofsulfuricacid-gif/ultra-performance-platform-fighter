@@ -10,9 +10,9 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(74)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(75)
 #define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(67)
-#define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
+#define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(5)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
@@ -362,6 +362,12 @@ typedef enum pf_m4_surface
     PF_M4_SURFACE_REVIVAL_PLATFORM = 4,
     PF_M4_SURFACE_UPPER_PLATFORM = 5
 } pf_m4_surface;
+
+typedef enum pf_m4_reference_stage
+{
+    PF_M4_REFERENCE_STAGE_AUTHORED = 0,
+    PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE = 1
+} pf_m4_reference_stage;
 
 typedef enum pf_m4_ledge
 {
@@ -737,7 +743,7 @@ typedef struct pf_m4_stage_data
 {
     uint32_t struct_size;
     uint16_t schema_version;
-    uint16_t reserved;
+    uint16_t reference_collision_profile;
     int32_t floor_left_q16;
     int32_t floor_right_q16;
     int32_t floor_y_q16;
@@ -755,7 +761,8 @@ typedef struct pf_m4_stage_data
     int32_t blast_bottom_q16;
     int32_t spawn_spacing_q16;
     uint16_t platform_motion_period_ticks;
-    uint16_t reserved2;
+    uint16_t reference_spawn_line;
+    int32_t reference_spawn_x_q16;
     int32_t revival_platform_start_y_q16;
     int32_t revival_platform_end_y_q16;
     int32_t revival_platform_half_width_q16;

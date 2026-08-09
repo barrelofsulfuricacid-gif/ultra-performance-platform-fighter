@@ -41,6 +41,9 @@ SPECIALHI_LEDGE_ECB_CAPTURE_SHA256 = (
 DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256 = (
     "6c8d97ff1076075616ed06f88c742528eff9c2fb18ab9f2cce09ba895147e556"
 )
+DAMAGE_FLY_ECB_CAPTURE_SHA256 = (
+    "d011c9bb79f93840d1d97fbf241b754cedf5669c2578c9f1f7f85b45a3f6bd84"
+)
 
 COMMON_ATTRIBUTE_COUNT = 97
 SUBMOTION_COUNT = 318
@@ -195,6 +198,36 @@ DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK = 0x03C0000F
 # 1.02 process (ECB capture SHA-256
 # 4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb).
 FALLING_ECB_BOTTOM_Y_MELEE = 7.932853698730469
+
+# Complete displayed-frame ECB bottom for the pinned natural Hyrule
+# DamageFlyN route. Frames 1-5 use the source zero-bottom fallback; the later
+# pose is what defers line-37 landing until displayed frame 24.
+DAMAGE_FLY_ECB_BOTTOM_Y_MELEE = (
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    7.080801963806152,
+    7.315534591674805,
+    7.473471164703369,
+    7.564826011657715,
+    7.6020355224609375,
+    7.5979156494140625,
+    7.564871311187744,
+    7.514712333679199,
+    7.458775520324707,
+    7.408194065093994,
+    7.37419319152832,
+    7.368307113647461,
+    7.402467727661133,
+    7.488738059997559,
+    7.595531463623047,
+    7.681507110595703,
+    7.744410037994385,
+    7.750994682312012,
+    7.681281089782715,
+)
 
 # FallSpecial is a distinct common animation from Falling. These eight live
 # ECB-bottom samples are the complete pre-landing route observed in the pinned
@@ -1316,6 +1349,12 @@ def generate(
                     "back": DOWN_BOUND_BACK_FLOOR_CONTACT_MASK,
                     "stomach": DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK,
                 },
+                "damage_fly_ecb_capture_sha256": (
+                    DAMAGE_FLY_ECB_CAPTURE_SHA256
+                ),
+                "falcon_damage_fly_collision_pose_melee": {
+                    "bottom_y_from_origin": DAMAGE_FLY_ECB_BOTTOM_Y_MELEE,
+                },
                 "falcon_dive_ledge_ecb_capture_sha256": (
                     SPECIALHI_LEDGE_ECB_CAPTURE_SHA256
                 ),
@@ -1712,6 +1751,14 @@ def generate(
             f"UINT32_C({DOWN_BOUND_BACK_FLOOR_CONTACT_MASK}),",
             "    .down_bound_stomach_floor_contact_mask = "
             f"UINT32_C({DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK}),",
+            "    .damage_fly_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in DAMAGE_FLY_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
             "    .air_dodge_bottom_y_from_origin_q16 = {",
             "        "
             + ", ".join(

@@ -113,9 +113,9 @@ EscapeF's `0x800000c2`. Each catalog row stores an O(1) offset/count span, and
 attack/root-motion accessors reuse the same pool rather than generating
 parallel tables. Regeneration produces
 `generated/data/m4_falcon_ntsc102_frame_data.inc` byte-for-byte at SHA-256
-`d6e2700a293450bf8f8e5d075881e6284cf09bb56a41e68590a36d779f72004e`.
+`eb36c7db410efdb20b59adddc345f5ff729f8582a51e164d10414c1caa98defa`.
 The expanded behavior-bearing source digest is
-`7b34f2eb4e8edf0c491ea410c27b9790f2127d90a560865c56ebc68bea98c170`;
+`77dc51740b77c3f80e55571bf44aa321a56cef3b22b76f7b320982675421da41`;
 the separate logical catalog digest remains stable because derived spans do
 not change its original source fields.
 

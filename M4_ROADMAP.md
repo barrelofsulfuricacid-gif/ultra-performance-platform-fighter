@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for seven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, and paired player push now contain 52 registered cases plus deterministic replay. The complete gate takes 0.802 seconds on Windows and 0.716 seconds in WSL. |
+| Fast stored equivalence | done for eight domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, and Hyrule slope/ledge response now contain 54 registered cases plus deterministic replay. The latest warm gate takes 0.804 seconds on Windows and 0.778 seconds in WSL. |
 | Fast live Dolphin oracle | done for registered domains | Registered packs use headless/null/unlimited ExiAI. Frame-safe batched controller queues and four isolated physical Dolphin shards reduce the 14-case prone pack from 34.77 seconds to 9.812 seconds while preserving the independently reproduced 1,515-row digest. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, DownBound ECB contact, and grounded player push from both ports/directions. Slopes, broader ECB/stage topology, and other fidelity-audit rows remain. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, and imported Hyrule slope/DownBound/ordinary-ledge response. Broader stage topology and other fidelity-audit rows remain. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -200,6 +200,55 @@ Current DownBound prior-art/source sweep:
   seconds, and WSL ASan/UBSan 19/19 in 12.27 seconds.
 - [x] Extend and validate the `ssbm-character-importer` skill with the reusable
   paired-lane/field-mask pattern.
+
+## Completed and verified: imported Hyrule slope and ordinary ledge response
+
+- [x] Sweep the pinned/current `doldecomp/melee` stage-collision, DownBound,
+  damage-flight, and ledge routes before adding project machinery. No maintained
+  reusable importer or exact-response harness covers this slice; ExiAI remains
+  the qualified transport.
+- [x] Import Hyrule MapCollData lines 34-37 into one immutable runtime catalog.
+  Raw vertices are converted from joint-local to runtime world space, while the
+  semantic source digest
+  `4a0dd57bb8d9532589d3ecd129213d3a0876538a2dc7f733eca6c1e73c04db9c`
+  pins topology independently of generated-C formatting.
+- [x] Import Falcon's 24-frame DamageFly ECB-bottom track and source ledge-snap
+  attributes. Production now projects landing knockback onto the imported slope
+  tangent, evaluates DownBound contact before decay, retains support only until
+  current and previous roots leave the endpoint, clears hitstun on the exact
+  collision-driven Fall boundary, and performs ordinary ledge reach from source
+  root/ECB coordinates.
+- [x] Qualify two checkpoint-isolated physical cases: line-34 forward getup roll
+  and line-36-to-line-37 natural hit departure through exact ordinary ledge
+  catch. The live source digest is
+  `8c62ce678732b38d157f1e3cee2409b0da22835bc63c906c41e765ce1a879a6d`;
+  the production digest is
+  `4dce7db6baa8a11fb90b77438ef5e423b500e5e5a3f7a4da835bfc979d6f0167`.
+  Two fresh Dolphin boots reproduced the source digest. The final live gate
+  measured 1.234 seconds warm and 4.859 seconds including process lifecycle.
+- [x] Generalize stored numeric cases with an optional per-case field mask.
+  Inherited masks emit an explicit zero initializer so MSVC and GCC
+  `-Werror=missing-field-initializers` agree without runtime branching.
+- [x] Requalify the damage and floor domains after correcting DamageFly entry
+  grounding and landing ordering. Their production digests are
+  `53471e3af8475959868a5f64361200151bc9fd9b640dbb5b3d66e4cd5031db4b`
+  and `0596ba59ba2f03076b8b6828bae662eda6a7861ff8222af8788b47738aeece16`.
+- [x] Repin deterministic replay only after the live-qualified production
+  changes: 41,599 bytes, corpus
+  `0d1c16c1e231d29c89a49d193f6b10deb081297821d5448239307cae4d33f4ad`,
+  final state
+  `6c648e4463b070ad4b7e3b013ea620e21463b281fe39b00980cf0cbf558bfcd5`,
+  and events
+  `0cf114479e7cec86ebe0b89b08fd6eabc74209d99ed053fb92b397d26d6eab8e`.
+- [x] Pass the eight-domain/54-case stored gate in 0.804 seconds on Windows and
+  0.778 seconds in WSL; Windows and WSL Release pass 27/27, WSL ASan/UBSan
+  passes 20/20, and the cross-platform verifier soak digest is
+  `7f584c16f3d23773`.
+
+Remaining scope is explicit: ordinary Fall animation-clock equivalence,
+separate EdgeCatch/EdgeWait pose and root tracks, post-wall-contact absolute X,
+broader stage topology, the other incomplete fidelity-audit rows, and the
+native Battlefield frontend.
 
 Primary sources:
 
@@ -456,9 +505,8 @@ Execution results:
 - [x] Qualify flat-floor landing plus missed, neutral, forward, and backward
   tech response against a live source route.
 - [x] Qualify DownBound ECB pose-grounding in its own live source route.
-- [ ] Qualify slopes and ledge departure during floor recovery in their own
-  live source routes; promote the already-live-qualified player-push route to
-  the generic manifest/stored architecture.
+- [x] Qualify imported Hyrule slope and ordinary ledge departure during floor
+  recovery and promote the player-push route to the generic stored architecture.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -476,7 +524,7 @@ Execution results:
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
 - [x] Keep changed-domain local validation comfortably below two seconds. The
-  current seven-domain stored gate is 0.716 seconds on WSL and 0.802 seconds on
+  current eight-domain stored gate is 0.778 seconds on WSL and 0.804 seconds on
   Windows. Live manifests carry explicit per-pack budgets: paired player push
   is 0.090 seconds warm; wall/ceiling is
   2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on

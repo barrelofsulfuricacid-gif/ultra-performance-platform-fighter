@@ -84,10 +84,10 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_floor_response_cases[] = {
-    { "flat_floor_missed_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs, UINT8_C(0), INT8_C(0) },
-    { "flat_floor_neutral_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs, UINT8_C(0), INT8_C(0) },
-    { "flat_floor_forward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs, UINT8_C(0), INT8_C(0) },
-    { "flat_floor_backward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs, UINT8_C(0), INT8_C(0) },
+    { "flat_floor_missed_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "flat_floor_neutral_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "flat_floor_forward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "flat_floor_backward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT UINT16_C(4)
@@ -98,7 +98,7 @@ pf_m4_ssbm_falcon_floor_response_cases[] = {
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SOURCE_TRACE_SHA256 \
     "85fd93638bcb26b8b6e405cb1008a396acf05d132e07c7f9dcc3b6993034dd3f"
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "bbf01b67f222d78e915f5077eecd9a45282f77e7d32efb4cf7bf8d79b513eb2f"
+    "0596ba59ba2f03076b8b6828bae662eda6a7861ff8222af8788b47738aeece16"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_floor_response_cases) /
