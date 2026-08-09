@@ -68,10 +68,10 @@ pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs[] = {
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_floor_response_cases[] = {
-    { "flat_floor_missed_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs },
-    { "flat_floor_neutral_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs },
-    { "flat_floor_forward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs },
-    { "flat_floor_backward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs },
+    { "flat_floor_missed_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs, UINT8_C(0), INT8_C(0) },
+    { "flat_floor_neutral_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs, UINT8_C(0), INT8_C(0) },
+    { "flat_floor_forward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs, UINT8_C(0), INT8_C(0) },
+    { "flat_floor_backward_tech", pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs, UINT8_C(0), INT8_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT UINT16_C(4)

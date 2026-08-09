@@ -14731,6 +14731,7 @@ static uint8_t run_ssbm_damage_trace_case(
     {
         return UINT8_C(0);
     }
+
     for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
     {
         if (!step_ssbm_damage_duel(
@@ -14934,7 +14935,6 @@ static uint8_t run_ssbm_ground_knockback_trace_case(
     {
         return UINT8_C(0);
     }
-
     for (tick = UINT32_C(0); tick < UINT32_C(8); ++tick)
     {
         if (!step_reaction_duel(
@@ -16390,10 +16390,14 @@ static uint8_t run_ssbm_prone_response_trace_case(
         !prepare_floor_knockdown_orientation(
             &content,
             sim,
-            (uint8_t)PF_M4_PRONE_STOMACH,
+            stored_case->initial_state_variant,
             &inspection))
     {
         return UINT8_C(0);
+    }
+    if (stored_case->initial_facing != INT8_C(0))
+    {
+        sim->world.facing[1] = stored_case->initial_facing;
     }
 
     for (sample_index = UINT8_C(0);

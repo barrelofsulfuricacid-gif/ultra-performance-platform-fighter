@@ -601,7 +601,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_ssbm_falcon_prone_response
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-ssbm-stored-oracle=pass domain=falcon-common-prone-response poses=0 cases=10 samples=120")
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-prone-response poses=0 cases=14 samples=168")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)

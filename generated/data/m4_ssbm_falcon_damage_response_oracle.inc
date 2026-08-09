@@ -46,12 +46,12 @@ pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs[] = {
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_damage_response_cases[] = {
-    { "neutral", pf_m4_ssbm_falcon_damage_response_neutral_inputs },
-    { "di_full_right", pf_m4_ssbm_falcon_damage_response_di_full_right_inputs },
-    { "di_half_right", pf_m4_ssbm_falcon_damage_response_di_half_right_inputs },
-    { "sdi_radial_diagonal", pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs },
-    { "sdi_below_radial", pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs },
-    { "asdi_c_priority", pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs },
+    { "neutral", pf_m4_ssbm_falcon_damage_response_neutral_inputs, UINT8_C(0), INT8_C(0) },
+    { "di_full_right", pf_m4_ssbm_falcon_damage_response_di_full_right_inputs, UINT8_C(0), INT8_C(0) },
+    { "di_half_right", pf_m4_ssbm_falcon_damage_response_di_half_right_inputs, UINT8_C(0), INT8_C(0) },
+    { "sdi_radial_diagonal", pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs, UINT8_C(0), INT8_C(0) },
+    { "sdi_below_radial", pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs, UINT8_C(0), INT8_C(0) },
+    { "asdi_c_priority", pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs, UINT8_C(0), INT8_C(0) },
 };
 
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT UINT16_C(6)

@@ -660,7 +660,10 @@ static void pf_write_payload(
             writer,
             (uint8_t)(tech_code |
                       (uint8_t)(world->prone_orientation[player_index]
-                                << 2U)));
+                                << 2U) |
+                      (uint8_t)(
+                          world->prone_roll_motion_orientation[player_index]
+                          << 4U)));
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1158,10 +1161,14 @@ static void pf_read_payload(
         const uint8_t tech_code = packed & UINT8_C(0x03);
         const uint8_t prone_orientation =
             (packed >> 2U) & UINT8_C(0x03);
+        const uint8_t prone_roll_motion_orientation =
+            (packed >> 4U) & UINT8_C(0x03);
 
-        if ((packed & UINT8_C(0xf0)) != UINT8_C(0) ||
+        if ((packed & UINT8_C(0xc0)) != UINT8_C(0) ||
             tech_code == UINT8_C(3) ||
-            prone_orientation > (uint8_t)PF_M4_PRONE_STOMACH)
+            prone_orientation > (uint8_t)PF_M4_PRONE_STOMACH ||
+            prone_roll_motion_orientation >
+                (uint8_t)PF_M4_PRONE_STOMACH)
         {
             reader->failed = 1;
         }
@@ -1173,6 +1180,8 @@ static void pf_read_payload(
                        : INT8_C(0));
         world->prone_orientation[player_index] =
             prone_orientation;
+        world->prone_roll_motion_orientation[player_index] =
+            prone_roll_motion_orientation;
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1664,8 +1673,8 @@ static int pf_m4_snapshot_content_state_consistent(
             world->hitlag_resume_action[player_index];
         const uint16_t action_ticks =
             world->action_ticks[player_index];
-        const uint8_t prone_orientation =
-            world->prone_orientation[player_index];
+        const uint8_t prone_roll_motion_orientation =
+            world->prone_roll_motion_orientation[player_index];
         const int charge_action =
             action == (uint8_t)PF_M4_ACTION_CHARGE_GROUND ||
             action == (uint8_t)PF_M4_ACTION_CHARGE_STORE_GROUND ||
@@ -1824,7 +1833,7 @@ static int pf_m4_snapshot_content_state_consistent(
              (action_ticks >= content->fighter.getup_roll_ticks ||
               pf_m4_getup_roll_timing_for(
                   &content->fighter,
-                  prone_orientation,
+                  prone_roll_motion_orientation,
                   world->tech_direction[player_index],
                   world->facing[player_index]) == NULL)) ||
             (revival_action &&
@@ -2306,6 +2315,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->tech_direction[player_index];
             const uint8_t prone_orientation =
                 world->prone_orientation[player_index];
+            const uint8_t prone_roll_motion_orientation =
+                world->prone_roll_motion_orientation[player_index];
             const int prone_action =
                 action == (uint8_t)PF_M4_ACTION_KNOCKDOWN ||
                 action == (uint8_t)PF_M4_ACTION_DOWN_WAIT ||
@@ -2446,6 +2457,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 tech_direction > INT8_C(1) ||
                 prone_orientation >
                     (uint8_t)PF_M4_PRONE_STOMACH ||
+                prone_roll_motion_orientation >
+                    (uint8_t)PF_M4_PRONE_STOMACH ||
+                (action == (uint8_t)PF_M4_ACTION_GETUP_ROLL &&
+                 prone_roll_motion_orientation ==
+                     (uint8_t)PF_M4_PRONE_NONE) ||
+                (action != (uint8_t)PF_M4_ACTION_GETUP_ROLL &&
+                 prone_roll_motion_orientation !=
+                     (uint8_t)PF_M4_PRONE_NONE) ||
                 (prone_action != 0 &&
                  prone_orientation ==
                      (uint8_t)PF_M4_PRONE_NONE) ||
@@ -2893,6 +2912,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->sdi_direction_y[player_index] != INT8_C(0) ||
                  world->tech_direction[player_index] != INT8_C(0) ||
                  world->prone_orientation[player_index] !=
+                     (uint8_t)PF_M4_PRONE_NONE ||
+                 world->prone_roll_motion_orientation[player_index] !=
                      (uint8_t)PF_M4_PRONE_NONE ||
                  world->respawn_ticks[player_index] != UINT16_C(0) ||
                  world->respawn_invulnerability_ticks[player_index] !=

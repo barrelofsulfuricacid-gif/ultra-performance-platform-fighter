@@ -2,7 +2,6 @@
 #include "pf/sim.h"
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
 
 #include <inttypes.h>
 #include <stddef.h>

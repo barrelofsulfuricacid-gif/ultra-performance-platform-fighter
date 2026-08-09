@@ -1,6 +1,6 @@
 # M4 execution roadmap
 
-Last updated: 2026-08-08
+Last updated: 2026-08-09
 
 This is the short, current status companion to
 `ultra_performance_platform_fighter_implementation_plan.md`. A row is marked
@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for six domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, and prone/getup response: 46 cases plus deterministic replay in 0.465 seconds on WSL and 0.628 seconds on Windows. |
-| Fast live Dolphin oracle | done for registered live domains | One headless/null/unlimited ExiAI process per compatible pack. The prone-response pack runs ten checkpoint-isolated cases and 2,370 rows within its 22-second warm budget; two independent captures have the same semantic digest. |
+| Fast stored equivalence | done for six domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, and prone/getup response now contain 50 registered cases plus deterministic replay. Current cross-platform timings are requalified after each affected slice. |
+| Fast live Dolphin oracle | done for registered domains | Registered packs use headless/null/unlimited ExiAI. Frame-safe batched controller queues and four isolated physical Dolphin shards reduce the 14-case prone pack from 34.77 seconds to 9.812 seconds while preserving the independently reproduced 1,515-row digest. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Captured routes now include wall/ceiling response, flat-floor missed/neutral/directional techs, and Down-orientation prone/getup branches. Slopes, opposite prone orientation, ECB pose behavior, pushboxes, and other fidelity-audit rows remain. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, and both Up/Down prone/getup orientations. Slopes, ECB pose behavior, pushboxes, and other fidelity-audit rows remain. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -68,7 +68,71 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
 - [x] Preserve deterministic replay/snapshot behavior for completed slices on
   Windows and WSL.
 
-## In progress: common damage and ground response
+## Completed locally: deterministic prone response and accelerated live oracle
+
+### Prior art and rejected paths
+
+- [x] Sweep the pinned and current `doldecomp/melee` sources plus current
+  libmelee before extending the oracle. No newer implementation replaces the
+  existing source/action route.
+- [x] Identify the cross-boot instability: `gmmain.c` initializes the shared
+  HSD random seed from `OSGetTick()`, while high-knockback damage selection
+  consumes `HSD_Randf()` and can choose `DamageFlyRoll`.
+- [x] Make the source RNG seed an explicit manifest-owned checkpoint-pack
+  event-boundary value, validate the live seed pointer, and read back the
+  single pre-hit write while Dolphin is blocked on the corresponding input
+  frame. This keeps source randomness visible and reproducible without
+  resetting the stream on every emulated frame.
+- [x] Prove two fresh independent Dolphin boots produce the same 2,370 rows,
+  940 semantic samples, and
+  `fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438`
+  digest with the pinned seed. One transient checkpoint-host crash was retried
+  successfully and remains a harness reliability item, not accepted output.
+- [x] Reject the first combined 14-case pack despite correct route generation:
+  response-only serialization reduced output to 1,515 rows, but replaying all
+  physical setups serially still took 34.77 seconds end to end.
+- [x] Reject the arbitrary three-slot branch-checkpoint experiment. Restoring
+  at live action branches desynchronized host/game boundaries and was removed
+  from the capture tool and reproducible Dolphin patch.
+- [x] Sweep prior art before replacing it: libmelee supports independent
+  Slippi ports, and multi-environment emulator workloads already use isolated
+  Dolphin processes. The accepted design therefore shards real physical routes
+  instead of fabricating source state.
+
+### Accepted implementation and evidence
+
+- [x] Add frame-safe `BATCH ON` pipe input. Queued FLUSH-delimited samples are
+  consumed once per emulated frame; background controller polls are gated by
+  ExiAI's `g_needInputForFrame` boundary.
+- [x] Run four headless/null/unlimited Dolphin shards concurrently on distinct
+  Slippi ports. Unique hardlinked process names let Dolphin Memory Engine hook
+  the intended shard, and a generic merger restores manifest case order while
+  checking disc, emulator, library, stage-collision, and probe provenance.
+- [x] Qualify all 14 physical cases and 1,515 rows twice with semantic digest
+  `db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d`.
+  A clean patch rebuild plus live-and-simulation gate passed in 9.812 seconds,
+  below its 18-second guardrail. The first uncached concurrent run also exposed
+  and fixed a process-shared SHA-256 cache temp-file race.
+- [x] Capture and qualify Falcon's opposite prone orientation, including
+  timeout, buffered getup attack, C-stick roll, and main-stick roll routes.
+- [x] Implement the exact decomp distinction between semantic posture and roll
+  motion: `ftCo_Down_CheckInput` chooses U/D roll motion from `DownWaitU`, so a
+  roll selected directly from terminal `DownBoundU` intentionally uses the D
+  root track and invulnerability table while retaining Back posture semantics.
+- [x] Preserve this distinction in canonical snapshots without increasing the
+  wire size by using previously unused bits in the prone/tech byte.
+- [x] Pin the 14-case stored production trace digest
+  `e4e6554506bf01ba299628a205dbe911db967e257812f3142225bd1afc606256`;
+  the focused stored lane passes 168 selected production samples.
+- [x] Pass all six stored domains and deterministic replay: 50 cases in
+  606.209 ms on Windows and 672.759 ms on WSL.
+- [x] Pass the full Windows Release suite 25/25 in 1.93 seconds, full WSL
+  Release suite 25/25 in 1.44 seconds, and WSL ASan/UBSan suite 18/18 in
+  12.04 seconds. The Windows SDL smoke also builds cleanly with the unnecessary
+  `SDL_main` wrapper removed from the console executable.
+- [ ] Import and qualify `DownBound` ECB pose-grounding, including its observed
+  4-grounded / 18-airborne / 4-grounded sequence, without treating the action
+  as ordinary airborne fall.
 
 Primary sources:
 
@@ -260,7 +324,7 @@ Execution results:
   The unavailable Visual Studio installation is not counted as a Windows
   result; the direct native Windows compiler lane is the recorded evidence.
 
-## Completed locally: Down-orientation prone/getup response
+## Completed locally: both prone/getup orientations
 
 Prior-art/source sweep completed before implementation:
 
@@ -290,9 +354,10 @@ Execution results:
   exact action lengths, invulnerability, and root translation. Two independent
   2,370-row captures share semantic digest
   `fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438`.
-- [ ] Capture the opposite orientation and implement the separately assigned
-  DownBound ECB-driven grounded transitions; neither is implied by the current
-  Down-orientation result.
+- [x] Capture the opposite orientation and qualify posture-specific getup
+  attack/neutral timing plus the source-selected roll motion and timing.
+- [ ] Implement the separately assigned DownBound ECB-driven grounded
+  transitions; they are not implied by the current response result.
 - [x] Replace the authored getup thresholds, buffer, and constant roll speed
   only after live qualification; preserve the source input priority in one
   allocation-free common-state path.
@@ -301,10 +366,10 @@ Execution results:
   and add only four bytes of canonical state for the combined A/B buffer age.
 - [x] Register the resulting domain in the fast stored gate and rerun WSL,
   native Windows, sanitizer, browser, and replay validation.
-- [x] Compare the same sparse production routes against both independent live
-  captures on action/frame, invulnerability, option priority, roll direction,
-  and root velocity within 0.0015 source units. Position, DownBound grounded
-  toggles, and the opposite orientation remain explicit separate domains.
+- [x] Compare sparse production routes against independent live captures on
+  action/frame, posture, invulnerability, option priority, roll direction, and
+  root velocity within 0.0015 source units. Position and DownBound grounded
+  toggles remain explicit separate domains.
 - [x] Pass the latest WSL release 25/25 in 0.92 seconds, native Windows MinGW
   18/18 in 0.75 seconds, and focused WSL ASan/UBSan 5/5 in 6.80 seconds. The
   latest six-domain stored gate covers 46 cases and 120 prone samples in 0.465
@@ -323,9 +388,9 @@ Execution results:
 - [x] Qualify wall and ceiling tech/bounce behavior against a live source route.
 - [x] Qualify flat-floor landing plus missed, neutral, forward, and backward
   tech response against a live source route.
-- [ ] Qualify DownBound ECB pose-grounding, the opposite prone orientation,
-  slopes, ledge departure during floor recovery, and player-pushbox
-  interactions in their own live source routes.
+- [ ] Qualify DownBound ECB pose-grounding, slopes, ledge departure during
+  floor recovery, and player-pushbox interactions in their own live source
+  routes.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -346,9 +411,11 @@ Execution results:
   current six-domain stored gate is 0.465 seconds on WSL and 0.628 seconds on
   Windows. Live manifests carry explicit per-pack budgets: wall/ceiling is
   2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on
-  its final run with a four-second guardrail; the 2,370-row prone pack has a
-  22-second guardrail.
-- [ ] Maintain explicit coverage ledgers; no finite scenario may be described
+  its final run with a four-second guardrail; the 1,515-row, 14-case prone pack
+  is physically sharded and measured 9.812 seconds end to end with an
+  18-second guardrail.
+- [x] Maintain this roadmap and explicit coverage ledgers; no finite scenario
+  may be described
   as detecting every possible anomaly.
 
 ### What a green equivalence result means
@@ -361,6 +428,24 @@ makes the ordinary no-Dolphin edit loop bit-exact. Replay hashes additionally
 prove deterministic continuation, but do not establish Melee fidelity on their
 own. Whole-Falcon equivalence is reached only by closing every fidelity-audit
 row with positive, negative, threshold, entry, and exit coverage.
+
+The reusable proof path is:
+
+1. A pinned manifest declares the owner disc/revisions, route, cases, observed
+   fields, tolerances, source files, expected digests, and time budget.
+2. One live Dolphin process restores a known checkpoint for each independent
+   route or branch, applies the declared inputs, and records source state.
+3. A semantic source verifier also checks the relevant decomp code/data, so a
+   coincidentally matching trace cannot silently replace the intended rule.
+4. The simulator runner applies the corresponding inputs through shared C
+   adapters and compares only the domain's declared state and geometry.
+5. Once reviewed, generated stored cases and production digests make the fast
+   Windows/WSL edit loop independent of Dolphin while preserving provenance.
+
+This architecture catches regressions only inside registered domains. The
+ground-knockback live route, for example, deliberately excludes position while
+pushbox behavior is still a separate open domain; a green result must not be
+reported as proof of unregistered slopes, ECB, ledges, attacks, or pushboxes.
 
 ### Native playtest frontend
 

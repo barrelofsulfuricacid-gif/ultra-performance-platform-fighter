@@ -9,7 +9,12 @@ toolchain_root="${1:-${repo_root}/build/oracle-toolchain}"
 source_root="${toolchain_root}/slippi-exiai-${EXIAI_REVISION}"
 build_root="${toolchain_root}/exiai-checkpoint-build"
 install_root="${toolchain_root}/exiai-checkpoint/Binaries"
+release_sys_root="${toolchain_root}/exiai-0.2.0/squashfs-root/usr/bin/Sys"
 patch_file="${repo_root}/tools/ssbm_exiai_checkpoint.patch"
+cmake_bin="$(command -v cmake)"
+if [[ -x /usr/bin/cmake ]]; then
+    cmake_bin=/usr/bin/cmake
+fi
 
 "${repo_root}/tools/bootstrap_ssbm_exiai_oracle.sh" \
     "${toolchain_root}/exiai-0.2.0" \
@@ -26,6 +31,8 @@ if [[ "$(git -C "${source_root}" rev-parse HEAD)" != "${EXIAI_REVISION}" ]]; the
     exit 1
 fi
 
+git -C "${source_root}" submodule update --init --recursive
+
 if git -C "${source_root}" apply --check "${patch_file}"; then
     git -C "${source_root}" apply "${patch_file}"
 elif ! git -C "${source_root}" apply --check --reverse "${patch_file}"; then
@@ -33,19 +40,21 @@ elif ! git -C "${source_root}" apply --check --reverse "${patch_file}"; then
     exit 1
 fi
 
-cmake -S "${source_root}" -B "${build_root}" \
+"${cmake_bin}" -S "${source_root}" -B "${build_root}" \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     -DCMAKE_BUILD_TYPE=Release \
     -DENABLE_HEADLESS=true \
+    -DLINUX_LOCAL_DEV=true \
     -DENABLE_ALSA=false \
     -DENABLE_PULSEAUDIO=false \
     -DENABLE_EVDEV=false
-cmake --build "${build_root}" --parallel --target dolphin-nogui
+"${cmake_bin}" --build "${build_root}" --parallel --target dolphin-nogui
 
 mkdir -p "${install_root}"
 cp "${build_root}/Binaries/dolphin-emu-nogui" \
     "${install_root}/dolphin-emu"
 mkdir -p "${install_root}/Sys"
-cp -a "${build_root}/Binaries/Sys/." "${install_root}/Sys/"
+cp -a "${release_sys_root}/." "${install_root}/Sys/"
 touch "${install_root}/portable.txt"
 
 version="$({ "${install_root}/dolphin-emu" --version 2>&1 || true; } | head -n 1)"

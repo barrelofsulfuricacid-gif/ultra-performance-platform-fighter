@@ -713,6 +713,8 @@ pf_status pf_sim_tick_impl(
             scratch->tech_direction[player_index];
         world->prone_orientation[player_index] =
             scratch->prone_orientation[player_index];
+        world->prone_roll_motion_orientation[player_index] =
+            scratch->prone_roll_motion_orientation[player_index];
     }
     if ((world->shield_recoil_mask | scratch->shield_recoil_mask) !=
         UINT8_C(0))

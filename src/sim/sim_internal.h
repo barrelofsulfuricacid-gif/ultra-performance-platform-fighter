@@ -226,6 +226,7 @@ typedef struct pf_world_state
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint8_t prone_orientation[PF_SIM_MAX_PLAYERS];
+    uint8_t prone_roll_motion_orientation[PF_SIM_MAX_PLAYERS];
     int32_t item_position_x_q16;
     int32_t item_position_y_q16;
     int32_t item_velocity_x_q16;
@@ -320,6 +321,7 @@ typedef struct pf_sim_scratch
     int8_t sdi_direction_y[PF_SIM_MAX_PLAYERS];
     int8_t tech_direction[PF_SIM_MAX_PLAYERS];
     uint8_t prone_orientation[PF_SIM_MAX_PLAYERS];
+    uint8_t prone_roll_motion_orientation[PF_SIM_MAX_PLAYERS];
     int32_t item_position_x_q16;
     int32_t item_position_y_q16;
     int32_t item_velocity_x_q16;

@@ -130,6 +130,11 @@ typedef struct pf_ssbm_stored_trace_case
 {
     const char *id;
     const pf_ssbm_stored_trace_input *inputs;
+    /* Domain-defined, allocation-free initial-state selector. Zero preserves
+       the historical/default setup for existing generated domains. */
+    uint8_t initial_state_variant;
+    /* Optional exact source-facing override after domain setup. */
+    int8_t initial_facing;
 } pf_ssbm_stored_trace_case;
 
 typedef uint8_t (*pf_ssbm_stored_trace_case_runner)(

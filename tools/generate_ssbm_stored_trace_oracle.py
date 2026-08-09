@@ -148,6 +148,24 @@ def generate(manifest: dict[str, Any]) -> str:
         ):
             raise ValueError(f"invalid trace case {case_id!r}")
         ids.add(case_id)
+        initial_state_variant = case.get("initial_state_variant", 0)
+        initial_facing = case.get("initial_facing", 0)
+        if (
+            not isinstance(initial_state_variant, int)
+            or isinstance(initial_state_variant, bool)
+            or not 0 <= initial_state_variant <= 255
+        ):
+            raise ValueError(
+                f"{case_id}.initial_state_variant must be an unsigned byte"
+            )
+        if (
+            not isinstance(initial_facing, int)
+            or isinstance(initial_facing, bool)
+            or initial_facing not in (-1, 0, 1)
+        ):
+            raise ValueError(
+                f"{case_id}.initial_facing must be -1, 0, or 1"
+            )
         input_symbol = f"{symbol_prefix}_{case_id}_inputs"
         rows.extend(
             [
@@ -200,7 +218,8 @@ def generate(manifest: dict[str, Any]) -> str:
             )
         rows.extend(["};", ""])
         case_rows.append(
-            f'    {{ {json.dumps(case_id)}, {input_symbol} }},'
+            f'    {{ {json.dumps(case_id)}, {input_symbol}, '
+            f'UINT8_C({initial_state_variant}), INT8_C({initial_facing}) }},'
         )
 
     return "\n".join(

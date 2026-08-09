@@ -162,26 +162,94 @@ pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
 
-static const pf_ssbm_stored_trace_case
-pf_m4_ssbm_falcon_prone_response_cases[] = {
-    { "timeout", pf_m4_ssbm_falcon_prone_response_timeout_inputs },
-    { "buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs },
-    { "buffered_b_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs },
-    { "c_up_getup_attack", pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs },
-    { "c_roll_forward", pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs },
-    { "main_roll_backward", pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs },
-    { "up_neutral_getup", pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs },
-    { "shield_neutral_getup", pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs },
-    { "attack_over_roll_priority", pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs },
-    { "c_roll_below_threshold", pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs },
+static const pf_ssbm_stored_trace_input
+pf_m4_ssbm_falcon_prone_response_up_timeout_inputs[] = {
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(26) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(109) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(109) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(5) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(2) },
 };
 
-#define PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT UINT16_C(10)
+static const pf_ssbm_stored_trace_input
+pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs[] = {
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(8) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), PF_INPUT_BUTTON_ATTACK, UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(17) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(15) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+};
+
+static const pf_ssbm_stored_trace_input
+pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs[] = {
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(24) },
+    { INT16_C(0), INT16_C(0), INT16_C(32767), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(17) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(5) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+};
+
+static const pf_ssbm_stored_trace_input
+pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs[] = {
+    { INT16_C(-32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(26) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(10) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(13) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(5) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(5) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+    { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
+};
+
+static const pf_ssbm_stored_trace_case
+pf_m4_ssbm_falcon_prone_response_cases[] = {
+    { "timeout", pf_m4_ssbm_falcon_prone_response_timeout_inputs, UINT8_C(2), INT8_C(0) },
+    { "buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs, UINT8_C(2), INT8_C(0) },
+    { "buffered_b_getup_attack", pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs, UINT8_C(2), INT8_C(0) },
+    { "c_up_getup_attack", pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs, UINT8_C(2), INT8_C(0) },
+    { "c_roll_forward", pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs, UINT8_C(2), INT8_C(0) },
+    { "main_roll_backward", pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs, UINT8_C(2), INT8_C(0) },
+    { "up_neutral_getup", pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs, UINT8_C(2), INT8_C(0) },
+    { "shield_neutral_getup", pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs, UINT8_C(2), INT8_C(0) },
+    { "attack_over_roll_priority", pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs, UINT8_C(2), INT8_C(0) },
+    { "c_roll_below_threshold", pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs, UINT8_C(2), INT8_C(0) },
+    { "up_timeout", pf_m4_ssbm_falcon_prone_response_up_timeout_inputs, UINT8_C(1), INT8_C(1) },
+    { "up_buffered_a_getup_attack", pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs, UINT8_C(1), INT8_C(1) },
+    { "up_c_roll_forward", pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs, UINT8_C(1), INT8_C(1) },
+    { "up_main_roll_backward", pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs, UINT8_C(1), INT8_C(1) },
+};
+
+#define PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT UINT16_C(14)
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_SAMPLES_PER_CASE UINT8_C(12)
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_SOURCE_TRACE_SHA256 \
-    "fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438"
+    "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d"
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "6055df120cb6d7240ab283e0bb90d8af20f4271922f6a9adffcdb6356919eccc"
+    "e4e6554506bf01ba299628a205dbe911db967e257812f3142225bd1afc606256"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_prone_response_cases) /

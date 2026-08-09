@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-EXPECTED_OBSERVATION_SHA256 = "fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438"
+EXPECTED_OBSERVATION_SHA256 = "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d"
 EXPECTED_SOURCE_SHA256 = {
     "ftCo_DownBound.c": "55aa8b5e58b9cfa714a5f7f4e7d48724733cd8fc1fd9db64c1e149ec56bca76f",
     "ftCo_Down.c": "5dea755df10b4f7caec9981cdbf95921dd0435aee627d438464644400acc0d22",
@@ -24,6 +24,13 @@ EXPECTED_SOURCE_SHA256 = {
 EXPECTED_DISC_SHA256 = "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
 EXPECTED_EXIAI_SHA256 = "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd"
 DOWN_BOUND_ACTION = "TECH_MISS_DOWN"
+UP_BOUND_ACTION = "TECH_MISS_UP"
+UP_CASE_IDS = {
+    "up_timeout",
+    "up_buffered_a_getup_attack",
+    "up_c_roll_forward",
+    "up_main_roll_backward",
+}
 SIM_ACTIONS = {
     0: "STANDING",
     15: DOWN_BOUND_ACTION,
@@ -31,6 +38,10 @@ SIM_ACTIONS = {
     24: "NEUTRAL_GETUP",
     26: "GETUP_ATTACK",
 }
+
+
+def bound_action(case_id: str) -> str:
+    return UP_BOUND_ACTION if case_id in UP_CASE_IDS else DOWN_BOUND_ACTION
 
 
 def source_sha256(path: Path) -> str:
@@ -73,7 +84,7 @@ def require_action_frames(
 def semantic_rows(
     rows: list[dict[str, Any]], case_id: str
 ) -> list[dict[str, Any]]:
-    start = first_action_index(rows, DOWN_BOUND_ACTION)
+    start = first_action_index(rows, bound_action(case_id))
     lengths = {
         "timeout": 276,
         "buffered_a_getup_attack": 75,
@@ -85,6 +96,10 @@ def semantic_rows(
         "shield_neutral_getup": 56,
         "attack_over_roll_priority": 38,
         "c_roll_below_threshold": 36,
+        "up_timeout": 276,
+        "up_buffered_a_getup_attack": 75,
+        "up_c_roll_forward": 61,
+        "up_main_roll_backward": 61,
     }
     return rows[start : start + lengths[case_id]]
 
@@ -132,20 +147,28 @@ def require_invulnerability(
         raise SystemExit(f"{label} invulnerability boundary mismatch")
 
 
-def qualify_live(cases: dict[str, list[dict[str, Any]]]) -> None:
+def qualify_live(
+    cases: dict[str, list[dict[str, Any]]],
+    stage_collision: dict[str, Any],
+) -> None:
+    floor = stage_collision["lines"][1]
+    if (
+        floor["index"] != 1
+        or floor["kind"] != "floor"
+        or float(floor["start"][1]) != 0.0
+        or float(floor["end"][1]) != 0.0
+    ):
+        raise SystemExit("Final Destination floor provenance mismatch")
     for case_id, rows in cases.items():
-        start = first_action_index(rows, DOWN_BOUND_ACTION)
+        source_bound_action = bound_action(case_id)
+        start = first_action_index(rows, source_bound_action)
         down_bound = rows[start : start + 26]
-        require_action_frames(down_bound, DOWN_BOUND_ACTION, 26, case_id)
+        require_action_frames(down_bound, source_bound_action, 26, case_id)
         grounded = [bool(row["grounded"]) for row in down_bound]
         if grounded != [True] * 4 + [False] * 18 + [True] * 4:
             raise SystemExit(f"{case_id} DownBound ECB grounding mismatch")
         if any(float(row["hitlag_left"]) != 0.0 for row in rows):
             raise SystemExit(f"{case_id} response was contaminated by hitlag")
-        floor = down_bound[-1]["surface_collision_memory"]["surfaces"]["floor"]
-        if floor["index"] != 1:
-            raise SystemExit(f"{case_id} Final Destination floor mismatch")
-        close(float(floor["normal"][1]), 1.0, 1.0e-4, f"{case_id} floor normal")
 
     timeout = semantic_rows(cases["timeout"], "timeout")
     require_action_frames(timeout[:26], DOWN_BOUND_ACTION, 26, "timeout")
@@ -206,6 +229,56 @@ def qualify_live(cases: dict[str, list[dict[str, Any]]]) -> None:
     if len(negative) != 10 or any(row["action"] != "LYING_GROUND_DOWN" for row in negative):
         raise SystemExit("sub-threshold C-stick incorrectly selected a roll")
 
+    up_timeout = semantic_rows(cases["up_timeout"], "up_timeout")
+    require_action_frames(up_timeout[:26], UP_BOUND_ACTION, 26, "up timeout")
+    up_wait = up_timeout[26:246]
+    if len(up_wait) != 220 or any(
+        row["action"] != "LYING_GROUND_UP" for row in up_wait
+    ):
+        raise SystemExit("DownWait-up 220-frame timeout mismatch")
+    up_neutral = require_action_frames(
+        up_timeout[246:276], "GROUND_GETUP", 30, "up timeout"
+    )
+    require_invulnerability(up_neutral, 23, "up neutral getup")
+
+    up_attack = semantic_rows(
+        cases["up_buffered_a_getup_attack"], "up_buffered_a_getup_attack"
+    )[26:]
+    expected_attack_frames = list(range(1, 50))
+    if (
+        len(up_attack) != 49
+        or any(row["action"] != "GROUND_ATTACK_UP" for row in up_attack)
+        or [int(row["action_frame"]) for row in up_attack]
+        != expected_attack_frames
+    ):
+        raise SystemExit("up getup-attack gameplay-frame timeline mismatch")
+    require_invulnerability(up_attack, 29, "up getup attack")
+
+    up_roll_actions = {
+        "up_c_roll_forward": "GROUND_ROLL_FORWARD_DOWN",
+        "up_main_roll_backward": "GROUND_ROLL_BACKWARD_DOWN",
+    }
+    for case_id, expected_action in up_roll_actions.items():
+        roll = semantic_rows(cases[case_id], case_id)[26:]
+        if len(roll) != 35 or any(
+            row["action"] != expected_action for row in roll
+        ):
+            raise SystemExit(f"{case_id} getup-roll duration mismatch")
+        if [int(row["action_frame"]) for row in roll] != list(range(1, 36)):
+            raise SystemExit(f"{case_id} getup-roll frame timeline mismatch")
+        protected = 19 if case_id == "up_c_roll_forward" else 25
+        require_invulnerability(roll, protected, case_id)
+    up_forward = semantic_rows(
+        cases["up_c_roll_forward"], "up_c_roll_forward"
+    )[26:]
+    up_backward = semantic_rows(
+        cases["up_main_roll_backward"], "up_main_roll_backward"
+    )[26:]
+    if float(up_forward[-1]["position_x"]) <= float(up_forward[0]["position_x"]):
+        raise SystemExit("up forward getup roll root translation mismatch")
+    if float(up_backward[-1]["position_x"]) >= float(up_backward[0]["position_x"]):
+        raise SystemExit("up backward getup roll root translation mismatch")
+
 
 def parse_sim(path: Path) -> dict[str, list[dict[str, int]]]:
     prefix = "m4-ssbm-prone-response-observation "
@@ -240,12 +313,37 @@ def compare_sim(
         for produced in produced_rows:
             action = produced["action"]
             expected_action = SIM_ACTIONS.get(action)
-            if action == 25:
-                expected_action = (
-                    "GROUND_ROLL_FORWARD_DOWN"
-                    if case_id == "c_roll_forward"
-                    else "GROUND_ROLL_BACKWARD_DOWN"
+            if action == 24:
+                expected_action = next(
+                    (
+                        row["action"]
+                        for row in source
+                        if row["action"] in {"NEUTRAL_GETUP", "GROUND_GETUP"}
+                    ),
+                    None,
                 )
+            elif action == 25:
+                expected_action = next(
+                    (
+                        row["action"]
+                        for row in source
+                        if row["action"].startswith("GROUND_ROLL_")
+                    ),
+                    None,
+                )
+            elif action == 26:
+                expected_action = next(
+                    (
+                        row["action"]
+                        for row in source
+                        if row["action"] in {"GETUP_ATTACK", "GROUND_ATTACK_UP"}
+                    ),
+                    None,
+                )
+            elif action == 23 and case_id in UP_CASE_IDS:
+                expected_action = "LYING_GROUND_UP"
+            elif action == 15 and case_id in UP_CASE_IDS:
+                expected_action = UP_BOUND_ACTION
             if expected_action is None:
                 raise SystemExit(f"{case_id}: unrecognized simulation action {action}")
             candidates = action_rows(source, expected_action)
@@ -264,9 +362,11 @@ def compare_sim(
                     f"{expected_action} coverage"
                 )
             source_row = candidates[action_tick]
-            if expected_action != "LYING_GROUND_DOWN" and int(
-                source_row["action_frame"]
-            ) != action_tick + 1:
+            if (
+                expected_action
+                not in {"LYING_GROUND_DOWN", "LYING_GROUND_UP", "GROUND_ATTACK_UP"}
+                and int(source_row["action_frame"]) != action_tick + 1
+            ):
                 raise SystemExit(
                     f"{case_id}: source/simulation action frame mismatch"
                 )
@@ -282,15 +382,23 @@ def compare_sim(
                     0.0015,
                     f"{case_id} frame {action_tick + 1} root velocity",
                 )
-                expected_direction = 1 if case_id == "c_roll_forward" else -1
+                expected_direction = (
+                    1
+                    if case_id in {"c_roll_forward", "up_c_roll_forward"}
+                    else -1
+                )
                 if produced["tech_direction"] != expected_direction:
                     raise SystemExit(f"{case_id}: roll direction mismatch")
-            if action not in (0,) and produced["prone_orientation"] != 2:
+            expected_orientation = 1 if case_id in UP_CASE_IDS else 2
+            if (
+                action not in (0,)
+                and produced["prone_orientation"] != expected_orientation
+            ):
                 raise SystemExit(f"{case_id}: simulation prone orientation changed")
 
     print("prone-response-position-comparison=excluded-stage-pushbox-domain")
     print("prone-response-grounded-comparison=excluded-downbound-ecb-domain")
-    print("prone-response-orientation-comparison=down-only-up-orientation-pending")
+    print("prone-response-orientation-comparison=back-and-stomach")
 
 
 def main() -> int:
@@ -330,12 +438,12 @@ def main() -> int:
         or capture.get("checkpoint_pack", {}).get("case_count") != len(cases)
     ):
         raise SystemExit("prone-response capture provenance mismatch")
-    qualify_live(cases)
+    qualify_live(cases, capture["stage_collision_memory"])
     if args.sim_output is not None:
         compare_sim(cases, args.sim_output)
     else:
         print("prone-response-position-comparison=excluded-stage-pushbox-domain")
-        print("prone-response-orientation=down-only-up-orientation-pending")
+        print("prone-response-orientation=back-and-stomach")
     print(
         "ssbm-falcon-prone-response=pass "
         f"rows={len(rows)} cases={len(cases)} "

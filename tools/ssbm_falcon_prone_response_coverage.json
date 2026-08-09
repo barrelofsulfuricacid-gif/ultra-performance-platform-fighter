@@ -6,9 +6,13 @@
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
-    "expected_rows": 2370,
-    "warm_budget_seconds": 22,
+    "expected_rows": 1515,
+    "warm_budget_seconds": 18,
     "capture_plan": {
+      "record_response_only": true,
+      "batch_exi_inputs": true,
+      "source_random_seed": 1,
+      "source_random_seed_post_hit_index": 5,
       "floor_response_cases": [
         {
           "damage_percent": 200,
@@ -369,6 +373,110 @@
               }
             }
           ]
+        },
+        {
+          "id": "up_timeout",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            { "id": "response", "ticks": 300 }
+          ]
+        },
+        {
+          "id": "up_buffered_a_getup_attack",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 95,
+              "conditional_edge": {
+                "action": "TECH_MISS_UP",
+                "frame": 9,
+                "attack": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_c_roll_forward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90,
+              "conditional_edge": {
+                "action": "TECH_MISS_UP",
+                "frame": 25,
+                "secondary": [32767, 0]
+              }
+            }
+          ]
+        },
+        {
+          "id": "up_main_roll_backward",
+          "damage_percent": 50,
+          "target_start": [0, 30],
+          "opponent_start": [12, 30],
+          "target_facing": 1,
+          "opponent_facing": -1,
+          "approach_main": 0,
+          "attack_main": [0, 32767],
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 90,
+          "impact_opponent_x": 40,
+          "impact_waypoints": [[0, 30], [0, 28], [0, 26], [0, 25.5], [0, 25.1]],
+          "impact_waypoint_main": [0, 0],
+          "impact_main": [0, 0],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 90,
+              "conditional_edge": {
+                "action": "TECH_MISS_UP",
+                "frame": 25,
+                "main": [-32767, 0]
+              }
+            }
+          ]
         }
       ]
     }
@@ -413,6 +521,22 @@
     {
       "id": "c_roll_below_threshold",
       "start_label": "floor_response_c_roll_below_threshold_setup"
+    },
+    {
+      "id": "up_timeout",
+      "start_label": "floor_response_up_timeout_setup"
+    },
+    {
+      "id": "up_buffered_a_getup_attack",
+      "start_label": "floor_response_up_buffered_a_getup_attack_setup"
+    },
+    {
+      "id": "up_c_roll_forward",
+      "start_label": "floor_response_up_c_roll_forward_setup"
+    },
+    {
+      "id": "up_main_roll_backward",
+      "start_label": "floor_response_up_main_roll_backward_setup"
     }
   ],
   "selection": {
@@ -431,6 +555,7 @@
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/import_ssbm_common_data.py",
+      "tools/merge_ssbm_checkpoint_captures.py",
       "tools/ssbm_falcon_prone_response_coverage.json",
       "tools/verify_ssbm_falcon_prone_response.py",
       "tools/verify_ssbm_falcon_prone_response.sh"
@@ -438,12 +563,13 @@
   },
   "stored_oracle": {
     "kind": "numeric-trace-v1",
-    "source_trace_sha256": "fc91d42660ac0a8df8f0715b183b2ec97bccfe2ee0279491cadf915e64044438",
-    "production_trace_sha256": "6055df120cb6d7240ab283e0bb90d8af20f4271922f6a9adffcdb6356919eccc",
+      "source_trace_sha256": "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d",
+      "production_trace_sha256": "e4e6554506bf01ba299628a205dbe911db967e257812f3142225bd1afc606256",
     "samples_per_case": 12,
     "cases": [
       {
         "id": "timeout",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 26 }, { "advance_ticks": 1 },
           { "advance_ticks": 109 }, { "advance_ticks": 109 },
@@ -455,6 +581,7 @@
       },
       {
         "id": "buffered_a_getup_attack",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 8 },
           { "buttons": ["attack"], "advance_ticks": 1 },
@@ -467,6 +594,7 @@
       },
       {
         "id": "buffered_b_getup_attack",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 8 },
           { "buttons": ["special"], "advance_ticks": 1 },
@@ -479,6 +607,7 @@
       },
       {
         "id": "c_up_getup_attack",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 24 },
           { "c_stick": [0, 32767], "advance_ticks": 1 },
@@ -491,6 +620,7 @@
       },
       {
         "id": "c_roll_forward",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 24 },
           { "c_stick": [32767, 0], "advance_ticks": 1 },
@@ -503,6 +633,7 @@
       },
       {
         "id": "main_roll_backward",
+        "initial_state_variant": 2,
         "inputs": [
           { "main": [-32767, 0], "advance_ticks": 26 },
           { "advance_ticks": 1 }, { "advance_ticks": 10 },
@@ -515,6 +646,7 @@
       },
       {
         "id": "up_neutral_getup",
+        "initial_state_variant": 2,
         "inputs": [
           { "main": [0, 32767], "advance_ticks": 26 },
           { "advance_ticks": 1 }, { "advance_ticks": 1 },
@@ -527,6 +659,7 @@
       },
       {
         "id": "shield_neutral_getup",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 25 },
           { "left_trigger": 65535, "advance_ticks": 1 },
@@ -539,6 +672,7 @@
       },
       {
         "id": "attack_over_roll_priority",
+        "initial_state_variant": 2,
         "inputs": [
           { "main": [32767, 0], "advance_ticks": 8 },
           { "main": [32767, 0], "buttons": ["attack"], "advance_ticks": 1 },
@@ -552,6 +686,7 @@
       },
       {
         "id": "c_roll_below_threshold",
+        "initial_state_variant": 2,
         "inputs": [
           { "advance_ticks": 24 },
           { "c_stick": [6500, 0], "advance_ticks": 1 },
@@ -560,6 +695,61 @@
           { "advance_ticks": 1 }, { "advance_ticks": 1 },
           { "advance_ticks": 1 }, { "advance_ticks": 1 },
           { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_timeout",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 26 }, { "advance_ticks": 1 },
+          { "advance_ticks": 109 }, { "advance_ticks": 109 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 10 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 5 }, { "advance_ticks": 2 }
+        ]
+      },
+      {
+        "id": "up_buffered_a_getup_attack",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 8 },
+          { "buttons": ["attack"], "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 15 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 10 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_c_roll_forward",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "advance_ticks": 24 },
+          { "c_stick": [32767, 0], "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 17 }, { "advance_ticks": 1 },
+          { "advance_ticks": 10 }, { "advance_ticks": 5 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 }
+        ]
+      },
+      {
+        "id": "up_main_roll_backward",
+        "initial_state_variant": 1,
+        "initial_facing": 1,
+        "inputs": [
+          { "main": [-32767, 0], "advance_ticks": 26 },
+          { "advance_ticks": 1 }, { "advance_ticks": 10 },
+          { "advance_ticks": 13 }, { "advance_ticks": 1 },
+          { "advance_ticks": 5 }, { "advance_ticks": 5 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }, { "advance_ticks": 1 },
+          { "advance_ticks": 1 }
         ]
       }
     ],

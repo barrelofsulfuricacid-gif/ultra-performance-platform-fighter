@@ -2547,6 +2547,7 @@ static int pf_m4_action_is_recovery_invulnerable(
     uint8_t action_state,
     uint16_t action_ticks,
     uint8_t prone_orientation,
+    uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing)
 {
@@ -2631,7 +2632,7 @@ static int pf_m4_action_is_recovery_invulnerable(
         const pf_m4_getup_roll_timing *timing =
             pf_m4_getup_roll_timing_for(
                 fighter,
-                prone_orientation,
+                prone_roll_motion_orientation,
                 tech_direction,
                 facing);
         const uint16_t action_frame =
@@ -3033,6 +3034,8 @@ void pf_m4_reset_player(
     sim->world.sdi_direction_y[player_index] = INT8_C(0);
     sim->world.tech_direction[player_index] = INT8_C(0);
     sim->world.prone_orientation[player_index] =
+        (uint8_t)PF_M4_PRONE_NONE;
+    sim->world.prone_roll_motion_orientation[player_index] =
         (uint8_t)PF_M4_PRONE_NONE;
 }
 
@@ -3816,6 +3819,8 @@ static void pf_m4_copy_combat_scratch(
         world->tech_direction[player_index];
     scratch->prone_orientation[player_index] =
         world->prone_orientation[player_index];
+    scratch->prone_roll_motion_orientation[player_index] =
+        world->prone_roll_motion_orientation[player_index];
 }
 
 static int32_t pf_m4_revival_platform_y(
@@ -4097,6 +4102,7 @@ static pf_status pf_m4_enter_prone_option(
     pf_m4_prone_option option,
     int8_t roll_direction,
     uint8_t prone_orientation,
+    int from_knockdown,
     int8_t facing,
     int32_t *velocity_x,
     uint8_t *action_state,
@@ -4107,6 +4113,8 @@ static pf_status pf_m4_enter_prone_option(
     *action_ticks = UINT16_C(0);
     *velocity_x = INT32_C(0);
     scratch->tech_direction[player_index] = INT8_C(0);
+    scratch->prone_roll_motion_orientation[player_index] =
+        (uint8_t)PF_M4_PRONE_NONE;
     if (option == PF_M4_PRONE_OPTION_ATTACK)
     {
         *action_state = (uint8_t)PF_M4_ACTION_GETUP_ATTACK;
@@ -4116,9 +4124,16 @@ static pf_status pf_m4_enter_prone_option(
     }
     if (option == PF_M4_PRONE_OPTION_ROLL)
     {
+        /* ftCo_Down_CheckInput keys the U/D roll motion from DownWaitU only.
+         * A roll selected directly by DownBound_Anim therefore takes the D
+         * motion even when the current bound motion is U. */
+        const uint8_t motion_orientation =
+            from_knockdown != 0
+                ? (uint8_t)PF_M4_PRONE_STOMACH
+                : prone_orientation;
         const uint16_t submotion_index =
             pf_m4_getup_roll_submotion_for(
-                prone_orientation,
+                motion_orientation,
                 roll_direction,
                 facing);
         int32_t translation_x_q16;
@@ -4135,6 +4150,8 @@ static pf_status pf_m4_enter_prone_option(
         *action_state = (uint8_t)PF_M4_ACTION_GETUP_ROLL;
         *velocity_x = (int32_t)facing * translation_x_q16;
         scratch->tech_direction[player_index] = roll_direction;
+        scratch->prone_roll_motion_orientation[player_index] =
+            motion_orientation;
         return PF_STATUS_OK;
     }
     if (option == PF_M4_PRONE_OPTION_NEUTRAL)
@@ -6995,6 +7012,7 @@ pf_status pf_m4_step_player(
                         prone_option,
                         prone_roll_direction,
                         scratch->prone_orientation[player_index],
+                        1,
                         facing,
                         &velocity_x,
                         &action_state,
@@ -7017,6 +7035,7 @@ pf_status pf_m4_step_player(
                     prone_option,
                     prone_roll_direction,
                     scratch->prone_orientation[player_index],
+                    0,
                     facing,
                     &velocity_x,
                     &action_state,
@@ -7103,7 +7122,7 @@ pf_status pf_m4_step_player(
         {
             const uint16_t submotion_index =
                 pf_m4_getup_roll_submotion_for(
-                    scratch->prone_orientation[player_index],
+                    scratch->prone_roll_motion_orientation[player_index],
                     scratch->tech_direction[player_index],
                     facing);
             int32_t translation_x_q16;
@@ -7118,6 +7137,8 @@ pf_status pf_m4_step_player(
                 scratch->tech_direction[player_index] =
                     INT8_C(0);
                 scratch->prone_orientation[player_index] =
+                    (uint8_t)PF_M4_PRONE_NONE;
+                scratch->prone_roll_motion_orientation[player_index] =
                     (uint8_t)PF_M4_PRONE_NONE;
             }
             else if (submotion_index == UINT16_MAX ||
@@ -10460,6 +10481,8 @@ pf_status pf_m4_inspect(
                     player->action_state,
                     player->action_ticks,
                     sim->world.prone_orientation[player_index],
+                    sim->world
+                        .prone_roll_motion_orientation[player_index],
                     sim->world.tech_direction[player_index],
                     player->facing)
                 ? UINT8_C(1)
