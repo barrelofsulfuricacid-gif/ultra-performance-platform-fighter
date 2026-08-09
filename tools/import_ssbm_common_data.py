@@ -43,6 +43,9 @@ def generate(raw: bytes) -> str:
     tilt_y = f32(0x00C)
     if tilt_x != tilt_y or not 0.0 < tilt_x < 1.0:
         raise ValueError("unexpected asymmetric common stick-tilt threshold")
+    jump_backward_axis_threshold = f32(0x078)
+    if not 0.0 < jump_backward_axis_threshold < 1.0:
+        raise ValueError("invalid common backward-jump axis threshold")
     sdi_threshold = f32(0x4B0)
     sdi_window = i32(0x4B4)
     if not 0.0 < sdi_threshold <= 1.0:
@@ -176,6 +179,10 @@ def generate(raw: bytes) -> str:
     lines.extend(
         [
             "};",
+            "",
+            "static const uint16_t",
+            "pf_m4_ssbm_jump_backward_axis_threshold =",
+            f"    UINT16_C({round(jump_backward_axis_threshold * 32767.0)});",
             "",
             "static const pf_m4_ssbm_damage_response_attributes",
             "pf_m4_ssbm_damage_response_attribute_data = {",

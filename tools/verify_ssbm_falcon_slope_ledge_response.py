@@ -328,8 +328,7 @@ def compare_case(
 
         source_frame = int(row["action_frame"])
         compare_clock = not (
-            (row["action"] == "STANDING" and source_frame > 1)
-            or (row["action"] == "FALLING" and source_frame > 1)
+            row["action"] == "STANDING" and source_frame > 1
         )
         if compare_clock:
             expected_tick = 0 if expected_action == ACTION_HITLAG else source_frame - 1

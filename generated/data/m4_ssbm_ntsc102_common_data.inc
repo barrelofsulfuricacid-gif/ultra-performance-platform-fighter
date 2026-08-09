@@ -97,6 +97,10 @@ pf_m4_ssbm_common_raw_words[PF_M4_SSBM_COMMON_RAW_WORD_COUNT] = {
     UINT32_C(0xc1000000), UINT32_C(0x0000003c),
 };
 
+static const uint16_t
+pf_m4_ssbm_jump_backward_axis_threshold =
+    UINT16_C(4096);
+
 static const pf_m4_ssbm_damage_response_attributes
 pf_m4_ssbm_damage_response_attribute_data = {
     INT32_C(26214),

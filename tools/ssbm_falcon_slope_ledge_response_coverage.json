@@ -97,7 +97,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3",
-    "production_trace_sha256": "9c562426f42c4b01b08a7bbea9c667f56661a2787d107870a14208f326ccd94e",
+    "production_trace_sha256": "918a548c6de3a53ab04f89d8bc5232e97b298d7887dc67661f42bd02a9626d66",
     "samples_per_case": 55,
     "serialized_fields": [
       "self_velocity_x",
@@ -197,9 +197,9 @@
         "position_tolerance_q16": 192,
         "excluded_fields": [
           "post_wall_contact_position_x",
-          "ordinary_fall_animation_clock"
+          "standing_loop_animation_clock"
         ],
-        "exclusion_reason": "The line 36/37 response X position is qualified through sample 43 and again for the source-owned EdgeCatch/EdgeWait root positions at samples 48-55; Y is qualified throughout. Samples 44-47 remain assigned to the adjacent wall-response domain. Ordinary Fall pose timing is a separately named fidelity-ledger concern rather than a widened numeric tolerance."
+        "exclusion_reason": "The line 36/37 response X position is qualified through sample 43 and again for the source-owned EdgeCatch/EdgeWait root positions at samples 48-55; Y and the imported ordinary Fall animation clock are qualified throughout. Samples 44-47 remain assigned to the adjacent wall-response domain. The later standing loop is a separately named pose-clock concern rather than a widened numeric tolerance."
       }
     },
     "c": {

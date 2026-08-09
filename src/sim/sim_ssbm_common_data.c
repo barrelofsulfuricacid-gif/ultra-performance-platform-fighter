@@ -26,6 +26,11 @@ const uint32_t *pf_m4_ssbm_common_reference_raw_words(
     return pf_m4_ssbm_common_raw_words;
 }
 
+uint16_t pf_m4_ssbm_common_reference_jump_backward_axis_threshold(void)
+{
+    return pf_m4_ssbm_jump_backward_axis_threshold;
+}
+
 const pf_m4_ssbm_damage_response_attributes *
 pf_m4_ssbm_common_reference_damage_response(void)
 {

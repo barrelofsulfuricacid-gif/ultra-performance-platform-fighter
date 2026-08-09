@@ -71,6 +71,18 @@ static inline int pf_m4_action_is_damage(uint8_t action_state)
            pf_m4_action_is_ground_damage(action_state);
 }
 
+static inline int pf_m4_action_retains_airborne_submotion(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+           action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+           (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+            (hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+             hitlag_resume_action ==
+                 (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP));
+}
+
 static inline int32_t pf_m4_multiply_q16(
     int32_t value_q16,
     int32_t multiplier_q16)
@@ -163,6 +175,7 @@ typedef struct pf_world_state
     int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t airborne_submotion[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -259,6 +272,7 @@ typedef struct pf_sim_scratch
     int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t airborne_submotion[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];

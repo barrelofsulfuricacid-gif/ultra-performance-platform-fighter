@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–51 / state schemas 1–52
+- **Status:** Accepted for save formats 1–60 / state schemas 1–64
 - **Date:** 2026-08-01
 
 ## Decision
@@ -61,6 +61,15 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 49 | 50 | 140 | 631 | 771 | No payload-layout change; event type 24 packs every final per-player action transition and simultaneous forfeits coalesce into one canonical player-mask event |
 | 50 | 51 | 140 | 647 | 787 | Four previous X/Y tilt directions and four X/Y tilt ages make dash and fast-fall input timing canonical |
 | 51 | 52 | 140 | 647 | 787 | No payload-layout change; distinct forward/back/up/down aerial landing and L-cancel action semantics fail closed |
+| 52 | 54 | 140 | 647 | 787 | No payload-layout change; imported Falcon common movement, action-clock, and shield semantics fail closed |
+| 53 | 56 | 140 | 663 | 803 | One signed Q16.16 attacker shield-recoil component per player; exact shield-hit continuation semantics |
+| 54 | 57 | 140 | 663 | 803 | Existing shield-tilt bytes are reinterpreted as source angle/magnitude; joint-derived geometry semantics fail closed |
+| 55 | 59 | 140 | 663 | 803 | No payload-layout change; imported Falcon Dive lifecycle/action semantics fail closed |
+| 56 | 60 | 140 | 667 | 807 | One Falcon Kick hit-count byte per player; wall-rebound and hit-decay continuation semantics |
+| 57 | 61 | 140 | 667 | 807 | Canonical grounded-knockback channel and flat-ground damage-release semantics |
+| 58 | 62 | 140 | 671 | 811 | Packed directional-edge history and A/B prone-option buffer age per player |
+| 59 | 63 | 140 | 687 | 827 | Imported Hyrule support-line identity and slope/ledge continuation state |
+| 60 | 64 | 140 | 695 | 835 | One 16-bit resolved airborne source submotion per player; imported Jump-to-Fall transition and Fall-loop phase |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -70,8 +79,10 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE29`, `PFSAVE30`, `PFSAVE31`, `PFSAVE32`, `PFSAVE33`, `PFSAVE34`,
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
-`PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, `PFSAVE51`, or `PFSAVE52`.
-The active M4 runtime emits and accepts format 58 with state schema 62. Earlier
+`PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, `PFSAVE51`, `PFSAVE52`,
+`PFSAVE53`, or `PFSAVE54`.
+The active M4 runtime emits and accepts format 60 with state schema 64 and
+magic `PFSAVE54`. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the
@@ -376,6 +387,10 @@ service-envelope responsibility.
 
 - The FIPS SHA-256 `abc` vector.
 - The exact format size and representative little-endian offsets.
+- Canonical airborne submotion serialization: grounded states normalize stale
+  in-memory history to Wait, inactive slots serialize zero, airborne/hitlag-
+  resume states retain their imported source phase, and noncanonical wire
+  combinations fail atomically on load.
 - Equality between `pf_sim_hash` and SHA-256 of emitted save bytes.
 - Save/load/clone equality and equal future evolution after clone.
 - Required-size reporting.

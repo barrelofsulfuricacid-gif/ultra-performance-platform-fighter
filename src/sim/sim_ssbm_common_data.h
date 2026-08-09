@@ -57,6 +57,8 @@ const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);
 const uint32_t *pf_m4_ssbm_common_reference_raw_words(
     uint16_t *out_count);
 
+uint16_t pf_m4_ssbm_common_reference_jump_backward_axis_threshold(void);
+
 const pf_m4_ssbm_damage_response_attributes *
 pf_m4_ssbm_common_reference_damage_response(void);
 

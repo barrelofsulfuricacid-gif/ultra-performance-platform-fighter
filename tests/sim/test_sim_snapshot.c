@@ -12,7 +12,10 @@
 #define TEST_SAVE_CAPACITY 1024U
 #define TEST_SAVE_HEADER_BYTES 140U
 #define TEST_PAYLOAD_HASH_OFFSET 108U
-#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 539U
+#define TEST_AIRBORNE_SUBMOTION_PAYLOAD_OFFSET 183U
+#define TEST_AIRBORNE_SUBMOTION_OFFSET                              \
+    (TEST_SAVE_HEADER_BYTES + TEST_AIRBORNE_SUBMOTION_PAYLOAD_OFFSET)
+#define TEST_PACKED_RECOVERY_PAYLOAD_OFFSET 547U
 #define TEST_PACKED_RECOVERY_OFFSET                                      \
     (TEST_SAVE_HEADER_BYTES + TEST_PACKED_RECOVERY_PAYLOAD_OFFSET)
 #define TEST_TRACE_TICKS UINT64_C(73)
@@ -230,11 +233,11 @@ static int verify_wire_prefix(
 {
     static const uint8_t expected_magic[8] = {
         UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x33)};
+        UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x34)};
 
-    if (save_size != (size_t)827 ||
+    if (save_size != (size_t)835 ||
         memcmp(save_bytes, expected_magic, sizeof(expected_magic)) != 0 ||
-        save_bytes[8] != UINT8_C(59) ||
+        save_bytes[8] != UINT8_C(60) ||
         save_bytes[9] != UINT8_C(0) ||
         save_bytes[10] != UINT8_C(140) ||
         save_bytes[11] != UINT8_C(0) ||
@@ -242,7 +245,7 @@ static int verify_wire_prefix(
         save_bytes[13] != UINT8_C(0) ||
         save_bytes[14] != UINT8_C(0) ||
         save_bytes[15] != UINT8_C(0) ||
-        save_bytes[16] != UINT8_C(63) ||
+        save_bytes[16] != UINT8_C(64) ||
         save_bytes[17] != UINT8_C(0) ||
         save_bytes[22] != UINT8_C(5) ||
         save_bytes[23] != UINT8_C(0) ||
@@ -346,6 +349,31 @@ int main(void)
         return 1;
     }
 
+    destination.bytes = save_bytes;
+    destination.capacity = sizeof(save_bytes);
+    destination.size = (size_t)0;
+    if (!expect_status(
+            pf_sim_save(source, &destination),
+            PF_STATUS_OK,
+            "grounded-canonical-save"))
+    {
+        return 1;
+    }
+    (void)memcpy(damaged_bytes, save_bytes, destination.size);
+    damaged_bytes[TEST_AIRBORNE_SUBMOTION_OFFSET] = UINT8_C(20);
+    damaged_bytes[TEST_AIRBORNE_SUBMOTION_OFFSET + (size_t)1] =
+        UINT8_C(0);
+    rewrite_payload_checksum(damaged_bytes, destination.size);
+    source_bytes.bytes = damaged_bytes;
+    source_bytes.size = destination.size;
+    if (!expect_status(
+            pf_sim_load(loaded, source_bytes),
+            PF_STATUS_INVALID_STATE,
+            "noncanonical-grounded-airborne-submotion"))
+    {
+        return 1;
+    }
+
     for (tick = UINT64_C(0); tick < TEST_TRACE_TICKS; ++tick)
     {
         make_inputs(inputs, tick);
@@ -366,7 +394,7 @@ int main(void)
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "query-save-size") ||
-        required_bytes != (size_t)827)
+        required_bytes != (size_t)835)
     {
         (void)fprintf(
             stderr,

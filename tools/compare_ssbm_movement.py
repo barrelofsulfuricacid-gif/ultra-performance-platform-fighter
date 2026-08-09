@@ -245,6 +245,22 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
         return frame + 1
     if action in {"KNEE_BEND", "AIRDODGE", "LANDING"}:
         return frame - 1
+    if action in {
+        "JUMPING_FORWARD",
+        "JUMPING_BACKWARD",
+        "JUMPING_ARIAL_FORWARD",
+        "JUMPING_ARIAL_BACKWARD",
+        "FALLING",
+        "FALLING_FORWARD",
+        "FALLING_BACKWARD",
+        "FALLING_AERIAL",
+        "FALLING_AERIAL_FORWARD",
+        "FALLING_AERIAL_BACKWARD",
+    }:
+        # The public M4 AIRBORNE action intentionally coalesces Melee's
+        # jump/fall states. Its canonical submotion still exposes the source
+        # animation clock, with action_ticks equal to displayed frame - 1.
+        return frame - 1
     if action == "LANDING_SPECIAL":
         return (frame - 1) // 3
     return None

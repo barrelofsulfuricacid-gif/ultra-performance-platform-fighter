@@ -4779,3 +4779,42 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   M4 remains unfinished: ordinary Fall animation phase, later wait/ledge-option
   behavior and geometry, broader stage topology, remaining fidelity-audit rows,
   and the native Battlefield frontend are open.
+
+## 2026-08-09 Falcon ordinary airborne submotion clock
+
+- A prior-art sweep compared pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` with current upstream
+  `013091add6d46d2d809d163371deab97ab5e37eb`. `ftCo_Fall.c`, `ftanim.c`,
+  and `fighter.c` are unchanged, and no maintained source-equivalent runtime
+  could be reused. Falcon's owner DAT supplies JumpF 35, JumpB 50,
+  JumpAerialF 50, JumpAerialB 35, and six eight-frame Fall-family motions.
+- The common-data generator now validates and emits `ftCommonData.x78`, the
+  exact 0.125 backward-jump selection threshold (axis 4096). Runtime preserves
+  one 16-bit source submotion per fixed fighter slot while continuing to expose
+  one allocation-free public `AIRBORNE` action. JumpF/JumpB transition to Fall,
+  JumpAerialF/JumpAerialB transition to FallAerial, and Fall families wrap at
+  the imported animation length. The shared action clock is the displayed
+  source frame minus one.
+- The existing Hyrule live theorem now compares the complete ordinary Fall
+  sequence `1..8,1..5`, rather than excluding its clock. It passes 180 selected
+  rows / 110 production samples with unchanged source semantic SHA-256
+  `0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3`
+  and production SHA-256
+  `918a548c6de3a53ab04f89d8bc5232e97b298d7887dc67661f42bd02a9626d66`.
+  The independent 1,250-frame Dolphin aerial-IASA capture also passes all 350
+  JumpAerial/FallAerial action-frame comparisons.
+- Canonical state schema 64/save format 60 (`PFSAVE54`) appends eight bytes of
+  source submotion identity: payload 695 bytes, checkpoint 835 bytes, replay
+  41,607 bytes. Replay corpus/final/event digests are
+  `58f1bfd1af6845d7e6ba3849b5c7928c16ccff5fb2aed841d4658ffd241349f1`,
+  `e5c235be9bf70b79f62d383b2bbc58db55ffa602c9ce513adbc8a7df3ac0c257`,
+  and `0cf114479e7cec86ebe0b89b08fd6eabc74209d99ed053fb92b397d26d6eab8e`.
+  WSL Release passes 27/27 tests in 0.49 seconds, Windows MSVC Release passes
+  27/27 in 6.14 seconds, and WSL ASan/UBSan passes 20/20 in 6.15 seconds. The
+  full stored gate passes in 0.781 seconds on WSL and 0.821 seconds on Windows.
+  Native and Wasm replay output is byte-identical; browser-adapter and Windows
+  Chrome DOM/Wasm smoke validation pass.
+- The reusable importer skill now records how to retain source submotions and
+  imported directional predicates behind a coarser public action. M4 remains
+  unfinished: later ledge options, broader stage topology, remaining audit
+  rows, and the native Battlefield frontend are still open.

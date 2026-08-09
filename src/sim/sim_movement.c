@@ -36,6 +36,75 @@ static int32_t pf_m4_approach(
     return value;
 }
 
+static uint16_t pf_m4_falcon_jump_submotion(
+    const pf_input_frame *input,
+    int8_t facing,
+    int aerial)
+{
+    const int32_t relative_axis =
+        (int32_t)input->main_stick_x * (int32_t)facing;
+    const int32_t backward_threshold =
+        -(int32_t)
+            pf_m4_ssbm_common_reference_jump_backward_axis_threshold();
+    const int backward = relative_axis <= backward_threshold;
+
+    if (aerial != 0)
+    {
+        return backward != 0
+                   ? (uint16_t)
+                         PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD
+                   : (uint16_t)
+                         PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD;
+    }
+    return backward != 0
+               ? (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_BACKWARD
+               : (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_FORWARD;
+}
+
+static int pf_m4_advance_falcon_airborne_submotion(
+    uint16_t *submotion_index,
+    uint16_t *action_ticks)
+{
+    const pf_m4_falcon_submotion_data *submotion =
+        pf_m4_falcon_reference_submotion(*submotion_index);
+    uint16_t next_ticks;
+
+    if (submotion == NULL || submotion->animation_frame_count == UINT16_C(0))
+    {
+        return 0;
+    }
+    next_ticks = (uint16_t)(*action_ticks + UINT16_C(1));
+    if (next_ticks < submotion->animation_frame_count)
+    {
+        *action_ticks = next_ticks;
+        return 1;
+    }
+
+    switch (*submotion_index)
+    {
+    case PF_M4_FALCON_SUBMOTION_JUMP_FORWARD:
+    case PF_M4_FALCON_SUBMOTION_JUMP_BACKWARD:
+        *submotion_index = (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+        break;
+    case PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD:
+    case PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD:
+        *submotion_index =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL;
+        break;
+    case PF_M4_FALCON_SUBMOTION_FALL:
+    case PF_M4_FALCON_SUBMOTION_FALL_FORWARD:
+    case PF_M4_FALCON_SUBMOTION_FALL_BACKWARD:
+    case PF_M4_FALCON_SUBMOTION_FALL_AERIAL:
+    case PF_M4_FALCON_SUBMOTION_FALL_AERIAL_FORWARD:
+    case PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD:
+        break;
+    default:
+        return 0;
+    }
+    *action_ticks = UINT16_C(0);
+    return 1;
+}
+
 static uint16_t pf_m4_ground_damage_submotion(uint8_t action_state)
 {
     switch ((pf_m4_action_state)action_state)
@@ -3253,6 +3322,8 @@ void pf_m4_reset_player(
             sim->world.shield_recoil_mask &
             (uint8_t)~(UINT8_C(1) << player_index));
     sim->world.action_ticks[player_index] = UINT16_C(0);
+    sim->world.airborne_submotion[player_index] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
     sim->world.respawn_count[player_index] = respawn_count;
     sim->world.respawn_ticks[player_index] = UINT16_C(0);
     sim->world.respawn_invulnerability_ticks[player_index] =
@@ -3975,6 +4046,7 @@ static void pf_m4_write_scratch(
     int32_t velocity_x,
     int32_t velocity_y,
     uint16_t action_ticks,
+    uint16_t airborne_submotion,
     uint16_t respawn_count,
     uint8_t grounded,
     uint8_t action_state,
@@ -3999,6 +4071,7 @@ static void pf_m4_write_scratch(
     scratch->velocity_x_q16[player_index] = velocity_x;
     scratch->velocity_y_q16[player_index] = velocity_y;
     scratch->action_ticks[player_index] = action_ticks;
+    scratch->airborne_submotion[player_index] = airborne_submotion;
     scratch->respawn_count[player_index] = respawn_count;
     scratch->grounded[player_index] = grounded;
     scratch->action_state[player_index] = action_state;
@@ -4259,7 +4332,9 @@ static void pf_m4_enter_double_jump(
     uint8_t *air_jumps_remaining,
     uint8_t *fast_fall,
     uint8_t *action_state,
-    uint16_t *action_ticks)
+    uint16_t *action_ticks,
+    uint16_t *airborne_submotion,
+    int8_t facing)
 {
     *velocity_x = pf_m4_scale_axis_q16(
         input->main_stick_x,
@@ -4271,6 +4346,8 @@ static void pf_m4_enter_double_jump(
                         ? (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP
                         : (uint8_t)PF_M4_ACTION_AIRBORNE;
     *action_ticks = UINT16_C(0);
+    *airborne_submotion =
+        pf_m4_falcon_jump_submotion(input, facing, 1);
 }
 
 static int pf_m4_action_can_start_vector_ascent(uint8_t action_state)
@@ -4794,6 +4871,8 @@ pf_status pf_m4_step_player(
     int32_t velocity_x = world->velocity_x_q16[player_index];
     int32_t velocity_y = world->velocity_y_q16[player_index];
     uint16_t action_ticks = world->action_ticks[player_index];
+    uint16_t airborne_submotion =
+        world->airborne_submotion[player_index];
     uint16_t respawn_count = world->respawn_count[player_index];
     uint8_t grounded = world->grounded[player_index];
     uint8_t action_state = world->action_state[player_index];
@@ -4989,6 +5068,7 @@ pf_status pf_m4_step_player(
             velocity_x,
             velocity_y,
             action_ticks,
+            airborne_submotion,
             respawn_count,
             grounded,
             action_state,
@@ -5039,6 +5119,8 @@ pf_status pf_m4_step_player(
         {
             action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
             action_ticks = UINT16_C(0);
+            airborne_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
             grounded = UINT8_C(0);
             support = (uint8_t)PF_M4_SURFACE_NONE;
             position_y = stage->revival_platform_end_y_q16 -
@@ -5086,6 +5168,7 @@ pf_status pf_m4_step_player(
             velocity_x,
             velocity_y,
             action_ticks,
+            airborne_submotion,
             respawn_count,
             grounded,
             action_state,
@@ -5462,6 +5545,7 @@ pf_status pf_m4_step_player(
                 velocity_x,
                 velocity_y,
                 action_ticks,
+                airborne_submotion,
                 respawn_count,
                 grounded,
                 action_state,
@@ -8944,7 +9028,9 @@ pf_status pf_m4_step_player(
                     &air_jumps_remaining,
                     &fast_fall,
                     &action_state,
-                    &action_ticks);
+                    &action_ticks,
+                    &airborne_submotion,
+                    facing);
             }
             else
             {
@@ -9456,7 +9542,9 @@ pf_status pf_m4_step_player(
                         &air_jumps_remaining,
                         &fast_fall,
                         &action_state,
-                        &action_ticks);
+                        &action_ticks,
+                        &airborne_submotion,
+                        facing);
                     scratch->tumble[player_index] = UINT8_C(0);
                     scratch->attack_hit_mask[player_index] =
                         UINT8_C(0);
@@ -9582,7 +9670,18 @@ pf_status pf_m4_step_player(
                     {
                         action_state =
                             (uint8_t)PF_M4_ACTION_AIRBORNE;
-                        action_ticks = UINT16_C(0);
+                    }
+                }
+                else if (
+                    action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+                    world->action_state[player_index] ==
+                        (uint8_t)PF_M4_ACTION_AIRBORNE)
+                {
+                    if (!pf_m4_advance_falcon_airborne_submotion(
+                            &airborne_submotion,
+                            &action_ticks))
+                    {
+                        return PF_STATUS_DETERMINISTIC_FAULT;
                     }
                 }
                 else
@@ -9590,6 +9689,8 @@ pf_status pf_m4_step_player(
                     action_state =
                         (uint8_t)PF_M4_ACTION_AIRBORNE;
                     action_ticks = UINT16_C(0);
+                    airborne_submotion =
+                        (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
                 }
             }
 
@@ -9607,7 +9708,9 @@ pf_status pf_m4_step_player(
                     &air_jumps_remaining,
                     &fast_fall,
                     &action_state,
-                    &action_ticks);
+                    &action_ticks,
+                    &airborne_submotion,
+                    facing);
                 scratch->tumble[player_index] = UINT8_C(0);
             }
         }
@@ -10585,6 +10688,26 @@ pf_status pf_m4_step_player(
         previous_strong_direction = strong_direction;
     }
 
+    if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
+        world->action_state[player_index] !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        if (world->action_state[player_index] ==
+            (uint8_t)PF_M4_ACTION_JUMP_SQUAT)
+        {
+            airborne_submotion =
+                pf_m4_falcon_jump_submotion(input, facing, 0);
+            action_ticks = UINT16_C(0);
+        }
+        else if (world->action_state[player_index] !=
+                 (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP)
+        {
+            airborne_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+            action_ticks = UINT16_C(0);
+        }
+    }
+
     if (scratch->smash_charge_ticks[player_index] != UINT16_C(0) &&
         !pf_m4_action_is_smash_charge(action_state) &&
         !pf_m4_action_is_smash_release(action_state) &&
@@ -10600,6 +10723,14 @@ pf_status pf_m4_step_player(
             scratch->hitlag_resume_action[player_index]))
     {
         scratch->shield_strength[player_index] = UINT16_C(0);
+    }
+
+    if (!pf_m4_action_retains_airborne_submotion(
+            action_state,
+            scratch->hitlag_resume_action[player_index]))
+    {
+        airborne_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
     }
 
     /* xF0 is a ground-tangent scalar. Ground-to-air conversions keep the
@@ -10646,6 +10777,7 @@ pf_status pf_m4_step_player(
         velocity_x,
         velocity_y,
         action_ticks,
+        airborne_submotion,
         respawn_count,
         grounded,
         action_state,

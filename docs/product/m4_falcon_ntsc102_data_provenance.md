@@ -756,6 +756,7 @@ both pass the identical-input comparator. Their SHA-256 values are
 | walk threshold / taper | 0.18 / 0.5 | 5898 / 1/2 |
 | run taper | 0.4 | 2/5 |
 | turn threshold | -0.375 | -12288 of 32767 |
+| backward jump-motion threshold, `ftCommonData.x78` | 0.125 | 4096 of 32767; relative stick at or below -4096 selects JumpB/JumpAerialB |
 | TurnRun animation / velocity-crossing hold | displayed frames 0 through 21 / hold displayed frame 9 until old-facing ground velocity is at most 0.01 | 22 animation ticks with a deterministic frame-9 hold and 68-Q16 converted threshold |
 | post-TurnRun run lockout | 10 | 10 ticks |
 | tap-jump threshold / window | 0.6625 / 4 | `tap_jump_axis_threshold=21709`; `tap_jump_input_window_ticks=4` |

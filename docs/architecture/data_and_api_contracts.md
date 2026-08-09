@@ -679,6 +679,18 @@ canonical source SHA-256 is also part of every M4 content hash, covering late
 phases and effects that are not repeated as public fighter fields. No canonical
 state or save layout changes.
 
+State schema 64/save format 60 appends one 16-bit resolved airborne source
+submotion per fixed player slot. The active `PFSAVE54` checkpoint has a
+695-byte payload and is 835 bytes total. Load rejects a submotion outside
+Falcon's imported catalog, a non-airborne action carrying airborne motion
+state, or an action clock outside that submotion's imported animation cycle.
+The field lets the public `AIRBORNE` action retain exact JumpF/JumpB,
+JumpAerialF/JumpAerialB, Fall, and FallAerial continuation without runtime
+allocation or duplicated action state. Content schema 75/fighter schema 67 do
+not change: the complete submotion catalog and `ftCommonData` object were
+already hashed content identity, and this revision only begins consuming their
+existing lengths and `x78` directional predicate.
+
 Content schema 65/fighter schema 57 replaces approximate rectangular shield
 extents and direct Cartesian tilt with Falcon's owner-executable joint center,
 anisotropic radii, animation scales, and guard-direction table. State schema

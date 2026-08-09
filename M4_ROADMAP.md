@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for eight domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, and Hyrule slope/ledge response now contain 54 registered cases plus deterministic replay. The latest warm gate takes 0.804 seconds on Windows and 0.778 seconds in WSL. |
+| Fast stored equivalence | done for eight domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, and Hyrule slope/ledge response now contain 54 registered cases plus deterministic replay. The latest gate takes 0.821 seconds on Windows and 0.781 seconds in WSL. |
 | Fast live Dolphin oracle | done for registered domains | Registered packs use headless/null/unlimited ExiAI. Frame-safe batched controller queues and four isolated physical Dolphin shards reduce the 14-case prone pack from 34.77 seconds to 9.812 seconds while preserving the independently reproduced 1,515-row digest. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, and imported Hyrule slope/DownBound/ordinary-ledge response. Broader stage topology and other fidelity-audit rows remain. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, and exact ordinary Jump/Fall airborne animation clocks. Broader stage topology and other fidelity-audit rows remain. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -67,6 +67,30 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
   complete pose coverage and physical hit/miss discriminators.
 - [x] Preserve deterministic replay/snapshot behavior for completed slices on
   Windows and WSL.
+
+## Completed locally: ordinary airborne submotion clock
+
+- [x] Sweep pinned and current `doldecomp/melee` Fall/animation callbacks and
+  Falcon's complete imported submotion catalog before changing runtime state.
+  The relevant source files are unchanged at current upstream head, and no
+  maintained reusable implementation was found.
+- [x] Import `ftCommonData.x78` instead of authoring the backward-jump motion
+  threshold. Preserve one compact source submotion per fighter while retaining
+  the allocation-free public `AIRBORNE` action.
+- [x] Advance JumpF/JumpB through their imported animation lengths into Fall,
+  JumpAerialF/JumpAerialB into FallAerial, and wrap all ordinary Fall families
+  at their imported eight-frame length. `action_ticks` is the exact zero-based
+  source animation phase.
+- [x] Extend canonical snapshot/hash/replay state by eight fixed bytes, reject
+  invalid action/submotion/clock combinations, and migrate to state schema 64,
+  save format 60, magic `PFSAVE54`, a 695-byte payload, and an 835-byte save.
+- [x] Qualify the eight-frame Fall loop in the registered Hyrule theorem and
+  compare the existing 1,250-frame Dolphin aerial-iasa capture. All 350
+  JumpAerial/FallAerial action-frame samples pass strictly. WSL and Windows
+  Release pass 27/27; WSL ASan/UBSan passes 20/20; native and Wasm replay are
+  byte-identical; the browser adapter and Windows Chrome DOM/Wasm smoke pass.
+- [x] Add the coalesced-public-action/source-submotion rule to the reusable
+  character-importer skill and validate the skill package.
 
 ## Completed locally: deterministic prone response and accelerated live oracle
 
@@ -528,6 +552,9 @@ Execution results:
 - [x] Preserve all seven displayed `CliffCatch` frames, import absolute
   `CliffCatch`/`CliffWait` root anchors, and qualify the first wait frame rather
   than collapsing ledge acquisition directly into hang.
+- [x] Preserve imported JumpF/JumpB and JumpAerialF/JumpAerialB clocks through
+  their exact Fall/FallAerial successors; qualify the ordinary eight-frame
+  Fall loop and the complete captured aerial-jump route.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -610,6 +637,9 @@ other stage/pushbox topologies.
 - [x] Document absolute animation-root placement for `CliffCatch`/`CliffWait`,
   body-center conversion, catch lifecycle qualification, and snapshot/ledge-
   ownership validation.
+- [x] Document canonical source submotion retention when a target engine
+  coalesces multiple Melee motions into one public action, including imported
+  transition/loop lengths and directional predicates.
 - [x] Validate the current skill update and exercise its `PlCo.dat` reader
   against the owner extract (145824-byte data block, 23 pointers).
 - [ ] Forward-test a future character-style task when an update is substantial

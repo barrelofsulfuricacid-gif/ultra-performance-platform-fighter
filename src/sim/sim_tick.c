@@ -592,6 +592,8 @@ pf_status pf_sim_tick_impl(
             scratch->velocity_y_q16[player_index];
         world->action_ticks[player_index] =
             scratch->action_ticks[player_index];
+        world->airborne_submotion[player_index] =
+            scratch->airborne_submotion[player_index];
         world->respawn_count[player_index] =
             scratch->respawn_count[player_index];
         world->respawn_ticks[player_index] =
