@@ -4668,3 +4668,36 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   The reusable importer skill now records the conditional-edge, raw-input,
   compact-buffer, sparse-comparison, and live-object-override rules learned by
   this slice. M4 remains unfinished.
+
+## 2026-08-09 Falcon paired-player-push registered equivalence
+
+- A fresh pinned-decomp and upstream sweep confirmed that the relevant
+  `ftcommon.c`/fighter player-push route is unchanged at current doldecomp head
+  and that Slippi/libmelee provide observation transport rather than an
+  existing reusable equivalence domain. The production implementation was
+  retained; this slice promotes its earlier 540-frame live proof into the
+  character-independent manifest, generator, selector, stored runner, replay,
+  and budget architecture.
+- The live checkpoint pack covers both controller ports and push directions,
+  compares both Falcon lanes, and observes Melee's fixed 0.3-unit grounded
+  nudge. Three fresh ExiAI boots produce the same 48-row / 96-lane source trace
+  SHA-256
+  `3c6ade86d516474c60b7559690b3b858f2b7a66b41982859e4f81df70a7c73f5`;
+  production produces
+  `079a34868db4fff30719d7a784d7bd102aab7a81acd189ad6293c65a9056bc7a`.
+  Action, facing, and grounded state are strict, horizontal velocity permits 32
+  Q16 units, and relative position permits 2,692 Q16 units for the documented
+  conversion plus one source nudge.
+- The generic numeric trace runner now supports one or two manifest-declared
+  lanes and an exact serialized-field mask. Existing one-lane domains retain
+  their original mask and all five established production digests. Repeated
+  input phases expand offline into immutable arrays with compile-time lane
+  counts, so production gains no allocation, parsing, host floats, duplicated
+  paired comparator, or character switch.
+- The complete seven-domain gate covers 52 cases plus deterministic replay in
+  0.802 seconds on Windows and 0.716 seconds in WSL. Windows and WSL Release
+  both pass 26/26 tests; WSL ASan/UBSan passes 19/19. The reusable character
+  importer skill now records the paired-lane, field-mask, flattened-input, and
+  two-port qualification rules. M4 remains unfinished: slopes, broader
+  ECB/stage topology, remaining fidelity-audit rows, and the native Battlefield
+  frontend are still open.

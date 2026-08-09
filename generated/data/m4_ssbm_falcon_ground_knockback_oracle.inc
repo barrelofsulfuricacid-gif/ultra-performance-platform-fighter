@@ -20,6 +20,10 @@ pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs) / sizeof(pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs[0]) ==
+        UINT16_C(15),
+    "stored trace input lanes are incomplete for late_dash_attack_flat");
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_ground_knockback_cases[] = {
@@ -28,6 +32,9 @@ pf_m4_ssbm_falcon_ground_knockback_cases[] = {
 
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT UINT16_C(1)
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE UINT8_C(15)
+#define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_LANES_PER_SAMPLE UINT8_C(1)
+#define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SERIALIZED_FIELDS \
+    (PF_SSBM_STORED_TRACE_FIELDS_V1)
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SOURCE_TRACE_SHA256 \
     "e08d7149e3f46d814d5c4a709e316cf3063208bb9673141effe6b1958f03fc79"
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_PRODUCTION_TRACE_SHA256 \

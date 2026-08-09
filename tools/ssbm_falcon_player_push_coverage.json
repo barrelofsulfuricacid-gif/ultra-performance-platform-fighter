@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-player-push",
+  "domain": "falcon-common-player-push",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 48,
+    "warm_budget_seconds": 2.0,
+    "capture_plan": {
+      "batch_exi_inputs": true,
+      "player_push_cases": [
+        {
+          "id": "port_one_right",
+          "start_x": [-3.6, 3.6],
+          "facing": [1, -1],
+          "main": [[13107, 0], [0, 0]],
+          "settle_ticks": 4,
+          "observe_ticks": 24,
+          "recovery_ticks": 8
+        },
+        {
+          "id": "port_two_left",
+          "start_x": [-3.6, 3.6],
+          "facing": [1, -1],
+          "main": [[0, 0], [-13107, 0]],
+          "settle_ticks": 4,
+          "observe_ticks": 24,
+          "recovery_ticks": 8
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "port-one-right",
+      "start_label": "player_push_port_one_right_place"
+    },
+    {
+      "id": "port-two-left",
+      "start_label": "player_push_port_two_left_place"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_player_push_oracle.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_content.c",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_tick.c",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_player_push_coverage.json",
+      "tools/verify_ssbm_falcon_player_push.py",
+      "tools/verify_ssbm_falcon_player_push.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "3c6ade86d516474c60b7559690b3b858f2b7a66b41982859e4f81df70a7c73f5",
+    "production_trace_sha256": "079a34868db4fff30719d7a784d7bd102aab7a81acd189ad6293c65a9056bc7a",
+    "samples_per_case": 24,
+    "lanes_per_sample": 2,
+    "serialized_fields": [
+      "position_x",
+      "self_velocity_x",
+      "action_state",
+      "grounded",
+      "facing"
+    ],
+    "cases": [
+      {
+        "id": "port_one_right",
+        "input_phases": [
+          {
+            "ticks": 16,
+            "lanes": [{ "main": [13107, 0] }, {}]
+          },
+          {
+            "ticks": 8,
+            "lanes": [{}, {}]
+          }
+        ]
+      },
+      {
+        "id": "port_two_left",
+        "input_phases": [
+          {
+            "ticks": 16,
+            "lanes": [{}, { "main": [-13107, 0] }]
+          },
+          {
+            "ticks": 8,
+            "lanes": [{}, {}]
+          }
+        ]
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_player_push",
+      "macro_prefix": "PF_M4_SSBM_FALCON_PLAYER_PUSH"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_player_push_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-player-push"]
+    }
+  }
+}

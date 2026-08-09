@@ -829,6 +829,29 @@ Falcon's walk maximum uses the nearest Q16 encoding of `51/575`; truncating it
 by one Q16 unit accumulates enough error to select the wrong executable push
 boundary after a long held walk.
 
+The registered `falcon-common-player-push` domain replaces the legacy
+comparator-only regression with two checkpoint-isolated cases starting just
+outside the strict 7.0-unit combined radius. It drives port one right and port
+two left, records both fighters in frame-major/lane-major order, and observes
+the source's fixed 0.3 nudge in both directions. Three fresh ExiAI boots
+produce the same 48-row / 96-lane source trace SHA-256
+`3c6ade86d516474c60b7559690b3b858f2b7a66b41982859e4f81df70a7c73f5`.
+The production trace SHA-256 is
+`079a34868db4fff30719d7a784d7bd102aab7a81acd189ad6293c65a9056bc7a`.
+Action, facing, and grounded state compare strictly; horizontal velocity uses
+the existing 32-Q16 conversion allowance, and relative position retains the
+reviewed 2,692-Q16 envelope composed of the ordinary 640-Q16 conversion bound
+plus one mapped 0.3-unit nudge. The final live capture takes 0.090 seconds warm
+and 3.011 seconds including process launch and menu setup.
+
+The character-independent numeric stored runner now accepts one or two
+manifest-declared observation lanes and hashes only the manifest-selected
+fields in canonical frame/lane order. Existing one-lane domains default to
+their original field mask and preserve all five prior production digests.
+Repeated input phases expand offline into immutable C arrays with compile-time
+lane counts; production adds no allocation, parsing, float work, or character
+switch for this generalization.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

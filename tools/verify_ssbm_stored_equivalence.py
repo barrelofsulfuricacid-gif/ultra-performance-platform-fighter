@@ -381,11 +381,23 @@ def main() -> int:
                     f"operation=manifest domain={domain_name} "
                     "reason=invalid-samples-per-case"
                 )
+            lanes_per_sample = stored.get("lanes_per_sample", 1)
+            if (
+                not isinstance(lanes_per_sample, int)
+                or isinstance(lanes_per_sample, bool)
+                or not 1 <= lanes_per_sample <= 2
+            ):
+                fail(
+                    f"operation=manifest domain={domain_name} "
+                    "reason=invalid-lanes-per-sample"
+                )
             expected = {
                 "domain": domain_name,
                 "poses": "0",
                 "cases": str(case_count),
-                "samples": str(case_count * samples_per_case),
+                "samples": str(
+                    case_count * samples_per_case * lanes_per_sample
+                ),
                 "source_trace_sha256": str(
                     stored.get("source_trace_sha256")
                 ),

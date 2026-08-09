@@ -603,6 +603,14 @@ if(BUILD_TESTING)
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-prone-response poses=0 cases=14 samples=168")
 
+    add_test(
+        NAME sim.m4_ssbm_falcon_player_push
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-player-push)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_player_push
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-player-push poses=0 cases=2 samples=96")
+
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)
     target_compile_features(m4_item_test PRIVATE c_std_17)

@@ -5,6 +5,7 @@
 
 #define PF_SSBM_STORED_MAX_CAPSULES UINT8_C(32)
 #define PF_SSBM_STORED_MAX_TRACE_SAMPLES UINT8_C(64)
+#define PF_SSBM_STORED_MAX_TRACE_LANES UINT8_C(2)
 
 typedef enum pf_ssbm_stored_case_mode
 {
@@ -124,7 +125,45 @@ typedef struct pf_ssbm_stored_trace_sample
     uint8_t invulnerable;
     int8_t tech_direction;
     uint8_t prone_orientation;
+    int8_t facing;
 } pf_ssbm_stored_trace_sample;
+
+typedef enum pf_ssbm_stored_trace_field
+{
+    PF_SSBM_TRACE_POSITION_X = UINT32_C(1) << 0,
+    PF_SSBM_TRACE_POSITION_Y = UINT32_C(1) << 1,
+    PF_SSBM_TRACE_SELF_VELOCITY_X = UINT32_C(1) << 2,
+    PF_SSBM_TRACE_SELF_VELOCITY_Y = UINT32_C(1) << 3,
+    PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X = UINT32_C(1) << 4,
+    PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y = UINT32_C(1) << 5,
+    PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY = UINT32_C(1) << 6,
+    PF_SSBM_TRACE_DAMAGE = UINT32_C(1) << 7,
+    PF_SSBM_TRACE_ACTION_TICKS = UINT32_C(1) << 8,
+    PF_SSBM_TRACE_HITLAG_TICKS = UINT32_C(1) << 9,
+    PF_SSBM_TRACE_HITSTUN_TICKS = UINT32_C(1) << 10,
+    PF_SSBM_TRACE_ACTION_STATE = UINT32_C(1) << 11,
+    PF_SSBM_TRACE_HITLAG_RESUME_ACTION = UINT32_C(1) << 12,
+    PF_SSBM_TRACE_GROUNDED = UINT32_C(1) << 13,
+    PF_SSBM_TRACE_TUMBLE = UINT32_C(1) << 14,
+    PF_SSBM_TRACE_INVULNERABLE = UINT32_C(1) << 15,
+    PF_SSBM_TRACE_TECH_DIRECTION = UINT32_C(1) << 16,
+    PF_SSBM_TRACE_PRONE_ORIENTATION = UINT32_C(1) << 17,
+    PF_SSBM_TRACE_FACING = UINT32_C(1) << 18
+} pf_ssbm_stored_trace_field;
+
+#define PF_SSBM_STORED_TRACE_FIELDS_V1 \
+    (PF_SSBM_TRACE_POSITION_X | PF_SSBM_TRACE_POSITION_Y | \
+     PF_SSBM_TRACE_SELF_VELOCITY_X | PF_SSBM_TRACE_SELF_VELOCITY_Y | \
+     PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X | \
+     PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y | \
+     PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY | PF_SSBM_TRACE_DAMAGE | \
+     PF_SSBM_TRACE_ACTION_TICKS | PF_SSBM_TRACE_HITLAG_TICKS | \
+     PF_SSBM_TRACE_HITSTUN_TICKS | PF_SSBM_TRACE_ACTION_STATE | \
+     PF_SSBM_TRACE_HITLAG_RESUME_ACTION | PF_SSBM_TRACE_GROUNDED | \
+     PF_SSBM_TRACE_TUMBLE | PF_SSBM_TRACE_INVULNERABLE | \
+     PF_SSBM_TRACE_TECH_DIRECTION | PF_SSBM_TRACE_PRONE_ORIENTATION)
+#define PF_SSBM_STORED_TRACE_FIELDS_ALL \
+    (PF_SSBM_STORED_TRACE_FIELDS_V1 | PF_SSBM_TRACE_FACING)
 
 typedef struct pf_ssbm_stored_trace_case
 {
@@ -149,6 +188,8 @@ typedef struct pf_ssbm_stored_trace_domain
     const pf_ssbm_stored_trace_case *cases;
     uint16_t case_count;
     uint8_t samples_per_case;
+    uint8_t lanes_per_sample;
+    uint32_t serialized_fields;
     const char *expected_production_trace_sha256;
     void *context;
     pf_ssbm_stored_trace_case_runner run_case;

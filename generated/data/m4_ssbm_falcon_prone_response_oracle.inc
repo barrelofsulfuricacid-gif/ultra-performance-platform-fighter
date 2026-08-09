@@ -17,6 +17,10 @@ pf_m4_ssbm_falcon_prone_response_timeout_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(5) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(2) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_timeout_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_timeout_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for timeout");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs[] = {
@@ -33,6 +37,10 @@ pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_buffered_a_getup_attack_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for buffered_a_getup_attack");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs[] = {
@@ -49,6 +57,10 @@ pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_buffered_b_getup_attack_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for buffered_b_getup_attack");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs[] = {
@@ -65,6 +77,10 @@ pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_c_up_getup_attack_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for c_up_getup_attack");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs[] = {
@@ -81,6 +97,10 @@ pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_c_roll_forward_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for c_roll_forward");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs[] = {
@@ -97,6 +117,10 @@ pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_main_roll_backward_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for main_roll_backward");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs[] = {
@@ -113,6 +137,10 @@ pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_up_neutral_getup_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for up_neutral_getup");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs[] = {
@@ -129,6 +157,10 @@ pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_shield_neutral_getup_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for shield_neutral_getup");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs[] = {
@@ -145,6 +177,10 @@ pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_attack_over_roll_priority_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for attack_over_roll_priority");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs[] = {
@@ -161,6 +197,10 @@ pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_c_roll_below_threshold_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for c_roll_below_threshold");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_up_timeout_inputs[] = {
@@ -177,6 +217,10 @@ pf_m4_ssbm_falcon_prone_response_up_timeout_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(5) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(2) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_up_timeout_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_up_timeout_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for up_timeout");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs[] = {
@@ -193,6 +237,10 @@ pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_up_buffered_a_getup_attack_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for up_buffered_a_getup_attack");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs[] = {
@@ -209,6 +257,10 @@ pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_up_c_roll_forward_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for up_c_roll_forward");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs[] = {
@@ -225,6 +277,10 @@ pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs) / sizeof(pf_m4_ssbm_falcon_prone_response_up_main_roll_backward_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for up_main_roll_backward");
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_prone_response_cases[] = {
@@ -246,6 +302,9 @@ pf_m4_ssbm_falcon_prone_response_cases[] = {
 
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT UINT16_C(14)
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_SAMPLES_PER_CASE UINT8_C(12)
+#define PF_M4_SSBM_FALCON_PRONE_RESPONSE_LANES_PER_SAMPLE UINT8_C(1)
+#define PF_M4_SSBM_FALCON_PRONE_RESPONSE_SERIALIZED_FIELDS \
+    (PF_SSBM_STORED_TRACE_FIELDS_V1)
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_SOURCE_TRACE_SHA256 \
     "db317711cb1a5b2c877d4dc8dd57e1ef38c31edd93638dd1d05e272b6d46cd8d"
 #define PF_M4_SSBM_FALCON_PRONE_RESPONSE_PRODUCTION_TRACE_SHA256 \

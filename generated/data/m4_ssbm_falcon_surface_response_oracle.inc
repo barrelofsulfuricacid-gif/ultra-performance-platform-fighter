@@ -17,6 +17,10 @@ pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs) / sizeof(pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for right_pillar_wall_bounce");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs[] = {
@@ -33,6 +37,10 @@ pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs) / sizeof(pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for right_pillar_wall_tech");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs[] = {
@@ -49,6 +57,10 @@ pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs) / sizeof(pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for right_pillar_wall_tech_jump");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs[] = {
@@ -65,6 +77,10 @@ pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs) / sizeof(pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for cave_ceiling_bounce");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs[] = {
@@ -81,6 +97,10 @@ pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs[] = {
     { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs) / sizeof(pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for cave_ceiling_tech_drift");
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_surface_response_cases[] = {
@@ -93,6 +113,9 @@ pf_m4_ssbm_falcon_surface_response_cases[] = {
 
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT UINT16_C(5)
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE UINT8_C(12)
+#define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_LANES_PER_SAMPLE UINT8_C(1)
+#define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SERIALIZED_FIELDS \
+    (PF_SSBM_STORED_TRACE_FIELDS_V1)
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SOURCE_TRACE_SHA256 \
     "5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5"
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256 \

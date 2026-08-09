@@ -17,6 +17,10 @@ pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs) / sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_missed_tech_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for flat_floor_missed_tech");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs[] = {
@@ -33,6 +37,10 @@ pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs[] = {
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(0), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs) / sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_neutral_tech_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for flat_floor_neutral_tech");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs[] = {
@@ -49,6 +57,10 @@ pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs[] = {
     { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs) / sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_forward_tech_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for flat_floor_forward_tech");
 
 static const pf_ssbm_stored_trace_input
 pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs[] = {
@@ -65,6 +77,10 @@ pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs[] = {
     { INT16_C(-32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
     { INT16_C(-32767), INT16_C(0), INT16_C(0), INT16_C(0), UINT64_C(0), UINT16_C(0), UINT16_C(0), UINT16_C(1) },
 };
+_Static_assert(
+    sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs) / sizeof(pf_m4_ssbm_falcon_floor_response_flat_floor_backward_tech_inputs[0]) ==
+        UINT16_C(12),
+    "stored trace input lanes are incomplete for flat_floor_backward_tech");
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_floor_response_cases[] = {
@@ -76,6 +92,9 @@ pf_m4_ssbm_falcon_floor_response_cases[] = {
 
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT UINT16_C(4)
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE UINT8_C(12)
+#define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_LANES_PER_SAMPLE UINT8_C(1)
+#define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SERIALIZED_FIELDS \
+    (PF_SSBM_STORED_TRACE_FIELDS_V1)
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SOURCE_TRACE_SHA256 \
     "85fd93638bcb26b8b6e405cb1008a396acf05d132e07c7f9dcc3b6993034dd3f"
 #define PF_M4_SSBM_FALCON_FLOOR_RESPONSE_PRODUCTION_TRACE_SHA256 \

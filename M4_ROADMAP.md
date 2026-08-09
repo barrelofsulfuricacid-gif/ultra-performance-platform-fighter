@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for six domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, and prone/getup response now contain 50 registered cases plus deterministic replay. Current cross-platform timings are requalified after each affected slice. |
+| Fast stored equivalence | done for seven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, and paired player push now contain 52 registered cases plus deterministic replay. The complete gate takes 0.802 seconds on Windows and 0.716 seconds in WSL. |
 | Fast live Dolphin oracle | done for registered domains | Registered packs use headless/null/unlimited ExiAI. Frame-safe batched controller queues and four isolated physical Dolphin shards reduce the 14-case prone pack from 34.77 seconds to 9.812 seconds while preserving the independently reproduced 1,515-row digest. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, and both Up/Down prone/getup orientations. Slopes, ECB pose behavior, pushboxes, and other fidelity-audit rows remain. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, DownBound ECB contact, and grounded player push from both ports/directions. Slopes, broader ECB/stage topology, and other fidelity-audit rows remain. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -165,6 +165,41 @@ Current DownBound prior-art/source sweep:
 - Final gates pass native Windows Release 25/25 in 3.90 seconds, WSL Release
   25/25 in 1.72 seconds, WSL ASan/UBSan 18/18 in 11.91 seconds, and all six
   stored domains / 50 cases plus replay in 0.744 seconds on Windows.
+
+## Completed and verified: reusable paired-fighter player-push equivalence
+
+- [x] Re-audit the existing 540-frame Final Destination Falcon-versus-Falcon
+  route before writing new behavior. It already qualifies both horizontal
+  directions and both controller ports, including strict action, facing,
+  grounded state, and velocity plus the documented one-nudge Q16.16 position
+  allowance.
+- [x] Recheck pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` against current
+  `doldecomp/melee` master `013091add6d46d2d809d163371deab97ab5e37eb`.
+  `ftcommon.c` and `fighter.c` are unchanged for this route; Project Slippi
+  and libmelee provide transport/observation but no maintained reusable
+  player-push equivalence domain.
+- [x] Replace the legacy monolithic comparator-only proof with manifest-owned,
+  checkpoint-isolated paired cases and a shared paired numeric-trace runner.
+- [x] Pin fresh live and production semantic digests, register the domain in
+  the sub-two-second stored gate, and rerun Windows/WSL/replay validation.
+- [x] Generalize numeric traces to one or two frame-major observation lanes and
+  manifest-selected serialized fields. Existing one-lane byte streams and all
+  five numeric production digests remain unchanged; repeated input phases are
+  expanded only by the offline generator with compile-time lane counts.
+- [x] Reproduce the 48-row / 96-lane source trace on three fresh Dolphin boots.
+  Source digest
+  `3c6ade86d516474c60b7559690b3b858f2b7a66b41982859e4f81df70a7c73f5`
+  and production digest
+  `079a34868db4fff30719d7a784d7bd102aab7a81acd189ad6293c65a9056bc7a`
+  are pinned. Action, facing, and grounded state are strict; velocity allows 32
+  Q16 units and position retains the reviewed 2,692-Q16 one-nudge envelope.
+- [x] Run the final live pack in 0.090 seconds warm / 3.011 seconds end to end,
+  the seven-domain stored gate in 0.802 seconds on Windows and 0.716 seconds in
+  WSL, Windows Release 26/26 in 7.31 seconds, WSL Release 26/26 in 1.52
+  seconds, and WSL ASan/UBSan 19/19 in 12.27 seconds.
+- [x] Extend and validate the `ssbm-character-importer` skill with the reusable
+  paired-lane/field-mask pattern.
 
 Primary sources:
 
@@ -421,8 +456,9 @@ Execution results:
 - [x] Qualify flat-floor landing plus missed, neutral, forward, and backward
   tech response against a live source route.
 - [x] Qualify DownBound ECB pose-grounding in its own live source route.
-- [ ] Qualify slopes, ledge departure during floor recovery, and player-pushbox
-  interactions in their own live source routes.
+- [ ] Qualify slopes and ledge departure during floor recovery in their own
+  live source routes; promote the already-live-qualified player-push route to
+  the generic manifest/stored architecture.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -440,8 +476,9 @@ Execution results:
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
 - [x] Keep changed-domain local validation comfortably below two seconds. The
-  current six-domain stored gate is 0.465 seconds on WSL and 0.628 seconds on
-  Windows. Live manifests carry explicit per-pack budgets: wall/ceiling is
+  current seven-domain stored gate is 0.716 seconds on WSL and 0.802 seconds on
+  Windows. Live manifests carry explicit per-pack budgets: paired player push
+  is 0.090 seconds warm; wall/ceiling is
   2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on
   its final run with a four-second guardrail; the 1,515-row, 14-case prone pack
   is physically sharded and measured 9.812 seconds end to end with an
@@ -475,9 +512,10 @@ The reusable proof path is:
    Windows/WSL edit loop independent of Dolphin while preserving provenance.
 
 This architecture catches regressions only inside registered domains. The
-ground-knockback live route, for example, deliberately excludes position while
-pushbox behavior is still a separate open domain; a green result must not be
-reported as proof of unregistered slopes, ECB, ledges, attacks, or pushboxes.
+ground-knockback live route, for example, deliberately excludes position even
+though flat-floor player push is independently registered; a green result must
+not be reported as proof of unregistered slopes, ECBs, ledges, attacks, or
+other stage/pushbox topologies.
 
 ### Native playtest frontend
 

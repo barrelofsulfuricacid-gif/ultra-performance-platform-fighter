@@ -23,6 +23,7 @@
 #include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_floor_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_prone_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_player_push_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -91,6 +92,29 @@ static int make_combat_content(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
         "combat-content-view");
+}
+
+static int make_player_push_content(
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "player-push-default-content"))
+    {
+        return 0;
+    }
+
+    /* Each fighter starts 3.6 Melee units from center. This is just outside
+       Falcon's strict 3.5 + 3.5 source-radius overlap boundary. */
+    out_content->stage.spawn_spacing_q16 = (int32_t)(
+        (INT64_C(216) * PF_Q16_ONE + INT64_C(287)) / INT64_C(575));
+    out_content->item.enabled = UINT8_C(0);
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "player-push-content-view");
 }
 
 static int make_shield_poke_content(
@@ -14700,6 +14724,198 @@ static void capture_ssbm_stored_trace_sample(
     sample->invulnerable = player->invulnerable;
     sample->tech_direction = player->tech_direction;
     sample->prone_orientation = player->prone_orientation;
+    sample->facing = player->facing;
+}
+
+static int step_ssbm_paired_trace_duel(
+    pf_sim *sim,
+    const pf_ssbm_stored_trace_input *lane_inputs,
+    pf_m4_inspection *out_inspection)
+{
+    pf_m4_inspection before;
+    uint16_t advance_tick;
+
+    if (lane_inputs == NULL || out_inspection == NULL ||
+        lane_inputs[0].advance_ticks == UINT16_C(0) ||
+        lane_inputs[0].advance_ticks != lane_inputs[1].advance_ticks ||
+        !expect_status(
+            pf_m4_inspect(sim, &before),
+            PF_STATUS_OK,
+            "ssbm-paired-trace-inspect-before-step"))
+    {
+        return 0;
+    }
+    for (advance_tick = UINT16_C(0);
+         advance_tick < lane_inputs[0].advance_ticks;
+         ++advance_tick)
+    {
+        pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+        pf_tick_result result;
+        uint8_t lane;
+
+        make_inputs(inputs, UINT8_C(2), before.tick);
+        for (lane = UINT8_C(0); lane < UINT8_C(2); ++lane)
+        {
+            const pf_ssbm_stored_trace_input *source = &lane_inputs[lane];
+            pf_input_frame *destination = &inputs[lane];
+
+            destination->main_stick_x = source->main_stick_x;
+            destination->main_stick_y = source->main_stick_y;
+            destination->secondary_stick_x = source->secondary_stick_x;
+            destination->secondary_stick_y = source->secondary_stick_y;
+            destination->buttons = source->buttons;
+            destination->left_trigger = source->left_trigger;
+            destination->right_trigger = source->right_trigger;
+        }
+        if (!expect_status(
+                pf_sim_tick(sim, inputs, (size_t)2, &result),
+                PF_STATUS_OK,
+                "ssbm-paired-trace-tick") ||
+            !expect_status(
+                pf_m4_inspect(sim, &before),
+                PF_STATUS_OK,
+                "ssbm-paired-trace-inspect-after-step"))
+        {
+            return 0;
+        }
+    }
+    *out_inspection = before;
+    return 1;
+}
+
+static uint8_t run_ssbm_player_push_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    int32_t origin_x[2] = {INT32_C(0), INT32_C(0)};
+    int32_t origin_y[2] = {INT32_C(0), INT32_C(0)};
+    uint8_t sample_index;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL ||
+        capacity < PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE ||
+        (strcmp(stored_case->id, "port_one_right") != 0 &&
+         strcmp(stored_case->id, "port_two_left") != 0) ||
+        !make_player_push_content(&content, &view) ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim))
+    {
+        return UINT8_C(0);
+    }
+
+    for (sample_index = UINT8_C(0);
+         sample_index < PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE;
+         ++sample_index)
+    {
+        uint8_t lane;
+
+        if (!step_ssbm_paired_trace_duel(
+                sim,
+                &stored_case->inputs[
+                    (size_t)sample_index *
+                    PF_M4_SSBM_FALCON_PLAYER_PUSH_LANES_PER_SAMPLE],
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        if (sample_index == UINT8_C(0))
+        {
+            for (lane = UINT8_C(0); lane < UINT8_C(2); ++lane)
+            {
+                origin_x[lane] = inspection.players[lane].position_x_q16;
+                origin_y[lane] = inspection.players[lane].position_y_q16;
+            }
+        }
+        for (lane = UINT8_C(0); lane < UINT8_C(2); ++lane)
+        {
+            pf_ssbm_stored_trace_sample *sample =
+                &out_samples[(size_t)sample_index *
+                                 PF_M4_SSBM_FALCON_PLAYER_PUSH_LANES_PER_SAMPLE +
+                             lane];
+
+            capture_ssbm_stored_trace_sample(
+                &inspection.players[lane],
+                origin_x[lane],
+                origin_y[lane],
+                sample);
+            if (context != NULL && *(const int *)context != 0)
+            {
+                (void)printf(
+                    "m4-ssbm-player-push-observation case=%s sample=%u lane=%u"
+                    " action=%u action_tick=%u facing=%d grounded=%u"
+                    " dx=%" PRId32 " self_vx=%" PRId32 "\n",
+                    stored_case->id,
+                    (unsigned int)sample_index + 1U,
+                    (unsigned int)lane,
+                    (unsigned int)sample->action_state,
+                    (unsigned int)sample->action_ticks,
+                    (int)sample->facing,
+                    (unsigned int)sample->grounded,
+                    sample->position_x_q16,
+                    sample->self_velocity_x_q16);
+            }
+        }
+    }
+    return PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE;
+}
+
+static int run_ssbm_player_push_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-player-push",
+        pf_m4_ssbm_falcon_player_push_cases,
+        PF_M4_SSBM_FALCON_PLAYER_PUSH_CASE_COUNT,
+        PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_PLAYER_PUSH_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_PLAYER_PUSH_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_PLAYER_PUSH_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_player_push_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass "
+        "domain=falcon-common-player-push poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        (unsigned int)PF_M4_SSBM_FALCON_PLAYER_PUSH_CASE_COUNT,
+        (unsigned int)(
+            PF_M4_SSBM_FALCON_PLAYER_PUSH_CASE_COUNT *
+            PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE *
+            PF_M4_SSBM_FALCON_PLAYER_PUSH_LANES_PER_SAMPLE),
+        PF_M4_SSBM_FALCON_PLAYER_PUSH_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
 }
 
 static uint8_t run_ssbm_damage_trace_case(
@@ -14850,6 +15066,8 @@ static int run_ssbm_damage_observation_oracle(void)
         pf_m4_ssbm_falcon_damage_response_cases,
         PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT,
         PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SERIALIZED_FIELDS,
         PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_PRODUCTION_TRACE_SHA256,
         &print_samples,
         run_ssbm_damage_trace_case};
@@ -15130,6 +15348,8 @@ static int run_ssbm_ground_knockback_observation_oracle(void)
         pf_m4_ssbm_falcon_ground_knockback_cases,
         PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT,
         PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SERIALIZED_FIELDS,
         PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_PRODUCTION_TRACE_SHA256,
         &print_samples,
         run_ssbm_ground_knockback_trace_case};
@@ -15303,6 +15523,8 @@ static int run_ssbm_surface_response_observation_oracle(void)
         pf_m4_ssbm_falcon_surface_response_cases,
         PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT,
         PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_SURFACE_RESPONSE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SERIALIZED_FIELDS,
         PF_M4_SSBM_FALCON_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256,
         &print_samples,
         run_ssbm_surface_response_trace_case};
@@ -16330,6 +16552,8 @@ static int run_ssbm_floor_response_observation_oracle(void)
         pf_m4_ssbm_falcon_floor_response_cases,
         PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT,
         PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_FLOOR_RESPONSE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SERIALIZED_FIELDS,
         PF_M4_SSBM_FALCON_FLOOR_RESPONSE_PRODUCTION_TRACE_SHA256,
         &print_samples,
         run_ssbm_floor_response_trace_case};
@@ -16455,6 +16679,8 @@ static int run_ssbm_prone_response_observation_oracle(void)
         pf_m4_ssbm_falcon_prone_response_cases,
         PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT,
         PF_M4_SSBM_FALCON_PRONE_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_PRONE_RESPONSE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_PRONE_RESPONSE_SERIALIZED_FIELDS,
         PF_M4_SSBM_FALCON_PRONE_RESPONSE_PRODUCTION_TRACE_SHA256,
         &print_samples,
         run_ssbm_prone_response_trace_case};
@@ -25871,6 +26097,11 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-prone-response") == 0)
         {
             return run_ssbm_prone_response_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-player-push") == 0)
+        {
+            return run_ssbm_player_push_observation_oracle() ? 0 : 1;
         }
         (void)fprintf(
             stderr,

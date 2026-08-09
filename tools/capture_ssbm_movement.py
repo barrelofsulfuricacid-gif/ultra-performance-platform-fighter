@@ -167,7 +167,97 @@ def input_trace(
     def repeat(label: str, count: int, **inputs: object) -> None:
         trace.extend(command(label, **inputs) for _ in range(count))
 
+    def controller_axis(source_axis: object) -> float:
+        if (
+            not isinstance(source_axis, int)
+            or isinstance(source_axis, bool)
+            or not -32767 <= source_axis <= 32767
+        ):
+            raise ValueError("checkpoint stick axis is invalid")
+        return (float(source_axis) / 32767.0 + 1.0) * 0.5
+
     if push_only:
+        if checkpoint_isolated:
+            if checkpoint_capture_plan is None:
+                raise ValueError("checkpoint capture plan is required")
+            raw_cases = checkpoint_capture_plan.get("player_push_cases")
+            if not isinstance(raw_cases, list) or not raw_cases:
+                raise ValueError("player push checkpoint cases are required")
+            case_ids: set[str] = set()
+            for raw_case in raw_cases:
+                if not isinstance(raw_case, dict):
+                    raise ValueError("player push case must be an object")
+                case_id = raw_case.get("id")
+                positions = raw_case.get("start_x")
+                facings = raw_case.get("facing")
+                mains = raw_case.get("main")
+                settle_ticks = raw_case.get("settle_ticks", 4)
+                observe_ticks = raw_case.get("observe_ticks")
+                recovery_ticks = raw_case.get("recovery_ticks")
+                if (
+                    not isinstance(case_id, str)
+                    or not case_id
+                    or case_id in case_ids
+                    or not isinstance(positions, list)
+                    or len(positions) != 2
+                    or any(
+                        not isinstance(value, (int, float))
+                        or isinstance(value, bool)
+                        for value in positions
+                    )
+                    or not isinstance(facings, list)
+                    or len(facings) != 2
+                    or any(value not in (-1, 1) for value in facings)
+                    or not isinstance(mains, list)
+                    or len(mains) != 2
+                    or any(
+                        not isinstance(stick, list) or len(stick) != 2
+                        for stick in mains
+                    )
+                    or not isinstance(settle_ticks, int)
+                    or isinstance(settle_ticks, bool)
+                    or not 1 <= settle_ticks <= 30
+                    or not isinstance(observe_ticks, int)
+                    or isinstance(observe_ticks, bool)
+                    or not 1 <= observe_ticks <= 64
+                    or not isinstance(recovery_ticks, int)
+                    or isinstance(recovery_ticks, bool)
+                    or not 0 <= recovery_ticks < observe_ticks
+                ):
+                    raise ValueError(f"invalid player push case {case_id!r}")
+                fighter_main = tuple(controller_axis(value) for value in mains[0])
+                opponent_main = tuple(controller_axis(value) for value in mains[1])
+                prefix = f"player_push_{case_id}"
+                place = command(
+                    f"{prefix}_place",
+                    fighter_x_override=float(positions[0]),
+                    fighter_facing_override=float(facings[0]),
+                    opponent_x_override=float(positions[1]),
+                    opponent_facing_override=float(facings[1]),
+                )
+                trace.append({**place, "restore_before": True, "record": False})
+                for _ in range(settle_ticks):
+                    settle = command(
+                        f"{prefix}_settle",
+                        fighter_x_override=float(positions[0]),
+                        fighter_facing_override=float(facings[0]),
+                        opponent_x_override=float(positions[1]),
+                        opponent_facing_override=float(facings[1]),
+                    )
+                    trace.append({**settle, "record": False})
+                for _ in range(observe_ticks - recovery_ticks):
+                    trace.append(
+                        command(
+                            f"{prefix}_observe",
+                            main_x=fighter_main[0],
+                            main_y=fighter_main[1],
+                            opponent_main_x=opponent_main[0],
+                            opponent_main_y=opponent_main[1],
+                        )
+                    )
+                repeat(f"{prefix}_recovery", recovery_ticks)
+                case_ids.add(case_id)
+            return trace
         repeat("push_settle", 60)
         repeat("push_walk_right", 240, main_x=0.7)
         repeat("push_recovery", 60)
@@ -1869,15 +1959,6 @@ def input_trace(
         if checkpoint_isolated:
             if checkpoint_capture_plan is None:
                 raise ValueError("checkpoint capture plan is required")
-
-            def controller_axis(source_axis: object) -> float:
-                if (
-                    not isinstance(source_axis, int)
-                    or isinstance(source_axis, bool)
-                    or not -32767 <= source_axis <= 32767
-                ):
-                    raise ValueError("checkpoint stick axis is invalid")
-                return (float(source_axis) / 32767.0 + 1.0) * 0.5
 
             def response_observation_segments(
                 raw_segments: object,
@@ -4581,11 +4662,16 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     if args.oracle_case:
         if checkpoint_capture_plan is None:
             raise ValueError("--oracle-case requires a checkpoint capture plan")
-        case_field = (
-            "surface_response_cases"
-            if "surface_response_cases" in checkpoint_capture_plan
-            else "floor_response_cases"
-        )
+        case_fields = [
+            key
+            for key, value in checkpoint_capture_plan.items()
+            if key.endswith("_cases") and isinstance(value, list)
+        ]
+        if len(case_fields) != 1:
+            raise ValueError(
+                "checkpoint capture plan must contain exactly one case list"
+            )
+        case_field = case_fields[0]
         available_cases = list(checkpoint_capture_plan.get(case_field, []))
         available_ids = {str(case.get("id")) for case in available_cases}
         requested_ids = set(args.oracle_case)
@@ -5832,7 +5918,11 @@ def parse_args() -> argparse.Namespace:
         parser.error("--oracle-checkpoint-probe requires --oracle-exiai")
     if args.oracle_checkpoint_pack and not (
         args.oracle_exiai
-        and (args.common_hurt_geometry_only or args.damage_hit_only)
+        and (
+            args.common_hurt_geometry_only
+            or args.damage_hit_only
+            or args.push_only
+        )
     ):
         parser.error(
             "--oracle-checkpoint-pack requires --oracle-exiai and "

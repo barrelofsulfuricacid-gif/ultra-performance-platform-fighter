@@ -233,7 +233,8 @@ int pf_ssbm_stored_trace_oracle_run(
     pf_ssbm_stored_trace_result *out_result)
 {
     pf_ssbm_stored_trace_sample
-        samples[PF_SSBM_STORED_MAX_TRACE_SAMPLES];
+        samples[PF_SSBM_STORED_MAX_TRACE_SAMPLES *
+                PF_SSBM_STORED_MAX_TRACE_LANES];
     pf_sha256 hash;
     uint8_t digest[32];
     uint16_t case_index;
@@ -247,6 +248,11 @@ int pf_ssbm_stored_trace_oracle_run(
         domain->case_count == UINT16_C(0) ||
         domain->samples_per_case == UINT8_C(0) ||
         domain->samples_per_case > PF_SSBM_STORED_MAX_TRACE_SAMPLES ||
+        domain->lanes_per_sample == UINT8_C(0) ||
+        domain->lanes_per_sample > PF_SSBM_STORED_MAX_TRACE_LANES ||
+        domain->serialized_fields == UINT32_C(0) ||
+        (domain->serialized_fields &
+         ~((uint32_t)PF_SSBM_STORED_TRACE_FIELDS_ALL)) != UINT32_C(0) ||
         domain->expected_production_trace_sha256 == NULL ||
         domain->run_case == NULL)
     {
@@ -290,28 +296,87 @@ int pf_ssbm_stored_trace_oracle_run(
              sample_index < sample_count;
              ++sample_index)
         {
-            const pf_ssbm_stored_trace_sample *sample =
-                &samples[sample_index];
+            uint8_t lane_index;
 
             hash_u8(&hash, sample_index);
-            hash_i32_le(&hash, sample->position_x_q16);
-            hash_i32_le(&hash, sample->position_y_q16);
-            hash_i32_le(&hash, sample->self_velocity_x_q16);
-            hash_i32_le(&hash, sample->self_velocity_y_q16);
-            hash_i32_le(&hash, sample->knockback_velocity_x_q16);
-            hash_i32_le(&hash, sample->knockback_velocity_y_q16);
-            hash_i32_le(&hash, sample->ground_knockback_velocity_q16);
-            hash_u32_le(&hash, sample->damage_q16);
-            hash_u16_le(&hash, sample->action_ticks);
-            hash_u16_le(&hash, sample->hitlag_ticks);
-            hash_u16_le(&hash, sample->hitstun_ticks);
-            hash_u8(&hash, sample->action_state);
-            hash_u8(&hash, sample->hitlag_resume_action);
-            hash_u8(&hash, sample->grounded);
-            hash_u8(&hash, sample->tumble);
-            hash_u8(&hash, sample->invulnerable);
-            hash_u8(&hash, (uint8_t)sample->tech_direction);
-            hash_u8(&hash, sample->prone_orientation);
+            for (lane_index = UINT8_C(0);
+                 lane_index < domain->lanes_per_sample;
+                 ++lane_index)
+            {
+                const pf_ssbm_stored_trace_sample *sample =
+                    &samples[(size_t)sample_index *
+                                 domain->lanes_per_sample +
+                             lane_index];
+
+#define PF_HASH_TRACE_FIELD(bit, statement) \
+    do \
+    { \
+        if ((domain->serialized_fields & (uint32_t)(bit)) != UINT32_C(0)) \
+        { \
+            statement; \
+        } \
+    } while (0)
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_POSITION_X,
+                    hash_i32_le(&hash, sample->position_x_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_POSITION_Y,
+                    hash_i32_le(&hash, sample->position_y_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_SELF_VELOCITY_X,
+                    hash_i32_le(&hash, sample->self_velocity_x_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_SELF_VELOCITY_Y,
+                    hash_i32_le(&hash, sample->self_velocity_y_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X,
+                    hash_i32_le(&hash, sample->knockback_velocity_x_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y,
+                    hash_i32_le(&hash, sample->knockback_velocity_y_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY,
+                    hash_i32_le(
+                        &hash,
+                        sample->ground_knockback_velocity_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_DAMAGE,
+                    hash_u32_le(&hash, sample->damage_q16));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_ACTION_TICKS,
+                    hash_u16_le(&hash, sample->action_ticks));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_HITLAG_TICKS,
+                    hash_u16_le(&hash, sample->hitlag_ticks));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_HITSTUN_TICKS,
+                    hash_u16_le(&hash, sample->hitstun_ticks));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_ACTION_STATE,
+                    hash_u8(&hash, sample->action_state));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_HITLAG_RESUME_ACTION,
+                    hash_u8(&hash, sample->hitlag_resume_action));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_GROUNDED,
+                    hash_u8(&hash, sample->grounded));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_TUMBLE,
+                    hash_u8(&hash, sample->tumble));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_INVULNERABLE,
+                    hash_u8(&hash, sample->invulnerable));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_TECH_DIRECTION,
+                    hash_u8(&hash, (uint8_t)sample->tech_direction));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_PRONE_ORIENTATION,
+                    hash_u8(&hash, sample->prone_orientation));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_FACING,
+                    hash_u8(&hash, (uint8_t)sample->facing));
+#undef PF_HASH_TRACE_FIELD
+            }
         }
     }
     pf_sha256_finish(&hash, digest);

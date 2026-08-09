@@ -18,6 +18,28 @@ BUTTONS = {
     "taunt": "PF_INPUT_BUTTON_TAUNT",
 }
 
+TRACE_FIELDS = {
+    "position_x": "PF_SSBM_TRACE_POSITION_X",
+    "position_y": "PF_SSBM_TRACE_POSITION_Y",
+    "self_velocity_x": "PF_SSBM_TRACE_SELF_VELOCITY_X",
+    "self_velocity_y": "PF_SSBM_TRACE_SELF_VELOCITY_Y",
+    "knockback_velocity_x": "PF_SSBM_TRACE_KNOCKBACK_VELOCITY_X",
+    "knockback_velocity_y": "PF_SSBM_TRACE_KNOCKBACK_VELOCITY_Y",
+    "ground_knockback_velocity": "PF_SSBM_TRACE_GROUND_KNOCKBACK_VELOCITY",
+    "damage": "PF_SSBM_TRACE_DAMAGE",
+    "action_ticks": "PF_SSBM_TRACE_ACTION_TICKS",
+    "hitlag_ticks": "PF_SSBM_TRACE_HITLAG_TICKS",
+    "hitstun_ticks": "PF_SSBM_TRACE_HITSTUN_TICKS",
+    "action_state": "PF_SSBM_TRACE_ACTION_STATE",
+    "hitlag_resume_action": "PF_SSBM_TRACE_HITLAG_RESUME_ACTION",
+    "grounded": "PF_SSBM_TRACE_GROUNDED",
+    "tumble": "PF_SSBM_TRACE_TUMBLE",
+    "invulnerable": "PF_SSBM_TRACE_INVULNERABLE",
+    "tech_direction": "PF_SSBM_TRACE_TECH_DIRECTION",
+    "prone_orientation": "PF_SSBM_TRACE_PRONE_ORIENTATION",
+    "facing": "PF_SSBM_TRACE_FACING",
+}
+
 
 def identifier(value: Any, field: str) -> str:
     if not isinstance(value, str) or re.fullmatch(
@@ -120,6 +142,25 @@ def generate(manifest: dict[str, Any]) -> str:
         or not 1 <= samples_per_case <= 64
     ):
         raise ValueError("samples_per_case must be in [1, 64]")
+    lanes_per_sample = stored.get("lanes_per_sample", 1)
+    if (
+        not isinstance(lanes_per_sample, int)
+        or isinstance(lanes_per_sample, bool)
+        or not 1 <= lanes_per_sample <= 2
+    ):
+        raise ValueError("lanes_per_sample must be in [1, 2]")
+    raw_fields = stored.get("serialized_fields")
+    if raw_fields is None:
+        serialized_fields = "PF_SSBM_STORED_TRACE_FIELDS_V1"
+    else:
+        if (
+            not isinstance(raw_fields, list)
+            or not raw_fields
+            or any(field not in TRACE_FIELDS for field in raw_fields)
+            or len(set(raw_fields)) != len(raw_fields)
+        ):
+            raise ValueError("serialized_fields contains an unsupported field")
+        serialized_fields = " | ".join(TRACE_FIELDS[field] for field in raw_fields)
     source_digest = digest(
         stored.get("source_trace_sha256"),
         "stored_oracle.source_trace_sha256",
@@ -138,7 +179,28 @@ def generate(manifest: dict[str, Any]) -> str:
         case_id = case.get("id")
         samples = case.get(sample_key)
         if samples is None and sample_key == "inputs":
-            samples = [{} for _ in range(samples_per_case)]
+            raw_phases = case.get("input_phases")
+            if raw_phases is None:
+                samples = [{} for _ in range(samples_per_case)]
+            else:
+                if not isinstance(raw_phases, list) or not raw_phases:
+                    raise ValueError(f"{case_id}.input_phases must be a list")
+                samples = []
+                for phase_index, phase in enumerate(raw_phases):
+                    if (
+                        not isinstance(phase, dict)
+                        or set(phase) != {"ticks", "lanes"}
+                        or not isinstance(phase.get("ticks"), int)
+                        or isinstance(phase.get("ticks"), bool)
+                        or not 1 <= phase["ticks"] <= samples_per_case
+                    ):
+                        raise ValueError(
+                            f"{case_id}.input_phases[{phase_index}] is invalid"
+                        )
+                    samples.extend(
+                        {"lanes": phase["lanes"]}
+                        for _ in range(phase["ticks"])
+                    )
         if (
             not isinstance(case_id, str)
             or not case_id
@@ -178,45 +240,72 @@ def generate(manifest: dict[str, Any]) -> str:
                 raise ValueError(
                     f"{case_id}.{sample_key}[{sample_index}] must be an object"
                 )
-            main_x, main_y = stick(
-                sample.get("main", [0, 0]),
-                f"{case_id}.{sample_key}[{sample_index}].main",
-                invert_y=True,
-            )
-            c_x, c_y = stick(
-                sample.get("c_stick", [0, 0]),
-                f"{case_id}.{sample_key}[{sample_index}].c_stick",
-                invert_y=True,
-            )
-            button_bits = buttons(
-                sample.get("buttons"),
-                f"{case_id}.{sample_key}[{sample_index}].buttons",
-            )
-            left_trigger = unsigned_16(
-                sample.get("left_trigger", 0),
-                f"{case_id}.{sample_key}[{sample_index}].left_trigger",
-            )
-            right_trigger = unsigned_16(
-                sample.get("right_trigger", 0),
-                f"{case_id}.{sample_key}[{sample_index}].right_trigger",
-            )
-            advance_ticks = unsigned_16(
-                sample.get("advance_ticks", 1),
-                f"{case_id}.{sample_key}[{sample_index}].advance_ticks",
-            )
-            if advance_ticks == 0:
+            raw_lanes = sample.get("lanes")
+            if lanes_per_sample == 1 and raw_lanes is None:
+                lanes = [sample]
+            elif (
+                isinstance(raw_lanes, list)
+                and len(raw_lanes) == lanes_per_sample
+                and all(isinstance(lane, dict) for lane in raw_lanes)
+            ):
+                lanes = raw_lanes
+            else:
                 raise ValueError(
-                    f"{case_id}.{sample_key}[{sample_index}].advance_ticks must be positive"
+                    f"{case_id}.{sample_key}[{sample_index}].lanes must contain "
+                    f"{lanes_per_sample} input objects"
                 )
-            rows.append(
-                "    { "
-                f"INT16_C({main_x}), INT16_C({main_y}), "
-                f"INT16_C({c_x}), INT16_C({c_y}), "
-                f"{button_bits}, UINT16_C({left_trigger}), "
-                f"UINT16_C({right_trigger}), UINT16_C({advance_ticks})"
-                " },"
-            )
-        rows.extend(["};", ""])
+            for lane_index, lane in enumerate(lanes):
+                lane_field = (
+                    f"{case_id}.{sample_key}[{sample_index}].lanes[{lane_index}]"
+                )
+                main_x, main_y = stick(
+                    lane.get("main", [0, 0]),
+                    f"{lane_field}.main",
+                    invert_y=True,
+                )
+                c_x, c_y = stick(
+                    lane.get("c_stick", [0, 0]),
+                    f"{lane_field}.c_stick",
+                    invert_y=True,
+                )
+                button_bits = buttons(
+                    lane.get("buttons"),
+                    f"{lane_field}.buttons",
+                )
+                left_trigger = unsigned_16(
+                    lane.get("left_trigger", 0),
+                    f"{lane_field}.left_trigger",
+                )
+                right_trigger = unsigned_16(
+                    lane.get("right_trigger", 0),
+                    f"{lane_field}.right_trigger",
+                )
+                advance_ticks = unsigned_16(
+                    lane.get("advance_ticks", 1),
+                    f"{lane_field}.advance_ticks",
+                )
+                if advance_ticks == 0:
+                    raise ValueError(
+                        f"{lane_field}.advance_ticks must be positive"
+                    )
+                rows.append(
+                    "    { "
+                    f"INT16_C({main_x}), INT16_C({main_y}), "
+                    f"INT16_C({c_x}), INT16_C({c_y}), "
+                    f"{button_bits}, UINT16_C({left_trigger}), "
+                    f"UINT16_C({right_trigger}), UINT16_C({advance_ticks})"
+                    " },"
+                )
+        rows.extend(
+            [
+                "};",
+                "_Static_assert(",
+                f"    sizeof({input_symbol}) / sizeof({input_symbol}[0]) ==",
+                f"        UINT16_C({samples_per_case * lanes_per_sample}),",
+                f'    "stored trace input lanes are incomplete for {case_id}");',
+                "",
+            ]
+        )
         case_rows.append(
             f'    {{ {json.dumps(case_id)}, {input_symbol}, '
             f'UINT8_C({initial_state_variant}), INT8_C({initial_facing}) }},'
@@ -237,6 +326,10 @@ def generate(manifest: dict[str, Any]) -> str:
             f"#define {macro_prefix}_CASE_COUNT UINT16_C({len(case_rows)})",
             f"#define {macro_prefix}_SAMPLES_PER_CASE "
             f"UINT8_C({samples_per_case})",
+            f"#define {macro_prefix}_LANES_PER_SAMPLE "
+            f"UINT8_C({lanes_per_sample})",
+            f"#define {macro_prefix}_SERIALIZED_FIELDS \\",
+            f"    ({serialized_fields})",
             f"#define {macro_prefix}_SOURCE_TRACE_SHA256 \\",
             f"    {json.dumps(source_digest)}",
             f"#define {macro_prefix}_PRODUCTION_TRACE_SHA256 \\",

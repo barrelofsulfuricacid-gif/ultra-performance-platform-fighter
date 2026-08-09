@@ -23,7 +23,8 @@
     "tools/ssbm_falcon_ground_knockback_coverage.json",
     "tools/ssbm_falcon_surface_response_coverage.json",
     "tools/ssbm_falcon_floor_response_coverage.json",
-    "tools/ssbm_falcon_prone_response_coverage.json"
+    "tools/ssbm_falcon_prone_response_coverage.json",
+    "tools/ssbm_falcon_player_push_coverage.json"
   ],
   "replay": {
     "executable": "pf_replay_corpus",
