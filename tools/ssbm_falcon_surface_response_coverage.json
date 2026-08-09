@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-surface-response",
+  "domain": "falcon-common-surface-response",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 719,
+    "warm_budget_seconds": 3.0,
+    "capture_plan": {
+      "surface_response_cases": [
+        {
+          "id": "right_pillar_wall_bounce",
+          "damage_percent": 200.0,
+          "target_start": [80.0, 40.0],
+          "opponent_start": [105.0, 40.0],
+          "approach_main": -32767,
+          "settle_ticks": 70,
+          "approach_ticks": 4,
+          "impact_x": null,
+          "impact_y": null,
+          "post_hit_ticks": 11,
+          "observe_ticks": 15,
+          "impact_main": [0, 0]
+        },
+        {
+          "id": "right_pillar_wall_tech",
+          "damage_percent": 200.0,
+          "target_start": [80.0, 40.0],
+          "opponent_start": [105.0, 40.0],
+          "approach_main": -32767,
+          "settle_ticks": 70,
+          "approach_ticks": 4,
+          "impact_x": null,
+          "impact_y": null,
+          "post_hit_ticks": 11,
+          "observe_ticks": 30,
+          "impact_main": [0, 0],
+          "trigger": "right"
+        },
+        {
+          "id": "right_pillar_wall_tech_jump",
+          "damage_percent": 200.0,
+          "target_start": [80.0, 40.0],
+          "opponent_start": [105.0, 40.0],
+          "approach_main": -32767,
+          "settle_ticks": 70,
+          "approach_ticks": 4,
+          "impact_x": null,
+          "impact_y": null,
+          "post_hit_ticks": 11,
+          "observe_ticks": 50,
+          "impact_main": [0, 0],
+          "trigger": "right",
+          "jump": true
+        },
+        {
+          "id": "cave_ceiling_bounce",
+          "damage_percent": 200.0,
+          "target_start": [-133.0, 40.0],
+          "opponent_start": [-100.0, 40.0],
+          "approach_main": -32767,
+          "settle_ticks": 70,
+          "approach_ticks": 8,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_waypoints": [
+            [-133.0, 40.0],
+            [-255.0, 40.0],
+            [-255.0, -80.0],
+            [-190.0, -80.0],
+            [-140.0, -80.0],
+            [-90.0, -50.0]
+          ],
+          "post_hit_ticks": 8,
+          "observe_ticks": 15,
+          "impact_main": [0, 0]
+        },
+        {
+          "id": "cave_ceiling_tech_drift",
+          "damage_percent": 200.0,
+          "target_start": [-133.0, 40.0],
+          "opponent_start": [-100.0, 40.0],
+          "approach_main": -32767,
+          "settle_ticks": 70,
+          "approach_ticks": 8,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_waypoints": [
+            [-133.0, 40.0],
+            [-255.0, 40.0],
+            [-255.0, -80.0],
+            [-190.0, -80.0],
+            [-140.0, -80.0],
+            [-90.0, -50.0]
+          ],
+          "trigger_waypoint_index": 4,
+          "post_hit_ticks": 8,
+          "observe_ticks": 35,
+          "impact_main": [32767, 0],
+          "trigger": "right"
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    { "id": "right-pillar-wall-bounce", "start_label": "surface_response_right_pillar_wall_bounce_setup" },
+    { "id": "right-pillar-wall-tech", "start_label": "surface_response_right_pillar_wall_tech_setup" },
+    { "id": "right-pillar-wall-tech-jump", "start_label": "surface_response_right_pillar_wall_tech_jump_setup" },
+    { "id": "cave-ceiling-bounce", "start_label": "surface_response_cave_ceiling_bounce_setup" },
+    { "id": "cave-ceiling-tech-drift", "start_label": "surface_response_cave_ceiling_tech_drift_setup" }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/m4_ssbm_falcon_surface_response_oracle.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_content.c",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_snapshot.c",
+      "src/sim/sim_ssbm_common_data.c",
+      "src/sim/sim_ssbm_common_data.h",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_common_data.py",
+      "tools/ssbm_falcon_surface_response_coverage.json",
+      "tools/verify_ssbm_falcon_surface_response.py",
+      "tools/verify_ssbm_falcon_surface_response.sh"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5",
+    "production_trace_sha256": "29c540178b25cd41dd1b5917ab8e23bc459b090793686cb06962a0aaaa3281a1",
+    "samples_per_case": 12,
+    "cases": [
+      { "id": "right_pillar_wall_bounce" },
+      { "id": "right_pillar_wall_tech" },
+      { "id": "right_pillar_wall_tech_jump" },
+      { "id": "cave_ceiling_bounce" },
+      {
+        "id": "cave_ceiling_tech_drift",
+        "inputs": [
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] },
+          { "main": [32767, 0] }
+        ]
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_surface_response",
+      "macro_prefix": "PF_M4_SSBM_FALCON_SURFACE_RESPONSE"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-surface-response"]
+    }
+  }
+}

@@ -706,27 +706,43 @@ surface; its sides and underside resolve body collision. Only a tumbling
 fighter can enter the surface-tech or missed-bounce actions:
 
 - An open tech window on a side impact enters `WALL_TECH`, faces away from the
-  wall, clears hitstun/tumble/window state, stalls for three ticks, and then
-  moves away at the data-defined 0.15 speed.
+  wall, clears hitstun/tumble/window state, stalls for five ticks, and then
+  moves away at Falcon's imported 0.5 source speed. Ordinary air friction
+  makes the first post-frame observation 0.49.
 - A fresh jump edge or held up input on that same successful impact selects
-  `WALL_TECH_JUMP`; after the same stall it launches 0.30 away and 0.50 upward.
+  `WALL_TECH_JUMP`; after the same stall it launches at Falcon's imported
+  1.4 horizontal and 3.1 vertical source speeds. The first post-frame
+  observation is 1.39/2.97 after friction and gravity.
 - An open tech window on the underside enters `CEILING_TECH`, clears
-  hitstun/tumble/window state, zeros vertical velocity, and applies horizontal
-  stick input up to the data-defined 0.16 speed.
+  tumble/window state and both velocity channels while retaining the source
+  hitstun timer. Ordinary air input applies before displayed frame 11; that
+  script boundary replaces horizontal speed with stick input times Falcon's
+  imported 2.0 passive-ceiling speed.
 - Missing the window enters `WALL_BOUNCE` or `CEILING_BOUNCE`. The impact
   reflects the surface-normal component, multiplies both motion components by
-  the data-defined 0.8 coefficient, and preserves tumble and remaining
-  hitstun.
+  the imported 0.8 coefficient, and preserves the reflection action, tumble,
+  and remaining hitstun while ordinary damage-flight physics continues.
 
-Wall tech actions last 24 ticks and ceiling tech lasts 30. All successful
-surface techs use the existing exact 20-tick recovery-invulnerability rule.
-These placeholder velocities and action durations are data, while the
-transition structure follows the wall/ceiling passive checks and reflected
-damage-flight path in the pinned Melee decomp:
-[wall passive](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_PassiveWall.c),
-[ceiling passive](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_PassiveCeil.c),
+Wall tech, wall-tech jump, and ceiling tech last 31, 45, and 26 ticks before
+an earlier physical landing may interrupt them. Wall techs are invulnerable
+for 14 ticks; ceiling tech is invulnerable through displayed frame 10. Both
+reflection actions use the imported 15-frame invulnerability and three-frame
+re-collision lock. The 1.0 source collision-speed threshold is converted
+independently into the project's X/Y units. These fields come from the complete
+owner `PlCo.dat` object and Falcon submotion/script catalogs. The transition
+structure follows the pinned decomp's
+[wall passive](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/chara/ftCommon/ftCo_PassiveWall.c),
+[ceiling passive](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/chara/ftCommon/ftCo_PassiveCeil.c),
 and
-[flight reflection](https://github.com/r-burns/doldecomp-melee/blob/96dadb63c038c81e3a792e04d2b20fe91ce5a983/src/melee/ft/chara/ftCommon/ftCo_FlyReflect.c).
+[flight reflection](https://github.com/doldecomp/melee/blob/9509dc04406fb2028bfab01243841ba4787c0fb7/src/melee/ft/chara/ftCommon/ftCo_FlyReflect.c).
+
+A five-case headless Hyrule oracle covers wall tech, wall-tech jump, wall
+reflection, ceiling tech with held drift, and ceiling reflection. Its 719-row
+capture contains 145 focused response rows. The simulator comparator checks
+action/timer/state, invulnerability, and tech velocity fields within 0.0015
+source units; absolute position is explicitly excluded because the source
+route uses Hyrule geometry while the compact production adapter uses an
+equivalent synthetic collision fixture.
 
 ## Upper pass-through stage deck
 

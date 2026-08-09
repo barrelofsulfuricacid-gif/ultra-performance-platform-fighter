@@ -4091,6 +4091,45 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   branches, and wider ledge/tech/damage behavior remain in the exhaustive
   Falcon equivalence obligation.
 
+## 2026-08-08 Falcon wall and ceiling response
+
+- A prior-art sweep pinned `ftCo_PassiveWall.c`, `ftCo_PassiveCeil.c`,
+  `ftCo_FlyReflect.c`, the common collision callbacks, Falcon's generated
+  submotion/scripts, and the complete owner `PlCo.dat` before implementation.
+  Production now imports the 1.0 collision threshold, 0.8 reflection scale,
+  15-frame reflection invulnerability, three-frame re-collision lock,
+  five-frame wall freeze, and 14-frame wall-tech invulnerability.
+- A reusable runtime `MapCollData` reader validates Hyrule's 98 vertices and
+  91 line records. Five checkpoint-isolated physical routes select line 70's
+  right-facing pillar wall and line 47's cave ceiling, covering wall bounce,
+  wall tech, wall-tech jump, ceiling bounce, and ceiling tech with held drift.
+  The capture has 719 total rows and 145 focused response rows under semantic
+  digest `5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5`.
+  Three independent captures agree after explicitly normalizing only the
+  directional damage-flight animation on the final pre-contact wall row.
+- Production preserves reflection actions through hitstun, distinguishes wall
+  hitstun clearing from ceiling hitstun preservation, and consumes Falcon's
+  31/45/26 wall/wall-jump/ceiling durations. The comparator matches the
+  five-frame wall freeze, 0.49/-0.13 wall release, 1.39/2.97 wall-jump release,
+  0.06-per-tick ceiling drift, frame-11 1.99 release, and invulnerability
+  boundaries within 0.0015 source units. Absolute position is excluded because
+  source Hyrule and the compact production fixture are separate geometry
+  domains.
+- The new generic numeric domain contributes five cases and 60 stored samples.
+  All four registered domains now run 32 cases plus replay in 0.404 seconds on
+  WSL and 0.401 seconds on Windows. The accepted live pack measures 2.759
+  seconds warm and 5.493 seconds end to end.
+- Windows passes 21/21, WSL Release 23/23, and WSL ASan/UBSan 16/16. Browser
+  adapter and collision-overlay gates pass. The intentional content-identity
+  change yields verifier soak digest `453bfa2c1893f00d` identically across
+  three Windows and three WSL runs.
+- The `ssbm-character-importer` skill now records runtime stage-collision
+  discovery, physical waypoint relocation, pre-contact trigger timing,
+  passive-versus-reflection lifecycle separation, and semantic digest rules.
+  It validates successfully. M4 remains unfinished; floor response, slopes,
+  broader pushbox/collision combinations, remaining Falcon audit rows, and the
+  native Battlefield frontend remain.
+
 ## 2026-08-08 Falcon common open-air damage response
 
 - The prior-art/source sweep mapped pinned doldecomp revision

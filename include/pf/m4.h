@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(71)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(64)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(73)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(66)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(4)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -517,6 +517,8 @@ typedef struct pf_m4_fighter_data
     int32_t wall_jump_speed_x_q16;
     int32_t wall_jump_speed_y_q16;
     int32_t ceiling_tech_speed_q16;
+    int32_t surface_collision_threshold_x_q16;
+    int32_t surface_collision_threshold_y_q16;
     int32_t surface_bounce_multiplier_q16;
     int32_t getup_roll_speed_q16;
     int32_t forward_roll_speed_q16;
@@ -661,9 +663,14 @@ typedef struct pf_m4_fighter_data
     uint16_t tech_roll_ticks;
     uint16_t tech_invulnerability_ticks;
     uint16_t wall_tech_stall_ticks;
+    uint16_t wall_tech_invulnerability_ticks;
     uint16_t wall_tech_ticks;
+    uint16_t wall_tech_jump_ticks;
+    uint16_t surface_bounce_invulnerability_ticks;
+    uint16_t surface_bounce_collision_lockout_ticks;
     uint16_t wall_jump_ticks;
     uint16_t wall_jump_invulnerability_ticks;
+    uint16_t ceiling_tech_control_tick;
     uint16_t ceiling_tech_ticks;
     uint16_t knockdown_ticks;
     uint16_t down_wait_ticks;

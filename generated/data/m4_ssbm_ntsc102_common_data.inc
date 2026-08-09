@@ -123,3 +123,14 @@ pf_m4_ssbm_damage_response_attribute_data = {
     UINT16_C(4),
     UINT16_C(0),
 };
+
+static const pf_m4_ssbm_surface_response_attributes
+pf_m4_ssbm_surface_response_attribute_data = {
+    INT32_C(6839),
+    INT32_C(11627),
+    INT32_C(52429),
+    UINT16_C(5),
+    UINT16_C(14),
+    UINT16_C(15),
+    UINT16_C(3),
+};

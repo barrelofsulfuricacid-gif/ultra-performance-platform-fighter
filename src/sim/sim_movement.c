@@ -2606,10 +2606,19 @@ static int pf_m4_action_is_recovery_invulnerable(
         return action_ticks <
                fighter->tech_invulnerability_ticks;
     }
-    if (pf_m4_action_is_surface_tech(action_state))
+    if (pf_m4_action_is_wall_tech(action_state))
     {
         return action_ticks <
-               fighter->tech_invulnerability_ticks;
+               fighter->wall_tech_invulnerability_ticks;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_CEILING_TECH)
+    {
+        return action_ticks < fighter->ceiling_tech_control_tick;
+    }
+    if (pf_m4_action_is_surface_bounce(action_state))
+    {
+        return action_ticks <
+               fighter->surface_bounce_invulnerability_ticks;
     }
     if (action_state ==
         (uint8_t)PF_M4_ACTION_GETUP_NEUTRAL)
@@ -3612,7 +3621,6 @@ static void pf_m4_enter_wall_impact(
 
 static void pf_m4_enter_ceiling_impact(
     const pf_m4_fighter_data *fighter,
-    int16_t horizontal_input,
     pf_sim_scratch *scratch,
     uint32_t player_index,
     int32_t *velocity_x,
@@ -3625,15 +3633,12 @@ static void pf_m4_enter_ceiling_impact(
     *fast_fall = UINT8_C(0);
     if (scratch->tech_window_ticks[player_index] > UINT16_C(0))
     {
-        *velocity_x = pf_m4_scale_axis_q16(
-            horizontal_input,
-            fighter->ceiling_tech_speed_q16);
+        *velocity_x = INT32_C(0);
         *velocity_y = INT32_C(0);
         scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
         scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
         scratch->ground_knockback_velocity_q16[player_index] = INT32_C(0);
         *action_state = (uint8_t)PF_M4_ACTION_CEILING_TECH;
-        scratch->hitstun_ticks[player_index] = UINT16_C(0);
         scratch->tumble[player_index] = UINT8_C(0);
         scratch->tech_window_ticks[player_index] = UINT16_C(0);
         scratch->tech_direction[player_index] = INT8_C(0);
@@ -8132,6 +8137,12 @@ pf_status pf_m4_step_player(
         ++action_ticks;
         if (pf_m4_action_is_wall_tech(action_state))
         {
+            const uint16_t action_duration =
+                action_state ==
+                        (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP
+                    ? fighter->wall_tech_jump_ticks
+                    : fighter->wall_tech_ticks;
+
             if (action_ticks < fighter->wall_tech_stall_ticks)
             {
                 velocity_x = INT32_C(0);
@@ -8158,17 +8169,39 @@ pf_status pf_m4_step_player(
                     velocity_y = INT32_C(0);
                 }
             }
-            if (action_ticks >= fighter->wall_tech_ticks)
+            if (action_ticks >= fighter->wall_tech_stall_ticks)
+            {
+                velocity_x = pf_m4_approach(
+                    velocity_x,
+                    INT32_C(0),
+                    fighter->air_friction_q16);
+            }
+            if (action_ticks >= action_duration)
             {
                 action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
                 action_ticks = UINT16_C(0);
                 scratch->tech_direction[player_index] = INT8_C(0);
             }
         }
-        else if (action_ticks >= fighter->ceiling_tech_ticks)
+        else
         {
-            action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
-            action_ticks = UINT16_C(0);
+            if (action_ticks == fighter->ceiling_tech_control_tick)
+            {
+                velocity_x = pf_m4_scale_axis_q16(
+                    input->main_stick_x,
+                    fighter->ceiling_tech_speed_q16);
+            }
+            velocity_x = pf_m4_apply_air_input(
+                fighter,
+                velocity_x,
+                input->main_stick_x,
+                fighter->air_speed_q16);
+            if (action_ticks >= fighter->ceiling_tech_ticks)
+            {
+                action_state = (uint8_t)PF_M4_ACTION_AIRBORNE;
+                action_ticks = UINT16_C(0);
+                scratch->hitstun_ticks[player_index] = UINT16_C(0);
+            }
         }
     }
     else if (!ledge_motion_handled &&
@@ -8178,6 +8211,10 @@ pf_status pf_m4_step_player(
         if (hitstun_locked)
         {
             if (action_state == (uint8_t)PF_M4_ACTION_RESET_BOUND)
+            {
+                ++action_ticks;
+            }
+            else if (pf_m4_action_is_surface_bounce(action_state))
             {
                 ++action_ticks;
             }
@@ -9164,7 +9201,14 @@ pf_status pf_m4_step_player(
                     UINT8_C(0);
             }
             else if (grounded == UINT8_C(0) &&
-                scratch->tumble[player_index] != UINT8_C(0))
+                scratch->tumble[player_index] != UINT8_C(0) &&
+                (!pf_m4_action_is_surface_bounce(action_state) ||
+                 action_ticks >=
+                     fighter->surface_bounce_collision_lockout_ticks) &&
+                (scratch->knockback_velocity_x_q16[player_index] >
+                     fighter->surface_collision_threshold_x_q16 ||
+                 scratch->knockback_velocity_x_q16[player_index] <
+                     -fighter->surface_collision_threshold_x_q16))
             {
                 const int up_held =
                     input->main_stick_y <=
@@ -9605,16 +9649,26 @@ pf_status pf_m4_step_player(
                 stage->solid_bottom_q16 + fighter->half_height_q16;
             if (scratch->tumble[player_index] != UINT8_C(0))
             {
-                pf_m4_enter_ceiling_impact(
-                    fighter,
-                    input->main_stick_x,
-                    scratch,
-                    player_index,
-                    &velocity_x,
-                    &velocity_y,
-                    &action_ticks,
-                    &action_state,
-                    &fast_fall);
+                if ((!pf_m4_action_is_surface_bounce(action_state) ||
+                     action_ticks >=
+                         fighter->surface_bounce_collision_lockout_ticks) &&
+                    scratch->knockback_velocity_y_q16[player_index] <
+                    -fighter->surface_collision_threshold_y_q16)
+                {
+                    pf_m4_enter_ceiling_impact(
+                        fighter,
+                        scratch,
+                        player_index,
+                        &velocity_x,
+                        &velocity_y,
+                        &action_ticks,
+                        &action_state,
+                        &fast_fall);
+                }
+                else
+                {
+                    velocity_y = INT32_C(0);
+                }
             }
             else
             {
@@ -9640,7 +9694,8 @@ pf_status pf_m4_step_player(
             action_ticks = UINT16_C(0);
         }
     }
-    else if (hitstun_locked)
+    else if (hitstun_locked &&
+        !pf_m4_action_is_surface_tech(action_state))
     {
         const uint16_t ground_damage_submotion =
             pf_m4_ground_damage_submotion(action_state);

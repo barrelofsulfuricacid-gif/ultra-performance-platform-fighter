@@ -19,6 +19,7 @@
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -9279,6 +9280,19 @@ static int make_surface_tech_content(
         INT32_C(14) * PF_Q16_ONE;
     out_content->stage.solid_bottom_q16 =
         INT32_C(29) * PF_Q16_ONE;
+    if (ceiling_fixture != 0)
+    {
+        out_content->stage.solid_left_q16 = INT32_C(0);
+        out_content->stage.solid_right_q16 = INT32_C(20) * PF_Q16_ONE;
+        out_content->stage.floor_y_q16 = INT32_C(55) * PF_Q16_ONE;
+        out_content->stage.blast_bottom_q16 = INT32_C(63) * PF_Q16_ONE;
+        /* The live route relocates an already-launched fighter through
+         * Hyrule's cave. Give this compact fixture enough launch height to
+         * reach its equivalent ceiling while retaining room for the
+         * post-reflection trace. */
+        out_content->fighter.strong_base_knockback_y_q16 =
+            INT32_C(2) * PF_Q16_ONE;
+    }
     return expect_status(
         pf_m4_make_content_view(out_content, out_view),
         PF_STATUS_OK,
@@ -9363,6 +9377,20 @@ static int drive_strong_to_surface(
             return 1;
         }
     }
+    (void)fprintf(
+        stderr,
+        "m4-surface-route=detail expected_action=%u action=%u tick=%u"
+        " hitstun=%u tumble=%u tech_window=%u tech_lockout=%u"
+        " x=%" PRId32 " y=%" PRId32 "\n",
+        (unsigned int)expected_action,
+        (unsigned int)inspection.players[1].action_state,
+        (unsigned int)inspection.players[1].action_ticks,
+        (unsigned int)inspection.players[1].hitstun_ticks,
+        (unsigned int)inspection.players[1].tumble,
+        (unsigned int)inspection.players[1].tech_window_ticks,
+        (unsigned int)inspection.players[1].tech_lockout_ticks,
+        inspection.players[1].position_x_q16,
+        inspection.players[1].position_y_q16);
     return fail("surface-tech-impact-not-observed");
 }
 
@@ -9534,19 +9562,58 @@ static int run_surface_tech_test(
     if (!drive_strong_to_surface(
             ceiling,
             1,
-            INT16_C(32767),
+            INT16_C(0),
             INT16_C(0),
             UINT64_C(0),
             (uint8_t)PF_M4_ACTION_CEILING_TECH,
             &inspection) ||
         inspection.players[1].tumble != UINT8_C(0) ||
-        inspection.players[1].hitstun_ticks != UINT16_C(0) ||
+        inspection.players[1].hitstun_ticks == UINT16_C(0) ||
         inspection.players[1].velocity_y_q16 != INT32_C(0) ||
-        inspection.players[1].velocity_x_q16 !=
-            ceiling_content->fighter.ceiling_tech_speed_q16 ||
+        inspection.players[1].velocity_x_q16 != INT32_C(0) ||
         inspection.players[1].invulnerable != UINT8_C(1))
     {
         return fail("ceiling-tech-entry");
+    }
+    for (tick = UINT32_C(1);
+         tick <=
+             (uint32_t)ceiling_content->fighter.ceiling_tech_control_tick;
+         ++tick)
+    {
+        if (!step_reaction_duel(
+                ceiling,
+                INT16_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                UINT16_C(0),
+                &inspection))
+        {
+            return fail("ceiling-tech-control-step");
+        }
+    }
+    if (inspection.players[1].velocity_x_q16 !=
+            ceiling_content->fighter.ceiling_tech_speed_q16 -
+                ceiling_content->fighter.air_friction_q16 ||
+        inspection.players[1].hitstun_ticks == UINT16_C(0) ||
+        inspection.players[1].invulnerable != UINT8_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ceiling-tech-control actual_vx=%" PRId32
+            " expected_vx=%" PRId32 " hitstun=%u invulnerable=%u"
+            " action=%u tick=%u\n",
+            inspection.players[1].velocity_x_q16,
+            ceiling_content->fighter.ceiling_tech_speed_q16 -
+                ceiling_content->fighter.air_friction_q16,
+            (unsigned int)inspection.players[1].hitstun_ticks,
+            (unsigned int)inspection.players[1].invulnerable,
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].action_ticks);
+        return fail("ceiling-tech-control-frame");
     }
 
     if (!drive_strong_to_surface(
@@ -15045,6 +15112,179 @@ static int run_ssbm_ground_knockback_observation_oracle(void)
             PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT *
             PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE),
         PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
+static uint8_t run_ssbm_surface_response_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    uint8_t expected_action;
+    int ceiling_fixture = 0;
+    int arm_tech = 0;
+    int16_t impact_x = INT16_C(0);
+    int16_t impact_y = INT16_C(0);
+    uint8_t sample_index;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL ||
+        capacity < PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE)
+    {
+        return UINT8_C(0);
+    }
+    if (strcmp(stored_case->id, "right_pillar_wall_bounce") == 0)
+    {
+        expected_action = (uint8_t)PF_M4_ACTION_WALL_BOUNCE;
+    }
+    else if (strcmp(stored_case->id, "right_pillar_wall_tech") == 0)
+    {
+        expected_action = (uint8_t)PF_M4_ACTION_WALL_TECH;
+        arm_tech = 1;
+    }
+    else if (strcmp(stored_case->id, "right_pillar_wall_tech_jump") == 0)
+    {
+        expected_action = (uint8_t)PF_M4_ACTION_WALL_TECH_JUMP;
+        impact_y = INT16_C(-32767);
+        arm_tech = 1;
+    }
+    else if (strcmp(stored_case->id, "cave_ceiling_bounce") == 0)
+    {
+        expected_action = (uint8_t)PF_M4_ACTION_CEILING_BOUNCE;
+        ceiling_fixture = 1;
+    }
+    else if (strcmp(stored_case->id, "cave_ceiling_tech_drift") == 0)
+    {
+        expected_action = (uint8_t)PF_M4_ACTION_CEILING_TECH;
+        ceiling_fixture = 1;
+        arm_tech = 1;
+    }
+    else
+    {
+        return UINT8_C(0);
+    }
+    if (!make_surface_tech_content(ceiling_fixture, &content, &view) ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !drive_strong_to_surface(
+            sim,
+            arm_tech,
+            impact_x,
+            impact_y,
+            UINT64_C(0),
+            expected_action,
+            &inspection))
+    {
+        return UINT8_C(0);
+    }
+
+    for (sample_index = UINT8_C(0);
+         sample_index <
+             PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE;
+         ++sample_index)
+    {
+        pf_ssbm_stored_trace_sample *sample =
+            &out_samples[sample_index];
+
+        if (sample_index != UINT8_C(0))
+        {
+            const pf_ssbm_stored_trace_input *input =
+                &stored_case->inputs[sample_index];
+
+            if (!step_ssbm_damage_duel(
+                    sim,
+                    input->main_stick_x,
+                    input->main_stick_y,
+                    input->secondary_stick_x,
+                    input->secondary_stick_y,
+                    UINT64_C(0),
+                    &inspection))
+            {
+                return UINT8_C(0);
+            }
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-surface-response-observation case=%s frame=%u"
+                " action=%u action_tick=%u grounded=%u tumble=%u"
+                " hitstun=%u invulnerable=%u self_vx=%" PRId32
+                " self_vy=%" PRId32 " kb_vx=%" PRId32
+                " kb_vy=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitstun_ticks,
+                (unsigned int)inspection.players[1].invulnerable,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16);
+        }
+    }
+    return PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE;
+}
+
+static int run_ssbm_surface_response_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-surface-response",
+        pf_m4_ssbm_falcon_surface_response_cases,
+        PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT,
+        PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_surface_response_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass "
+        "domain=falcon-common-surface-response poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        (unsigned int)PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT,
+        (unsigned int)(
+            PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT *
+            PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE),
+        PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
 }
@@ -25191,6 +25431,11 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-ground-knockback") == 0)
         {
             return run_ssbm_ground_knockback_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-surface-response") == 0)
+        {
+            return run_ssbm_surface_response_observation_oracle() ? 0 : 1;
         }
         (void)fprintf(
             stderr,

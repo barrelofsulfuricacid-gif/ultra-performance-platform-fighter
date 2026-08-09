@@ -32,6 +32,17 @@ typedef struct pf_m4_ssbm_damage_response_attributes
     uint16_t reserved;
 } pf_m4_ssbm_damage_response_attributes;
 
+typedef struct pf_m4_ssbm_surface_response_attributes
+{
+    int32_t collision_threshold_x_q16;
+    int32_t collision_threshold_y_q16;
+    int32_t bounce_multiplier_q16;
+    uint16_t wall_tech_stall_ticks;
+    uint16_t wall_tech_invulnerability_ticks;
+    uint16_t bounce_invulnerability_ticks;
+    uint16_t bounce_collision_lockout_ticks;
+} pf_m4_ssbm_surface_response_attributes;
+
 const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);
 
 const uint32_t *pf_m4_ssbm_common_reference_raw_words(
@@ -39,5 +50,8 @@ const uint32_t *pf_m4_ssbm_common_reference_raw_words(
 
 const pf_m4_ssbm_damage_response_attributes *
 pf_m4_ssbm_common_reference_damage_response(void);
+
+const pf_m4_ssbm_surface_response_attributes *
+pf_m4_ssbm_common_reference_surface_response(void);
 
 #endif

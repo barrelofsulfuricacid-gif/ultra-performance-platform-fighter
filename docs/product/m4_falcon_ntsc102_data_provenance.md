@@ -774,6 +774,26 @@ second authored constants table.
 | ASDI distance, `0x4BC` | 3.0 | independently scaled X/Y: 20,516 / 34,882 Q16 |
 | shield SDI multiplier, `0x4C0` | 0.66 | 43,254 Q16 |
 
+## Imported common surface-response values
+
+| Source field / offset | NTSC 1.02 raw | Simulation mapping |
+|---|---:|---:|
+| wall/ceiling reflection threshold, `0x1B0` | 1.0 | independently scaled X/Y: 6,839 / 11,627 Q16 |
+| reflection invulnerability, `0x1B8` | 15 | 15 ticks |
+| reflection multiplier, `0x1BC` | 0.8 | 52,429 Q16 |
+| reflection re-collision lock, `0x1C0` | 3.0 | 3 ticks |
+| passive-wall freeze, `0x760` | 5 | 5 ticks |
+| passive-wall invulnerability, `0x764` | 14 | 14 ticks |
+
+Falcon's generated submotion catalog supplies 26, 40, and 26 animation ticks
+for `PassiveWall`, `PassiveWallJump`, and `PassiveCeil`. Adding the common
+five-tick passive-wall freeze yields production durations 31/45 for the two
+wall actions; ceiling remains 26. The ceiling body-state script changes at
+displayed frame 11, which is the imported control-release and invulnerability
+boundary. A five-case Hyrule capture pins these action, velocity, hitstun, and
+invulnerability observations under digest
+`5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5`.
+
 DI and knockback decay operate after converting the project's anisotropically
 scaled velocity channels back to Melee units. The runtime keeps ordinary self
 velocity and damage knockback velocity separate, applies physics first,

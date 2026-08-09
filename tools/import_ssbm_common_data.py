@@ -49,6 +49,18 @@ def generate(raw: bytes) -> str:
         raise ValueError("invalid common SDI stick threshold")
     if sdi_window <= 0 or sdi_window > 0xFFFF:
         raise ValueError("common SDI window does not fit uint16_t")
+    wall_tech_stall_ticks = i32(0x760)
+    wall_tech_invulnerability_ticks = i32(0x764)
+    bounce_invulnerability_ticks = i32(0x1B8)
+    bounce_collision_lockout = f32(0x1C0)
+    if (
+        not 0 < wall_tech_stall_ticks <= 0xFFFF
+        or not 0 < wall_tech_invulnerability_ticks <= 0xFFFF
+        or not 0 < bounce_invulnerability_ticks <= 0xFFFF
+        or not bounce_collision_lockout.is_integer()
+        or not 0 < bounce_collision_lockout <= 0xFFFF
+    ):
+        raise ValueError("common surface-response timing does not fit uint16_t")
 
     attributes = {
         "stick_tilt_threshold": round(tilt_x * 32767.0),
@@ -84,6 +96,15 @@ def generate(raw: bytes) -> str:
         "asdi_distance_x_q16": round(f32(0x4BC) * MELEE_X_TO_SIM_Q16),
         "asdi_distance_y_q16": round(f32(0x4BC) * MELEE_Y_TO_SIM_Q16),
         "shield_sdi_scale_q16": q16(f32(0x4C0)),
+    }
+    surface_attributes = {
+        "collision_threshold_x_q16": round(f32(0x1B0) * MELEE_X_TO_SIM_Q16),
+        "collision_threshold_y_q16": round(f32(0x1B0) * MELEE_Y_TO_SIM_Q16),
+        "bounce_multiplier_q16": q16(f32(0x1BC)),
+        "wall_tech_stall_ticks": wall_tech_stall_ticks,
+        "wall_tech_invulnerability_ticks": wall_tech_invulnerability_ticks,
+        "bounce_invulnerability_ticks": bounce_invulnerability_ticks,
+        "bounce_collision_lockout_ticks": int(bounce_collision_lockout),
     }
 
     lines = [
@@ -141,6 +162,17 @@ def generate(raw: bytes) -> str:
             "    UINT16_C(0),",
             "};",
             "",
+            "static const pf_m4_ssbm_surface_response_attributes",
+            "pf_m4_ssbm_surface_response_attribute_data = {",
+            f"    INT32_C({surface_attributes['collision_threshold_x_q16']}),",
+            f"    INT32_C({surface_attributes['collision_threshold_y_q16']}),",
+            f"    INT32_C({surface_attributes['bounce_multiplier_q16']}),",
+            f"    UINT16_C({surface_attributes['wall_tech_stall_ticks']}),",
+            f"    UINT16_C({surface_attributes['wall_tech_invulnerability_ticks']}),",
+            f"    UINT16_C({surface_attributes['bounce_invulnerability_ticks']}),",
+            f"    UINT16_C({surface_attributes['bounce_collision_lockout_ticks']}),",
+            "};",
+            "",
         ]
     )
     return "\n".join(lines)
@@ -158,7 +190,10 @@ def main() -> int:
         raise SystemExit(f"unexpected PlCo.dat SHA-256: {digest}")
     generated = generate(raw)
     if args.check:
-        if not args.output.is_file() or args.output.read_text(encoding="utf-8") != generated:
+        if (
+            not args.output.is_file()
+            or args.output.read_text(encoding="utf-8") != generated
+        ):
             raise SystemExit(f"stale generated common data: {args.output}")
     else:
         args.output.parent.mkdir(parents=True, exist_ok=True)

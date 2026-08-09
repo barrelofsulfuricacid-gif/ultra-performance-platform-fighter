@@ -31,3 +31,9 @@ pf_m4_ssbm_common_reference_damage_response(void)
 {
     return &pf_m4_ssbm_damage_response_attribute_data;
 }
+
+const pf_m4_ssbm_surface_response_attributes *
+pf_m4_ssbm_common_reference_surface_response(void)
+{
+    return &pf_m4_ssbm_surface_response_attribute_data;
+}

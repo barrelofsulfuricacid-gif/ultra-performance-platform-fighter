@@ -117,6 +117,7 @@ def input_trace(
         fighter_x_from_item_offset: float | None = None,
         fighter_y_override: float | None = None,
         fighter_facing_override: float | None = None,
+        fighter_damage_override: float | None = None,
         opponent_x_override: float | None = None,
         opponent_x_from_item_offset: float | None = None,
         opponent_y_override: float | None = None,
@@ -146,6 +147,7 @@ def input_trace(
             "fighter_x_from_item_offset": fighter_x_from_item_offset,
             "fighter_y_override": fighter_y_override,
             "fighter_facing_override": fighter_facing_override,
+            "fighter_damage_override": fighter_damage_override,
             "opponent_x_override": opponent_x_override,
             "opponent_x_from_item_offset": opponent_x_from_item_offset,
             "opponent_y_override": opponent_y_override,
@@ -1857,6 +1859,312 @@ def input_trace(
         if checkpoint_isolated:
             if checkpoint_capture_plan is None:
                 raise ValueError("checkpoint capture plan is required")
+
+            def controller_axis(source_axis: object) -> float:
+                if (
+                    not isinstance(source_axis, int)
+                    or isinstance(source_axis, bool)
+                    or not -32767 <= source_axis <= 32767
+                ):
+                    raise ValueError("damage response stick axis is invalid")
+                return (float(source_axis) / 32767.0 + 1.0) * 0.5
+
+            raw_surface_cases = checkpoint_capture_plan.get(
+                "surface_response_cases"
+            )
+            if raw_surface_cases is not None:
+                if not isinstance(raw_surface_cases, list) or not raw_surface_cases:
+                    raise ValueError("surface response cases are invalid")
+                case_ids: set[str] = set()
+                for raw_case in raw_surface_cases:
+                    if not isinstance(raw_case, dict):
+                        raise ValueError(
+                            "surface response case must be an object"
+                        )
+                    case_id = raw_case.get("id")
+                    damage = raw_case.get("damage_percent")
+                    impact_x = raw_case.get("impact_x")
+                    impact_y = raw_case.get("impact_y")
+                    impact_waypoints = raw_case.get("impact_waypoints", [])
+                    impact_waypoint_main = raw_case.get(
+                        "impact_waypoint_main", [0, 0]
+                    )
+                    trigger_waypoint_index = raw_case.get(
+                        "trigger_waypoint_index"
+                    )
+                    target_start = raw_case.get("target_start")
+                    opponent_start = raw_case.get("opponent_start")
+                    approach_main = raw_case.get("approach_main")
+                    setup_settle_ticks = raw_case.get("setup_settle_ticks", 5)
+                    setup_jump_ticks = raw_case.get("setup_jump_ticks", 4)
+                    setup_air_wait_ticks = raw_case.get("setup_air_wait_ticks", 12)
+                    placement_ticks = raw_case.get("placement_ticks", 3)
+                    settle_ticks = raw_case.get("settle_ticks", 30)
+                    approach_ticks = raw_case.get("approach_ticks", 4)
+                    post_hit_ticks = raw_case.get("post_hit_ticks", 8)
+                    observe_ticks = raw_case.get("observe_ticks", 60)
+                    main = raw_case.get("impact_main", [0, 0])
+                    pre_impact_y = raw_case.get("pre_impact_y")
+                    impact_input_delay_ticks = raw_case.get(
+                        "impact_input_delay_ticks", 0
+                    )
+                    trigger = raw_case.get("trigger", "none")
+                    jump = raw_case.get("jump", False)
+                    if (
+                        not isinstance(case_id, str)
+                        or not case_id
+                        or case_id in case_ids
+                        or not isinstance(damage, (int, float))
+                        or isinstance(damage, bool)
+                        or not 0.0 <= float(damage) <= 999.0
+                        or (
+                            (impact_x is None) != (impact_y is None)
+                            or (
+                                impact_x is not None
+                                and (
+                                    not isinstance(impact_x, (int, float))
+                                    or isinstance(impact_x, bool)
+                                    or not isinstance(impact_y, (int, float))
+                                    or isinstance(impact_y, bool)
+                                )
+                            )
+                        )
+                        or not isinstance(impact_waypoints, list)
+                        or any(
+                            not isinstance(point, list)
+                            or len(point) != 2
+                            or any(
+                                not isinstance(value, (int, float))
+                                or isinstance(value, bool)
+                                for value in point
+                            )
+                            for point in impact_waypoints
+                        )
+                        or len(impact_waypoints) > 8
+                        or not isinstance(impact_waypoint_main, list)
+                        or len(impact_waypoint_main) != 2
+                        or (
+                            impact_x is not None and bool(impact_waypoints)
+                        )
+                        or (
+                            trigger_waypoint_index is not None
+                            and (
+                                not isinstance(trigger_waypoint_index, int)
+                                or isinstance(trigger_waypoint_index, bool)
+                                or not impact_waypoints
+                                or not 0
+                                <= trigger_waypoint_index
+                                < len(impact_waypoints)
+                                or trigger == "none"
+                            )
+                        )
+                        or not isinstance(target_start, list)
+                        or len(target_start) != 2
+                        or not all(
+                            isinstance(value, (int, float))
+                            and not isinstance(value, bool)
+                            for value in target_start
+                        )
+                        or not isinstance(opponent_start, list)
+                        or len(opponent_start) != 2
+                        or not all(
+                            isinstance(value, (int, float))
+                            and not isinstance(value, bool)
+                            for value in opponent_start
+                        )
+                        or not isinstance(approach_main, int)
+                        or isinstance(approach_main, bool)
+                        or not -32767 <= approach_main <= 32767
+                        or approach_main == 0
+                        or not isinstance(setup_settle_ticks, int)
+                        or isinstance(setup_settle_ticks, bool)
+                        or not 1 <= setup_settle_ticks <= 30
+                        or not isinstance(setup_jump_ticks, int)
+                        or isinstance(setup_jump_ticks, bool)
+                        or not 1 <= setup_jump_ticks <= 8
+                        or not isinstance(setup_air_wait_ticks, int)
+                        or isinstance(setup_air_wait_ticks, bool)
+                        or not 1 <= setup_air_wait_ticks <= 60
+                        or not isinstance(placement_ticks, int)
+                        or isinstance(placement_ticks, bool)
+                        or not 1 <= placement_ticks <= 8
+                        or not isinstance(settle_ticks, int)
+                        or isinstance(settle_ticks, bool)
+                        or not 1 <= settle_ticks <= 120
+                        or not isinstance(approach_ticks, int)
+                        or isinstance(approach_ticks, bool)
+                        or not 1 <= approach_ticks <= 30
+                        or not isinstance(post_hit_ticks, int)
+                        or isinstance(post_hit_ticks, bool)
+                        or not 1 <= post_hit_ticks <= 30
+                        or not isinstance(observe_ticks, int)
+                        or isinstance(observe_ticks, bool)
+                        or not 1 <= observe_ticks <= 180
+                        or not isinstance(main, list)
+                        or len(main) != 2
+                        or (
+                            pre_impact_y is not None
+                            and (
+                                not isinstance(pre_impact_y, (int, float))
+                                or isinstance(pre_impact_y, bool)
+                            )
+                        )
+                        or not isinstance(impact_input_delay_ticks, int)
+                        or isinstance(impact_input_delay_ticks, bool)
+                        or not 0 <= impact_input_delay_ticks <= 10
+                        or trigger not in {"none", "left", "right"}
+                        or not isinstance(jump, bool)
+                    ):
+                        raise ValueError(
+                            f"invalid surface response case {case_id!r}"
+                        )
+                    main_x = controller_axis(main[0])
+                    main_y = controller_axis(main[1])
+                    waypoint_main_x = controller_axis(
+                        impact_waypoint_main[0]
+                    )
+                    waypoint_main_y = controller_axis(
+                        impact_waypoint_main[1]
+                    )
+                    approach_x = controller_axis(approach_main)
+                    case_ids.add(case_id)
+                    prefix = f"surface_response_{case_id}"
+                    setup = command(
+                        f"{prefix}_setup",
+                        fighter_damage_override=float(damage),
+                    )
+                    trace.append({**setup, "restore_before": True})
+                    repeat(f"{prefix}_setup_settle", setup_settle_ticks)
+                    repeat(
+                        f"{prefix}_setup_jump",
+                        setup_jump_ticks,
+                        jump=True,
+                        opponent_jump=True,
+                    )
+                    repeat(f"{prefix}_setup_air_wait", setup_air_wait_ticks)
+                    place = command(
+                        f"{prefix}_place",
+                        fighter_x_override=float(target_start[0]),
+                        fighter_y_override=float(target_start[1]),
+                        fighter_facing_override=(
+                            -1.0 if approach_main < 0 else 1.0
+                        ),
+                        fighter_damage_override=float(damage),
+                        opponent_x_override=float(opponent_start[0]),
+                        opponent_y_override=float(opponent_start[1]),
+                        opponent_facing_override=(
+                            -1.0 if approach_main < 0 else 1.0
+                        ),
+                    )
+                    trace.append(place)
+                    if placement_ticks > 1:
+                        repeat(
+                            f"{prefix}_place_hold",
+                            placement_ticks - 1,
+                            fighter_x_override=float(target_start[0]),
+                            fighter_y_override=float(target_start[1]),
+                            fighter_facing_override=(
+                                -1.0 if approach_main < 0 else 1.0
+                            ),
+                            fighter_damage_override=float(damage),
+                            opponent_x_override=float(opponent_start[0]),
+                            opponent_y_override=float(opponent_start[1]),
+                            opponent_facing_override=(
+                                -1.0 if approach_main < 0 else 1.0
+                            ),
+                        )
+                    repeat(f"{prefix}_settle", settle_ticks)
+                    repeat(
+                        f"{prefix}_approach",
+                        approach_ticks,
+                        opponent_main_x=approach_x,
+                    )
+                    trace.append(
+                        command(
+                            f"{prefix}_attack",
+                            opponent_main_x=approach_x,
+                            opponent_attack=True,
+                        )
+                    )
+                    repeat(f"{prefix}_post_hit", post_hit_ticks)
+                    if pre_impact_y is not None:
+                        trace.append(
+                            command(
+                                f"{prefix}_pre_impact_lift",
+                                main_x=main_x,
+                                main_y=main_y,
+                                digital_left=trigger == "left",
+                                digital_right=trigger == "right",
+                                jump=jump,
+                                fighter_y_override=float(pre_impact_y),
+                            )
+                        )
+                    if impact_x is not None:
+                        trace.append(
+                            command(
+                                f"{prefix}_impact_place",
+                                fighter_x_override=float(impact_x),
+                                fighter_y_override=float(impact_y),
+                            )
+                        )
+                        repeat(
+                            f"{prefix}_impact_wait",
+                            impact_input_delay_ticks,
+                        )
+                    elif impact_waypoints:
+                        for waypoint_index, point in enumerate(
+                            impact_waypoints
+                        ):
+                            trigger_on_waypoint = (
+                                waypoint_index == trigger_waypoint_index
+                            )
+                            trace.append(
+                                command(
+                                    f"{prefix}_impact_waypoint_"
+                                    f"{waypoint_index}",
+                                    main_x=waypoint_main_x,
+                                    main_y=waypoint_main_y,
+                                    digital_left=(
+                                        trigger_on_waypoint
+                                        and trigger == "left"
+                                    ),
+                                    digital_right=(
+                                        trigger_on_waypoint
+                                        and trigger == "right"
+                                    ),
+                                    jump=trigger_on_waypoint and jump,
+                                    fighter_x_override=float(point[0]),
+                                    fighter_y_override=float(point[1]),
+                                )
+                            )
+                        repeat(
+                            f"{prefix}_impact_wait",
+                            impact_input_delay_ticks,
+                        )
+                    trace.append(
+                        command(
+                            f"{prefix}_impact",
+                            main_x=main_x,
+                            main_y=main_y,
+                            digital_left=(
+                                trigger_waypoint_index is None
+                                and trigger == "left"
+                            ),
+                            digital_right=(
+                                trigger_waypoint_index is None
+                                and trigger == "right"
+                            ),
+                            jump=trigger_waypoint_index is None and jump,
+                        )
+                    )
+                    repeat(
+                        f"{prefix}_observe",
+                        observe_ticks,
+                        main_x=main_x,
+                        main_y=main_y,
+                    )
+                return trace
+
             raw_ground_cases = checkpoint_capture_plan.get(
                 "ground_knockback_cases"
             )
@@ -1927,15 +2235,6 @@ def input_trace(
             raw_cases = checkpoint_capture_plan.get("damage_response_cases")
             if not isinstance(raw_cases, list) or not raw_cases:
                 raise ValueError("damage response checkpoint cases are required")
-
-            def controller_axis(source_axis: object) -> float:
-                if (
-                    not isinstance(source_axis, int)
-                    or isinstance(source_axis, bool)
-                    or not -32767 <= source_axis <= 32767
-                ):
-                    raise ValueError("damage response stick axis is invalid")
-                return (float(source_axis) / 32767.0 + 1.0) * 0.5
 
             def case_sticks(
                 raw: object,
@@ -3018,6 +3317,12 @@ class BigEndianSnapshot:
     def u8(self, address: int) -> int:
         return self.data[self.offset(address, 1)]
 
+    def u16(self, address: int) -> int:
+        return struct.unpack_from(">H", self.data, self.offset(address, 2))[0]
+
+    def i16(self, address: int) -> int:
+        return struct.unpack_from(">h", self.data, self.offset(address, 2))[0]
+
     def u32(self, address: int) -> int:
         return struct.unpack_from(">I", self.data, self.offset(address, 4))[0]
 
@@ -3294,6 +3599,143 @@ def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
             memory_engine, opponent, opponent_snapshot
         ),
         "opponent_ecb": read_ecb(opponent, opponent_snapshot),
+    }
+
+
+def read_surface_collision_memory_probe(
+    memory_engine: object,
+) -> dict[str, object]:
+    """Read the source ECB/environment contact selected by fighter collision."""
+
+    fighter = read_fighter_address(memory_engine, 0)
+    snapshot = BigEndianSnapshot.read(memory_engine, fighter, 0x88C)
+    common = memory_engine.read_word(0x804D6554)
+
+    def read_surface(offset: int) -> dict[str, object]:
+        surface = fighter + offset
+        return {
+            "index": snapshot.u32(surface),
+            "flags": snapshot.u32(surface + 0x04),
+            "normal": snapshot.f32_vector(surface + 0x08, 3),
+        }
+
+    ecb = fighter + 0x794
+    return {
+        "fighter_address": fighter,
+        "environment_flags": snapshot.u32(fighter + 0x824),
+        "previous_environment_flags": snapshot.u32(fighter + 0x828),
+        "contact": snapshot.f32_vector(fighter + 0x830, 3),
+        "ecb": {
+            name: snapshot.f32_vector(ecb + offset, 2)
+            for name, offset in (
+                ("top", 0x00),
+                ("bottom", 0x08),
+                ("right", 0x10),
+                ("left", 0x18),
+            )
+        },
+        "input": {
+            "held": snapshot.u32(fighter + 0x65C),
+            "previous_held": snapshot.u32(fighter + 0x660),
+            "pressed": snapshot.u32(fighter + 0x668),
+            "released": snapshot.u32(fighter + 0x66C),
+            "timers_670_685": list(
+                snapshot.bytes_at(fighter + 0x670, 0x16)
+            ),
+            "tech_input_age": snapshot.u8(fighter + 0x680),
+            "tech_lockout": snapshot.u8(fighter + 0x684),
+            "tech_window": memory_engine.read_float(common + 0x250),
+            "tech_lockout_minimum": memory_engine.read_word(common + 0x1C),
+        },
+        "surfaces": {
+            "floor": read_surface(0x83C),
+            "left_facing_wall": read_surface(0x850),
+            "right_facing_wall": read_surface(0x864),
+            "ceiling": read_surface(0x878),
+        },
+    }
+
+
+def read_stage_collision_memory_probe(
+    memory_engine: object,
+) -> dict[str, object]:
+    """Read the loaded stage's source MapCollData line catalog once."""
+
+    map_coll_data = memory_engine.read_word(0x804D64B4)
+    header = BigEndianSnapshot.read(memory_engine, map_coll_data, 0x30)
+    vertices_address = header.u32(map_coll_data)
+    vertex_count = header.u32(map_coll_data + 0x04)
+    lines_address = header.u32(map_coll_data + 0x08)
+    line_count = header.u32(map_coll_data + 0x0C)
+    if not 0 < vertex_count <= 4096 or not 0 < line_count <= 4096:
+        raise RuntimeError(
+            "loaded stage collision catalog has invalid dimensions: "
+            f"vertices={vertex_count} lines={line_count}"
+        )
+    vertices_snapshot = BigEndianSnapshot.read(
+        memory_engine, vertices_address, vertex_count * 8
+    )
+    vertices = [
+        vertices_snapshot.f32_vector(vertices_address + index * 8, 2)
+        for index in range(vertex_count)
+    ]
+    lines_snapshot = BigEndianSnapshot.read(
+        memory_engine, lines_address, line_count * 0x10
+    )
+    ranges = {
+        name: {
+            "start": header.i16(map_coll_data + offset),
+            "count": header.i16(map_coll_data + offset + 2),
+        }
+        for name, offset in (
+            ("floor", 0x10),
+            ("ceiling", 0x14),
+            ("right_wall", 0x18),
+            ("left_wall", 0x1C),
+            ("dynamic", 0x20),
+        )
+    }
+
+    def line_kind(index: int) -> str:
+        for name, bounds in ranges.items():
+            start = int(bounds["start"])
+            count = int(bounds["count"])
+            if start <= index < start + count:
+                return name
+        return "unclassified"
+
+    lines = []
+    for index in range(line_count):
+        address = lines_address + index * 0x10
+        v0 = lines_snapshot.u16(address)
+        v1 = lines_snapshot.u16(address + 0x02)
+        if v0 >= vertex_count or v1 >= vertex_count:
+            raise RuntimeError(
+                f"stage collision line {index} has an invalid vertex index"
+            )
+        lines.append(
+            {
+                "index": index,
+                "kind": line_kind(index),
+                "vertices": [v0, v1],
+                "start": vertices[v0],
+                "end": vertices[v1],
+                "neighbors": [
+                    lines_snapshot.i16(address + offset)
+                    for offset in (0x04, 0x06, 0x08, 0x0A)
+                ],
+                "hi_flags": lines_snapshot.u16(address + 0x0C),
+                "lo_flags": lines_snapshot.u16(address + 0x0E),
+            }
+        )
+    return {
+        "map_coll_data_address": map_coll_data,
+        "vertices_address": vertices_address,
+        "vertex_count": vertex_count,
+        "lines_address": lines_address,
+        "line_count": line_count,
+        "ranges": ranges,
+        "lines": lines,
     }
 
 
@@ -3703,6 +4145,18 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         executable = dolphin
     if not iso.is_file():
         raise FileNotFoundError(f"missing GALE01 image: {iso}")
+    checkpoint_coverage_manifest = (
+        json.loads(
+            args.oracle_coverage_manifest.read_text(encoding="utf-8")
+        )
+        if args.oracle_coverage_manifest is not None
+        else None
+    )
+    checkpoint_capture_plan = (
+        dict(checkpoint_coverage_manifest["checkpoint_pack"]["capture_plan"])
+        if checkpoint_coverage_manifest is not None
+        else None
+    )
     if args.oracle_exiai:
         exiai_artifact = args.oracle_release_artifact.resolve()
         if not exiai_artifact.is_file():
@@ -3723,6 +4177,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         and args.special_geometry_move
         and "down_ground_wall" in args.special_geometry_move
     )
+    surface_response_route = bool(
+        args.damage_hit_only
+        and checkpoint_capture_plan is not None
+        and "surface_response_cases" in checkpoint_capture_plan
+    )
+    hyrule_stage_route = wall_geometry_route or surface_response_route
     if wall_geometry_route and set(args.special_geometry_move) != {"down_ground_wall"}:
         raise ValueError(
             "down_ground_wall uses Hyrule Temple and must be captured alone"
@@ -3861,7 +4321,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     else melee.Character.FOX
                 ),
                 stage_cursor=(
-                    HYRULE_TEMPLE_STAGE_CURSOR if wall_geometry_route else None
+                    HYRULE_TEMPLE_STAGE_CURSOR if hyrule_stage_route else None
                 ),
             )
         else:
@@ -3874,6 +4334,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             or args.memory_probe_damage
             or args.memory_probe_hitbox
             or args.memory_probe_collision
+            or args.memory_probe_surface
             or args.oracle_checkpoint_pack
         ):
             if memory_engine is None:
@@ -3888,6 +4349,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     console._process.pid,
                 )
         hook_ready_at = time.monotonic()
+        stage_collision_memory = (
+            read_stage_collision_memory_probe(memory_engine)
+            if args.memory_probe_surface
+            else None
+        )
 
         if (
             args.special_geometry_move
@@ -3967,18 +4433,6 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             if args.falcon_frame_data is not None
             else None
         )
-        checkpoint_coverage_manifest = (
-            json.loads(
-                args.oracle_coverage_manifest.read_text(encoding="utf-8")
-            )
-            if args.oracle_coverage_manifest is not None
-            else None
-        )
-        checkpoint_capture_plan = (
-            dict(checkpoint_coverage_manifest["checkpoint_pack"]["capture_plan"])
-            if checkpoint_coverage_manifest is not None
-            else None
-        )
         trace = input_trace(
             platform_only=args.platform_only,
             push_only=args.push_only,
@@ -4024,6 +4478,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "label": "pipeline_drain",
                 "fighter_x_from_item_offset": None,
                 "opponent_x_from_item_offset": None,
+                "fighter_x_override": None,
+                "fighter_y_override": None,
+                "fighter_facing_override": None,
+                "fighter_damage_override": None,
+                "opponent_x_override": None,
+                "opponent_facing_override": None,
             }
             for _ in range(pipeline_delay)
         ]
@@ -4040,7 +4500,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.oracle_checkpoint_pack:
                     print(
                         "ssbm-checkpoint-case="
-                        f"{case_number}/{sum(bool(row.get('restore_before')) for row in trace)} "
+                        f"{case_number}/"
+                        f"{sum(bool(row.get('restore_before')) for row in trace)} "
                         f"label={sample['label']}",
                         file=sys.stderr,
                         flush=True,
@@ -4135,6 +4596,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 (0, 0xB0, fighter_x_override),
                 (0, 0xB4, sample["fighter_y_override"]),
                 (0, 0x2C, sample["fighter_facing_override"]),
+                (0, 0x1830, sample["fighter_damage_override"]),
                 (1, 0xB0, opponent_x_override),
                 (1, 0xB4, sample["opponent_y_override"]),
                 (1, 0x2C, sample["opponent_facing_override"]),
@@ -4241,12 +4703,17 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 float(scheduled["right_shoulder"]),
             )
             expected_observed_shoulder = (
-                0.35
-                if bool(scheduled["grab"])
+                1.0
+                if bool(scheduled["digital_left"])
+                or bool(scheduled["digital_right"])
                 else (
-                    0.0
-                    if requested_analog_shoulder <= 0.30
-                    else requested_analog_shoulder
+                    0.35
+                    if bool(scheduled["grab"])
+                    else (
+                        0.0
+                        if requested_analog_shoulder <= 0.30
+                        else requested_analog_shoulder
+                    )
                 )
             )
             shoulder_aligned = (
@@ -4336,6 +4803,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "requested_fighter_y_override": scheduled["fighter_y_override"],
                 "requested_fighter_facing_override": scheduled[
                     "fighter_facing_override"
+                ],
+                "requested_fighter_damage_override": scheduled[
+                    "fighter_damage_override"
                 ],
                 "requested_fighter_x_override": scheduled["fighter_x_override"],
                 "requested_opponent_x_override": scheduled["opponent_x_override"],
@@ -4428,6 +4898,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_collision:
                     row["shield_memory"] = read_shield_memory_probe(memory_engine)
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
+                if args.memory_probe_surface:
+                    row["surface_collision_memory"] = (
+                        read_surface_collision_memory_probe(memory_engine)
+                    )
             rows.append(row)
 
         item_rules = (
@@ -4461,7 +4935,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         return {
             "schema": (
-                10
+                11
+                if args.memory_probe_surface
+                else 10
                 if args.memory_probe_collision
                 else 9
                 if args.memory_probe_hitbox
@@ -4513,7 +4989,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             "stage": (
                 "HYRULE_TEMPLE"
-                if wall_geometry_route
+                if hyrule_stage_route
                 else "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION"
             ),
             "shield_hit_requested_pressure": (
@@ -4556,6 +5032,25 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_damage
                 else None
             ),
+            "surface_collision_memory_probe": (
+                {
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "fields": {
+                        "environment_flags": "fighter+0x824",
+                        "contact": "fighter+0x830",
+                        "floor": "fighter+0x83c",
+                        "left_facing_wall": "fighter+0x850",
+                        "right_facing_wall": "fighter+0x864",
+                        "ceiling": "fighter+0x878",
+                    },
+                }
+                if args.memory_probe_surface
+                else None
+            ),
+            "stage_collision_memory": stage_collision_memory,
             "item_rules": item_rules,
             "hitbox_memory_probe": (
                 {
@@ -4595,16 +5090,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         stop_console(console)
         if args.oracle_checkpoint_pack:
             finished_at = time.monotonic()
+            menu_start = connected_at or started_at
+            hook_start = menu_ready_at or menu_start
+            capture_start = hook_ready_at or hook_start
             print(
                 "ssbm-checkpoint-lifecycle-time "
                 f"launch_connect_seconds="
                 f"{(connected_at or finished_at) - started_at:.6f} "
                 f"menu_seconds="
-                f"{(menu_ready_at or finished_at) - (connected_at or started_at):.6f} "
+                f"{(menu_ready_at or finished_at) - menu_start:.6f} "
                 f"hook_seconds="
-                f"{(hook_ready_at or finished_at) - (menu_ready_at or connected_at or started_at):.6f} "
+                f"{(hook_ready_at or finished_at) - hook_start:.6f} "
                 f"capture_seconds="
-                f"{cleanup_started_at - (hook_ready_at or menu_ready_at or connected_at or started_at):.6f} "
+                f"{cleanup_started_at - capture_start:.6f} "
                 f"cleanup_seconds={finished_at - cleanup_started_at:.6f} "
                 f"total_seconds={finished_at - started_at:.6f}",
                 file=sys.stderr,
@@ -4687,6 +5185,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--memory-probe-damage", action="store_true")
     parser.add_argument("--memory-probe-hitbox", action="store_true")
     parser.add_argument("--memory-probe-collision", action="store_true")
+    parser.add_argument("--memory-probe-surface", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args()
     if args.oracle_exiai and args.batch:
@@ -4721,6 +5220,13 @@ def parse_args() -> argparse.Namespace:
         parser.error("side_ground_item_hit requires --enable-items")
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
+    if args.memory_probe_surface and not (
+        args.damage_hit_only and args.oracle_checkpoint_pack
+    ):
+        parser.error(
+            "--memory-probe-surface requires --damage-hit-only and "
+            "--oracle-checkpoint-pack"
+        )
     if args.memory_probe_hitbox and not (
         args.defense_state_only
         or args.common_hurt_geometry_only
@@ -4743,6 +5249,7 @@ def parse_args() -> argparse.Namespace:
                 args.memory_probe_damage,
                 args.memory_probe_hitbox,
                 args.memory_probe_collision,
+                args.memory_probe_surface,
             )
         )
         > 1
