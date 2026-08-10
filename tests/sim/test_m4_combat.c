@@ -20,6 +20,7 @@
 
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_punch_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
@@ -738,12 +739,14 @@ static int make_floor_attack_content(
         "floor-attack-content-view");
 }
 
-static int initialize_sim(
+static int initialize_sim_with_arena_extent(
     test_sim_storage *storage,
     const pf_content_view *content,
     uint8_t player_count,
     pf_sim_mode mode,
     int reset,
+    int32_t arena_half_width_q16,
+    int32_t arena_ceiling_q16,
     pf_sim **out_sim)
 {
     pf_sim_config config;
@@ -757,6 +760,14 @@ static int initialize_sim(
     }
     config.max_ticks = UINT64_C(100000);
     config.stock_count = UINT8_C(0);
+    if (arena_half_width_q16 != INT32_C(0))
+    {
+        config.arena_half_width_q16 = arena_half_width_q16;
+    }
+    if (arena_ceiling_q16 != INT32_C(0))
+    {
+        config.arena_ceiling_q16 = arena_ceiling_q16;
+    }
     if (!expect_status(
             pf_sim_init(
                 storage->state,
@@ -776,6 +787,25 @@ static int initialize_sim(
                pf_sim_reset(*out_sim, UINT64_C(0x4d34434f4d424154)),
                PF_STATUS_OK,
                "reset");
+}
+
+static int initialize_sim(
+    test_sim_storage *storage,
+    const pf_content_view *content,
+    uint8_t player_count,
+    pf_sim_mode mode,
+    int reset,
+    pf_sim **out_sim)
+{
+    return initialize_sim_with_arena_extent(
+        storage,
+        content,
+        player_count,
+        mode,
+        reset,
+        INT32_C(0),
+        INT32_C(0),
+        out_sim);
 }
 
 static int clone_sim_through_canonical_save(
@@ -14857,6 +14887,267 @@ static void capture_ssbm_stored_trace_sample(
         player->ledge_regrab_lockout_ticks;
 }
 
+static int make_ssbm_falcon_punch_content(
+    int airborne,
+    pf_m4_content *out_content,
+    pf_content_view *out_view)
+{
+    if (!expect_status(
+            pf_m4_default_content(out_content),
+            PF_STATUS_OK,
+            "ssbm-falcon-punch-default-content"))
+    {
+        return 0;
+    }
+    out_content->item.enabled = UINT8_C(0);
+    out_content->projectile.enabled = UINT8_C(1);
+    out_content->projectile.speed_q16 = INT32_C(1);
+    out_content->projectile.lifetime_ticks = UINT16_C(1);
+    out_content->reflector.enabled = UINT8_C(1);
+    out_content->stage.blast_left_q16 =
+        -INT32_C(160) * PF_Q16_ONE;
+    out_content->stage.blast_right_q16 =
+        INT32_C(160) * PF_Q16_ONE;
+    out_content->stage.platform_center_x_q16 =
+        -INT32_C(28) * PF_Q16_ONE;
+    out_content->stage.platform_half_width_q16 = PF_Q16_ONE;
+    out_content->stage.platform_motion_amplitude_q16 = INT32_C(0);
+    out_content->stage.solid_left_q16 =
+        -INT32_C(22) * PF_Q16_ONE;
+    out_content->stage.solid_right_q16 =
+        -INT32_C(21) * PF_Q16_ONE;
+    out_content->stage.solid_top_q16 =
+        INT32_C(28) * PF_Q16_ONE;
+    out_content->stage.solid_bottom_q16 =
+        INT32_C(29) * PF_Q16_ONE;
+    out_content->stage.upper_platform_center_x_q16 =
+        -INT32_C(25) * PF_Q16_ONE;
+    out_content->stage.upper_platform_half_width_q16 = PF_Q16_ONE;
+    if (airborne == 0)
+    {
+        out_content->stage.floor_left_q16 =
+            -INT32_C(128) * PF_Q16_ONE;
+        out_content->stage.floor_right_q16 =
+            INT32_C(128) * PF_Q16_ONE;
+    }
+    else
+    {
+        out_content->stage.spawn_spacing_q16 =
+            INT32_C(10) * PF_Q16_ONE;
+        out_content->stage.blast_bottom_q16 =
+            INT32_C(2048) * PF_Q16_ONE;
+    }
+    return expect_status(
+        pf_m4_make_content_view(out_content, out_view),
+        PF_STATUS_OK,
+        "ssbm-falcon-punch-content-view");
+}
+
+static int prepare_ssbm_falcon_punch_air(
+    pf_sim *sim,
+    pf_m4_inspection *out_inspection)
+{
+    uint16_t tick;
+
+    for (tick = UINT16_C(0); tick < UINT16_C(240); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MIN,
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                out_inspection))
+        {
+            return 0;
+        }
+        if (out_inspection->players[0].grounded == UINT8_C(0) &&
+            out_inspection->players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_AIRBORNE)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static uint8_t run_ssbm_falcon_punch_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    int airborne;
+    int tail;
+    int32_t origin_x_q16;
+    int32_t origin_y_q16;
+    uint8_t sample_index;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL || capacity < stored_case->sample_count)
+    {
+        return UINT8_C(0);
+    }
+    airborne = strcmp(stored_case->id, "ground_complete") != 0;
+    tail = strcmp(stored_case->id, "air_physics_tail") == 0;
+    if ((!airborne && stored_case->initial_state_variant != UINT8_C(1)) ||
+        (airborne && !tail &&
+         stored_case->initial_state_variant != UINT8_C(2)) ||
+        (tail && stored_case->initial_state_variant != UINT8_C(3)) ||
+        (airborne && tail == 0 &&
+         strcmp(stored_case->id, "air_complete_clock") != 0) ||
+        !make_ssbm_falcon_punch_content(airborne, &content, &view) ||
+        !initialize_sim_with_arena_extent(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            INT32_C(256) * PF_Q16_ONE,
+            airborne != 0
+                ? INT32_C(4096) * PF_Q16_ONE
+                : INT32_C(0),
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "ssbm-falcon-punch-initial-inspect") ||
+        (airborne && !prepare_ssbm_falcon_punch_air(sim, &inspection)))
+    {
+        return UINT8_C(0);
+    }
+
+    if (tail)
+    {
+        uint8_t pre_roll;
+
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                PF_INPUT_BUTTON_SPECIAL,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        for (pre_roll = UINT8_C(1); pre_roll < UINT8_C(49); ++pre_roll)
+        {
+            if (!step_duel(
+                    sim,
+                    INT16_C(0),
+                    UINT64_C(0),
+                    INT16_C(0),
+                    UINT64_C(0),
+                    &inspection))
+            {
+                return UINT8_C(0);
+            }
+        }
+        if (inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_FALCON_PUNCH_AIR ||
+            inspection.players[0].action_ticks != UINT16_C(49))
+        {
+            return UINT8_C(0);
+        }
+    }
+    origin_x_q16 = inspection.players[0].position_x_q16;
+    origin_y_q16 = inspection.players[0].position_y_q16;
+
+    for (sample_index = UINT8_C(0);
+         sample_index < stored_case->sample_count;
+         ++sample_index)
+    {
+        const pf_ssbm_stored_trace_input *input =
+            &stored_case->inputs[sample_index];
+        pf_ssbm_stored_trace_sample *sample = &out_samples[sample_index];
+
+        if (!step_duel(
+                sim,
+                input->main_stick_x,
+                input->buttons,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[0],
+            origin_x_q16,
+            origin_y_q16,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-falcon-punch-observation case=%s frame=%u"
+                " action=%u action_tick=%u grounded=%u facing=%d"
+                " x=%" PRId32 " y=%" PRId32 " vx=%" PRId32
+                " vy=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (int)sample->facing,
+                sample->position_x_q16,
+                sample->position_y_q16,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16);
+        }
+    }
+    return stored_case->sample_count;
+}
+
+static int run_ssbm_falcon_punch_observation_oracle(void)
+{
+    int print_samples = 0;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-neutral-special",
+        pf_m4_ssbm_falcon_punch_cases,
+        PF_M4_SSBM_FALCON_PUNCH_CASE_COUNT,
+        PF_M4_SSBM_FALCON_PUNCH_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_PUNCH_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_PUNCH_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_PUNCH_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_falcon_punch_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass "
+        "domain=falcon-neutral-special poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        (unsigned int)PF_M4_SSBM_FALCON_PUNCH_CASE_COUNT,
+        (unsigned int)PF_M4_SSBM_FALCON_PUNCH_TOTAL_SAMPLE_COUNT,
+        PF_M4_SSBM_FALCON_PUNCH_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
 static int step_ssbm_paired_trace_duel(
     pf_sim *sim,
     const pf_ssbm_stored_trace_input *lane_inputs,
@@ -27877,6 +28168,11 @@ int main(int argc, char **argv)
             return run_reference_falcon_dive_grab_stored_oracle(1) ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-neutral-special") == 0)
+        {
+            return run_ssbm_falcon_punch_observation_oracle() ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-common-damage-response") == 0)
         {
             return run_ssbm_damage_observation_oracle() ? 0 : 1;
@@ -28452,6 +28748,7 @@ int main(int argc, char **argv)
         !run_reference_moving_hit_sweep_test() ||
         !run_reference_common_hurt_stored_oracle(0) ||
         !run_reference_falcon_dive_grab_stored_oracle(0) ||
+        !run_ssbm_falcon_punch_observation_oracle() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

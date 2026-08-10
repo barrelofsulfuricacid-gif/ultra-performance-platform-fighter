@@ -5180,3 +5180,31 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   seconds on Windows and 1.234 seconds on WSL. Windows GCC Release, WSL
   Release, focused WSL ASan/UBSan, Python syntax checks, regeneration checks,
   and the repaired combined Falcon Dive verifier pass.
+
+## 2026-08-10 generic Falcon Punch stored oracle
+
+- A fresh prior-art check compared pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` with current upstream
+  `6ddd74ecbb755df25b32f137b5f7b7f6d7005e91`. Falcon Punch remains governed
+  by its ground/air animation, physics, and collision callbacks; no maintained
+  implementation displaced the existing live capture route.
+- The two existing direct Dolphin captures remain the source of truth:
+  ground SHA-256
+  `2c8bc604024cfad745e266239dcc4d3e1b1ff1c4a07afcc6eecb9938b5f155b1`
+  and air SHA-256
+  `9cfc8c5632a8bce37a0f79c6999bff6f0742130df5f8f2473196338d8b14d6c5`.
+  The repaired at-will verifier rebuilds its strict native runner, passes both
+  200-frame comparisons, and now verifies the source projection as one gate.
+- The reusable numeric stored runner adds three cases / 251 samples: complete
+  ground physics and clock, complete air clock, and air physics from frame 50
+  through the first Fall sample. Splitting the air route preserves the live
+  comparator's frame-49 reanchor and avoids claiming unqualified prefix
+  physics. Source/production SHA-256 are
+  `defbb9746b3784c6e1aae2b7d176344fadcb9a1ba0c51ac4b8c097e1765a16f1` /
+  `eec11ed8d9050fe51196b9241e326c3e189be8a56dad82e64b5ee28a7c5b527e`.
+- The generic registry now covers 13 domains / 84 cases plus replay. The full
+  post-build gate passes in 1.065 seconds on native Windows and 1.366 seconds
+  in WSL, both below its 2-second budget; the focused CTest takes 0.05 seconds
+  on each platform. The importer skill now records the reusable partial-prefix
+  projection rule. M4 remains incomplete for the other partial fidelity rows
+  and the native hands-on controller gate.

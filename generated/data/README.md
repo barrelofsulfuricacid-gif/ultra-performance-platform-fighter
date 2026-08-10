@@ -66,6 +66,15 @@ specific. It contains no second copy of hurt capsules. A thin Falcon adapter
 lets the shared C runner hash both production hurt-pose tables through the same
 accessor, so a stale or modified production table fails the pinned digest.
 
+`m4_ssbm_falcon_punch_oracle.inc` is test-only generated metadata for the
+generic numeric stored-equivalence runner. Its manifest binds two hash-pinned
+live captures to three projections: the complete ground route, the complete
+air action clock, and the air physics tail reanchored immediately before source
+frame 50. The split keeps the early-air physics fields that the live comparator
+did not qualify out of the regression claim. The generated include contains
+inputs, field masks, case bounds, and digests; it does not duplicate Falcon
+Punch physics or frame data.
+
 `m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored
 JSON preserves source joint-local vertices and transform provenance; the

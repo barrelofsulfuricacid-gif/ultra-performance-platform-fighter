@@ -605,6 +605,21 @@ native trace runner and compares both captures on demand after verifying the
 GALE01 NTSC 1.02 disc identity. Position tolerance is limited to 640 Q16 units;
 velocity tolerance is 32 Q16 units.
 
+The same live verifier now regenerates a source-side stored projection before
+reporting success. `tools/ssbm_falcon_punch_coverage.json` records the two raw
+capture hashes, pinned/current decomp revisions, and three regression cases:
+100 complete grounded samples, 100 complete aerial action-clock samples, and a
+51-sample aerial physics tail beginning at displayed frame 50. The aerial clock
+case serializes only action, timer, grounded, and facing because the live
+comparator deliberately reanchors physics after frame 49; the separate tail
+owns position and velocity from that boundary onward. The canonical source
+projection hashes to
+`defbb9746b3784c6e1aae2b7d176344fadcb9a1ba0c51ac4b8c097e1765a16f1`.
+The allocation-free production trace hashes to
+`eec11ed8d9050fe51196b9241e326c3e189be8a56dad82e64b5ee28a7c5b527e`.
+The character-independent generator and C runner enforce both digests without
+copying Falcon Punch constants into the oracle.
+
 An independent recapture produced a different raw JSON hash because unused
 single-precision memory samples vary below the retained fixed-point precision.
 After conversion, every numeric table row was byte-identical to the pinned

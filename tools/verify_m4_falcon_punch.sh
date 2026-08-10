@@ -39,6 +39,7 @@ common_flags="
     "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
+    "$root/src/sim/sim_ssbm_stage_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -64,5 +65,10 @@ common_flags="
     "$output_dir/pf_m4_movement_trace" \
     --native-output "$output_dir/air.csv" \
     --native-input-output "$output_dir/air.inputs"
+
+"$python" "$root/tools/verify_ssbm_falcon_punch.py" \
+    "$root/tools/ssbm_falcon_punch_coverage.json" \
+    "$ground_capture" \
+    "$air_capture"
 
 echo "m4-falcon-punch-verification=pass ground_frames=200 air_frames=200"
