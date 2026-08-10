@@ -15198,6 +15198,209 @@ static int run_falcon_dive_source_data_test(
     return 1;
 }
 
+static int run_falcon_dive_behind_ledge_test(
+    const pf_m4_content *default_content)
+{
+    test_sim_storage storage;
+    pf_m4_content content = *default_content;
+    pf_content_view view;
+    pf_sim *sim = NULL;
+    pf_m4_inspection inspection;
+    uint32_t tick;
+
+    content.item.enabled = UINT8_C(0);
+    content.stage.floor_left_q16 = -INT32_C(585144);
+    content.stage.floor_right_q16 = INT32_C(585144);
+    content.stage.spawn_spacing_q16 = INT32_C(2) * PF_Q16_ONE;
+    content.stage.platform_center_x_q16 = INT32_C(0);
+    content.stage.platform_half_width_q16 = PF_Q16_ONE;
+    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+    content.stage.upper_platform_center_x_q16 =
+        INT32_C(2) * PF_Q16_ONE;
+    content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
+    content.stage.solid_left_q16 = INT32_C(2) * PF_Q16_ONE;
+    content.stage.solid_right_q16 = INT32_C(3) * PF_Q16_ONE;
+    if (!expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "falcon-dive-behind-ledge-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            &sim) ||
+        !expect_status(
+            pf_sim_reset(sim, UINT64_C(0xfa1c0c02)),
+            PF_STATUS_OK,
+            "falcon-dive-behind-ledge-reset") ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "falcon-dive-behind-ledge-inspect"))
+    {
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(300); ++tick)
+    {
+        const int16_t stick_x =
+            inspection.players[0].position_x_q16 > -INT32_C(302203)
+                ? -INT16_C(12000)
+                : INT16_C(0);
+
+        if (!step_duel(
+                sim,
+                stick_x,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].position_x_q16 <= -INT32_C(302203) &&
+            inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+            inspection.players[0].grounded != UINT8_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(300))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-behind-ledge-walk\n");
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(60); ++tick)
+    {
+        const int16_t stick_x =
+            inspection.players[0].facing != INT8_C(1)
+                ? INT16_C(12000)
+                : INT16_C(0);
+
+        if (!step_duel(
+                sim,
+                stick_x,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].facing == INT8_C(1) &&
+            inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+            inspection.players[0].action_state ==
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(60))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-behind-ledge-turn\n");
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(62); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                tick < UINT32_C(30) ? INT16_MIN : INT16_C(0),
+                INT16_C(0),
+                tick < UINT32_C(5) ? PF_INPUT_BUTTON_JUMP : UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (inspection.players[0].grounded != UINT8_C(0) ||
+        !step_duel(
+            sim,
+            INT16_C(14336),
+            -INT16_C(29081),
+            PF_INPUT_BUTTON_SPECIAL,
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR ||
+        inspection.players[0].action_ticks != UINT16_C(1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-behind-ledge-entry\n");
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(11); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_MAX,
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+    }
+    if (!step_duel(
+            sim,
+            -INT16_C(16000),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR ||
+        inspection.players[0].action_ticks != UINT16_C(13) ||
+        inspection.players[0].facing != INT8_C(-1))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation="
+            "falcon-dive-behind-ledge-direction-gate\n");
+        return 0;
+    }
+    for (tick = UINT32_C(0); tick < UINT32_C(52); ++tick)
+    {
+        if (!step_duel(
+                sim,
+                INT16_C(16000),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_LEDGE_CATCH)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(52) ||
+        inspection.players[0].ledge != (uint8_t)PF_M4_LEDGE_LEFT ||
+        inspection.players[0].facing != INT8_C(1) ||
+        inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        inspection.players[0].velocity_y_q16 != INT32_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-movement=fail operation=falcon-dive-behind-ledge-catch "
+            "action=%u ticks=%u facing=%d ledge=%u x=%" PRId32
+            " y=%" PRId32 "\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (int)inspection.players[0].facing,
+            (unsigned int)inspection.players[0].ledge,
+            inspection.players[0].position_x_q16,
+            inspection.players[0].position_y_q16);
+        return 0;
+    }
+    return 1;
+}
+
 #define RUN_MOVEMENT_TEST(call)                                         \
     ((call) ? 1                                                        \
             : ((void)fprintf(                                         \
@@ -15227,6 +15430,7 @@ int main(void)
         !RUN_MOVEMENT_TEST(run_falcon_punch_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_raptor_boost_source_data_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_falcon_dive_source_data_test(&content)) ||
+        !RUN_MOVEMENT_TEST(run_falcon_dive_behind_ledge_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_run_brake_iasa_test(&content, &view)) ||
         !RUN_MOVEMENT_TEST(run_crouch_common_iasa_test(&content)) ||
         !RUN_MOVEMENT_TEST(run_ground_control_test(&content, &view)) ||

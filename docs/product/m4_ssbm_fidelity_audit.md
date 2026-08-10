@@ -51,6 +51,16 @@ threshold, and route differences are not.
 | Stocks, respawn, match result | partial | Deterministic four-stock flow exists; all tournament-rule and revival-platform details are not decomp-equivalent. |
 | Replay, save/load, rollback state, RL API | project-specific | These are deterministic project infrastructure and have no claim of equivalence to SSBM internals. |
 
+Current Falcon Dive exception: the facing-toward ledge theorem remains green,
+and production now follows the decomp's bidirectional start-state ledge query.
+The combined Falcon Dive script is not presently an all-green at-will verifier:
+its aerial-catch source route pins both fighters at `y=500`, whereas its native
+runner follows a different natural-jump trajectory. The correct reference-joint
+origin conversion exposed that mismatch as a one-frame collision difference.
+Until the lane is split into exact-position geometry replay and genuinely
+identical-input dynamics, the 92/42 stored aerial samples remain source evidence
+but not a currently passing integrated theorem.
+
 ## Blocking work before a behavioral-equivalence claim
 
 1. Route the complete imported common submotion catalog through the remaining

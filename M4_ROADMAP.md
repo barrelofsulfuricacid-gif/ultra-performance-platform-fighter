@@ -344,6 +344,33 @@ Current DownBound prior-art/source sweep:
   pinned MSVC lane is unavailable because Visual Studio `vswhere.exe` is not
   installed; remote CI retains that compiler gate.
 
+## In progress: Falcon Dive action-specific ledge acquisition
+
+- [x] Re-sweep pinned/current `doldecomp/melee`. The relevant
+  `ftCa_SpecialHi.c`, `ft_081B.c`, `ftcliffcommon.c`, and `mpcoll.c` paths are
+  unchanged at current head `6ddd74ecbb755df25b32f137b5f7b7f6d7005e91`.
+- [x] Preserve the collision callback's direction policy as one zero-cost
+  shared ledge-probe value: Falcon Dive start passes direction `0` and can
+  acquire either endpoint after its imported command-variable gate; ordinary
+  airborne/fall states remain facing-only. Falcon Dive throw no longer inherits
+  a ledge query that its source callback never makes.
+- [x] Apply the common catch transition's inward facing from the selected ledge
+  endpoint. A deterministic physical route turns Falcon outward during Dive,
+  catches the ledge behind him, and asserts inward facing plus zero velocity.
+- [x] Preserve the existing 63-frame facing-toward Dolphin route: source still
+  catches on frame 64, enters `EdgeHang` on frame 71, and production passes all
+  63 comparable frames with the 640-Q16 envelope.
+- [ ] Capture and pin the new facing-away route in Dolphin once the owner ISO is
+  mounted again. The current machine retains the old capture and toolchain but
+  not a reachable GALE01 disc image, so decomp plus the deterministic native
+  discriminator are the current evidence for the new branch.
+- [ ] Repair the pre-existing aerial-catch validation lane. Bisect identifies
+  `821fde3` as the first red commit: it correctly changed imported geometry from
+  feet-origin to Melee reference-joint origin, while the source route pins both
+  fighters at `y=500` and the native runner follows a different natural-jump
+  trajectory. This is a geometry-oracle architecture mismatch, not evidence
+  for reverting the production origin transform.
+
 ## Completed and verified: distinct CliffCatch and CliffWait entry
 
 - [x] Reuse the already-qualified Hyrule route and current/pinned decomp sweep;

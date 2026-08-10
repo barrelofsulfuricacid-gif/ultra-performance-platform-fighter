@@ -198,6 +198,12 @@ int main(int argc, char **argv)
         falcon_dive_air_ledge_mode = 1;
     }
     else if (
+        argc == 2 &&
+        strcmp(argv[1], "--falcon-dive-air-ledge-behind") == 0)
+    {
+        falcon_dive_air_ledge_mode = 1;
+    }
+    else if (
         argc == 2 && strcmp(argv[1], "--falcon-kick-ground") == 0)
     {
         /* The ground oracle uses the runner's ordinary wide-floor setup. */
@@ -240,6 +246,7 @@ int main(int argc, char **argv)
             "--falcon-dive-air-catch|"
             "--falcon-dive-air-miss|"
             "--falcon-dive-air-ledge|"
+            "--falcon-dive-air-ledge-behind|"
             "--falcon-kick-ground|--falcon-kick-ground-edge|"
             "--falcon-kick-ground-hit|--falcon-kick-ground-wall|"
             "--falcon-kick-air|"
@@ -826,6 +833,7 @@ int main(int argc, char **argv)
     {
         uint32_t pre_roll_tick;
         int setup_ready = 0;
+        const int32_t setup_target_x_q16 = -INT32_C(302203);
 
         /* Walk to the capture's safe on-stage start without mutating fighter
          * state, settle, and face inward. The content validator deliberately
@@ -841,7 +849,7 @@ int main(int argc, char **argv)
             inputs[0].tick = inspection.tick;
             inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
             inputs[0].player_slot = UINT8_C(0);
-            if (inspection.players[0].position_x_q16 > -INT32_C(302203))
+            if (inspection.players[0].position_x_q16 > setup_target_x_q16)
             {
                 inputs[0].main_stick_x = -INT16_C(12000);
             }
@@ -858,7 +866,7 @@ int main(int argc, char **argv)
             {
                 return fail_status("falcon-dive-ledge-walk-inspect", status);
             }
-            if (inspection.players[0].position_x_q16 <= -INT32_C(302203) &&
+            if (inspection.players[0].position_x_q16 <= setup_target_x_q16 &&
                 inspection.players[0].velocity_x_q16 == INT32_C(0) &&
                 inspection.players[0].grounded != UINT8_C(0) &&
                 inspection.players[0].action_state ==

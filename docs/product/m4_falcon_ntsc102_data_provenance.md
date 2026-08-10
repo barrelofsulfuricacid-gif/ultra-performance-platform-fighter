@@ -636,9 +636,24 @@ the 12% throw, producing 15.92% total damage through the imported 0.91 newest-
 slot multiplier. `CaptureCaptain` computes the reaction duration but
 `ftCo_800DE7C0` clears applied launch velocity: the victim begins ordinary
 0.13-per-frame gravity immediately and exposes 26 post-transition hitstun
-frames. `tools/verify_m4_falcon_dive.sh` checks all 92 holder frames plus 42
-victim capture/reaction frames at will. The later one-percent change in the
+frames. The pinned artifact still supplies all 92 holder frames and 42 victim
+capture/reaction frames. Its geometry-isolation route pins both fighters at
+`y=500`; after the later correct reference-joint origin conversion, the legacy
+native comparator's different natural-jump setup catches one frame late. That
+lane is therefore currently an explicit validation-architecture gap rather
+than an at-will green dynamic theorem. The later one-percent change in the
 y=500 capture is off-screen magnifier damage and is excluded from move damage.
+
+The Falcon Dive start collision callback is independently source-defined.
+Pinned/current `ftCa_SpecialHi.c::doAirColl` calls
+`ft_CheckGroundAndLedge(gobj, 0)` after its command-variable gate, while the
+ordinary Fall/FallSpecial paths pass facing direction. Production retains that
+argument as one shared ledge-probe policy, allows either endpoint only during
+the gated Dive start, and applies the common catch transition's inward facing
+from the selected ledge. The existing facing-toward capture remains green at
+63/63 comparable frames. A new facing-away live capture remains pending until
+the owner ISO is reachable again; the deterministic physical regression is not
+presented as replacement source evidence.
 
 Two pinned miss captures close the ground and aerial `FallSpecial` paths. The
 195-row grounded capture has SHA-256

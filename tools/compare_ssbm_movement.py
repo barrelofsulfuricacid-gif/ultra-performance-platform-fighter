@@ -549,15 +549,27 @@ def main() -> int:
             if str(row.get("label", "")) == "special_geometry_up_air_miss_start"
         )
         oracle_rows = oracle_rows[first_special_row:]
-    falcon_dive_air_ledge_mode = any(
-        str(row.get("label", "")) == "special_geometry_up_air_ledge_grab_start"
-        for row in oracle_rows
+    falcon_dive_air_ledge_start_label = next(
+        (
+            label
+            for label in (
+                "special_geometry_up_air_ledge_grab_start",
+                "special_geometry_up_air_ledge_grab_behind_start",
+            )
+            if any(str(row.get("label", "")) == label for row in oracle_rows)
+        ),
+        None,
+    )
+    falcon_dive_air_ledge_mode = falcon_dive_air_ledge_start_label is not None
+    falcon_dive_air_ledge_behind_mode = (
+        falcon_dive_air_ledge_start_label
+        == "special_geometry_up_air_ledge_grab_behind_start"
     )
     if falcon_dive_air_ledge_mode:
         first_special_row = next(
             index
             for index, row in enumerate(oracle_rows)
-            if str(row.get("label", "")) == "special_geometry_up_air_ledge_grab_start"
+            if str(row.get("label", "")) == falcon_dive_air_ledge_start_label
         )
         oracle_rows = oracle_rows[first_special_row:]
         first_ledge_catch = next(
@@ -778,6 +790,8 @@ def main() -> int:
         runner_command.append("--falcon-dive-air-catch")
     elif falcon_dive_air_miss_mode:
         runner_command.append("--falcon-dive-air-miss")
+    elif falcon_dive_air_ledge_behind_mode:
+        runner_command.append("--falcon-dive-air-ledge-behind")
     elif falcon_dive_air_ledge_mode:
         runner_command.append("--falcon-dive-air-ledge")
     elif falcon_kick_ground_mode:

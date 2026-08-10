@@ -41,6 +41,7 @@ SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "up_ground_miss": "0x133",
     "up_air_miss": "0x134",
     "up_air_ledge_grab": "0x134",
+    "up_air_ledge_grab_behind": "0x134",
     "up_ground_catch": "0x135",
     "up_air_catch": "0x135",
     "down_ground": "0x137",
@@ -580,6 +581,11 @@ def input_trace(
             )
 
         for route in special_moves:
+            ledge_grab_route = route in {
+                "up_air_ledge_grab",
+                "up_air_ledge_grab_behind",
+            }
+            behind_facing_ledge_route = route == "up_air_ledge_grab_behind"
             trace.append(
                 command(
                     f"special_geometry_{route}_opponent_pose_reset",
@@ -603,6 +609,7 @@ def input_trace(
                 "side_air_hit_floor",
                 "up_air_miss",
                 "up_air_ledge_grab",
+                "up_air_ledge_grab_behind",
                 "up_air_catch",
                 "down_air",
                 "down_air_land",
@@ -617,32 +624,32 @@ def input_trace(
                     "up_air_catch",
                 }
 
-                if route == "up_air_ledge_grab":
+                if ledge_grab_route:
                     # Start from a safe grounded point, then create the
                     # recovery setup entirely through native movement. This
                     # preserves Melee's collision history and ledge flags.
                     trace.append(
                         command(
-                            "special_geometry_up_air_ledge_grab_preposition",
+                            f"special_geometry_{route}_preposition",
                             fighter_x_override=-45.0,
                         )
                     )
-                    repeat("special_geometry_up_air_ledge_grab_preposition_settle", 3)
+                    repeat(f"special_geometry_{route}_preposition_settle", 3)
                     trace.extend(
                         command(
-                            "special_geometry_up_air_ledge_grab_jump",
+                            f"special_geometry_{route}_jump",
                             main_x=0.0,
                             jump=True,
                         )
                         for _ in range(5)
                     )
                     repeat(
-                        "special_geometry_up_air_ledge_grab_drift_out",
+                        f"special_geometry_{route}_drift_out",
                         25,
                         main_x=0.0,
                     )
                     repeat(
-                        "special_geometry_up_air_ledge_grab_descend",
+                        f"special_geometry_{route}_descend",
                         32,
                     )
                     airborne_commands = []
@@ -769,6 +776,7 @@ def input_trace(
                 "up_ground_miss",
                 "up_air_miss",
                 "up_air_ledge_grab",
+                "up_air_ledge_grab_behind",
                 "up_ground_catch",
                 "up_air_catch",
             }:
@@ -777,12 +785,12 @@ def input_trace(
                     command(
                         f"special_geometry_{route}_start",
                         main_y=1.0,
-                        main_x=(0.75 if route == "up_air_ledge_grab" else 0.5),
+                        main_x=(0.75 if ledge_grab_route else 0.5),
                         special=True,
                         fighter_x_override=(-5.0 if collision_route else None),
                         fighter_y_override=(
                             500.0
-                            if elevated_airborne and route != "up_air_ledge_grab"
+                            if elevated_airborne and not ledge_grab_route
                             else None
                         ),
                         opponent_x_override=(0.0 if collision_route else None),
@@ -791,16 +799,22 @@ def input_trace(
                         ),
                     )
                 )
-                if route == "up_air_ledge_grab":
+                if ledge_grab_route:
                     repeat(
-                        "special_geometry_up_air_ledge_grab_steer_toward",
-                        12,
+                        f"special_geometry_{route}_steer_toward",
+                        11 if behind_facing_ledge_route else 12,
                         main_x=1.0,
                     )
+                    if behind_facing_ledge_route:
+                        repeat(
+                            f"special_geometry_{route}_face_away",
+                            1,
+                            main_x=0.0,
+                        )
                     repeat(
-                        "special_geometry_up_air_ledge_grab_steer_away",
+                        f"special_geometry_{route}_steer_away",
                         52,
-                        main_x=0.24,
+                        main_x=(0.775 if behind_facing_ledge_route else 0.24),
                     )
             elif route in {
                 "down_ground",
@@ -859,6 +873,7 @@ def input_trace(
                         "neutral_air",
                         "side_air_hit_floor",
                         "up_air_ledge_grab",
+                        "up_air_ledge_grab_behind",
                     }
                     else None
                 ),

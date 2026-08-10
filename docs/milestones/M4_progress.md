@@ -5122,3 +5122,38 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   absent; CI retains that compiler lane. M4 remains incomplete for special-action
   ledge predicates, broader action-specific ECB evolution, other partial
   fidelity rows, and the native hands-on controller gate.
+
+## 2026-08-10 Falcon Dive bidirectional ledge callback
+
+- The required prior-art sweep compared pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` with current head
+  `6ddd74ecbb755df25b32f137b5f7b7f6d7005e91`. The relevant Falcon Dive and
+  common ledge collision files are unchanged. `doAirColl` passes direction
+  zero to `ft_CheckGroundAndLedge` after its command-variable gate, unlike
+  ordinary Fall/FallSpecial paths which pass facing.
+- Production now computes one action-owned ledge-probe policy and reuses the
+  existing allocation-free catch path. Falcon Dive start accepts both sides
+  only after the imported gate, throw makes no source-absent ledge query, and
+  the selected endpoint assigns inward facing on catch. No second collision
+  routine or character switch was introduced.
+- A deterministic physical route reaches Final-Destination-like left geometry
+  through normal walk/jump/descent input, starts aerial Falcon Dive, reverses
+  facing at the source command gate, then catches the ledge behind Falcon. It
+  asserts outward facing before contact and inward facing plus zero velocity on
+  `LEDGE_CATCH`. Windows and WSL movement suites pass.
+- The retained source capture still verifies exact facing-toward behavior:
+  63 Dive frames, frame-64 `EdgeCatch`, frame-71 `EdgeHang`, source SHA-256
+  `5a5b295d0fc7a8d1c06512dc704176a131a7c01a931a0a2b92f6d7ff8c3a8295`,
+  and all 63 production samples within the established Q16 envelope.
+- The broader Falcon Dive pack exposed a pre-existing red aerial-catch lane.
+  Automated Git bisect identifies `821fde3` (`Match Falcon sphere shield
+  collision`) as first bad: its correct feet-origin-to-reference-joint geometry
+  conversion invalidated an accidental same-frame collision between a source
+  route pinned at `y=500` and a native natural-jump setup. The product transform
+  remains intact; the lane must be split into exact-position geometry replay
+  and genuinely identical-input dynamics.
+- The owner ISO is not currently reachable on this machine, so the new
+  facing-away branch is not yet claimed as live-qualified. Capture generation
+  and comparison support are ready for the next mounted-disc run. The importer
+  skill now records both the action-specific ledge-direction rule and the ban
+  on pairing sustained position overrides with a natural-motion comparator.

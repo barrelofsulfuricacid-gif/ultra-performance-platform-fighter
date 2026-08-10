@@ -3457,6 +3457,45 @@ static int pf_m4_ledge_occupied(
     return 0;
 }
 
+enum
+{
+    PF_M4_LEDGE_PROBE_RIGHT = -1,
+    PF_M4_LEDGE_PROBE_BOTH = 0,
+    PF_M4_LEDGE_PROBE_LEFT = 1,
+    PF_M4_LEDGE_PROBE_NONE = 2
+};
+
+static int8_t pf_m4_ledge_probe_direction(
+    uint8_t action_state,
+    uint16_t action_ticks,
+    int8_t facing)
+{
+    if (action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR)
+    {
+        const pf_m4_falcon_up_special_timing *timing =
+            pf_m4_falcon_reference_up_special_timing();
+
+        return timing != NULL &&
+                       action_ticks >= timing->air_control_begin_frame
+                   ? (int8_t)PF_M4_LEDGE_PROBE_BOTH
+                   : (int8_t)PF_M4_LEDGE_PROBE_NONE;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
+        action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
+        action_state ==
+            (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL)
+    {
+        return facing;
+    }
+    return (int8_t)PF_M4_LEDGE_PROBE_NONE;
+}
+
 static int pf_m4_try_grab_ledge(
     const pf_m4_content *content,
     const pf_world_state *world,
@@ -3478,7 +3517,8 @@ static int pf_m4_try_grab_ledge(
     uint8_t action_state_before_catch,
     uint16_t action_ticks_before_catch,
     int32_t previous_position_x,
-    int8_t facing,
+    int8_t ledge_probe_direction,
+    int8_t *facing,
     int16_t main_stick_y,
     const pf_m4_ssbm_ledge_response_attributes *reference_ledge_response,
     int8_t *dash_direction)
@@ -3577,7 +3617,8 @@ static int pf_m4_try_grab_ledge(
     }
 
     if (*position_x < stage->floor_left_q16 &&
-        facing == INT8_C(1) &&
+        (ledge_probe_direction == (int8_t)PF_M4_LEDGE_PROBE_BOTH ||
+         ledge_probe_direction == (int8_t)PF_M4_LEDGE_PROBE_LEFT) &&
         (int64_t)stage->floor_left_q16 -
                 (int64_t)left_probe_position_x <=
             horizontal_reach)
@@ -3585,7 +3626,10 @@ static int pf_m4_try_grab_ledge(
         ledge = (uint8_t)PF_M4_LEDGE_LEFT;
     }
     else if (*position_x > stage->floor_right_q16 &&
-             facing == INT8_C(-1) &&
+             (ledge_probe_direction ==
+                  (int8_t)PF_M4_LEDGE_PROBE_BOTH ||
+              ledge_probe_direction ==
+                  (int8_t)PF_M4_LEDGE_PROBE_RIGHT) &&
              (int64_t)right_probe_position_x -
                      (int64_t)stage->floor_right_q16 <=
                  horizontal_reach)
@@ -3629,6 +3673,7 @@ static int pf_m4_try_grab_ledge(
     *air_jumps_remaining = fighter->air_jump_count;
     *short_hop_latched = UINT8_C(0);
     *fast_fall = UINT8_C(0);
+    *facing = pf_m4_ledge_inward_direction(ledge);
     *ledge_invulnerability_ticks =
         fighter->ledge_invulnerability_ticks;
     *dash_direction = INT8_C(0);
@@ -11667,64 +11712,61 @@ pf_status pf_m4_step_player(
         }
     }
 
-    if (!ledge_motion_handled &&
-        !released_ledge_this_tick &&
-        grounded == UINT8_C(0) &&
-        (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
-         action_state ==
-             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
-         action_state == (uint8_t)PF_M4_ACTION_FALL_SPECIAL ||
-         action_state == (uint8_t)PF_M4_ACTION_VECTOR_ASCENT ||
-         action_state ==
-             (uint8_t)PF_M4_ACTION_FALCON_DIVE_FALL ||
-         action_state ==
-             (uint8_t)PF_M4_ACTION_FALCON_DIVE_THROW ||
-         ((action_state ==
-               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_GROUND ||
-           action_state ==
-               (uint8_t)PF_M4_ACTION_FALCON_DIVE_START_AIR) &&
-          action_ticks >=
-              pf_m4_falcon_reference_up_special_timing()
-                  ->air_control_begin_frame)) &&
-        platform_drop_ticks == UINT8_C(0))
     {
-        if (pf_m4_try_grab_ledge(
-                content,
-                world,
-                scratch,
-                player_index,
-                &position_x,
-                &position_y,
-                &velocity_x,
-                &velocity_y,
-                &action_ticks,
-                &grounded,
-                &action_state,
-                &support,
-                &air_jumps_remaining,
-                &short_hop_latched,
-                &fast_fall,
-                &scratch->ledge_invulnerability_ticks[player_index],
-                scratch->ledge_regrab_lockout_ticks[player_index],
+        const int8_t ledge_probe_direction =
+            pf_m4_ledge_probe_direction(
                 action_state,
                 action_ticks,
-                previous_position_x,
-                facing,
-                input->main_stick_y,
-                reference_ledge_response,
-                &dash_direction))
+                facing);
+
+        if (!ledge_motion_handled &&
+            !released_ledge_this_tick &&
+            grounded == UINT8_C(0) &&
+            ledge_probe_direction !=
+                (int8_t)PF_M4_LEDGE_PROBE_NONE &&
+            platform_drop_ticks == UINT8_C(0))
         {
-            source_submotion =
-                fighter->reference_frame_data_enabled != UINT8_C(0)
-                    ? (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH
-                    : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
-            scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
-            scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
-            scratch->ground_knockback_velocity_q16[player_index] =
-                INT32_C(0);
-            scratch->tumble[player_index] = UINT8_C(0);
-            scratch->tech_direction[player_index] = INT8_C(0);
-            recovery_available = UINT8_C(1);
+            if (pf_m4_try_grab_ledge(
+                    content,
+                    world,
+                    scratch,
+                    player_index,
+                    &position_x,
+                    &position_y,
+                    &velocity_x,
+                    &velocity_y,
+                    &action_ticks,
+                    &grounded,
+                    &action_state,
+                    &support,
+                    &air_jumps_remaining,
+                    &short_hop_latched,
+                    &fast_fall,
+                    &scratch->ledge_invulnerability_ticks[player_index],
+                    scratch->ledge_regrab_lockout_ticks[player_index],
+                    action_state,
+                    action_ticks,
+                    previous_position_x,
+                    ledge_probe_direction,
+                    &facing,
+                    input->main_stick_y,
+                    reference_ledge_response,
+                    &dash_direction))
+            {
+                source_submotion =
+                    fighter->reference_frame_data_enabled != UINT8_C(0)
+                        ? (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH
+                        : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+                scratch->knockback_velocity_x_q16[player_index] =
+                    INT32_C(0);
+                scratch->knockback_velocity_y_q16[player_index] =
+                    INT32_C(0);
+                scratch->ground_knockback_velocity_q16[player_index] =
+                    INT32_C(0);
+                scratch->tumble[player_index] = UINT8_C(0);
+                scratch->tech_direction[player_index] = INT8_C(0);
+                recovery_available = UINT8_C(1);
+            }
         }
     }
 
