@@ -11,6 +11,7 @@
       "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_oracle.py",
+      "tools/ssbm_checkpoint_manifest.py",
       "tools/ssbm_collision.py",
       "tools/ssbm_equivalence_manifest.json",
       "tools/ssbm_exiai_checkpoint.patch",

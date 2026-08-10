@@ -444,6 +444,74 @@
             "id": "response", "ticks": 58,
             "secondary": [32767, 0]
           }]
+        },
+        {
+          "id": "quick_climb_collision_hit",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": [
+            "EDGE_HANGING", "EDGE_GETUP_QUICK",
+            "DAMAGE_HIGH_1", "DAMAGE_HIGH_2", "DAMAGE_HIGH_3",
+            "DAMAGE_NEUTRAL_1", "DAMAGE_NEUTRAL_2", "DAMAGE_NEUTRAL_3",
+            "DAMAGE_FLY_NEUTRAL"
+          ],
+          "observe_segments": [{
+            "id": "collision", "ticks": 120,
+            "conditional_edge": [
+              {
+                "action": "EDGE_HANGING", "frame": 2,
+                "main": [-32767, 0],
+                "opponent_x_override": 198.75,
+                "opponent_facing_override": 1
+              },
+              {
+                "action": "EDGE_GETUP_QUICK", "frame": 25,
+                "opponent_attack": true
+              }
+            ]
+          }]
+        },
+        {
+          "id": "quick_climb_collision_miss",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": [
+            "EDGE_HANGING", "EDGE_GETUP_QUICK",
+            "DAMAGE_HIGH_1", "DAMAGE_HIGH_2", "DAMAGE_HIGH_3",
+            "DAMAGE_NEUTRAL_1", "DAMAGE_NEUTRAL_2", "DAMAGE_NEUTRAL_3",
+            "DAMAGE_FLY_NEUTRAL"
+          ],
+          "observe_segments": [{
+            "id": "collision", "ticks": 120,
+            "conditional_edge": [
+              {
+                "action": "EDGE_HANGING", "frame": 2,
+                "main": [-32767, 0],
+                "opponent_x_override": 198.0,
+                "opponent_facing_override": 1
+              },
+              {
+                "action": "EDGE_GETUP_QUICK", "frame": 25,
+                "opponent_attack": true
+              }
+            ]
+          }]
         }
       ]
     }
@@ -469,6 +537,10 @@
     {"id": "main_priority_drop", "start_label": "surface_response_main_priority_drop_setup"},
     {"id": "c_outward_before_ready", "start_label": "surface_response_c_outward_before_ready_setup"}
   ],
+  "projection_cases": [
+    {"id": "quick_climb_collision_hit", "start_label": "surface_response_quick_climb_collision_hit_setup"},
+    {"id": "quick_climb_collision_miss", "start_label": "surface_response_quick_climb_collision_miss_setup"}
+  ],
   "selection": {
     "paths": [
       "generated/data/m4_falcon_ntsc102_frame_data.inc",
@@ -487,6 +559,8 @@
       "tools/import_ssbm_common_data.py",
       "tools/merge_ssbm_checkpoint_captures.py",
       "tools/ssbm_falcon_ledge_options_coverage.json",
+      "tools/verify_ssbm_falcon_ledge_collision.py",
+      "tools/verify_ssbm_falcon_ledge_collision.sh",
       "tools/verify_ssbm_falcon_ledge_options.py"
     ]
   },

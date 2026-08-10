@@ -24,7 +24,7 @@ separately because a stored pass cannot establish new SSBM truth.
 | --- | --- | --- |
 | Fast stored equivalence | done for eleven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, and bounce-pose floor re-contact contain 77 registered cases plus deterministic replay. Common hurt now hashes 689 production poses, including all 434 quick/slow ledge poses. The current full gate checks eleven generated artifacts and replay in 1.12-1.14 seconds on Windows and 1.15-1.29 seconds on WSL. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and keep one observer connected while compatible cases replay checkpoints. The common-hurt changed-domain route measures 2.635-2.729 seconds warm. Three independent 19-case ledge runs pass the enforced 10.0-second warm guardrail at 9.649, 8.924, and 9.614 seconds with the same 558-row / 514-sample semantic digest. Unsafe cross-invocation observer reconnection is rejected, not a remaining deliverable. |
-| Falcon bounded hurt poses | common and ledge poses imported; ledge discriminator pending | The common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules) through a reusable manifest-driven generator and the production collision/inspection path. One generic 689-pose stored digest now protects both families; the smallest source-qualified ledge hit/miss discriminator remains the next gate. |
+| Falcon bounded hurt poses | common and ledge poses imported and physically qualified | The common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules) through a reusable manifest-driven generator and the production collision/inspection path. One generic 689-pose stored digest protects both families. A separate two-case live theorem proves imported quick-climb frame 29 against exact Falcon Jab 1 frame 4: the positive route hits, the 0.75-unit-farther control misses, and the generic body rectangle misses both. |
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, and a source-qualified complete Battlefield collision/environment catalog. The production Battlefield route qualifies JumpF/Pass ECB timing, selected floor lines 2/1, exact sloped wall/ceiling normals and reflection, and complete `BOUNCE_CEILING`/`BOUNCE_WALL` pose-driven descent through first top-platform re-contact. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
@@ -693,8 +693,18 @@ Execution results:
   `d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
   The complete eleven-domain plus replay gate passes in 1.12-1.14 seconds on
   Windows and 1.15-1.29 seconds in WSL.
-- [ ] Add the smallest source-qualified ledge hit/miss discriminator; do not
-  infer that physical route from the exhaustive stored pose digest alone.
+- [x] Add the smallest source-qualified ledge hit/miss discriminator without
+  inferring it from the exhaustive stored pose digest. Two independently
+  launched two-shard captures are byte-identical at SHA-256
+  `f31de47e694e46bf2269945747c97238ce443ddf88cbadc0a8e4214026f2785d`.
+  Falcon Jab 1 frame 4 hits quick-climb frame 29 at the positive placement and
+  misses 0.75 Melee units farther away. Reconstructed actual-pose margins are
+  `+0.573037244` / `-0.098777672`; the generic rectangle remains a miss at
+  `-1.895534515`. Semantic SHA-256 is
+  `fbe0cf877402bf82aba10d8ae3dceecb4e431caa87d9b75b5844bfb7b132af2d`.
+  Supplemental manifest projections and ordered semantic edges keep these two
+  routes outside the ordinary 19-case ledge pack and the sub-two-second stored
+  edit loop. The at-will live command passes in 6.07 seconds warm on this host.
 
 ## Completed locally: source-qualified Battlefield catalog and content
 

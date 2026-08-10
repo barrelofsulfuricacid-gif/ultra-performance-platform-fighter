@@ -1004,8 +1004,22 @@ at SHA-256
 `2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151`;
 the independently serialized production accessor matches pinned SHA-256
 `d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
-The stored digest proves regression identity only. A ledge-specific live
-collision hit/miss discriminator remains required for end-to-end qualification.
+The stored digest proves regression identity only. A separate two-case live
+collision theorem completes the end-to-end geometry qualification. It schedules
+ordered semantic edges at `CliffWait` frame 2 and quick-climb frame 25, then
+observes exact Falcon Jab 1 frame 4 against imported quick-climb frame 29. The
+attacker's three active spheres match the independently captured port-1 Falcon
+signature exactly. At source X 198.75 the target takes two damage and enters
+`DamageN2`; at 198.0 it remains in `CliffClimbQuick` at unchanged damage.
+Reconstructed actual-capsule margins are `+0.573037244` and `-0.098777672`,
+while the old generic rectangle still misses the positive route at
+`-1.895534515`. Two fresh two-shard captures reproduce the same 143-row file
+byte-for-byte at SHA-256
+`f31de47e694e46bf2269945747c97238ce443ddf88cbadc0a8e4214026f2785d`;
+the canonical outcome/pose/attacker semantic SHA-256 is
+`fbe0cf877402bf82aba10d8ae3dceecb4e431caa87d9b75b5844bfb7b132af2d`.
+The route is a supplemental projection of the existing ledge setup, so it does
+not add frames to the default 19-case numeric pack.
 
 ## Repository controls
 

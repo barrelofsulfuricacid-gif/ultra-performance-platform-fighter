@@ -18,6 +18,7 @@ from ssbm_collision import (
     hurt_pose_tracks_semantic_payload,
     q16_hurt_poses_equivalent,
 )
+from ssbm_checkpoint_manifest import projected_manifest
 
 
 EXPECTED_CAPTURE_SHA256 = (
@@ -397,6 +398,253 @@ def generic_rectangle_margin(
     return max(margins, default=-math.inf)
 
 
+def active_hitbox_signature_q16(
+    row: dict[str, Any],
+    hitbox_key: str,
+    position_key: str,
+    facing_key: str,
+) -> tuple[tuple[int, ...], ...]:
+    """Return facing-right local executable hit geometry and effect data."""
+
+    memory = dict(row["hitbox_memory"])
+    root = [float(value) for value in memory[position_key]]
+    facing = int(row[facing_key])
+    if facing not in (-1, 1):
+        raise SystemExit("collision attacker facing is invalid")
+
+    def local_q16(position: object) -> tuple[int, int, int]:
+        if not isinstance(position, list) or len(position) != 3:
+            raise SystemExit("collision hitbox position is invalid")
+        return (
+            round(facing * (float(position[0]) - root[0]) * MELEE_TO_SIM_Q16),
+            round((float(position[1]) - root[1]) * MELEE_TO_SIM_Q16),
+            round(facing * (float(position[2]) - root[2]) * MELEE_TO_SIM_Q16),
+        )
+
+    signatures = []
+    for hitbox in memory[hitbox_key]:
+        if int(hitbox.get("state", 0)) == 0:
+            continue
+        current = local_q16(hitbox["position"])
+        previous = local_q16(hitbox["previous_position"])
+        signatures.append(
+            (
+                int(hitbox["hit_id"]),
+                int(hitbox["state"]),
+                round(float(hitbox["damage"]) * 65536.0),
+                round(float(hitbox["radius"]) * MELEE_TO_SIM_Q16),
+                int(hitbox["angle"]),
+                int(hitbox["knockback_growth"]),
+                int(hitbox["weight_set_knockback"]),
+                int(hitbox["base_knockback"]),
+                int(hitbox["element"]),
+                *current,
+                *previous,
+            )
+        )
+    return tuple(signatures)
+
+
+def profile_hurt_pose(
+    profile: dict[str, Any], track_id: str, displayed_frame: int
+) -> tuple[tuple[int, ...], ...]:
+    tracks = [track for track in profile["tracks"] if track.get("id") == track_id]
+    if len(tracks) != 1:
+        raise SystemExit(f"expected one hurt-pose track {track_id!r}")
+    frames = [
+        frame
+        for frame in tracks[0]["frames"]
+        if int(frame.get("displayed_frame", -1)) == displayed_frame
+    ]
+    if len(frames) != 1:
+        raise SystemExit(
+            f"expected one {track_id} displayed frame {displayed_frame}"
+        )
+    return tuple(
+        tuple(int(value) for value in capsule)
+        for capsule in frames[0]["capsules_q16"]
+    )
+
+
+def verify_ledge_collision_discriminator(
+    capture_path: Path,
+    coverage_path: Path,
+    ledge_profile: dict[str, Any],
+    qualification: dict[str, Any],
+) -> tuple[str, float, float, float]:
+    capture = json.loads(capture_path.read_text(encoding="utf-8"))
+    coverage_bytes = coverage_path.read_bytes()
+    coverage = json.loads(coverage_bytes)
+    case_ids = list(qualification.get("case_ids", []))
+    if (
+        case_ids
+        != ["quick_climb_collision_hit", "quick_climb_collision_miss"]
+        or qualification.get("target_track") != "ledge_climb_quick"
+        or qualification.get("target_displayed_frame") != 29
+        or qualification.get("attacker_action") != "NEUTRAL_ATTACK_1"
+        or qualification.get("attacker_displayed_frame") != 4
+        or qualification.get("positive_damage_action") != "DAMAGE_NEUTRAL_2"
+        or qualification.get("expected_rows") != 143
+        or qualification.get("shards") != 2
+        or qualification.get("warm_budget_seconds") != 8.0
+        or qualification.get("cold_budget_seconds") != 9.0
+    ):
+        raise SystemExit("invalid ledge live-collision qualification manifest")
+    expected_manifest = projected_manifest(
+        coverage,
+        case_ids,
+        hashlib.sha256(coverage_bytes).hexdigest(),
+        int(qualification["shards"]),
+        float(qualification["warm_budget_seconds"]),
+        float(qualification["cold_budget_seconds"]),
+    )
+    checkpoint_pack = capture.get("checkpoint_pack", {})
+    if (
+        capture.get("fighter") != "CPTFALCON"
+        or capture.get("opponent") != "CPTFALCON"
+        or capture.get("stage") != "HYRULE_TEMPLE"
+        or capture.get("disc", {}).get("sha256") != EXPECTED_DISC_SHA256
+        or capture.get("dolphin_version") != "3.5.1"
+        or capture.get("libmelee_version") != "0.47.2"
+        or capture.get("oracle_execution", {}).get("release_artifact_sha256")
+        != EXPECTED_EXIAI_SHA256
+        or capture.get("hitbox_memory_probe", {}).get("decomp_revision")
+        != EXPECTED_DECOMP_REVISION
+        or checkpoint_pack.get("coverage_manifest") != expected_manifest
+        or capture.get("parallel_capture", {}).get("case_order") != case_ids
+        or len(capture.get("rows", [])) != qualification["expected_rows"]
+        or sha256(capture_path) != qualification.get("capture_sha256")
+    ):
+        raise SystemExit("unexpected ledge collision capture provenance")
+
+    rows = list(capture.get("rows", []))
+    positive = [
+        row
+        for row in rows
+        if "quick_climb_collision_hit" in str(row.get("label", ""))
+    ]
+    negative = [
+        row
+        for row in rows
+        if "quick_climb_collision_miss" in str(row.get("label", ""))
+    ]
+    if (
+        not positive
+        or not negative
+        or not math.isclose(float(positive[0]["damage_percent"]), 60.0)
+        or not math.isclose(float(positive[-1]["damage_percent"]), 62.0)
+        or not any(row.get("action") == "DAMAGE_NEUTRAL_2" for row in positive)
+        or any(
+            not math.isclose(float(row["damage_percent"]), 60.0)
+            for row in negative
+        )
+        or any(
+            str(row.get("action", "")).startswith("DAMAGE_NEUTRAL")
+            for row in negative
+        )
+    ):
+        raise SystemExit("ledge collision hit/miss outcome mismatch")
+
+    miss_frame = collision_frame(
+        negative,
+        4,
+        "EDGE_GETUP_QUICK",
+        29,
+        attacker_prefix="opponent_",
+        target_prefix="",
+    )
+    expected_target_pose = profile_hurt_pose(
+        ledge_profile, "ledge_climb_quick", 29
+    )
+    observed_target_pose = canonical_hurt_pose_q16(
+        dict(miss_frame["hitbox_memory"]),
+        "fighter_hurtboxes",
+        "fighter_position",
+        int(miss_frame["facing"]),
+        MELEE_TO_SIM_Q16,
+    )
+    if not q16_hurt_poses_equivalent(expected_target_pose, observed_target_pose):
+        raise SystemExit("ledge collision target does not match imported frame 29")
+
+    expected_hitboxes = tuple(
+        tuple(int(value) for value in hitbox)
+        for hitbox in qualification.get("attacker_hitboxes_q16", [])
+    )
+    observed_hitboxes = active_hitbox_signature_q16(
+        miss_frame,
+        "opponent_hitboxes",
+        "opponent_fighter_position",
+        "opponent_facing",
+    )
+    if len(expected_hitboxes) != 3 or expected_hitboxes != observed_hitboxes:
+        raise SystemExit(
+            "ledge collision port-2 attacker does not match Falcon Jab 1 geometry"
+        )
+
+    requested_positions: dict[str, float] = {}
+    for case_id, case_rows in ((case_ids[0], positive), (case_ids[1], negative)):
+        positions = {
+            float(row["requested_opponent_x_override"])
+            for row in case_rows
+            if row.get("requested_opponent_x_override") is not None
+        }
+        if len(positions) != 1:
+            raise SystemExit(f"{case_id} has invalid attacker placement {positions}")
+        requested_positions[case_id] = next(iter(positions))
+    target_shift_x = (
+        requested_positions[case_ids[1]] - requested_positions[case_ids[0]]
+    )
+    hit_margin, miss_margin = reconstructed_collision_margins(
+        miss_frame,
+        target_shift_x,
+        hitbox_key="opponent_hitboxes",
+        hurtbox_key="fighter_hurtboxes",
+    )
+    generic_margin = generic_rectangle_margin(
+        dict(miss_frame["hitbox_memory"]),
+        target_shift_x,
+        hitbox_key="opponent_hitboxes",
+        target_position_key="fighter_position",
+    )
+    if hit_margin < 0.0 or miss_margin >= 0.0 or generic_margin >= 0.0:
+        raise SystemExit(
+            "ledge collision discriminator failed: "
+            f"hit_margin={hit_margin:.9f} miss_margin={miss_margin:.9f} "
+            f"generic_margin={generic_margin:.9f}"
+        )
+
+    semantic_payload = {
+        "schema": 1,
+        "case_ids": case_ids,
+        "initial_damage_q16": round(60.0 * 65536.0),
+        "positive_damage_q16": round(62.0 * 65536.0),
+        "positive_action": "DAMAGE_NEUTRAL_2",
+        "negative_action": "EDGE_GETUP_QUICK",
+        "target_action": "EDGE_GETUP_QUICK",
+        "target_displayed_frame": 29,
+        "attacker_action": "NEUTRAL_ATTACK_1",
+        "attacker_displayed_frame": 4,
+        "attacker_positions_q16": [
+            round(requested_positions[case_id] * MELEE_TO_SIM_Q16)
+            for case_id in case_ids
+        ],
+        "target_pose_q16": expected_target_pose,
+        "attacker_hitboxes_q16": observed_hitboxes,
+    }
+    semantic_sha256 = canonical_json_sha256(semantic_payload)
+    if semantic_sha256 != qualification.get("semantic_sha256"):
+        raise SystemExit(
+            "unexpected ledge collision semantic SHA-256: "
+            f"{semantic_sha256}"
+        )
+    return (
+        semantic_sha256,
+        hit_margin,
+        miss_margin,
+        generic_margin,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("capture", type=Path)
@@ -410,9 +658,31 @@ def main() -> int:
     parser.add_argument("landing_source", type=Path)
     parser.add_argument("--checkpoint-pack", action="store_true")
     parser.add_argument("--additional-hurt-profile", type=Path)
+    parser.add_argument("--ledge-collision-capture", type=Path)
+    parser.add_argument("--ledge-coverage-manifest", type=Path)
+    parser.add_argument("--ledge-import-manifest", type=Path)
     args = parser.parse_args()
     if args.additional_hurt_profile is not None and not args.checkpoint_pack:
         parser.error("--additional-hurt-profile requires --checkpoint-pack")
+    ledge_inputs = (
+        args.ledge_collision_capture,
+        args.ledge_coverage_manifest,
+        args.ledge_import_manifest,
+    )
+    if any(value is None for value in ledge_inputs) and any(
+        value is not None for value in ledge_inputs
+    ):
+        parser.error(
+            "ledge collision capture, coverage, and import manifest must be "
+            "provided together"
+        )
+    if args.ledge_collision_capture is not None and (
+        not args.checkpoint_pack or args.additional_hurt_profile is None
+    ):
+        parser.error(
+            "ledge collision verification requires the checkpoint pack and "
+            "additional hurt profile"
+        )
 
     capture_digest = sha256(args.capture)
     if not args.checkpoint_pack and capture_digest != EXPECTED_CAPTURE_SHA256:
@@ -754,12 +1024,35 @@ def main() -> int:
         )
 
     if args.checkpoint_pack:
+        ledge_collision_result: tuple[str, float, float, float] | None = None
+        if args.ledge_collision_capture is not None:
+            if additional_hurt_profile is None:
+                raise SystemExit("ledge collision profile was not loaded")
+            ledge_collision_result = verify_ledge_collision_discriminator(
+                args.ledge_collision_capture,
+                args.ledge_coverage_manifest,
+                additional_hurt_profile,
+                dict(
+                    json.loads(
+                        args.ledge_import_manifest.read_text(encoding="utf-8")
+                    )["live_collision_qualification"]
+                ),
+            )
         print(
             "ssbm-common-hurt-checkpoint=pass "
             f"rows={len(rows)} poses={len(canonical_poses)} "
             f"dash_hit_margin={dash_hit_margin:.9f} "
             f"dash_miss_margin={dash_miss_margin:.9f} "
             f"pose_sha256={pose_digest}"
+            + (
+                " ledge_collision_sha256="
+                f"{ledge_collision_result[0]} "
+                f"ledge_hit_margin={ledge_collision_result[1]:.9f} "
+                f"ledge_miss_margin={ledge_collision_result[2]:.9f} "
+                f"ledge_generic_margin={ledge_collision_result[3]:.9f}"
+                if ledge_collision_result is not None
+                else ""
+            )
         )
         return 0
 

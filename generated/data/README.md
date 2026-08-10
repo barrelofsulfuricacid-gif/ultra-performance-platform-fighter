@@ -49,6 +49,11 @@ character-independent `tools/generate_ssbm_hurt_pose_include.py` consumes a
 hash-pinned canonical hurt-pose profile plus the small character binding in
 `tools/ssbm_falcon_ledge_hurt_import.json`; production selects its immutable
 tracks by retained source submotion without runtime parsing or allocation.
+Its import manifest also pins the separate two-case live collision theorem:
+quick-climb frame 29 is tested against exact Falcon Jab 1 frame 4 at one hit
+and one nearby miss placement. The physical routes remain supplemental
+checkpoint projections, so they do not duplicate capsules or lengthen the
+default ledge trace pack.
 
 `m4_ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
 fast stored-equivalence lane. Its single authored source is

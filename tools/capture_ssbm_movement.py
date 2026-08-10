@@ -1985,7 +1985,7 @@ def input_trace(
                     str,
                     int,
                     dict[str, object],
-                    dict[str, object] | None,
+                    dict[str, object] | list[dict[str, object]] | None,
                     tuple[int, ...] | None,
                     dict[str, int] | None,
                     tuple[int, ...] | None,
@@ -1998,8 +1998,9 @@ def input_trace(
                         str,
                         int,
                         dict[str, object],
-                        dict[str, object] | None,
+                        dict[str, object] | list[dict[str, object]] | None,
                         tuple[int, ...] | None,
+                        dict[str, int] | None,
                         tuple[int, ...] | None,
                     ]
                 ] = []
@@ -2206,19 +2207,27 @@ def input_trace(
                             for field in button_fields
                         }
                     )
-                    conditional_edge: dict[str, object] | None = None
+                    conditional_edge: (
+                        dict[str, object] | list[dict[str, object]] | None
+                    ) = None
                     if raw_conditional_edge is not None:
-                        if not isinstance(raw_conditional_edge, dict):
-                            raise ValueError(
-                                "conditional response edge must be an object"
-                            )
-                        edge_action = raw_conditional_edge.get("action")
-                        edge_frame = raw_conditional_edge.get("frame")
-                        edge_main = raw_conditional_edge.get("main", main)
-                        edge_secondary = raw_conditional_edge.get(
-                            "secondary",
-                            secondary,
+                        raw_conditional_edges = (
+                            [raw_conditional_edge]
+                            if isinstance(raw_conditional_edge, dict)
+                            else raw_conditional_edge
                         )
+                        if (
+                            not isinstance(raw_conditional_edges, list)
+                            or not raw_conditional_edges
+                            or any(
+                                not isinstance(edge, dict)
+                                for edge in raw_conditional_edges
+                            )
+                        ):
+                            raise ValueError(
+                                "conditional response edge must be an object or "
+                                "a non-empty object list"
+                            )
                         edge_allowed_fields = {
                             "action",
                             "frame",
@@ -2226,82 +2235,120 @@ def input_trace(
                             "secondary",
                             "damage_percent",
                             "opponent_x_override",
+                            "opponent_y_override",
+                            "opponent_facing_override",
+                            "opponent_attack",
                             *button_fields,
                         }
-                        edge_damage = raw_conditional_edge.get(
-                            "damage_percent"
-                        )
-                        edge_opponent_x = raw_conditional_edge.get(
-                            "opponent_x_override"
-                        )
-                        if (
-                            not isinstance(edge_action, str)
-                            or edge_action not in melee.Action.__members__
-                            or not isinstance(edge_frame, int)
-                            or isinstance(edge_frame, bool)
-                            or not 0 <= edge_frame <= 500
-                            or not isinstance(edge_main, list)
-                            or len(edge_main) != 2
-                            or not isinstance(edge_secondary, list)
-                            or len(edge_secondary) != 2
-                            or not set(raw_conditional_edge).issubset(
-                                edge_allowed_fields
+                        parsed_edges: list[dict[str, object]] = []
+                        edge_boundaries: set[tuple[str, int]] = set()
+                        for raw_edge in raw_conditional_edges:
+                            edge_action = raw_edge.get("action")
+                            edge_frame = raw_edge.get("frame")
+                            edge_main = raw_edge.get("main", main)
+                            edge_secondary = raw_edge.get("secondary", secondary)
+                            edge_damage = raw_edge.get("damage_percent")
+                            edge_opponent_x = raw_edge.get("opponent_x_override")
+                            edge_opponent_y = raw_edge.get("opponent_y_override")
+                            edge_opponent_facing = raw_edge.get(
+                                "opponent_facing_override"
                             )
-                            or (
-                                edge_damage is not None
-                                and (
-                                    not isinstance(edge_damage, (int, float))
-                                    or isinstance(edge_damage, bool)
-                                    or not 0.0 <= float(edge_damage) <= 999.0
+                            if (
+                                not isinstance(edge_action, str)
+                                or edge_action not in melee.Action.__members__
+                                or not isinstance(edge_frame, int)
+                                or isinstance(edge_frame, bool)
+                                or not 0 <= edge_frame <= 500
+                                or not isinstance(edge_main, list)
+                                or len(edge_main) != 2
+                                or not isinstance(edge_secondary, list)
+                                or len(edge_secondary) != 2
+                                or not set(raw_edge).issubset(edge_allowed_fields)
+                                or (
+                                    edge_damage is not None
+                                    and (
+                                        not isinstance(edge_damage, (int, float))
+                                        or isinstance(edge_damage, bool)
+                                        or not 0.0 <= float(edge_damage) <= 999.0
+                                    )
                                 )
-                            )
-                            or (
-                                edge_opponent_x is not None
-                                and (
-                                    not isinstance(edge_opponent_x, (int, float))
-                                    or isinstance(edge_opponent_x, bool)
-                                    or not -1000.0 <= float(edge_opponent_x) <= 1000.0
+                                or any(
+                                    value is not None
+                                    and (
+                                        not isinstance(value, (int, float))
+                                        or isinstance(value, bool)
+                                        or not -1000.0 <= float(value) <= 1000.0
+                                    )
+                                    for value in (
+                                        edge_opponent_x,
+                                        edge_opponent_y,
+                                    )
                                 )
-                            )
-                            or any(
-                                not isinstance(
-                                    raw_conditional_edge.get(field, False),
-                                    bool,
+                                or (
+                                    edge_opponent_facing is not None
+                                    and edge_opponent_facing not in (-1, 1)
                                 )
-                                for field in button_fields
-                            )
-                        ):
-                            raise ValueError(
-                                f"invalid conditional response edge in "
-                                f"{segment_id!r}"
-                            )
-                        edge_inputs: dict[str, object] = {
-                            "main_x": controller_axis(edge_main[0]),
-                            "main_y": controller_axis(edge_main[1]),
-                            "c_x": controller_axis(edge_secondary[0]),
-                            "c_y": controller_axis(edge_secondary[1]),
-                        }
-                        edge_inputs.update(
-                            {
-                                field: raw_conditional_edge.get(field, False)
-                                for field in button_fields
+                                or any(
+                                    not isinstance(raw_edge.get(field, False), bool)
+                                    for field in (
+                                        *button_fields,
+                                        "opponent_attack",
+                                    )
+                                )
+                                or (edge_action, edge_frame) in edge_boundaries
+                            ):
+                                raise ValueError(
+                                    f"invalid conditional response edge in "
+                                    f"{segment_id!r}"
+                                )
+                            edge_boundaries.add((edge_action, edge_frame))
+                            edge_inputs: dict[str, object] = {
+                                "main_x": controller_axis(edge_main[0]),
+                                "main_y": controller_axis(edge_main[1]),
+                                "c_x": controller_axis(edge_secondary[0]),
+                                "c_y": controller_axis(edge_secondary[1]),
                             }
+                            edge_inputs.update(
+                                {
+                                    field: raw_edge.get(field, False)
+                                    for field in button_fields
+                                }
+                            )
+                            edge_inputs["fighter_damage_override"] = (
+                                None
+                                if edge_damage is None
+                                else float(edge_damage)
+                            )
+                            edge_inputs["opponent_x_override"] = (
+                                None
+                                if edge_opponent_x is None
+                                else float(edge_opponent_x)
+                            )
+                            edge_inputs["opponent_y_override"] = (
+                                None
+                                if edge_opponent_y is None
+                                else float(edge_opponent_y)
+                            )
+                            edge_inputs["opponent_facing_override"] = (
+                                None
+                                if edge_opponent_facing is None
+                                else float(edge_opponent_facing)
+                            )
+                            edge_inputs["opponent_attack"] = raw_edge.get(
+                                "opponent_attack", False
+                            )
+                            parsed_edges.append(
+                                {
+                                    "action": edge_action,
+                                    "frame": edge_frame,
+                                    "inputs": edge_inputs,
+                                }
+                            )
+                        conditional_edge = (
+                            parsed_edges[0]
+                            if len(parsed_edges) == 1
+                            else parsed_edges
                         )
-                        edge_inputs["fighter_damage_override"] = (
-                            None
-                            if edge_damage is None
-                            else float(edge_damage)
-                        )
-                        edge_inputs["opponent_x_override"] = (
-                            None
-                            if edge_opponent_x is None
-                            else float(edge_opponent_x)
-                        )
-                        conditional_edge = {
-                            "action": edge_action,
-                            "frame": edge_frame,
-                            "inputs": edge_inputs,
-                        }
                     segment_ids.add(segment_id)
                     total_ticks += ticks
                     segments.append(
@@ -2905,12 +2952,27 @@ def input_trace(
                                     recorded_actions
                                 )
                         if conditional_edge is not None:
-                            edge = {
-                                **conditional_edge,
-                                "id": f"{prefix}:{segment_id}",
-                            }
+                            source_edges = (
+                                conditional_edge
+                                if isinstance(conditional_edge, list)
+                                else [conditional_edge]
+                            )
+                            edges = [
+                                {
+                                    **edge,
+                                    "id": (
+                                        f"{prefix}:{segment_id}"
+                                        if len(source_edges) == 1
+                                        else f"{prefix}:{segment_id}:{edge_index}"
+                                    ),
+                                }
+                                for edge_index, edge in enumerate(source_edges)
+                            ]
+                            command_edges: object = (
+                                edges[0] if len(edges) == 1 else tuple(edges)
+                            )
                             for segment_command in segment_commands:
-                                segment_command["conditional_edge"] = edge
+                                segment_command["conditional_edge"] = command_edges
                         if record_cliff_wait_timers is not None:
                             for segment_command in segment_commands:
                                 segment_command["record_cliff_wait_timers"] = (
@@ -5628,12 +5690,30 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             }
             for _ in range(pipeline_delay)
         ]
+
+        def command_conditional_edges(
+            trace_command: dict[str, object],
+        ) -> tuple[dict[str, object], ...]:
+            edge = trace_command.get("conditional_edge")
+            if edge is None:
+                return ()
+            if isinstance(edge, dict):
+                return (edge,)
+            if isinstance(edge, (list, tuple)) and all(
+                isinstance(item, dict) for item in edge
+            ):
+                return tuple(edge)
+            raise RuntimeError("invalid generated conditional response edge")
+
         expected_conditional_edges = {
             str(edge["id"])
             for trace_command in trace
-            if (edge := trace_command.get("conditional_edge")) is not None
+            for edge in command_conditional_edges(trace_command)
         }
         fired_conditional_edges: set[str] = set()
+        conditional_edge_observations: dict[str, list[str]] = {
+            edge_id: [] for edge_id in expected_conditional_edges
+        }
         checkpoint_restore_seconds = 0.0
         checkpoint_case_labels: list[str] = []
         pending_restore: dict[str, object] | None = None
@@ -5712,9 +5792,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         def batch_safe(
             controller_sample: dict[str, object], command_index: int
         ) -> bool:
-            edge = controller_sample.get("conditional_edge")
-            edge_pending = edge is not None and str(edge["id"]) not in (
-                fired_conditional_edges
+            edge_pending = any(
+                str(edge["id"]) not in fired_conditional_edges
+                for edge in command_conditional_edges(controller_sample)
             )
             return not (
                 edge_pending
@@ -5788,27 +5868,37 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 ledge_cooldown_by_command_index.clear()
                 checkpoint_case_labels.append(str(sample["label"]))
             conditional_edge_fired_now = False
-            conditional_edge = sample.get("conditional_edge")
-            if conditional_edge is not None:
+            conditional_edges = command_conditional_edges(sample)
+            if conditional_edges:
                 if pipeline_delay != 0:
                     raise RuntimeError(
                         "conditional response edges require the zero-delay "
                         "EXI input pipeline"
                     )
-                edge_id = str(conditional_edge["id"])
                 player_before_step = gamestate.players.get(1)
-                if (
-                    edge_id not in fired_conditional_edges
-                    and player_before_step is not None
-                    and player_before_step.action.name
-                    == conditional_edge["action"]
-                    and int(player_before_step.action_frame)
-                    == conditional_edge["frame"]
-                ):
-                    sample.update(conditional_edge["inputs"])
-                    sample["label"] = f"{sample['label']}_edge"
-                    fired_conditional_edges.add(edge_id)
-                    conditional_edge_fired_now = True
+                for conditional_edge in conditional_edges:
+                    edge_id = str(conditional_edge["id"])
+                    if (
+                        edge_id not in fired_conditional_edges
+                        and player_before_step is not None
+                        and len(conditional_edge_observations[edge_id]) < 16
+                    ):
+                        conditional_edge_observations[edge_id].append(
+                            f"{player_before_step.action.name}:"
+                            f"{int(player_before_step.action_frame)}"
+                        )
+                    if (
+                        edge_id not in fired_conditional_edges
+                        and player_before_step is not None
+                        and player_before_step.action.name
+                        == conditional_edge["action"]
+                        and int(player_before_step.action_frame)
+                        == conditional_edge["frame"]
+                    ):
+                        sample.update(conditional_edge["inputs"])
+                        sample["label"] = f"{sample['label']}_edge"
+                        fired_conditional_edges.add(edge_id)
+                        conditional_edge_fired_now = True
             if buffered_input_frames == 0:
                 if (
                     batch_exi_inputs
@@ -6448,7 +6538,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         if missing_conditional_edges:
             raise RuntimeError(
                 "conditional response edges did not fire: "
-                + ",".join(sorted(missing_conditional_edges))
+                + ",".join(
+                    f"{edge_id}[{','.join(conditional_edge_observations[edge_id])}]"
+                    for edge_id in sorted(missing_conditional_edges)
+                )
             )
         item_rules = (
             read_native_item_rules(memory_engine)

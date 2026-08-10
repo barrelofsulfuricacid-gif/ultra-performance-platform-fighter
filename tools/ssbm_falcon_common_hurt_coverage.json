@@ -63,7 +63,9 @@
       "tools/ssbm_falcon_ledge_hurt_import.json",
       "tools/ssbm_falcon_common_hurt_coverage.json",
       "tools/verify_ssbm_falcon_checkpoint_pack.sh",
-      "tools/verify_ssbm_falcon_common_hurt.py"
+      "tools/verify_ssbm_falcon_common_hurt.py",
+      "tools/verify_ssbm_falcon_ledge_collision.py",
+      "tools/verify_ssbm_falcon_ledge_collision.sh"
     ]
   },
   "checkpoint_cases": [

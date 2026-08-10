@@ -5058,3 +5058,30 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   ledge hit/miss discriminator remains before this geometry family is complete.
   Broad Release validation passes Windows GCC 28/28, WSL GCC 23/23, and strict
   portable MSVC 30/30; WSL ASan/UBSan passes 23/23.
+
+## 2026-08-09 live quick-climb collision discriminator
+
+- The mandatory prior-art/source sweep reused the existing checkpoint sharder,
+  source-pinned `lbcollision.c` capsule predicate, common-hurt verifier, and
+  no-fast-forward ledge pose profile. No second emulator layer or copied pose
+  table was introduced.
+- Checkpoint manifests now distinguish default cases from supplemental
+  projection cases. The pure projection helper is shared by capture and
+  verification, and ordered conditional edges let one route schedule both
+  `CliffWait` frame 2 input and quick-climb frame 25 opponent attack from
+  semantic state rather than a guessed wall-clock delay.
+- Two fresh two-shard captures are byte-identical at SHA-256
+  `f31de47e694e46bf2269945747c97238ce443ddf88cbadc0a8e4214026f2785d`.
+  Their canonical semantic SHA-256 is
+  `fbe0cf877402bf82aba10d8ae3dceecb4e431caa87d9b75b5844bfb7b132af2d`.
+- The miss row proves the target is imported `ledge_climb_quick` frame 29 and
+  the port-2 attacker exposes the exact three-sphere Falcon Jab 1 frame-4
+  signature. The positive placement deals two damage and enters
+  `DAMAGE_NEUTRAL_2`; moving the attacker 0.75 Melee units farther leaves the
+  target untouched. Reconstructed margins are `+0.573037244` / `-0.098777672`;
+  the generic rectangle remains negative at `-1.895534515`.
+- `tools/verify_ssbm_falcon_ledge_collision.sh` regenerates and verifies the
+  theorem at will. The accepted run takes 6.067 seconds warm, inside its
+  eight-second guardrail. The default 19-case ledge pack and ordinary stored
+  edit loop are unchanged because supplemental routes are selected only when
+  requested.
