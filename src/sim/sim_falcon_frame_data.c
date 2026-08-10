@@ -65,6 +65,18 @@ _Static_assert(
     PF_M4_MELEE_STALE_MOVE_SLOT_COUNT == PF_SIM_STALE_MOVE_QUEUE_CAPACITY,
     "Imported Melee stale-move table must cover the runtime queue");
 _Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.airborne) /
+            sizeof(pf_m4_falcon_collision_pose_data.airborne[0]) ==
+        (size_t)PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
+    "Falcon airborne ECB table must be complete");
+_Static_assert(
+    PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT +
+            PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT +
+            PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT +
+            PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT ==
+        PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
+    "Falcon airborne ECB track spans must cover the packed table");
+_Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
             sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
         (size_t)PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT,
@@ -378,6 +390,45 @@ const pf_m4_falcon_collision_pose *
 pf_m4_falcon_reference_collision_pose(void)
 {
     return &pf_m4_falcon_collision_pose_data;
+}
+
+const pf_m4_falcon_ecb_pose_q16 *
+pf_m4_falcon_reference_airborne_ecb_pose(
+    uint16_t source_submotion,
+    uint16_t action_ticks)
+{
+    uint16_t offset;
+    uint16_t frame_count;
+
+    switch (source_submotion)
+    {
+    case PF_M4_FALCON_SUBMOTION_JUMP_FORWARD:
+        offset = UINT16_C(0);
+        frame_count = PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT;
+        break;
+    case PF_M4_FALCON_SUBMOTION_JUMP_BACKWARD:
+        offset = PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT;
+        frame_count = PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT;
+        break;
+    case PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD:
+        offset = (uint16_t)(PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT);
+        frame_count = PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT;
+        break;
+    case PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD:
+        offset = (uint16_t)(PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT);
+        frame_count = PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT;
+        break;
+    default:
+        return NULL;
+    }
+    if (action_ticks >= frame_count)
+    {
+        action_ticks = (uint16_t)(frame_count - UINT16_C(1));
+    }
+    return &pf_m4_falcon_collision_pose_data.airborne[offset + action_ticks];
 }
 
 const pf_m4_reference_search_sphere *

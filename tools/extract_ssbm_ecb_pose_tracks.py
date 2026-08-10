@@ -23,6 +23,7 @@ def extract_track(
     track_id: str,
     source_action: str,
     label_substring: str,
+    first_displayed_frame: int,
     last_displayed_frame: int,
 ) -> dict[str, Any]:
     selected = [
@@ -35,7 +36,7 @@ def extract_track(
         raise ValueError(f"track {track_id!r} selected no rows")
 
     frames: dict[int, dict[str, Any]] = {}
-    last_new_frame = -1
+    last_new_frame = first_displayed_frame - 1
     for row in selected:
         action_frame = row.get("action_frame")
         if (
@@ -73,7 +74,7 @@ def extract_track(
         }
         last_new_frame = displayed_frame
 
-    expected_frames = list(range(last_displayed_frame + 1))
+    expected_frames = list(range(first_displayed_frame, last_displayed_frame + 1))
     if list(frames) != expected_frames:
         raise ValueError(
             f"track {track_id!r} frames are {list(frames)}, "
@@ -84,7 +85,8 @@ def extract_track(
         "source_action": source_action,
         "canonical_facing": 1,
         "label_substring": label_substring,
-        "frame_count": last_displayed_frame + 1,
+        "first_displayed_frame": first_displayed_frame,
+        "frame_count": last_displayed_frame - first_displayed_frame + 1,
         "frames": list(frames.values()),
     }
 
@@ -96,9 +98,13 @@ def main() -> int:
     parser.add_argument(
         "--track",
         action="append",
-        nargs=4,
-        metavar=("ID", "SOURCE_ACTION", "LABEL_SUBSTRING", "LAST_FRAME"),
+        nargs="+",
+        metavar="TRACK_FIELD",
         required=True,
+        help=(
+            "ID SOURCE_ACTION LABEL_SUBSTRING LAST_FRAME, or append "
+            "FIRST_FRAME before LAST_FRAME for a nonzero displayed-frame origin"
+        ),
     )
     args = parser.parse_args()
 
@@ -110,7 +116,23 @@ def main() -> int:
 
     tracks: list[dict[str, Any]] = []
     track_ids: set[str] = set()
-    for raw_id, source_action, label_substring, raw_last_frame in args.track:
+    for raw_track in args.track:
+        if len(raw_track) == 4:
+            raw_id, source_action, label_substring, raw_last_frame = raw_track
+            raw_first_frame = "0"
+        elif len(raw_track) == 5:
+            (
+                raw_id,
+                source_action,
+                label_substring,
+                raw_first_frame,
+                raw_last_frame,
+            ) = raw_track
+        else:
+            raise SystemExit(
+                "--track expects 4 fields (zero-based) or 5 fields "
+                "(explicit first/last displayed frame)"
+            )
         if (
             not raw_id
             or raw_id in track_ids
@@ -118,17 +140,30 @@ def main() -> int:
         ):
             raise SystemExit(f"invalid or duplicate track id: {raw_id!r}")
         try:
+            first_frame = int(raw_first_frame)
             last_frame = int(raw_last_frame)
         except ValueError as error:
-            raise SystemExit(f"invalid last frame: {raw_last_frame!r}") from error
-        if last_frame < 0 or str(last_frame) != raw_last_frame:
-            raise SystemExit(f"invalid last frame: {raw_last_frame!r}")
+            raise SystemExit(
+                "invalid displayed-frame span: "
+                f"{raw_first_frame!r}..{raw_last_frame!r}"
+            ) from error
+        if (
+            first_frame < 0
+            or last_frame < first_frame
+            or str(first_frame) != raw_first_frame
+            or str(last_frame) != raw_last_frame
+        ):
+            raise SystemExit(
+                "invalid displayed-frame span: "
+                f"{raw_first_frame!r}..{raw_last_frame!r}"
+            )
         tracks.append(
             extract_track(
                 rows,
                 raw_id,
                 source_action,
                 label_substring,
+                first_frame,
                 last_frame,
             )
         )

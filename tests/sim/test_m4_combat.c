@@ -25957,6 +25957,26 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_air_dodge_attributes();
     const pf_m4_falcon_collision_pose *collision_pose =
         pf_m4_falcon_reference_collision_pose();
+    const pf_m4_falcon_ecb_pose_q16 *jump_forward_first_ecb =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_JUMP_FORWARD,
+            UINT16_C(0));
+    const pf_m4_falcon_ecb_pose_q16 *jump_forward_last_ecb =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_JUMP_FORWARD,
+            UINT16_MAX);
+    const pf_m4_falcon_ecb_pose_q16 *jump_backward_last_ecb =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_JUMP_BACKWARD,
+            UINT16_MAX);
+    const pf_m4_falcon_ecb_pose_q16 *jump_aerial_forward_last_ecb =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD,
+            UINT16_MAX);
+    const pf_m4_falcon_ecb_pose_q16 *jump_aerial_backward_last_ecb =
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD,
+            UINT16_MAX);
     const pf_m4_melee_stale_move_data *stale_move_data =
         pf_m4_falcon_reference_stale_move_data();
     const pf_m4_falcon_side_special_timing *side_special_timing =
@@ -26704,8 +26724,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xaf) ||
-        complete_source_sha256[31] != UINT8_C(0x55) ||
+        complete_source_sha256[0] != UINT8_C(0x65) ||
+        complete_source_sha256[31] != UINT8_C(0x44) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -26775,12 +26795,22 @@ static int run_falcon_reference_table_test(void)
             INT32_C(75621) ||
         collision_pose->platform_drop_bottom_y_from_origin_q16[29] !=
             INT32_C(21330) ||
-        collision_pose->jump_forward_bottom_y_from_origin_q16[0] !=
-            INT32_C(0) ||
-        collision_pose->jump_forward_bottom_y_from_origin_q16[31] !=
-            INT32_C(38882) ||
-        collision_pose->jump_forward_bottom_y_from_origin_q16[34] !=
-            INT32_C(25486) ||
+        jump_forward_first_ecb == NULL ||
+        jump_forward_first_ecb->top_y_from_origin_q16 != INT32_C(203229) ||
+        jump_forward_first_ecb->bottom_y_from_origin_q16 != INT32_C(0) ||
+        jump_forward_last_ecb == NULL ||
+        jump_forward_last_ecb->bottom_y_from_origin_q16 != INT32_C(25486) ||
+        jump_backward_last_ecb == NULL ||
+        jump_backward_last_ecb->bottom_y_from_origin_q16 != INT32_C(23099) ||
+        jump_aerial_forward_last_ecb == NULL ||
+        jump_aerial_forward_last_ecb->right_x_from_origin_q16 !=
+            INT32_C(43008) ||
+        jump_aerial_backward_last_ecb == NULL ||
+        jump_aerial_backward_last_ecb->left_x_from_origin_q16 !=
+            INT32_C(-30225) ||
+        pf_m4_falcon_reference_airborne_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_FALL,
+            UINT16_C(0)) != NULL ||
         collision_pose->ceiling_bounce[0].right_x_from_origin_q16 !=
             INT32_C(45697) ||
         collision_pose->ceiling_bounce[8].left_x_from_origin_q16 !=

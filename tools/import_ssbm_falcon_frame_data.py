@@ -59,11 +59,14 @@ PLATFORM_DROP_ECB_CAPTURE_SHA256 = (
 PLATFORM_DROP_ECB_SEMANTIC_SHA256 = (
     "90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8"
 )
-JUMP_FORWARD_ECB_CAPTURE_SHA256 = (
-    "28c4e902d8860f6d02ec779004c67c7ab94f87c7f3970699cfd9a44a8844cf1d"
+AIRBORNE_ECB_PROFILE_SHA256 = (
+    "1cb4add0a9d499d9699ff651a325e5e663f6e27ad22cb7898cf36d93eff91491"
 )
-JUMP_FORWARD_ECB_SEMANTIC_SHA256 = (
-    "6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb"
+AIRBORNE_ECB_CAPTURE_SHA256 = (
+    "4e6768e0862307eb32a14532fae8e2991e2900ea932b7af45850803c2ec8673f"
+)
+AIRBORNE_ECB_SEMANTIC_SHA256 = (
+    "6fb15eca10471f717e217b14f0931bfd6a7c120a7430e8ee19ec7ce862602ff1"
 )
 BOUNCE_ECB_PROFILE_SHA256 = (
     "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
@@ -319,49 +322,6 @@ PLATFORM_DROP_ECB_BOTTOM_Y_MELEE = (
     1.4481201171875,
     1.646820068359375,
     1.834503173828125,
-)
-
-# Complete displayed-frame JumpF ECB bottom from the pinned natural
-# Battlefield left-platform route. The raw capture and the canonical
-# big-endian (u32 displayed frame, f32 bottom-Y) stream are pinned above.
-# JumpF's animated bottom, rather than Fall's steady-state pose, determines
-# the exact frame on which the descending fighter recontacts a soft floor.
-JUMP_FORWARD_ECB_BOTTOM_Y_MELEE = (
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    3.251678466796875,
-    3.19659423828125,
-    3.143585205078125,
-    3.09197998046875,
-    3.04095458984375,
-    2.98968505859375,
-    2.937255859375,
-    2.72930908203125,
-    2.56195068359375,
-    2.4234619140625,
-    2.30523681640625,
-    2.20367431640625,
-    2.12274169921875,
-    2.07855224609375,
-    2.09344482421875,
-    2.237457275390625,
-    2.547332763671875,
-    2.994537353515625,
-    3.495758056640625,
-    3.857330322265625,
-    4.177001953125,
-    3.8646240234375,
-    3.344024658203125,
-    2.875091552734375,
-    2.486053466796875,
-    2.19189453125,
 )
 
 # Complete displayed-frame ECB bottom for the pinned natural Hyrule
@@ -768,17 +728,24 @@ def render_ecb_pose_q16(frame: dict[str, Any]) -> str:
     return "{ " + ", ".join(f"INT32_C({value})" for value in values) + " }"
 
 
-def load_bounce_ecb_profile(path: Path) -> dict[str, Any]:
+def load_ecb_profile(
+    path: Path,
+    *,
+    expected_profile_sha256: str,
+    expected_capture_sha256: str,
+    expected_semantic_sha256: str,
+    expected_tracks: tuple[tuple[str, str, int, int], ...],
+) -> dict[str, Any]:
     raw = path.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
-    if digest != BOUNCE_ECB_PROFILE_SHA256:
-        raise ValueError(f"unexpected bounce ECB profile SHA-256: {digest}")
+    if digest != expected_profile_sha256:
+        raise ValueError(f"unexpected ECB profile SHA-256: {digest}")
     profile = json.loads(raw)
     if (
         profile.get("schema") != 1
         or profile.get("scope") != "ssbm-action-owned-ecb-pose-tracks"
-        or profile.get("capture_sha256") != BOUNCE_ECB_CAPTURE_SHA256
-        or profile.get("semantic_sha256") != BOUNCE_ECB_SEMANTIC_SHA256
+        or profile.get("capture_sha256") != expected_capture_sha256
+        or profile.get("semantic_sha256") != expected_semantic_sha256
         or profile.get("coordinate_conversion")
         != {
             "rounding": "nearest-python-round",
@@ -786,15 +753,11 @@ def load_bounce_ecb_profile(path: Path) -> dict[str, Any]:
             "y_sim_units_per_melee_unit": "11/62",
         }
     ):
-        raise ValueError("unexpected bounce ECB profile provenance")
+        raise ValueError("unexpected ECB profile provenance")
     tracks = profile.get("tracks")
-    expected_tracks = (
-        ("ceiling_bounce", "BOUNCE_CEILING", 9),
-        ("wall_bounce", "BOUNCE_WALL", 51),
-    )
     if not isinstance(tracks, list) or len(tracks) != len(expected_tracks):
-        raise ValueError("incomplete bounce ECB profile")
-    for track, (track_id, source_action, frame_count) in zip(
+        raise ValueError("incomplete ECB profile")
+    for track, (track_id, source_action, first_displayed_frame, frame_count) in zip(
         tracks, expected_tracks, strict=True
     ):
         if (
@@ -802,12 +765,14 @@ def load_bounce_ecb_profile(path: Path) -> dict[str, Any]:
             or track.get("id") != track_id
             or track.get("source_action") != source_action
             or track.get("canonical_facing") != 1
+            or track.get("first_displayed_frame", 0) != first_displayed_frame
             or track.get("frame_count") != frame_count
             or not isinstance(track.get("frames"), list)
             or len(track["frames"]) != frame_count
         ):
-            raise ValueError(f"invalid bounce ECB track {track_id!r}")
-        for displayed_frame, frame in enumerate(track["frames"]):
+            raise ValueError(f"invalid ECB track {track_id!r}")
+        for frame_index, frame in enumerate(track["frames"]):
+            displayed_frame = first_displayed_frame + frame_index
             source_ecb = frame.get("source_ecb")
             q16_ecb = frame.get("ecb_q16")
             if (
@@ -827,12 +792,12 @@ def load_bounce_ecb_profile(path: Path) -> dict[str, Any]:
                 )
             ):
                 raise ValueError(
-                    f"invalid bounce ECB pose {track_id}:{displayed_frame}"
+                    f"invalid ECB pose {track_id}:{displayed_frame}"
                 )
     actual_semantic = ecb_canonical_sha256(ecb_semantic_payload(tracks))
-    if actual_semantic != BOUNCE_ECB_SEMANTIC_SHA256:
+    if actual_semantic != expected_semantic_sha256:
         raise ValueError(
-            f"unexpected bounce ECB semantic SHA-256: {actual_semantic}"
+            f"unexpected ECB semantic SHA-256: {actual_semantic}"
         )
     return profile
 
@@ -1340,6 +1305,7 @@ def generate(
     animation_dat: bytes,
     common_dat: bytes,
     bounce_ecb_profile: dict[str, Any],
+    airborne_ecb_profile: dict[str, Any],
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -1352,6 +1318,19 @@ def generate(
     }
     ceiling_bounce_frames = bounce_tracks["ceiling_bounce"]["frames"]
     wall_bounce_frames = bounce_tracks["wall_bounce"]["frames"]
+    airborne_tracks = {
+        str(track["id"]): track for track in airborne_ecb_profile["tracks"]
+    }
+    airborne_frames = tuple(
+        frame
+        for track_id in (
+            "jump_forward",
+            "jump_backward",
+            "jump_aerial_forward",
+            "jump_aerial_backward",
+        )
+        for frame in airborne_tracks[track_id]["frames"]
+    )
 
     fighter_data = dat_data["nodes"][0]["data"]
     subactions = fighter_data["subactions"]
@@ -1818,14 +1797,21 @@ def generate(
                 "falcon_platform_drop_collision_pose_melee": {
                     "bottom_y_from_origin": PLATFORM_DROP_ECB_BOTTOM_Y_MELEE,
                 },
-                "falcon_jump_forward_ecb_capture_sha256": (
-                    JUMP_FORWARD_ECB_CAPTURE_SHA256
+                "falcon_airborne_ecb_capture_sha256": (
+                    AIRBORNE_ECB_CAPTURE_SHA256
                 ),
-                "falcon_jump_forward_ecb_semantic_sha256": (
-                    JUMP_FORWARD_ECB_SEMANTIC_SHA256
+                "falcon_airborne_ecb_semantic_sha256": (
+                    AIRBORNE_ECB_SEMANTIC_SHA256
                 ),
-                "falcon_jump_forward_collision_pose_melee": {
-                    "bottom_y_from_origin": JUMP_FORWARD_ECB_BOTTOM_Y_MELEE,
+                "falcon_airborne_collision_pose_q16": {
+                    track_id: tuple(
+                        tuple(
+                            tuple(frame["ecb_q16"][point])
+                            for point in ECB_POINTS
+                        )
+                        for frame in track["frames"]
+                    )
+                    for track_id, track in airborne_tracks.items()
                 },
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
@@ -2339,13 +2325,11 @@ def generate(
             )
             + ",",
             "    },",
-            "    .jump_forward_bottom_y_from_origin_q16 = {",
-            "        "
-            + ", ".join(
-                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
-                for value in JUMP_FORWARD_ECB_BOTTOM_Y_MELEE
-            )
-            + ",",
+            "    .airborne = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in airborne_frames
+            ),
             "    },",
             "    .ceiling_bounce = {",
             *(
@@ -2508,8 +2492,27 @@ def main() -> int:
     common_dat_digest = hashlib.sha256(common_dat).hexdigest()
     if common_dat_digest != SOURCE_COMMON_DAT_SHA256:
         raise SystemExit(f"unexpected PlCo.dat SHA-256: {common_dat_digest}")
-    bounce_ecb_profile = load_bounce_ecb_profile(
-        Path(__file__).with_name("data") / "ssbm_falcon_bounce_ecb.json"
+    bounce_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data") / "ssbm_falcon_bounce_ecb.json",
+        expected_profile_sha256=BOUNCE_ECB_PROFILE_SHA256,
+        expected_capture_sha256=BOUNCE_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=BOUNCE_ECB_SEMANTIC_SHA256,
+        expected_tracks=(
+            ("ceiling_bounce", "BOUNCE_CEILING", 0, 9),
+            ("wall_bounce", "BOUNCE_WALL", 0, 51),
+        ),
+    )
+    airborne_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data") / "ssbm_falcon_airborne_ecb.json",
+        expected_profile_sha256=AIRBORNE_ECB_PROFILE_SHA256,
+        expected_capture_sha256=AIRBORNE_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=AIRBORNE_ECB_SEMANTIC_SHA256,
+        expected_tracks=(
+            ("jump_forward", "JUMPING_FORWARD", 1, 35),
+            ("jump_backward", "JUMPING_BACKWARD", 1, 50),
+            ("jump_aerial_forward", "JUMPING_ARIAL_FORWARD", 1, 50),
+            ("jump_aerial_backward", "JUMPING_ARIAL_BACKWARD", 1, 35),
+        ),
     )
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
@@ -2521,6 +2524,7 @@ def main() -> int:
         animation_dat,
         common_dat,
         bounce_ecb_profile,
+        airborne_ecb_profile,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

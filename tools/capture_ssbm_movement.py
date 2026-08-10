@@ -74,7 +74,7 @@ HYRULE_TEMPLE_STAGE_CURSOR = (-3.3, 10.1)
 def input_trace(
     platform_only: bool = False,
     platform_drop_ecb_only: bool = False,
-    jump_forward_ecb_only: bool = False,
+    airborne_ecb_only: bool = False,
     push_only: bool = False,
     shield_only: bool = False,
     shield_geometry_only: bool = False,
@@ -3346,22 +3346,63 @@ def input_trace(
         repeat("platform_drop_ecb_recovery", 10)
         return trace
 
-    if jump_forward_ecb_only:
-        repeat("jump_forward_ecb_settle", 60)
-        trace.append(command("jump_forward_ecb_entry", jump=True))
-        # Wait through jump squat and the controller/post-frame pipeline, then
-        # relocate the active JumpF high above Battlefield. This preserves the
-        # source animation while preventing its natural platform landing from
-        # truncating the later ECB frames.
-        repeat("jump_forward_ecb_arm", 6)
-        for _ in range(45):
+    if airborne_ecb_only:
+        def reset_airborne_ecb_route(label: str) -> None:
             trace.append(
                 command(
-                    "jump_forward_ecb_observe",
-                    fighter_y_override=500.0,
+                    f"{label}_reset",
+                    fighter_x_override=-38.8,
+                    fighter_y_override=28.0,
+                    fighter_self_velocity_x_override=0.0,
+                    fighter_self_velocity_y_override=0.0,
+                    fighter_knockback_velocity_x_override=0.0,
+                    fighter_knockback_velocity_y_override=0.0,
+                    fighter_position_state_reset=True,
                 )
             )
-        repeat("jump_forward_ecb_recovery", 10)
+            repeat(f"{label}_settle", 60)
+
+        def observe_airborne_ecb_route(label: str, count: int) -> None:
+            # Relocate only after native action entry. This preserves the
+            # source action and exposes its complete animated ECB without a
+            # platform collision truncating later frames.
+            for _ in range(count):
+                trace.append(
+                    command(
+                        f"{label}_observe",
+                        fighter_y_override=40.0,
+                    )
+                )
+
+        reset_airborne_ecb_route("jump_forward_ecb")
+        trace.append(command("jump_forward_ecb_entry", jump=True))
+        repeat("jump_forward_ecb_arm", 6)
+        observe_airborne_ecb_route("jump_forward_ecb", 45)
+
+        reset_airborne_ecb_route("jump_backward_ecb")
+        trace.append(command("jump_backward_ecb_entry", main_x=0.0, jump=True))
+        repeat("jump_backward_ecb_arm", 6, main_x=0.0)
+        observe_airborne_ecb_route("jump_backward_ecb", 60)
+
+        reset_airborne_ecb_route("jump_aerial_forward_ecb")
+        trace.append(command("jump_aerial_forward_ecb_ground_entry", jump=True))
+        repeat("jump_aerial_forward_ecb_ground_arm", 8)
+        trace.append(command("jump_aerial_forward_ecb_entry", jump=True))
+        repeat("jump_aerial_forward_ecb_arm", 3)
+        observe_airborne_ecb_route("jump_aerial_forward_ecb", 60)
+
+        reset_airborne_ecb_route("jump_aerial_backward_ecb")
+        trace.append(command("jump_aerial_backward_ecb_ground_entry", jump=True))
+        repeat("jump_aerial_backward_ecb_ground_arm", 8)
+        trace.append(
+            command(
+                "jump_aerial_backward_ecb_entry",
+                main_x=0.0,
+                jump=True,
+            )
+        )
+        repeat("jump_aerial_backward_ecb_arm", 3, main_x=0.0)
+        observe_airborne_ecb_route("jump_aerial_backward_ecb", 45)
         return trace
 
     if platform_only:
@@ -5486,7 +5527,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     if (
                         args.platform_only
                         or args.platform_drop_ecb_only
-                        or args.jump_forward_ecb_only
+                        or args.airborne_ecb_only
                         or battlefield_checkpoint_route
                     )
                     else melee.Stage.FINAL_DESTINATION
@@ -5646,7 +5687,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         trace = input_trace(
             platform_only=args.platform_only,
             platform_drop_ecb_only=args.platform_drop_ecb_only,
-            jump_forward_ecb_only=args.jump_forward_ecb_only,
+            airborne_ecb_only=args.airborne_ecb_only,
             push_only=args.push_only,
             shield_only=args.shield_only,
             shield_geometry_only=args.shield_geometry_only,
@@ -6654,7 +6695,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if (
                     args.platform_only
                     or args.platform_drop_ecb_only
-                    or args.jump_forward_ecb_only
+                    or args.airborne_ecb_only
                     or battlefield_checkpoint_route
                 )
                 else "FINAL_DESTINATION"
@@ -6843,7 +6884,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
     mode.add_argument("--platform-drop-ecb-only", action="store_true")
-    mode.add_argument("--jump-forward-ecb-only", action="store_true")
+    mode.add_argument(
+        "--airborne-ecb-only",
+        "--jump-forward-ecb-only",
+        dest="airborne_ecb_only",
+        action="store_true",
+        help=(
+            "capture complete JumpF/JumpB/JumpAerialF/JumpAerialB ECB tracks; "
+            "--jump-forward-ecb-only is a compatibility alias"
+        ),
+    )
     mode.add_argument("--push-only", action="store_true")
     mode.add_argument("--shield-only", action="store_true")
     mode.add_argument("--shield-geometry-only", action="store_true")
@@ -6932,12 +6982,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     if args.memory_probe_surface and not (
         args.platform_only
         or args.platform_drop_ecb_only
-        or args.jump_forward_ecb_only
+        or args.airborne_ecb_only
         or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(
             "--memory-probe-surface requires --platform-only, "
-            "--platform-drop-ecb-only, --jump-forward-ecb-only, or a "
+            "--platform-drop-ecb-only, --airborne-ecb-only, or a "
             "--damage-hit-only checkpoint pack"
         )
     if args.memory_probe_hitbox and not (

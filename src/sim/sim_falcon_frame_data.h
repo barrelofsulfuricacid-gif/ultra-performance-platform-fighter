@@ -18,6 +18,10 @@
 #define PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT UINT16_C(24)
 #define PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT UINT16_C(30)
 #define PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT UINT16_C(35)
+#define PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT UINT16_C(50)
+#define PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT UINT16_C(50)
+#define PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT UINT16_C(35)
+#define PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT UINT16_C(170)
 #define PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT UINT16_C(9)
 #define PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT UINT16_C(51)
 #define PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST UINT16_C(219)
@@ -518,8 +522,8 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT];
     int32_t platform_drop_bottom_y_from_origin_q16[
         PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT];
-    int32_t jump_forward_bottom_y_from_origin_q16[
-        PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 airborne[
+        PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 ceiling_bounce[
         PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 wall_bounce[
@@ -681,6 +685,11 @@ pf_m4_falcon_reference_down_special_timing(void);
 
 const pf_m4_falcon_collision_pose *
 pf_m4_falcon_reference_collision_pose(void);
+
+const pf_m4_falcon_ecb_pose_q16 *
+pf_m4_falcon_reference_airborne_ecb_pose(
+    uint16_t source_submotion,
+    uint16_t action_ticks);
 
 const pf_m4_reference_search_sphere *
 pf_m4_falcon_reference_side_special_search_spheres(
