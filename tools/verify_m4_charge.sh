@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output_dir=${1:-/tmp/pf-m4-charge}
 compiler=${CC:-cc}
-expected='m4-charge=pass content_schema=74 state_schema=62 save_bytes=811 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1'
+expected='m4-charge=pass content_schema=76 state_schema=69 save_bytes=915 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1'
 
 mkdir -p "$output_dir"
 
@@ -23,6 +23,7 @@ mkdir -p "$output_dir"
     "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
+    "$root/src/sim/sim_ssbm_stage_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -47,8 +48,6 @@ grep -Fq 'PF_M4_ACTION_CHARGE_RELEASE_GROUND = 70' "$root/include/pf/m4.h"
 grep -Fq 'pf_m4_prepare_charge_input' "$root/src/sim/sim_tick.c"
 grep -Fq 'scratch->charge_ticks[target_index] = UINT16_C(0);' \
     "$root/src/sim/sim_combat.c"
-grep -Fq 'pf_web_m4_run_charge_storage_probe' \
-    "$root/src/web_client/m4_playtest.c"
 "$root/tools/verify_m4_technique_registry.sh"
 
-printf '%s\n' 'm4-charge-verification=pass checks=28'
+printf '%s\n' 'm4-charge-verification=pass checks=27'

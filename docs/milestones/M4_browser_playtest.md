@@ -1,5 +1,12 @@
 # M4 real-simulation browser playtest
 
+> Current validation policy: gameplay startup probes were retired because they
+> duplicated the native simulation, replay, and stored-oracle lanes. Browser
+> validation now covers only browser-specific boundaries: Wasm/WebGL2 startup,
+> rendered UI and replay integration, Gamepad/WebUSB input mappings, the
+> C-to-web adapter contract, and a real headless-browser smoke. Probe lists
+> below describe historical checkpoints, not current startup requirements.
+
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, four standing ground attacks, ground/wall/ceiling tech and
 missed-impact recovery, reaction-driven tech chasing, directional air dodge,
@@ -1325,7 +1332,7 @@ through:
   timing, three hash-equivalent planking refreshes, a mistimed punish,
   mid-climb/mid-roll save-load equivalence, and ledge-attack hitlag rollback.
 
-The page reports
+Historical builds reported
 `playtest=ready input_probe=pass air_facing_probe=pass
 instant_double_jump_probe=pass double_jump_cancel_probe=pass
 double_jump_cancel_counter_probe=pass

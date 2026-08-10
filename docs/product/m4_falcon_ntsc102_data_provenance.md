@@ -449,11 +449,27 @@ uses the same fixed-capacity sphere path as attacks and considers only source
 hurt capsules whose live `grabbable` flag is set.
 
 The resulting canonical geometry SHA-256 is
-`652d912618489111cd78541321f32c0f56e3d495380d0b7e1182a1bce4e4a1f7`.
+`fef2aad15411328bed10ba5726edca6312c469b77cbba65d0d8e1e53cf5c5923`.
 Jab 3 contributes only live-reachable frames 1-12; rapid jab maps each repeated
 active window to its canonical source command phase. The importer rejects the
 static extractor's non-executable forward-smash-low frame-63 spill because live
 hit memory is inactive after frame 21.
+
+The same generated representation now consumes a natural paired pummel route
+from raw capture SHA-256
+`9385eb7e314f161274e5d79ad458b5ae7091f29e1490db370aaa35690227fe9b`.
+It imports CatchAttack displayed frames 0-23, the single frame-4 pummel sphere,
+CaptureWaitHi frames 0-34, CaptureDamageHi frames 0-19, and the natural
+53,806-Q16 horizontal / zero vertical capture anchor. A second raw capture at
+`8871fd5291ced3a28f61e74fdd0cd7b2f255dfa71a09bcf0e7ee92b08a4f6322`
+reproduces the same address-free semantic rows. The shared collision resolver
+uses the ordinary pummel sphere for bystanders while excluding the linked
+captured target; that target follows the source no-launch CaptureDamage path
+with synchronized four-row hitlag and then returns to CaptureWait. The generic
+stored domain hashes all 79 holder/victim poses under source digest
+`e1ba78ad8a537c192849a295d9db896e0d165e70a13bbe7488bdd85e3885fead`
+and production digest
+`7b13e659fa8be4e22ef2d390dc029463cbc712547801b4c63e7f1db0068fa2a7`.
 
 The same probe reads Falcon's 11 live `FighterHurtCapsule` records from
 `fighter+0x11a0` with stride `0x4c`; one route-qualified capture now owns both

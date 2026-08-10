@@ -2002,6 +2002,29 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
             reference_frame_data_enabled != UINT8_C(0) &&
             submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_REBOUND;
     }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD)
+    {
+        return submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT &&
+               action_ticks <= UINT16_C(600);
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_PUMMEL)
+    {
+        identity_valid =
+            submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_ATTACK;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        if (submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH)
+        {
+            return action_ticks <= UINT16_C(600);
+        }
+        identity_valid =
+            submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH;
+    }
     else if (effective_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE)
     {
         identity_valid =
@@ -2291,7 +2314,7 @@ static int pf_m4_snapshot_content_state_consistent(
                   ground_attack_resume->startup_ticks +
                       ground_attack_resume->active_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_PUMMEL &&
-              action_ticks >= content->fighter.pummel_total_ticks) ||
+              action_ticks > content->fighter.pummel_total_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_GETUP_ROLL &&
              (action_ticks >= content->fighter.getup_roll_ticks ||
               pf_m4_getup_roll_timing_for(

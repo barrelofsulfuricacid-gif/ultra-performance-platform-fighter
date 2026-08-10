@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output_dir=${1:-/tmp/pf-m4-reflector}
 compiler=${CC:-cc}
-expected='m4-reflector=pass content_schema=74 state_schema=62 save_bytes=811 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1'
+expected='m4-reflector=pass content_schema=76 state_schema=69 save_bytes=915 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1'
 
 mkdir -p "$output_dir"
 
@@ -23,6 +23,7 @@ mkdir -p "$output_dir"
     "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
+    "$root/src/sim/sim_ssbm_stage_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -46,7 +47,6 @@ grep -Fq 'PF_M4_ACTION_REFLECTOR_AIR = 67' "$root/include/pf/m4.h"
 grep -Fq 'PF_SIM_EVENT_PROJECTILE_REFLECT = 21' "$root/include/pf/sim.h"
 grep -Fq 'pf_m4_prepare_reflector_input' "$root/src/sim/sim_tick.c"
 grep -Fq 'const int reflector_active =' "$root/src/sim/sim_combat.c"
-grep -Fq 'pf_web_m4_run_shine_spike_probe' "$root/src/web_client/m4_playtest.c"
 "$root/tools/verify_m4_technique_registry.sh"
 
-printf '%s\n' 'm4-reflector-verification=pass checks=25'
+printf '%s\n' 'm4-reflector-verification=pass checks=24'

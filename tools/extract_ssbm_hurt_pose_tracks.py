@@ -31,6 +31,7 @@ def extract_track(
     collision_trace_frames: dict[int, int] | None = None,
     label_prefix: str | None = None,
     pending_pose_facing_frame: int | None = None,
+    use_display_pose: bool = False,
 ) -> dict[str, Any]:
     frames: dict[int, tuple[tuple[int, ...], ...]] = {}
     collision_trace_frames = collision_trace_frames or {}
@@ -79,17 +80,22 @@ def extract_track(
             raise ValueError(f"track {track_id!r} has invalid facing")
         if not isinstance(memory, dict):
             raise ValueError(f"track {track_id!r} is missing a hitbox probe")
+        endpoint_key_prefix = (
+            "position"
+            if use_display_pose
+            else (
+                "collision_position"
+                if collision_frame is not None or "hurtbox_memory" not in row
+                else "position"
+            )
+        )
         pose = canonical_hurt_pose_q16(
             memory,
             hurtbox_key,
             fighter_position_key,
             int(facing),
             MELEE_TO_SIM_Q16,
-            (
-                "collision_position"
-                if "hurtbox_memory" not in row or collision_frame is not None
-                else "position"
-            ),
+            endpoint_key_prefix,
         )
         if len(pose) != 11:
             raise ValueError(
@@ -104,11 +110,7 @@ def extract_track(
                 fighter_position_key,
                 -int(facing),
                 MELEE_TO_SIM_Q16,
-                (
-                    "collision_position"
-                    if "hurtbox_memory" not in row or collision_frame is not None
-                    else "position"
-                ),
+                endpoint_key_prefix,
             )
             if (
                 displayed_frame == pending_pose_facing_frame
@@ -191,6 +193,15 @@ def main() -> int:
             "facing after gameplay facing flips"
         ),
     )
+    parser.add_argument(
+        "--display-pose-track",
+        action="append",
+        metavar="TRACK_ID",
+        help=(
+            "use the animation-evaluated display endpoints for one track "
+            "instead of collision-authoritative endpoints"
+        ),
+    )
     args = parser.parse_args()
 
     capture_bytes = args.capture.read_bytes()
@@ -227,6 +238,8 @@ def main() -> int:
         ):
             raise SystemExit("invalid or duplicate pending-pose-facing frame")
         pending_pose_facing_by_track[track_id] = displayed_frame
+
+    display_pose_tracks = set(args.display_pose_track or [])
     for track_id, raw_displayed, raw_trace in (
         args.opponent_collision_frame or []
     ):
@@ -284,6 +297,7 @@ def main() -> int:
                 collision_trace_frames=collision_frames_by_track.get(raw_id),
                 label_prefix=label_prefix_by_track.get(raw_id),
                 pending_pose_facing_frame=pending_pose_facing_by_track.get(raw_id),
+                use_display_pose=raw_id in display_pose_tracks,
             )
         )
         track_ids.add(raw_id)
@@ -306,6 +320,12 @@ def main() -> int:
         raise SystemExit(
             "pending-pose-facing frames reference unknown tracks: "
             + ", ".join(sorted(unknown_pending_tracks))
+        )
+    unknown_display_tracks = display_pose_tracks - track_ids
+    if unknown_display_tracks:
+        raise SystemExit(
+            "display-pose tracks reference unknown tracks: "
+            + ", ".join(sorted(unknown_display_tracks))
         )
     if len(roles) != 1:
         raise SystemExit("one profile may not mix fighter and opponent tracks")

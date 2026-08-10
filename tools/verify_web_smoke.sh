@@ -105,7 +105,7 @@ pf_require_dom \
     'webgl2=pass batch_draws=1'
 pf_require_dom \
     "deterministic replay status" \
-    'replay=pass ticks=240 winner_mask=5 final_sha256=3a9bb1e28fd635dcde8f1ec98d0705babd12ee64ee7e036e8f986c5a15a874d5'
+    'replay=pass ticks=240 winner_mask=5 final_sha256=46441cbb10851c1fc73e663e844be90ea5407367ca50b049309ca3a73c551424'
 pf_require_dom \
     "replay inspector" \
     'id="pf-replay-inspector"'
@@ -120,25 +120,10 @@ pf_require_dom \
     'id="pf-replay-events"'
 pf_require_dom \
     "re-simulated canonical events" \
-    '75 typed events'
+    '82 typed events'
 pf_require_dom \
-    "M4 playtest and input status" \
-    'playtest=ready input_probe=pass'
-pf_require_dom \
-    "M4 dodge status" \
-    'air_dodge_probe=pass ground_dodge_probe=pass'
-pf_require_dom \
-    "M4 double-jump cancel counter status" \
-    'double_jump_cancel_counter_probe=skipped'
-pf_require_dom \
-    "M4 reaction and shield status" \
-    'reaction_probe=pass shield_probe=pass shield_break_probe=pass powershield_cancel_probe=pass'
-pf_require_dom \
-    "M4 match/projectile status" \
-    'match_probe=pass short_hop_laser_probe=pass'
-pf_require_dom \
-    "M4 charge and controller status" \
-    'charge_storage_probe=pass vector_ascent_probe=pass gamepad_probe=pass gamepad_api=available wii_u_adapter_probe=pass wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab'
+    "M4 browser integration status" \
+    'playtest=ready gamepad_api=available wii_u_adapter_api=available controls=keyboard-gamepad-webusb-two-controller-duel-team-lab owner_checklist=ready-61'
 pf_require_dom \
     "native Wii U GameCube adapter control" \
     'id="pf-m4-wii-u-adapter"'

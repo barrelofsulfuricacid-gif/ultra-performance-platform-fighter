@@ -554,6 +554,20 @@ const uint8_t *pf_m4_falcon_reference_geometry_sha256(void)
     return pf_m4_falcon_geometry_sha256;
 }
 
+void pf_m4_falcon_reference_capture_offset_q16(
+    int32_t *out_x_q16,
+    int32_t *out_y_q16)
+{
+    if (out_x_q16 != NULL)
+    {
+        *out_x_q16 = pf_m4_falcon_capture_offset_x_q16;
+    }
+    if (out_y_q16 != NULL)
+    {
+        *out_y_q16 = pf_m4_falcon_capture_offset_y_q16;
+    }
+}
+
 const pf_m4_reference_move *pf_m4_falcon_reference_move(
     pf_m4_falcon_move_index move_index)
 {
@@ -909,6 +923,43 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             action_frame,
             out_count);
     }
+    if (action_state == (uint8_t)PF_M4_ACTION_GRABBED)
+    {
+        pf_m4_falcon_capture_hurt_index capture_track;
+
+        if (source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH)
+        {
+            capture_track = PF_M4_FALCON_CAPTURE_HURT_WAIT_HIGH;
+        }
+        else if (source_submotion ==
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH)
+        {
+            capture_track = PF_M4_FALCON_CAPTURE_HURT_DAMAGE_HIGH;
+        }
+        else
+        {
+            capture_track = PF_M4_FALCON_CAPTURE_HURT_COUNT;
+        }
+        if (capture_track != PF_M4_FALCON_CAPTURE_HURT_COUNT)
+        {
+            const pf_m4_reference_hurt_move *track =
+                &pf_m4_falcon_capture_hurt_moves[capture_track];
+
+            if (capture_track == PF_M4_FALCON_CAPTURE_HURT_WAIT_HIGH &&
+                track->frame_count != UINT8_C(0))
+            {
+                action_frame =
+                    (uint16_t)(action_frame % track->frame_count);
+            }
+            return pf_m4_falcon_reference_hurt_track_at_frame(
+                track,
+                pf_m4_falcon_hurt_frames,
+                pf_m4_falcon_hurt_capsules,
+                action_frame,
+                out_count);
+        }
+    }
     if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
     {
         uint8_t airborne_track;
@@ -1111,6 +1162,9 @@ int pf_m4_falcon_reference_move_for_action(
             break;
         case PF_M4_ACTION_DASH_GRAB:
             move_index = PF_M4_FALCON_DASH_GRAB;
+            break;
+        case PF_M4_ACTION_PUMMEL:
+            move_index = PF_M4_FALCON_PUMMEL;
             break;
         case PF_M4_ACTION_THROW_FORWARD:
             move_index = PF_M4_FALCON_FORWARD_THROW;

@@ -1,5 +1,10 @@
 # M4 combat and hit-reaction checkpoint contract
 
+> Browser-probe retirement: passages below saying that browser startup repeats
+> a gameplay invariant are historical. Those duplicate probes were removed;
+> native simulation, replay, stored-oracle, and live-Dolphin lanes own gameplay
+> fidelity, while the browser lane owns only browser-specific integration.
+
 ## Scope
 
 This checkpoint extends the first production-path M4.2 ground attacks with

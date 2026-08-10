@@ -10,6 +10,14 @@ The source table lists dash-dancing twice. This registry records it once.
 Character-specific techniques are excluded here and are a separate M8 gate.
 Every target is M4.4; no row may be deferred to a later milestone.
 
+Browser-startup gameplay probes have been retired. References in the evidence
+table to `src/web_client/m4_playtest.c` repeating native scenarios describe the
+historical checkpoint that first made a row playable; they are not current
+browser-gate requirements. Native simulation, replay, stored-oracle, and
+live-Dolphin lanes own gameplay fidelity. The current browser gate owns only
+Wasm/WebGL2 startup, UI/replay rendering, input-device mappings, the C-to-web
+adapter boundary, and the manual recipes in the final column.
+
 Statuses are monotonic evidence states:
 
 - `planned`: one or more production mechanics or fixtures are absent.

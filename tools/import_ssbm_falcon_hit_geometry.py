@@ -26,7 +26,7 @@ EXPECTED_FULL_SOURCE_SHA256 = (
     "287d53686aedb7469e455600cd749001b2f1a04081158236f26b1fae205f6dde"
 )
 EXPECTED_GEOMETRY_CAPTURE_SHA256 = (
-    "aeff75c16b2041fbecc6b8ec2322a614e0695f0d3d9088eb44d60aedbdeb7ca0"
+    "9385eb7e314f161274e5d79ad458b5ae7091f29e1490db370aaa35690227fe9b"
 )
 EXPECTED_COMMON_HURT_CAPTURE_SHA256 = (
     "3d1d6b0047fadc3dc53cef830f0784216e8967f0e7424a08736ca787bec26de6"
@@ -124,6 +124,7 @@ ACTION_BY_MOVE = {
     "dsmash": "DOWNSMASH",
     "grab": "GRAB",
     "dashgrab": "GRAB_RUNNING",
+    "pummel": "GRAB_PUMMEL",
     "nair": "NAIR",
     "fair": "FAIR",
     "bair": "BAIR",
@@ -152,6 +153,7 @@ ACTION_BY_MOVE = {
 }
 
 ACTION_VALUE_BY_MOVE = {
+    "pummel": 217,
     "0x12d": 347,
     "0x12e": 348,
     "0x12f": 349,
@@ -200,6 +202,10 @@ EXECUTABLE_HURT_FRAMES = {
     # leaves Attack13 after its twelfth displayed pose; frames 13-31 are not a
     # runtime Falcon route and are not cloned into the production table.
     "jab3": frozenset(range(1, 13)),
+    # CatchAttack is entered at animation frame 0 and remains visible through
+    # frame 23 before CatchWait.  Preserve both endpoint poses; unlike most
+    # ordinary attacks, frame 0 is also paired with a live captured victim.
+    "pummel": frozenset(range(0, 24)),
 }
 SOURCE_FRAME_OFFSET = {
     "jab2": -1,
@@ -236,12 +242,18 @@ HITBOX_CAPTURE_MOVE_KEYS = frozenset(
         "dsmash",
         "grab",
         "dashgrab",
+        "pummel",
         "nair",
         "fair",
         "bair",
         "uair",
         "dair",
     }
+)
+
+CAPTURE_HURT_ACTIONS = (
+    ("GRABBED", tuple(range(0, 35))),
+    ("GRAB_PUMMELED", tuple(range(0, 20))),
 )
 
 
@@ -513,11 +525,13 @@ def generate(
     hurt_capsules: list[tuple[int, ...]] = []
     hurt_moves: list[dict[str, int]] = []
     common_hurt_moves: list[dict[str, int]] = []
+    capture_hurt_moves: list[dict[str, int]] = []
     hurt_pose_offsets: dict[tuple[tuple[int, ...], ...], int] = {}
 
-    def append_common_hurt_track(
+    def append_hurt_track(
         first_frame: int,
         poses: list[tuple[tuple[int, ...], ...]],
+        tracks: list[dict[str, int]],
     ) -> None:
         frame_offset = len(hurt_frames)
         for pose in poses:
@@ -534,7 +548,7 @@ def generate(
                     "capsule_count": len(pose),
                 }
             )
-        common_hurt_moves.append(
+        tracks.append(
             {
                 "frame_offset": frame_offset,
                 "first_frame": first_frame,
@@ -613,6 +627,36 @@ def generate(
     if len(standing_hurtboxes) != 11:
         raise ValueError("unexpected Falcon standing hurt-capsule count")
 
+    capture_anchor_rows = [
+        row
+        for row in geometry_capture["rows"]
+        if str(row.get("label", "")).startswith("hitbox_geometry_pummel_")
+        and row.get("action") == "GRAB_PUMMEL"
+        and float(row.get("action_frame", -1.0)) == 0.0
+        and row.get("opponent_action") == "GRABBED"
+    ]
+    if len(capture_anchor_rows) != 1:
+        raise ValueError("expected one natural pummel capture anchor")
+    capture_anchor = capture_anchor_rows[0]
+    capture_facing = int(capture_anchor["facing"])
+    if capture_facing not in (-1, 1):
+        raise ValueError("invalid pummel capture-anchor facing")
+    capture_offset_x_q16 = round(
+        (
+            float(capture_anchor["opponent_position_x"])
+            - float(capture_anchor["position_x"])
+        )
+        * capture_facing
+        * MELEE_TO_SIM_Q16
+    )
+    capture_offset_y_q16 = round(
+        (
+            float(capture_anchor["opponent_position_y"])
+            - float(capture_anchor["position_y"])
+        )
+        * MELEE_TO_SIM_Q16
+    )
+
     for move_key in MOVE_KEYS:
         capture_move_key = POSE_ALIAS.get(move_key, move_key)
         action_name = ACTION_BY_MOVE.get(capture_move_key)
@@ -633,6 +677,15 @@ def generate(
             ):
                 raise ValueError(f"{move_key}: aliased pose source is not identical")
         total_frames = int(timing_move["totalFrames"])
+        expected_hurt_frames = (
+            set()
+            if move_key in THROW_MOVE_KEYS
+            else set(
+                EXECUTABLE_HURT_FRAMES.get(
+                    move_key, frozenset(range(1, total_frames + 1))
+                )
+            )
+        )
         hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
         for row in hurt_rows:
             if not capture_row_matches_move(row, capture_move_key):
@@ -641,7 +694,7 @@ def generate(
             action_frame = round(raw_frame)
             if abs(raw_frame - action_frame) > 0.000001:
                 raise ValueError(f"{move_key}: fractional action frame {raw_frame}")
-            if action_frame < 1 or action_frame > total_frames:
+            if action_frame not in expected_hurt_frames:
                 continue
             facing = int(row["facing"])
             if facing not in (-1, 1):
@@ -660,15 +713,6 @@ def generate(
                     f"{move_key}: inconsistent hurt pose on frame " f"{action_frame}"
                 )
             hurt_by_frame[action_frame] = pose
-        expected_hurt_frames = (
-            set()
-            if move_key in THROW_MOVE_KEYS
-            else set(
-                EXECUTABLE_HURT_FRAMES.get(
-                    move_key, frozenset(range(1, total_frames + 1))
-                )
-            )
-        )
         if set(hurt_by_frame) != expected_hurt_frames:
             raise ValueError(
                 f"{move_key}: hurt-frame mismatch: "
@@ -695,7 +739,9 @@ def generate(
         hurt_moves.append(
             {
                 "frame_offset": hurt_frame_offset,
-                "first_frame": 0 if move_key in THROW_MOVE_KEYS else 1,
+                "first_frame": (
+                    min(expected_hurt_frames) if expected_hurt_frames else 0
+                ),
                 "frame_count": len(expected_hurt_frames),
             }
         )
@@ -898,6 +944,53 @@ def generate(
             }
         )
 
+    for action_name, source_frames in CAPTURE_HURT_ACTIONS:
+        hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
+        for row in geometry_capture["rows"]:
+            if (
+                not str(row.get("label", "")).startswith(
+                    "hitbox_geometry_pummel_"
+                )
+                or row.get("opponent_action") != action_name
+            ):
+                continue
+            raw_frame = float(row["opponent_action_frame"])
+            action_frame = round(raw_frame)
+            if (
+                abs(raw_frame - action_frame) > 0.000001
+                or action_frame not in source_frames
+            ):
+                continue
+            facing = int(row["opponent_facing"])
+            if facing not in (-1, 1):
+                raise ValueError(
+                    f"capture {action_name}: invalid facing {facing}"
+                )
+            pose = captured_hurt_capsules(
+                dict(row["hitbox_memory"]),
+                "opponent_hurtboxes",
+                "opponent_fighter_position",
+                facing,
+            )
+            previous_pose = hurt_by_frame.get(action_frame)
+            if previous_pose is not None and not hurt_poses_q16_equivalent(
+                previous_pose, pose
+            ):
+                raise ValueError(
+                    f"capture {action_name}: inconsistent frame {action_frame}"
+                )
+            hurt_by_frame[action_frame] = pose
+        if set(hurt_by_frame) != set(source_frames):
+            raise ValueError(
+                f"capture {action_name}: expected frames "
+                f"{list(source_frames)}, captured {sorted(hurt_by_frame)}"
+            )
+        append_hurt_track(
+            source_frames[0],
+            [hurt_by_frame[action_frame] for action_frame in source_frames],
+            capture_hurt_moves,
+        )
+
     for action_name, source_frames in COMMON_HURT_ACTIONS:
         first_frame = 1
         hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
@@ -937,9 +1030,10 @@ def generate(
                 f"common {action_name}: expected frames "
                 f"{list(source_frames)}, captured {sorted(hurt_by_frame)}"
             )
-        append_common_hurt_track(
+        append_hurt_track(
             first_frame,
             [hurt_by_frame[action_frame] for action_frame in source_frames],
+            common_hurt_moves,
         )
 
     geometry_digest = hashlib.sha256(
@@ -949,10 +1043,13 @@ def generate(
                 "hit_frames": frames,
                 "hit_spheres": spheres,
                 "hurt_moves": hurt_moves,
+                "capture_hurt_moves": capture_hurt_moves,
                 "common_hurt_moves": common_hurt_moves,
                 "hurt_frames": hurt_frames,
                 "hurt_capsules": hurt_capsules,
                 "standing_hurt_capsules": standing_hurtboxes,
+                "capture_offset_x_q16": capture_offset_x_q16,
+                "capture_offset_y_q16": capture_offset_y_q16,
                 "side_special_search_spheres": search_spheres,
                 "side_special_search_offsets": search_offsets,
                 "side_special_search_counts": search_counts,
@@ -984,6 +1081,11 @@ def generate(
             for index in range(0, len(geometry_digest), 2)
         ),
         "};",
+        "",
+        "static const int32_t pf_m4_falcon_capture_offset_x_q16 = "
+        f"INT32_C({capture_offset_x_q16});",
+        "static const int32_t pf_m4_falcon_capture_offset_y_q16 = "
+        f"INT32_C({capture_offset_y_q16});",
         "",
         "static const uint16_t pf_m4_falcon_side_special_ground_search_offset = "
         f"UINT16_C({search_offsets[0]});",
@@ -1068,6 +1170,22 @@ def generate(
         f"UINT8_C({move['frame_count']}) "
         "},"
         for move in hurt_moves
+    )
+    lines.extend(
+        (
+            "};",
+            "",
+            "static const pf_m4_reference_hurt_move",
+            "pf_m4_falcon_capture_hurt_moves[PF_M4_FALCON_CAPTURE_HURT_COUNT] = {",
+        )
+    )
+    lines.extend(
+        "    { "
+        f"UINT16_C({move['frame_offset']}), "
+        f"UINT8_C({move['first_frame']}), "
+        f"UINT8_C({move['frame_count']}) "
+        "},"
+        for move in capture_hurt_moves
     )
     lines.extend(
         (

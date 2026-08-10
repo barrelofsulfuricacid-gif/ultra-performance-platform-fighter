@@ -557,6 +557,8 @@ static uint32_t pf_m4_authored_base_damage_for_action(
             return fighter->up_aerial.damage_q16;
         case PF_M4_ACTION_DOWN_AERIAL:
             return fighter->down_aerial.damage_q16;
+        case PF_M4_ACTION_PUMMEL:
+            return fighter->pummel_damage_q16;
         default:
             return UINT32_C(0);
     }
@@ -763,6 +765,7 @@ static int pf_m4_attack_for_action(
             (reference_move_index >=
                  PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND ||
              pf_m4_action_is_throw(action_state) ||
+             action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
              pf_m4_action_is_reference_jab_extension(action_state) ||
              pf_m4_action_is_reference_angled_normal(action_state)))
         {
@@ -4066,18 +4069,20 @@ static pf_status pf_m4_resolve_grabs(
             scratch->grounded[holder_index];
         scratch->support[target_index] =
             scratch->support[holder_index];
-        if (holder_action == (uint8_t)PF_M4_ACTION_PUMMEL &&
-            scratch->action_state[holder_index] !=
-                (uint8_t)PF_M4_ACTION_HITLAG)
+        if (holder_action == (uint8_t)PF_M4_ACTION_PUMMEL)
         {
             const uint16_t action_ticks =
                 scratch->action_ticks[holder_index];
+            const uint8_t target_bit =
+                (uint8_t)(UINT32_C(1) << target_index);
 
-            if (action_ticks >= content->fighter.pummel_total_ticks)
+            if (action_ticks > content->fighter.pummel_total_ticks)
             {
                 return PF_STATUS_DETERMINISTIC_FAULT;
             }
-            if (action_ticks == content->fighter.pummel_hit_tick)
+            if (action_ticks == content->fighter.pummel_hit_tick &&
+                (scratch->attack_hit_mask[holder_index] & target_bit) ==
+                    UINT8_C(0))
             {
                 const uint8_t move_id =
                     (uint8_t)PF_M4_ACTION_PUMMEL;
@@ -4121,6 +4126,7 @@ static pf_status pf_m4_resolve_grabs(
                     damage_q16;
                 scratch->last_hit_attacker[target_index] =
                     (uint8_t)holder_index;
+                scratch->attack_hit_mask[holder_index] |= target_bit;
                 if (scratch->attack_stale_registered[holder_index] ==
                     UINT8_C(0))
                 {
@@ -4135,7 +4141,10 @@ static pf_status pf_m4_resolve_grabs(
                  * The captured target stays linked and receives no launch,
                  * but both participants still enter the hit's synchronized
                  * hitlag before resuming CatchAttack/CaptureDamage. */
-                scratch->hitlag_ticks[holder_index] = hitlag_ticks;
+                if (scratch->hitlag_ticks[holder_index] < hitlag_ticks)
+                {
+                    scratch->hitlag_ticks[holder_index] = hitlag_ticks;
+                }
                 scratch->hitlag_resume_action[holder_index] =
                     (uint8_t)PF_M4_ACTION_PUMMEL;
                 pf_m4_set_action_state(
@@ -4143,7 +4152,14 @@ static pf_status pf_m4_resolve_grabs(
                     scratch,
                     holder_index,
                     (uint8_t)PF_M4_ACTION_HITLAG);
-                scratch->hitlag_ticks[target_index] = hitlag_ticks;
+                scratch->action_ticks[target_index] = UINT16_C(0);
+                scratch->source_submotion[target_index] =
+                    (uint16_t)
+                        PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH;
+                if (scratch->hitlag_ticks[target_index] < hitlag_ticks)
+                {
+                    scratch->hitlag_ticks[target_index] = hitlag_ticks;
+                }
                 scratch->hitlag_resume_action[target_index] =
                     (uint8_t)PF_M4_ACTION_GRABBED;
                 pf_m4_set_action_state(
@@ -4494,6 +4510,10 @@ static pf_status pf_m4_resolve_grabs(
                 target_index,
                 (uint8_t)PF_M4_ACTION_GRABBED);
             scratch->action_ticks[target_index] = UINT16_C(0);
+            scratch->source_submotion[attacker_index] =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT;
+            scratch->source_submotion[target_index] =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH;
             scratch->charge_ticks[target_index] = UINT16_C(0);
             scratch->smash_charge_ticks[target_index] = UINT16_C(0);
             if (falcon_dive_grab != 0 &&

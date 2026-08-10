@@ -688,6 +688,9 @@ static int pf_m4_apply_falcon_reference_defaults(
             (uint32_t)pummel_effect->damage * UINT32_C(65536);
         fighter->pummel_hit_tick = pummel_phase->first_frame;
         fighter->pummel_total_ticks = pummel->total_frames;
+        pf_m4_falcon_reference_capture_offset_q16(
+            &fighter->grabbed_offset_x_q16,
+            &fighter->grabbed_offset_y_q16);
     }
     return 1;
 }

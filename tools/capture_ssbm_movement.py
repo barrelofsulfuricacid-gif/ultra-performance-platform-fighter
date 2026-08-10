@@ -460,6 +460,7 @@ def input_trace(
             trace.append(
                 command(
                     f"hitbox_geometry_{move}_opponent_pose_reset",
+                    attack=True,
                     opponent_attack=True,
                     fighter_x_override=-60.0,
                     fighter_y_override=0.0001,
@@ -664,6 +665,42 @@ def input_trace(
                 ),
             ],
         )
+
+        # Capture CatchAttack together with the naturally linked victim's
+        # CaptureDamage action.  Keep both fighters on the ordinary grab path:
+        # the position override only establishes a repeatable collision setup,
+        # while the grab, capture wait, and fresh A press are real inputs.
+        pummel_starter = [
+            command(
+                "hitbox_geometry_pummel_preposition",
+                fighter_x_override=-2.0,
+                fighter_y_override=0.0001,
+                fighter_facing_override=1.0,
+                fighter_self_velocity_x_override=0.0,
+                fighter_self_velocity_y_override=0.0,
+                fighter_knockback_velocity_x_override=0.0,
+                fighter_knockback_velocity_y_override=0.0,
+                fighter_position_state_reset=True,
+                opponent_x_override=2.0,
+                opponent_y_override=0.0001,
+                opponent_facing_override=-1.0,
+            )
+        ]
+        pummel_starter.extend(
+            command(f"hitbox_geometry_pummel_settle_{index}")
+            for index in range(60)
+        )
+        pummel_starter.append(
+            command("hitbox_geometry_pummel_grab", grab=True)
+        )
+        pummel_starter.extend(
+            command(f"hitbox_geometry_pummel_capture_{index}")
+            for index in range(12)
+        )
+        pummel_starter.append(
+            command("hitbox_geometry_pummel_start", attack=True)
+        )
+        isolated_route("pummel", pummel_starter)
 
         def aerial_starter(move: str, **attack_input: object) -> None:
             isolated_route(

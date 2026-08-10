@@ -8908,6 +8908,12 @@ pf_status pf_m4_step_player(
             {
                 action_state = grab_action;
                 action_ticks = UINT16_C(0);
+                if (grab_action == (uint8_t)PF_M4_ACTION_PUMMEL)
+                {
+                    source_submotion =
+                        (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_ATTACK;
+                }
+                scratch->attack_hit_mask[player_index] = UINT8_C(0);
                 scratch->attack_stale_registered[player_index] =
                     UINT8_C(0);
             }
@@ -8919,10 +8925,12 @@ pf_status pf_m4_step_player(
         else if (action_state == (uint8_t)PF_M4_ACTION_PUMMEL)
         {
             ++action_ticks;
-            if (action_ticks >= fighter->pummel_total_ticks)
+            if (action_ticks > fighter->pummel_total_ticks)
             {
                 action_state = (uint8_t)PF_M4_ACTION_GRAB_HOLD;
                 action_ticks = UINT16_C(0);
+                source_submotion =
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_WAIT;
                 scratch->attack_stale_registered[player_index] =
                     UINT8_C(0);
             }
@@ -8932,6 +8940,7 @@ pf_status pf_m4_step_player(
             const uint8_t owner_slot =
                 scratch->grab_owner_slot[player_index];
             int escape_locked = 0;
+            int capture_wait_entered = 0;
 
             if (owner_slot != UINT8_C(0))
             {
@@ -8949,6 +8958,25 @@ pf_status pf_m4_step_player(
                         owner_action == (uint8_t)PF_M4_ACTION_HITLAG
                             ? scratch->hitlag_resume_action[owner_index]
                             : owner_action;
+
+                    if (source_submotion ==
+                            (uint16_t)
+                                PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH &&
+                        (owner_effective_action ==
+                             (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+                         (owner_action ==
+                              (uint8_t)PF_M4_ACTION_PUMMEL &&
+                          scratch->action_ticks[owner_index] >=
+                              fighter->pummel_total_ticks &&
+                          scratch->action_ticks[owner_index] ==
+                              world->action_ticks[owner_index])))
+                    {
+                        source_submotion =
+                            (uint16_t)
+                                PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH;
+                        action_ticks = UINT16_C(0);
+                        capture_wait_entered = 1;
+                    }
 
                     escape_locked =
                         pf_m4_action_is_throw(owner_effective_action) ||
@@ -8986,7 +9014,8 @@ pf_status pf_m4_step_player(
                             elapsed_ticks);
                 }
             }
-            if (action_ticks < UINT16_C(600))
+            if (capture_wait_entered == 0 &&
+                action_ticks < UINT16_C(600))
             {
                 ++action_ticks;
             }

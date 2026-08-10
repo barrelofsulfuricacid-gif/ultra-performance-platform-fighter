@@ -153,6 +153,9 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
         action_state == (uint8_t)PF_M4_ACTION_TEETER ||
         action_state == (uint8_t)PF_M4_ACTION_REBOUND ||
+        action_state == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
+        action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(action_state);
     const int resume_owns_submotion =
@@ -170,6 +173,9 @@ static inline int pf_m4_action_retains_source_submotion(
             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_TEETER ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_REBOUND ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_PUMMEL ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRABBED ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(hitlag_resume_action);
 

@@ -20,6 +20,7 @@
 
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_pummel_capture_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_punch_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
@@ -14132,24 +14133,14 @@ static int reference_common_hurt_overlap_at_distance(
         0);
 }
 
-static uint8_t reference_common_hurt_read_pose(
-    void *context,
-    uint8_t action_state,
-    uint16_t source_submotion,
-    uint16_t action_frame,
+static uint8_t reference_copy_hurt_pose(
+    const pf_m4_reference_hurt_capsule *capsules,
+    uint8_t capsule_count,
     pf_ssbm_stored_hurt_capsule *out_capsules,
     uint8_t capacity)
 {
-    uint8_t capsule_count = UINT8_C(0);
-    const pf_m4_reference_hurt_capsule *capsules =
-        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
-            action_state,
-            source_submotion,
-            action_frame,
-            &capsule_count);
     uint8_t capsule_index;
 
-    (void)context;
     if (capsules == NULL || capsule_count > capacity)
     {
         return UINT8_C(0);
@@ -14172,6 +14163,65 @@ static uint8_t reference_common_hurt_read_pose(
             capsules[capsule_index].reserved};
     }
     return capsule_count;
+}
+
+static uint8_t reference_common_hurt_read_pose(
+    void *context,
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_frame,
+    pf_ssbm_stored_hurt_capsule *out_capsules,
+    uint8_t capacity)
+{
+    uint8_t capsule_count = UINT8_C(0);
+    const pf_m4_reference_hurt_capsule *capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            action_state,
+            source_submotion,
+            action_frame,
+            &capsule_count);
+
+    (void)context;
+    return reference_copy_hurt_pose(
+        capsules,
+        capsule_count,
+        out_capsules,
+        capacity);
+}
+
+static uint8_t reference_falcon_pummel_capture_read_pose(
+    void *context,
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_frame,
+    pf_ssbm_stored_hurt_capsule *out_capsules,
+    uint8_t capacity)
+{
+    uint8_t capsule_count = UINT8_C(0);
+    const pf_m4_reference_hurt_capsule *capsules;
+
+    (void)context;
+    if (action_state == (uint8_t)PF_M4_ACTION_PUMMEL)
+    {
+        capsules = pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            action_frame,
+            &capsule_count);
+    }
+    else
+    {
+        capsules =
+            pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+                action_state,
+                source_submotion,
+                action_frame,
+                &capsule_count);
+    }
+    return reference_copy_hurt_pose(
+        capsules,
+        capsule_count,
+        out_capsules,
+        capacity);
 }
 
 static int reference_common_hurt_run_runtime_case(
@@ -14433,6 +14483,30 @@ static int run_reference_falcon_dive_grab_stored_oracle(int print_pass)
     return run_reference_pose_stored_oracle(
         &domain,
         PF_M4_SSBM_FALCON_DIVE_GRAB_SOURCE_POSE_SHA256,
+        print_pass);
+}
+
+static int run_reference_falcon_pummel_capture_stored_oracle(int print_pass)
+{
+    static const pf_ssbm_stored_oracle_domain domain = {
+        "falcon-pummel-capture",
+        pf_m4_ssbm_falcon_pummel_capture_pose_tracks,
+        (uint16_t)(
+            sizeof(pf_m4_ssbm_falcon_pummel_capture_pose_tracks) /
+            sizeof(pf_m4_ssbm_falcon_pummel_capture_pose_tracks[0])),
+        pf_m4_ssbm_falcon_pummel_capture_cases,
+        PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_CASE_COUNT,
+        PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_POSE_COUNT,
+        PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_CAPSULES_PER_POSE,
+        PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_PRODUCTION_POSE_SHA256,
+        NULL,
+        reference_falcon_pummel_capture_read_pose,
+        reference_geometry_only_runtime_case,
+        reference_falcon_dive_grab_geometry_case,
+        NULL};
+    return run_reference_pose_stored_oracle(
+        &domain,
+        PF_M4_SSBM_FALCON_PUMMEL_CAPTURE_SOURCE_POSE_SHA256,
         print_pass);
 }
 
@@ -24920,7 +24994,7 @@ static int run_pummel_test(
     if (pummel_events != UINT32_C(1) ||
         source_inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
-        source_inspection.players[0].action_ticks != UINT16_C(1) ||
+        source_inspection.players[0].action_ticks != UINT16_C(0) ||
         source_inspection.players[0].grab_target != UINT8_C(1) ||
         source_inspection.players[1].action_state !=
             (uint8_t)PF_M4_ACTION_GRABBED ||
@@ -26339,6 +26413,7 @@ static int run_falcon_reference_table_test(void)
     uint8_t up_smash_sphere_count = UINT8_C(0);
     uint8_t grab_sphere_count = UINT8_C(0);
     uint8_t dash_grab_sphere_count = UINT8_C(0);
+    uint8_t pummel_sphere_count = UINT8_C(0);
     uint8_t neutral_special_sphere_count = UINT8_C(0);
     uint8_t neutral_special_air_sphere_count = UINT8_C(0);
     uint8_t side_special_ground_search_count = UINT8_C(0);
@@ -26374,6 +26449,13 @@ static int run_falcon_reference_table_test(void)
     uint8_t jab_hurt_capsule_count = UINT8_C(0);
     uint8_t nair_hurt_capsule_count = UINT8_C(0);
     uint8_t grab_hurt_capsule_count = UINT8_C(0);
+    uint8_t pummel_first_hurt_capsule_count = UINT8_C(0);
+    uint8_t pummel_last_hurt_capsule_count = UINT8_C(0);
+    uint8_t capture_wait_first_hurt_capsule_count = UINT8_C(0);
+    uint8_t capture_wait_last_hurt_capsule_count = UINT8_C(0);
+    uint8_t capture_wait_loop_hurt_capsule_count = UINT8_C(0);
+    uint8_t capture_damage_first_hurt_capsule_count = UINT8_C(0);
+    uint8_t capture_damage_last_hurt_capsule_count = UINT8_C(0);
     uint8_t neutral_special_hurt_capsule_count = UINT8_C(0);
     uint8_t neutral_special_air_hurt_capsule_count = UINT8_C(0);
     const pf_m4_reference_hit_sphere *jab_spheres =
@@ -26451,6 +26533,11 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_DASH_GRAB,
             UINT16_C(11),
             &dash_grab_sphere_count);
+    const pf_m4_reference_hit_sphere *pummel_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            UINT16_C(4),
+            &pummel_sphere_count);
     const pf_m4_reference_hit_sphere *neutral_special_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND,
@@ -26623,6 +26710,46 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_GRAB,
             UINT16_C(29),
             &grab_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *pummel_first_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            UINT16_C(0),
+            &pummel_first_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *pummel_last_hurt_capsules =
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            UINT16_C(23),
+            &pummel_last_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *capture_wait_first_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            (uint8_t)PF_M4_ACTION_GRABBED,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH,
+            UINT16_C(0),
+            &capture_wait_first_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *capture_wait_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            (uint8_t)PF_M4_ACTION_GRABBED,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH,
+            UINT16_C(34),
+            &capture_wait_last_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *capture_wait_loop_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            (uint8_t)PF_M4_ACTION_GRABBED,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH,
+            UINT16_C(35),
+            &capture_wait_loop_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *capture_damage_first_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            (uint8_t)PF_M4_ACTION_GRABBED,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH,
+            UINT16_C(0),
+            &capture_damage_first_hurt_capsule_count);
+    const pf_m4_reference_hurt_capsule *capture_damage_last_hurt_capsules =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            (uint8_t)PF_M4_ACTION_GRABBED,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH,
+            UINT16_C(19),
+            &capture_damage_last_hurt_capsule_count);
     const pf_m4_reference_hurt_capsule *neutral_special_hurt_capsules =
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_NEUTRAL_SPECIAL_GROUND,
@@ -26635,6 +26762,8 @@ static int run_falcon_reference_table_test(void)
             &neutral_special_air_hurt_capsule_count);
     const uint8_t *geometry_sha256 =
         pf_m4_falcon_reference_geometry_sha256();
+    int32_t capture_offset_x_q16 = INT32_C(0);
+    int32_t capture_offset_y_q16 = INT32_C(0);
     const uint8_t *complete_source_sha256 =
         pf_m4_falcon_reference_complete_source_sha256();
     const pf_m4_falcon_ledge_attack_reference *ledge_attack_slow =
@@ -26651,6 +26780,10 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_animation_tracks_sha256();
     const pf_m4_falcon_animation_decode_summary *animation_decode_summary =
         pf_m4_falcon_reference_animation_decode_summary();
+
+    pf_m4_falcon_reference_capture_offset_q16(
+        &capture_offset_x_q16,
+        &capture_offset_y_q16);
     const pf_m4_falcon_submotion_data *dash_submotion =
         pf_m4_falcon_reference_submotion(PF_M4_FALCON_SUBMOTION_DASH);
     const pf_m4_falcon_submotion_data *fall_special_submotion =
@@ -27434,6 +27567,19 @@ static int run_falcon_reference_table_test(void)
         dash_grab_spheres[0].offset_y_q16 != INT32_C(-62184) ||
         dash_grab_spheres[2].offset_x_q16 != INT32_C(-15546) ||
         dash_grab_spheres[2].hitbox_id != UINT8_C(2) ||
+        pummel_spheres == NULL ||
+        pummel_sphere_count != UINT8_C(1) ||
+        pummel_spheres[0].effect_index != UINT8_C(0) ||
+        pummel_spheres[0].hitbox_id != UINT8_C(0) ||
+        pummel_spheres[0].collision_state != UINT8_C(2) ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            UINT16_C(3),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            UINT16_C(5),
+            NULL) != NULL ||
         neutral_special_spheres == NULL ||
         neutral_special_sphere_count != UINT8_C(3) ||
         neutral_special_spheres[0].effect_index != UINT8_C(0) ||
@@ -27678,15 +27824,41 @@ static int run_falcon_reference_table_test(void)
         grab_hurt_capsules == NULL ||
         grab_hurt_capsule_count != UINT8_C(11) ||
         grab_hurt_capsules[0].endpoint_a_x_q16 != INT32_C(-3099) ||
+        pummel_first_hurt_capsules == NULL ||
+        pummel_first_hurt_capsule_count != UINT8_C(11) ||
+        pummel_last_hurt_capsules == NULL ||
+        pummel_last_hurt_capsule_count != UINT8_C(11) ||
+        pf_m4_falcon_reference_hurt_capsules_at_frame(
+            PF_M4_FALCON_PUMMEL,
+            UINT16_C(24),
+            NULL) != NULL ||
+        capture_wait_first_hurt_capsules == NULL ||
+        capture_wait_first_hurt_capsule_count != UINT8_C(11) ||
+        capture_wait_last_hurt_capsules == NULL ||
+        capture_wait_last_hurt_capsule_count != UINT8_C(11) ||
+        capture_wait_loop_hurt_capsules !=
+            capture_wait_first_hurt_capsules ||
+        capture_wait_loop_hurt_capsule_count != UINT8_C(11) ||
+        capture_damage_first_hurt_capsules == NULL ||
+        capture_damage_first_hurt_capsule_count != UINT8_C(11) ||
+        capture_damage_last_hurt_capsules == NULL ||
+        capture_damage_last_hurt_capsule_count != UINT8_C(11) ||
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            (uint8_t)PF_M4_ACTION_GRABBED,
+            (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH,
+            UINT16_C(20),
+            NULL) != NULL ||
+        capture_offset_x_q16 != INT32_C(53806) ||
+        capture_offset_y_q16 != INT32_C(0) ||
         neutral_special_hurt_capsules == NULL ||
         neutral_special_hurt_capsule_count != UINT8_C(11) ||
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x65) ||
-        geometry_sha256[1] != UINT8_C(0x2d) ||
-        geometry_sha256[30] != UINT8_C(0xa1) ||
-        geometry_sha256[31] != UINT8_C(0xf7) ||
+        geometry_sha256[0] != UINT8_C(0xfe) ||
+        geometry_sha256[1] != UINT8_C(0xf2) ||
+        geometry_sha256[30] != UINT8_C(0x59) ||
+        geometry_sha256[31] != UINT8_C(0x23) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
@@ -29023,6 +29195,13 @@ int main(int argc, char **argv)
             return run_reference_falcon_dive_grab_stored_oracle(1) ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-pummel-capture") == 0)
+        {
+            return run_reference_falcon_pummel_capture_stored_oracle(1)
+                       ? 0
+                       : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-neutral-special") == 0)
         {
             return run_ssbm_falcon_punch_observation_oracle() ? 0 : 1;
@@ -29603,6 +29782,7 @@ int main(int argc, char **argv)
         !run_reference_moving_hit_sweep_test() ||
         !run_reference_common_hurt_stored_oracle(0) ||
         !run_reference_falcon_dive_grab_stored_oracle(0) ||
+        !run_reference_falcon_pummel_capture_stored_oracle(0) ||
         !run_ssbm_falcon_punch_observation_oracle() ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||

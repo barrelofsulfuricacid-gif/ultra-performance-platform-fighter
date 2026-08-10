@@ -153,7 +153,11 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN = 289,
     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP = 290,
     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN = 291,
+    PF_M4_FALCON_SUBMOTION_CATCH_WAIT = 244,
+    PF_M4_FALCON_SUBMOTION_CATCH_ATTACK = 245,
     PF_M4_FALCON_SUBMOTION_CATCH_CUT = 246,
+    PF_M4_FALCON_SUBMOTION_CAPTURE_WAIT_HIGH = 252,
+    PF_M4_FALCON_SUBMOTION_CAPTURE_DAMAGE_HIGH = 253,
     PF_M4_FALCON_SUBMOTION_CAPTURE_CUT = 257,
     PF_M4_FALCON_SUBMOTION_LEDGE_CATCH = 216,
     PF_M4_FALCON_SUBMOTION_LEDGE_WAIT = 217,
@@ -173,6 +177,13 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_TEETER = 210,
     PF_M4_FALCON_SUBMOTION_TEETER_WAIT = 211
 } pf_m4_falcon_submotion_index;
+
+typedef enum pf_m4_falcon_capture_hurt_index
+{
+    PF_M4_FALCON_CAPTURE_HURT_WAIT_HIGH = 0,
+    PF_M4_FALCON_CAPTURE_HURT_DAMAGE_HIGH = 1,
+    PF_M4_FALCON_CAPTURE_HURT_COUNT = 2
+} pf_m4_falcon_capture_hurt_index;
 
 /* Qualified common-state hurt-pose tracks. Keep this compact index separate
  * from public action-state values so additional captured common motions append
@@ -750,6 +761,10 @@ pf_m4_falcon_reference_side_special_search_spheres(
     uint8_t *out_count);
 
 const uint8_t *pf_m4_falcon_reference_geometry_sha256(void);
+
+void pf_m4_falcon_reference_capture_offset_q16(
+    int32_t *out_x_q16,
+    int32_t *out_y_q16);
 
 const pf_m4_reference_move *pf_m4_falcon_reference_move(
     pf_m4_falcon_move_index move_index);
