@@ -17,6 +17,7 @@ typedef struct pf_ssbm_stored_pose_track
 {
     const char *action_name;
     uint8_t action_state;
+    uint16_t source_submotion;
     uint16_t first_source_frame;
     uint16_t last_source_frame;
     uint16_t source_frame_step;
@@ -27,6 +28,7 @@ typedef struct pf_ssbm_stored_case
     const char *id;
     pf_ssbm_stored_case_mode mode;
     uint8_t target_action;
+    uint16_t target_source_submotion;
     uint32_t distance_hundredths;
     uint32_t height_hundredths;
     uint16_t action_frame;
@@ -57,6 +59,7 @@ typedef struct pf_ssbm_stored_hurt_capsule
 typedef uint8_t (*pf_ssbm_stored_pose_reader)(
     void *context,
     uint8_t action_state,
+    uint16_t source_submotion,
     uint16_t action_frame,
     pf_ssbm_stored_hurt_capsule *out_capsules,
     uint8_t capacity);

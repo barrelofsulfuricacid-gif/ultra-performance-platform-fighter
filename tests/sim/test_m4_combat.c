@@ -13704,6 +13704,7 @@ static int run_reference_common_hurt_runtime_case(
 
 static int reference_common_hurt_overlap_at_distance(
     uint8_t action_state,
+    uint16_t source_submotion,
     uint16_t action_frame,
     uint16_t jab_frame,
     int8_t facing,
@@ -13718,8 +13719,9 @@ static int reference_common_hurt_overlap_at_distance(
             jab_frame,
             &hit_sphere_count);
     const pf_m4_reference_hurt_capsule *hurt_capsules =
-        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             action_state,
+            source_submotion,
             action_frame,
             &hurt_capsule_count);
     const int64_t distance_q16 = (int64_t)
@@ -13784,14 +13786,16 @@ static int reference_common_hurt_overlap_at_distance(
 static uint8_t reference_common_hurt_read_pose(
     void *context,
     uint8_t action_state,
+    uint16_t source_submotion,
     uint16_t action_frame,
     pf_ssbm_stored_hurt_capsule *out_capsules,
     uint8_t capacity)
 {
     uint8_t capsule_count = UINT8_C(0);
     const pf_m4_reference_hurt_capsule *capsules =
-        pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             action_state,
+            source_submotion,
             action_frame,
             &capsule_count);
     uint8_t capsule_index;
@@ -13844,6 +13848,7 @@ static int reference_common_hurt_run_geometry_case(
     (void)context;
     return reference_common_hurt_overlap_at_distance(
         stored_case->target_action,
+        stored_case->target_source_submotion,
         stored_case->action_frame,
         stored_case->button_delay_or_jab_frame,
         (int8_t)stored_case->target_stick_x_or_facing,

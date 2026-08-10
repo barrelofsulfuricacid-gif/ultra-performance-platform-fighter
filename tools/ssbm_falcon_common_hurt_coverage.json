@@ -52,9 +52,15 @@
     "paths": [
       "generated/data/m4_falcon_ntsc102_frame_data.inc",
       "generated/data/m4_falcon_ntsc102_hit_geometry.inc",
+      "generated/data/m4_ssbm_falcon_ledge_hurt.inc",
       "generated/data/m4_ssbm_falcon_common_hurt_oracle.inc",
+      "tools/capture_ssbm_falcon_ledge_hurt_poses.sh",
+      "tools/data/ssbm_falcon_ledge_hurt.json",
+      "tools/extract_ssbm_hurt_pose_tracks.py",
+      "tools/generate_ssbm_hurt_pose_include.py",
       "tools/import_ssbm_falcon_frame_data.py",
       "tools/import_ssbm_falcon_hit_geometry.py",
+      "tools/ssbm_falcon_ledge_hurt_import.json",
       "tools/ssbm_falcon_common_hurt_coverage.json",
       "tools/verify_ssbm_falcon_checkpoint_pack.sh",
       "tools/verify_ssbm_falcon_common_hurt.py"
@@ -170,15 +176,35 @@
     ]
   },
   "stored_oracle": {
-    "source_pose_sha256": "3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1",
+    "pose_profiles": [
+      {
+        "path": "data/ssbm_falcon_ledge_hurt.json",
+        "profile_sha256": "2630b5be93c7f55b869ac1da64aaa4e4716b35e601ec6e8a47fc5d8e4ef91ff7",
+        "capture_sha256": "3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3",
+        "semantic_sha256": "9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a",
+        "track_submotions": {
+          "ledge_climb_quick": "LEDGE_CLIMB_QUICK",
+          "ledge_climb_slow": "LEDGE_CLIMB_SLOW",
+          "ledge_roll_quick": "LEDGE_ROLL_QUICK",
+          "ledge_roll_slow": "LEDGE_ROLL_SLOW",
+          "ledge_attack_quick": "LEDGE_ATTACK_QUICK",
+          "ledge_attack_slow": "LEDGE_ATTACK_SLOW",
+          "ledge_jump_quick_1": "LEDGE_JUMP_QUICK_1",
+          "ledge_jump_quick_2": "LEDGE_JUMP_QUICK_2",
+          "ledge_jump_slow_1": "LEDGE_JUMP_SLOW_1",
+          "ledge_jump_slow_2": "LEDGE_JUMP_SLOW_2"
+        }
+      }
+    ],
+    "source_pose_sha256": "2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151",
     "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
-    "production_pose_sha256": "33e7ceea1447113256972a719f3abc981857d6a0cd67432842100b74dc50a613",
-    "expected_pose_count": 255,
+    "production_pose_sha256": "d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331",
+    "expected_pose_count": 689,
     "expected_capsules_per_pose": 11,
     "c": {
       "symbol_prefix": "pf_m4_ssbm_falcon_common_hurt",
       "macro_prefix": "PF_M4_SSBM_FALCON_COMMON_HURT",
-      "track_count_expression": "PF_M4_FALCON_COMMON_HURT_COUNT",
+      "track_count_expression": "PF_M4_FALCON_COMMON_HURT_COUNT + PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT",
       "actions": {
         "DASHING": "PF_M4_ACTION_INITIAL_DASH",
         "RUN_BRAKE": "PF_M4_ACTION_RUN_BRAKE",
@@ -192,12 +218,34 @@
         "AIRDODGE": "PF_M4_ACTION_AIR_DODGE",
         "DEAD_FALL": "PF_M4_ACTION_FALL_SPECIAL",
         "LANDING_SPECIAL": "PF_M4_ACTION_SPECIAL_LANDING",
+        "EDGE_GETUP_QUICK": "PF_M4_ACTION_LEDGE_CLIMB",
+        "EDGE_GETUP_SLOW": "PF_M4_ACTION_LEDGE_CLIMB",
+        "EDGE_ROLL_QUICK": "PF_M4_ACTION_LEDGE_ROLL",
+        "EDGE_ROLL_SLOW": "PF_M4_ACTION_LEDGE_ROLL",
+        "EDGE_ATTACK_QUICK": "PF_M4_ACTION_LEDGE_ATTACK",
+        "EDGE_ATTACK_SLOW": "PF_M4_ACTION_LEDGE_ATTACK",
+        "EDGE_JUMP_1_QUICK": "PF_M4_ACTION_LEDGE_JUMP",
+        "EDGE_JUMP_2_QUICK": "PF_M4_ACTION_LEDGE_JUMP",
+        "EDGE_JUMP_1_SLOW": "PF_M4_ACTION_LEDGE_JUMP",
+        "EDGE_JUMP_2_SLOW": "PF_M4_ACTION_LEDGE_JUMP",
         "INITIAL_DASH": "PF_M4_ACTION_INITIAL_DASH",
         "JUMP_SQUAT": "PF_M4_ACTION_JUMP_SQUAT",
         "SPOT_DODGE": "PF_M4_ACTION_SPOT_DODGE",
         "AIR_DODGE": "PF_M4_ACTION_AIR_DODGE",
         "FALL_SPECIAL": "PF_M4_ACTION_FALL_SPECIAL",
         "SPECIAL_LANDING": "PF_M4_ACTION_SPECIAL_LANDING"
+      },
+      "submotions": {
+        "LEDGE_CLIMB_QUICK": "PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_QUICK",
+        "LEDGE_CLIMB_SLOW": "PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_SLOW",
+        "LEDGE_ROLL_QUICK": "PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_QUICK",
+        "LEDGE_ROLL_SLOW": "PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_SLOW",
+        "LEDGE_ATTACK_QUICK": "PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK",
+        "LEDGE_ATTACK_SLOW": "PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW",
+        "LEDGE_JUMP_QUICK_1": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1",
+        "LEDGE_JUMP_QUICK_2": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2",
+        "LEDGE_JUMP_SLOW_1": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1",
+        "LEDGE_JUMP_SLOW_2": "PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2"
       },
       "buttons": {
         "jump": "PF_INPUT_BUTTON_JUMP"

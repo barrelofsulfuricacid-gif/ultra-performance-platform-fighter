@@ -170,6 +170,11 @@ typedef enum pf_m4_falcon_common_hurt_index
     PF_M4_FALCON_COMMON_HURT_COUNT = 12
 } pf_m4_falcon_common_hurt_index;
 
+enum
+{
+    PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT = 10
+};
+
 typedef struct pf_m4_falcon_submotion_data
 {
     /* Raw FigaTree endpoint count and extractor-compatible last frame. */

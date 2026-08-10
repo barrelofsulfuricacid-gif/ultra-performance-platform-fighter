@@ -83,6 +83,7 @@ static int production_digest(
             const uint8_t capsule_count = domain->read_pose(
                 domain->context,
                 track->action_state,
+                track->source_submotion,
                 action_frame,
                 capsules,
                 PF_SSBM_STORED_MAX_CAPSULES);
@@ -151,7 +152,9 @@ static int source_frame_matches(
         const pf_ssbm_stored_pose_track *track =
             &domain->pose_tracks[track_index];
 
-        if (track->action_state == stored_case->target_action)
+        if (track->action_state == stored_case->target_action &&
+            track->source_submotion ==
+                stored_case->target_source_submotion)
         {
             const uint32_t source_frame =
                 (uint32_t)track->first_source_frame +

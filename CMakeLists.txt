@@ -589,7 +589,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_ssbm_falcon_common_hurt
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=255 cases=20")
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=689 cases=20")
 
     add_test(
         NAME sim.m4_ssbm_falcon_floor_response

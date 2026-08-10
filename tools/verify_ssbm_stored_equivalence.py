@@ -166,27 +166,6 @@ def require_runner(value: Any, field: str) -> tuple[str, list[str]]:
     return executable, arguments
 
 
-def pose_count(domain: dict[str, Any]) -> int:
-    tracks = domain.get("pose_tracks")
-    if not isinstance(tracks, list):
-        fail("operation=manifest field=pose_tracks reason=expected-list")
-    total = 0
-    for track in tracks:
-        if not isinstance(track, dict) or not isinstance(track.get("frames"), dict):
-            fail("operation=manifest field=pose_tracks reason=invalid-track")
-        frames = track["frames"]
-        try:
-            first = int(frames["first"])
-            last = int(frames["last"])
-            step = int(frames["step"])
-        except (KeyError, TypeError, ValueError):
-            fail("operation=manifest field=pose_tracks reason=invalid-frame-range")
-        if first < 1 or last < first or step < 1 or (last - first) % step:
-            fail("operation=manifest field=pose_tracks reason=invalid-frame-range")
-        total += (last - first) // step + 1
-    return total
-
-
 def numeric_trace_cases(
     domain: dict[str, Any], stored: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -422,9 +401,19 @@ def main() -> int:
                     "reason=invalid-cases"
                 )
             case_count = len(cases)
+            expected_pose_count = stored.get("expected_pose_count")
+            if (
+                not isinstance(expected_pose_count, int)
+                or isinstance(expected_pose_count, bool)
+                or expected_pose_count <= 0
+            ):
+                fail(
+                    f"operation=manifest domain={domain_name} "
+                    "reason=invalid-expected-pose-count"
+                )
             expected = {
                 "domain": domain_name,
-                "poses": str(pose_count(domain)),
+                "poses": str(expected_pose_count),
                 "cases": str(case_count),
                 "source_pose_sha256": str(
                     stored.get("source_pose_sha256")

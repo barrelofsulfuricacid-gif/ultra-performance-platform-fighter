@@ -4,10 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
 from typing import Any
+
+from ssbm_collision import (
+    canonical_json_sha256,
+    hurt_pose_tracks_semantic_payload,
+)
 
 
 PRODUCTION_POSE_SERIALIZATION = (
@@ -29,6 +35,15 @@ def c_identifier(value: Any, name: str) -> str:
         r"[A-Za-z_][A-Za-z0-9_]*", value
     ) is None:
         raise ValueError(f"{name} must be a C identifier")
+    return value
+
+
+def c_constant_expression(value: Any, name: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(
+        r"[A-Za-z_][A-Za-z0-9_]*(?:\s*\+\s*[A-Za-z_][A-Za-z0-9_]*)*",
+        value,
+    ) is None:
+        raise ValueError(f"{name} must be a sum of C identifiers")
     return value
 
 
@@ -61,36 +76,130 @@ def c_string(value: str) -> str:
     return json.dumps(value)
 
 
+def stored_pose_tracks(
+    manifest_tracks: Any,
+    stored: dict[str, Any],
+    manifest_directory: Path,
+    expected_capsules_per_pose: int,
+) -> list[dict[str, Any]]:
+    if not isinstance(manifest_tracks, list):
+        raise ValueError("coverage manifest is missing pose tracks")
+    tracks = [
+        dict(track) if isinstance(track, dict) else track
+        for track in manifest_tracks
+    ]
+    profiles = stored.get("pose_profiles", [])
+    if not isinstance(profiles, list):
+        raise ValueError("stored_oracle.pose_profiles must be an array")
+    for profile_index, declaration in enumerate(profiles):
+        label = f"stored_oracle.pose_profiles[{profile_index}]"
+        if not isinstance(declaration, dict):
+            raise ValueError(f"{label} must be an object")
+        relative_path = declaration.get("path")
+        if not isinstance(relative_path, str) or not relative_path:
+            raise ValueError(f"{label}.path must be a non-empty string")
+        profile_relative_path = Path(relative_path)
+        if profile_relative_path.is_absolute() or ".." in profile_relative_path.parts:
+            raise ValueError(f"{label}.path must stay below the manifest directory")
+        profile_path = manifest_directory / profile_relative_path
+        profile_bytes = profile_path.read_bytes()
+        profile_digest = hashlib.sha256(profile_bytes).hexdigest()
+        if profile_digest != declaration.get("profile_sha256"):
+            raise ValueError(
+                f"{label} profile SHA-256 is {profile_digest}, "
+                f"expected {declaration.get('profile_sha256')}"
+            )
+        profile = json.loads(profile_bytes)
+        profile_tracks = profile.get("tracks")
+        if (
+            profile.get("schema") != 1
+            or profile.get("scope") != "ssbm-bounded-hurt-pose-tracks"
+            or profile.get("capture_sha256") != declaration.get("capture_sha256")
+            or not isinstance(profile_tracks, list)
+        ):
+            raise ValueError(f"{label} has unsupported hurt-pose profile provenance")
+        semantic_digest = canonical_json_sha256(
+            hurt_pose_tracks_semantic_payload(profile_tracks)
+        )
+        if (
+            semantic_digest != declaration.get("semantic_sha256")
+            or semantic_digest != profile.get("semantic_sha256")
+        ):
+            raise ValueError(
+                f"{label} semantic SHA-256 is {semantic_digest}, "
+                f"expected {declaration.get('semantic_sha256')}"
+            )
+        track_submotions = declaration.get("track_submotions")
+        if not isinstance(track_submotions, dict):
+            raise ValueError(f"{label}.track_submotions must be an object")
+        track_ids = [
+            track.get("id")
+            for track in profile_tracks
+            if isinstance(track, dict)
+        ]
+        if (
+            len(track_ids) != len(profile_tracks)
+            or any(not isinstance(track_id, str) or not track_id for track_id in track_ids)
+            or len(set(track_ids)) != len(track_ids)
+            or set(track_submotions) != set(track_ids)
+        ):
+            raise ValueError(
+                f"{label}.track_submotions must bind every profile track exactly once"
+            )
+        for track_index, profile_track in enumerate(profile_tracks):
+            track_label = f"{label}.tracks[{track_index}]"
+            action = profile_track.get("source_action")
+            first = profile_track.get("first_displayed_frame")
+            frame_count = profile_track.get("frame_count")
+            frames = profile_track.get("frames")
+            if (
+                not isinstance(action, str)
+                or not isinstance(first, int)
+                or isinstance(first, bool)
+                or not isinstance(frame_count, int)
+                or isinstance(frame_count, bool)
+                or first < 1
+                or frame_count < 1
+                or not isinstance(frames, list)
+                or len(frames) != frame_count
+            ):
+                raise ValueError(f"{track_label} is incomplete")
+            for frame_offset, frame in enumerate(frames):
+                if (
+                    not isinstance(frame, dict)
+                    or frame.get("displayed_frame") != first + frame_offset
+                    or not isinstance(frame.get("capsules_q16"), list)
+                    or len(frame["capsules_q16"])
+                    != expected_capsules_per_pose
+                ):
+                    raise ValueError(
+                        f"{track_label} frame {first + frame_offset} is incomplete"
+                    )
+            tracks.append(
+                {
+                    "action": action,
+                    "source_submotion": track_submotions[profile_track["id"]],
+                    "frames": {
+                        "first": first,
+                        "last": first + frame_count - 1,
+                        "step": 1,
+                    },
+                }
+            )
+    return tracks
+
+
 def generate(
     manifest: dict[str, Any],
+    manifest_directory: Path,
     *,
     allow_pending_production_digest: bool = False,
 ) -> str:
     if manifest.get("schema") != 1:
         raise ValueError("unsupported common-hurt coverage schema")
-    tracks = manifest.get("pose_tracks")
     stored = manifest.get("stored_oracle")
-    if not isinstance(tracks, list) or not isinstance(stored, dict):
-        raise ValueError("coverage manifest is missing pose tracks or stored oracle")
-    c_config = stored.get("c")
-    if not isinstance(c_config, dict):
-        raise ValueError("stored oracle is missing its C integration")
-    symbol_prefix = c_identifier(
-        c_config.get("symbol_prefix"), "stored_oracle.c.symbol_prefix"
-    )
-    macro_prefix = c_identifier(
-        c_config.get("macro_prefix"), "stored_oracle.c.macro_prefix"
-    )
-    track_count_expression = c_identifier(
-        c_config.get("track_count_expression"),
-        "stored_oracle.c.track_count_expression",
-    )
-    actions = identifier_map(
-        c_config.get("actions"), "stored_oracle.c.actions"
-    )
-    buttons = identifier_map(
-        c_config.get("buttons"), "stored_oracle.c.buttons"
-    )
+    if not isinstance(stored, dict):
+        raise ValueError("coverage manifest is missing its stored oracle")
     expected_pose_count = require_int(
         stored.get("expected_pose_count"),
         "stored_oracle.expected_pose_count",
@@ -103,12 +212,40 @@ def generate(
         1,
         255,
     )
+    tracks = stored_pose_tracks(
+        manifest.get("pose_tracks"),
+        stored,
+        manifest_directory,
+        expected_capsules_per_pose,
+    )
+    c_config = stored.get("c")
+    if not isinstance(c_config, dict):
+        raise ValueError("stored oracle is missing its C integration")
+    symbol_prefix = c_identifier(
+        c_config.get("symbol_prefix"), "stored_oracle.c.symbol_prefix"
+    )
+    macro_prefix = c_identifier(
+        c_config.get("macro_prefix"), "stored_oracle.c.macro_prefix"
+    )
+    track_count_expression = c_constant_expression(
+        c_config.get("track_count_expression"),
+        "stored_oracle.c.track_count_expression",
+    )
+    actions = identifier_map(
+        c_config.get("actions"), "stored_oracle.c.actions"
+    )
+    submotions = identifier_map(
+        c_config.get("submotions", {}), "stored_oracle.c.submotions"
+    )
+    buttons = identifier_map(
+        c_config.get("buttons"), "stored_oracle.c.buttons"
+    )
     cases = stored.get("cases")
     if not isinstance(cases, list) or not cases:
         raise ValueError("stored oracle must declare cases")
 
     track_rows: list[str] = []
-    track_by_action_enum: dict[str, tuple[int, int, int]] = {}
+    track_by_runtime_state: dict[tuple[str, str], tuple[int, int, int]] = {}
     pose_count = 0
     for index, track in enumerate(tracks):
         if not isinstance(track, dict):
@@ -123,13 +260,26 @@ def generate(
         if (last - first) % step != 0:
             raise ValueError(f"{action} frame range is not divisible by its step")
         enum_name = action_enum(action, actions)
-        if enum_name in track_by_action_enum:
-            raise ValueError(f"duplicate runtime action in pose tracks: {action}")
-        track_by_action_enum[enum_name] = (first, last, step)
+        source_submotion = track.get("source_submotion")
+        if source_submotion is None:
+            submotion_expression = "UINT16_C(0)"
+        elif isinstance(source_submotion, str) and source_submotion in submotions:
+            submotion_expression = f"(uint16_t){submotions[source_submotion]}"
+        else:
+            raise ValueError(
+                f"unsupported stored-oracle source submotion: {source_submotion!r}"
+            )
+        runtime_state = (enum_name, submotion_expression)
+        if runtime_state in track_by_runtime_state:
+            raise ValueError(
+                f"duplicate runtime action/submotion in pose tracks: {action}"
+            )
+        track_by_runtime_state[runtime_state] = (first, last, step)
         pose_count += (last - first) // step + 1
         track_rows.append(
             "    { "
             f"{c_string(action)}, (uint8_t){enum_name}, "
+            f"{submotion_expression}, "
             f"UINT16_C({first}), UINT16_C({last}), UINT16_C({step})"
             " },"
         )
@@ -152,6 +302,20 @@ def generate(
         if not isinstance(expect_hit, bool):
             raise ValueError(f"{case_id}.expect_hit must be boolean")
         target_action = action_enum(case.get("target_action"), actions)
+        target_source_submotion = case.get("target_source_submotion")
+        if target_source_submotion is None:
+            target_submotion_expression = "UINT16_C(0)"
+        elif (
+            isinstance(target_source_submotion, str)
+            and target_source_submotion in submotions
+        ):
+            target_submotion_expression = (
+                f"(uint16_t){submotions[target_source_submotion]}"
+            )
+        else:
+            raise ValueError(
+                f"{case_id}.target_source_submotion is unsupported"
+            )
         distance = require_int(
             case.get("distance_hundredths"),
             f"{case_id}.distance_hundredths",
@@ -184,6 +348,7 @@ def generate(
             values = (
                 "PF_SSBM_STORED_RUNTIME",
                 target_action,
+                target_submotion_expression,
                 distance,
                 0,
                 0,
@@ -214,7 +379,9 @@ def generate(
                 0,
                 65535,
             )
-            track = track_by_action_enum.get(target_action)
+            track = track_by_runtime_state.get(
+                (target_action, target_submotion_expression)
+            )
             if track is None:
                 raise ValueError(f"{case_id}.target_action has no pose track")
             first, last, step = track
@@ -227,6 +394,7 @@ def generate(
             values = (
                 "PF_SSBM_STORED_GEOMETRY",
                 target_action,
+                target_submotion_expression,
                 distance,
                 height,
                 action_frame,
@@ -243,11 +411,11 @@ def generate(
         case_rows.append(
             "    { "
             f"{c_string(case_id)}, {values[0]}, (uint8_t){values[1]}, "
-            f"UINT32_C({values[2]}), UINT32_C({values[3]}), "
-            f"UINT16_C({values[4]}), UINT16_C({values[5]}), "
-            f"INT16_C({values[6]}), INT16_C({values[7]}), {values[8]}, "
-            f"UINT16_C({values[9]}), UINT16_C({values[10]}), "
-            f"UINT8_C({values[11]})"
+            f"{values[2]}, UINT32_C({values[3]}), UINT32_C({values[4]}), "
+            f"UINT16_C({values[5]}), UINT16_C({values[6]}), "
+            f"INT16_C({values[7]}), INT16_C({values[8]}), {values[9]}, "
+            f"UINT16_C({values[10]}), UINT16_C({values[11]}), "
+            f"UINT8_C({values[12]})"
             " },"
         )
 
@@ -336,6 +504,7 @@ def main() -> int:
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     generated = generate(
         manifest,
+        args.manifest.parent,
         allow_pending_production_digest=args.allow_pending_production_digest,
     )
     if args.check:
@@ -350,18 +519,32 @@ def main() -> int:
         args.output.write_text(generated, encoding="utf-8", newline="\n")
     print(
         "ssbm-stored-oracle-generation=pass "
-        f"poses={pose_count(manifest)} cases={len(manifest['stored_oracle']['cases'])} "
+        f"poses={pose_count(manifest, args.manifest.parent)} "
+        f"cases={len(manifest['stored_oracle']['cases'])} "
         f"output={args.output}"
     )
     return 0
 
 
-def pose_count(manifest: dict[str, Any]) -> int:
+def pose_count(manifest: dict[str, Any], manifest_directory: Path) -> int:
+    stored = manifest["stored_oracle"]
+    expected_capsules_per_pose = require_int(
+        stored.get("expected_capsules_per_pose"),
+        "stored_oracle.expected_capsules_per_pose",
+        1,
+        255,
+    )
+    tracks = stored_pose_tracks(
+        manifest["pose_tracks"],
+        stored,
+        manifest_directory,
+        expected_capsules_per_pose,
+    )
     return sum(
         (int(track["frames"]["last"]) - int(track["frames"]["first"]))
         // int(track["frames"]["step"])
         + 1
-        for track in manifest["pose_tracks"]
+        for track in tracks
     )
 
 

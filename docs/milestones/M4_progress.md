@@ -5043,7 +5043,18 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Strict Windows and WSL builds pass, as do focused movement, combat, and
   deterministic replay tests on both hosts. Both hosts independently reproduce
   the intentional new seeded match-soak identity `52600d79f2b95349`, replacing
-  the pre-ledge-geometry golden. The next gate is to extend the
-  generic stored-equivalence digest over these ten tracks and qualify the
-  smallest physical ledge hit/miss discriminator before calling the geometry
-  family complete.
+  the pre-ledge-geometry golden.
+- The generic stored domain now consumes the hash-pinned ledge profile directly
+  and derives all ten spans, so their frame metadata is not duplicated. A
+  compact source-submotion key distinguishes tracks that share one public
+  action. The combined live source digest covers 689 poses at
+  `2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151`;
+  production independently serializes the same accessor surface at
+  `d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
+- The complete eleven-domain / 77-case gate plus replay passes in 1.12-1.14
+  seconds on Windows and 1.15-1.29 seconds in WSL. The capture verifier compares
+  only the physical capture contract, so adding stored projections cannot invalidate
+  unchanged live evidence or conceal capture-plan drift. The smallest physical
+  ledge hit/miss discriminator remains before this geometry family is complete.
+  Broad Release validation passes Windows GCC 28/28, WSL GCC 23/23, and strict
+  portable MSVC 30/30; WSL ASan/UBSan passes 23/23.

@@ -54,10 +54,12 @@ tracks by retained source submotion without runtime parsing or allocation.
 fast stored-equivalence lane. Its single authored source is
 `tools/ssbm_falcon_common_hurt_coverage.json`; the generic generator validates
 the action/frame spans, simulator identifier bindings, source-frame phase,
-digests, and hit/miss cases before emitting immutable rows. It contains no
-second copy of hurt capsules. A thin Falcon adapter lets the shared C runner
-hash the production `m4_falcon_ntsc102_hit_geometry.inc` accessor output
-directly, so a stale or modified production table fails the pinned digest.
+digests, and hit/miss cases before emitting immutable rows. Hash-pinned bounded
+pose profiles are consumed directly, so the ledge frame ranges are not copied
+into a second manifest; only their source-submotion bindings are character-
+specific. It contains no second copy of hurt capsules. A thin Falcon adapter
+lets the shared C runner hash both production hurt-pose tables through the same
+accessor, so a stale or modified production table fails the pinned digest.
 
 `m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored

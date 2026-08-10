@@ -80,15 +80,21 @@ The post-build edit loop additionally runs
 `tools/verify_ssbm_stored_equivalence.py`. Its generic registry selects affected
 domain manifests, rejects stale generated rows, runs each filtered production
 oracle, and then requires the pinned deterministic replay corpus. The first
-registered domain, `falcon-common-hurt`, hashes all 255 production-accessed
-poses and runs 20 manifest-owned hit/miss controls in 116.845-120.355 ms on
-Windows and 148.121-166.786 ms in WSL across five warm runs. This is regression
-against already-qualified live truth; it does not turn uncovered routes into
-evidence or replace a fresh Dolphin qualification when a golden changes.
-The corresponding live common-hurt pack executes eight checkpoint-isolated
-cases in one headless/null/unlimited ExiAI process, serializes 255 declared
-poses plus 28 discriminator rows, and passes five fully verified warm runs in
-2.635-2.729 seconds against a manifest-owned three-second budget.
+registered domain, `falcon-common-hurt`, hashes all 689 production-accessed
+poses and runs 20 manifest-owned hit/miss controls. Its 255 original common
+poses and 434 quick/slow ledge poses share one source-submotion-aware generic
+runner under source/production SHA-256
+`2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151` /
+`d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
+The complete eleven-domain gate plus replay passes in 1.12-1.14 seconds on
+Windows and 1.15-1.29 seconds in WSL. This is regression against already-
+qualified live truth; it does not turn uncovered routes into evidence or replace a fresh
+Dolphin qualification when a golden changes. The corresponding live common-
+hurt pack executes eight checkpoint-isolated cases in one headless/null/
+unlimited ExiAI process and serializes 255 declared poses plus 28 discriminator
+rows. A separate byte-identical no-fast-forward capture supplies all 434 ledge
+poses. The combined live verifier reproduces the 689-pose source digest; a
+physical ledge-specific hit/miss discriminator remains explicitly open.
 
 The second registered domain, `falcon-common-damage-response`, uses the same
 registry and an allocation-free numeric-trace runner. Six manifest-owned cases

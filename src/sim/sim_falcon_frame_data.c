@@ -10,6 +10,11 @@
 #include "../../generated/data/m4_ssbm_falcon_ledge_hurt.inc"
 
 _Static_assert(
+    (size_t)PF_M4_FALCON_LEDGE_HURT_COUNT ==
+        (size_t)PF_M4_FALCON_LEDGE_HURT_TRACK_COUNT,
+    "Falcon ledge hurt-pose manifest and runtime binding disagree");
+
+_Static_assert(
     sizeof(pf_m4_falcon_moves) / sizeof(pf_m4_falcon_moves[0]) ==
         (size_t)PF_M4_FALCON_MOVE_COUNT,
     "Falcon move table must cover every indexed move");

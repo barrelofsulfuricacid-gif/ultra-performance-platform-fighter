@@ -981,6 +981,32 @@ velocity channels. Source and production semantic trace identities are
 and `222a5504d62bc5500e57a88a0adad108b931ea73d2b70cdf46faccde3f36d2db`.
 Later DownBound pose/contact evolution remains owned by its separate domain.
 
+## Falcon quick/slow ledge hurt poses
+
+Two independent compact no-fast-forward captures reproduce the same 450-row
+source artifact byte-for-byte at SHA-256
+`3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3`.
+The canonical profile contains 434 displayed poses and 4,774 eleven-capsule
+rows for quick/slow climb, roll, attack, and both ledge-jump phases. Its profile
+and semantic SHA-256 values are
+`2630b5be93c7f55b869ac1da64aaa4e4716b35e601ec6e8a47fc5d8e4ef91ff7`
+and `9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a`.
+Fast-forward is intentionally disabled because ExiAI omits display-bone work;
+the capture reads collision-authoritative hurt capsules from one contiguous
+fighter snapshot instead.
+
+The character-independent stored-oracle generator verifies that profile and
+semantic identity, derives every frame span, and requires only a track-ID-to-
+source-submotion binding. The production accessor therefore distinguishes ten
+Melee submotions even though they coalesce into four public actions. Combined
+with the original 255 common poses, the live source stream contains 689 poses
+at SHA-256
+`2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151`;
+the independently serialized production accessor matches pinned SHA-256
+`d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
+The stored digest proves regression identity only. A ledge-specific live
+collision hit/miss discriminator remains required for end-to-end qualification.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.
