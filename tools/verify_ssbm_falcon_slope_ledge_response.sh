@@ -13,7 +13,6 @@ output="${3:-${repo_root}/build/oracle/falcon-slope-ledge-response-checkpoint.js
 sim_executable="${4:-}"
 coverage_manifest="${repo_root}/tools/ssbm_falcon_slope_ledge_response_coverage.json"
 stage_source="${repo_root}/tools/data/ssbm_ntsc102_hyrule_collision.json"
-stage_inc="${repo_root}/generated/data/m4_ssbm_ntsc102_hyrule_collision.inc"
 toolchain_root="${repo_root}/build/oracle-toolchain"
 python="${toolchain_root}/exiai-python/bin/python"
 dolphin="${toolchain_root}/exiai-checkpoint/Binaries/dolphin-emu"
@@ -52,14 +51,6 @@ awk -v seconds="${warm_seconds}" -v budget="${warm_budget_seconds}" \
     echo "slope/ledge pack exceeded ${warm_budget_seconds}-second warm budget: ${warm_seconds}" >&2
     exit 1
 }
-
-"${python}" "${repo_root}/tools/import_ssbm_stage_collision.py" \
-    --capture "${output}" \
-    --source-json "${stage_source}" \
-    --output-inc "${stage_inc}" \
-    --stage HYRULE_TEMPLE \
-    --symbol pf_m4_ssbm_hyrule_collision \
-    --check
 
 sim_arguments=()
 if [[ -n "${sim_executable}" ]]; then

@@ -5085,3 +5085,40 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   eight-second guardrail. The default 19-case ledge pack and ordinary stored
   edit loop are unchanged because supplemental routes are selected only when
   requested.
+
+## 2026-08-10 common ledge down-input boundary
+
+- A fresh prior-art sweep compared pinned and current `doldecomp/melee` plus
+  existing libmelee/Slippi/Dolphin workflows. No current decomp change touches
+  the governing `ftcliffcommon.c`, `mpcoll.c`, or `PlCo.dat` layout, and no
+  maintained executable implementation supersedes the existing oracle.
+- The common-data importer now extracts `x480` as an immutable ledge-grab
+  down-axis threshold. Production consumes the generated Q15 value in the
+  shared ordinary-ledge predicate; there is no runtime float, parser, or
+  character switch.
+- Two adjacent quantized controller routes reuse the existing Hyrule endpoint
+  fixture. Observed source Y `-0.65` catches, while `-0.6625000238` rejects.
+  The accepted route also exposed and fixed same-frame knockback clearing on
+  `CliffCatch` entry.
+- The imported DownBound contact mask now drives endpoint callback ordering:
+  its first contactless frame consumes the current root, and subsequent
+  contactless frames may retain the preceding floor root. This aligns both the
+  original neutral departure and the new down-input route without duplicating
+  action setup.
+- The pack grows from two cases / 180 rows to four cases / 290 rows and 220
+  stored samples. Two warm Dolphin runs take 2.716 and 2.493 seconds and share
+  source semantic SHA-256
+  `9df8c72fca21359281d7d89391a9c363e08e6cf5c06db8873868e10521f27b49`;
+  reviewed production SHA-256 is
+  `73f3dae4bf726aedd1e2ab37911818faa9b3fff4d1a19ed2a92a41148f142f5d`.
+- The live comparator models Q16 position accumulation as a bounded per-tick
+  consequence of the already capped velocity conversion error. State and
+  transition fields remain strict. Three Windows and three WSL seeded soaks
+  reproduce the intentional new identity `52e8cab76719e97c`, with identical
+  8-match / 2,848-tick event totals. Windows GCC Release passes 28/28, WSL
+  Release 30/30, WSL ASan/UBSan 23/23, and the eleven-domain / 79-case stored
+  registry plus replay passes in 1.277/1.370 seconds on Windows/WSL. The local
+  pinned MSVC workflow cannot start because Visual Studio `vswhere.exe` is
+  absent; CI retains that compiler lane. M4 remains incomplete for special-action
+  ledge predicates, broader action-specific ECB evolution, other partial
+  fidelity rows, and the native hands-on controller gate.

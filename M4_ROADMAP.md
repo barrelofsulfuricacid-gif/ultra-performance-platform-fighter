@@ -1,6 +1,6 @@
 # M4 execution roadmap
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 This is the short, current status companion to
 `ultra_performance_platform_fighter_implementation_plan.md`. A row is marked
@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for eleven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, and bounce-pose floor re-contact contain 77 registered cases plus deterministic replay. Common hurt now hashes 689 production poses, including all 434 quick/slow ledge poses. The current full gate checks eleven generated artifacts and replay in 1.12-1.14 seconds on Windows and 1.15-1.29 seconds on WSL. |
+| Fast stored equivalence | done for eleven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, and bounce-pose floor re-contact contain 79 registered cases plus deterministic replay. Common hurt now hashes 689 production poses, including all 434 quick/slow ledge poses. The current full gate checks eleven generated artifacts and replay in 1.277 seconds on Windows and 1.370 seconds on WSL. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and keep one observer connected while compatible cases replay checkpoints. The common-hurt changed-domain route measures 2.635-2.729 seconds warm. Three independent 19-case ledge runs pass the enforced 10.0-second warm guardrail at 9.649, 8.924, and 9.614 seconds with the same 558-row / 514-sample semantic digest. Unsafe cross-invocation observer reconnection is rejected, not a remaining deliverable. |
 | Falcon bounded hurt poses | common and ledge poses imported and physically qualified | The common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules) through a reusable manifest-driven generator and the production collision/inspection path. One generic 689-pose stored digest protects both families. A separate two-case live theorem proves imported quick-climb frame 29 against exact Falcon Jab 1 frame 4: the positive route hits, the 0.75-unit-farther control misses, and the generic body rectangle misses both. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, and a source-qualified complete Battlefield collision/environment catalog. The production Battlefield route qualifies JumpF/Pass ECB timing, selected floor lines 2/1, exact sloped wall/ceiling normals and reflection, and complete `BOUNCE_CEILING`/`BOUNCE_WALL` pose-driven descent through first top-platform re-contact. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, and a source-qualified complete Battlefield collision/environment catalog. The production Battlefield route qualifies JumpF/Pass ECB timing, selected floor lines 2/1, exact sloped wall/ceiling normals and reflection, and complete `BOUNCE_CEILING`/`BOUNCE_WALL` pose-driven descent through first top-platform re-contact. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -305,6 +305,44 @@ Current DownBound prior-art/source sweep:
   0.778 seconds in WSL; Windows and WSL Release pass 27/27, WSL ASan/UBSan
   passes 20/20, and the cross-platform verifier soak digest is
   `7f584c16f3d23773`.
+
+## Completed locally: common ledge down-input rejection boundary
+
+- [x] Re-sweep current and pinned `doldecomp/melee`, libmelee, Slippi, and
+  Dolphin prior art. Current decomp changes do not touch `ftcliffcommon.c`,
+  `mpcoll.c`, or the common-data layout; no maintained executable replacement
+  covers this branch.
+- [x] Import `PlCo.dat` common-data word `x480` (`0.6600000262260437`) as the
+  immutable Q15 ledge-grab down-axis threshold and consume it in the shared
+  ordinary-ledge predicate. Requested controller values are kept separate from
+  the quantized values observed by Melee.
+- [x] Add adjacent live controls: requested `-21400` is observed as source
+  `-0.65` and catches, while requested `-21626` is observed as source
+  `-0.6625000238` and remains in Fall. Both routes reuse the existing Hyrule
+  damage/DownBound/endpoint fixture; no duplicate setup or runtime branch was
+  added.
+- [x] Reconcile the DownBound endpoint callback with its imported contact mask:
+  the first contactless ECB frame consumes the current root, while later
+  contactless frames retain the prior floor root. LedgeCatch entry now clears
+  all knockback channels on the source transition.
+- [x] Expand the checkpoint pack from 180 to 290 rows and the stored projection
+  from two to four cases / 220 samples. Two fresh warm captures complete in
+  2.716 and 2.493 seconds and reproduce semantic source SHA-256
+  `9df8c72fca21359281d7d89391a9c363e08e6cf5c06db8873868e10521f27b49`;
+  the reviewed production trace SHA-256 is
+  `73f3dae4bf726aedd1e2ab37911818faa9b3fff4d1a19ed2a92a41148f142f5d`.
+- [x] Express position allowance as base Q16 error plus at most the already
+  qualified velocity error per integrated tick. This bounds fixed-point drift
+  without widening a flat magic tolerance.
+- [x] Reproduce the intentional seeded match-soak identity
+  `52e8cab76719e97c` three times each on Windows and WSL before repinning it;
+  all six runs report 8 matches, 2,848 ticks, and identical event counts.
+- [x] Pass Windows GCC Release 28/28 in 4.15 seconds, WSL Release 30/30 in
+  1.99 seconds, WSL ASan/UBSan 23/23 in 14.16 seconds, and the eleven-domain /
+  79-case stored gate plus replay in 1.277/1.370 seconds on Windows/WSL.
+  Regeneration, documentation, and importer-skill validation pass. The local
+  pinned MSVC lane is unavailable because Visual Studio `vswhere.exe` is not
+  installed; remote CI retains that compiler gate.
 
 ## Completed and verified: distinct CliffCatch and CliffWait entry
 
@@ -1029,8 +1067,10 @@ other stage/pushbox topologies.
   SHA-256 `f16fa189ecb621a54c6ed4921aa920a257316b0fbeb869fb21caa08104ccefb3`.
 - [x] Close live Battlefield selected-normal, normal-response, wall, and
   ceiling qualification through the dedicated two-case theorem above.
-- [ ] Continue the remaining edge-acquisition/action-specific ECB audit;
-  passing the selected floor/wall/ceiling routes does not claim whole-stage or
+- [ ] Continue the remaining edge-acquisition/action-specific ECB audit. The
+  ordinary down-input rejection boundary is now closed, but special-action
+  acquisition predicates and broader per-action ECB evolution remain open;
+  passing selected floor/wall/ceiling routes does not claim whole-stage or
   whole-Falcon equivalence.
 
 ## Completion gate

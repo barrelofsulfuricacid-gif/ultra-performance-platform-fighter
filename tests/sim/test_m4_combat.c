@@ -17377,6 +17377,7 @@ static uint8_t run_ssbm_slope_ledge_response_trace_case(
     pf_m4_inspection inspection;
     pf_sim *sim = NULL;
     int slope_case;
+    int ledge_case;
     uint8_t sample_index;
     int32_t origin_x_q16;
     int32_t origin_y_q16;
@@ -17391,10 +17392,17 @@ static uint8_t run_ssbm_slope_ledge_response_trace_case(
     slope_case = strcmp(
         stored_case->id,
         "hyrule_line34_forward_getup_roll") == 0;
-    if (slope_case == 0 &&
+    ledge_case =
         strcmp(
             stored_case->id,
-            "hyrule_line36_to_line37_natural_hit_departure") != 0)
+            "hyrule_line36_to_line37_natural_hit_departure") == 0 ||
+        strcmp(
+            stored_case->id,
+            "ledge_grab_down_threshold_accept") == 0 ||
+        strcmp(
+            stored_case->id,
+            "ledge_grab_down_threshold_reject") == 0;
+    if (slope_case == 0 && ledge_case == 0)
     {
         return UINT8_C(0);
     }

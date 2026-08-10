@@ -621,7 +621,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_ssbm_falcon_slope_ledge_response
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-ssbm-stored-oracle=pass domain=falcon-common-slope-ledge-response poses=0 cases=2 samples=110")
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-slope-ledge-response poses=0 cases=4 samples=220")
 
     add_test(
         NAME sim.m4_ssbm_falcon_battlefield_surface_response

@@ -62,7 +62,14 @@ EXPECTED_SOURCE_SHA256 = {
 ROUTE = "surface_response"
 SLOPE_CASE = "hyrule_line34_forward_getup_roll"
 LEDGE_CASE = "hyrule_line36_to_line37_natural_hit_departure"
+LEDGE_ACCEPT_CASE = "ledge_grab_down_threshold_accept"
+LEDGE_REJECT_CASE = "ledge_grab_down_threshold_reject"
 SAMPLES_PER_CASE = 55
+LEDGE_GRAB_DOWN_THRESHOLD = 0.6600000262260437
+LEDGE_ACCEPT_REQUESTED_AXIS = -21400
+LEDGE_REJECT_REQUESTED_AXIS = -21626
+LEDGE_ACCEPT_OBSERVED_Y = 0.175000011920929
+LEDGE_REJECT_OBSERVED_Y = 0.168749988079071
 
 # Thin Python bindings for the public production action enum.  The comparator
 # remains generic over integer observations; only this source-action mapping is
@@ -90,11 +97,27 @@ def source_cases(capture: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         case_id=LEDGE_CASE,
         include_derived_labels=True,
     )
+    ledge_accept = select_labeled_rows(
+        capture,
+        route=ROUTE,
+        case_id=LEDGE_ACCEPT_CASE,
+        include_derived_labels=True,
+    )
+    ledge_reject = select_labeled_rows(
+        capture,
+        route=ROUTE,
+        case_id=LEDGE_REJECT_CASE,
+        include_derived_labels=True,
+    )
     require_equal(len(slope), 90, "slope live row count")
     require_equal(len(ledge), 90, "ledge live row count")
+    require_equal(len(ledge_accept), 55, "ledge accept live row count")
+    require_equal(len(ledge_reject), 55, "ledge reject live row count")
     return {
         SLOPE_CASE: slope[24:79],
         LEDGE_CASE: ledge[:55],
+        LEDGE_ACCEPT_CASE: ledge_accept,
+        LEDGE_REJECT_CASE: ledge_reject,
     }
 
 
@@ -106,6 +129,7 @@ def semantic_source_digest(
         "label",
         "requested_main_x",
         "requested_main_y",
+        "observed_main_y",
         "requested_c_x",
         "requested_c_y",
         "requested_digital_left",
@@ -159,8 +183,25 @@ def qualify_stage(
         "HYRULE_TEMPLE",
         "SSBM GALE01 NTSC-U revision 2",
     )
-    require_equal(regenerated, stage_source, "imported Hyrule collision catalog")
     require_equal(stage_source.get("schema"), 3, "stage source schema")
+    for field in (
+        "oracle",
+        "stage",
+        "coordinate_space",
+        "simulation_transform",
+        "ranges",
+        "lines",
+    ):
+        require_equal(
+            regenerated.get(field),
+            stage_source.get(field),
+            f"imported Hyrule collision catalog {field}",
+        )
+    require_equal(
+        stage_source.get("source_stage_collision_sha256"),
+        "4a0dd57bb8d9532589d3ecd129213d3a0876538a2dc7f733eca6c1e73c04db9c",
+        "legacy Hyrule collision semantic digest",
+    )
     require_equal(len(stage_source["lines"]), 91, "Hyrule collision line count")
 
     for index in (34, 35, 36, 37):
@@ -259,6 +300,65 @@ def qualify_source(cases: dict[str, list[dict[str, Any]]], stage: dict[str, Any]
         "EdgeCatch to EdgeWait animation clock",
     )
 
+    ledge_accept = cases[LEDGE_ACCEPT_CASE]
+    ledge_reject = cases[LEDGE_REJECT_CASE]
+    require_equal(
+        [row["action"] for row in ledge_accept],
+        [
+            *(["DAMAGE_FLY_NEUTRAL"] * 26),
+            *(["TECH_MISS_UP"] * 4),
+            *(["FALLING"] * 13),
+            *(["EDGE_CATCHING"] * 7),
+            *(["EDGE_HANGING"] * 5),
+        ],
+        "ledge grab down-threshold accept boundary",
+    )
+    require_equal(
+        [row["action"] for row in ledge_reject],
+        [
+            *(["DAMAGE_FLY_NEUTRAL"] * 26),
+            *(["TECH_MISS_UP"] * 4),
+            *(["FALLING"] * 25),
+        ],
+        "ledge grab down-threshold reject boundary",
+    )
+    for name, rows, requested, observed in (
+        (
+            "accept",
+            ledge_accept,
+            LEDGE_ACCEPT_REQUESTED_AXIS,
+            LEDGE_ACCEPT_OBSERVED_Y,
+        ),
+        (
+            "reject",
+            ledge_reject,
+            LEDGE_REJECT_REQUESTED_AXIS,
+            LEDGE_REJECT_OBSERVED_Y,
+        ),
+    ):
+        expected_requested = (requested / 32767.0 + 1.0) * 0.5
+        if not all(
+            math.isclose(
+                float(row["requested_main_y"]),
+                expected_requested,
+                abs_tol=1.0e-12,
+            )
+            and math.isclose(
+                float(row["observed_main_y"]),
+                observed,
+                abs_tol=1.0e-12,
+            )
+            for row in rows
+        ):
+            raise SystemExit(f"ledge grab {name} input sample mismatch")
+    accept_source_y = (LEDGE_ACCEPT_OBSERVED_Y - 0.5) * 2.0
+    reject_source_y = (LEDGE_REJECT_OBSERVED_Y - 0.5) * 2.0
+    if not (
+        accept_source_y > -LEDGE_GRAB_DOWN_THRESHOLD
+        and reject_source_y <= -LEDGE_GRAB_DOWN_THRESHOLD
+    ):
+        raise SystemExit("ledge grab source threshold discriminator mismatch")
+
 
 def mapped_source_action(row: dict[str, Any], sample: int) -> int:
     action = str(row["action"])
@@ -299,13 +399,21 @@ def compare_case(
         policy.get("velocity_tolerance_q16", policy.get("q16_tolerance", 0))
     )
     position_tolerance = int(policy.get("position_tolerance_q16", 0))
-    if velocity_tolerance > 32 or position_tolerance > 192:
+    position_drift_per_tick = int(policy.get("position_drift_per_tick_q16", 0))
+    if (
+        velocity_tolerance > 32
+        or position_tolerance > 192
+        or position_drift_per_tick > velocity_tolerance
+    ):
         raise SystemExit(f"{case_id}: live tolerance exceeds the qualified Q16 envelope")
 
     origin_x = float(source[0]["position_x"])
     origin_y = float(source[0]["position_y"])
     for index, (row, actual) in enumerate(zip(source, produced, strict=True), 1):
         prefix = f"{case_id} sample {index}"
+        accumulated_position_tolerance = (
+            position_tolerance + (index - 1) * position_drift_per_tick
+        )
         expected_action = mapped_source_action(row, index)
         require_equal(actual["sample"], index, f"{prefix} sample index")
         require_equal(actual["action"], expected_action, f"{prefix} action")
@@ -346,7 +454,7 @@ def compare_case(
             velocity_tolerance,
             f"{prefix} self velocity y",
         )
-        if case_id == LEDGE_CASE:
+        if case_id in (LEDGE_CASE, LEDGE_ACCEPT_CASE, LEDGE_REJECT_CASE):
             require_q16_close(
                 actual["kb_vx"],
                 source_x_to_sim_q16(float(row["attack_velocity_x"])),
@@ -369,13 +477,13 @@ def compare_case(
                 require_q16_close(
                     actual["dx"],
                     source_x_to_sim_q16(float(row["position_x"]) - origin_x),
-                    position_tolerance,
+                    accumulated_position_tolerance,
                     f"{prefix} position x",
                 )
             require_q16_close(
                 actual["dy"],
                 source_y_to_sim_q16(float(row["position_y"]) - origin_y),
-                position_tolerance,
+                accumulated_position_tolerance,
                 f"{prefix} position y",
             )
 
@@ -421,7 +529,7 @@ def main() -> int:
         opponent="CPTFALCON",
         disc_sha256=EXPECTED_DISC_SHA256,
         oracle_artifact_sha256=EXPECTED_EXIAI_SHA256,
-        case_count=2,
+        case_count=len(coverage["checkpoint_cases"]),
     )
     require_equal(
         len(capture["rows"]),

@@ -874,6 +874,31 @@ Snapshot validation and exclusive ledge ownership accept the distinct catch
 state; invulnerability continues to elapse from acquisition rather than being
 restarted at wait.
 
+The later four-case revision imports `ftCommonData.x480` directly from the
+owner-supplied `PlCo.dat`: source float `0.6600000262260437`, emitted once as
+Q15 `21626`. `ftCliffCommon_80081298` rejects acquisition when source left-stick
+Y is at or below its negative. The capture preserves both requested and live
+quantized controller values: requested `-21400` is observed as `-0.65` and
+enters `CliffCatch`; requested `-21626` is observed as `-0.6625000238` and
+remains in `Fall`.
+
+Two fresh 290-row checkpoint captures complete in 2.716 and 2.493 seconds warm
+and reproduce semantic source SHA-256
+`9df8c72fca21359281d7d89391a9c363e08e6cf5c06db8873868e10521f27b49`.
+The four stored cases contain 220 production samples under SHA-256
+`73f3dae4bf726aedd1e2ab37911818faa9b3fff4d1a19ed2a92a41148f142f5d`.
+The comparison keeps state, clocks, support, catch/wait, and velocity strict
+within the existing Q16 conversion allowance. Position uses a zero base plus
+at most that same allowed velocity error per integrated tick, making fixed-
+point accumulation explicit instead of widening a flat tolerance.
+
+The same trace closes two transition-order gaps. DownBound consults its
+imported per-frame contact mask: the first contactless frame consumes the
+current root at the line endpoint, while later contactless frames retain the
+preceding floor root. `CliffCatch` entry clears self, ground, and attack
+knockback motion as observed. Both rules are shared common-state behavior and
+add no Falcon-specific runtime switch.
+
 ## Imported Pass collision pose
 
 Pinned decomp `ftCo_8009A228` enters common motion state `Pass` (Falcon

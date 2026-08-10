@@ -3479,6 +3479,8 @@ static int pf_m4_try_grab_ledge(
     uint16_t action_ticks_before_catch,
     int32_t previous_position_x,
     int8_t facing,
+    int16_t main_stick_y,
+    const pf_m4_ssbm_ledge_response_attributes *reference_ledge_response,
     int8_t *dash_direction)
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
@@ -3556,6 +3558,9 @@ static int pf_m4_try_grab_ledge(
     }
 
     if (ledge_regrab_lockout_ticks != UINT16_C(0) ||
+        (reference_ledge_response != NULL &&
+         main_stick_y >=
+             (int16_t)reference_ledge_response->grab_down_axis_threshold) ||
         *velocity_y < INT32_C(0) ||
         (use_melee_ledge_probe != 0 && *velocity_y == INT32_C(0)) ||
         *position_y < catch_top ||
@@ -11074,11 +11079,15 @@ pf_status pf_m4_step_player(
             position_x >= surface_left && position_x <= surface_right;
         if (retains_surface == 0 &&
             action_state == (uint8_t)PF_M4_ACTION_KNOCKDOWN &&
-            grounded == UINT8_C(0))
+            grounded == UINT8_C(0) &&
+            action_ticks > UINT16_C(0) &&
+            pf_m4_down_bound_floor_contact(
+                scratch->prone_orientation[player_index],
+                (uint16_t)(action_ticks - UINT16_C(1))) == UINT8_C(0))
         {
-            /* DownBound's retained floor identity is consumed by its
-             * collision callback one update after the contactless ECB root
-             * crosses the line endpoint. */
+            /* The first contactless ECB frame consumes the current root.
+             * Later contactless frames retain the floor through the source
+             * collision callback's preceding root. */
             retains_surface =
                 previous_position_x >= surface_left &&
                 previous_position_x <= surface_right;
@@ -11701,12 +11710,18 @@ pf_status pf_m4_step_player(
                 action_ticks,
                 previous_position_x,
                 facing,
+                input->main_stick_y,
+                reference_ledge_response,
                 &dash_direction))
         {
             source_submotion =
                 fighter->reference_frame_data_enabled != UINT8_C(0)
                     ? (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH
                     : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+            scratch->knockback_velocity_x_q16[player_index] = INT32_C(0);
+            scratch->knockback_velocity_y_q16[player_index] = INT32_C(0);
+            scratch->ground_knockback_velocity_q16[player_index] =
+                INT32_C(0);
             scratch->tumble[player_index] = UINT8_C(0);
             scratch->tech_direction[player_index] = INT8_C(0);
             recovery_available = UINT8_C(1);

@@ -6,7 +6,7 @@
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
-    "expected_rows": 180,
+    "expected_rows": 290,
     "warm_budget_seconds": 3.0,
     "capture_plan": {
       "record_response_only": true,
@@ -57,6 +57,44 @@
               "ticks": 90
             }
           ]
+        },
+        {
+          "id": "ledge_grab_down_threshold_accept",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, -21400],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 55
+            }
+          ]
+        },
+        {
+          "id": "ledge_grab_down_threshold_reject",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, -21626],
+          "observe_segments": [
+            {
+              "id": "response",
+              "ticks": 55
+            }
+          ]
         }
       ]
     }
@@ -69,16 +107,27 @@
     {
       "id": "hyrule-line36-to-line37-natural-hit-departure",
       "start_label": "surface_response_hyrule_line36_to_line37_natural_hit_departure_setup"
+    },
+    {
+      "id": "ledge_grab_down_threshold_accept",
+      "start_label": "surface_response_ledge_grab_down_threshold_accept_setup"
+    },
+    {
+      "id": "ledge_grab_down_threshold_reject",
+      "start_label": "surface_response_ledge_grab_down_threshold_reject_setup"
     }
   ],
   "selection": {
     "paths": [
       "generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc",
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
       "generated/data/m4_ssbm_ntsc102_hyrule_collision.inc",
       "include/pf/m4.h",
       "src/sim/sim_content.c",
       "src/sim/sim_movement.c",
       "src/sim/sim_snapshot.c",
+      "src/sim/sim_ssbm_common_data.c",
+      "src/sim/sim_ssbm_common_data.h",
       "src/sim/sim_ssbm_stage_data.c",
       "src/sim/sim_ssbm_stage_data.h",
       "tests/sim/ssbm_stored_oracle.c",
@@ -88,6 +137,7 @@
       "tools/data/ssbm_ntsc102_hyrule_collision.json",
       "tools/generate_ssbm_stored_trace_oracle.py",
       "tools/import_ssbm_stage_collision.py",
+      "tools/import_ssbm_common_data.py",
       "tools/ssbm_live_trace.py",
       "tools/ssbm_falcon_slope_ledge_response_coverage.json",
       "tools/verify_ssbm_falcon_slope_ledge_response.py",
@@ -96,8 +146,8 @@
   },
   "stored_oracle": {
     "kind": "numeric-trace-v1",
-    "source_trace_sha256": "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3",
-    "production_trace_sha256": "918a548c6de3a53ab04f89d8bc5232e97b298d7887dc67661f42bd02a9626d66",
+    "source_trace_sha256": "9df8c72fca21359281d7d89391a9c363e08e6cf5c06db8873868e10521f27b49",
+    "production_trace_sha256": "73f3dae4bf726aedd1e2ab37911818faa9b3fff4d1a19ed2a92a41148f142f5d",
     "samples_per_case": 55,
     "serialized_fields": [
       "self_velocity_x",
@@ -148,6 +198,20 @@
         "initial_facing": -1,
         "input_phases": [
           { "ticks": 55, "lanes": [{}] }
+        ]
+      },
+      {
+        "id": "ledge_grab_down_threshold_accept",
+        "initial_facing": -1,
+        "input_phases": [
+          { "ticks": 55, "lanes": [{ "main": [0, -21400] }] }
+        ]
+      },
+      {
+        "id": "ledge_grab_down_threshold_reject",
+        "initial_facing": -1,
+        "input_phases": [
+          { "ticks": 55, "lanes": [{ "main": [0, -21626] }] }
         ]
       }
     ],
@@ -200,6 +264,59 @@
           "standing_loop_animation_clock"
         ],
         "exclusion_reason": "The line 36/37 response X position is qualified through sample 43 and again for the source-owned EdgeCatch/EdgeWait root positions at samples 48-55; Y and the imported ordinary Fall animation clock are qualified throughout. Samples 44-47 remain assigned to the adjacent wall-response domain. The later standing loop is a separately named pose-clock concern rather than a widened numeric tolerance."
+      },
+      "ledge_grab_down_threshold_accept": {
+        "strict_fields": [
+          "action_state",
+          "response_action_ticks",
+          "grounded",
+          "support_transition",
+          "edge_catch_wait_transition",
+          "hitlag_ticks",
+          "hitstun_storage_ticks",
+          "tumble",
+          "invulnerable",
+          "facing"
+        ],
+        "q16_fields": [
+          "position_x",
+          "position_y",
+          "self_velocity_x",
+          "self_velocity_y",
+          "knockback_velocity_x",
+          "knockback_velocity_y"
+        ],
+        "velocity_tolerance_q16": 32,
+        "position_tolerance_q16": 0,
+        "position_drift_per_tick_q16": 32,
+        "excluded_fields": [],
+        "exclusion_reason": "The nearest controller sample above x480 enters all seven CliffCatch frames and CliffWait."
+      },
+      "ledge_grab_down_threshold_reject": {
+        "strict_fields": [
+          "action_state",
+          "response_action_ticks",
+          "grounded",
+          "support_transition",
+          "hitlag_ticks",
+          "hitstun_storage_ticks",
+          "tumble",
+          "invulnerable",
+          "facing"
+        ],
+        "q16_fields": [
+          "position_x",
+          "position_y",
+          "self_velocity_x",
+          "self_velocity_y",
+          "knockback_velocity_x",
+          "knockback_velocity_y"
+        ],
+        "velocity_tolerance_q16": 32,
+        "position_tolerance_q16": 0,
+        "position_drift_per_tick_q16": 32,
+        "excluded_fields": [],
+        "exclusion_reason": "The nearest controller sample at or below x480 remains in Fall without acquiring the ledge."
       }
     },
     "c": {

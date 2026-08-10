@@ -151,6 +151,7 @@ pf_m4_ssbm_surface_response_attribute_data = {
 static const pf_m4_ssbm_ledge_response_attributes
 pf_m4_ssbm_ledge_response_attribute_data = {
     INT32_C(78103),
+    UINT16_C(21626),
     UINT16_C(100),
     UINT16_C(640),
     UINT16_C(480),

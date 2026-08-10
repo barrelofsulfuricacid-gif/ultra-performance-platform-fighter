@@ -65,6 +65,7 @@ def generate(raw: bytes) -> str:
     down_horizontal_axis_threshold = f32(0x248)
     down_attack_input_window_ticks = f32(0x24C)
     down_c_up_axis_threshold = f32(0x7F4)
+    ledge_grab_down_axis_threshold = f32(0x480)
     ledge_damage_threshold = i32(0x488)
     ledge_quick_wait_ticks = f32(0x48C)
     ledge_slow_wait_ticks = f32(0x490)
@@ -91,6 +92,7 @@ def generate(raw: bytes) -> str:
         or not down_attack_input_window_ticks.is_integer()
         or not 0 < down_attack_input_window_ticks <= 0xFFFF
         or not 0.0 < down_c_up_axis_threshold <= 1.0
+        or not 0.0 < ledge_grab_down_axis_threshold <= 1.0
         or not 0 < ledge_damage_threshold <= 0xFFFF
         or not ledge_quick_wait_ticks.is_integer()
         or not 0 < ledge_quick_wait_ticks <= 0xFFFF
@@ -171,6 +173,9 @@ def generate(raw: bytes) -> str:
     }
     ledge_attributes = {
         "direction_angle_tan_q16": q16(math.tan(down_horizontal_angle)),
+        "grab_down_axis_threshold": round(
+            ledge_grab_down_axis_threshold * 32767.0
+        ),
         "damage_threshold_percent": ledge_damage_threshold,
         "quick_wait_ticks": int(ledge_quick_wait_ticks),
         "slow_wait_ticks": int(ledge_slow_wait_ticks),
@@ -269,6 +274,7 @@ def generate(raw: bytes) -> str:
             "static const pf_m4_ssbm_ledge_response_attributes",
             "pf_m4_ssbm_ledge_response_attribute_data = {",
             f"    INT32_C({ledge_attributes['direction_angle_tan_q16']}),",
+            f"    UINT16_C({ledge_attributes['grab_down_axis_threshold']}),",
             f"    UINT16_C({ledge_attributes['damage_threshold_percent']}),",
             f"    UINT16_C({ledge_attributes['quick_wait_ticks']}),",
             f"    UINT16_C({ledge_attributes['slow_wait_ticks']}),",

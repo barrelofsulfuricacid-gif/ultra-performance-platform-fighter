@@ -55,6 +55,7 @@ typedef struct pf_m4_ssbm_surface_response_attributes
 typedef struct pf_m4_ssbm_ledge_response_attributes
 {
     int32_t direction_angle_tan_q16;
+    uint16_t grab_down_axis_threshold;
     uint16_t damage_threshold_percent;
     uint16_t quick_wait_ticks;
     uint16_t slow_wait_ticks;
