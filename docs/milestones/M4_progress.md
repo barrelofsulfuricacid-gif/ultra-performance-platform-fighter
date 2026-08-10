@@ -5152,11 +5152,14 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   route pinned at `y=500` and a native natural-jump setup. The product transform
   remains intact; the lane must be split into exact-position geometry replay
   and genuinely identical-input dynamics.
-- The owner ISO is not currently reachable on this machine, so the new
-  facing-away branch is not yet claimed as live-qualified. Capture generation
-  and comparison support are ready for the next mounted-disc run. The importer
-  skill now records both the action-specific ledge-direction rule and the ban
-  on pairing sustained position overrides with a natural-motion comparator.
+- The owner ISO is reachable again. A headless/null/unlimited source capture
+  now closes the facing-away branch: Falcon turns outward on Dive frame 13,
+  remains outward through frame 63, catches on frame 64, turns inward, and
+  enters `EdgeHang` on frame 71. All 63 production samples pass within the
+  established Q16 envelope; raw SHA-256 is
+  `026faf91c3582aa5e41c5d95ba757904ec7ef7865a049994ce169f70a6157009`.
+  The shared source verifier accepts both route identities and validates their
+  distinct facing histories plus the same collision-memory ledge predicate.
 
 ## 2026-08-10 Falcon Dive exact-position aerial-catch theorem
 

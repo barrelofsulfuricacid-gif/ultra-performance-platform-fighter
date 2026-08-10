@@ -360,10 +360,11 @@ Current DownBound prior-art/source sweep:
 - [x] Preserve the existing 63-frame facing-toward Dolphin route: source still
   catches on frame 64, enters `EdgeHang` on frame 71, and production passes all
   63 comparable frames with the 640-Q16 envelope.
-- [ ] Capture and pin the new facing-away route in Dolphin once the owner ISO is
-  mounted again. The current machine retains the old capture and toolchain but
-  not a reachable GALE01 disc image, so decomp plus the deterministic native
-  discriminator are the current evidence for the new branch.
+- [x] Capture and pin the facing-away route in headless/null/unlimited Dolphin.
+  Source retains outward facing from Dive frame 13 through frame 63, catches
+  on frame 64, turns inward, and enters `EdgeHang` on frame 71. All 63
+  production samples pass within the 640-Q16 envelope; raw SHA-256 is
+  `026faf91c3582aa5e41c5d95ba757904ec7ef7865a049994ce169f70a6157009`.
 - [x] Repair the pre-existing aerial-catch validation lane. Bisect identifies
   `821fde3` as the first red commit: it correctly changed imported geometry from
   feet-origin to Melee reference-joint origin, while the source route pins both

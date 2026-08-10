@@ -9,6 +9,7 @@ output_dir=${4:-/tmp/m4_falcon_dive}
 ground_miss_capture=${5:-/tmp/falcon_special_geometry_up_ground_miss_ecb_v2.json}
 air_miss_capture=${6:-/tmp/falcon_special_geometry_up_air_miss_ecb_v2.json}
 ledge_capture=${7:-/tmp/falcon_special_geometry_up_air_ledge_grab_v36.json}
+behind_ledge_capture=${8:-/tmp/falcon_special_geometry_up_air_ledge_grab_behind_v1.json}
 python=${PYTHON:-python3}
 
 test -f "$ground_capture"
@@ -16,6 +17,7 @@ test -f "$air_capture"
 test -f "$ground_miss_capture"
 test -f "$air_miss_capture"
 test -f "$ledge_capture"
+test -f "$behind_ledge_capture"
 cmake --build "$build_dir" --target m4_movement_trace m4_combat_test
 mkdir -p "$output_dir"
 
@@ -51,4 +53,13 @@ mkdir -p "$output_dir"
     --native-output "$output_dir/air-ledge.csv" \
     --native-input-output "$output_dir/air-ledge.inputs"
 
-echo "m4-falcon-dive-verification=pass ground_catch_frames=116 air_catch_geometry_poses=12 air_catch_geometry_cases=2 ground_miss_frames=103 air_miss_frames=165 air_ledge_frames=63 ledge_catch=source_verified dynamic_frames=447"
+"$python" "$root/tools/verify_ssbm_falcon_dive_ledge.py" \
+    "$behind_ledge_capture"
+
+"$python" "$root/tools/compare_ssbm_movement.py" \
+    "$behind_ledge_capture" \
+    "$build_dir/pf_m4_movement_trace" \
+    --native-output "$output_dir/air-ledge-behind.csv" \
+    --native-input-output "$output_dir/air-ledge-behind.inputs"
+
+echo "m4-falcon-dive-verification=pass ground_catch_frames=116 air_catch_geometry_poses=12 air_catch_geometry_cases=2 ground_miss_frames=103 air_miss_frames=165 air_ledge_frames=126 ledge_directions=2 ledge_catch=source_verified dynamic_frames=510"

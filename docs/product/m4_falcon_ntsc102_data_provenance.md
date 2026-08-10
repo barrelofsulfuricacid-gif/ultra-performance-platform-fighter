@@ -677,10 +677,13 @@ Pinned/current `ftCa_SpecialHi.c::doAirColl` calls
 ordinary Fall/FallSpecial paths pass facing direction. Production retains that
 argument as one shared ledge-probe policy, allows either endpoint only during
 the gated Dive start, and applies the common catch transition's inward facing
-from the selected ledge. The existing facing-toward capture remains green at
-63/63 comparable frames. A new facing-away live capture remains pending until
-the owner ISO is reachable again; the deterministic physical regression is not
-presented as replacement source evidence.
+from the selected ledge. Both independently pinned directions remain green at
+63/63 comparable frames. The facing-away route keeps outward facing from Dive
+frame 13 through frame 63, catches on frame 64, turns inward, and enters
+`EdgeHang` on frame 71. Its raw SHA-256 is
+`026faf91c3582aa5e41c5d95ba757904ec7ef7865a049994ce169f70a6157009`;
+the source verifier checks the facing transition and the collision-memory
+ledge predicate rather than treating the native discriminator as source proof.
 
 Two pinned miss captures close the ground and aerial `FallSpecial` paths. The
 195-row grounded capture has SHA-256
