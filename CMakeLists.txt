@@ -592,6 +592,14 @@ if(BUILD_TESTING)
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt poses=689 cases=20")
 
     add_test(
+        NAME sim.m4_ssbm_falcon_dive_grab_geometry
+        COMMAND m4_combat_test --ssbm-oracle falcon-dive-grab-geometry)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_dive_grab_geometry
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-dive-grab-geometry poses=12 cases=2")
+
+    add_test(
         NAME sim.m4_ssbm_falcon_floor_response
         COMMAND m4_combat_test --ssbm-oracle falcon-common-floor-response)
     set_tests_properties(

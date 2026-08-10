@@ -16,7 +16,7 @@ test -f "$air_capture"
 test -f "$ground_miss_capture"
 test -f "$air_miss_capture"
 test -f "$ledge_capture"
-cmake --build "$build_dir" --target m4_movement_trace
+cmake --build "$build_dir" --target m4_movement_trace m4_combat_test
 mkdir -p "$output_dir"
 
 "$python" "$root/tools/compare_ssbm_movement.py" \
@@ -25,11 +25,10 @@ mkdir -p "$output_dir"
     --native-output "$output_dir/ground-catch.csv" \
     --native-input-output "$output_dir/ground-catch.inputs"
 
-"$python" "$root/tools/compare_ssbm_movement.py" \
-    "$air_capture" \
-    "$build_dir/pf_m4_movement_trace" \
-    --native-output "$output_dir/air-catch.csv" \
-    --native-input-output "$output_dir/air-catch.inputs"
+"$python" "$root/tools/verify_ssbm_falcon_dive_air_catch.py" \
+    "$air_capture"
+"$build_dir/m4_combat_test" \
+    --ssbm-oracle falcon-dive-grab-geometry
 
 "$python" "$root/tools/compare_ssbm_movement.py" \
     "$ground_miss_capture" \
@@ -52,4 +51,4 @@ mkdir -p "$output_dir"
     --native-output "$output_dir/air-ledge.csv" \
     --native-input-output "$output_dir/air-ledge.inputs"
 
-echo "m4-falcon-dive-verification=pass ground_catch_frames=116 air_catch_frames=92 ground_miss_frames=103 air_miss_frames=165 air_ledge_frames=63 ledge_catch=source_verified total_frames=539"
+echo "m4-falcon-dive-verification=pass ground_catch_frames=116 air_catch_geometry_poses=12 air_catch_geometry_cases=2 ground_miss_frames=103 air_miss_frames=165 air_ledge_frames=63 ledge_catch=source_verified dynamic_frames=447"

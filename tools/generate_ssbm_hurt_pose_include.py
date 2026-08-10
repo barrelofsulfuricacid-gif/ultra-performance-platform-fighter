@@ -98,7 +98,9 @@ def load_and_validate(
         if (
             track.get("id") != declared.get("id")
             or track.get("canonical_facing") != 1
-            or track.get("first_displayed_frame") != 1
+            or not isinstance(track.get("first_displayed_frame"), int)
+            or isinstance(track.get("first_displayed_frame"), bool)
+            or track.get("first_displayed_frame") < 1
             or not isinstance(expected_count, int)
             or isinstance(expected_count, bool)
             or track.get("frame_count") != expected_count
@@ -106,7 +108,11 @@ def load_and_validate(
             or len(frames) != expected_count
         ):
             raise ValueError(f"hurt-pose track {track_index} does not match manifest")
-        for displayed_frame, frame in enumerate(frames, start=1):
+        first_displayed_frame = int(track["first_displayed_frame"])
+        for displayed_frame, frame in enumerate(
+            frames,
+            start=first_displayed_frame,
+        ):
             capsules = frame.get("capsules_q16")
             if (
                 frame.get("displayed_frame") != displayed_frame

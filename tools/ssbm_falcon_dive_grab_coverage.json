@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "scope": "falcon-dive-grab-geometry",
+  "domain": "falcon-dive-grab-geometry",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_qualification": {
+    "capture_sha256": "59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f",
+    "previous_trace_frame": 52,
+    "collision_trace_frame": 53,
+    "attacker_source_action": "SWORD_DANCE_3_LOW",
+    "attacker_pending_frame": 13,
+    "attacker_result_action": "SWORD_DANCE_4_HIGH",
+    "target_source_action": "JUMPING_FORWARD",
+    "target_pending_frame": 20,
+    "target_result_action": "CAPTURE_CAPTAIN",
+    "attacker_hit_spheres_q16": [
+      [39798, -57002, 0, 18698],
+      [88431, -57002, 0, 29382]
+    ]
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_dive_grab_oracle.inc",
+      "generated/data/m4_ssbm_falcon_jump_forward_hurt.inc",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/data/ssbm_falcon_jump_forward_hurt.json",
+      "tools/extract_ssbm_hurt_pose_tracks.py",
+      "tools/generate_ssbm_hurt_pose_include.py",
+      "tools/generate_ssbm_stored_oracle.py",
+      "tools/ssbm_collision.py",
+      "tools/ssbm_falcon_dive_grab_coverage.json",
+      "tools/ssbm_falcon_jump_forward_hurt_import.json",
+      "tools/verify_ssbm_falcon_dive_air_catch.py"
+    ]
+  },
+  "pose_tracks": [],
+  "stored_oracle": {
+    "kind": "pose-geometry-v1",
+    "pose_profiles": [
+      {
+        "path": "data/ssbm_falcon_jump_forward_hurt.json",
+        "profile_sha256": "ca198cb02b56ecacb78efb9c4e25d7ee3b0c2e7fea303554fb1e5c439ae8c6b6",
+        "capture_sha256": "59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f",
+        "semantic_sha256": "71d9ee617fc1824b7cd374a19448bd97e4e0cb5b3cfd567c34bbaeead26fd202",
+        "track_submotions": {
+          "jump_forward": "JUMP_FORWARD"
+        },
+        "track_first_action_frames": {
+          "jump_forward": 9
+        }
+      }
+    ],
+    "source_pose_sha256": "0409481263f9d10432b7e6f7ccd7e10d7b8cce69e3ba05676170cf3fc4fa9254",
+    "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
+    "production_pose_sha256": "0409481263f9d10432b7e6f7ccd7e10d7b8cce69e3ba05676170cf3fc4fa9254",
+    "expected_pose_count": 12,
+    "expected_capsules_per_pose": 11,
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_dive_grab",
+      "macro_prefix": "PF_M4_SSBM_FALCON_DIVE_GRAB",
+      "track_count_expression": "1",
+      "actions": {
+        "JUMPING_FORWARD": "PF_M4_ACTION_AIRBORNE"
+      },
+      "submotions": {
+        "JUMP_FORWARD": "PF_M4_FALCON_SUBMOTION_JUMP_FORWARD"
+      },
+      "buttons": {},
+      "moves": {
+        "UP_SPECIAL_AIR": "PF_M4_FALCON_UP_SPECIAL_AIR"
+      }
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": [
+        "--ssbm-oracle",
+        "falcon-dive-grab-geometry"
+      ]
+    },
+    "cases": [
+      {
+        "id": "air-catch-live-hit",
+        "mode": "geometry",
+        "target_action": "JUMPING_FORWARD",
+        "target_source_submotion": "JUMP_FORWARD",
+        "action_frame": 20,
+        "source_frame": 20,
+        "geometry_q16": {
+          "attacker_move": "UP_SPECIAL_AIR",
+          "attacker_action_frame": 13,
+          "target_offset_q16": [34193, -4271],
+          "attacker_facing": 1,
+          "target_facing": -1,
+          "grabbable_only": true
+        },
+        "expect_hit": true
+      },
+      {
+        "id": "air-catch-translated-miss",
+        "mode": "geometry",
+        "target_action": "JUMPING_FORWARD",
+        "target_source_submotion": "JUMP_FORWARD",
+        "action_frame": 20,
+        "source_frame": 20,
+        "geometry_q16": {
+          "attacker_move": "UP_SPECIAL_AIR",
+          "attacker_action_frame": 13,
+          "target_offset_q16": [-6838, -4271],
+          "attacker_facing": 1,
+          "target_facing": -1,
+          "grabbable_only": true
+        },
+        "expect_hit": false
+      }
+    ]
+  }
+}

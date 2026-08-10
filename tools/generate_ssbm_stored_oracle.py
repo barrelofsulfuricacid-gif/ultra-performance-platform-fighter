@@ -40,10 +40,11 @@ def c_identifier(value: Any, name: str) -> str:
 
 def c_constant_expression(value: Any, name: str) -> str:
     if not isinstance(value, str) or re.fullmatch(
-        r"[A-Za-z_][A-Za-z0-9_]*(?:\s*\+\s*[A-Za-z_][A-Za-z0-9_]*)*",
+        r"(?:[A-Za-z_][A-Za-z0-9_]*|[1-9][0-9]*)"
+        r"(?:\s*\+\s*(?:[A-Za-z_][A-Za-z0-9_]*|[1-9][0-9]*))*",
         value,
     ) is None:
-        raise ValueError(f"{name} must be a sum of C identifiers")
+        raise ValueError(f"{name} must be a sum of C identifiers or counts")
     return value
 
 
@@ -146,6 +147,19 @@ def stored_pose_tracks(
             raise ValueError(
                 f"{label}.track_submotions must bind every profile track exactly once"
             )
+        track_first_action_frames = declaration.get(
+            "track_first_action_frames", {}
+        )
+        if (
+            not isinstance(track_first_action_frames, dict)
+            or any(
+                track_id not in track_ids
+                for track_id in track_first_action_frames
+            )
+        ):
+            raise ValueError(
+                f"{label}.track_first_action_frames must reference profile tracks"
+            )
         for track_index, profile_track in enumerate(profile_tracks):
             track_label = f"{label}.tracks[{track_index}]"
             action = profile_track.get("source_action")
@@ -179,6 +193,14 @@ def stored_pose_tracks(
                 {
                     "action": action,
                     "source_submotion": track_submotions[profile_track["id"]],
+                    "first_action_frame": require_int(
+                        track_first_action_frames.get(
+                            profile_track["id"], 1
+                        ),
+                        f"{track_label}.first_action_frame",
+                        1,
+                        65535,
+                    ),
                     "frames": {
                         "first": first,
                         "last": first + frame_count - 1,
@@ -240,12 +262,17 @@ def generate(
     buttons = identifier_map(
         c_config.get("buttons"), "stored_oracle.c.buttons"
     )
+    moves = identifier_map(
+        c_config.get("moves", {}), "stored_oracle.c.moves"
+    )
     cases = stored.get("cases")
     if not isinstance(cases, list) or not cases:
         raise ValueError("stored oracle must declare cases")
 
     track_rows: list[str] = []
-    track_by_runtime_state: dict[tuple[str, str], tuple[int, int, int]] = {}
+    track_by_runtime_state: dict[
+        tuple[str, str], tuple[int, int, int, int]
+    ] = {}
     pose_count = 0
     for index, track in enumerate(tracks):
         if not isinstance(track, dict):
@@ -257,6 +284,12 @@ def generate(
         first = require_int(frames.get("first"), f"{action}.first", 1, 65535)
         last = require_int(frames.get("last"), f"{action}.last", first, 65535)
         step = require_int(frames.get("step"), f"{action}.step", 1, 65535)
+        first_action_frame = require_int(
+            track.get("first_action_frame", 1),
+            f"{action}.first_action_frame",
+            1,
+            65535,
+        )
         if (last - first) % step != 0:
             raise ValueError(f"{action} frame range is not divisible by its step")
         enum_name = action_enum(action, actions)
@@ -274,13 +307,19 @@ def generate(
             raise ValueError(
                 f"duplicate runtime action/submotion in pose tracks: {action}"
             )
-        track_by_runtime_state[runtime_state] = (first, last, step)
+        track_by_runtime_state[runtime_state] = (
+            first,
+            last,
+            step,
+            first_action_frame,
+        )
         pose_count += (last - first) // step + 1
         track_rows.append(
             "    { "
             f"{c_string(action)}, (uint8_t){enum_name}, "
             f"{submotion_expression}, "
-            f"UINT16_C({first}), UINT16_C({last}), UINT16_C({step})"
+            f"UINT16_C({first}), UINT16_C({last}), UINT16_C({step}), "
+            f"UINT16_C({first_action_frame})"
             " },"
         )
     if pose_count != expected_pose_count:
@@ -316,13 +355,14 @@ def generate(
             raise ValueError(
                 f"{case_id}.target_source_submotion is unsupported"
             )
-        distance = require_int(
-            case.get("distance_hundredths"),
-            f"{case_id}.distance_hundredths",
-            0,
-            65535,
-        )
+        geometry_values: tuple[Any, ...] = (0, 0, 0, 0, 0, 0, 0, 0)
         if mode == "runtime":
+            distance = require_int(
+                case.get("distance_hundredths"),
+                f"{case_id}.distance_hundredths",
+                0,
+                65535,
+            )
             stick = case.get("target_stick")
             if (
                 not isinstance(stick, list)
@@ -367,45 +407,136 @@ def generate(
             source_frame = require_int(
                 case.get("source_frame"), f"{case_id}.source_frame", 1, 65535
             )
-            jab_frame = require_int(
-                case.get("jab_frame"), f"{case_id}.jab_frame", 1, 65535
-            )
-            facing = require_int(case.get("facing"), f"{case_id}.facing", -1, 1)
-            if facing == 0:
-                raise ValueError(f"{case_id}.facing may not be zero")
-            height = require_int(
-                case.get("height_hundredths"),
-                f"{case_id}.height_hundredths",
-                0,
-                65535,
-            )
             track = track_by_runtime_state.get(
                 (target_action, target_submotion_expression)
             )
             if track is None:
                 raise ValueError(f"{case_id}.target_action has no pose track")
-            first, last, step = track
-            expected_source_frame = first + (action_frame - 1) * step
+            first, last, step, first_action_frame = track
+            if action_frame < first_action_frame:
+                raise ValueError(
+                    f"{case_id}.action_frame precedes its production track"
+                )
+            expected_source_frame = (
+                first + (action_frame - first_action_frame) * step
+            )
             if expected_source_frame > last or source_frame != expected_source_frame:
                 raise ValueError(
                     f"{case_id} maps runtime frame {action_frame} to source "
                     f"frame {expected_source_frame}, not {source_frame}"
                 )
-            values = (
-                "PF_SSBM_STORED_GEOMETRY",
-                target_action,
-                target_submotion_expression,
-                distance,
-                height,
-                action_frame,
-                source_frame,
-                facing,
-                0,
-                "UINT64_C(0)",
-                jab_frame,
-                0,
-                int(expect_hit),
-            )
+            geometry = case.get("geometry_q16")
+            if geometry is None:
+                distance = require_int(
+                    case.get("distance_hundredths"),
+                    f"{case_id}.distance_hundredths",
+                    0,
+                    65535,
+                )
+                jab_frame = require_int(
+                    case.get("jab_frame"), f"{case_id}.jab_frame", 1, 65535
+                )
+                facing = require_int(
+                    case.get("facing"), f"{case_id}.facing", -1, 1
+                )
+                if facing == 0:
+                    raise ValueError(f"{case_id}.facing may not be zero")
+                height = require_int(
+                    case.get("height_hundredths"),
+                    f"{case_id}.height_hundredths",
+                    0,
+                    65535,
+                )
+                values = (
+                    "PF_SSBM_STORED_GEOMETRY",
+                    target_action,
+                    target_submotion_expression,
+                    distance,
+                    height,
+                    action_frame,
+                    source_frame,
+                    facing,
+                    0,
+                    "UINT64_C(0)",
+                    jab_frame,
+                    0,
+                    int(expect_hit),
+                )
+            else:
+                if not isinstance(geometry, dict):
+                    raise ValueError(f"{case_id}.geometry_q16 must be an object")
+                move_name = geometry.get("attacker_move")
+                if not isinstance(move_name, str) or move_name not in moves:
+                    raise ValueError(
+                        f"{case_id}.geometry_q16.attacker_move is unsupported"
+                    )
+                attacker_frame = require_int(
+                    geometry.get("attacker_action_frame"),
+                    f"{case_id}.geometry_q16.attacker_action_frame",
+                    1,
+                    65535,
+                )
+                offset = geometry.get("target_offset_q16")
+                if not isinstance(offset, list) or len(offset) != 2:
+                    raise ValueError(
+                        f"{case_id}.geometry_q16.target_offset_q16 must have two values"
+                    )
+                offset_x = require_int(
+                    offset[0],
+                    f"{case_id}.geometry_q16.target_offset_q16[0]",
+                    -(1 << 31),
+                    (1 << 31) - 1,
+                )
+                offset_y = require_int(
+                    offset[1],
+                    f"{case_id}.geometry_q16.target_offset_q16[1]",
+                    -(1 << 31),
+                    (1 << 31) - 1,
+                )
+                attacker_facing = require_int(
+                    geometry.get("attacker_facing"),
+                    f"{case_id}.geometry_q16.attacker_facing",
+                    -1,
+                    1,
+                )
+                target_facing = require_int(
+                    geometry.get("target_facing"),
+                    f"{case_id}.geometry_q16.target_facing",
+                    -1,
+                    1,
+                )
+                if attacker_facing == 0 or target_facing == 0:
+                    raise ValueError(f"{case_id}.geometry_q16 facing may not be zero")
+                grabbable_only = geometry.get("grabbable_only")
+                if not isinstance(grabbable_only, bool):
+                    raise ValueError(
+                        f"{case_id}.geometry_q16.grabbable_only must be boolean"
+                    )
+                values = (
+                    "PF_SSBM_STORED_GEOMETRY",
+                    target_action,
+                    target_submotion_expression,
+                    0,
+                    0,
+                    action_frame,
+                    source_frame,
+                    0,
+                    0,
+                    "UINT64_C(0)",
+                    0,
+                    0,
+                    int(expect_hit),
+                )
+                geometry_values = (
+                    moves[move_name],
+                    attacker_frame,
+                    offset_x,
+                    offset_y,
+                    attacker_facing,
+                    target_facing,
+                    int(grabbable_only),
+                    1,
+                )
         else:
             raise ValueError(f"{case_id}.mode is unsupported: {mode!r}")
         case_rows.append(
@@ -415,7 +546,17 @@ def generate(
             f"UINT16_C({values[5]}), UINT16_C({values[6]}), "
             f"INT16_C({values[7]}), INT16_C({values[8]}), {values[9]}, "
             f"UINT16_C({values[10]}), UINT16_C({values[11]}), "
-            f"UINT8_C({values[12]})"
+            f"UINT8_C({values[12]}), "
+            "{ "
+            f"(uint16_t){geometry_values[0]}, "
+            f"UINT16_C({geometry_values[1]}), "
+            f"INT32_C({geometry_values[2]}), "
+            f"INT32_C({geometry_values[3]}), "
+            f"INT8_C({geometry_values[4]}), "
+            f"INT8_C({geometry_values[5]}), "
+            f"UINT8_C({geometry_values[6]}), "
+            f"UINT8_C({geometry_values[7]}) "
+            "}"
             " },"
         )
 

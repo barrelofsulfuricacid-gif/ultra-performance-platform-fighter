@@ -74,7 +74,7 @@ static int production_digest(
         const pf_ssbm_stored_pose_track *track =
             &domain->pose_tracks[track_index];
         uint32_t source_frame;
-        uint16_t action_frame = UINT16_C(1);
+        uint16_t action_frame = track->first_action_frame;
 
         for (source_frame = track->first_source_frame;
              source_frame <= track->last_source_frame;
@@ -154,11 +154,13 @@ static int source_frame_matches(
 
         if (track->action_state == stored_case->target_action &&
             track->source_submotion ==
-                stored_case->target_source_submotion)
+                stored_case->target_source_submotion &&
+            stored_case->action_frame >= track->first_action_frame)
         {
             const uint32_t source_frame =
                 (uint32_t)track->first_source_frame +
-                ((uint32_t)stored_case->action_frame - UINT32_C(1)) *
+                ((uint32_t)stored_case->action_frame -
+                 (uint32_t)track->first_action_frame) *
                     (uint32_t)track->source_frame_step;
 
             return source_frame == stored_case->source_frame &&

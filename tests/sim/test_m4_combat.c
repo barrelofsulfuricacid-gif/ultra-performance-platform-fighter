@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
@@ -13702,21 +13703,24 @@ static int run_reference_common_hurt_runtime_case(
     return 1;
 }
 
-static int reference_common_hurt_overlap_at_distance(
+static int reference_hit_geometry_overlap_pose(
+    pf_m4_falcon_move_index attacker_move,
+    uint16_t attacker_action_frame,
+    int8_t attacker_facing,
     uint8_t action_state,
     uint16_t source_submotion,
     uint16_t action_frame,
-    uint16_t jab_frame,
-    int8_t facing,
-    uint32_t melee_distance_hundredths,
-    uint32_t melee_height_hundredths)
+    int8_t target_facing,
+    int32_t target_offset_x_q16,
+    int32_t target_offset_y_q16,
+    int grabbable_only)
 {
     uint8_t hit_sphere_count = UINT8_C(0);
     uint8_t hurt_capsule_count = UINT8_C(0);
     const pf_m4_reference_hit_sphere *hit_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
-            PF_M4_FALCON_JAB1,
-            jab_frame,
+            attacker_move,
+            attacker_action_frame,
             &hit_sphere_count);
     const pf_m4_reference_hurt_capsule *hurt_capsules =
         pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
@@ -13724,16 +13728,12 @@ static int reference_common_hurt_overlap_at_distance(
             source_submotion,
             action_frame,
             &hurt_capsule_count);
-    const int64_t distance_q16 = (int64_t)
-        melee_distance_hundredths_to_sim_q16(
-            melee_distance_hundredths);
-    const int64_t height_q16 = (int64_t)
-        melee_distance_hundredths_to_sim_q16(
-            melee_height_hundredths);
     uint8_t hit_index;
 
     if (hit_spheres == NULL || hit_sphere_count == UINT8_C(0) ||
-        hurt_capsules == NULL || hurt_capsule_count != UINT8_C(11))
+        hurt_capsules == NULL || hurt_capsule_count != UINT8_C(11) ||
+        (attacker_facing != INT8_C(-1) && attacker_facing != INT8_C(1)) ||
+        (target_facing != INT8_C(-1) && target_facing != INT8_C(1)))
     {
         return -1;
     }
@@ -13742,12 +13742,16 @@ static int reference_common_hurt_overlap_at_distance(
          ++hit_index)
     {
         const pf_m4_collision_capsule3_q16 hit = {
-            (int64_t)hit_spheres[hit_index].offset_x_q16,
+            (int64_t)attacker_facing *
+                (int64_t)hit_spheres[hit_index].offset_x_q16,
             (int64_t)hit_spheres[hit_index].offset_y_q16,
-            (int64_t)hit_spheres[hit_index].offset_z_q16,
-            (int64_t)hit_spheres[hit_index].offset_x_q16,
+            (int64_t)attacker_facing *
+                (int64_t)hit_spheres[hit_index].offset_z_q16,
+            (int64_t)attacker_facing *
+                (int64_t)hit_spheres[hit_index].offset_x_q16,
             (int64_t)hit_spheres[hit_index].offset_y_q16,
-            (int64_t)hit_spheres[hit_index].offset_z_q16,
+            (int64_t)attacker_facing *
+                (int64_t)hit_spheres[hit_index].offset_z_q16,
             (int64_t)hit_spheres[hit_index].radius_q16};
         uint8_t hurt_index;
 
@@ -13755,20 +13759,25 @@ static int reference_common_hurt_overlap_at_distance(
              hurt_index < hurt_capsule_count;
              ++hurt_index)
         {
+            if (grabbable_only != 0 &&
+                hurt_capsules[hurt_index].grabbable == UINT8_C(0))
+            {
+                continue;
+            }
             const pf_m4_collision_capsule3_q16 hurt = {
-                distance_q16 +
-                    (int64_t)facing *
+                (int64_t)target_offset_x_q16 +
+                    (int64_t)target_facing *
                         (int64_t)hurt_capsules[hurt_index].endpoint_a_x_q16,
-                -height_q16 +
+                (int64_t)target_offset_y_q16 +
                     (int64_t)hurt_capsules[hurt_index].endpoint_a_y_q16,
-                (int64_t)facing *
+                (int64_t)target_facing *
                     (int64_t)hurt_capsules[hurt_index].endpoint_a_z_q16,
-                distance_q16 +
-                    (int64_t)facing *
+                (int64_t)target_offset_x_q16 +
+                    (int64_t)target_facing *
                         (int64_t)hurt_capsules[hurt_index].endpoint_b_x_q16,
-                -height_q16 +
+                (int64_t)target_offset_y_q16 +
                     (int64_t)hurt_capsules[hurt_index].endpoint_b_y_q16,
-                (int64_t)facing *
+                (int64_t)target_facing *
                     (int64_t)hurt_capsules[hurt_index].endpoint_b_z_q16,
                 (int64_t)hurt_capsules[hurt_index].radius_q16};
 
@@ -13781,6 +13790,30 @@ static int reference_common_hurt_overlap_at_distance(
         }
     }
     return 0;
+}
+
+static int reference_common_hurt_overlap_at_distance(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_frame,
+    uint16_t jab_frame,
+    int8_t facing,
+    uint32_t melee_distance_hundredths,
+    uint32_t melee_height_hundredths)
+{
+    return reference_hit_geometry_overlap_pose(
+        PF_M4_FALCON_JAB1,
+        jab_frame,
+        INT8_C(1),
+        action_state,
+        source_submotion,
+        action_frame,
+        facing,
+        melee_distance_hundredths_to_sim_q16(
+            melee_distance_hundredths),
+        -melee_distance_hundredths_to_sim_q16(
+            melee_height_hundredths),
+        0);
 }
 
 static uint8_t reference_common_hurt_read_pose(
@@ -13902,6 +13935,91 @@ static int run_reference_common_hurt_stored_oracle(int print_pass)
             (unsigned int)PF_M4_SSBM_FALCON_COMMON_HURT_POSE_COUNT,
             (unsigned int)PF_M4_SSBM_FALCON_COMMON_HURT_CASE_COUNT,
             PF_M4_SSBM_FALCON_COMMON_HURT_SOURCE_POSE_SHA256,
+            result.production_pose_sha256);
+    }
+    return 1;
+}
+
+static int reference_geometry_only_runtime_case(
+    void *context,
+    const pf_ssbm_stored_case *stored_case)
+{
+    (void)context;
+    (void)stored_case;
+    return 0;
+}
+
+static int reference_falcon_dive_grab_geometry_case(
+    void *context,
+    const pf_ssbm_stored_case *stored_case)
+{
+    const pf_ssbm_stored_geometry_case *geometry = &stored_case->geometry;
+
+    (void)context;
+    if (geometry->enabled == UINT8_C(0) ||
+        geometry->attacker_move >= (uint16_t)PF_M4_FALCON_MOVE_COUNT)
+    {
+        return -1;
+    }
+    return reference_hit_geometry_overlap_pose(
+        (pf_m4_falcon_move_index)geometry->attacker_move,
+        geometry->attacker_action_frame,
+        geometry->attacker_facing,
+        stored_case->target_action,
+        stored_case->target_source_submotion,
+        stored_case->action_frame,
+        geometry->target_facing,
+        geometry->target_offset_x_q16,
+        geometry->target_offset_y_q16,
+        geometry->grabbable_only != UINT8_C(0));
+}
+
+static int run_reference_falcon_dive_grab_stored_oracle(int print_pass)
+{
+    static const pf_ssbm_stored_oracle_domain domain = {
+        "falcon-dive-grab-geometry",
+        pf_m4_ssbm_falcon_dive_grab_pose_tracks,
+        (uint16_t)(
+            sizeof(pf_m4_ssbm_falcon_dive_grab_pose_tracks) /
+            sizeof(pf_m4_ssbm_falcon_dive_grab_pose_tracks[0])),
+        pf_m4_ssbm_falcon_dive_grab_cases,
+        PF_M4_SSBM_FALCON_DIVE_GRAB_CASE_COUNT,
+        PF_M4_SSBM_FALCON_DIVE_GRAB_POSE_COUNT,
+        PF_M4_SSBM_FALCON_DIVE_GRAB_CAPSULES_PER_POSE,
+        PF_M4_SSBM_FALCON_DIVE_GRAB_PRODUCTION_POSE_SHA256,
+        NULL,
+        reference_common_hurt_read_pose,
+        reference_geometry_only_runtime_case,
+        reference_falcon_dive_grab_geometry_case};
+    pf_ssbm_stored_oracle_result result;
+
+    if (!pf_ssbm_stored_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_pose_sha256=%s "
+            "actual_production_pose_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_pose_sha256,
+            result.production_pose_sha256[0] != '\0'
+                ? result.production_pose_sha256
+                : "unavailable");
+        return 0;
+    }
+    if (print_pass != 0)
+    {
+        (void)printf(
+            "m4-ssbm-stored-oracle=pass "
+            "domain=falcon-dive-grab-geometry poses=%u cases=%u "
+            "source_pose_sha256=%s production_pose_sha256=%s\n",
+            (unsigned int)PF_M4_SSBM_FALCON_DIVE_GRAB_POSE_COUNT,
+            (unsigned int)PF_M4_SSBM_FALCON_DIVE_GRAB_CASE_COUNT,
+            PF_M4_SSBM_FALCON_DIVE_GRAB_SOURCE_POSE_SHA256,
             result.production_pose_sha256);
     }
     return 1;
@@ -27754,6 +27872,11 @@ int main(int argc, char **argv)
             return run_reference_common_hurt_stored_oracle(1) ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-dive-grab-geometry") == 0)
+        {
+            return run_reference_falcon_dive_grab_stored_oracle(1) ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-common-damage-response") == 0)
         {
             return run_ssbm_damage_observation_oracle() ? 0 : 1;
@@ -28328,6 +28451,7 @@ int main(int argc, char **argv)
         !run_reference_shield_boundary_test() ||
         !run_reference_moving_hit_sweep_test() ||
         !run_reference_common_hurt_stored_oracle(0) ||
+        !run_reference_falcon_dive_grab_stored_oracle(0) ||
         !run_powershield_cancel_test(&content, &view) ||
         !run_powershield_cancel_replay_test(&view) ||
         !run_aerial_l_cancel_replay_test() ||

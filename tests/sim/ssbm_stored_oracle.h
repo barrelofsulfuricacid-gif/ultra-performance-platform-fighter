@@ -21,7 +21,21 @@ typedef struct pf_ssbm_stored_pose_track
     uint16_t first_source_frame;
     uint16_t last_source_frame;
     uint16_t source_frame_step;
+    /* Production accessor frame corresponding to first_source_frame. */
+    uint16_t first_action_frame;
 } pf_ssbm_stored_pose_track;
+
+typedef struct pf_ssbm_stored_geometry_case
+{
+    uint16_t attacker_move;
+    uint16_t attacker_action_frame;
+    int32_t target_offset_x_q16;
+    int32_t target_offset_y_q16;
+    int8_t attacker_facing;
+    int8_t target_facing;
+    uint8_t grabbable_only;
+    uint8_t enabled;
+} pf_ssbm_stored_geometry_case;
 
 typedef struct pf_ssbm_stored_case
 {
@@ -39,6 +53,7 @@ typedef struct pf_ssbm_stored_case
     uint16_t button_delay_or_jab_frame;
     uint16_t expected_hit_action_tick;
     uint8_t expect_hit;
+    pf_ssbm_stored_geometry_case geometry;
 } pf_ssbm_stored_case;
 
 typedef struct pf_ssbm_stored_hurt_capsule

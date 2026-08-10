@@ -169,6 +169,7 @@ def canonical_hurt_pose_q16(
     fighter_position_key: str,
     facing: int,
     coordinate_scale_q16: float,
+    endpoint_key_prefix: str = "position",
 ) -> tuple[tuple[int, ...], ...]:
     """Canonicalize a live hurt pose into facing-right Q16.16 space."""
 
@@ -176,6 +177,8 @@ def canonical_hurt_pose_q16(
         raise ValueError("hurt-pose facing must be -1 or 1")
     if coordinate_scale_q16 <= 0.0:
         raise ValueError("hurt-pose coordinate scale must be positive")
+    if endpoint_key_prefix not in {"position", "collision_position"}:
+        raise ValueError("unsupported hurt-pose endpoint key prefix")
     fighter_position = [
         float(value) for value in memory[fighter_position_key]
     ]
@@ -184,8 +187,14 @@ def canonical_hurt_pose_q16(
         hurtbox = dict(source)
         if int(hurtbox["state"]) != 0:
             continue
-        endpoint_a = [float(value) for value in hurtbox["position_a"]]
-        endpoint_b = [float(value) for value in hurtbox["position_b"]]
+        endpoint_a = [
+            float(value)
+            for value in hurtbox[f"{endpoint_key_prefix}_a"]
+        ]
+        endpoint_b = [
+            float(value)
+            for value in hurtbox[f"{endpoint_key_prefix}_b"]
+        ]
         capsules.append(
             (
                 round(

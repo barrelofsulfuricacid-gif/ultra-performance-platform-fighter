@@ -21,6 +21,7 @@
   },
   "domains": [
     "tools/ssbm_falcon_common_hurt_coverage.json",
+    "tools/ssbm_falcon_dive_grab_coverage.json",
     "tools/ssbm_falcon_damage_response_coverage.json",
     "tools/ssbm_falcon_ground_knockback_coverage.json",
     "tools/ssbm_falcon_surface_response_coverage.json",

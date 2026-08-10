@@ -5157,3 +5157,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and comparison support are ready for the next mounted-disc run. The importer
   skill now records both the action-specific ledge-direction rule and the ban
   on pairing sustained position overrides with a natural-motion comparator.
+
+## 2026-08-10 Falcon Dive exact-position aerial-catch theorem
+
+- The previously red aerial-catch comparison mixed a source route with pinned
+  fighter positions and a native route with natural jump motion. It is now
+  split at the correct boundary: identical-input dynamics remain in the live
+  verifier, while collision geometry replays the exact observed relative
+  placement through the reusable stored-oracle runner.
+- A collision-authoritative opponent extractor imports Falcon JumpF displayed
+  frames 9-20 from the post-transition rows of capture SHA-256
+  `59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f`.
+  Production consumes the same immutable 12-pose track through the existing
+  common hurt-pose accessor; the source and production pose serialization both
+  hash to `0409481263f9d10432b7e6f7ccd7e10d7b8cce69e3ba05676170cf3fc4fa9254`.
+- The generic geometry-case schema owns attacker move/frame, exact target
+  offset, facing, and grabbability. Falcon Dive's observed placement hits with
+  margin `+4.645228676`; the translated control misses with margin
+  `-1.151280430`. Both use the same allocation-free C predicate as the prior
+  common-hurt collision theorem.
+- The fast registry now covers 12 domains / 81 cases plus replay in 1.241
+  seconds on Windows and 1.234 seconds on WSL. Windows GCC Release, WSL
+  Release, focused WSL ASan/UBSan, Python syntax checks, regeneration checks,
+  and the repaired combined Falcon Dive verifier pass.

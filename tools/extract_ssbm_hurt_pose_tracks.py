@@ -26,43 +26,63 @@ def extract_track(
     source_action: str,
     first_displayed_frame: int,
     last_displayed_frame: int,
+    *,
+    opponent: bool = False,
+    collision_trace_frames: dict[int, int] | None = None,
 ) -> dict[str, Any]:
     frames: dict[int, tuple[tuple[int, ...], ...]] = {}
+    collision_trace_frames = collision_trace_frames or {}
+    action_key = "opponent_action" if opponent else "action"
+    action_frame_key = (
+        "opponent_action_frame" if opponent else "action_frame"
+    )
+    facing_key = "opponent_facing" if opponent else "facing"
+    hurtbox_key = "opponent_hurtboxes" if opponent else "fighter_hurtboxes"
+    fighter_position_key = (
+        "opponent_fighter_position" if opponent else "fighter_position"
+    )
     for row in rows:
-        if row.get("action") != source_action:
-            continue
-        raw_frame = row.get("action_frame")
-        if (
-            not isinstance(raw_frame, (int, float))
-            or isinstance(raw_frame, bool)
-            or float(raw_frame) != int(raw_frame)
-        ):
-            raise ValueError(f"track {track_id!r} has a non-integral frame")
-        displayed_frame = int(raw_frame)
+        trace_frame = row.get("trace_frame")
+        collision_frame = next(
+            (
+                displayed
+                for displayed, expected_trace in collision_trace_frames.items()
+                if trace_frame == expected_trace
+            ),
+            None,
+        )
+        if collision_frame is None:
+            if row.get(action_key) != source_action:
+                continue
+            raw_frame = row.get(action_frame_key)
+            if (
+                not isinstance(raw_frame, (int, float))
+                or isinstance(raw_frame, bool)
+                or float(raw_frame) != int(raw_frame)
+            ):
+                raise ValueError(f"track {track_id!r} has a non-integral frame")
+            displayed_frame = int(raw_frame)
+        else:
+            displayed_frame = collision_frame
         if not first_displayed_frame <= displayed_frame <= last_displayed_frame:
             continue
-        facing = row.get("facing")
+        facing = row.get(facing_key)
         memory = row.get("hurtbox_memory", row.get("hitbox_memory"))
         if facing not in (-1, 1) or isinstance(facing, bool):
             raise ValueError(f"track {track_id!r} has invalid facing")
         if not isinstance(memory, dict):
             raise ValueError(f"track {track_id!r} is missing a hitbox probe")
-        if "hurtbox_memory" not in row:
-            memory = dict(memory)
-            memory["fighter_hurtboxes"] = [
-                {
-                    **dict(capsule),
-                    "position_a": capsule["collision_position_a"],
-                    "position_b": capsule["collision_position_b"],
-                }
-                for capsule in memory["fighter_hurtboxes"]
-            ]
         pose = canonical_hurt_pose_q16(
             memory,
-            "fighter_hurtboxes",
-            "fighter_position",
+            hurtbox_key,
+            fighter_position_key,
             int(facing),
             MELEE_TO_SIM_Q16,
+            (
+                "collision_position"
+                if "hurtbox_memory" not in row or collision_frame is not None
+                else "position"
+            ),
         )
         if len(pose) != 11:
             raise ValueError(
@@ -107,7 +127,22 @@ def main() -> int:
         action="append",
         nargs=4,
         metavar=("ID", "SOURCE_ACTION", "FIRST_FRAME", "LAST_FRAME"),
-        required=True,
+    )
+    parser.add_argument(
+        "--opponent-track",
+        action="append",
+        nargs=4,
+        metavar=("ID", "SOURCE_ACTION", "FIRST_FRAME", "LAST_FRAME"),
+    )
+    parser.add_argument(
+        "--opponent-collision-frame",
+        action="append",
+        nargs=3,
+        metavar=("TRACK_ID", "DISPLAYED_FRAME", "TRACE_FRAME"),
+        help=(
+            "Map a post-transition trace row's collision endpoints to the "
+            "pending displayed pose evaluated on that source frame."
+        ),
     )
     args = parser.parse_args()
 
@@ -117,9 +152,37 @@ def main() -> int:
     if capture.get("schema") not in {9, 12} or not isinstance(rows, list) or not rows:
         raise SystemExit("capture is not a hurt-pose memory trace")
 
+    track_specs = [
+        (*values, False) for values in (args.track or [])
+    ] + [
+        (*values, True) for values in (args.opponent_track or [])
+    ]
+    if not track_specs:
+        raise SystemExit("at least one --track or --opponent-track is required")
+    collision_frames_by_track: dict[str, dict[int, int]] = {}
+    for track_id, raw_displayed, raw_trace in (
+        args.opponent_collision_frame or []
+    ):
+        try:
+            displayed_frame = int(raw_displayed)
+            trace_frame = int(raw_trace)
+        except ValueError as error:
+            raise SystemExit("collision-frame values must be integers") from error
+        if (
+            displayed_frame < 1
+            or trace_frame < 0
+            or str(displayed_frame) != raw_displayed
+            or str(trace_frame) != raw_trace
+            or displayed_frame
+            in collision_frames_by_track.setdefault(track_id, {})
+        ):
+            raise SystemExit("invalid or duplicate opponent collision frame")
+        collision_frames_by_track[track_id][displayed_frame] = trace_frame
+
     tracks: list[dict[str, Any]] = []
     track_ids: set[str] = set()
-    for raw_id, source_action, raw_first, raw_last in args.track:
+    roles: set[bool] = set()
+    for raw_id, source_action, raw_first, raw_last, opponent in track_specs:
         if (
             not raw_id
             or raw_id in track_ids
@@ -150,9 +213,21 @@ def main() -> int:
                 source_action,
                 first_frame,
                 last_frame,
+                opponent=opponent,
+                collision_trace_frames=collision_frames_by_track.get(raw_id),
             )
         )
         track_ids.add(raw_id)
+        roles.add(opponent)
+
+    unknown_collision_tracks = set(collision_frames_by_track) - track_ids
+    if unknown_collision_tracks:
+        raise SystemExit(
+            "collision frames reference unknown tracks: "
+            + ", ".join(sorted(unknown_collision_tracks))
+        )
+    if len(roles) != 1:
+        raise SystemExit("one profile may not mix fighter and opponent tracks")
 
     semantic = hurt_pose_tracks_semantic_payload(tracks)
     profile = {
@@ -160,7 +235,9 @@ def main() -> int:
         "scope": "ssbm-bounded-hurt-pose-tracks",
         "oracle": capture.get("oracle"),
         "disc": capture.get("disc"),
-        "fighter": capture.get("fighter"),
+        "fighter": (
+            capture.get("opponent") if True in roles else capture.get("fighter")
+        ),
         "stage": capture.get("stage"),
         "capture_sha256": hashlib.sha256(capture_bytes).hexdigest(),
         "semantic_sha256": canonical_json_sha256(semantic),

@@ -22,9 +22,9 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for eleven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, and bounce-pose floor re-contact contain 79 registered cases plus deterministic replay. Common hurt now hashes 689 production poses, including all 434 quick/slow ledge poses. The current full gate checks eleven generated artifacts and replay in 1.277 seconds on Windows and 1.370 seconds on WSL. |
+| Fast stored equivalence | done for twelve domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, bounce-pose floor re-contact, and Falcon Dive grab geometry contain 81 registered cases plus deterministic replay. Common hurt hashes 701 production poses, including all 434 quick/slow ledge poses and JumpF frames 9-20. The current full gate checks twelve generated artifacts and replay in 1.241 seconds on Windows and 1.234 seconds on WSL. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and keep one observer connected while compatible cases replay checkpoints. The common-hurt changed-domain route measures 2.635-2.729 seconds warm. Three independent 19-case ledge runs pass the enforced 10.0-second warm guardrail at 9.649, 8.924, and 9.614 seconds with the same 558-row / 514-sample semantic digest. Unsafe cross-invocation observer reconnection is rejected, not a remaining deliverable. |
-| Falcon bounded hurt poses | common and ledge poses imported and physically qualified | The common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules) through a reusable manifest-driven generator and the production collision/inspection path. One generic 689-pose stored digest protects both families. A separate two-case live theorem proves imported quick-climb frame 29 against exact Falcon Jab 1 frame 4: the positive route hits, the 0.75-unit-farther control misses, and the generic body rectangle misses both. |
+| Falcon bounded hurt poses | common, ledge, and Dive-victim JumpF poses imported and physically qualified | The common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules). The repaired Dive theorem adds exact JumpF frames 9-20 from collision-authoritative post-transition rows. One generic 701-pose stored digest protects all three families. Separate two-case geometry theorems qualify quick-climb/Jab and Dive/JumpF hit-versus-nearby-miss boundaries. |
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, and a source-qualified complete Battlefield collision/environment catalog. The production Battlefield route qualifies JumpF/Pass ECB timing, selected floor lines 2/1, exact sloped wall/ceiling normals and reflection, and complete `BOUNCE_CEILING`/`BOUNCE_WALL` pose-driven descent through first top-platform re-contact. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
@@ -344,7 +344,7 @@ Current DownBound prior-art/source sweep:
   pinned MSVC lane is unavailable because Visual Studio `vswhere.exe` is not
   installed; remote CI retains that compiler gate.
 
-## In progress: Falcon Dive action-specific ledge acquisition
+## Completed and verified: Falcon Dive action-specific ledge acquisition and aerial-catch geometry
 
 - [x] Re-sweep pinned/current `doldecomp/melee`. The relevant
   `ftCa_SpecialHi.c`, `ft_081B.c`, `ftcliffcommon.c`, and `mpcoll.c` paths are
@@ -364,12 +364,15 @@ Current DownBound prior-art/source sweep:
   mounted again. The current machine retains the old capture and toolchain but
   not a reachable GALE01 disc image, so decomp plus the deterministic native
   discriminator are the current evidence for the new branch.
-- [ ] Repair the pre-existing aerial-catch validation lane. Bisect identifies
+- [x] Repair the pre-existing aerial-catch validation lane. Bisect identifies
   `821fde3` as the first red commit: it correctly changed imported geometry from
   feet-origin to Melee reference-joint origin, while the source route pins both
   fighters at `y=500` and the native runner follows a different natural-jump
-  trajectory. This is a geometry-oracle architecture mismatch, not evidence
-  for reverting the production origin transform.
+  trajectory. The repaired lane imports collision-authoritative JumpF frames
+  9-20, replays exact source-relative placements, and uses a shared stored
+  sphere-versus-pose predicate. Its pinned hit and translated miss margins are
+  `+4.645228676` and `-1.151280430`; no production-origin rollback or
+  character-specific collision routine was introduced.
 
 ## Completed and verified: distinct CliffCatch and CliffWait entry
 
