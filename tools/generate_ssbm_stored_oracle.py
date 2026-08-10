@@ -331,6 +331,38 @@ def generate(
             f"expected {expected_pose_count} stored poses, got {pose_count}"
         )
 
+    def mapped_case_frame(
+        case_id: str,
+        case: dict[str, Any],
+        target_action: str,
+        target_submotion_expression: str,
+    ) -> tuple[int, int]:
+        action_frame = require_int(
+            case.get("action_frame"), f"{case_id}.action_frame", 0, 65535
+        )
+        source_frame = require_int(
+            case.get("source_frame"), f"{case_id}.source_frame", 0, 65535
+        )
+        track = track_by_runtime_state.get(
+            (target_action, target_submotion_expression)
+        )
+        if track is None:
+            raise ValueError(f"{case_id}.target_action has no pose track")
+        first, last, step, first_action_frame = track
+        if action_frame < first_action_frame:
+            raise ValueError(
+                f"{case_id}.action_frame precedes its production track"
+            )
+        expected_source_frame = (
+            first + (action_frame - first_action_frame) * step
+        )
+        if expected_source_frame > last or source_frame != expected_source_frame:
+            raise ValueError(
+                f"{case_id} maps runtime frame {action_frame} to source "
+                f"frame {expected_source_frame}, not {source_frame}"
+            )
+        return action_frame, source_frame
+
     case_rows: list[str] = []
     case_ids: set[str] = set()
     for index, case in enumerate(cases):
@@ -342,8 +374,10 @@ def generate(
             raise ValueError(f"invalid or duplicate stored case id: {case_id!r}")
         case_ids.add(case_id)
         expect_hit = case.get("expect_hit")
-        if not isinstance(expect_hit, bool):
+        if mode in ("runtime", "geometry") and not isinstance(expect_hit, bool):
             raise ValueError(f"{case_id}.expect_hit must be boolean")
+        if mode == "pose_facing":
+            expect_hit = False
         target_action = action_enum(case.get("target_action"), actions)
         target_source_submotion = case.get("target_source_submotion")
         if target_source_submotion is None:
@@ -360,6 +394,7 @@ def generate(
                 f"{case_id}.target_source_submotion is unsupported"
             )
         geometry_values: tuple[Any, ...] = (0, 0, 0, 0, 0, 0, 0, 0)
+        pose_facing_values: tuple[Any, ...] = (0, 0, 0, 0, 0)
         if mode == "runtime":
             distance = require_int(
                 case.get("distance_hundredths"),
@@ -405,30 +440,12 @@ def generate(
                 int(expect_hit),
             )
         elif mode == "geometry":
-            action_frame = require_int(
-                case.get("action_frame"), f"{case_id}.action_frame", 1, 65535
+            action_frame, source_frame = mapped_case_frame(
+                case_id,
+                case,
+                target_action,
+                target_submotion_expression,
             )
-            source_frame = require_int(
-                case.get("source_frame"), f"{case_id}.source_frame", 1, 65535
-            )
-            track = track_by_runtime_state.get(
-                (target_action, target_submotion_expression)
-            )
-            if track is None:
-                raise ValueError(f"{case_id}.target_action has no pose track")
-            first, last, step, first_action_frame = track
-            if action_frame < first_action_frame:
-                raise ValueError(
-                    f"{case_id}.action_frame precedes its production track"
-                )
-            expected_source_frame = (
-                first + (action_frame - first_action_frame) * step
-            )
-            if expected_source_frame > last or source_frame != expected_source_frame:
-                raise ValueError(
-                    f"{case_id} maps runtime frame {action_frame} to source "
-                    f"frame {expected_source_frame}, not {source_frame}"
-                )
             geometry = case.get("geometry_q16")
             if geometry is None:
                 distance = require_int(
@@ -541,6 +558,66 @@ def generate(
                     int(grabbable_only),
                     1,
                 )
+        elif mode == "pose_facing":
+            action_frame, source_frame = mapped_case_frame(
+                case_id,
+                case,
+                target_action,
+                target_submotion_expression,
+            )
+            pose_facing = case.get("pose_facing")
+            if not isinstance(pose_facing, dict):
+                raise ValueError(f"{case_id}.pose_facing must be an object")
+            action_ticks = require_int(
+                pose_facing.get("action_ticks"),
+                f"{case_id}.pose_facing.action_ticks",
+                0,
+                65535,
+            )
+            gameplay_facing = require_int(
+                pose_facing.get("gameplay_facing"),
+                f"{case_id}.pose_facing.gameplay_facing",
+                -1,
+                1,
+            )
+            dash_direction = require_int(
+                pose_facing.get("dash_direction"),
+                f"{case_id}.pose_facing.dash_direction",
+                -1,
+                1,
+            )
+            expected_pose_facing = require_int(
+                pose_facing.get("expected_pose_facing"),
+                f"{case_id}.pose_facing.expected_pose_facing",
+                -1,
+                1,
+            )
+            if gameplay_facing == 0 or expected_pose_facing == 0:
+                raise ValueError(
+                    f"{case_id}.pose_facing gameplay/expected facing may not be zero"
+                )
+            values = (
+                "PF_SSBM_STORED_POSE_FACING",
+                target_action,
+                target_submotion_expression,
+                0,
+                0,
+                action_frame,
+                source_frame,
+                0,
+                0,
+                "UINT64_C(0)",
+                0,
+                0,
+                0,
+            )
+            pose_facing_values = (
+                action_ticks,
+                gameplay_facing,
+                dash_direction,
+                expected_pose_facing,
+                1,
+            )
         else:
             raise ValueError(f"{case_id}.mode is unsupported: {mode!r}")
         case_rows.append(
@@ -560,6 +637,12 @@ def generate(
             f"INT8_C({geometry_values[5]}), "
             f"UINT8_C({geometry_values[6]}), "
             f"UINT8_C({geometry_values[7]}) "
+            "}, { "
+            f"UINT16_C({pose_facing_values[0]}), "
+            f"INT8_C({pose_facing_values[1]}), "
+            f"INT8_C({pose_facing_values[2]}), "
+            f"INT8_C({pose_facing_values[3]}), "
+            f"UINT8_C({pose_facing_values[4]}) "
             "}"
             " },"
         )

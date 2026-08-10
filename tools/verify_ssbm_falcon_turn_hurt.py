@@ -76,6 +76,60 @@ def extract_tracks(
     return result
 
 
+def validate_pose_facing_cases(manifest: dict[str, Any]) -> None:
+    expected = [
+        {
+            "id": "run-turn-frame9-before-flip",
+            "mode": "pose_facing",
+            "target_action": "TURNING_RUN",
+            "target_source_submotion": "TURN_RUN",
+            "action_frame": 9,
+            "source_frame": 9,
+            "pose_facing": {
+                "action_ticks": 10,
+                "gameplay_facing": 1,
+                "dash_direction": -1,
+                "expected_pose_facing": 1,
+            },
+        },
+        {
+            "id": "run-turn-frame9-pending-display",
+            "mode": "pose_facing",
+            "target_action": "TURNING_RUN",
+            "target_source_submotion": "TURN_RUN",
+            "action_frame": 9,
+            "source_frame": 9,
+            "pose_facing": {
+                "action_ticks": 10,
+                "gameplay_facing": -1,
+                "dash_direction": -1,
+                "expected_pose_facing": 1,
+            },
+        },
+        {
+            "id": "run-turn-frame10-resumed-display",
+            "mode": "pose_facing",
+            "target_action": "TURNING_RUN",
+            "target_source_submotion": "TURN_RUN",
+            "action_frame": 10,
+            "source_frame": 10,
+            "pose_facing": {
+                "action_ticks": 11,
+                "gameplay_facing": -1,
+                "dash_direction": -1,
+                "expected_pose_facing": -1,
+            },
+        },
+    ]
+    actual = [
+        case
+        for case in manifest["stored_oracle"]["cases"]
+        if case.get("mode") == "pose_facing"
+    ]
+    if actual != expected:
+        raise SystemExit("turn-hurt pose-facing cases do not match live phase")
+
+
 def validate_capture(
     path: Path,
     manifest: dict[str, Any],
@@ -132,6 +186,7 @@ def main() -> int:
     args = parser.parse_args()
 
     manifest = json.loads(args.coverage_manifest.read_text(encoding="utf-8"))
+    validate_pose_facing_cases(manifest)
     live = dict(manifest["live_qualification"])
     accelerated, accelerated_tracks = validate_capture(
         args.accelerated_capture,

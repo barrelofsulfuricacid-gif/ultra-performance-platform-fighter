@@ -608,6 +608,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     int32_t position_x_q16,
     int32_t position_y_q16,
     int8_t facing,
+    int8_t dash_direction,
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,

@@ -171,6 +171,48 @@
         "distance_hundredths": 10000,
         "height_hundredths": 0,
         "expect_hit": false
+      },
+      {
+        "id": "run-turn-frame9-before-flip",
+        "mode": "pose_facing",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 9,
+        "source_frame": 9,
+        "pose_facing": {
+          "action_ticks": 10,
+          "gameplay_facing": 1,
+          "dash_direction": -1,
+          "expected_pose_facing": 1
+        }
+      },
+      {
+        "id": "run-turn-frame9-pending-display",
+        "mode": "pose_facing",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 9,
+        "source_frame": 9,
+        "pose_facing": {
+          "action_ticks": 10,
+          "gameplay_facing": -1,
+          "dash_direction": -1,
+          "expected_pose_facing": 1
+        }
+      },
+      {
+        "id": "run-turn-frame10-resumed-display",
+        "mode": "pose_facing",
+        "target_action": "TURNING_RUN",
+        "target_source_submotion": "TURN_RUN",
+        "action_frame": 10,
+        "source_frame": 10,
+        "pose_facing": {
+          "action_ticks": 11,
+          "gameplay_facing": -1,
+          "dash_direction": -1,
+          "expected_pose_facing": -1
+        }
       }
     ]
   }

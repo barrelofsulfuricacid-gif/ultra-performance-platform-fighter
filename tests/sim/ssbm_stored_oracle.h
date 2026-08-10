@@ -10,7 +10,8 @@
 typedef enum pf_ssbm_stored_case_mode
 {
     PF_SSBM_STORED_RUNTIME = 0,
-    PF_SSBM_STORED_GEOMETRY = 1
+    PF_SSBM_STORED_GEOMETRY = 1,
+    PF_SSBM_STORED_POSE_FACING = 2
 } pf_ssbm_stored_case_mode;
 
 typedef struct pf_ssbm_stored_pose_track
@@ -37,6 +38,15 @@ typedef struct pf_ssbm_stored_geometry_case
     uint8_t enabled;
 } pf_ssbm_stored_geometry_case;
 
+typedef struct pf_ssbm_stored_pose_facing_case
+{
+    uint16_t action_ticks;
+    int8_t gameplay_facing;
+    int8_t dash_direction;
+    int8_t expected_pose_facing;
+    uint8_t enabled;
+} pf_ssbm_stored_pose_facing_case;
+
 typedef struct pf_ssbm_stored_case
 {
     const char *id;
@@ -54,6 +64,7 @@ typedef struct pf_ssbm_stored_case
     uint16_t expected_hit_action_tick;
     uint8_t expect_hit;
     pf_ssbm_stored_geometry_case geometry;
+    pf_ssbm_stored_pose_facing_case pose_facing;
 } pf_ssbm_stored_case;
 
 typedef struct pf_ssbm_stored_hurt_capsule
@@ -88,6 +99,12 @@ typedef int (*pf_ssbm_stored_geometry_case_runner)(
     void *context,
     const pf_ssbm_stored_case *stored_case);
 
+/* Returns the production collision-pose facing, or a value outside [-1, 1]
+   when the case is invalid. */
+typedef int (*pf_ssbm_stored_pose_facing_case_runner)(
+    void *context,
+    const pf_ssbm_stored_case *stored_case);
+
 typedef struct pf_ssbm_stored_oracle_domain
 {
     const char *name;
@@ -102,6 +119,7 @@ typedef struct pf_ssbm_stored_oracle_domain
     pf_ssbm_stored_pose_reader read_pose;
     pf_ssbm_stored_runtime_case_runner run_runtime_case;
     pf_ssbm_stored_geometry_case_runner run_geometry_case;
+    pf_ssbm_stored_pose_facing_case_runner run_pose_facing_case;
 } pf_ssbm_stored_oracle_domain;
 
 typedef struct pf_ssbm_stored_oracle_result

@@ -13920,6 +13920,85 @@ static int reference_common_hurt_run_geometry_case(
         stored_case->height_hundredths);
 }
 
+static int reference_falcon_turn_hurt_pose_facing_case(
+    void *context,
+    const pf_ssbm_stored_case *stored_case)
+{
+    const pf_m4_fighter_data *fighter = context;
+    const pf_ssbm_stored_pose_facing_case *phase =
+        &stored_case->pose_facing;
+    pf_m4_hurt_capsule_inspection
+        world_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY];
+    uint8_t source_count = UINT8_C(0);
+    const pf_m4_reference_hurt_capsule *source =
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            stored_case->target_action,
+            stored_case->target_source_submotion,
+            stored_case->action_frame,
+            &source_count);
+    const uint8_t world_count = pf_m4_reference_world_hurt_capsules(
+        fighter,
+        INT32_C(0),
+        INT32_C(0),
+        phase->gameplay_facing,
+        phase->dash_direction,
+        UINT8_C(1),
+        stored_case->target_action,
+        UINT8_C(0),
+        stored_case->target_source_submotion,
+        phase->action_ticks,
+        world_capsules);
+    int candidate_facing;
+
+    if (fighter == NULL || phase->enabled == UINT8_C(0) || source == NULL ||
+        source_count == UINT8_C(0) || world_count != source_count)
+    {
+        return 2;
+    }
+    for (candidate_facing = -1; candidate_facing <= 1;
+         candidate_facing += 2)
+    {
+        uint8_t capsule_index;
+        int matches = 1;
+
+        for (capsule_index = UINT8_C(0);
+             capsule_index < source_count;
+             ++capsule_index)
+        {
+            const pf_m4_reference_hurt_capsule *local =
+                &source[capsule_index];
+            const pf_m4_hurt_capsule_inspection *world =
+                &world_capsules[capsule_index];
+
+            if (world->endpoint_a_x_q16 !=
+                    candidate_facing * local->endpoint_a_x_q16 ||
+                world->endpoint_a_y_q16 !=
+                    fighter->half_height_q16 + local->endpoint_a_y_q16 ||
+                world->endpoint_a_z_q16 !=
+                    candidate_facing * local->endpoint_a_z_q16 ||
+                world->endpoint_b_x_q16 !=
+                    candidate_facing * local->endpoint_b_x_q16 ||
+                world->endpoint_b_y_q16 !=
+                    fighter->half_height_q16 + local->endpoint_b_y_q16 ||
+                world->endpoint_b_z_q16 !=
+                    candidate_facing * local->endpoint_b_z_q16 ||
+                world->radius_q16 != local->radius_q16 ||
+                world->hurtbox_id != local->hurtbox_id ||
+                world->height != local->height ||
+                world->grabbable != local->grabbable)
+            {
+                matches = 0;
+                break;
+            }
+        }
+        if (matches != 0)
+        {
+            return candidate_facing;
+        }
+    }
+    return 2;
+}
+
 static int run_reference_pose_stored_oracle(
     const pf_ssbm_stored_oracle_domain *domain,
     const char *source_pose_sha256,
@@ -13975,7 +14054,8 @@ static int run_reference_common_hurt_stored_oracle(int print_pass)
         NULL,
         reference_common_hurt_read_pose,
         reference_common_hurt_run_runtime_case,
-        reference_common_hurt_run_geometry_case};
+        reference_common_hurt_run_geometry_case,
+        NULL};
     return run_reference_pose_stored_oracle(
         &domain,
         PF_M4_SSBM_FALCON_COMMON_HURT_SOURCE_POSE_SHA256,
@@ -13984,7 +14064,8 @@ static int run_reference_common_hurt_stored_oracle(int print_pass)
 
 static int run_reference_falcon_turn_hurt_stored_oracle(int print_pass)
 {
-    static const pf_ssbm_stored_oracle_domain domain = {
+    pf_m4_content content;
+    const pf_ssbm_stored_oracle_domain domain = {
         "falcon-turn-hurt",
         pf_m4_ssbm_falcon_turn_hurt_pose_tracks,
         (uint16_t)(
@@ -13995,10 +14076,16 @@ static int run_reference_falcon_turn_hurt_stored_oracle(int print_pass)
         PF_M4_SSBM_FALCON_TURN_HURT_POSE_COUNT,
         PF_M4_SSBM_FALCON_TURN_HURT_CAPSULES_PER_POSE,
         PF_M4_SSBM_FALCON_TURN_HURT_PRODUCTION_POSE_SHA256,
-        NULL,
+        &content.fighter,
         reference_common_hurt_read_pose,
         reference_common_hurt_run_runtime_case,
-        reference_common_hurt_run_geometry_case};
+        reference_common_hurt_run_geometry_case,
+        reference_falcon_turn_hurt_pose_facing_case};
+
+    if (pf_m4_default_content(&content) != PF_STATUS_OK)
+    {
+        return 0;
+    }
 
     return run_reference_pose_stored_oracle(
         &domain,
@@ -14056,7 +14143,8 @@ static int run_reference_falcon_dive_grab_stored_oracle(int print_pass)
         NULL,
         reference_common_hurt_read_pose,
         reference_geometry_only_runtime_case,
-        reference_falcon_dive_grab_geometry_case};
+        reference_falcon_dive_grab_geometry_case,
+        NULL};
     return run_reference_pose_stored_oracle(
         &domain,
         PF_M4_SSBM_FALCON_DIVE_GRAB_SOURCE_POSE_SHA256,

@@ -717,11 +717,14 @@ lengthening the common-hurt session beyond its stable rollback window. The
 accelerated and no-fast-forward control captures each contain 39 rows and
 reproduce the same 33-pose / 363-capsule semantic payload. Production retains
 source submotions 10/11, imports Turn frames 1-11 and TurnRun frames 0-21, and
-registers a distinct four-case stored domain. The complete 18-domain /
-105-case gate plus replay runs warm in 0.573 seconds on Windows and 0.669
-seconds in WSL. One TurnRun collision phase remains open: after gameplay
-facing flips on frozen displayed frame 9, display-owned bones retain their
-previous facing for one update; production currently mirrors immediately.
+registers a distinct seven-case stored domain. The complete 18-domain /
+108-case gate plus replay runs warm in 0.614 seconds on Windows and 0.605
+seconds in WSL. After gameplay facing flips on frozen displayed frame 9,
+display-owned bones retain their previous facing for one update. Production
+now derives that collision/inspection phase from the unique existing
+tick/facing/direction tuple, so exactness does not require another snapshot
+field. Generic stored pose-facing cases cover the adjacent pre-flip, pending,
+and resumed phases.
 
 This gate is not limited to locomotion. It also covers every implemented shared
 simulation path for which SSBM supplies the intended behavior, including

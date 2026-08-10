@@ -243,6 +243,13 @@ Python selector, generator, and C runner contain no Falcon action mapping.
 Adding a character registers another domain manifest and supplies only thin
 production pose/runtime/geometry adapters.
 
+The shared pose-domain runner also supports manifest-owned pose-facing cases
+for source phases where gameplay facing and display-owned collision facing are
+not identical. The generic case owns source-frame mapping and the expected
+phase tuple; a thin production adapter transforms the real pose accessor. This
+keeps phase regressions in the fast domain without copying character capsules
+or adding character logic to the runner.
+
 For `falcon-common-hurt`, generation validates twelve complete tracks, 255
 poses, eleven capsules per pose, runtime-to-source frame mapping, unique case
 IDs, and 20 hit/miss controls. The filtered C runner hashes the capsules

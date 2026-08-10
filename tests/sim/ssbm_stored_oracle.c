@@ -219,6 +219,20 @@ int pf_ssbm_stored_oracle_run(
                      source_frame_matches(domain, stored_case) &&
                      actual_hit == (stored_case->expect_hit != UINT8_C(0));
         }
+        else if (stored_case->mode == PF_SSBM_STORED_POSE_FACING)
+        {
+            const int actual_facing =
+                domain->run_pose_facing_case != NULL
+                    ? domain->run_pose_facing_case(
+                          domain->context,
+                          stored_case)
+                    : 0;
+
+            passed = stored_case->pose_facing.enabled != UINT8_C(0) &&
+                     source_frame_matches(domain, stored_case) &&
+                     actual_facing ==
+                         (int)stored_case->pose_facing.expected_pose_facing;
+        }
         else
         {
             passed = 0;

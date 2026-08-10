@@ -1165,8 +1165,12 @@ generated table in O(1). The separate stored domain hashes all 33 production
 poses under SHA-256
 `0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07`.
 The stored digest is regression evidence, not new source evidence. The
-transient pending display-facing collision phase remains an explicit fidelity
-gap until production carries that phase through world-pose construction.
+transient pending display-facing collision phase is derived from the unique
+production tuple `TurnRun`, action tick 10, and gameplay facing equal to the
+stored target direction. World hurt collision and inspection retain the prior
+display facing for that update without adding rollback state. Three generic
+stored pose-facing cases bind pre-flip frame 9, pending-display frame 9, and
+resumed frame 10 to the live-qualified phase; the domain now owns seven cases.
 
 ## Repository controls
 

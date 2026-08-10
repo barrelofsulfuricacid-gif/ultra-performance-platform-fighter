@@ -29,6 +29,27 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the TurnRun display-facing closure
+
+- Current and pinned `doldecomp/melee` agree on `ftCo_TurnRun_Anim`: frozen
+  frame 9 resumes and flips gameplay facing before display bones evaluate the
+  next animation step. The existing capture contains six old-facing frame-9
+  rows and exactly one row with new gameplay facing plus old display facing.
+- Production now derives collision-pose facing from the unique existing state
+  tuple `TurnRun`, action tick 10, and `facing == dash_direction`. Combat and
+  collision inspection use that derived facing; rollback/save schemas and
+  replay hashes remain unchanged.
+- The generic stored oracle adds a reusable pose-facing case mode. Falcon's
+  domain has adjacent controls for pre-flip frame 9, pending-display frame 9,
+  and resumed frame 10, raising the complete registry to 18 domains / 108
+  cases. The live verifier binds those cases to the existing independent raw
+  captures and unchanged semantic SHA-256
+  `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`.
+- Full stored equivalence plus replay takes 0.614 seconds on Windows and 0.605
+  seconds in WSL. Windows/WSL movement, combat, and replay pass; WSL ASan/UBSan
+  passes. The character-importer skill now records the reusable phase-case
+  pattern and validates successfully.
+
 ## Implemented in the Turn/TurnRun hurt-pose follow-up
 
 - A focused two-case checkpoint pack now captures only `Turn` and `TurnRun`:
@@ -45,16 +66,14 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   uses one immutable generated table. The separate stored domain hashes 33
   poses under production digest
   `0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07`.
-  The full registry is now 18 domains / 105 cases plus replay and runs warm in
-  0.573 seconds on Windows and 0.669 seconds in WSL.
+  The full registry was 18 domains / 105 cases plus replay at this checkpoint;
+  the later display-facing closure raises it to 108 cases.
 - Source-submotion retention intentionally changes the replay corpus identity
   to `0d3ccb293d0735102c13d020d469f13b202eede2b54052881d0380efb765e172`;
   final-state and event digests remain unchanged. Windows, WSL, replay, and
   WSL ASan/UBSan suites pass.
-- Remaining exactness gap: on one TurnRun update, gameplay facing has flipped
-  while the display-owned collision bones still retain the previous facing.
-  The source pose importer recognizes that phase; production collision does
-  not yet preserve the transient world-facing identity.
+- The one-update display-facing phase identified here is closed by the later
+  TurnRun display-facing follow-up above.
 
 ## Implemented in the native Wii U adapter follow-up
 

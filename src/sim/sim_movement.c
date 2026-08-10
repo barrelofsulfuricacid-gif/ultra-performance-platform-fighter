@@ -12499,6 +12499,7 @@ pf_status pf_m4_inspect(
                 player->position_x_q16,
                 player->position_y_q16,
                 player->facing,
+                sim->world.dash_direction[player_index],
                 player->grounded,
                 player->action_state,
                 player->hitlag_resume_action,

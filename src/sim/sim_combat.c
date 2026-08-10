@@ -2100,6 +2100,36 @@ int pf_m4_shield_box(
 
 typedef pf_m4_collision_capsule3_q16 pf_m4_world_hurt_capsule;
 
+static inline int8_t pf_m4_reference_hurt_pose_facing(
+    const pf_m4_fighter_data *fighter,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action,
+    uint16_t action_ticks,
+    int8_t gameplay_facing,
+    int8_t dash_direction)
+{
+    const uint8_t effective_action =
+        action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+                hitlag_resume_action != UINT8_C(0)
+            ? hitlag_resume_action
+            : action_state;
+
+    /* TurnRun's animation callback flips gameplay facing when the frozen
+     * source frame 9 resumes.  The display bones used by collision retain
+     * their preceding facing until the next animation step.  This tuple is
+     * unique in the production state machine, so preserve the source phase
+     * without another rollback/snapshot field. */
+    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+        effective_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+        action_ticks == UINT16_C(10) &&
+        dash_direction != INT8_C(0) &&
+        gameplay_facing == dash_direction)
+    {
+        return (int8_t)-gameplay_facing;
+    }
+    return gameplay_facing;
+}
+
 static inline uint16_t pf_m4_reference_common_hurt_frame(
     uint8_t action_state,
     uint16_t action_ticks)
@@ -2213,6 +2243,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     int32_t position_x_q16,
     int32_t position_y_q16,
     int8_t facing,
+    int8_t dash_direction,
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
@@ -2224,6 +2255,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint8_t capsule_count;
     const pf_m4_reference_hurt_capsule *source_capsules;
     uint8_t capsule_index;
+    int8_t pose_facing;
 
     if (fighter == NULL || out_capsules == NULL)
     {
@@ -2242,6 +2274,13 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     {
         return UINT8_C(0);
     }
+    pose_facing = pf_m4_reference_hurt_pose_facing(
+        fighter,
+        action_state,
+        hitlag_resume_action,
+        action_ticks,
+        facing,
+        dash_direction);
 
     for (capsule_index = UINT8_C(0);
          capsule_index < capsule_count;
@@ -2254,7 +2293,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
                 fighter,
                 position_x_q16,
                 position_y_q16,
-                facing,
+                pose_facing,
                 source);
         pf_m4_hurt_capsule_inspection *destination =
             &out_capsules[capsule_index];
@@ -2319,6 +2358,13 @@ static int pf_m4_hitbox_overlaps_player(
 
     if (capsules != NULL)
     {
+        const int8_t pose_facing = pf_m4_reference_hurt_pose_facing(
+            fighter,
+            scratch->action_state[target_index],
+            scratch->hitlag_resume_action[target_index],
+            scratch->action_ticks[target_index],
+            scratch->facing[target_index],
+            scratch->dash_direction[target_index]);
         uint8_t capsule_index;
 
         for (capsule_index = UINT8_C(0);
@@ -2330,7 +2376,7 @@ static int pf_m4_hitbox_overlaps_player(
                     fighter,
                     scratch->position_x_q16[target_index],
                     scratch->position_y_q16[target_index],
-                    scratch->facing[target_index],
+                    pose_facing,
                     &capsules[capsule_index]);
             const int64_t capsule_left =
                 (capsule.endpoint_a_x_q16 < capsule.endpoint_b_x_q16
@@ -2470,6 +2516,13 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
     uint8_t capsule_count,
     int grabbable_only)
 {
+    const int8_t pose_facing = pf_m4_reference_hurt_pose_facing(
+        fighter,
+        scratch->action_state[target_index],
+        scratch->hitlag_resume_action[target_index],
+        scratch->action_ticks[target_index],
+        scratch->facing[target_index],
+        scratch->dash_direction[target_index]);
     uint8_t capsule_index;
 
     for (capsule_index = UINT8_C(0);
@@ -2481,7 +2534,7 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
                 fighter,
                 scratch->position_x_q16[target_index],
                 scratch->position_y_q16[target_index],
-                scratch->facing[target_index],
+                pose_facing,
                 &capsules[capsule_index]);
         const pf_m4_collision_capsule3_q16 collision_hit = {
             (int64_t)previous_sphere->center_x_q16,
