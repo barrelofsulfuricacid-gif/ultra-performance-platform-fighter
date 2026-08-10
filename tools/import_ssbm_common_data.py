@@ -65,6 +65,14 @@ def generate(raw: bytes) -> str:
     down_horizontal_axis_threshold = f32(0x248)
     down_attack_input_window_ticks = f32(0x24C)
     down_c_up_axis_threshold = f32(0x7F4)
+    ledge_damage_threshold = i32(0x488)
+    ledge_quick_wait_ticks = f32(0x48C)
+    ledge_slow_wait_ticks = f32(0x490)
+    ledge_stick_axis_threshold = f32(0x494)
+    ledge_regrab_cooldown_ticks = i32(0x498)
+    ledge_wait_invulnerability_ticks = i32(0x49C)
+    ledge_c_attack_axis_threshold = f32(0x7F8)
+    ledge_c_roll_axis_threshold = f32(0x7FC)
     if (
         not 0 < wall_tech_stall_ticks <= 0xFFFF
         or not 0 < wall_tech_invulnerability_ticks <= 0xFFFF
@@ -83,6 +91,16 @@ def generate(raw: bytes) -> str:
         or not down_attack_input_window_ticks.is_integer()
         or not 0 < down_attack_input_window_ticks <= 0xFFFF
         or not 0.0 < down_c_up_axis_threshold <= 1.0
+        or not 0 < ledge_damage_threshold <= 0xFFFF
+        or not ledge_quick_wait_ticks.is_integer()
+        or not 0 < ledge_quick_wait_ticks <= 0xFFFF
+        or not ledge_slow_wait_ticks.is_integer()
+        or not 0 < ledge_slow_wait_ticks <= 0xFFFF
+        or not 0.0 < ledge_stick_axis_threshold <= 1.0
+        or not 0 < ledge_regrab_cooldown_ticks <= 0xFFFF
+        or not 0 < ledge_wait_invulnerability_ticks <= 0xFFFF
+        or not 0.0 < ledge_c_attack_axis_threshold <= 1.0
+        or not 0.0 < ledge_c_roll_axis_threshold <= 1.0
     ):
         raise ValueError("common surface-response timing does not fit uint16_t")
 
@@ -149,6 +167,23 @@ def generate(raw: bytes) -> str:
         ),
         "down_c_up_axis_threshold": round(
             down_c_up_axis_threshold * 32767.0
+        ),
+    }
+    ledge_attributes = {
+        "direction_angle_tan_q16": q16(math.tan(down_horizontal_angle)),
+        "damage_threshold_percent": ledge_damage_threshold,
+        "quick_wait_ticks": int(ledge_quick_wait_ticks),
+        "slow_wait_ticks": int(ledge_slow_wait_ticks),
+        "stick_axis_threshold": round(
+            ledge_stick_axis_threshold * 32767.0
+        ),
+        "regrab_cooldown_ticks": ledge_regrab_cooldown_ticks,
+        "wait_invulnerability_ticks": ledge_wait_invulnerability_ticks,
+        "c_attack_axis_threshold": round(
+            ledge_c_attack_axis_threshold * 32767.0
+        ),
+        "c_roll_axis_threshold": round(
+            ledge_c_roll_axis_threshold * 32767.0
         ),
     }
 
@@ -229,6 +264,19 @@ def generate(raw: bytes) -> str:
             f"    UINT16_C({surface_attributes['down_horizontal_axis_threshold']}),",
             f"    UINT16_C({surface_attributes['down_attack_input_window_ticks']}),",
             f"    UINT16_C({surface_attributes['down_c_up_axis_threshold']}),",
+            "};",
+            "",
+            "static const pf_m4_ssbm_ledge_response_attributes",
+            "pf_m4_ssbm_ledge_response_attribute_data = {",
+            f"    INT32_C({ledge_attributes['direction_angle_tan_q16']}),",
+            f"    UINT16_C({ledge_attributes['damage_threshold_percent']}),",
+            f"    UINT16_C({ledge_attributes['quick_wait_ticks']}),",
+            f"    UINT16_C({ledge_attributes['slow_wait_ticks']}),",
+            f"    UINT16_C({ledge_attributes['stick_axis_threshold']}),",
+            f"    UINT16_C({ledge_attributes['regrab_cooldown_ticks']}),",
+            f"    UINT16_C({ledge_attributes['wait_invulnerability_ticks']}),",
+            f"    UINT16_C({ledge_attributes['c_attack_axis_threshold']}),",
+            f"    UINT16_C({ledge_attributes['c_roll_axis_threshold']}),",
             "};",
             "",
         ]

@@ -116,12 +116,13 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_player_push_cases[] = {
-    { "port_one_right", pf_m4_ssbm_falcon_player_push_port_one_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "port_two_left", pf_m4_ssbm_falcon_player_push_port_two_left_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "port_one_right", pf_m4_ssbm_falcon_player_push_port_one_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(24) },
+    { "port_two_left", pf_m4_ssbm_falcon_player_push_port_two_left_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(24) },
 };
 
 #define PF_M4_SSBM_FALCON_PLAYER_PUSH_CASE_COUNT UINT16_C(2)
 #define PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE UINT8_C(24)
+#define PF_M4_SSBM_FALCON_PLAYER_PUSH_TOTAL_SAMPLE_COUNT UINT16_C(96)
 #define PF_M4_SSBM_FALCON_PLAYER_PUSH_LANES_PER_SAMPLE UINT8_C(2)
 #define PF_M4_SSBM_FALCON_PLAYER_PUSH_SERIALIZED_FIELDS \
     (PF_SSBM_TRACE_POSITION_X | PF_SSBM_TRACE_SELF_VELOCITY_X | PF_SSBM_TRACE_ACTION_STATE | PF_SSBM_TRACE_GROUNDED | PF_SSBM_TRACE_FACING)

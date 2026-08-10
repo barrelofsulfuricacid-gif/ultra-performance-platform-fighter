@@ -25,6 +25,7 @@ import sys
 import time
 
 import melee
+from melee import console as melee_console
 
 
 SPECIAL_GEOMETRY_SOURCE_KEYS = {
@@ -71,6 +72,8 @@ HYRULE_TEMPLE_STAGE_CURSOR = (-3.3, 10.1)
 
 def input_trace(
     platform_only: bool = False,
+    platform_drop_ecb_only: bool = False,
+    jump_forward_ecb_only: bool = False,
     push_only: bool = False,
     shield_only: bool = False,
     shield_geometry_only: bool = False,
@@ -126,6 +129,11 @@ def input_trace(
         fighter_y_override: float | None = None,
         fighter_facing_override: float | None = None,
         fighter_damage_override: float | None = None,
+        fighter_self_velocity_x_override: float | None = None,
+        fighter_self_velocity_y_override: float | None = None,
+        fighter_knockback_velocity_x_override: float | None = None,
+        fighter_knockback_velocity_y_override: float | None = None,
+        fighter_position_state_reset: bool = False,
         opponent_x_override: float | None = None,
         opponent_x_from_item_offset: float | None = None,
         opponent_y_override: float | None = None,
@@ -157,6 +165,15 @@ def input_trace(
             "fighter_y_override": fighter_y_override,
             "fighter_facing_override": fighter_facing_override,
             "fighter_damage_override": fighter_damage_override,
+            "fighter_self_velocity_x_override": fighter_self_velocity_x_override,
+            "fighter_self_velocity_y_override": fighter_self_velocity_y_override,
+            "fighter_knockback_velocity_x_override": (
+                fighter_knockback_velocity_x_override
+            ),
+            "fighter_knockback_velocity_y_override": (
+                fighter_knockback_velocity_y_override
+            ),
+            "fighter_position_state_reset": fighter_position_state_reset,
             "opponent_x_override": opponent_x_override,
             "opponent_x_from_item_offset": opponent_x_from_item_offset,
             "opponent_y_override": opponent_y_override,
@@ -1969,6 +1986,9 @@ def input_trace(
                     int,
                     dict[str, object],
                     dict[str, object] | None,
+                    tuple[int, ...] | None,
+                    dict[str, int] | None,
+                    tuple[int, ...] | None,
                 ]
             ]:
                 if not isinstance(raw_segments, list) or not raw_segments:
@@ -1979,6 +1999,8 @@ def input_trace(
                         int,
                         dict[str, object],
                         dict[str, object] | None,
+                        tuple[int, ...] | None,
+                        tuple[int, ...] | None,
                     ]
                 ] = []
                 segment_ids: set[str] = set()
@@ -2006,11 +2028,35 @@ def input_trace(
                         "ticks",
                         "main",
                         "secondary",
+                        "fighter_x_override",
+                        "fighter_y_override",
+                        "fighter_facing_override",
                         "conditional_edge",
+                        "record_cliff_wait_timers",
+                        "cliff_wait_timer_jump",
+                        "record_ledge_regrab_cooldowns",
                         *button_fields,
                     }
                     raw_conditional_edge = raw_segment.get(
                         "conditional_edge"
+                    )
+                    raw_record_cliff_wait_timers = raw_segment.get(
+                        "record_cliff_wait_timers"
+                    )
+                    raw_cliff_wait_timer_jump = raw_segment.get(
+                        "cliff_wait_timer_jump"
+                    )
+                    raw_record_ledge_regrab_cooldowns = raw_segment.get(
+                        "record_ledge_regrab_cooldowns"
+                    )
+                    segment_fighter_x = raw_segment.get(
+                        "fighter_x_override"
+                    )
+                    segment_fighter_y = raw_segment.get(
+                        "fighter_y_override"
+                    )
+                    segment_fighter_facing = raw_segment.get(
+                        "fighter_facing_override"
                     )
                     if (
                         not isinstance(segment_id, str)
@@ -2023,12 +2069,35 @@ def input_trace(
                         )
                         or not isinstance(ticks, int)
                         or isinstance(ticks, bool)
-                        or not 1 <= ticks <= 360
+                        or not 1 <= ticks <= 720
                         or not isinstance(main, list)
                         or len(main) != 2
                         or not isinstance(secondary, list)
                         or len(secondary) != 2
                         or not set(raw_segment).issubset(allowed_fields)
+                        or any(
+                            value is not None
+                            and (
+                                not isinstance(value, (int, float))
+                                or isinstance(value, bool)
+                                or not -1000.0 <= float(value) <= 1000.0
+                            )
+                            for value in (
+                                segment_fighter_x,
+                                segment_fighter_y,
+                            )
+                        )
+                        or (
+                            segment_fighter_facing is not None
+                            and (
+                                not isinstance(
+                                    segment_fighter_facing, (int, float)
+                                )
+                                or isinstance(segment_fighter_facing, bool)
+                                or float(segment_fighter_facing)
+                                not in (-1.0, 1.0)
+                            )
+                        )
                         or any(
                             not isinstance(raw_segment.get(field, False), bool)
                             for field in button_fields
@@ -2037,11 +2106,99 @@ def input_trace(
                         raise ValueError(
                             f"invalid response observation segment {segment_id!r}"
                         )
+                    record_cliff_wait_timers: tuple[int, ...] | None = None
+                    if raw_record_cliff_wait_timers is not None:
+                        if (
+                            not isinstance(raw_record_cliff_wait_timers, list)
+                            or not raw_record_cliff_wait_timers
+                            or any(
+                                not isinstance(timer, int)
+                                or isinstance(timer, bool)
+                                or not 0 <= timer <= 1000
+                                for timer in raw_record_cliff_wait_timers
+                            )
+                            or len(raw_record_cliff_wait_timers)
+                            != len(set(raw_record_cliff_wait_timers))
+                        ):
+                            raise ValueError(
+                                "record_cliff_wait_timers must contain unique "
+                                "non-negative integer timers"
+                            )
+                        record_cliff_wait_timers = tuple(
+                            raw_record_cliff_wait_timers
+                        )
+                    cliff_wait_timer_jump: dict[str, int] | None = None
+                    if raw_cliff_wait_timer_jump is not None:
+                        if (
+                            not isinstance(raw_cliff_wait_timer_jump, dict)
+                            or set(raw_cliff_wait_timer_jump)
+                            != {"write_on_action_frame", "value"}
+                            or any(
+                                not isinstance(
+                                    raw_cliff_wait_timer_jump.get(field), int
+                                )
+                                or isinstance(
+                                    raw_cliff_wait_timer_jump.get(field), bool
+                                )
+                                for field in ("write_on_action_frame", "value")
+                            )
+                            or not 1
+                            <= raw_cliff_wait_timer_jump["write_on_action_frame"]
+                            <= 500
+                            or not 2 <= raw_cliff_wait_timer_jump["value"] <= 1000
+                            or record_cliff_wait_timers is None
+                            or max(record_cliff_wait_timers)
+                            <= raw_cliff_wait_timer_jump["value"]
+                            or not all(
+                                timer == max(record_cliff_wait_timers)
+                                or timer < raw_cliff_wait_timer_jump["value"]
+                                for timer in record_cliff_wait_timers
+                            )
+                        ):
+                            raise ValueError(
+                                "cliff_wait_timer_jump must declare a valid "
+                                "action frame and a value between the initial "
+                                "timer and every sparse boundary"
+                            )
+                        cliff_wait_timer_jump = {
+                            "write_on_action_frame": int(
+                                raw_cliff_wait_timer_jump[
+                                    "write_on_action_frame"
+                                ]
+                            ),
+                            "value": int(raw_cliff_wait_timer_jump["value"]),
+                        }
+                    record_ledge_regrab_cooldowns: tuple[int, ...] | None = None
+                    if raw_record_ledge_regrab_cooldowns is not None:
+                        if (
+                            not isinstance(
+                                raw_record_ledge_regrab_cooldowns, list
+                            )
+                            or not raw_record_ledge_regrab_cooldowns
+                            or any(
+                                not isinstance(cooldown, int)
+                                or isinstance(cooldown, bool)
+                                or not 0 <= cooldown <= 1000
+                                for cooldown in raw_record_ledge_regrab_cooldowns
+                            )
+                            or len(raw_record_ledge_regrab_cooldowns)
+                            != len(set(raw_record_ledge_regrab_cooldowns))
+                        ):
+                            raise ValueError(
+                                "record_ledge_regrab_cooldowns must contain "
+                                "unique non-negative integer timers"
+                            )
+                        record_ledge_regrab_cooldowns = tuple(
+                            raw_record_ledge_regrab_cooldowns
+                        )
                     inputs: dict[str, object] = {
                         "main_x": controller_axis(main[0]),
                         "main_y": controller_axis(main[1]),
                         "c_x": controller_axis(secondary[0]),
                         "c_y": controller_axis(secondary[1]),
+                        "fighter_x_override": segment_fighter_x,
+                        "fighter_y_override": segment_fighter_y,
+                        "fighter_facing_override": segment_fighter_facing,
                     }
                     inputs.update(
                         {
@@ -2067,8 +2224,16 @@ def input_trace(
                             "frame",
                             "main",
                             "secondary",
+                            "damage_percent",
+                            "opponent_x_override",
                             *button_fields,
                         }
+                        edge_damage = raw_conditional_edge.get(
+                            "damage_percent"
+                        )
+                        edge_opponent_x = raw_conditional_edge.get(
+                            "opponent_x_override"
+                        )
                         if (
                             not isinstance(edge_action, str)
                             or edge_action not in melee.Action.__members__
@@ -2081,6 +2246,22 @@ def input_trace(
                             or len(edge_secondary) != 2
                             or not set(raw_conditional_edge).issubset(
                                 edge_allowed_fields
+                            )
+                            or (
+                                edge_damage is not None
+                                and (
+                                    not isinstance(edge_damage, (int, float))
+                                    or isinstance(edge_damage, bool)
+                                    or not 0.0 <= float(edge_damage) <= 999.0
+                                )
+                            )
+                            or (
+                                edge_opponent_x is not None
+                                and (
+                                    not isinstance(edge_opponent_x, (int, float))
+                                    or isinstance(edge_opponent_x, bool)
+                                    or not -1000.0 <= float(edge_opponent_x) <= 1000.0
+                                )
                             )
                             or any(
                                 not isinstance(
@@ -2106,6 +2287,16 @@ def input_trace(
                                 for field in button_fields
                             }
                         )
+                        edge_inputs["fighter_damage_override"] = (
+                            None
+                            if edge_damage is None
+                            else float(edge_damage)
+                        )
+                        edge_inputs["opponent_x_override"] = (
+                            None
+                            if edge_opponent_x is None
+                            else float(edge_opponent_x)
+                        )
                         conditional_edge = {
                             "action": edge_action,
                             "frame": edge_frame,
@@ -2114,11 +2305,19 @@ def input_trace(
                     segment_ids.add(segment_id)
                     total_ticks += ticks
                     segments.append(
-                        (segment_id, ticks, inputs, conditional_edge)
+                        (
+                            segment_id,
+                            ticks,
+                            inputs,
+                            conditional_edge,
+                            record_cliff_wait_timers,
+                            cliff_wait_timer_jump,
+                            record_ledge_regrab_cooldowns,
+                        )
                     )
-                if total_ticks > 480:
+                if total_ticks > 720:
                     raise ValueError(
-                        "response observation segments exceed 480 ticks"
+                        "response observation segments exceed 720 ticks"
                     )
                 return segments
 
@@ -2185,6 +2384,13 @@ def input_trace(
                     approach_ticks = raw_case.get("approach_ticks", 4)
                     post_hit_ticks = raw_case.get("post_hit_ticks", 8)
                     raw_observe_segments = raw_case.get("observe_segments")
+                    raw_record_actions = raw_case.get("record_actions")
+                    response_start_position = raw_case.get(
+                        "response_start_position"
+                    )
+                    response_zero_velocity = raw_case.get(
+                        "response_zero_velocity", False
+                    )
                     observe_ticks = raw_case.get(
                         "observe_ticks",
                         60 if raw_observe_segments is None else None,
@@ -2205,6 +2411,12 @@ def input_trace(
                     source_random_seed = raw_case.get(
                         "source_random_seed",
                         checkpoint_capture_plan.get("source_random_seed"),
+                    )
+                    source_random_seed_before_attack = raw_case.get(
+                        "source_random_seed_before_attack",
+                        checkpoint_capture_plan.get(
+                            "source_random_seed_before_attack"
+                        ),
                     )
                     source_random_seed_post_hit_index = raw_case.get(
                         "source_random_seed_post_hit_index",
@@ -2324,6 +2536,32 @@ def input_trace(
                             raw_observe_segments is not None
                             and "observe_ticks" in raw_case
                         )
+                        or (
+                            raw_record_actions is not None
+                            and (
+                                not isinstance(raw_record_actions, list)
+                                or not raw_record_actions
+                                or any(
+                                    not isinstance(action, str)
+                                    or action not in melee.Action.__members__
+                                    for action in raw_record_actions
+                                )
+                            )
+                        )
+                        or (
+                            response_start_position is not None
+                            and (
+                                not isinstance(response_start_position, list)
+                                or len(response_start_position) != 2
+                                or any(
+                                    not isinstance(value, (int, float))
+                                    or isinstance(value, bool)
+                                    or not -1000.0 <= float(value) <= 1000.0
+                                    for value in response_start_position
+                                )
+                            )
+                        )
+                        or not isinstance(response_zero_velocity, bool)
                         or not isinstance(main, list)
                         or len(main) != 2
                         or (
@@ -2362,6 +2600,26 @@ def input_trace(
                             )
                         )
                         or (
+                            source_random_seed_before_attack is not None
+                            and (
+                                not isinstance(
+                                    source_random_seed_before_attack,
+                                    int,
+                                )
+                                or isinstance(
+                                    source_random_seed_before_attack,
+                                    bool,
+                                )
+                                or not 0
+                                <= source_random_seed_before_attack
+                                <= 0xFFFFFFFF
+                            )
+                        )
+                        or (
+                            source_random_seed is not None
+                            and source_random_seed_before_attack is not None
+                        )
+                        or (
                             (source_random_seed is None)
                             != (source_random_seed_post_hit_index is None)
                         )
@@ -2396,6 +2654,9 @@ def input_trace(
                                 "observe",
                                 observe_ticks,
                                 {"main_x": main_x, "main_y": main_y},
+                                None,
+                                None,
+                                None,
                                 None,
                             )
                         ]
@@ -2460,6 +2721,9 @@ def input_trace(
                             opponent_main_x=attack_main_x,
                             opponent_main_y=attack_main_y,
                             opponent_attack=True,
+                            source_random_seed_override=(
+                                source_random_seed_before_attack
+                            ),
                         )
                     )
                     for post_hit_index in range(post_hit_ticks):
@@ -2593,6 +2857,9 @@ def input_trace(
                         segment_ticks,
                         segment_inputs,
                         conditional_edge,
+                        record_cliff_wait_timers,
+                        cliff_wait_timer_jump,
+                        record_ledge_regrab_cooldowns,
                     ) in observe_segments:
                         segment_label = (
                             f"{prefix}_observe"
@@ -2606,6 +2873,37 @@ def input_trace(
                             )
                             for _ in range(segment_ticks)
                         ]
+                        if response_start_position is not None:
+                            segment_commands[0]["fighter_x_override"] = float(
+                                response_start_position[0]
+                            )
+                            segment_commands[0]["fighter_y_override"] = float(
+                                response_start_position[1]
+                            )
+                            segment_commands[0]["fighter_position_state_reset"] = True
+                            response_start_position = None
+                        if response_zero_velocity:
+                            segment_commands[0][
+                                "fighter_self_velocity_x_override"
+                            ] = 0.0
+                            segment_commands[0][
+                                "fighter_self_velocity_y_override"
+                            ] = 0.0
+                            segment_commands[0][
+                                "fighter_knockback_velocity_x_override"
+                            ] = 0.0
+                            segment_commands[0][
+                                "fighter_knockback_velocity_y_override"
+                            ] = 0.0
+                            response_zero_velocity = False
+                        if raw_record_actions is not None:
+                            recorded_actions = tuple(
+                                str(action) for action in raw_record_actions
+                            )
+                            for segment_command in segment_commands:
+                                segment_command["record_actions"] = (
+                                    recorded_actions
+                                )
                         if conditional_edge is not None:
                             edge = {
                                 **conditional_edge,
@@ -2613,6 +2911,21 @@ def input_trace(
                             }
                             for segment_command in segment_commands:
                                 segment_command["conditional_edge"] = edge
+                        if record_cliff_wait_timers is not None:
+                            for segment_command in segment_commands:
+                                segment_command["record_cliff_wait_timers"] = (
+                                    record_cliff_wait_timers
+                                )
+                        if cliff_wait_timer_jump is not None:
+                            for segment_command in segment_commands:
+                                segment_command["cliff_wait_timer_jump"] = (
+                                    cliff_wait_timer_jump
+                                )
+                        if record_ledge_regrab_cooldowns is not None:
+                            for segment_command in segment_commands:
+                                segment_command[
+                                    "record_ledge_regrab_cooldowns"
+                                ] = record_ledge_regrab_cooldowns
                         trace.extend(
                             segment_commands
                         )
@@ -2935,6 +3248,43 @@ def input_trace(
             )
         )
         repeat("defense_state_horizontal_landing_observe", 20)
+        return trace
+
+    if platform_drop_ecb_only:
+        repeat("platform_drop_ecb_settle", 60)
+        trace.append(command("platform_drop_ecb_entry", main_y=0.0))
+        # Wait through the controller/post-frame pipeline and the first Pass
+        # frames before relocating. Once Pass is active, keeping the fighter
+        # above the stage exposes the complete animation-driven ECB without a
+        # floor collision ending the 30-frame source action early.
+        repeat("platform_drop_ecb_arm", 6, main_y=0.0)
+        for _ in range(40):
+            trace.append(
+                command(
+                    "platform_drop_ecb_observe",
+                    main_y=0.0,
+                    fighter_y_override=500.0,
+                )
+            )
+        repeat("platform_drop_ecb_recovery", 10)
+        return trace
+
+    if jump_forward_ecb_only:
+        repeat("jump_forward_ecb_settle", 60)
+        trace.append(command("jump_forward_ecb_entry", jump=True))
+        # Wait through jump squat and the controller/post-frame pipeline, then
+        # relocate the active JumpF high above Battlefield. This preserves the
+        # source animation while preventing its natural platform landing from
+        # truncating the later ECB frames.
+        repeat("jump_forward_ecb_arm", 6)
+        for _ in range(45):
+            trace.append(
+                command(
+                    "jump_forward_ecb_observe",
+                    fighter_y_override=500.0,
+                )
+            )
+        repeat("jump_forward_ecb_recovery", 10)
         return trace
 
     if platform_only:
@@ -4139,6 +4489,41 @@ def read_stage_collision_memory_probe(
     animated stage joints.
     """
 
+    stage_info_address = 0x8049E6C8
+    stage_info = BigEndianSnapshot.read(
+        memory_engine, stage_info_address, 0x290
+    )
+    camera_bounds = stage_info.f32_vector(stage_info_address, 4)
+    camera_offset = stage_info.f32_vector(stage_info_address + 0x10, 2)
+    blast_zone = stage_info.f32_vector(stage_info_address + 0x74, 4)
+
+    def read_stage_point(index: int) -> dict[str, object] | None:
+        jobj = stage_info.u32(stage_info_address + 0x280 + index * 4)
+        if jobj == 0:
+            return None
+        if not 0x80000000 <= jobj < 0x81800000:
+            raise RuntimeError(
+                f"stage point {index} has invalid HSD_JObj pointer 0x{jobj:08x}"
+            )
+        jobj_snapshot = BigEndianSnapshot.read(memory_engine, jobj, 0x74)
+        parent = jobj_snapshot.u32(jobj + 0x0C)
+        position_offset = 0x38 if parent == 0 else 0x50
+        position = (
+            jobj_snapshot.f32_vector(jobj + position_offset, 3)
+            if parent == 0
+            else [
+                jobj_snapshot.f32(jobj + 0x50),
+                jobj_snapshot.f32(jobj + 0x60),
+                jobj_snapshot.f32(jobj + 0x70),
+            ]
+        )
+        return {
+            "index": index,
+            "jobj_address": jobj,
+            "parent_address": parent,
+            "position": position,
+        }
+
     map_coll_data = memory_engine.read_word(0x804D64B4)
     header = BigEndianSnapshot.read(memory_engine, map_coll_data, 0x30)
     vertices_address = header.u32(map_coll_data)
@@ -4236,6 +4621,38 @@ def read_stage_collision_memory_probe(
             }
         )
     return {
+        "stage_info_address": stage_info_address,
+        "grkind": stage_info.u32(stage_info_address + 0x88),
+        "camera": {
+            "bounds": {
+                "left": camera_bounds[0],
+                "right": camera_bounds[1],
+                "top": camera_bounds[2],
+                "bottom": camera_bounds[3],
+            },
+            "offset": {"x": camera_offset[0], "y": camera_offset[1]},
+            "effective_bounds": {
+                "left": camera_bounds[0] + camera_offset[0],
+                "right": camera_bounds[1] + camera_offset[0],
+                "top": camera_bounds[2] + camera_offset[1],
+                "bottom": camera_bounds[3] + camera_offset[1],
+            },
+        },
+        "blast_zone": {
+            "raw": {
+                "left": blast_zone[0],
+                "right": blast_zone[1],
+                "top": blast_zone[2],
+                "bottom": blast_zone[3],
+            },
+            "effective": {
+                "left": blast_zone[0] + camera_offset[0],
+                "right": blast_zone[1] + camera_offset[0],
+                "top": blast_zone[2] + camera_offset[1],
+                "bottom": blast_zone[3] + camera_offset[1],
+            },
+        },
+        "player_spawn_points": [read_stage_point(index) for index in range(4)],
         "map_coll_data_address": map_coll_data,
         "vertices_address": vertices_address,
         "runtime_vertices_address": runtime_vertices_address,
@@ -4256,16 +4673,24 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def file_revision_fingerprint(path: Path) -> dict[str, int]:
+    """Return the stable identity shared by immutable hardlinks."""
+
+    resolved = path.resolve()
+    stat = resolved.stat()
+    return {
+        "device": stat.st_dev,
+        "inode": stat.st_ino,
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
 def cached_sha256(path: Path) -> str:
     """Hash immutable oracle inputs once per exact filesystem revision."""
 
     resolved = path.resolve()
-    stat = resolved.stat()
-    fingerprint = {
-        "size": stat.st_size,
-        "mtime_ns": stat.st_mtime_ns,
-        "ctime_ns": stat.st_ctime_ns,
-    }
+    fingerprint = file_revision_fingerprint(resolved)
     cache_path = (
         Path(__file__).resolve().parent.parent
         / "build"
@@ -4279,8 +4704,19 @@ def cached_sha256(path: Path) -> str:
         pass
     key = str(resolved)
     cached = cache.get(key, {})
-    if cached.get("fingerprint") == fingerprint:
-        digest = cached.get("sha256")
+    matching_entry = cached
+    if matching_entry.get("fingerprint") != fingerprint:
+        matching_entry = next(
+            (
+                entry
+                for entry in cache.values()
+                if isinstance(entry, dict)
+                and entry.get("fingerprint") == fingerprint
+            ),
+            {},
+        )
+    if matching_entry.get("fingerprint") == fingerprint:
+        digest = matching_entry.get("sha256")
         if isinstance(digest, str) and len(digest) == 64:
             return digest
 
@@ -4296,6 +4732,25 @@ def cached_sha256(path: Path) -> str:
     )
     temporary.replace(cache_path)
     return digest
+
+
+_LIBMELEE_GET_DOLPHIN_VERSION = melee_console.get_dolphin_version
+
+
+def preload_hardlinked_dolphin_version(path: Path) -> None:
+    """Probe one immutable Dolphin inode once before capture workers fork."""
+
+    executable = Path(melee_console.get_exe_path(str(path.resolve()))).resolve()
+    fingerprint = file_revision_fingerprint(executable)
+    version = _LIBMELEE_GET_DOLPHIN_VERSION(str(executable))
+
+    def get_dolphin_version(candidate: str) -> object:
+        candidate_executable = Path(melee_console.get_exe_path(candidate)).resolve()
+        if file_revision_fingerprint(candidate_executable) == fingerprint:
+            return version
+        return _LIBMELEE_GET_DOLPHIN_VERSION(candidate)
+
+    melee_console.get_dolphin_version = get_dolphin_version
 
 
 def wait_for_udp_listener(port: int, timeout: float) -> None:
@@ -4696,6 +5151,21 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         if checkpoint_coverage_manifest is not None
         else None
     )
+    checkpoint_stage = (
+        checkpoint_capture_plan.get("stage")
+        if checkpoint_capture_plan is not None
+        else None
+    )
+    if checkpoint_stage not in {
+        None,
+        "FINAL_DESTINATION",
+        "BATTLEFIELD",
+        "HYRULE_TEMPLE",
+    }:
+        raise ValueError(
+            "checkpoint_pack.capture_plan.stage must be FINAL_DESTINATION, "
+            "BATTLEFIELD, or HYRULE_TEMPLE"
+        )
     if args.oracle_case:
         if checkpoint_capture_plan is None:
             raise ValueError("--oracle-case requires a checkpoint capture plan")
@@ -4732,6 +5202,16 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
     )
     if not isinstance(checkpoint_batch_inputs, bool):
         raise ValueError("checkpoint_pack.capture_plan.batch_exi_inputs must be boolean")
+    checkpoint_record_surface_rows = (
+        checkpoint_capture_plan.get("record_surface_collision_memory_rows", True)
+        if checkpoint_capture_plan is not None
+        else True
+    )
+    if not isinstance(checkpoint_record_surface_rows, bool):
+        raise ValueError(
+            "checkpoint_pack.capture_plan.record_surface_collision_memory_rows "
+            "must be boolean"
+        )
     if (
         checkpoint_random_seed is not None
         and (
@@ -4768,7 +5248,15 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         and checkpoint_capture_plan is not None
         and "surface_response_cases" in checkpoint_capture_plan
     )
-    hyrule_stage_route = wall_geometry_route or surface_response_route
+    surface_response_stage = checkpoint_stage or (
+        "HYRULE_TEMPLE" if surface_response_route else None
+    )
+    hyrule_stage_route = wall_geometry_route or (
+        surface_response_route and surface_response_stage == "HYRULE_TEMPLE"
+    )
+    battlefield_checkpoint_route = bool(
+        surface_response_route and surface_response_stage == "BATTLEFIELD"
+    )
     if wall_geometry_route and set(args.special_geometry_move) != {"down_ground_wall"}:
         raise ValueError(
             "down_ground_wall uses Hyrule Temple and must be captured alone"
@@ -4888,7 +5376,12 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player_two,
                 (
                     melee.Stage.BATTLEFIELD
-                    if args.platform_only
+                    if (
+                        args.platform_only
+                        or args.platform_drop_ecb_only
+                        or args.jump_forward_ecb_only
+                        or battlefield_checkpoint_route
+                    )
                     else melee.Stage.FINAL_DESTINATION
                 ),
                 menu_helper,
@@ -5045,6 +5538,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         trace = input_trace(
             platform_only=args.platform_only,
+            platform_drop_ecb_only=args.platform_drop_ecb_only,
+            jump_forward_ecb_only=args.jump_forward_ecb_only,
             push_only=args.push_only,
             shield_only=args.shield_only,
             shield_geometry_only=args.shield_geometry_only,
@@ -5092,6 +5587,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 "fighter_y_override": None,
                 "fighter_facing_override": None,
                 "fighter_damage_override": None,
+                "fighter_self_velocity_x_override": None,
+                "fighter_self_velocity_y_override": None,
+                "fighter_knockback_velocity_x_override": None,
+                "fighter_knockback_velocity_y_override": None,
+                "fighter_position_state_reset": False,
                 "opponent_x_override": None,
                 "opponent_facing_override": None,
                 "source_random_seed_override": None,
@@ -5119,6 +5619,16 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             player_one._write("BATCH ON\n")
             player_two._write("BATCH ON\n")
         buffered_input_frames = 0
+        cliff_wait_fighter_address: int | None = None
+        cliff_wait_recording_armed = False
+        cliff_wait_recorded_timers: set[int] = set()
+        cliff_wait_exit_recorded = False
+        cliff_wait_timer_by_command_index: dict[int, int] = {}
+        cliff_wait_exit_command_index: int | None = None
+        cliff_wait_timer_jump_applied = False
+        ledge_cooldown_fighter_address: int | None = None
+        ledge_cooldown_recording_armed = False
+        ledge_cooldown_by_command_index: dict[int, int] = {}
 
         def write_controller_sample(
             controller_sample: dict[str, object], *, flush: bool
@@ -5169,13 +5679,22 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 player_one.flush()
                 player_two.flush()
 
-        def batch_safe(controller_sample: dict[str, object]) -> bool:
+        def batch_safe(
+            controller_sample: dict[str, object], command_index: int
+        ) -> bool:
             edge = controller_sample.get("conditional_edge")
             edge_pending = edge is not None and str(edge["id"]) not in (
                 fired_conditional_edges
             )
             return not (
                 edge_pending
+                or (
+                    controller_sample.get("cliff_wait_timer_jump") is not None
+                    and not cliff_wait_timer_jump_applied
+                )
+                or command_index in cliff_wait_timer_by_command_index
+                or command_index == cliff_wait_exit_command_index
+                or command_index in ledge_cooldown_by_command_index
                 or bool(controller_sample.get("restore_before", False))
                 or controller_sample.get("fighter_x_from_item_offset") is not None
                 or controller_sample.get("opponent_x_from_item_offset") is not None
@@ -5183,6 +5702,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 or controller_sample.get("fighter_y_override") is not None
                 or controller_sample.get("fighter_facing_override") is not None
                 or controller_sample.get("fighter_damage_override") is not None
+                or controller_sample.get("fighter_self_velocity_x_override")
+                is not None
+                or controller_sample.get("fighter_self_velocity_y_override")
+                is not None
+                or controller_sample.get(
+                    "fighter_knockback_velocity_x_override"
+                )
+                is not None
+                or controller_sample.get(
+                    "fighter_knockback_velocity_y_override"
+                )
+                is not None
+                or bool(controller_sample.get("fighter_position_state_reset", False))
                 or controller_sample.get("opponent_x_override") is not None
                 or controller_sample.get("opponent_y_override") is not None
                 or controller_sample.get("opponent_facing_override") is not None
@@ -5214,7 +5746,18 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 )
                 origin_x = None
                 origin_two_x = None
+                cliff_wait_fighter_address = None
+                cliff_wait_recording_armed = False
+                cliff_wait_recorded_timers.clear()
+                cliff_wait_exit_recorded = False
+                cliff_wait_timer_by_command_index.clear()
+                cliff_wait_exit_command_index = None
+                cliff_wait_timer_jump_applied = False
+                ledge_cooldown_fighter_address = None
+                ledge_cooldown_recording_armed = False
+                ledge_cooldown_by_command_index.clear()
                 checkpoint_case_labels.append(str(sample["label"]))
+            conditional_edge_fired_now = False
             conditional_edge = sample.get("conditional_edge")
             if conditional_edge is not None:
                 if pipeline_delay != 0:
@@ -5235,11 +5778,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     sample.update(conditional_edge["inputs"])
                     sample["label"] = f"{sample['label']}_edge"
                     fired_conditional_edges.add(edge_id)
+                    conditional_edge_fired_now = True
             if buffered_input_frames == 0:
-                if batch_exi_inputs and batch_safe(sample):
+                if (
+                    batch_exi_inputs
+                    and not conditional_edge_fired_now
+                    and batch_safe(sample, command_index)
+                ):
                     batch: list[dict[str, object]] = []
-                    for candidate in commands[command_index : command_index + 64]:
-                        if not batch_safe(candidate):
+                    for candidate_index, candidate in enumerate(
+                        commands[command_index : command_index + 64],
+                        command_index,
+                    ):
+                        if not batch_safe(candidate, candidate_index):
                             break
                         batch.append(candidate)
                     for candidate in batch:
@@ -5270,10 +5821,35 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 (0, 0xB4, sample["fighter_y_override"]),
                 (0, 0x2C, sample["fighter_facing_override"]),
                 (0, 0x1830, sample["fighter_damage_override"]),
+                (0, 0x80, sample["fighter_self_velocity_x_override"]),
+                (0, 0x84, sample["fighter_self_velocity_y_override"]),
+                (0, 0x8C, sample["fighter_knockback_velocity_x_override"]),
+                (0, 0x90, sample["fighter_knockback_velocity_y_override"]),
                 (1, 0xB0, opponent_x_override),
                 (1, 0xB4, sample["opponent_y_override"]),
                 (1, 0x2C, sample["opponent_facing_override"]),
             )
+            if bool(sample["fighter_position_state_reset"]):
+                if fighter_x_override is None or sample["fighter_y_override"] is None:
+                    raise RuntimeError(
+                        "fighter position-state reset requires x and y overrides"
+                    )
+                reset_x = float(fighter_x_override)
+                reset_y = float(sample["fighter_y_override"])
+                fighter_overrides += (
+                    (0, 0xBC, reset_x),
+                    (0, 0xC0, reset_y),
+                    (0, 0xC8, 0.0),
+                    (0, 0xCC, 0.0),
+                    (0, 0x6F4, reset_x),
+                    (0, 0x6F8, reset_y),
+                    (0, 0x700, reset_x),
+                    (0, 0x704, reset_y),
+                    (0, 0x70C, reset_x),
+                    (0, 0x710, reset_y),
+                    (0, 0x718, reset_x),
+                    (0, 0x71C, reset_y),
+                )
             if any(value is not None for _, _, value in fighter_overrides):
                 if memory_engine is None:
                     raise RuntimeError(
@@ -5517,6 +6093,170 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 and player.action.name not in record_actions
             ):
                 continue
+            cliff_wait_timer: int | None = None
+            record_cliff_wait_timers = scheduled.get(
+                "record_cliff_wait_timers"
+            )
+            if record_cliff_wait_timers is not None:
+                if memory_engine is None:
+                    raise RuntimeError(
+                        "CliffWait timer sampling requires a memory probe"
+                    )
+                if player.action.name == "EDGE_HANGING":
+                    cliff_wait_timer_jump = scheduled.get(
+                        "cliff_wait_timer_jump"
+                    )
+                    expected_timer = cliff_wait_timer_by_command_index.get(
+                        command_index
+                    )
+                    if cliff_wait_recording_armed and expected_timer is None:
+                        if (
+                            cliff_wait_timer_jump is not None
+                            and not cliff_wait_timer_jump_applied
+                            and not bool(player.invulnerable)
+                            and int(player.action_frame)
+                            == int(
+                                cliff_wait_timer_jump[
+                                    "write_on_action_frame"
+                                ]
+                            )
+                        ):
+                            if cliff_wait_fighter_address is None:
+                                cliff_wait_fighter_address = (
+                                    read_fighter_address(memory_engine, 0)
+                                )
+                            jump_value = int(cliff_wait_timer_jump["value"])
+                            pre_jump_timer = memory_engine.read_float(
+                                cliff_wait_fighter_address + 0x2344
+                            )
+                            if pre_jump_timer <= float(jump_value):
+                                raise RuntimeError(
+                                    "CliffWait timer jump did not skip a "
+                                    f"positive interval: {pre_jump_timer}"
+                                )
+                            memory_engine.write_float(
+                                cliff_wait_fighter_address + 0x2344,
+                                float(jump_value),
+                            )
+                            restored_jump_timer = memory_engine.read_float(
+                                cliff_wait_fighter_address + 0x2344
+                            )
+                            if abs(restored_jump_timer - jump_value) > 0.001:
+                                raise RuntimeError(
+                                    "failed to apply CliffWait timer jump: "
+                                    f"{restored_jump_timer}"
+                                )
+                            for requested_timer in record_cliff_wait_timers:
+                                if requested_timer < jump_value:
+                                    cliff_wait_timer_by_command_index[
+                                        command_index
+                                        + jump_value
+                                        - requested_timer
+                                    ] = requested_timer
+                            cliff_wait_exit_command_index = (
+                                command_index + jump_value
+                            )
+                            cliff_wait_timer_jump_applied = True
+                        continue
+                    if cliff_wait_fighter_address is None:
+                        cliff_wait_fighter_address = read_fighter_address(
+                            memory_engine, 0
+                        )
+                    raw_cliff_wait_timer = memory_engine.read_float(
+                        cliff_wait_fighter_address + 0x2344
+                    )
+                    cliff_wait_timer = round(raw_cliff_wait_timer)
+                    if abs(raw_cliff_wait_timer - cliff_wait_timer) > 0.001:
+                        raise RuntimeError(
+                            "non-integral CliffWait timer observed: "
+                            f"{raw_cliff_wait_timer}"
+                        )
+                    if expected_timer is not None and cliff_wait_timer != expected_timer:
+                        raise RuntimeError(
+                            "CliffWait timer sampling lost frame alignment: "
+                            f"expected {expected_timer}, observed {cliff_wait_timer}"
+                        )
+                    if not cliff_wait_recording_armed:
+                        if cliff_wait_timer not in record_cliff_wait_timers:
+                            raise RuntimeError(
+                                "initial CliffWait timer was not declared: "
+                                f"{cliff_wait_timer}"
+                            )
+                        if cliff_wait_timer_jump is None:
+                            for requested_timer in record_cliff_wait_timers:
+                                if requested_timer < cliff_wait_timer:
+                                    cliff_wait_timer_by_command_index[
+                                        command_index
+                                        + cliff_wait_timer
+                                        - requested_timer
+                                    ] = requested_timer
+                            cliff_wait_exit_command_index = (
+                                command_index + cliff_wait_timer
+                            )
+                    cliff_wait_recording_armed = True
+                    cliff_wait_recorded_timers.add(cliff_wait_timer)
+                elif player.action.name in {"FALLING", "TUMBLING"}:
+                    if (
+                        not cliff_wait_recording_armed
+                        or cliff_wait_exit_recorded
+                        or command_index != cliff_wait_exit_command_index
+                    ):
+                        continue
+                    cliff_wait_timer = 0
+                    cliff_wait_exit_recorded = True
+                else:
+                    continue
+            ledge_regrab_cooldown: int | None = None
+            record_ledge_regrab_cooldowns = scheduled.get(
+                "record_ledge_regrab_cooldowns"
+            )
+            if record_ledge_regrab_cooldowns is not None:
+                if memory_engine is None:
+                    raise RuntimeError(
+                        "ledge regrab cooldown sampling requires a memory probe"
+                    )
+                expected_cooldown = ledge_cooldown_by_command_index.get(
+                    command_index
+                )
+                if (
+                    not ledge_cooldown_recording_armed
+                    and not conditional_edge_fired_now
+                ):
+                    continue
+                if ledge_cooldown_recording_armed and expected_cooldown is None:
+                    continue
+                if ledge_cooldown_fighter_address is None:
+                    ledge_cooldown_fighter_address = read_fighter_address(
+                        memory_engine, 0
+                    )
+                ledge_regrab_cooldown = memory_engine.read_word(
+                    ledge_cooldown_fighter_address + 0x2064
+                )
+                if (
+                    expected_cooldown is not None
+                    and ledge_regrab_cooldown != expected_cooldown
+                ):
+                    raise RuntimeError(
+                        "ledge regrab cooldown sampling lost frame alignment: "
+                        f"expected {expected_cooldown}, observed "
+                        f"{ledge_regrab_cooldown}"
+                    )
+                if not ledge_cooldown_recording_armed:
+                    if ledge_regrab_cooldown not in (
+                        record_ledge_regrab_cooldowns
+                    ):
+                        raise RuntimeError(
+                            "initial ledge regrab cooldown was not declared: "
+                            f"{ledge_regrab_cooldown}"
+                        )
+                    for requested_cooldown in record_ledge_regrab_cooldowns:
+                        if requested_cooldown < ledge_regrab_cooldown:
+                            ledge_cooldown_by_command_index[
+                                command_index
+                                + ledge_regrab_cooldown
+                                - requested_cooldown
+                            ] = requested_cooldown
+                    ledge_cooldown_recording_armed = True
             if origin_x is None:
                 origin_x = player.position.x
             if origin_two_x is None:
@@ -5551,6 +6291,21 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     "fighter_damage_override"
                 ],
                 "requested_fighter_x_override": scheduled["fighter_x_override"],
+                "requested_fighter_self_velocity_x_override": scheduled[
+                    "fighter_self_velocity_x_override"
+                ],
+                "requested_fighter_self_velocity_y_override": scheduled[
+                    "fighter_self_velocity_y_override"
+                ],
+                "requested_fighter_knockback_velocity_x_override": scheduled[
+                    "fighter_knockback_velocity_x_override"
+                ],
+                "requested_fighter_knockback_velocity_y_override": scheduled[
+                    "fighter_knockback_velocity_y_override"
+                ],
+                "requested_fighter_position_state_reset": scheduled[
+                    "fighter_position_state_reset"
+                ],
                 "requested_opponent_x_override": scheduled["opponent_x_override"],
                 "requested_opponent_y_override": scheduled["opponent_y_override"],
                 "requested_opponent_facing_override": scheduled[
@@ -5631,6 +6386,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     for projectile in gamestate.projectiles
                 ],
             }
+            if cliff_wait_timer is not None:
+                row["cliff_wait_timer"] = cliff_wait_timer
+            if ledge_regrab_cooldown is not None:
+                row["ledge_regrab_cooldown"] = ledge_regrab_cooldown
             if memory_engine is not None:
                 if args.memory_probe_shield:
                     row["shield_memory"] = read_shield_memory_probe(memory_engine)
@@ -5641,7 +6400,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_collision:
                     row["shield_memory"] = read_shield_memory_probe(memory_engine)
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
-                if args.memory_probe_surface and not input_was_buffered:
+                if (
+                    args.memory_probe_surface
+                    and checkpoint_record_surface_rows
+                    and not input_was_buffered
+                ):
                     row["surface_collision_memory"] = (
                         read_surface_collision_memory_probe(memory_engine)
                     )
@@ -5741,7 +6504,14 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "stage": (
                 "HYRULE_TEMPLE"
                 if hyrule_stage_route
-                else "BATTLEFIELD" if args.platform_only else "FINAL_DESTINATION"
+                else "BATTLEFIELD"
+                if (
+                    args.platform_only
+                    or args.platform_drop_ecb_only
+                    or args.jump_forward_ecb_only
+                    or battlefield_checkpoint_route
+                )
+                else "FINAL_DESTINATION"
             ),
             "shield_hit_requested_pressure": (
                 args.shield_hit_pressure if args.shield_hit_only else None
@@ -5861,7 +6631,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             )
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dolphin", required=True)
     parser.add_argument("--iso", required=True)
@@ -5903,6 +6673,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--enable-items", action="store_true")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--platform-only", action="store_true")
+    mode.add_argument("--platform-drop-ecb-only", action="store_true")
+    mode.add_argument("--jump-forward-ecb-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
     mode.add_argument("--shield-only", action="store_true")
     mode.add_argument("--shield-geometry-only", action="store_true")
@@ -5944,7 +6716,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--memory-probe-collision", action="store_true")
     parser.add_argument("--memory-probe-surface", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.oracle_exiai and args.batch:
         parser.error("--oracle-exiai launches its own headless process")
     if args.oracle_exiai and args.oracle_release_artifact is None:
@@ -5986,11 +6758,15 @@ def parse_args() -> argparse.Namespace:
     if args.memory_probe_damage and not args.damage_hit_only:
         parser.error("--memory-probe-damage requires --damage-hit-only")
     if args.memory_probe_surface and not (
-        args.damage_hit_only and args.oracle_checkpoint_pack
+        args.platform_only
+        or args.platform_drop_ecb_only
+        or args.jump_forward_ecb_only
+        or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(
-            "--memory-probe-surface requires --damage-hit-only and "
-            "--oracle-checkpoint-pack"
+            "--memory-probe-surface requires --platform-only, "
+            "--platform-drop-ecb-only, --jump-forward-ecb-only, or a "
+            "--damage-hit-only checkpoint pack"
         )
     if args.memory_probe_hitbox and not (
         args.defense_state_only
@@ -6023,12 +6799,15 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main() -> int:
-    args = parse_args()
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     result = capture(args)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps(result, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
     print("ssbm-movement-capture=pass " f"frames={len(result['rows'])} output={output}")
     return 0
 

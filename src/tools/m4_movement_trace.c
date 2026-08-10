@@ -248,7 +248,12 @@ int main(int argc, char **argv)
     }
 
     (void)memset(&storage, 0, sizeof(storage));
-    status = pf_m4_default_content(&content);
+    status =
+        platform_mode != 0
+            ? pf_m4_reference_stage_content(
+                  PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                  &content)
+            : pf_m4_default_content(&content);
     if (status != PF_STATUS_OK)
     {
         return fail_status("default-content", status);
@@ -271,33 +276,28 @@ int main(int argc, char **argv)
     content.projectile.speed_q16 = INT32_C(1);
     content.projectile.lifetime_ticks = UINT16_C(1);
     content.reflector.enabled = UINT8_C(1);
-    if (falcon_punch_air_mode == 0 && falcon_kick_air_mode == 0 &&
-        falcon_dive_air_ledge_mode == 0)
+    if (platform_mode == 0)
     {
-        content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
-        content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
+        if (falcon_punch_air_mode == 0 && falcon_kick_air_mode == 0 &&
+            falcon_dive_air_ledge_mode == 0)
+        {
+            content.stage.floor_left_q16 = -INT32_C(128) * PF_Q16_ONE;
+            content.stage.floor_right_q16 = INT32_C(128) * PF_Q16_ONE;
+        }
+        content.stage.blast_left_q16 = -INT32_C(160) * PF_Q16_ONE;
+        content.stage.blast_right_q16 = INT32_C(160) * PF_Q16_ONE;
+        content.stage.platform_center_x_q16 =
+            -INT32_C(28) * PF_Q16_ONE;
+        content.stage.platform_half_width_q16 = PF_Q16_ONE;
+        content.stage.platform_motion_amplitude_q16 = INT32_C(0);
+        content.stage.solid_left_q16 = -INT32_C(22) * PF_Q16_ONE;
+        content.stage.solid_right_q16 = -INT32_C(21) * PF_Q16_ONE;
+        content.stage.solid_top_q16 = INT32_C(28) * PF_Q16_ONE;
+        content.stage.solid_bottom_q16 = INT32_C(29) * PF_Q16_ONE;
+        content.stage.upper_platform_center_x_q16 =
+            -INT32_C(25) * PF_Q16_ONE;
+        content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     }
-    content.stage.blast_left_q16 = -INT32_C(160) * PF_Q16_ONE;
-    content.stage.blast_right_q16 = INT32_C(160) * PF_Q16_ONE;
-    content.stage.platform_center_x_q16 =
-        (platform_mode != 0 ? -INT32_C(8) : -INT32_C(28)) *
-        PF_Q16_ONE;
-    content.stage.platform_half_width_q16 =
-        (platform_mode != 0 ? INT32_C(6) : INT32_C(1)) *
-        PF_Q16_ONE;
-    if (platform_mode != 0)
-    {
-        content.stage.platform_y_q16 =
-            content.stage.floor_y_q16 - INT32_C(316264);
-    }
-    content.stage.platform_motion_amplitude_q16 = INT32_C(0);
-    content.stage.solid_left_q16 = -INT32_C(22) * PF_Q16_ONE;
-    content.stage.solid_right_q16 = -INT32_C(21) * PF_Q16_ONE;
-    content.stage.solid_top_q16 = INT32_C(28) * PF_Q16_ONE;
-    content.stage.solid_bottom_q16 = INT32_C(29) * PF_Q16_ONE;
-    content.stage.upper_platform_center_x_q16 =
-        -INT32_C(25) * PF_Q16_ONE;
-    content.stage.upper_platform_half_width_q16 = PF_Q16_ONE;
     if (push_mode != 0 || shield_hit_mode != 0)
     {
         /* Final Destination starts ports one and two at -60/+60. */
@@ -516,9 +516,73 @@ int main(int argc, char **argv)
     }
     if (platform_mode != 0)
     {
+        pf_m4_reference_stage_line platform_line;
+        const uint16_t source_platform_line = UINT16_C(2);
+        int32_t platform_center_x_q16;
         uint32_t pre_roll_tick;
         int platform_ready = 0;
 
+        /* The pinned Dolphin route begins on Battlefield source floor line 2
+         * (the left soft platform). Reach that same imported surface through
+         * ordinary inputs so the oracle setup does not mutate fighter state. */
+        status = pf_m4_reference_stage_geometry_line(
+            PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+            source_platform_line,
+            &platform_line);
+        if (status != PF_STATUS_OK)
+        {
+            return fail_status("platform-geometry", status);
+        }
+        platform_center_x_q16 = (int32_t)(
+            ((int64_t)platform_line.start_x_q16 +
+             (int64_t)platform_line.end_x_q16) /
+            INT64_C(2));
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(240);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            if (inspection.players[0].position_x_q16 >
+                platform_center_x_q16)
+            {
+                inputs[0].main_stick_x = -INT16_C(12000);
+            }
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("platform-walk-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("platform-walk-inspect", status);
+            }
+            if (inspection.players[0].position_x_q16 <=
+                    platform_center_x_q16 &&
+                inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+                inspection.players[0].grounded != UINT8_C(0) &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+            {
+                break;
+            }
+        }
+        if (pre_roll_tick == UINT32_C(240))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=platform-walk\n");
+            return 1;
+        }
         for (pre_roll_tick = UINT32_C(0);
              pre_roll_tick < UINT32_C(205);
              ++pre_roll_tick)
@@ -550,7 +614,7 @@ int main(int argc, char **argv)
             if (pre_roll_tick >= UINT32_C(5) &&
                 inspection.players[0].grounded != UINT8_C(0) &&
                 inspection.players[0].support ==
-                    (uint8_t)PF_M4_SURFACE_PLATFORM &&
+                    (uint8_t)platform_line.support &&
                 inspection.players[0].action_state ==
                     (uint8_t)PF_M4_ACTION_GROUND_IDLE)
             {
@@ -563,6 +627,54 @@ int main(int argc, char **argv)
             (void)fprintf(
                 stderr,
                 "m4-movement-trace=fail operation=platform-pre-roll\n");
+            return 1;
+        }
+        platform_ready = 0;
+        for (pre_roll_tick = UINT32_C(0);
+             pre_roll_tick < UINT32_C(60);
+             ++pre_roll_tick)
+        {
+            pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_tick_result result;
+
+            (void)memset(inputs, 0, sizeof(inputs));
+            inputs[0].tick = inspection.tick;
+            inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[0].player_slot = UINT8_C(0);
+            if (inspection.players[0].facing != INT8_C(1))
+            {
+                inputs[0].main_stick_x = INT16_C(12000);
+            }
+            inputs[1].tick = inspection.tick;
+            inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+            inputs[1].player_slot = UINT8_C(1);
+            status = pf_sim_tick(sim, inputs, (size_t)2, &result);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("platform-turn-tick", status);
+            }
+            status = pf_m4_inspect(sim, &inspection);
+            if (status != PF_STATUS_OK)
+            {
+                return fail_status("platform-turn-inspect", status);
+            }
+            if (inspection.players[0].facing == INT8_C(1) &&
+                inspection.players[0].velocity_x_q16 == INT32_C(0) &&
+                inspection.players[0].grounded != UINT8_C(0) &&
+                inspection.players[0].support ==
+                    (uint8_t)platform_line.support &&
+                inspection.players[0].action_state ==
+                    (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+            {
+                platform_ready = 1;
+                break;
+            }
+        }
+        if (platform_ready == 0)
+        {
+            (void)fprintf(
+                stderr,
+                "m4-movement-trace=fail operation=platform-turn\n");
             return 1;
         }
     }
@@ -911,7 +1023,8 @@ int main(int argc, char **argv)
     (void)puts(
         "trace_frame,input_x,input_y,input_c_x,input_c_y,left_trigger,"
         "right_trigger,buttons,tick,"
-        "action_state,action_ticks,facing,grounded,"
+        "action_state,action_ticks,facing,grounded,support,"
+        "surface_normal_source_x_q16,surface_normal_source_y_q16,"
         "dash_direction,previous_strong_direction,position_x_q16_from_origin,"
         "position_y_q16_from_origin,"
         "velocity_x_q16,velocity_y_q16,shield_recoil_x_q16,"
@@ -931,6 +1044,9 @@ int main(int argc, char **argv)
     {
         pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
         pf_tick_result result;
+        pf_m4_reference_stage_line selected_surface;
+        int32_t surface_normal_source_x_q16 = INT32_C(0);
+        int32_t surface_normal_source_y_q16 = INT32_C(0);
         int parsed_input_count;
 
         opponent_buttons = UINT64_C(0);
@@ -1005,9 +1121,23 @@ int main(int argc, char **argv)
         {
             return fail_status("inspect", status);
         }
+        if (inspection.players[0].support != UINT8_C(0) &&
+            content.stage.reference_collision_profile !=
+                (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED &&
+            pf_m4_reference_stage_geometry_line(
+                (pf_m4_reference_stage)
+                    content.stage.reference_collision_profile,
+                (uint16_t)(inspection.players[0].support - UINT8_C(1)),
+                &selected_surface) == PF_STATUS_OK)
+        {
+            surface_normal_source_x_q16 =
+                selected_surface.source_normal_x_q16;
+            surface_normal_source_y_q16 =
+                selected_surface.source_normal_y_q16;
+        }
         (void)printf(
             "%" PRIu32 ",%d,%d,%d,%d,%u,%u,%" PRIu64 ",%" PRIu64
-            ",%u,%u,%d,%u,%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
+            ",%u,%u,%d,%u,%u,%" PRId32 ",%" PRId32 ",%d,%d,%" PRId32 ",%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32
             ",%" PRIu32 ",%u,%u,%u,%" PRId32 ",%" PRId32 ",%" PRId32
             ",%" PRId32 ",%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%" PRId32 ",%" PRId32
@@ -1025,6 +1155,9 @@ int main(int argc, char **argv)
             (unsigned int)inspection.players[0].action_ticks,
             (int)inspection.players[0].facing,
             (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.players[0].support,
+            surface_normal_source_x_q16,
+            surface_normal_source_y_q16,
             (int)inspection.players[0].dash_direction,
             (int)inspection.players[0].previous_strong_direction,
             inspection.players[0].position_x_q16 - origin_x_q16,

@@ -104,22 +104,23 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_surface_response_cases[] = {
-    { "right_pillar_wall_bounce", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "right_pillar_wall_tech", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "right_pillar_wall_tech_jump", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "cave_ceiling_bounce", pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "cave_ceiling_tech_drift", pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "right_pillar_wall_bounce", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_bounce_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(12) },
+    { "right_pillar_wall_tech", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(12) },
+    { "right_pillar_wall_tech_jump", pf_m4_ssbm_falcon_surface_response_right_pillar_wall_tech_jump_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(12) },
+    { "cave_ceiling_bounce", pf_m4_ssbm_falcon_surface_response_cave_ceiling_bounce_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(12) },
+    { "cave_ceiling_tech_drift", pf_m4_ssbm_falcon_surface_response_cave_ceiling_tech_drift_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(12) },
 };
 
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT UINT16_C(5)
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE UINT8_C(12)
+#define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_TOTAL_SAMPLE_COUNT UINT16_C(60)
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_LANES_PER_SAMPLE UINT8_C(1)
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SERIALIZED_FIELDS \
     (PF_SSBM_STORED_TRACE_FIELDS_V1)
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SOURCE_TRACE_SHA256 \
     "5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5"
 #define PF_M4_SSBM_FALCON_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256 \
-    "54b2daed2c730d3f49da6f6ea1c1929c830107fcfae0ad413c149861599a827d"
+    "ad2a2a5189e586e1e3da2a561f20a43e631fbf6a930989e58fa768a501779fee"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_surface_response_cases) /

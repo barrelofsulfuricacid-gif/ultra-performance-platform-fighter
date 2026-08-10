@@ -187,9 +187,9 @@ def pose_count(domain: dict[str, Any]) -> int:
     return total
 
 
-def numeric_trace_case_count(
+def numeric_trace_cases(
     domain: dict[str, Any], stored: dict[str, Any]
-) -> int:
+) -> list[dict[str, Any]]:
     cases = stored.get("cases")
     if cases is None:
         # Compatibility with the original damage-response domain. New numeric
@@ -210,7 +210,12 @@ def numeric_trace_case_count(
             f"operation=manifest domain={domain.get('domain')} "
             "reason=invalid-trace-cases"
         )
-    return len(cases)
+    if any(not isinstance(case, dict) for case in cases):
+        fail(
+            f"operation=manifest domain={domain.get('domain')} "
+            "reason=invalid-trace-case"
+        )
+    return list(cases)
 
 
 def manifest_digest(
@@ -370,7 +375,8 @@ def main() -> int:
         )
         kind = stored.get("kind", "pose-geometry-v1")
         if kind == "numeric-trace-v1":
-            case_count = numeric_trace_case_count(domain, stored)
+            numeric_cases = numeric_trace_cases(domain, stored)
+            case_count = len(numeric_cases)
             samples_per_case = stored.get("samples_per_case")
             if (
                 not isinstance(samples_per_case, int)
@@ -396,7 +402,10 @@ def main() -> int:
                 "poses": "0",
                 "cases": str(case_count),
                 "samples": str(
-                    case_count * samples_per_case * lanes_per_sample
+                    sum(
+                        int(case.get("sample_count", samples_per_case))
+                        for case in numeric_cases
+                    ) * lanes_per_sample
                 ),
                 "source_trace_sha256": str(
                     stored.get("source_trace_sha256")

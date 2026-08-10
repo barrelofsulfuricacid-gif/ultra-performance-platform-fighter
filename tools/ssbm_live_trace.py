@@ -35,8 +35,20 @@ def parse_integer_observations(
 ) -> dict[str, list[dict[str, int]]]:
     """Parse allocation-free C runner key/value diagnostics by case."""
 
+    return parse_integer_observations_text(
+        path.read_text(encoding="utf-8-sig"), prefix, group_field
+    )
+
+
+def parse_integer_observations_text(
+    text: str,
+    prefix: str,
+    group_field: str = "case",
+) -> dict[str, list[dict[str, int]]]:
+    """Parse allocation-free C runner diagnostics already held in memory."""
+
     groups: dict[str, list[dict[str, int]]] = {}
-    for line in path.read_text(encoding="utf-8-sig").splitlines():
+    for line in text.lstrip("\ufeff").splitlines():
         if not line.startswith(prefix):
             continue
         fields = dict(

@@ -272,6 +272,10 @@ int pf_ssbm_stored_trace_oracle_run(
                 ? stored_case->serialized_fields
                 : domain->serialized_fields;
         uint8_t sample_count;
+        const uint8_t expected_sample_count =
+            stored_case->sample_count != UINT8_C(0)
+                ? stored_case->sample_count
+                : domain->samples_per_case;
         uint8_t sample_index;
 
         if (stored_case->id == NULL || stored_case->inputs == NULL)
@@ -292,7 +296,8 @@ int pf_ssbm_stored_trace_oracle_run(
             stored_case,
             samples,
             PF_SSBM_STORED_MAX_TRACE_SAMPLES);
-        if (sample_count != domain->samples_per_case)
+        if (expected_sample_count > domain->samples_per_case ||
+            sample_count != expected_sample_count)
         {
             out_result->failed_operation = "trace-sample-count";
             out_result->failed_case = stored_case->id;
@@ -386,6 +391,11 @@ int pf_ssbm_stored_trace_oracle_run(
                 PF_HASH_TRACE_FIELD(
                     PF_SSBM_TRACE_FACING,
                     hash_u8(&hash, (uint8_t)sample->facing));
+                PF_HASH_TRACE_FIELD(
+                    PF_SSBM_TRACE_LEDGE_REGRAB_LOCKOUT,
+                    hash_u16_le(
+                        &hash,
+                        sample->ledge_regrab_lockout_ticks));
 #undef PF_HASH_TRACE_FIELD
             }
         }

@@ -9,6 +9,14 @@
 #define PF_SIM_HANDLE_MAGIC UINT64_C(0x504653494D303032)
 #define PF_SIM_MAX_MOTION_SPEED_Q16 INT32_C(262144)
 
+static inline int pf_sim_vertical_coordinate_is_within_arena(
+    int32_t coordinate_q16,
+    int32_t arena_extent_q16)
+{
+    return coordinate_q16 >= -arena_extent_q16 &&
+           coordinate_q16 <= arena_extent_q16;
+}
+
 static inline int32_t pf_m4_total_velocity_q16(
     int32_t self_velocity_q16,
     int32_t knockback_velocity_q16)
@@ -71,16 +79,33 @@ static inline int pf_m4_action_is_damage(uint8_t action_state)
            pf_m4_action_is_ground_damage(action_state);
 }
 
-static inline int pf_m4_action_retains_airborne_submotion(
+static inline int pf_m4_action_uses_ledge(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
+           action_state == (uint8_t)PF_M4_ACTION_LEDGE_HANG ||
+           action_state == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
+           action_state == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
+           action_state == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_LEDGE_JUMP;
+}
+
+static inline int pf_m4_action_retains_source_submotion(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
 {
-    return action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
-           action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+    const int action_owns_submotion =
+        action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        pf_m4_action_uses_ledge(action_state);
+    const int resume_owns_submotion =
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        hitlag_resume_action ==
+            (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        pf_m4_action_uses_ledge(hitlag_resume_action);
+
+    return action_owns_submotion ||
            (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
-            (hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
-             hitlag_resume_action ==
-                 (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP));
+            resume_owns_submotion);
 }
 
 static inline int32_t pf_m4_multiply_q16(
@@ -138,11 +163,17 @@ enum
     PF_M4_DIRECTIONAL_INPUT_C_UP = UINT8_C(1) << 1,
     PF_M4_DIRECTIONAL_INPUT_C_LEFT = UINT8_C(1) << 2,
     PF_M4_DIRECTIONAL_INPUT_C_RIGHT = UINT8_C(1) << 3,
+    PF_M4_DIRECTIONAL_INPUT_LEDGE_READY = UINT8_C(1) << 4,
+    PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ATTACK = UINT8_C(1) << 5,
+    PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ROLL_INWARD = UINT8_C(1) << 6,
     PF_M4_DIRECTIONAL_INPUT_ALL =
         PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN |
         PF_M4_DIRECTIONAL_INPUT_C_UP |
         PF_M4_DIRECTIONAL_INPUT_C_LEFT |
-        PF_M4_DIRECTIONAL_INPUT_C_RIGHT
+        PF_M4_DIRECTIONAL_INPUT_C_RIGHT |
+        PF_M4_DIRECTIONAL_INPUT_LEDGE_READY |
+        PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ATTACK |
+        PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ROLL_INWARD
 };
 
 typedef struct pf_world_state
@@ -175,7 +206,7 @@ typedef struct pf_world_state
     int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
-    uint16_t airborne_submotion[PF_SIM_MAX_PLAYERS];
+    uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -272,7 +303,7 @@ typedef struct pf_sim_scratch
     int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
-    uint16_t airborne_submotion[PF_SIM_MAX_PLAYERS];
+    uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -543,6 +574,7 @@ int pf_m4_attack_hitbox(
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
+    uint16_t source_submotion,
     int32_t *out_left_q16,
     int32_t *out_right_q16,
     int32_t *out_top_q16,
@@ -567,6 +599,17 @@ uint8_t pf_m4_attack_hit_spheres(
     uint16_t action_ticks,
     pf_m4_hit_sphere_inspection
         out_spheres[PF_M4_INSPECTION_HIT_SPHERE_CAPACITY]);
+uint8_t pf_m4_reference_world_hurt_capsules(
+    const pf_m4_fighter_data *fighter,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t grounded,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action,
+    uint16_t action_ticks,
+    pf_m4_hurt_capsule_inspection
+        out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY]);
 int pf_m4_shield_box(
     const pf_m4_fighter_data *fighter,
     int32_t position_x_q16,

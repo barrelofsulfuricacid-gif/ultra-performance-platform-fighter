@@ -1,0 +1,570 @@
+{
+  "blast_zone": {
+    "bottom": -108.79999923706055,
+    "left": -224.0,
+    "right": 224.0,
+    "top": 200.00000381469727
+  },
+  "camera_bounds": {
+    "bottom": -47.20000076293945,
+    "left": -160.0,
+    "right": 160.0,
+    "top": 136.00000381469727
+  },
+  "coordinate_space": "runtime-world-space",
+  "grkind": 36,
+  "lines": [
+    {
+      "end": [
+        -60.0,
+        0.0
+      ],
+      "hi_flags": 1,
+      "index": 0,
+      "kind": "floor",
+      "lo_flags": 512,
+      "neighbors": [
+        17,
+        1,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65537,
+      "start": [
+        -68.4000015258789,
+        0.0
+      ]
+    },
+    {
+      "end": [
+        60.0,
+        0.0
+      ],
+      "hi_flags": 1,
+      "index": 1,
+      "kind": "floor",
+      "lo_flags": 0,
+      "neighbors": [
+        0,
+        5,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65537,
+      "start": [
+        -60.0,
+        0.0
+      ]
+    },
+    {
+      "end": [
+        -20.0,
+        27.200000762939453
+      ],
+      "hi_flags": 1,
+      "index": 2,
+      "kind": "floor",
+      "lo_flags": 256,
+      "neighbors": [
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65537,
+      "start": [
+        -57.60000228881836,
+        27.200000762939453
+      ]
+    },
+    {
+      "end": [
+        18.80000114440918,
+        54.400001525878906
+      ],
+      "hi_flags": 1,
+      "index": 3,
+      "kind": "floor",
+      "lo_flags": 256,
+      "neighbors": [
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65537,
+      "start": [
+        -18.80000114440918,
+        54.400001525878906
+      ]
+    },
+    {
+      "end": [
+        57.60000228881836,
+        27.200000762939453
+      ],
+      "hi_flags": 1,
+      "index": 4,
+      "kind": "floor",
+      "lo_flags": 256,
+      "neighbors": [
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65537,
+      "start": [
+        20.0,
+        27.200000762939453
+      ]
+    },
+    {
+      "end": [
+        68.4000015258789,
+        0.0
+      ],
+      "hi_flags": 1,
+      "index": 5,
+      "kind": "floor",
+      "lo_flags": 512,
+      "neighbors": [
+        1,
+        16,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65537,
+      "start": [
+        60.0,
+        0.0
+      ]
+    },
+    {
+      "end": [
+        -64.9800033569336,
+        -6.0
+      ],
+      "hi_flags": 2,
+      "index": 6,
+      "kind": "ceiling",
+      "lo_flags": 0,
+      "neighbors": [
+        18,
+        17,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65538,
+      "start": [
+        -35.60000228881836,
+        -18.0
+      ]
+    },
+    {
+      "end": [
+        -29.200000762939453,
+        -34.79999923706055
+      ],
+      "hi_flags": 2,
+      "index": 7,
+      "kind": "ceiling",
+      "lo_flags": 0,
+      "neighbors": [
+        11,
+        21,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65538,
+      "start": [
+        -10.40000057220459,
+        -40.0
+      ]
+    },
+    {
+      "end": [
+        -10.31503963470459,
+        -31.257360458374023
+      ],
+      "hi_flags": 2,
+      "index": 8,
+      "kind": "ceiling",
+      "lo_flags": 0,
+      "neighbors": [
+        22,
+        11,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65538,
+      "start": [
+        10.31503963470459,
+        -31.257360458374023
+      ]
+    },
+    {
+      "end": [
+        10.40000057220459,
+        -40.0
+      ],
+      "hi_flags": 2,
+      "index": 9,
+      "kind": "ceiling",
+      "lo_flags": 0,
+      "neighbors": [
+        12,
+        22,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65538,
+      "start": [
+        29.200000762939453,
+        -34.79999923706055
+      ]
+    },
+    {
+      "end": [
+        35.60000228881836,
+        -18.0
+      ],
+      "hi_flags": 2,
+      "index": 10,
+      "kind": "ceiling",
+      "lo_flags": 0,
+      "neighbors": [
+        16,
+        14,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65538,
+      "start": [
+        64.9800033569336,
+        -6.0
+      ]
+    },
+    {
+      "end": [
+        -10.40000057220459,
+        -40.0
+      ],
+      "hi_flags": 4,
+      "index": 11,
+      "kind": "right_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        8,
+        7,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65540,
+      "start": [
+        -10.31503963470459,
+        -31.257360458374023
+      ]
+    },
+    {
+      "end": [
+        29.200000762939453,
+        -34.79999923706055
+      ],
+      "hi_flags": 4,
+      "index": 12,
+      "kind": "right_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        13,
+        9,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65540,
+      "start": [
+        30.399999618530273,
+        -28.80000114440918
+      ]
+    },
+    {
+      "end": [
+        30.399999618530273,
+        -28.80000114440918
+      ],
+      "hi_flags": 4,
+      "index": 13,
+      "kind": "right_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        15,
+        12,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65540,
+      "start": [
+        32.79999923706055,
+        -24.80000114440918
+      ]
+    },
+    {
+      "end": [
+        38.0,
+        -21.200000762939453
+      ],
+      "hi_flags": 4,
+      "index": 14,
+      "kind": "right_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        10,
+        15,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65540,
+      "start": [
+        35.60000228881836,
+        -18.0
+      ]
+    },
+    {
+      "end": [
+        32.79999923706055,
+        -24.80000114440918
+      ],
+      "hi_flags": 4,
+      "index": 15,
+      "kind": "right_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        14,
+        13,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65540,
+      "start": [
+        38.0,
+        -21.200000762939453
+      ]
+    },
+    {
+      "end": [
+        64.9800033569336,
+        -6.0
+      ],
+      "hi_flags": 4,
+      "index": 16,
+      "kind": "right_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        5,
+        10,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65540,
+      "start": [
+        68.4000015258789,
+        0.0
+      ]
+    },
+    {
+      "end": [
+        -68.4000015258789,
+        0.0
+      ],
+      "hi_flags": 8,
+      "index": 17,
+      "kind": "left_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        6,
+        0,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65544,
+      "start": [
+        -64.9800033569336,
+        -6.0
+      ]
+    },
+    {
+      "end": [
+        -35.60000228881836,
+        -18.0
+      ],
+      "hi_flags": 8,
+      "index": 18,
+      "kind": "left_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        19,
+        6,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65544,
+      "start": [
+        -38.0,
+        -21.200000762939453
+      ]
+    },
+    {
+      "end": [
+        -38.0,
+        -21.200000762939453
+      ],
+      "hi_flags": 8,
+      "index": 19,
+      "kind": "left_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        20,
+        18,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65544,
+      "start": [
+        -32.79999923706055,
+        -24.80000114440918
+      ]
+    },
+    {
+      "end": [
+        -32.79999923706055,
+        -24.80000114440918
+      ],
+      "hi_flags": 8,
+      "index": 20,
+      "kind": "left_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        21,
+        19,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65544,
+      "start": [
+        -30.399999618530273,
+        -28.80000114440918
+      ]
+    },
+    {
+      "end": [
+        -30.399999618530273,
+        -28.80000114440918
+      ],
+      "hi_flags": 8,
+      "index": 21,
+      "kind": "left_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        7,
+        20,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65544,
+      "start": [
+        -29.200000762939453,
+        -34.79999923706055
+      ]
+    },
+    {
+      "end": [
+        10.31503963470459,
+        -31.257360458374023
+      ],
+      "hi_flags": 8,
+      "index": 22,
+      "kind": "left_wall",
+      "lo_flags": 0,
+      "neighbors": [
+        9,
+        8,
+        -1,
+        -1
+      ],
+      "runtime_flags": 65544,
+      "start": [
+        10.40000057220459,
+        -40.0
+      ]
+    }
+  ],
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "player_spawn_points": [
+    {
+      "index": 0,
+      "position": [
+        0.0,
+        8.0,
+        0.0
+      ],
+      "support_line": 1
+    },
+    {
+      "index": 1,
+      "position": [
+        0.0,
+        62.400001525878906,
+        0.0
+      ],
+      "support_line": 3
+    },
+    {
+      "index": 2,
+      "position": [
+        -38.79999923706055,
+        35.20000076293945,
+        0.0
+      ],
+      "support_line": 2
+    },
+    {
+      "index": 3,
+      "position": [
+        38.79999923706055,
+        35.20000076293945,
+        0.0
+      ],
+      "support_line": 4
+    }
+  ],
+  "ranges": {
+    "ceiling": {
+      "count": 5,
+      "start": 6
+    },
+    "dynamic": {
+      "count": 0,
+      "start": 0
+    },
+    "floor": {
+      "count": 6,
+      "start": 0
+    },
+    "left_wall": {
+      "count": 6,
+      "start": 17
+    },
+    "right_wall": {
+      "count": 6,
+      "start": 11
+    }
+  },
+  "schema": 4,
+  "simulation_transform": {
+    "x_scale": "12/115",
+    "y_origin": 20,
+    "y_scale": "-11/62"
+  },
+  "source_stage_collision_sha256": "29525b7e0db4de8bf1a228f47e4216869ca362aff9d558a0c9ae81340103aa50",
+  "stage": "BATTLEFIELD"
+}

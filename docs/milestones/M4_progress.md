@@ -4806,7 +4806,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Canonical state schema 64/save format 60 (`PFSAVE54`) appends eight bytes of
   source submotion identity: payload 695 bytes, checkpoint 835 bytes, replay
   41,607 bytes. Replay corpus/final/event digests are
-  `58f1bfd1af6845d7e6ba3849b5c7928c16ccff5fb2aed841d4658ffd241349f1`,
+  `02f52e1f9c9dbf29e21264c50d2139b8968c6bff810da3b30e00d9ba34fb2e0b`,
   `e5c235be9bf70b79f62d383b2bbc58db55ffa602c9ce513adbc8a7df3ac0c257`,
   and `0cf114479e7cec86ebe0b89b08fd6eabc74209d99ed053fb92b397d26d6eab8e`.
   WSL Release passes 27/27 tests in 0.49 seconds, Windows MSVC Release passes
@@ -4818,3 +4818,206 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   imported directional predicates behind a coarser public action. M4 remains
   unfinished: later ledge options, broader stage topology, remaining audit
   rows, and the native Battlefield frontend are still open.
+
+## 2026-08-09 Battlefield wall and ceiling runtime routing
+
+- The prior-art sweep compared pinned decomp revision
+  `9509dc04406fb2028bfab01243841ba4787c0fb7` with current upstream
+  `ee4311b81417eb49b77ac73f3e9dc41c6a1e3dee`. The relevant `mpcoll.c`,
+  `mplib.c`, `ftCo_Fall.c`, and `ftcommon.c` paths are unchanged. Current
+  libmelee supplies observation/projection helpers, but its platform projection
+  explicitly omits ECB changes and cannot replace the executable oracle.
+- Reference-stage production no longer treats Battlefield's central underside
+  as one authored solid rectangle. Two allocation-free fixed-point queries walk
+  the imported ceiling/right-wall/left-wall ranges, validate line kind and
+  endpoints, select the first crossed source surface, and return one resolved
+  body position. Ordinary movement, hitlag/SDI rejection, and stationary wall
+  probing reuse these queries; authored-stage behavior remains unchanged.
+- Focused primitive coverage exercises all five ceiling and twelve wall lines,
+  wrong-direction and outside-geometry controls, and representative production
+  collisions against the central underside ceiling and wall. Strict Windows
+  MSVC `/W4 /WX` focused combat and movement suites pass.
+- The source floor query sweeps previous/current ECB bottom; it does not accept
+  an arbitrary already-below point. The compact ordinary-airborne adapter now
+  shares one overflow-safe delayed-crossing predicate across authored and
+  imported pass-through platforms. Its compatibility branch is bounded to one
+  immediately preceding crossing, preserving the saved Battlefield frame-95
+  `Landing` transition while a reference-stage below-platform negative remains
+  airborne.
+- This intentional production correction changes the seeded verifier soak.
+  Three Windows and three WSL executions independently reproduce digest
+  `70dda9b2e5d9d936`, eight stock-result matches, 2,847 ticks, 37 combat events,
+  eight KOs, eight rollbacks, and eight replay verifications; the reviewed
+  digest is repinned.
+- Fresh post-repin validation passes Windows Release 28/28 in 1.74 seconds,
+  WSL Release 28/28 in 1.95 seconds, WSL ASan/UBSan 21/21 in 13.50 seconds,
+  and all nine stored domains / 73 cases plus replay in 1.129 seconds on
+  Windows and 1.013 seconds in WSL. The importer skill package validates,
+  native smoke passes,
+  and the rebuilt interactive client was relaunched.
+- This is deliberately recorded as partial. The current production body sweep
+  uses the compact rectangle rather than Falcon's complete action-specific ECB,
+  and does not yet consume the source-selected line normal for reflection or
+  response. Identical-input live Battlefield contact qualification remains
+  before this slice can be promoted.
+
+## 2026-08-09 Battlefield landing entry and source Pass qualification
+
+- The decomp route is `ftCo_8009A228` -> `ftCo_Pass_Anim` / `_Phys` /
+  `_Coll`, with `ft_80084DB0` for common air physics and `ft_80082F28` for
+  ground/ledge collision. Common `Pass` submotion 244 has a 30-frame animation;
+  common-data x470 is a separate nine-frame floor-skip countdown. The runtime
+  keeps both identities without a new allocation, public action, byte, or
+  schema: `AIRBORNE` carries source submotion 244 and its zero-based phase,
+  while the existing collision field owns the skip timer.
+- A focused headless/null/unlimited ExiAI route entered Pass normally, then
+  relocated Falcon after entry to prevent natural landing from truncating the
+  pose. It captured all frames 0..29 in 5.2 seconds. Raw capture SHA-256 is
+  `0dc57f8ffb85549be76b3b5a0017690b0df16905456169eaceaa2e7975eedc0c`;
+  the canonical big-endian `(u32 action frame, f32 ECB bottom Y)` stream is
+  `90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8`.
+  The generator emits the complete immutable Q16.16 table and regenerates
+  byte-identically from the pinned owner extract.
+- `ftCo_Landing_Enter` reaches `ftCommon_8007D7FC`, which switches ground state
+  without clearing incoming self Y. Production now retains that value on the
+  Landing entry row and projects it to zero on the following grounded-physics
+  update. The complete saved 348-frame Battlefield identical-input capture
+  passes on Windows and WSL within the established 640-Q16 position envelope;
+  its former frame-276 divergence is closed.
+- Complete-source identity is now
+  `147520a32bd20dc99dc2f326f52f8fcfc56c57058cf99669c762eea0c776720a`.
+  Because replay serialization includes content identity, corpus SHA-256 is
+  now `02f52e1f9c9dbf29e21264c50d2139b8968c6bff810da3b30e00d9ba34fb2e0b`;
+  final/event digests remain unchanged. Three Windows plus three WSL seeded
+  soaks reproduce `3238a603d9ab2a5b` with identical 8-match / 2,847-tick
+  outcomes before the pin is updated.
+- Fresh validation passes Windows Release 28/28 in 3.35 seconds, WSL Release
+  28/28 in 1.92 seconds, WSL ASan/UBSan 21/21 in 13.55 seconds, and the full
+  nine-domain / 73-case stored gate plus replay in 0.925 seconds Windows and
+  0.904 seconds WSL. Manifest SHA-256 is
+  `f16fa189ecb621a54c6ed4921aa920a257316b0fbeb869fb21caa08104ccefb3`.
+- The reusable importer skill now records the action-clock versus collision-
+  timer distinction and the post-entry relocation method for complete ECB
+  capture. M4 remains unfinished: selected-line/normal response and the wider
+  Falcon fidelity audit continue.
+
+## 2026-08-09 production Battlefield support and JumpF ECB qualification
+
+- The earlier 348-frame movement runner reproduced Battlefield's vertical
+  layout with authored primitives. It proved action/position timing but did
+  not exercise the shipped `reference_collision_profile`. The runner now uses
+  `pf_m4_reference_stage_content(BATTLEFIELD)`, reaches the oracle's left
+  platform through ordinary walk/jump inputs, and emits the selected support
+  in its allocation-free CSV trace.
+- The comparator reads the source floor index from the existing collision-
+  memory probe and requires `native support == source line + 1` on every
+  grounded row. The platform phase selects source line 2/support 3; the final
+  Pass landing selects main-floor line 1/support 2. The complete route passes
+  all 348 frames on Windows and WSL within the established 640-Q16 position
+  envelope.
+- This stronger route exposed a real frame-95 landing gap. The simulator used
+  Falcon's steady-state Fall ECB during JumpF, while the source animation has
+  35 distinct displayed poses. A focused headless/null/unlimited ExiAI capture
+  entered JumpF normally and relocated only after action entry, preserving all
+  35 frames without a landing truncation. Raw capture SHA-256 is
+  `28c4e902d8860f6d02ec779004c67c7ab94f87c7f3970699cfd9a44a8844cf1d`;
+  canonical big-endian `(u32 displayed frame, f32 bottom Y)` SHA-256 is
+  `6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb`.
+- The generator emits the complete immutable Q16.16 JumpF ECB table and
+  runtime selects it through the already-canonical source submotion. The
+  bounded one-update pass-through compatibility path now applies only to
+  approximate poses; exact imported ECB schedules use the ordinary sweep.
+  Landing enters on source route frame 95 and retains incoming Y in inspection
+  before the next grounded-physics update projects it to zero.
+- Complete Falcon source identity is now
+  `46c97fcbe303628fb1bf0ce3415431c01c16a0e73961ce5a1e78dd5dd1f1bfa9`.
+  Three Windows and three WSL seeded verifier runs reproduce digest
+  `3c3f20d38cee6e59` with identical eight-match / 2,847-tick outcomes. Replay
+  corpus/final/event identities remain unchanged.
+- Windows and WSL Release each pass 28/28 after the intentional verifier pin
+  in 1.91 and 1.78 seconds; WSL ASan/UBSan passes 21/21 in 13.66 seconds. The
+  nine-domain / 73-case stored gate plus replay passes in 1.168 seconds on
+  Windows and 1.008 seconds in WSL. Generator regeneration is byte-identical,
+  and the updated importer skill validates. Selected floor identity and
+  absolute vertical resolution are now qualified for this route. Selected-
+  normal response and live Battlefield wall/ceiling routes remain open.
+
+## 2026-08-09 exact Battlefield sloped wall and ceiling response
+
+- A prior-art/source sweep pinned decomp commit
+  `9509dc04406fb2028bfab01243841ba4787c0fb7`: `mpLineGetNormal` derives the
+  unit normal as normalized `(-dy, dx)`, `lbVector_Mirror` subtracts twice the
+  normal projection, and `ftCo_800C18A8` reflects combined self/damage motion,
+  applies common multiplier `x1BC`, stores damage velocity, and clears self
+  velocity. libmelee 0.47.2 explicitly omits ECB evolution in its projection
+  helper, so it remains useful prior art rather than source truth.
+- The stage importer now preserves each line's source-space unit normal before
+  the project's anisotropic coordinate transform. Wall/ceiling response shares
+  one allocation-free Q16.16 mirror routine and transforms the result once.
+- Three independent Falcon captures expose the same complete 24-frame
+  DamageFlyN top/side ECB schedule under semantic SHA-256
+  `9efade94dbd61446decfabeedce910e4a2823bfc65299b7ecb4cb31fb368eee1`.
+  The generator pins and emits top, bottom, side-X, and side-Y tables; complete
+  Falcon source identity is now
+  `0adc405c5affe87ae3bcc84e7665b53869231e0f4ffa6f4043586bd953782df3`.
+- Production sweeps the previous/current ECB side point against candidate wall
+  segments and chooses the earliest intersection. It resolves the root to the
+  contact fraction, gives wall response priority over a nearby ceiling, applies
+  the frame's gravity before reflecting total velocity, and leaves reflected
+  displacement for the following tick. This fixed both a line-15 contact that
+  incorrectly selected ceiling line 10 and a 5.6% horizontal-response error.
+- The new checkpoint-isolated Battlefield theorem covers ceiling line 10 and
+  right-wall line 15, including their live selected normals, then compares 24
+  post-response samples across action/state, action time/displayed frame,
+  grounded/tumble/invulnerability, hitstun, both velocity channels, and relative
+  position. Source digest is
+  `8a0c463ffae10b1567815013c85c500bcb25869727874086c96d0e9c522a2f68`;
+  production digest is
+  `107ea657a7bad069ea8ee02cb98306dd116b78838c8e6899a4adf9ff6fcf0982`.
+  A second fresh boot reproduces the source digest in 0.367 seconds warm and
+  3.096 seconds end to end.
+- The generic stored lane now registers ten domains / 75 cases plus replay and
+  passes in 1.031 seconds on Windows and 1.048 seconds in WSL. Full validation
+  passes Windows Release 29/29 in 1.70 seconds, WSL Release 29/29 in 1.89
+  seconds, WSL ASan/UBSan 22/22 in 13.86 seconds, and the saved 348-frame
+  production Battlefield route on both hosts within 640 Q16 units. Three
+  Windows and three WSL seeded soaks reproduce `d3b4c23cb8a9dd7e` with
+  identical 8-match / 2,847-tick results before the verifier pin changes.
+- The importer skill now records full side-point ECB intersection,
+  source-normal transformation, and gravity/reflection ordering. M4 remains
+  unfinished because the broader fidelity-audit rows and hands-on frontend
+  qualification are still open.
+
+## 2026-08-09 reflected-action ECB and Battlefield floor re-contact
+
+- A prior-art/source review confirmed that Melee keeps the real reflection
+  action clock running after Falcon's ceiling-bounce presentation clamps at
+  displayed frame eight. The runtime therefore retains one action clock and
+  clamps only the shared pose lookup; no duplicate state or pose track was
+  introduced.
+- The checkpoint protocol now supports synchronized post-entry fighter and
+  collision-position reset plus explicit self/knockback velocity overrides.
+  One 0.739-second warm pack captures all nine observable ceiling poses and 51
+  wall poses while preserving the native wall/ceiling response entry.
+- A reusable extractor canonicalizes both captures facing-right, validates
+  repeated displayed frames at Q16.16 identity, and emits one compact full-ECB
+  profile. Raw/profile/semantic identities are
+  `f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2`,
+  `d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608`,
+  and `9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5`.
+- Production consumes those poses through the same zero-cost adapter as
+  DamageFly. Facing is applied once at the world-wall boundary. A source-root
+  to simulator-body-center conversion fixed the initial apparent 1-2-frame
+  landing lead without changing physics or tuning a threshold.
+- The new live theorem follows 111 focused samples through native Battlefield
+  line-3 re-contact: ceiling lands on sample 57 and wall on sample 54. Source
+  and production trace identities are
+  `4e9a0ad3222bd0d6b6d7ab7def0177cf4b5c361bded3826abfe2e91f9210dd5a`
+  and `222a5504d62bc5500e57a88a0adad108b931ea73d2b70cdf46faccde3f36d2db`.
+- The generic stored registry now covers 11 domains / 77 cases plus replay.
+  Three warm Windows runs pass in 1.123-1.136 seconds and WSL in 1.121 seconds.
+  Full Windows/WSL combat and replay checks, deterministic regeneration, and
+  focused WSL ASan/UBSan pass. Fresh Windows and WSL native-client smoke builds
+  also pass; the Windows build uses a separate output because the hands-on
+  playtest executable remains open. M4 remains open for the remaining fidelity-
+  audit rows and the hands-on native controller gate.

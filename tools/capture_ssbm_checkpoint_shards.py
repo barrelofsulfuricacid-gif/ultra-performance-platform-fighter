@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""Fork preloaded checkpoint-capture workers and merge their traces."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+import time
+import traceback
+
+import capture_ssbm_movement
+import merge_ssbm_checkpoint_captures
+
+
+def run_worker(argv: list[str]) -> None:
+    status = 1
+    try:
+        status = capture_ssbm_movement.main(argv)
+    except BaseException:  # Child must report the original capture failure.
+        traceback.print_exc()
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    os._exit(status)
+
+
+def main() -> int:
+    warm_started_ns = time.time_ns()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dolphin", required=True, type=Path)
+    parser.add_argument("--oracle-release-artifact", required=True, type=Path)
+    parser.add_argument("--iso", required=True, type=Path)
+    parser.add_argument("--manifest", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--base-port", type=int, default=51441)
+    parser.add_argument("--started-ns", required=True, type=int)
+    args = parser.parse_args()
+
+    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    checkpoint_pack = manifest.get("checkpoint_pack")
+    if not isinstance(checkpoint_pack, dict):
+        raise SystemExit("checkpoint_pack is missing")
+    shards = checkpoint_pack.get("capture_shards")
+    warm_budget = checkpoint_pack.get("warm_budget_seconds")
+    cold_budget = checkpoint_pack.get("cold_budget_seconds", warm_budget)
+    expected_cases = [str(case["id"]) for case in manifest["checkpoint_cases"]]
+    if (
+        not isinstance(shards, list)
+        or not shards
+        or any(not isinstance(shard, list) or not shard for shard in shards)
+        or not isinstance(warm_budget, (int, float))
+        or isinstance(warm_budget, bool)
+        or float(warm_budget) <= 0.0
+        or not isinstance(cold_budget, (int, float))
+        or isinstance(cold_budget, bool)
+        or float(cold_budget) < float(warm_budget)
+    ):
+        raise SystemExit("checkpoint capture shards or wall budgets are invalid")
+    captured_cases = [str(case) for shard in shards for case in shard]
+    if len(captured_cases) != len(set(captured_cases)) or set(captured_cases) != set(
+        expected_cases
+    ):
+        raise SystemExit("checkpoint capture_shards do not partition the cases")
+    if not 1024 <= args.base_port <= 65535 - len(shards):
+        raise SystemExit("checkpoint base port is out of range")
+
+    dolphin = args.dolphin.resolve()
+    release_artifact = args.oracle_release_artifact.resolve()
+    iso = args.iso.resolve()
+    manifest_path = args.manifest.resolve()
+    for required in (dolphin, release_artifact, iso, manifest_path):
+        if not required.is_file():
+            raise SystemExit(f"missing required oracle input: {required}")
+
+    worker_links: list[Path] = []
+    child_pids: list[int] = []
+    workers_started_ns = 0
+    workers_finished_ns = 0
+    merge_finished_ns = 0
+    with tempfile.TemporaryDirectory(prefix="pf-ssbm-checkpoint-") as temporary:
+        shard_outputs = [
+            Path(temporary) / f"shard-{index}.json"
+            for index in range(len(shards))
+        ]
+        try:
+            for index in range(len(shards)):
+                worker_link = dolphin.with_name(
+                    f"dpf{os.getpid() % 100000:05d}s{index:02d}"
+                )
+                os.link(dolphin, worker_link)
+                worker_links.append(worker_link)
+
+            # Every process-specific executable is a hardlink to this exact
+            # inode. Seed its content hash once after link creation so child
+            # provenance reads reuse the matching fingerprint instead of six
+            # workers hashing the same launcher concurrently.
+            capture_ssbm_movement.cached_sha256(dolphin)
+            capture_ssbm_movement.cached_sha256(release_artifact)
+            capture_ssbm_movement.cached_sha256(iso)
+            capture_ssbm_movement.preload_hardlinked_dolphin_version(dolphin)
+
+            for index, shard in enumerate(shards):
+                worker_argv = [
+                    "--dolphin",
+                    str(worker_links[index]),
+                    "--oracle-release-artifact",
+                    str(release_artifact),
+                    "--iso",
+                    str(iso),
+                    "--output",
+                    str(shard_outputs[index]),
+                    "--slippi-port",
+                    str(args.base_port + index),
+                    "--damage-hit-only",
+                    "--memory-probe-surface",
+                    "--oracle-exiai",
+                    "--oracle-checkpoint-pack",
+                    "--oracle-coverage-manifest",
+                    str(manifest_path),
+                ]
+                for case_id in shard:
+                    worker_argv.extend(("--oracle-case", str(case_id)))
+                child_pid = os.fork()
+                if child_pid == 0:
+                    run_worker(worker_argv)
+                child_pids.append(child_pid)
+            workers_started_ns = time.time_ns()
+
+            failed_children: list[int] = []
+            for child_pid in child_pids:
+                _, wait_status = os.waitpid(child_pid, 0)
+                if not os.WIFEXITED(wait_status) or os.WEXITSTATUS(wait_status) != 0:
+                    failed_children.append(child_pid)
+            if failed_children:
+                raise SystemExit(
+                    "parallel checkpoint capture failed: "
+                    + ",".join(map(str, failed_children))
+                )
+            workers_finished_ns = time.time_ns()
+
+            merge_ssbm_checkpoint_captures.main(
+                [
+                    "--manifest",
+                    str(manifest_path),
+                    "--output",
+                    str(args.output),
+                    *map(str, shard_outputs),
+                ]
+            )
+            merge_finished_ns = time.time_ns()
+        finally:
+            for worker_link in worker_links:
+                worker_link.unlink(missing_ok=True)
+
+    finished_ns = time.time_ns()
+    warm_seconds = (finished_ns - warm_started_ns) / 1e9
+    cold_seconds = (finished_ns - args.started_ns) / 1e9
+    warm_budget_seconds = float(warm_budget)
+    cold_budget_seconds = float(cold_budget)
+    if warm_seconds > warm_budget_seconds:
+        raise SystemExit(
+            "checkpoint pack exceeded "
+            f"{warm_budget_seconds:.1f}-second warm wall budget: "
+            f"{warm_seconds:.6f}"
+        )
+    if cold_seconds > cold_budget_seconds:
+        raise SystemExit(
+            "checkpoint pack exceeded "
+            f"{cold_budget_seconds:.1f}-second cold wall budget: "
+            f"{cold_seconds:.6f}"
+        )
+    print(
+        "ssbm-checkpoint-parent-time "
+        f"setup_seconds={(workers_started_ns - warm_started_ns) / 1e9:.6f} "
+        f"workers_seconds={(workers_finished_ns - workers_started_ns) / 1e9:.6f} "
+        f"merge_seconds={(merge_finished_ns - workers_finished_ns) / 1e9:.6f} "
+        f"cleanup_seconds={(finished_ns - merge_finished_ns) / 1e9:.6f}"
+    )
+    print(
+        "ssbm-checkpoint-shards=pass "
+        f"shards={len(shards)} warm_seconds={warm_seconds:.6f} "
+        f"cold_seconds={cold_seconds:.6f} "
+        f"output={args.output}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

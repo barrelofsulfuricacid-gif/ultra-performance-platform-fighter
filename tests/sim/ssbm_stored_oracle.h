@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define PF_SSBM_STORED_MAX_CAPSULES UINT8_C(32)
-#define PF_SSBM_STORED_MAX_TRACE_SAMPLES UINT8_C(64)
+#define PF_SSBM_STORED_MAX_TRACE_SAMPLES UINT8_C(128)
 #define PF_SSBM_STORED_MAX_TRACE_LANES UINT8_C(2)
 
 typedef enum pf_ssbm_stored_case_mode
@@ -126,6 +126,7 @@ typedef struct pf_ssbm_stored_trace_sample
     int8_t tech_direction;
     uint8_t prone_orientation;
     int8_t facing;
+    uint16_t ledge_regrab_lockout_ticks;
 } pf_ssbm_stored_trace_sample;
 
 typedef enum pf_ssbm_stored_trace_field
@@ -148,7 +149,8 @@ typedef enum pf_ssbm_stored_trace_field
     PF_SSBM_TRACE_INVULNERABLE = UINT32_C(1) << 15,
     PF_SSBM_TRACE_TECH_DIRECTION = UINT32_C(1) << 16,
     PF_SSBM_TRACE_PRONE_ORIENTATION = UINT32_C(1) << 17,
-    PF_SSBM_TRACE_FACING = UINT32_C(1) << 18
+    PF_SSBM_TRACE_FACING = UINT32_C(1) << 18,
+    PF_SSBM_TRACE_LEDGE_REGRAB_LOCKOUT = UINT32_C(1) << 19
 } pf_ssbm_stored_trace_field;
 
 #define PF_SSBM_STORED_TRACE_FIELDS_V1 \
@@ -163,7 +165,8 @@ typedef enum pf_ssbm_stored_trace_field
      PF_SSBM_TRACE_TUMBLE | PF_SSBM_TRACE_INVULNERABLE | \
      PF_SSBM_TRACE_TECH_DIRECTION | PF_SSBM_TRACE_PRONE_ORIENTATION)
 #define PF_SSBM_STORED_TRACE_FIELDS_ALL \
-    (PF_SSBM_STORED_TRACE_FIELDS_V1 | PF_SSBM_TRACE_FACING)
+    (PF_SSBM_STORED_TRACE_FIELDS_V1 | PF_SSBM_TRACE_FACING | \
+     PF_SSBM_TRACE_LEDGE_REGRAB_LOCKOUT)
 
 typedef struct pf_ssbm_stored_trace_case
 {
@@ -177,6 +180,9 @@ typedef struct pf_ssbm_stored_trace_case
     /* Optional case-specific semantic subset. Zero inherits the domain mask,
        preserving every previously generated numeric-trace oracle. */
     uint32_t serialized_fields;
+    /* Zero inherits the domain count. Numeric domains with source actions of
+       different lengths set the exact case count without padding samples. */
+    uint8_t sample_count;
 } pf_ssbm_stored_trace_case;
 
 typedef uint8_t (*pf_ssbm_stored_trace_case_runner)(

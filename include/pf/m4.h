@@ -18,8 +18,9 @@ extern "C"
 #define PF_M4_REFLECTOR_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_CHARGE_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_RECOVERY_SCHEMA_VERSION UINT16_C(1)
-#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(53)
+#define PF_M4_INSPECTION_SCHEMA_VERSION UINT16_C(54)
 #define PF_M4_INSPECTION_HIT_SPHERE_CAPACITY 4
+#define PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY 11
 #define PF_M4_PLACEHOLDER_FIGHTER_COUNT UINT8_C(1)
 #define PF_M4_TEST_STAGE_COUNT UINT8_C(1)
 #define PF_M4_TEST_ITEM_COUNT UINT8_C(1)
@@ -163,7 +164,8 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_DAMAGE_LOW_1 = 130,
     PF_M4_ACTION_DAMAGE_LOW_2 = 131,
     PF_M4_ACTION_DAMAGE_LOW_3 = 132,
-    PF_M4_ACTION_LEDGE_CATCH = 133
+    PF_M4_ACTION_LEDGE_CATCH = 133,
+    PF_M4_ACTION_LEDGE_JUMP = 134
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -367,8 +369,32 @@ typedef enum pf_m4_surface
 typedef enum pf_m4_reference_stage
 {
     PF_M4_REFERENCE_STAGE_AUTHORED = 0,
-    PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE = 1
+    PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE = 1,
+    PF_M4_REFERENCE_STAGE_BATTLEFIELD = 2
 } pf_m4_reference_stage;
+
+typedef enum pf_m4_reference_stage_line_kind
+{
+    PF_M4_REFERENCE_STAGE_LINE_UNCLASSIFIED = 0,
+    PF_M4_REFERENCE_STAGE_LINE_FLOOR = 1,
+    PF_M4_REFERENCE_STAGE_LINE_CEILING = 2,
+    PF_M4_REFERENCE_STAGE_LINE_RIGHT_WALL = 3,
+    PF_M4_REFERENCE_STAGE_LINE_LEFT_WALL = 4,
+    PF_M4_REFERENCE_STAGE_LINE_DYNAMIC = 5
+} pf_m4_reference_stage_line_kind;
+
+typedef struct pf_m4_reference_stage_line
+{
+    int32_t start_x_q16;
+    int32_t start_y_q16;
+    int32_t end_x_q16;
+    int32_t end_y_q16;
+    int32_t source_normal_x_q16;
+    int32_t source_normal_y_q16;
+    uint16_t support;
+    uint8_t kind;
+    uint8_t reserved;
+} pf_m4_reference_stage_line;
 
 typedef enum pf_m4_ledge
 {
@@ -806,6 +832,21 @@ typedef struct pf_m4_hit_sphere_inspection
     uint8_t collision_state;
 } pf_m4_hit_sphere_inspection;
 
+typedef struct pf_m4_hurt_capsule_inspection
+{
+    int32_t endpoint_a_x_q16;
+    int32_t endpoint_a_y_q16;
+    int32_t endpoint_a_z_q16;
+    int32_t endpoint_b_x_q16;
+    int32_t endpoint_b_y_q16;
+    int32_t endpoint_b_z_q16;
+    int32_t radius_q16;
+    uint8_t hurtbox_id;
+    uint8_t height;
+    uint8_t grabbable;
+    uint8_t reserved;
+} pf_m4_hurt_capsule_inspection;
+
 typedef struct pf_m4_player_inspection
 {
     int32_t position_x_q16;
@@ -901,6 +942,10 @@ typedef struct pf_m4_player_inspection
     uint8_t stale_move_ids[PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
     uint8_t prone_orientation;
     uint8_t reserved3[3];
+    uint8_t hurt_capsule_count;
+    uint8_t reserved4[3];
+    pf_m4_hurt_capsule_inspection
+        hurt_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY];
 } pf_m4_player_inspection;
 
 typedef struct pf_m4_stage_inspection
@@ -988,6 +1033,19 @@ typedef struct pf_m4_inspection
 } pf_m4_inspection;
 
 pf_status pf_m4_default_content(pf_m4_content *out_content);
+
+pf_status pf_m4_reference_stage_content(
+    pf_m4_reference_stage stage,
+    pf_m4_content *out_content);
+
+pf_status pf_m4_reference_stage_geometry_line_count(
+    pf_m4_reference_stage stage,
+    uint16_t *out_line_count);
+
+pf_status pf_m4_reference_stage_geometry_line(
+    pf_m4_reference_stage stage,
+    uint16_t line_index,
+    pf_m4_reference_stage_line *out_line);
 
 pf_status pf_m4_validate_content(const pf_m4_content *content);
 

@@ -8,6 +8,7 @@
       "src/sim/**",
       "tests/sim/**",
       "tools/bootstrap_ssbm_checkpoint_oracle.sh",
+      "tools/capture_ssbm_checkpoint_shards.py",
       "tools/capture_ssbm_movement.py",
       "tools/generate_ssbm_stored_oracle.py",
       "tools/ssbm_collision.py",
@@ -25,7 +26,10 @@
     "tools/ssbm_falcon_floor_response_coverage.json",
     "tools/ssbm_falcon_prone_response_coverage.json",
     "tools/ssbm_falcon_player_push_coverage.json",
-    "tools/ssbm_falcon_slope_ledge_response_coverage.json"
+    "tools/ssbm_falcon_slope_ledge_response_coverage.json",
+    "tools/ssbm_falcon_battlefield_surface_response_coverage.json",
+    "tools/ssbm_falcon_battlefield_bounce_recontact_coverage.json",
+    "tools/ssbm_falcon_ledge_options_coverage.json"
   ],
   "replay": {
     "executable": "pf_replay_corpus",
@@ -34,7 +38,7 @@
       "ticks": "240",
       "players": "4",
       "bytes": "41607",
-      "corpus_sha256": "58f1bfd1af6845d7e6ba3849b5c7928c16ccff5fb2aed841d4658ffd241349f1",
+      "corpus_sha256": "02f52e1f9c9dbf29e21264c50d2139b8968c6bff810da3b30e00d9ba34fb2e0b",
       "final_sha256": "e5c235be9bf70b79f62d383b2bbc58db55ffa602c9ce513adbc8a7df3ac0c257",
       "events_sha256": "0cf114479e7cec86ebe0b89b08fd6eabc74209d99ed053fb92b397d26d6eab8e"
     }

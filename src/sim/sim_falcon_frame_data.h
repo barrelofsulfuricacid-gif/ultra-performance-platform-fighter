@@ -16,6 +16,14 @@
 #define PF_M4_FALCON_DIVE_ECB_FRAME_COUNT UINT16_C(64)
 #define PF_M4_FALCON_DOWN_BOUND_ECB_FRAME_COUNT UINT16_C(26)
 #define PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT UINT16_C(24)
+#define PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT UINT16_C(30)
+#define PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT UINT16_C(35)
+#define PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT UINT16_C(9)
+#define PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT UINT16_C(51)
+#define PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST UINT16_C(219)
+#define PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT UINT16_C(10)
+#define PF_M4_FALCON_LEDGE_JUMP1_QUICK_FRAME_COUNT UINT16_C(11)
+#define PF_M4_FALCON_LEDGE_JUMP1_SLOW_FRAME_COUNT UINT16_C(18)
 
 typedef enum pf_m4_falcon_move_index
 {
@@ -127,8 +135,19 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_CEILING_TECH = 204,
     PF_M4_FALCON_SUBMOTION_LEDGE_CATCH = 216,
     PF_M4_FALCON_SUBMOTION_LEDGE_WAIT = 217,
+    PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_SLOW = 219,
+    PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_QUICK = 220,
+    PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW = 221,
+    PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK = 222,
+    PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_SLOW = 223,
+    PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_QUICK = 224,
+    PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1 = 225,
+    PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2 = 226,
+    PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1 = 227,
+    PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2 = 228,
     PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT = 239,
-    PF_M4_FALCON_SUBMOTION_APPEAL_LEFT = 240
+    PF_M4_FALCON_SUBMOTION_APPEAL_LEFT = 240,
+    PF_M4_FALCON_SUBMOTION_PLATFORM_DROP = 244
 } pf_m4_falcon_submotion_index;
 
 /* Qualified common-state hurt-pose tracks. Keep this compact index separate
@@ -335,7 +354,22 @@ typedef struct pf_m4_falcon_ledge_root_positions
     int32_t catch_frame_one_y_q16;
     int32_t wait_frame_one_x_q16;
     int32_t wait_frame_one_y_q16;
+    int32_t option_frame_one_x_q16[
+        PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT];
+    int32_t option_frame_one_y_q16[
+        PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT];
+    uint16_t option_ground_frame[
+        PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT];
 } pf_m4_falcon_ledge_root_positions;
+
+typedef struct pf_m4_falcon_ledge_attack_reference
+{
+    uint16_t total_frames;
+    uint16_t first_active_frame;
+    uint16_t last_active_frame;
+    uint16_t reserved;
+    pf_m4_reference_hit_effect effect;
+} pf_m4_falcon_ledge_attack_reference;
 
 /*
  * Exact deterministic view of the 0x8c-byte ftCaptain_DatAttrs block. Float
@@ -450,6 +484,18 @@ typedef struct pf_m4_falcon_down_special_timing
     int32_t ground_end_entry_velocity_scale_q16;
 } pf_m4_falcon_down_special_timing;
 
+typedef struct pf_m4_falcon_ecb_pose_q16
+{
+    int32_t top_x_from_origin_q16;
+    int32_t top_y_from_origin_q16;
+    int32_t bottom_x_from_origin_q16;
+    int32_t bottom_y_from_origin_q16;
+    int32_t right_x_from_origin_q16;
+    int32_t right_y_from_origin_q16;
+    int32_t left_x_from_origin_q16;
+    int32_t left_y_from_origin_q16;
+} pf_m4_falcon_ecb_pose_q16;
+
 typedef struct pf_m4_falcon_collision_pose
 {
     int32_t falling_bottom_y_from_origin_q16;
@@ -457,8 +503,22 @@ typedef struct pf_m4_falcon_collision_pose
     uint32_t down_bound_stomach_floor_contact_mask;
     int32_t damage_fly_bottom_y_from_origin_q16[
         PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
+    int32_t damage_fly_top_y_from_origin_q16[
+        PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
+    int32_t damage_fly_side_x_from_origin_q16[
+        PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
+    int32_t damage_fly_side_y_from_origin_q16[
+        PF_M4_FALCON_DAMAGE_FLY_ECB_FRAME_COUNT];
     int32_t air_dodge_bottom_y_from_origin_q16[
         PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT];
+    int32_t platform_drop_bottom_y_from_origin_q16[
+        PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT];
+    int32_t jump_forward_bottom_y_from_origin_q16[
+        PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 ceiling_bounce[
+        PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT];
+    pf_m4_falcon_ecb_pose_q16 wall_bounce[
+        PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT];
     int32_t fall_special_bottom_y_from_origin_q16[
         PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT];
     int32_t raptor_boost_hit_air_bottom_y_from_origin_q16[
@@ -568,6 +628,27 @@ pf_m4_falcon_reference_ledge_attributes(void);
 
 const pf_m4_falcon_ledge_root_positions *
 pf_m4_falcon_reference_ledge_root_positions(void);
+
+const pf_m4_falcon_ledge_attack_reference *
+pf_m4_falcon_reference_ledge_attack(uint16_t submotion_index);
+
+int pf_m4_falcon_reference_ledge_option_anchor_q16(
+    uint16_t submotion_index,
+    int32_t *out_x_q16,
+    int32_t *out_y_q16);
+
+uint16_t pf_m4_falcon_reference_ledge_option_ground_frame(
+    uint16_t submotion_index);
+
+int pf_m4_falcon_reference_hyrule_ledge_jump_position_q16(
+    uint16_t submotion_index,
+    uint16_t displayed_frame,
+    int32_t *out_x_from_wait_q16,
+    int32_t *out_y_from_wait_q16);
+
+int pf_m4_falcon_reference_body_invulnerable(
+    uint16_t submotion_index,
+    uint16_t action_ticks);
 
 const pf_m4_falcon_special_attributes *
 pf_m4_falcon_reference_special_attributes(void);

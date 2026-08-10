@@ -26,4 +26,11 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     int32_t *velocity_x_q16,
     int32_t *velocity_y_q16);
 
+pf_status pf_m4_ssbm_mirror_velocity_q16(
+    int32_t source_normal_x_q16,
+    int32_t source_normal_y_q16,
+    int32_t multiplier_q16,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16);
+
 #endif

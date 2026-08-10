@@ -874,6 +874,113 @@ Snapshot validation and exclusive ledge ownership accept the distinct catch
 state; invulnerability continues to elapse from acquisition rather than being
 restarted at wait.
 
+## Imported Pass collision pose
+
+Pinned decomp `ftCo_8009A228` enters common motion state `Pass` (Falcon
+submotion 244), applies `ftCommon_8007D5D4`, clamps air drift, writes
+`ftCommonData.x46C`, and calls `mpUpdateFloorSkip`. Its animation callback does
+not enter `Fall` until the complete 30-frame motion finishes. The separate
+common-data `x470` value controls only the departed-platform collision skip;
+it is not the animation duration.
+
+The focused Battlefield capture entered Pass through ordinary input, waited
+until the state was active, and then relocated Falcon high enough that natural
+landing could not truncate the ECB. It records exactly source frames 0 through
+29. Raw JSON SHA-256 is
+`0dc57f8ffb85549be76b3b5a0017690b0df16905456169eaceaa2e7975eedc0c`.
+The canonical big-endian stream of `(u32 action frame, f32 ECB bottom Y)` has
+SHA-256
+`90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8`.
+`tools/import_ssbm_falcon_frame_data.py` pins both identities and converts all
+30 samples once to `platform_drop_bottom_y_from_origin_q16`; runtime indexing
+is allocation-free and uses the existing canonical source-submotion clock.
+The resulting complete Falcon source SHA-256 was
+`147520a32bd20dc99dc2f326f52f8fcfc56c57058cf99669c762eea0c776720a`
+before the later complete JumpF ECB schedule extended the same identity.
+
+## Imported JumpF collision pose
+
+The natural Battlefield vertical route exposed JumpF displayed frames 1..31,
+but landing replaced the action before its final four animation-driven ECB
+poses could be observed. A focused headless/null/unlimited ExiAI route entered
+JumpF through ordinary input and relocated Falcon only after the action was
+active. It records all 35 displayed frames without changing the source action.
+
+Raw JSON SHA-256 is
+`28c4e902d8860f6d02ec779004c67c7ab94f87c7f3970699cfd9a44a8844cf1d`.
+The canonical big-endian stream of `(u32 displayed frame, f32 ECB bottom Y)`
+has SHA-256
+`6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb`.
+The generator pins both identities and emits the complete immutable 35-sample
+Q16.16 table. Runtime selects it through retained source submotion JumpF rather
+than the coalesced public `AIRBORNE` action. Exact imported poses use the normal
+previous-to-current platform sweep; only approximate poses retain the bounded
+one-update compatibility path.
+
+The resulting complete Falcon source SHA-256 is
+`46c97fcbe303628fb1bf0ce3415431c01c16a0e73961ce5a1e78dd5dd1f1bfa9`.
+
+## Imported DamageFlyN complete collision pose
+
+Three independent owner captures in
+`build/oracle/falcon-slope-ledge-response-qualified.json` and its two fresh
+repetitions expose the same 24 displayed DamageFlyN ECB frames. Canonical
+Q16.16 `(frame, top, bottom, side X, side Y)` SHA-256 is
+`9efade94dbd61446decfabeedce910e4a2823bfc65299b7ecb4cb31fb368eee1`;
+the previously pinned raw bottom-only stream remains
+`d011c9bb79f93840d1d97bf241b754cedf5669c2578c9f1f7f85b45a3f6bd84`.
+`tools/import_ssbm_falcon_frame_data.py` owns the complete arrays and converts
+source X/Y distances once into immutable Q16.16 top, bottom, side-X, and side-Y
+tables. Runtime selects the frame through the shared DamageFly action clock and
+performs no allocation or float work.
+
+The resulting complete Falcon source SHA-256 is
+`0adc405c5affe87ae3bcc84e7665b53869231e0f4ffa6f4043586bd953782df3`.
+
+## Battlefield sloped surface-response oracle
+
+The two-case checkpoint pack relocates an already-launched DamageFlyN Falcon
+only through declared precontact waypoints. Native collision then selects
+Battlefield ceiling line 10 with normal `(0.3781174421, -0.9257575870)` or
+right-wall line 15 with normal `(0.5692099929, -0.8221922517)`. It records the
+impact and twelve natural response updates per case. Two fresh Dolphin boots
+produce semantic source SHA-256
+`8a0c463ffae10b1567815013c85c500bcb25869727874086c96d0e9c522a2f68`;
+the reviewed production trace SHA-256 is
+`107ea657a7bad069ea8ee02cb98306dd116b78838c8e6899a4adf9ff6fcf0982`.
+The comparator binds the source stage catalog, selected line/normal, action and
+display clocks, hitstun/tumble/invulnerability, self and damage velocity, and
+relative position with only the documented Q16.16 allowances.
+
+## Falcon reflected-action ECB and floor re-contact
+
+The same native Battlefield bounce entries are relocated after the response
+begins, with self and knockback velocity reset to zero at source position
+`(0, 180)`. The 304-row capture has SHA-256
+`f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2`.
+`tools/extract_ssbm_ecb_pose_tracks.py` canonicalizes facing-right and rejects
+non-contiguous or conflicting repeated displayed frames. Its compact profile
+contains all nine observable `BOUNCE_CEILING` poses and all 51
+`BOUNCE_WALL` poses under profile/semantic Q16.16 identities
+`d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608`
+and `9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5`.
+
+The Falcon generator verifies those identities and emits one immutable full-
+pose representation consumed by the shared collision adapter. The complete
+Falcon source identity is now
+`af458556b4ba5bf0ec9cb86d4bb0a7ac3643a015f77a7de62617e71d18b49555`;
+the generated include regenerates byte-identically at SHA-256
+`972e79093c9bdfe20101b0bd182ab1a759fb8cb40e416d9e15f7f528f240a80a`.
+
+The live comparison follows ceiling bounce through sample 57 and wall bounce
+through sample 54, including the first native Battlefield top-platform
+`TECH_MISS_DOWN` row. It compares action, real clock, grounded state, hitstun,
+invulnerability, facing, relative root position, and independent self/damage
+velocity channels. Source and production semantic trace identities are
+`4e9a0ad3222bd0d6b6d7ab7def0177cf4b5c361bded3826abfe2e91f9210dd5a`
+and `222a5504d62bc5500e57a88a0adad108b931ea73d2b70cdf46faccde3f36d2db`.
+Later DownBound pose/contact evolution remains owned by its separate domain.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

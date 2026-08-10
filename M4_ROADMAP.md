@@ -22,15 +22,15 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for eight domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, and Hyrule slope/ledge response now contain 54 registered cases plus deterministic replay. The latest gate takes 0.821 seconds on Windows and 0.781 seconds in WSL. |
-| Fast live Dolphin oracle | done for registered domains | Registered packs use headless/null/unlimited ExiAI. Frame-safe batched controller queues and four isolated physical Dolphin shards reduce the 14-case prone pack from 34.77 seconds to 9.812 seconds while preserving the independently reproduced 1,515-row digest. |
+| Fast stored equivalence | done for eleven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, and bounce-pose floor re-contact contain 77 registered cases plus deterministic replay. The current gate checks eleven generated artifacts and replay in about 1.12-1.14 seconds warm on Windows and 1.12 seconds on WSL. |
+| Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and keep one observer connected while compatible cases replay checkpoints. The common-hurt changed-domain route measures 2.635-2.729 seconds warm. Three independent 19-case ledge runs pass the enforced 10.0-second warm guardrail at 9.649, 8.924, and 9.614 seconds with the same 558-row / 514-sample semantic digest. Unsafe cross-invocation observer reconnection is rejected, not a remaining deliverable. |
 | Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, and exact ordinary Jump/Fall airborne animation clocks. Broader stage topology and other fidelity-audit rows remain. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, and a source-qualified complete Battlefield collision/environment catalog. The production Battlefield route qualifies JumpF/Pass ECB timing, selected floor lines 2/1, exact sloped wall/ceiling normals and reflection, and complete `BOUNCE_CEILING`/`BOUNCE_WALL` pose-driven descent through first top-platform re-contact. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
-| Native Battlefield frontend | not complete | Existing SDL target is only an early render-packet spike, not the M4 playtest client. |
-| Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, and semantic-digest guidance. |
+| Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
+| Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, and per-surface collision-routing qualification guidance. |
 
 ## Completed and verified
 
@@ -67,6 +67,43 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
   complete pose coverage and physical hit/miss discriminators.
 - [x] Preserve deterministic replay/snapshot behavior for completed slices on
   Windows and WSL.
+
+## Completed locally: native Battlefield playtest client
+
+- [x] Replace the static M1 render-packet window with a direct public-API M4
+  simulation session using the source-qualified Battlefield content
+  constructor, allocation-query contract, deterministic reset, and fixed
+  60 Hz stepping. The smoke-only path and its existing CI contract remain
+  unchanged.
+- [x] Add one allocation-free public stage-geometry view and render all 23
+  imported Battlefield floor, ceiling, and wall lines. Render the exact blast
+  bounds in an inset rather than inventing a second stage representation.
+- [x] Render both fighters plus facing, damage, stocks, action/frame, crouch
+  size/color cue, full/light shield bounds, active attack bounds, and a
+  switchable collision inspector. The inspection schema exposes the same 11
+  transformed source hurt capsules used by combat, so presentation has no
+  duplicate pose transform. Add pause, single-step, reset, and resizable
+  high-DPI window controls.
+- [x] Add allocation-safe match setup through `pf_sim_default_config`, memory
+  query, reinitialization, and reset: F2 atomically switches the only supported
+  match pairs (2P Duel / 4P Teams), while F3 cycles 1-8 stocks. Screenshot QA
+  confirms all four imported Battlefield spawn points and source hurt poses.
+- [x] Reuse SDL's semantic Gamepad API for mapped devices and retain a narrow
+  raw-joystick adapter for Mayflash PC mode. The real four-port adapter sample
+  established the SDL-specific layout: main stick axes 0/1, C-stick 2/3, and
+  L/R 4/5 at `-32768` neutral. This is intentionally separate from the Web
+  Gamepad layout.
+- [x] Bind Mayflash ports by first real input activity, so neutral empty ports
+  cannot consume P1/P2. Once claimed, a port remains stable through neutral
+  frames. Keyboard input remains an additive fallback for both players.
+- [x] Pass strict Windows MSVC `/W4 /WX`, focused movement and combat suites,
+  and the native SDL smoke. Direct window capture confirms the exact stage,
+  both source spawn supports, HUD, blast inset, and stable idle state with the
+  four-port adapter connected.
+- [ ] Complete one hands-on GameCube controller pass covering both sticks,
+  A/B/X/Y/Z, independent analog L/R, C-stick roll/attack, jump, shield,
+  airdodge, pause/reset, and the crouch cue before marking this product gate
+  complete.
 
 ## Completed locally: ordinary airborne submotion clock
 
@@ -533,6 +570,129 @@ Execution results:
   latest six-domain stored gate covers 46 cases and 120 prone samples in 0.465
   seconds on WSL and 0.628 seconds on Windows.
 
+## Completed locally: quick/slow ledge-option lifecycle
+
+- [x] Sweep pinned and current `doldecomp/melee` CliffWait, CliffClimb,
+  CliffEscape, CliffAttack, and CliffJump callbacks plus maintained emulator
+  harness prior art before extending the existing checkpoint architecture. No
+  reusable exact ledge-option implementation replaces the pinned source path.
+- [x] Capture quick and slow climb, roll, attack, and jump plus a drop probe in
+  four concurrent headless/null/unlimited Dolphin shards. Moving the setup
+  opponent away on the attack edge removes five unrelated hitlag holds from
+  the action-owned trace. The clean pack contains 479 rows and measured 9.110
+  seconds end to end under its 10-second guardrail.
+- [x] Import exact CliffWait thresholds/timers, ledge roots, body-collision
+  invulnerability, grounding frames, common jump impulse, and the Hyrule
+  CliffJump wall-resolved path. Keep the latter as immutable qualified data so
+  mirrored ledges share one allocation-free runtime path.
+- [x] Preserve quick/slow source submotion identity through coalesced public
+  ledge actions, including CliffJump1 to CliffJump2 and ordinary air physics.
+  The compact neutral-ready latch reuses an existing serialized directional
+  bit and does not increase snapshot or replay size.
+- [x] Generalize numeric stored cases to optional per-case sample counts up to
+  128 and teach the root verifier to sum those exact counts. Existing fixed-
+  length domains retain byte-identical inputs and production digests.
+- [x] Pin the clean live source digest
+  `0882c32de5571a7fedec49d2b7e447bd46ccef930274b9603682239de57ce371`
+  and production digest
+  `3459f671fa8573a238b2d97bcec3a5fba1cb05a154b249cd02237cc2d1d88080`.
+  All 8 cases / 450 samples pass on action, clock, facing, grounding,
+  invulnerability, position, and velocity within the manifest-owned bounded
+  Q16.16 envelope.
+- [x] Register the focused CTest and ninth generic stored domain. The WSL
+  focused test takes 0.02 seconds; all nine generated checks, 62 cases, and
+  deterministic replay pass in 0.926 seconds. Full Windows, WSL, sanitizer,
+  browser, and legacy-suite requalification remains the next gate.
+- [x] Extend CliffWait qualification through the source IASA order: rising
+  C-stick up attacks, rising inward C-stick rolls, jump, then the exclusive
+  main-stick / drop-only C-stick direction router. Import `PlCo.dat` x7F8
+  (0.6625) and x7FC (0.8) rather than reusing authored combat thresholds.
+- [x] Add source-backed inward-roll, upward-attack, neutral-latched outward
+  drop, main/C priority, held-before-ready, and sub-roll-threshold negative
+  cases. The complete pack now contains 16 physical cases and 622 rows; its
+  502 compared samples share source digest
+  `6e404d19f093cb2bc082f8de21d6b10468550ce34d85949a084760423dbe2748`
+  and production digest
+  `64fcfecdb247d50a138021ceb316beb4380d176e8c99a186009f07d951e3d4a8`.
+- [x] Make generated numeric domains own their exact total sample count, so
+  variable-length additions cannot leave stale test reporting. The nine-domain
+  gate now covers 70 cases in 0.943 seconds on WSL and 0.929 seconds on native
+  Windows. Full release validation passes 28/28 on WSL in 0.49 seconds and
+  26/26 on Windows in 3.15 seconds.
+- [x] Bring the cold 16-case live pack back below its 10-second wall guardrail.
+  EXI batching, a WSL-native pinned Python environment, and one preloaded
+  parent forking six balanced capture workers reduce the complete pack from
+  12.971 to 9.633 seconds. The generic runner validates an exact manifest case
+  partition and keeps Dolphin executable names within Linux's 15-byte DME
+  process-name limit. Eight Dolphins oversubscribe this 6-core host and are
+  slower; three shards also lose to restore serialization.
+- [x] Qualify both exact CliffWait timeout clocks from the internal
+  `Fighter + 0x2344` motion variable rather than the looping displayed
+  animation. The expanded 18-case pack contains 630 rows / 510 compared
+  samples and pins source digest
+  `9059582bb3abf01a99897935e9f27a6b78e2dec822936eec0adae62ed7b14f7e`
+  plus production digest
+  `0df9a4bbfc7f492e9c5e60f6e7d4a9af5358278768f55f959187d3b94ae48828`.
+- [x] Preserve the source timeout transition into `DamageFall`/`TUMBLING`
+  as the allocation-free public `AIRBORNE` state plus the existing tumble
+  bit. The live comparison now checks that semantic bit explicitly while
+  ordinary stick/C-stick drops remain non-tumbling.
+- [x] Separate the live pack's warm execution budget from its honest cold
+  startup budget. The final six-shard run passes at 10.666 seconds warm and
+  11.036 seconds cold; no Python-import time is hidden. Full Windows Release
+  passes 28/28 in 5.22 seconds and WSL Release passes 28/28 in 2.05 seconds.
+- [x] Qualify the post-release ledge-regrab cooldown as the source-observable
+  `29 -> 2 -> 1 -> 0` boundary. Production derives 29 from the imported
+  30-frame common-data constant according to source callback ordering instead
+  of carrying a second authored constant. The final 19-case pack contains 558
+  rows / 514 compared samples and pins source digest
+  `80c9ab75a98e2e7ef901055131b24f413c5e2672038315b526999f3143b38383`
+  plus production digest
+  `136f2c97c30bf041018014d0e1a5fb20caf0c942a77aca5a53ab465cd99adfcf`.
+  A source-equivalent sparse timer jump, removal of unused observation tails,
+  compact capture output, one inode-fingerprint hash per immutable oracle
+  input, and one parent-side libmelee Dolphin-version probe shared by verified
+  hardlinks reduce three independent complete runs to 9.649, 8.924, and 9.614
+  seconds warm. Their cold lifecycle times are 9.969, 9.099, and 9.937 seconds,
+  and all reproduce the same source digest. The manifest now enforces 10.0
+  seconds warm and 10.75 seconds cold. The nine-domain gate now
+  covers 73 cases in 0.908 seconds on WSL and 1.569 seconds on native Windows;
+  full Release validation passes 28/28 in 1.96 and 4.37 seconds respectively.
+  The final current-production verifier independently passes all 558 rows / 19
+  cases / 514 samples against the latest simulator build with the same source
+  digest.
+
+## Completed locally: source-qualified Battlefield catalog and content
+
+- [x] Sweep pinned `stage.c`, `ground.c`, `lbarchive.c`/JObj helpers, runtime
+  `MapCollData`, and maintained stage-tooling prior art before extending the
+  existing generic stage importer. `StageInfo` remains the authoritative
+  runtime source for effective bounds and initial-player JObjs.
+- [x] Extend the platform-only memory probe and schema-4 stage importer once,
+  without a Battlefield-specific parser. The immutable catalog contains all
+  23 dense collision lines (6 floors, 5 ceilings, 6 right walls, 6 left
+  walls), runtime stage kind 36, four player points with floor supports, and
+  effective camera/blast bounds after the source camera offset.
+- [x] Pin the address-free semantic source digest
+  `29525b7e0db4de8bf1a228f47e4216869ca362aff9d558a0c9ae81340103aa50`.
+  Two independent 348-frame Dolphin captures regenerate the same compact JSON
+  and generated C byte-for-byte; the second capture completed in 8.681
+  seconds including process lifecycle.
+- [x] Add one allocation-free reference-stage content constructor and O(1)
+  line/spawn accessors. Battlefield content consumes imported blast bounds,
+  uses imported floor/platform lines for its current stage primitives, and
+  resets each fighter onto the floor directly below its corresponding source
+  initial point. Pre-match entry/fall choreography remains outside this slice.
+- [x] Make vertical arena validation symmetric so source-negative Battlefield
+  top/camera coordinates remain valid through initialization and canonical
+  state checks. One shared inline predicate covers fighters, items, and
+  projectiles without runtime allocation or duplicated bounds rules.
+- [x] Qualify catalog shape, exact transformed environment values, all four
+  spawn/support mappings, content validation, and actual two-player reset.
+  Focused combat passes in 0.40 seconds on WSL and 0.51 seconds with pinned
+  native MSVC. Full-suite, browser, replay, and sanitizer qualification remains
+  part of the final M4 gate.
+
 ## Remaining work, in priority order
 
 ### Falcon equivalence
@@ -555,6 +715,16 @@ Execution results:
 - [x] Preserve imported JumpF/JumpB and JumpAerialF/JumpAerialB clocks through
   their exact Fall/FallAerial successors; qualify the ordinary eight-frame
   Fall loop and the complete captured aerial-jump route.
+- [x] Qualify quick/slow ledge climb, roll, attack, and two-phase jump through
+  exact action clocks, grounding, invulnerability, Hyrule collision-adjusted
+  roots, and common airborne physics.
+- [x] Qualify neutral-latched main/C drop arbitration, main-versus-C-stick
+  priority, threshold-adjacent negative inputs, and C-stick attack/roll edges.
+- [x] Qualify the full 640/480-frame CliffWait timeout boundary, including
+  its source `TUMBLING` exit.
+- [x] Qualify the drop/timeout regrab-cooldown boundary.
+- [x] Import and independently reproduce the complete Battlefield collision
+  catalog, effective camera/blast bounds, and four initial-player points.
 - [ ] Replace remaining authored damage, hitstun, launch, collision, and input
   behavior with imported data or explicitly documented gaps.
 - [ ] Convert each completed fidelity family into a generic manifest-driven
@@ -572,13 +742,30 @@ Execution results:
 - [x] Extend the generic stored C runner from geometry domains to numeric
   trace/transition domains without character-specific runner loops.
 - [x] Keep changed-domain local validation comfortably below two seconds. The
-  current eight-domain stored gate is 0.605 seconds on WSL and 0.805 seconds on
-  Windows. Live manifests carry explicit per-pack budgets: paired player push
+  current nine-domain, 73-case stored gate is 0.904 seconds on WSL and 0.925
+  seconds on native Windows. Live manifests carry explicit
+  per-pack budgets: paired player push
   is 0.090 seconds warm; wall/ceiling is
   2.759 seconds warm; the larger 804-row floor pack measured 2.752 seconds on
   its final run with a four-second guardrail; the 1,515-row, 14-case prone pack
   is physically sharded and measured 9.812 seconds end to end with an
-  18-second guardrail.
+  18-second guardrail; the original 479-row ledge-option pack measured 9.110
+  seconds. Its expanded timeout/regrab-qualified 558-row / 19-case pack passes
+  three independent runs at 9.649, 8.924, and 9.614 seconds warm after sparse
+  timeout acceleration, compact output, hardlink-aware source hashing, and one
+  parent-side libmelee version probe for the immutable Dolphin inode.
+- [x] Make the expanded ledge pack repeatably complete within ten seconds on
+  this six-core host without loosening provenance or semantic coverage. The
+  manifest enforces a 10.0-second warm guardrail and all three accepted runs
+  reproduce source digest
+  `80c9ab75a98e2e7ef901055131b24f413c5e2672038315b526999f3143b38383`.
+  Six shards remain faster than seven or eight on this host.
+- [x] Meet the affected-domain three-second warm target without source-invalid
+  cross-invocation reconnection. The common-hurt route measures 2.635-2.729
+  seconds warm, while each packed invocation keeps one Slippi observer attached
+  across its checkpoint-isolated cases. A prototype that attached a new observer
+  to an already-running process resumed a desynchronized event stream and is
+  deliberately rejected; it is not part of the accepted architecture.
 - [x] Maintain this roadmap and explicit coverage ledgers; no finite scenario
   may be described
   as detecting every possible anomaly.
@@ -615,16 +802,30 @@ other stage/pushbox topologies.
 
 ### Native playtest frontend
 
-- [ ] Replace the M1 SDL render-packet spike with a real native simulation
+- [x] Provide a validated source-derived Battlefield content constructor for
+  the client, including current floor/platform primitives, blast bounds, and
+  player reset supports.
+- [x] Replace the M1 SDL render-packet spike with a real native simulation
   client.
-- [ ] Render Battlefield, fighters, stocks, damage, hit/hurt/shield/debug
-  geometry, and essential state cues.
-- [ ] Support keyboard and SDL GameCube-controller input with independent
+- [x] Render the complete source Battlefield line catalog, fighters, stocks,
+  damage, actions, hit/shield geometry, blast bounds, crouch, and essential
+  state cues.
+- [x] Expose and render the complete source hurt-capsule set in the native
+  collision inspector instead of treating the fighter body cue as exact hurt
+  geometry. The append-only inspection schema is now version 54; both native
+  spawn poses expose all 11 ordered capsules and are covered by the focused
+  combat gate.
+- [x] Support keyboard and SDL GameCube-controller input with independent
   analog triggers and both sticks.
-- [ ] Provide reset, pause, frame-step, match setup, and collision-inspection
-  controls needed for fidelity playtesting.
-- [ ] Verify the native client on Windows and WSL/Linux; preserve CI cloud
-  coverage and continue other work while CI runs.
+- [x] Provide reset, pause, frame-step, and collision-inspection controls.
+- [x] Add native match setup without duplicating simulation configuration
+  policy in the presentation layer.
+- [x] Verify the native client on Windows and WSL/Linux: both full Release
+  suites pass 28/28 in 3.35 and 1.92 seconds respectively after the current
+  source-`Pass` qualification slice.
+- [ ] Complete hands-on GameCube input qualification and preserve the existing
+  cloud CI coverage when the branch is published; continue other work while
+  CI runs.
 
 ### Importer skill
 
@@ -640,10 +841,153 @@ other stage/pushbox topologies.
 - [x] Document canonical source submotion retention when a target engine
   coalesces multiple Melee motions into one public action, including imported
   transition/loop lengths and directional predicates.
+- [x] Document that a complete rendered line catalog is not a complete stage
+  collision port: floor, ceiling, right-wall, and left-wall ranges need
+  independent runtime routing, action-specific ECB timing, selected-line and
+  normal evidence, and response qualification.
+- [x] Document that `Pass`'s imported 30-frame submotion clock and common-data
+  platform collision-skip timer are independent, plus the relocation method
+  for capturing an animation ECB that natural landing would truncate.
+- [x] Document exact sloped wall/ceiling qualification: complete top/side ECB
+  schedules, earliest point/line intersection, pre-transform source normals,
+  and the gravity-before-total-velocity reflection order. The personal skill
+  validates after the update.
 - [x] Validate the current skill update and exercise its `PlCo.dat` reader
   against the owner extract (145824-byte data block, 23 pointers).
 - [ ] Forward-test a future character-style task when an update is substantial
   enough to merit it.
+
+### Validated: Battlefield wall and ceiling routing
+
+- [x] Sweep pinned and current `doldecomp/melee` `mpcoll.c`/fighter collision
+  paths plus current libmelee before changing production. The relevant source
+  files are unchanged; libmelee's projection helper explicitly omits ECB
+  evolution and is unsuitable as an exact runtime oracle.
+- [x] Replace the reference-stage central-rectangle wall and ceiling checks
+  with allocation-free Q16.16 queries over the imported immutable line ranges.
+  The same catalog now drives ordinary movement, hitlag/SDI rejection, and
+  stationary wall-contact probing without duplicating stage geometry.
+- [x] Exhaustively exercise the five ceiling and twelve wall catalog entries,
+  motion-direction and geometry negative controls, plus representative
+  production contact against Battlefield's central underside and side wall.
+- [x] Bound the compact approximate-airborne platform compatibility path to
+  the immediately preceding crossing, and bypass it for a source-qualified
+  exact ECB schedule. A fighter placed fully below a pass-through line remains
+  airborne instead of teleporting upward; imported JumpF lands on source frame
+  95 without the compatibility path's extra tick.
+- [x] Review the intentional seeded-soak ripple and repin only after three
+  Windows and three WSL runs reproduced `70dda9b2e5d9d936` with identical
+  8-match / 2,847-tick event counts, rollback, and replay results.
+- [x] Complete Windows Release 28/28 in 1.74 seconds, WSL Release 28/28 in
+  1.95 seconds, WSL ASan/UBSan 21/21 in 13.50 seconds, and both nine-domain
+  stored-oracle lanes (73 cases plus replay) in 1.01-1.13 seconds. The rebuilt
+  native smoke passes and the interactive client has been relaunched.
+- [x] Add identical-input live Battlefield qualification for JumpF/Pass ECB
+  contact timing, selected floor-line identity, and absolute vertical
+  resolution through the production reference-stage content.
+- [x] Add selected-normal and normal-based response qualification plus live
+  Battlefield wall/ceiling routes. Two checkpoint-isolated cases select source
+  line 10 / ceiling normal `(0.378117, -0.925758)` and line 15 / right-wall
+  normal `(0.569210, -0.822192)`, then compare 24 response samples across
+  action time, displayed frame, state, timers, self/knockback velocity, and
+  relative position. Source and production digests are
+  `8a0c463ffae10b1567815013c85c500bcb25869727874086c96d0e9c522a2f68`
+  and `107ea657a7bad069ea8ee02cb98306dd116b78838c8e6899a4adf9ff6fcf0982`.
+- [x] Replace DamageFly rectangle contact with its complete 24-frame top and
+  side ECB schedule and an allocation-free earliest segment intersection.
+  Reflect against the imported source-space unit normal after applying the
+  frame's gravity to total motion; do not integrate remaining reflected motion
+  on the contact tick. This closes the wrong-ceiling selection and the 5.6%
+  horizontal wall-response error found by the numeric verifier.
+- [x] Reproduce the source digest in a second fresh Dolphin process. The warm
+  two-case pack takes 0.367 seconds and the complete launch/menu/capture cycle
+  3.096 seconds.
+- [x] Validate Windows Release 29/29 in 1.70 seconds, WSL Release 29/29 in
+  1.89 seconds, WSL ASan/UBSan 22/22 in 13.86 seconds, and all ten stored
+  domains / 75 cases plus replay in 1.03-1.05 seconds. The 348-frame production
+  Battlefield route still passes on both hosts within 640 Q16 units. Three
+  Windows and three WSL soaks reproduce digest `d3b4c23cb8a9dd7e` with the
+  same 8-match / 2,847-tick outcomes before repinning.
+
+### Validated: reflected-action ECB evolution and floor re-contact
+
+- [x] Extend the checkpoint capture protocol with one-shot post-entry fighter
+  velocity reset and synchronized fighter/collision position reset. This keeps
+  the native wall/ceiling collision and action transition intact while moving
+  only the later observation away from the blast zone and stage surfaces.
+- [x] Capture the complete observable Falcon response clocks in one 0.739-second
+  warm two-case pack: `BOUNCE_CEILING` frames 0..8 (frame 8 then remains held)
+  and `BOUNCE_WALL` frames 0..50, with top, bottom, left, and right ECB points
+  on every row.
+- [x] Canonicalize the source poses facing-right and generate immutable full
+  top/bottom/left/right Q16.16 tracks: nine ceiling poses and 51 wall poses.
+  Raw/profile/semantic identities are
+  `f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2`,
+  `d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608`,
+  and `9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5`.
+- [x] Route both actions through one allocation-free full-pose adapter shared
+  with DamageFly. The real action clock continues while ceiling presentation
+  clamps to pose eight; facing is applied only at the world-space wall side.
+- [x] Live-qualify 111 focused updates from a native bounce entry through the
+  first Battlefield top-platform re-contact. Ceiling lands on sample 57 and
+  wall on sample 54 with source action, real clock, grounded state, hitstun,
+  invulnerability, facing, relative position, self velocity, and knockback
+  velocity all agreeing inside the existing 16/640-Q16 bounds. Source and
+  production trace identities are
+  `4e9a0ad3222bd0d6b6d7ab7def0177cf4b5c361bded3826abfe2e91f9210dd5a`
+  and `222a5504d62bc5500e57a88a0adad108b931ea73d2b70cdf46faccde3f36d2db`.
+- [x] Register the reusable numeric domain as the eleventh fast gate. Three
+  warm Windows all-domain runs take 1.123-1.136 seconds; WSL takes 1.121
+  seconds. Windows/WSL Release, deterministic replay, byte-identical Falcon
+  regeneration, Python compilation, and WSL ASan/UBSan all pass. The focused
+  CTest takes 0.03-0.04 seconds, and fresh Windows/WSL native-client smoke
+  binaries pass without replacing the already-running Windows playtest.
+
+### Validated: landing entry and source `Pass`
+
+- [x] Follow `ftCo_Landing_Enter` through `ftCommon_8007D7FC` and preserve the
+  incoming vertical self velocity on the `Landing` entry row; project it to
+  zero on the next grounded-physics update, matching the saved source trace.
+- [x] Follow `ftCo_8009A228`, `ftCo_Pass_Anim`, `ftCo_Pass_Phys`, and
+  `ftCo_Pass_Coll`; retain submotion 244 inside the existing allocation-free
+  public-`AIRBORNE` source-submotion adapter instead of adding a duplicate
+  public action or schema field.
+- [x] Capture all source `Pass` frames 0..29 by moving the fighter only after
+  action entry. Pin raw SHA-256
+  `0dc57f8ffb85549be76b3b5a0017690b0df16905456169eaceaa2e7975eedc0c`
+  and semantic frame/ECB SHA-256
+  `90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8`;
+  generate the complete immutable Q16.16 bottom-ECB table byte-identically.
+- [x] Pass the full 348-frame identical-input Battlefield movement capture on
+  Windows and WSL within the existing 640-Q16 position envelope. The former
+  frame-276 divergence now lands on the same source frame with the same
+  incoming vertical velocity.
+- [x] Capture all 35 displayed JumpF ECB frames with the same post-entry
+  relocation method. Pin raw SHA-256
+  `28c4e902d8860f6d02ec779004c67c7ab94f87c7f3970699cfd9a44a8844cf1d`
+  and semantic frame/ECB SHA-256
+  `6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb`;
+  use the exact table to remove the approximate crossing delay on source
+  frame 32 and enter `Landing` on observed route frame 95.
+- [x] Run the identical inputs through `pf_m4_reference_stage_content` instead
+  of an authored vertical mimic and compare the selected imported support on
+  every grounded source row. The left-platform phase selects source line 2
+  (support 3), and the final Pass landing selects main-floor line 1 (support
+  2), identically on Windows and WSL.
+- [x] Repin downstream deterministic identities only after three Windows and
+  three WSL runs reproduced verifier digest `3c3f20d38cee6e59` and identical
+  8-match / 2,847-tick event counts. Replay final/event digests remain
+  unchanged; its content-bearing corpus digest is now
+  `02f52e1f9c9dbf29e21264c50d2139b8968c6bff810da3b30e00d9ba34fb2e0b`.
+- [x] Complete Windows Release 28/28 in 1.91 seconds, WSL Release 28/28 in
+  1.78 seconds, WSL ASan/UBSan 21/21 in 13.66 seconds, and both nine-domain
+  stored lanes (73 cases plus replay) in 1.008-1.168 seconds under manifest
+  SHA-256 `f16fa189ecb621a54c6ed4921aa920a257316b0fbeb869fb21caa08104ccefb3`.
+- [x] Close live Battlefield selected-normal, normal-response, wall, and
+  ceiling qualification through the dedicated two-case theorem above.
+- [ ] Continue the remaining edge-acquisition/action-specific ECB audit;
+  passing the selected floor/wall/ceiling routes does not claim whole-stage or
+  whole-Falcon equivalence.
 
 ## Completion gate
 

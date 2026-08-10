@@ -137,7 +137,7 @@
   "stored_oracle": {
     "kind": "numeric-trace-v1",
     "source_trace_sha256": "5339134dd04cff9612e8c8a3e1d460f85018ae4c081ac7426fbad3cee3b785f5",
-    "production_trace_sha256": "54b2daed2c730d3f49da6f6ea1c1929c830107fcfae0ad413c149861599a827d",
+    "production_trace_sha256": "ad2a2a5189e586e1e3da2a561f20a43e631fbf6a930989e58fa768a501779fee",
     "samples_per_case": 12,
     "cases": [
       { "id": "right_pillar_wall_bounce" },

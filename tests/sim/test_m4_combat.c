@@ -22,10 +22,13 @@
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_ground_knockback_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_surface_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_battlefield_surface_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_battlefield_bounce_recontact_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_floor_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_prone_response_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_player_push_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_slope_ledge_response_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_ledge_options_oracle.inc"
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
@@ -14727,6 +14730,8 @@ static void capture_ssbm_stored_trace_sample(
     sample->tech_direction = player->tech_direction;
     sample->prone_orientation = player->prone_orientation;
     sample->facing = player->facing;
+    sample->ledge_regrab_lockout_ticks =
+        player->ledge_regrab_lockout_ticks;
 }
 
 static int step_ssbm_paired_trace_duel(
@@ -14911,10 +14916,7 @@ static int run_ssbm_player_push_observation_oracle(void)
         "domain=falcon-common-player-push poses=0 cases=%u samples=%u "
         "source_trace_sha256=%s production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_PLAYER_PUSH_CASE_COUNT,
-        (unsigned int)(
-            PF_M4_SSBM_FALCON_PLAYER_PUSH_CASE_COUNT *
-            PF_M4_SSBM_FALCON_PLAYER_PUSH_SAMPLES_PER_CASE *
-            PF_M4_SSBM_FALCON_PLAYER_PUSH_LANES_PER_SAMPLE),
+        (unsigned int)PF_M4_SSBM_FALCON_PLAYER_PUSH_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_PLAYER_PUSH_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
@@ -15098,9 +15100,7 @@ static int run_ssbm_damage_observation_oracle(void)
         "domain=falcon-common-damage-response poses=0 cases=%u samples=%u "
         "source_trace_sha256=%s production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT,
-        (unsigned int)(
-            PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT *
-            PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SAMPLES_PER_CASE),
+        (unsigned int)PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
@@ -15380,9 +15380,7 @@ static int run_ssbm_ground_knockback_observation_oracle(void)
         "domain=falcon-common-ground-knockback poses=0 cases=%u samples=%u "
         "source_trace_sha256=%s production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT,
-        (unsigned int)(
-            PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT *
-            PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE),
+        (unsigned int)PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
@@ -15555,9 +15553,7 @@ static int run_ssbm_surface_response_observation_oracle(void)
         "domain=falcon-common-surface-response poses=0 cases=%u samples=%u "
         "source_trace_sha256=%s production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT,
-        (unsigned int)(
-            PF_M4_SSBM_FALCON_SURFACE_RESPONSE_CASE_COUNT *
-            PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SAMPLES_PER_CASE),
+        (unsigned int)PF_M4_SSBM_FALCON_SURFACE_RESPONSE_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_SURFACE_RESPONSE_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
@@ -16582,8 +16578,7 @@ static int run_ssbm_floor_response_observation_oracle(void)
         "poses=0 cases=%u samples=%u source_trace_sha256=%s "
         "production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT,
-        (unsigned int)(PF_M4_SSBM_FALCON_FLOOR_RESPONSE_CASE_COUNT *
-                       PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SAMPLES_PER_CASE),
+        (unsigned int)PF_M4_SSBM_FALCON_FLOOR_RESPONSE_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_FLOOR_RESPONSE_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
@@ -16709,8 +16704,7 @@ static int run_ssbm_prone_response_observation_oracle(void)
         "poses=0 cases=%u samples=%u source_trace_sha256=%s "
         "production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT,
-        (unsigned int)(PF_M4_SSBM_FALCON_PRONE_RESPONSE_CASE_COUNT *
-                       PF_M4_SSBM_FALCON_PRONE_RESPONSE_SAMPLES_PER_CASE),
+        (unsigned int)PF_M4_SSBM_FALCON_PRONE_RESPONSE_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_PRONE_RESPONSE_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
@@ -16729,6 +16723,446 @@ static int32_t ssbm_source_x_hundredths_to_sim_q16(int32_t value)
                : (int32_t)(
                      (numerator + denominator / INT64_C(2)) /
                      denominator);
+}
+
+static int32_t ssbm_source_y_hundredths_to_sim_q16(int32_t value)
+{
+    const int64_t numerator =
+        (int64_t)value * INT64_C(11) * (int64_t)PF_Q16_ONE;
+    const int64_t denominator = INT64_C(6200);
+    const int64_t scaled =
+        numerator < INT64_C(0)
+            ? -((-numerator + denominator / INT64_C(2)) / denominator)
+            : (numerator + denominator / INT64_C(2)) / denominator;
+
+    return INT32_C(20) * PF_Q16_ONE - (int32_t)scaled;
+}
+
+static int32_t ssbm_source_velocity_q16_to_sim_q16(
+    int32_t value_q16,
+    int32_t numerator,
+    int32_t denominator)
+{
+    const int64_t product = (int64_t)value_q16 * (int64_t)numerator;
+    const int64_t magnitude =
+        product < INT64_C(0) ? -product : product;
+    const int64_t scaled =
+        (magnitude + (int64_t)denominator / INT64_C(2)) /
+        (int64_t)denominator;
+
+    return product < INT64_C(0) ? -(int32_t)scaled : (int32_t)scaled;
+}
+
+static int prepare_battlefield_surface_response(
+    pf_sim *sim,
+    uint8_t setup_variant)
+{
+    const uint32_t player_index = UINT32_C(1);
+    int32_t source_x_hundredths;
+    int32_t source_y_hundredths;
+
+    if (sim == NULL || setup_variant < UINT8_C(1) ||
+        setup_variant > UINT8_C(2))
+    {
+        return 0;
+    }
+    if (setup_variant == UINT8_C(1))
+    {
+        source_x_hundredths = INT32_C(5000);
+        source_y_hundredths = -INT32_C(3000);
+    }
+    else
+    {
+        source_x_hundredths = INT32_C(4100);
+        source_y_hundredths = -INT32_C(3200);
+    }
+
+    sim->world.position_x_q16[player_index] =
+        ssbm_source_x_hundredths_to_sim_q16(source_x_hundredths);
+    sim->world.position_y_q16[player_index] =
+        ssbm_source_y_hundredths_to_sim_q16(source_y_hundredths);
+    sim->world.velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_x_q16[player_index] =
+        ssbm_source_velocity_q16_to_sim_q16(
+            -INT32_C(274154),
+            INT32_C(12),
+            INT32_C(115));
+    sim->world.knockback_velocity_y_q16[player_index] =
+        -ssbm_source_velocity_q16_to_sim_q16(
+            INT32_C(264747),
+            INT32_C(11),
+            INT32_C(62));
+    sim->world.ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    sim->world.action_state[player_index] =
+        (uint8_t)PF_M4_ACTION_HITSTUN;
+    sim->world.action_ticks[player_index] = UINT16_C(0);
+    sim->world.source_submotion[player_index] = UINT16_C(0);
+    sim->world.grounded[player_index] = UINT8_C(0);
+    sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.fast_fall[player_index] = UINT8_C(0);
+    sim->world.damage_q16[player_index] =
+        UINT32_C(210) * (uint32_t)PF_Q16_ONE;
+    sim->world.hitlag_ticks[player_index] = UINT16_C(0);
+    sim->world.hitstun_ticks[player_index] = UINT16_C(77);
+    sim->world.tumble[player_index] = UINT8_C(1);
+    sim->world.tech_window_ticks[player_index] = UINT16_C(0);
+    sim->world.tech_lockout_ticks[player_index] = UINT16_C(0);
+    return 1;
+}
+
+static uint8_t run_ssbm_battlefield_surface_response_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    uint8_t expected_action;
+    uint8_t sample_index;
+    int32_t origin_x_q16 = INT32_C(0);
+    int32_t origin_y_q16 = INT32_C(0);
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL || stored_case->sample_count == UINT8_C(0) ||
+        capacity < stored_case->sample_count)
+    {
+        return UINT8_C(0);
+    }
+    expected_action =
+        stored_case->initial_state_variant == UINT8_C(1)
+            ? (uint8_t)PF_M4_ACTION_CEILING_BOUNCE
+            : (uint8_t)PF_M4_ACTION_WALL_BOUNCE;
+    if (!expect_status(
+            pf_m4_reference_stage_content(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                &content),
+            PF_STATUS_OK,
+            "battlefield-surface-response-content") ||
+        !expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "battlefield-surface-response-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !prepare_battlefield_surface_response(
+            sim,
+            stored_case->initial_state_variant) ||
+        !step_ssbm_trace_duel(sim, &stored_case->inputs[0], &inspection))
+    {
+        return UINT8_C(0);
+    }
+    if (inspection.players[1].action_state != expected_action ||
+        inspection.players[1].action_ticks != UINT16_C(0))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-battlefield-surface-response=detail case=%s "
+            "expected_action=%u action=%u action_tick=%u x=%" PRId32
+            " y=%" PRId32 " kb_vx=%" PRId32 " kb_vy=%" PRId32 "\n",
+            stored_case->id,
+            (unsigned int)expected_action,
+            (unsigned int)inspection.players[1].action_state,
+            (unsigned int)inspection.players[1].action_ticks,
+            inspection.players[1].position_x_q16,
+            inspection.players[1].position_y_q16,
+            inspection.players[1].knockback_velocity_x_q16,
+            inspection.players[1].knockback_velocity_y_q16);
+        return UINT8_C(0);
+    }
+
+    for (sample_index = UINT8_C(0);
+         sample_index < stored_case->sample_count;
+         ++sample_index)
+    {
+        pf_ssbm_stored_trace_sample *sample = &out_samples[sample_index];
+
+        if (!step_ssbm_trace_duel(
+                sim,
+                &stored_case->inputs[sample_index],
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        if (sample_index == UINT8_C(0))
+        {
+            origin_x_q16 = inspection.players[1].position_x_q16;
+            origin_y_q16 = inspection.players[1].position_y_q16;
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            origin_x_q16,
+            origin_y_q16,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-battlefield-surface-response-observation "
+                "case=%s frame=%u action=%u action_tick=%u grounded=%u "
+                "tumble=%u hitstun=%u invulnerable=%u self_vx=%" PRId32
+                " self_vy=%" PRId32 " kb_vx=%" PRId32 " kb_vy=%" PRId32
+                " position_x=%" PRId32 " position_y=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitstun_ticks,
+                (unsigned int)inspection.players[1].invulnerable,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16,
+                sample->position_x_q16,
+                sample->position_y_q16);
+        }
+    }
+    return stored_case->sample_count;
+}
+
+static int run_ssbm_battlefield_surface_response_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-battlefield-surface-response",
+        pf_m4_ssbm_falcon_battlefield_surface_response_cases,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_CASE_COUNT,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_battlefield_surface_response_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass domain=%s poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        domain.name,
+        (unsigned int)
+            PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_CASE_COUNT,
+        (unsigned int)
+            PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_TOTAL_SAMPLE_COUNT,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
+static int prepare_battlefield_bounce_recontact(
+    pf_sim *sim,
+    const pf_ssbm_stored_trace_case *stored_case)
+{
+    const uint32_t player_index = UINT32_C(1);
+    uint8_t action_state;
+
+    if (sim == NULL || stored_case == NULL ||
+        (stored_case->initial_state_variant != UINT8_C(1) &&
+         stored_case->initial_state_variant != UINT8_C(2)) ||
+        (stored_case->initial_facing != INT8_C(-1) &&
+         stored_case->initial_facing != INT8_C(1)))
+    {
+        return 0;
+    }
+    action_state =
+        stored_case->initial_state_variant == UINT8_C(1)
+            ? (uint8_t)PF_M4_ACTION_CEILING_BOUNCE
+            : (uint8_t)PF_M4_ACTION_WALL_BOUNCE;
+
+    sim->world.position_x_q16[player_index] =
+        ssbm_source_x_hundredths_to_sim_q16(INT32_C(0));
+    sim->world.position_y_q16[player_index] =
+        ssbm_source_y_hundredths_to_sim_q16(INT32_C(18000)) -
+        sim->content.fighter.half_height_q16;
+    sim->world.velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.knockback_velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.ground_knockback_velocity_q16[player_index] = INT32_C(0);
+    sim->world.action_state[player_index] = action_state;
+    sim->world.action_ticks[player_index] = UINT16_C(0);
+    sim->world.source_submotion[player_index] = UINT16_C(0);
+    sim->world.grounded[player_index] = UINT8_C(0);
+    sim->world.support[player_index] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.fast_fall[player_index] = UINT8_C(0);
+    sim->world.facing[player_index] = stored_case->initial_facing;
+    sim->world.damage_q16[player_index] =
+        UINT32_C(200) * (uint32_t)PF_Q16_ONE;
+    sim->world.hitlag_ticks[player_index] = UINT16_C(0);
+    sim->world.hitstun_ticks[player_index] = UINT16_C(76);
+    sim->world.tumble[player_index] = UINT8_C(1);
+    sim->world.tech_window_ticks[player_index] = UINT16_C(0);
+    sim->world.tech_lockout_ticks[player_index] = UINT16_C(0);
+    return 1;
+}
+
+static uint8_t run_ssbm_battlefield_bounce_recontact_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    uint8_t sample_index;
+    int32_t origin_x_q16 = INT32_C(0);
+    int32_t origin_y_q16 = INT32_C(0);
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL || stored_case->sample_count == UINT8_C(0) ||
+        capacity < stored_case->sample_count)
+    {
+        return UINT8_C(0);
+    }
+    if (!expect_status(
+            pf_m4_reference_stage_content(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                &content),
+            PF_STATUS_OK,
+            "battlefield-bounce-recontact-content") ||
+        !expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "battlefield-bounce-recontact-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !prepare_battlefield_bounce_recontact(sim, stored_case))
+    {
+        return UINT8_C(0);
+    }
+
+    for (sample_index = UINT8_C(0);
+         sample_index < stored_case->sample_count;
+         ++sample_index)
+    {
+        pf_ssbm_stored_trace_sample *sample = &out_samples[sample_index];
+
+        if (!step_ssbm_trace_duel(
+                sim,
+                &stored_case->inputs[sample_index],
+                &inspection))
+        {
+            return UINT8_C(0);
+        }
+        if (sample_index == UINT8_C(0))
+        {
+            origin_x_q16 = inspection.players[1].position_x_q16;
+            origin_y_q16 = inspection.players[1].position_y_q16;
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            origin_x_q16,
+            origin_y_q16,
+            sample);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            (void)printf(
+                "m4-ssbm-battlefield-bounce-recontact-observation "
+                "case=%s frame=%u action=%u action_tick=%u grounded=%u "
+                "support=%u tumble=%u hitstun=%u invulnerable=%u "
+                "facing=%d self_vx=%" PRId32 " self_vy=%" PRId32
+                " kb_vx=%" PRId32 " kb_vy=%" PRId32
+                " position_x=%" PRId32 " position_y=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (unsigned int)sample->grounded,
+                (unsigned int)inspection.players[1].support,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->hitstun_ticks,
+                (unsigned int)sample->invulnerable,
+                (int)sample->facing,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16,
+                sample->knockback_velocity_x_q16,
+                sample->knockback_velocity_y_q16,
+                sample->position_x_q16,
+                sample->position_y_q16);
+        }
+    }
+    return stored_case->sample_count;
+}
+
+static int run_ssbm_battlefield_bounce_recontact_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-battlefield-bounce-recontact",
+        pf_m4_ssbm_falcon_battlefield_bounce_recontact_cases,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_CASE_COUNT,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_battlefield_bounce_recontact_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass domain=%s poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        domain.name,
+        (unsigned int)
+            PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_CASE_COUNT,
+        (unsigned int)
+            PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_TOTAL_SAMPLE_COUNT,
+        PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
 }
 
 static int make_hyrule_response_content(
@@ -17133,10 +17567,251 @@ static int run_ssbm_slope_ledge_response_observation_oracle(void)
         "domain=falcon-common-slope-ledge-response poses=0 cases=%u "
         "samples=%u source_trace_sha256=%s production_trace_sha256=%s\n",
         (unsigned int)PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_CASE_COUNT,
-        (unsigned int)(
-            PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_CASE_COUNT *
-            PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SAMPLES_PER_CASE),
+        (unsigned int)
+            PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_TOTAL_SAMPLE_COUNT,
         PF_M4_SSBM_FALCON_SLOPE_LEDGE_RESPONSE_SOURCE_TRACE_SHA256,
+        result.production_trace_sha256);
+    return 1;
+}
+
+static int prepare_hyrule_ledge_wait(
+    pf_sim *sim,
+    uint8_t setup_variant,
+    pf_m4_inspection *out_inspection)
+{
+    const pf_m4_falcon_ledge_root_positions *roots =
+        pf_m4_falcon_reference_ledge_root_positions();
+    const pf_m4_ssbm_ledge_response_attributes *ledge_response =
+        pf_m4_ssbm_common_reference_ledge_response();
+    const uint32_t player_index = UINT32_C(1);
+
+    if (roots == NULL || ledge_response == NULL ||
+        setup_variant > UINT8_C(2))
+    {
+        return 0;
+    }
+    sim->world.position_x_q16[player_index] =
+        sim->content.stage.floor_right_q16 -
+        roots->wait_frame_one_x_q16;
+    sim->world.position_y_q16[player_index] =
+        sim->content.stage.floor_y_q16 +
+        roots->wait_frame_one_y_q16 -
+        sim->content.fighter.half_height_q16;
+    sim->world.velocity_x_q16[player_index] = INT32_C(0);
+    sim->world.velocity_y_q16[player_index] = INT32_C(0);
+    sim->world.action_state[player_index] =
+        (uint8_t)PF_M4_ACTION_LEDGE_HANG;
+    sim->world.action_ticks[player_index] = UINT16_C(0);
+    sim->world.source_submotion[player_index] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_WAIT;
+    sim->world.grounded[player_index] = UINT8_C(0);
+    sim->world.support[player_index] =
+        (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.facing[player_index] = INT8_C(-1);
+    sim->world.damage_q16[player_index] =
+        (setup_variant == UINT8_C(1) ? UINT32_C(100) : UINT32_C(60)) *
+        (uint32_t)PF_Q16_ONE;
+    sim->world.ledge_invulnerability_ticks[player_index] =
+        ledge_response->wait_invulnerability_ticks;
+    sim->world.ledge_regrab_lockout_ticks[player_index] = UINT16_C(0);
+    sim->world.previous_directional_input_flags[player_index] =
+        setup_variant == UINT8_C(2)
+            ? PF_M4_DIRECTIONAL_INPUT_LEDGE_READY
+            : UINT8_C(0);
+    return expect_status(
+        pf_m4_inspect(sim, out_inspection),
+        PF_STATUS_OK,
+        "ledge-options-initial-inspect");
+}
+
+static int enable_reference_ledge_options(
+    pf_m4_content *content,
+    pf_content_view *view)
+{
+    content->fighter.reference_frame_data_enabled = UINT8_C(1);
+    return expect_status(
+        pf_m4_make_content_view(content, view),
+        PF_STATUS_OK,
+        "ledge-options-content-view");
+}
+
+static uint8_t run_ssbm_ledge_options_trace_case(
+    void *context,
+    const pf_ssbm_stored_trace_case *stored_case,
+    pf_ssbm_stored_trace_sample *out_samples,
+    uint8_t capacity)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    const int32_t spawn_spacing_q16 =
+        (INT32_C(3) * PF_Q16_ONE) / INT32_C(5);
+    const int32_t spawn_x_q16 =
+        ssbm_source_x_hundredths_to_sim_q16(INT32_C(19000)) -
+        spawn_spacing_q16;
+    const uint8_t sample_count = stored_case != NULL
+                                     ? stored_case->sample_count
+                                     : UINT8_C(0);
+    uint8_t sample_index;
+    int32_t origin_x_q16;
+    int32_t origin_y_q16;
+
+    if (stored_case == NULL || stored_case->inputs == NULL ||
+        out_samples == NULL || sample_count == UINT8_C(0) ||
+        capacity < sample_count ||
+        !make_hyrule_response_content(
+            UINT16_C(36),
+            spawn_x_q16,
+            spawn_spacing_q16,
+            &content,
+            &view) ||
+        !enable_reference_ledge_options(&content, &view) ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !prepare_hyrule_ledge_wait(
+            sim,
+            stored_case->initial_state_variant,
+            &inspection))
+    {
+        return UINT8_C(0);
+    }
+
+    /* Variant 2 represents the live-qualified post-CliffWait release window:
+     * the neutral-ready latch is prepared above, then the case's declared
+     * first controller sample drives the real release callback before the
+     * first sparse cooldown observation. */
+    if (stored_case->initial_state_variant == UINT8_C(2) &&
+        !step_ssbm_trace_duel(sim, &stored_case->inputs[0], &inspection))
+    {
+        return UINT8_C(0);
+    }
+
+    origin_x_q16 = inspection.players[1].position_x_q16;
+    origin_y_q16 = inspection.players[1].position_y_q16;
+    if (context != NULL && *(const int *)context != 0)
+    {
+        const pf_m4_falcon_ledge_root_positions *roots =
+            pf_m4_falcon_reference_ledge_root_positions();
+        (void)printf(
+            "m4-ssbm-ledge-options-meta case=%s x=%" PRId32
+            " y=%" PRId32 " edge=%" PRId32 " floor=%" PRId32
+            " root_x=%" PRId32 " root_y=%" PRId32
+            " half_height=%" PRId32 " blast_top=%" PRId32 "\n",
+            stored_case->id,
+            origin_x_q16,
+            origin_y_q16,
+            sim->content.stage.floor_right_q16,
+            sim->content.stage.floor_y_q16,
+            roots != NULL ? roots->wait_frame_one_x_q16 : INT32_C(0),
+            roots != NULL ? roots->wait_frame_one_y_q16 : INT32_C(0),
+            sim->content.fighter.half_height_q16,
+            sim->content.stage.blast_top_q16);
+    }
+    for (sample_index = UINT8_C(0);
+         sample_index < sample_count;
+         ++sample_index)
+    {
+        const pf_ssbm_stored_trace_input *input =
+            &stored_case->inputs[sample_index];
+        uint16_t advance_tick;
+
+        if (sample_index != UINT8_C(0))
+        {
+            for (advance_tick = UINT16_C(0);
+                 advance_tick < input->advance_ticks;
+                 ++advance_tick)
+            {
+                if (!step_ssbm_trace_duel(sim, input, &inspection))
+                {
+                    return UINT8_C(0);
+                }
+            }
+        }
+        capture_ssbm_stored_trace_sample(
+            &inspection.players[1],
+            origin_x_q16,
+            origin_y_q16,
+            &out_samples[sample_index]);
+        if (context != NULL && *(const int *)context != 0)
+        {
+            const pf_ssbm_stored_trace_sample *sample =
+                &out_samples[sample_index];
+
+            (void)printf(
+                "m4-ssbm-ledge-options-observation case=%s sample=%u"
+                " action=%u action_tick=%u facing=%d grounded=%u"
+                " tumble=%u invulnerable=%u ledge_regrab_cooldown=%u ready=%u"
+                " input_x=%d dx=%" PRId32 " dy=%" PRId32
+                " self_vx=%" PRId32 " self_vy=%" PRId32 "\n",
+                stored_case->id,
+                (unsigned int)sample_index + 1U,
+                (unsigned int)sample->action_state,
+                (unsigned int)sample->action_ticks,
+                (int)sample->facing,
+                (unsigned int)sample->grounded,
+                (unsigned int)sample->tumble,
+                (unsigned int)sample->invulnerable,
+                (unsigned int)sample->ledge_regrab_lockout_ticks,
+                (unsigned int)(
+                    sim->world.previous_directional_input_flags[1] &
+                    PF_M4_DIRECTIONAL_INPUT_LEDGE_READY),
+                (int)input->main_stick_x,
+                sample->position_x_q16,
+                sample->position_y_q16,
+                sample->self_velocity_x_q16,
+                sample->self_velocity_y_q16);
+        }
+    }
+    return sample_count;
+}
+
+static int run_ssbm_ledge_options_observation_oracle(void)
+{
+    int print_samples = 1;
+    const pf_ssbm_stored_trace_domain domain = {
+        "falcon-common-ledge-options",
+        pf_m4_ssbm_falcon_ledge_options_cases,
+        PF_M4_SSBM_FALCON_LEDGE_OPTIONS_CASE_COUNT,
+        PF_M4_SSBM_FALCON_LEDGE_OPTIONS_SAMPLES_PER_CASE,
+        PF_M4_SSBM_FALCON_LEDGE_OPTIONS_LANES_PER_SAMPLE,
+        PF_M4_SSBM_FALCON_LEDGE_OPTIONS_SERIALIZED_FIELDS,
+        PF_M4_SSBM_FALCON_LEDGE_OPTIONS_PRODUCTION_TRACE_SHA256,
+        &print_samples,
+        run_ssbm_ledge_options_trace_case};
+    pf_ssbm_stored_trace_result result;
+
+    if (!pf_ssbm_stored_trace_oracle_run(&domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s case=%s "
+            "expected_production_trace_sha256=%s "
+            "actual_production_trace_sha256=%s\n",
+            domain.name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain.expected_production_trace_sha256,
+            result.production_trace_sha256[0] != '\0'
+                ? result.production_trace_sha256
+                : "unavailable");
+        return 0;
+    }
+    (void)printf(
+        "m4-ssbm-stored-oracle=pass domain=%s poses=0 cases=%u samples=%u "
+        "source_trace_sha256=%s production_trace_sha256=%s\n",
+        domain.name,
+        (unsigned int)domain.case_count,
+        (unsigned int)PF_M4_SSBM_FALCON_LEDGE_OPTIONS_TOTAL_SAMPLE_COUNT,
+        PF_M4_SSBM_FALCON_LEDGE_OPTIONS_SOURCE_TRACE_SHA256,
         result.production_trace_sha256);
     return 1;
 }
@@ -24150,34 +24825,6 @@ static int prepare_player0_right_ledge(
     return 1;
 }
 
-static int make_player0_ledge_actionable_combat(
-    pf_sim *sim,
-    const pf_m4_content *content,
-    pf_m4_inspection *out_inspection)
-{
-    const uint32_t catch_ticks =
-        (uint32_t)content->fighter.ledge_transition_ticks;
-
-    while ((uint32_t)out_inspection->players[0].action_ticks <
-           catch_ticks)
-    {
-        if (!step_duel(
-                sim,
-                INT16_C(0),
-                UINT64_C(0),
-                INT16_C(0),
-                UINT64_C(0),
-                out_inspection))
-        {
-            return 0;
-        }
-    }
-    return out_inspection->players[0].action_state ==
-               (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
-           out_inspection->players[0].action_ticks ==
-               (uint16_t)catch_ticks;
-}
-
 static int run_ledge_attack_snapshot_test(
     pf_sim *source,
     const pf_m4_content *content,
@@ -24286,6 +24933,9 @@ static int run_ledge_attack_test(
     pf_m4_content invalid_invulnerability = *content;
     pf_content_view changed_view;
     const pf_m4_attack_data *attack = &content->fighter.ledge_attack;
+    const pf_m4_falcon_ledge_attack_reference *reference_attack =
+        pf_m4_falcon_reference_ledge_attack(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK);
     const uint32_t attack_ticks =
         (uint32_t)attack->startup_ticks +
         (uint32_t)attack->active_ticks +
@@ -24298,7 +24948,11 @@ static int run_ledge_attack_test(
     invalid_invulnerability.fighter
         .ledge_attack_invulnerability_ticks =
         (uint16_t)(attack_ticks + UINT32_C(1));
-    if (attack->damage_q16 != UINT32_C(10) * UINT32_C(65536) ||
+    if (reference_attack == NULL ||
+        reference_attack->total_frames != UINT16_C(54) ||
+        reference_attack->first_active_frame != UINT16_C(24) ||
+        reference_attack->last_active_frame != UINT16_C(29) ||
+        attack->damage_q16 != UINT32_C(10) * UINT32_C(65536) ||
         attack->startup_ticks != UINT16_C(6) ||
         attack->active_ticks != UINT16_C(3) ||
         attack->recovery_ticks != UINT16_C(20) ||
@@ -24369,8 +25023,8 @@ static int run_ledge_attack_test(
     }
 
     for (tick = UINT32_C(0);
-         tick < (uint32_t)attack->startup_ticks +
-                    (uint32_t)attack->active_ticks + UINT32_C(2);
+         tick < (uint32_t)reference_attack->last_active_frame +
+                    UINT32_C(2);
          ++tick)
     {
         if (!step_duel(
@@ -24446,9 +25100,9 @@ static int run_ledge_attack_test(
     }
 
     for (tick = UINT32_C(0);
-         tick < UINT32_C(64) &&
-         inspection.players[0].action_state !=
-             (uint8_t)PF_M4_ACTION_LANDING;
+         tick < UINT32_C(128) &&
+         inspection.players[0].action_state ==
+             (uint8_t)PF_M4_ACTION_LEDGE_ATTACK;
          ++tick)
     {
         if (!step_duel(
@@ -24463,7 +25117,7 @@ static int run_ledge_attack_test(
         }
     }
     if (inspection.players[0].action_state !=
-            (uint8_t)PF_M4_ACTION_LANDING ||
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         inspection.players[0].grounded != UINT8_C(1) ||
         inspection.players[0].support !=
             (uint8_t)PF_M4_SURFACE_FLOOR ||
@@ -24478,16 +25132,23 @@ static int run_ledge_attack_test(
             PF_STATUS_OK,
             "ledge-attack-strong-reset") ||
         !prepare_player0_right_ledge(sim, content, &inspection) ||
-        !make_player0_ledge_actionable_combat(
-            sim,
-            content,
-            &inspection) ||
         !step_duel(
             sim,
             INT16_C(0),
-            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT64_C(0),
             INT16_C(0),
             UINT64_C(0),
+            &inspection) ||
+        !step_reaction_duel(
+            sim,
+            INT16_C(0),
+            INT16_C(0),
+            PF_INPUT_BUTTON_STRONG_ATTACK,
+            UINT16_C(0),
+            INT16_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            UINT16_C(0),
             &inspection) ||
         inspection.players[0].action_state !=
             (uint8_t)PF_M4_ACTION_LEDGE_ATTACK)
@@ -24835,6 +25496,12 @@ static int run_falcon_reference_table_test(void)
         pf_m4_falcon_reference_geometry_sha256();
     const uint8_t *complete_source_sha256 =
         pf_m4_falcon_reference_complete_source_sha256();
+    const pf_m4_falcon_ledge_attack_reference *ledge_attack_slow =
+        pf_m4_falcon_reference_ledge_attack(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW);
+    const pf_m4_falcon_ledge_attack_reference *ledge_attack_quick =
+        pf_m4_falcon_reference_ledge_attack(
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK);
     const uint8_t *submotion_catalog_sha256 =
         pf_m4_falcon_reference_submotion_catalog_sha256();
     const uint8_t *action_script_sha256 =
@@ -25615,8 +26282,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x77) ||
-        complete_source_sha256[31] != UINT8_C(0x41) ||
+        complete_source_sha256[0] != UINT8_C(0xaf) ||
+        complete_source_sha256[31] != UINT8_C(0x55) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -25680,6 +26347,40 @@ static int run_falcon_reference_table_test(void)
             INT32_C(0) ||
         collision_pose->air_dodge_bottom_y_from_origin_q16[47] !=
             INT32_C(24795) ||
+        collision_pose->platform_drop_bottom_y_from_origin_q16[0] !=
+            INT32_C(0) ||
+        collision_pose->platform_drop_bottom_y_from_origin_q16[9] !=
+            INT32_C(75621) ||
+        collision_pose->platform_drop_bottom_y_from_origin_q16[29] !=
+            INT32_C(21330) ||
+        collision_pose->jump_forward_bottom_y_from_origin_q16[0] !=
+            INT32_C(0) ||
+        collision_pose->jump_forward_bottom_y_from_origin_q16[31] !=
+            INT32_C(38882) ||
+        collision_pose->jump_forward_bottom_y_from_origin_q16[34] !=
+            INT32_C(25486) ||
+        collision_pose->ceiling_bounce[0].right_x_from_origin_q16 !=
+            INT32_C(45697) ||
+        collision_pose->ceiling_bounce[8].left_x_from_origin_q16 !=
+            INT32_C(-61548) ||
+        collision_pose->ceiling_bounce[8].top_y_from_origin_q16 !=
+            INT32_C(100691) ||
+        collision_pose->wall_bounce[0].top_y_from_origin_q16 !=
+            INT32_C(170569) ||
+        collision_pose->wall_bounce[50].right_y_from_origin_q16 !=
+            INT32_C(89066) ||
+        collision_pose->damage_fly_top_y_from_origin_q16[0] !=
+            INT32_C(167400) ||
+        collision_pose->damage_fly_top_y_from_origin_q16[23] !=
+            INT32_C(155432) ||
+        collision_pose->damage_fly_side_x_from_origin_q16[0] !=
+            INT32_C(25723) ||
+        collision_pose->damage_fly_side_x_from_origin_q16[23] !=
+            INT32_C(34052) ||
+        collision_pose->damage_fly_side_y_from_origin_q16[0] !=
+            INT32_C(113769) ||
+        collision_pose->damage_fly_side_y_from_origin_q16[23] !=
+            INT32_C(122372) ||
         collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[0] !=
             INT32_C(25701) ||
         collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[34] !=
@@ -25754,6 +26455,37 @@ static int run_falcon_reference_table_test(void)
             NULL) != NULL)
     {
         return fail("falcon-reference-hit-geometry");
+    }
+    if (ledge_attack_slow == NULL ||
+        ledge_attack_slow->total_frames != UINT16_C(68) ||
+        ledge_attack_slow->first_active_frame != UINT16_C(37) ||
+        ledge_attack_slow->last_active_frame != UINT16_C(40) ||
+        ledge_attack_slow->effect.damage != UINT8_C(8) ||
+        ledge_attack_slow->effect.angle_degrees != UINT16_C(361) ||
+        ledge_attack_slow->effect.growth != UINT16_C(100) ||
+        ledge_attack_slow->effect.weight_set != UINT16_C(90) ||
+        ledge_attack_slow->effect.base != UINT16_C(0) ||
+        ledge_attack_slow->effect.shield_damage != UINT8_C(1) ||
+        ledge_attack_slow->effect.interaction != UINT8_C(2) ||
+        ledge_attack_slow->effect.element !=
+            (uint8_t)PF_M4_REFERENCE_HIT_NORMAL ||
+        ledge_attack_quick == NULL ||
+        ledge_attack_quick->total_frames != UINT16_C(54) ||
+        ledge_attack_quick->first_active_frame != UINT16_C(24) ||
+        ledge_attack_quick->last_active_frame != UINT16_C(29) ||
+        ledge_attack_quick->effect.damage != UINT8_C(10) ||
+        ledge_attack_quick->effect.angle_degrees != UINT16_C(361) ||
+        ledge_attack_quick->effect.growth != UINT16_C(100) ||
+        ledge_attack_quick->effect.weight_set != UINT16_C(90) ||
+        ledge_attack_quick->effect.base != UINT16_C(0) ||
+        ledge_attack_quick->effect.shield_damage != UINT8_C(1) ||
+        ledge_attack_quick->effect.interaction != UINT8_C(2) ||
+        ledge_attack_quick->effect.element !=
+            (uint8_t)PF_M4_REFERENCE_HIT_NORMAL ||
+        pf_m4_falcon_reference_ledge_attack(UINT16_C(220)) != NULL ||
+        pf_m4_falcon_reference_ledge_attack(UINT16_C(223)) != NULL)
+    {
+        return fail("falcon-reference-ledge-attack");
     }
     if (forward_throw == NULL ||
         forward_throw->damage != UINT8_C(4) ||
@@ -26387,6 +27119,514 @@ static int run_falcon_ground_iasa_policy_test(void)
     return 1;
 }
 
+static int run_battlefield_stage_catalog_test(void)
+{
+    const uint16_t profile_id =
+        (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD;
+    const pf_m4_ssbm_stage_collision_profile *profile =
+        pf_m4_ssbm_reference_stage_collision(profile_id);
+    const uint8_t expected_spawn_supports[4] = {
+        UINT8_C(2), UINT8_C(4), UINT8_C(3), UINT8_C(5)};
+    const int32_t expected_spawn_x_q16[4] = {
+        INT32_C(0), INT32_C(0), -INT32_C(265335), INT32_C(265335)};
+    const int32_t expected_spawn_y_q16[4] = {
+        INT32_C(1217701), INT32_C(585173),
+        INT32_C(901437), INT32_C(901437)};
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_m4_inspection inspection;
+    pf_sim *sim = NULL;
+    pf_m4_reference_stage_line public_line;
+    uint16_t public_line_count = UINT16_C(0);
+    uint16_t line_index;
+    uint8_t spawn_index;
+    int32_t ceiling_y_q16 = INT32_C(0);
+    uint8_t ceiling_support = UINT8_C(0);
+    int32_t wall_x_q16 = INT32_C(0);
+    uint8_t wall_support = UINT8_C(0);
+    int8_t wall_away_direction = INT8_C(0);
+
+    if (profile == NULL || profile->line_count != UINT16_C(23) ||
+        profile->floor_count != UINT16_C(6) ||
+        profile->ceiling_count != UINT16_C(5) ||
+        profile->right_wall_count != UINT16_C(6) ||
+        profile->left_wall_count != UINT16_C(6) ||
+        profile->dynamic_count != UINT16_C(0) ||
+        profile->source_grkind != UINT16_C(36) ||
+        profile->spawn_point_count != UINT8_C(4) ||
+        profile->spawn_points == NULL ||
+        profile->camera_left_q16 != -INT32_C(1094166) ||
+        profile->camera_right_q16 != INT32_C(1094166) ||
+        profile->camera_top_q16 != -INT32_C(270600) ||
+        profile->camera_bottom_q16 != INT32_C(1859531) ||
+        profile->blast_left_q16 != -INT32_C(1531833) ||
+        profile->blast_right_q16 != INT32_C(1531833) ||
+        profile->blast_top_q16 != -INT32_C(1014751) ||
+        profile->blast_bottom_q16 != INT32_C(2575776))
+    {
+        return fail("battlefield-stage-catalog-shape");
+    }
+    for (line_index = UINT16_C(0);
+         line_index < profile->line_count;
+         ++line_index)
+    {
+        if (profile->lines[line_index].source_index != (uint8_t)line_index ||
+            pf_m4_ssbm_reference_stage_line(
+                profile_id,
+                (uint8_t)(line_index + UINT16_C(1))) !=
+                &profile->lines[line_index])
+        {
+            return fail("battlefield-stage-catalog-dense-access");
+        }
+    }
+    for (line_index = profile->ceiling_start;
+         line_index < profile->ceiling_start + profile->ceiling_count;
+         ++line_index)
+    {
+        const pf_m4_ssbm_stage_collision_line *line =
+            &profile->lines[line_index];
+        const int32_t midpoint_x_q16 = (int32_t)(
+            ((int64_t)line->start_x_q16 + (int64_t)line->end_x_q16) /
+            INT64_C(2));
+        const int32_t midpoint_y_q16 =
+            pf_m4_ssbm_stage_line_y_q16(line, midpoint_x_q16);
+
+        if (!pf_m4_ssbm_reference_stage_find_ceiling_contact(
+                profile_id,
+                midpoint_x_q16,
+                midpoint_y_q16 + INT32_C(1),
+                midpoint_y_q16 - INT32_C(1),
+                &ceiling_y_q16,
+                &ceiling_support) ||
+            ceiling_y_q16 != midpoint_y_q16 ||
+            ceiling_support != (uint8_t)(line_index + UINT16_C(1)))
+        {
+            return fail("battlefield-stage-every-ceiling-query");
+        }
+    }
+    for (line_index = profile->right_wall_start;
+         line_index < profile->right_wall_start + profile->right_wall_count;
+         ++line_index)
+    {
+        const pf_m4_ssbm_stage_collision_line *line =
+            &profile->lines[line_index];
+        const int32_t midpoint_x_q16 = (int32_t)(
+            ((int64_t)line->start_x_q16 + (int64_t)line->end_x_q16) /
+            INT64_C(2));
+        const int32_t midpoint_y_q16 = (int32_t)(
+            ((int64_t)line->start_y_q16 + (int64_t)line->end_y_q16) /
+            INT64_C(2));
+
+        if (!pf_m4_ssbm_reference_stage_find_wall_contact(
+                profile_id,
+                midpoint_x_q16 + INT32_C(1),
+                midpoint_x_q16 - INT32_C(1),
+                (int64_t)midpoint_y_q16 - INT64_C(1),
+                (int64_t)midpoint_y_q16 + INT64_C(1),
+                INT32_C(0),
+                &wall_x_q16,
+                &wall_support,
+                &wall_away_direction) ||
+            wall_support != (uint8_t)(line_index + UINT16_C(1)) ||
+            wall_away_direction != INT8_C(1))
+        {
+            return fail("battlefield-stage-every-right-wall-query");
+        }
+    }
+    for (line_index = profile->left_wall_start;
+         line_index < profile->left_wall_start + profile->left_wall_count;
+         ++line_index)
+    {
+        const pf_m4_ssbm_stage_collision_line *line =
+            &profile->lines[line_index];
+        const int32_t midpoint_x_q16 = (int32_t)(
+            ((int64_t)line->start_x_q16 + (int64_t)line->end_x_q16) /
+            INT64_C(2));
+        const int32_t midpoint_y_q16 = (int32_t)(
+            ((int64_t)line->start_y_q16 + (int64_t)line->end_y_q16) /
+            INT64_C(2));
+
+        if (!pf_m4_ssbm_reference_stage_find_wall_contact(
+                profile_id,
+                midpoint_x_q16 - INT32_C(1),
+                midpoint_x_q16 + INT32_C(1),
+                (int64_t)midpoint_y_q16 - INT64_C(1),
+                (int64_t)midpoint_y_q16 + INT64_C(1),
+                INT32_C(0),
+                &wall_x_q16,
+                &wall_support,
+                &wall_away_direction) ||
+            wall_support != (uint8_t)(line_index + UINT16_C(1)) ||
+            wall_away_direction != INT8_C(-1))
+        {
+            return fail("battlefield-stage-every-left-wall-query");
+        }
+    }
+    if (!pf_m4_ssbm_reference_stage_find_ceiling_contact(
+            profile_id,
+            INT32_C(0),
+            INT32_C(1800000),
+            INT32_C(1500000),
+            &ceiling_y_q16,
+            &ceiling_support) ||
+        ceiling_y_q16 != profile->lines[8].start_y_q16 ||
+        ceiling_support != UINT8_C(9) ||
+        pf_m4_ssbm_reference_stage_find_ceiling_contact(
+            profile_id,
+            INT32_C(0),
+            INT32_C(1500000),
+            INT32_C(1800000),
+            &ceiling_y_q16,
+            &ceiling_support) ||
+        pf_m4_ssbm_reference_stage_find_ceiling_contact(
+            profile_id,
+            INT32_C(600000),
+            INT32_C(1800000),
+            INT32_C(1500000),
+            &ceiling_y_q16,
+            &ceiling_support))
+    {
+        return fail("battlefield-stage-ceiling-query");
+    }
+    if (pf_m4_ssbm_reference_stage_line(
+            profile_id,
+            (uint8_t)(profile->line_count + UINT16_C(1))) != NULL)
+    {
+        return fail("battlefield-stage-catalog-bounds");
+    }
+    if (!expect_status(
+            pf_m4_reference_stage_geometry_line_count(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                &public_line_count),
+            PF_STATUS_OK,
+            "battlefield-stage-public-line-count") ||
+        public_line_count != profile->line_count)
+    {
+        return fail("battlefield-stage-public-line-count-value");
+    }
+    for (line_index = UINT16_C(0);
+         line_index < public_line_count;
+         ++line_index)
+    {
+        if (!expect_status(
+                pf_m4_reference_stage_geometry_line(
+                    PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                    line_index,
+                    &public_line),
+                PF_STATUS_OK,
+                "battlefield-stage-public-line") ||
+            public_line.start_x_q16 != profile->lines[line_index].start_x_q16 ||
+            public_line.start_y_q16 != profile->lines[line_index].start_y_q16 ||
+            public_line.end_x_q16 != profile->lines[line_index].end_x_q16 ||
+            public_line.end_y_q16 != profile->lines[line_index].end_y_q16 ||
+            public_line.support != (uint16_t)(line_index + UINT16_C(1)) ||
+            public_line.kind != profile->lines[line_index].kind ||
+            public_line.reserved != UINT8_C(0))
+        {
+            return fail("battlefield-stage-public-line-value");
+        }
+    }
+    if (!expect_status(
+            pf_m4_reference_stage_geometry_line(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                public_line_count,
+                &public_line),
+            PF_STATUS_INVALID_CONFIG,
+            "battlefield-stage-public-line-bounds") ||
+        !expect_status(
+            pf_m4_reference_stage_geometry_line_count(
+                PF_M4_REFERENCE_STAGE_AUTHORED,
+                &public_line_count),
+            PF_STATUS_INVALID_CONFIG,
+            "battlefield-stage-public-line-authored") ||
+        !expect_status(
+            pf_m4_reference_stage_geometry_line_count(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                NULL),
+            PF_STATUS_INVALID_ARGUMENT,
+            "battlefield-stage-public-line-null-count") ||
+        !expect_status(
+            pf_m4_reference_stage_geometry_line(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                UINT16_C(0),
+                NULL),
+            PF_STATUS_INVALID_ARGUMENT,
+            "battlefield-stage-public-line-null"))
+    {
+        return fail("battlefield-stage-public-line-rejection");
+    }
+    for (spawn_index = UINT8_C(0);
+         spawn_index < profile->spawn_point_count;
+         ++spawn_index)
+    {
+        const pf_m4_ssbm_stage_spawn_point *spawn =
+            pf_m4_ssbm_reference_stage_spawn_point(
+                profile_id,
+                spawn_index);
+
+        if (spawn != &profile->spawn_points[spawn_index] ||
+            spawn->source_index != spawn_index ||
+            spawn->support != expected_spawn_supports[spawn_index] ||
+            spawn->position_x_q16 != expected_spawn_x_q16[spawn_index] ||
+            spawn->position_y_q16 != expected_spawn_y_q16[spawn_index])
+        {
+            return fail("battlefield-stage-spawn-catalog");
+        }
+    }
+    if (pf_m4_ssbm_reference_stage_spawn_point(
+            profile_id,
+            profile->spawn_point_count) != NULL ||
+        !expect_status(
+            pf_m4_reference_stage_content(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                &content),
+            PF_STATUS_OK,
+            "battlefield-stage-content") ||
+        content.stage.reference_collision_profile != profile_id ||
+        content.stage.blast_left_q16 != profile->blast_left_q16 ||
+        content.stage.blast_right_q16 != profile->blast_right_q16 ||
+        content.stage.blast_top_q16 != profile->blast_top_q16 ||
+        content.stage.blast_bottom_q16 != profile->blast_bottom_q16 ||
+        !expect_status(
+            pf_m4_validate_content(&content),
+            PF_STATUS_OK,
+            "battlefield-stage-content-validation") ||
+        !expect_status(
+            pf_m4_make_content_view(&content, &view),
+            PF_STATUS_OK,
+            "battlefield-stage-content-view") ||
+        !initialize_sim(
+            &storage,
+            &view,
+            UINT8_C(2),
+            PF_SIM_MODE_DUEL,
+            1,
+            &sim) ||
+        !expect_status(
+            pf_m4_inspect(sim, &inspection),
+            PF_STATUS_OK,
+            "battlefield-stage-inspection"))
+    {
+        return fail("battlefield-stage-content-setup");
+    }
+    if (!pf_m4_ssbm_reference_stage_find_wall_contact(
+            profile_id,
+            INT32_C(0),
+            INT32_C(90000),
+            INT64_C(1675000),
+            INT64_C(1770000),
+            content.fighter.half_width_q16,
+            &wall_x_q16,
+            &wall_support,
+            &wall_away_direction) ||
+        wall_support != UINT8_C(23) ||
+        wall_away_direction != INT8_C(-1) ||
+        pf_m4_ssbm_reference_stage_find_wall_contact(
+            profile_id,
+            INT32_C(0),
+            INT32_C(90000),
+            INT64_C(1200000),
+            INT64_C(1300000),
+            content.fighter.half_width_q16,
+            &wall_x_q16,
+            &wall_support,
+            &wall_away_direction))
+    {
+        return fail("battlefield-stage-wall-query");
+    }
+    for (spawn_index = UINT8_C(0); spawn_index < UINT8_C(2); ++spawn_index)
+    {
+        const pf_m4_ssbm_stage_spawn_point *spawn =
+            &profile->spawn_points[spawn_index];
+        const pf_m4_ssbm_stage_collision_line *line =
+            pf_m4_ssbm_reference_stage_line(profile_id, spawn->support);
+        const int32_t expected_fighter_y_q16 =
+            pf_m4_ssbm_stage_line_y_q16(
+                line,
+                spawn->position_x_q16) -
+            content.fighter.half_height_q16;
+        uint8_t capsule_index;
+
+        if (inspection.players[spawn_index].position_x_q16 !=
+                spawn->position_x_q16 ||
+            inspection.players[spawn_index].position_y_q16 !=
+                expected_fighter_y_q16 ||
+            inspection.players[spawn_index].support != spawn->support ||
+            inspection.players[spawn_index].grounded != UINT8_C(1))
+        {
+            return fail("battlefield-stage-initial-player-position");
+        }
+        if (inspection.players[spawn_index].hurt_capsule_count !=
+            UINT8_C(PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY))
+        {
+            return fail("battlefield-stage-initial-hurt-capsule-count");
+        }
+        for (capsule_index = UINT8_C(0);
+             capsule_index <
+                 inspection.players[spawn_index].hurt_capsule_count;
+             ++capsule_index)
+        {
+            const pf_m4_hurt_capsule_inspection *capsule =
+                &inspection.players[spawn_index]
+                     .hurt_capsules[capsule_index];
+
+            if (capsule->hurtbox_id != capsule_index ||
+                capsule->radius_q16 <= INT32_C(0) ||
+                capsule->reserved != UINT8_C(0))
+            {
+                return fail("battlefield-stage-initial-hurt-capsule-value");
+            }
+        }
+    }
+    ceiling_y_q16 = profile->lines[8].start_y_q16;
+    sim->world.position_x_q16[0] = INT32_C(0);
+    sim->world.position_y_q16[0] =
+        ceiling_y_q16 + content.fighter.half_height_q16 +
+        PF_Q16_ONE / INT32_C(2);
+    sim->world.velocity_x_q16[0] = INT32_C(0);
+    sim->world.velocity_y_q16[0] = -PF_Q16_ONE;
+    sim->world.grounded[0] = UINT8_C(0);
+    sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
+    sim->world.action_ticks[0] = UINT16_C(0);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].position_y_q16 !=
+            ceiling_y_q16 + content.fighter.half_height_q16 ||
+        inspection.players[0].velocity_y_q16 != INT32_C(0) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        return fail("battlefield-stage-ceiling-production-route");
+    }
+    if (!pf_m4_ssbm_reference_stage_find_wall_contact(
+            profile_id,
+            INT32_C(0),
+            PF_Q16_ONE,
+            (int64_t)INT32_C(1722500) -
+                (int64_t)content.fighter.half_height_q16,
+            (int64_t)INT32_C(1722500) +
+                (int64_t)content.fighter.half_height_q16 +
+                (int64_t)PF_Q16_ONE,
+            content.fighter.half_width_q16,
+            &wall_x_q16,
+            &wall_support,
+            &wall_away_direction))
+    {
+        return fail("battlefield-stage-wall-production-setup");
+    }
+    sim->world.position_x_q16[0] = INT32_C(0);
+    sim->world.position_y_q16[0] = INT32_C(1722500);
+    sim->world.velocity_x_q16[0] = PF_Q16_ONE;
+    sim->world.velocity_y_q16[0] = INT32_C(0);
+    sim->world.grounded[0] = UINT8_C(0);
+    sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_FALL_SPECIAL;
+    sim->world.action_ticks[0] = UINT16_C(0);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_SPECIAL;
+    if (!step_duel(
+            sim,
+            INT16_C(0),
+            UINT64_C(0),
+            INT16_C(0),
+            UINT64_C(0),
+            &inspection) ||
+        inspection.players[0].position_x_q16 != wall_x_q16 ||
+        inspection.players[0].velocity_x_q16 != INT32_C(0) ||
+        inspection.players[0].grounded != UINT8_C(0) ||
+        inspection.players[0].action_state !=
+            (uint8_t)PF_M4_ACTION_FALL_SPECIAL)
+    {
+        (void)fprintf(
+            stderr,
+            "battlefield-wall expected_x=%" PRId32
+            " actual_x=%" PRId32 " vx=%" PRId32
+            " y=%" PRId32 " action=%u support=%u away=%d\n",
+            wall_x_q16,
+            inspection.players[0].position_x_q16,
+            inspection.players[0].velocity_x_q16,
+            inspection.players[0].position_y_q16,
+            (unsigned)inspection.players[0].action_state,
+            (unsigned)wall_support,
+            (int)wall_away_direction);
+        return fail("battlefield-stage-wall-production-route");
+    }
+    {
+        const pf_m4_ssbm_stage_collision_line *platform_line =
+            &profile->lines[2];
+        const int32_t platform_midpoint_x_q16 = (int32_t)(
+            ((int64_t)platform_line->start_x_q16 +
+             (int64_t)platform_line->end_x_q16) /
+            INT64_C(2));
+        const int32_t platform_y_q16 =
+            pf_m4_ssbm_stage_line_y_q16(
+                platform_line,
+                platform_midpoint_x_q16);
+        const int32_t starting_y_q16 =
+            platform_y_q16 + INT32_C(2) * PF_Q16_ONE;
+
+        sim->world.position_x_q16[0] = platform_midpoint_x_q16;
+        sim->world.position_y_q16[0] = starting_y_q16;
+        sim->world.velocity_x_q16[0] = INT32_C(0);
+        sim->world.velocity_y_q16[0] = PF_Q16_ONE / INT32_C(8);
+        sim->world.grounded[0] = UINT8_C(0);
+        sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+        sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
+        sim->world.action_ticks[0] = UINT16_C(0);
+        sim->world.fast_fall[0] = UINT8_C(0);
+        sim->world.source_submotion[0] =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+        if (!step_duel(
+                sim,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &inspection) ||
+            inspection.players[0].grounded != UINT8_C(0) ||
+            inspection.players[0].support !=
+                (uint8_t)PF_M4_SURFACE_NONE ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_AIRBORNE ||
+            inspection.players[0].position_y_q16 <= starting_y_q16)
+        {
+            return fail("battlefield-stage-pass-through-from-below");
+        }
+    }
+    if (!expect_status(
+            pf_m4_reference_stage_content(
+                PF_M4_REFERENCE_STAGE_HYRULE_TEMPLE,
+                &content),
+            PF_STATUS_INVALID_CONFIG,
+            "battlefield-stage-reject-incomplete-reference") ||
+        !expect_status(
+            pf_m4_reference_stage_content(
+                (pf_m4_reference_stage)UINT16_MAX,
+                &content),
+            PF_STATUS_INVALID_CONFIG,
+            "battlefield-stage-reject-invalid-reference") ||
+        !expect_status(
+            pf_m4_reference_stage_content(
+                PF_M4_REFERENCE_STAGE_BATTLEFIELD,
+                NULL),
+            PF_STATUS_INVALID_ARGUMENT,
+            "battlefield-stage-reject-null-output"))
+    {
+        return fail("battlefield-stage-content-rejection");
+    }
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     pf_m4_content content;
@@ -26516,6 +27756,24 @@ int main(int argc, char **argv)
             return run_ssbm_surface_response_observation_oracle() ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(
+                argv[2],
+                "falcon-common-battlefield-surface-response") == 0)
+        {
+            return run_ssbm_battlefield_surface_response_observation_oracle()
+                       ? 0
+                       : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(
+                argv[2],
+                "falcon-common-battlefield-bounce-recontact") == 0)
+        {
+            return run_ssbm_battlefield_bounce_recontact_observation_oracle()
+                       ? 0
+                       : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-common-floor-response") == 0)
         {
             return run_ssbm_floor_response_observation_oracle() ? 0 : 1;
@@ -26538,6 +27796,11 @@ int main(int argc, char **argv)
             return run_ssbm_slope_ledge_response_observation_oracle()
                        ? 0
                        : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-common-ledge-options") == 0)
+        {
+            return run_ssbm_ledge_options_observation_oracle() ? 0 : 1;
         }
         (void)fprintf(
             stderr,
@@ -26861,7 +28124,8 @@ int main(int argc, char **argv)
     invalid_stale_sum_content = content;
     invalid_stale_sum_content.fighter
         .stale_move_slot_reduction_q16[0] = UINT16_C(20000);
-    if (!expect_status(
+    if (!run_battlefield_stage_catalog_test() ||
+        !expect_status(
             pf_m4_validate_content(&invalid_content),
             PF_STATUS_INVALID_CONFIG,
             "reject-overflowing-knockback") ||

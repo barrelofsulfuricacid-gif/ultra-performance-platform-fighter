@@ -1,0 +1,711 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-ledge-options",
+  "domain": "falcon-common-ledge-options",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 558,
+    "warm_budget_seconds": 10.0,
+    "cold_budget_seconds": 10.75,
+    "capture_shards": [
+      ["quick_timeout", "c_inward_no_climb", "c_up_attack"],
+      ["slow_timeout", "drop_cooldown", "drop"],
+      ["slow_roll", "quick_attack", "slow_climb"],
+      ["slow_attack", "quick_climb", "quick_roll"],
+      ["quick_jump", "main_priority_climb", "main_priority_drop", "c_inward_roll"],
+      ["slow_jump", "c_outward_before_ready", "c_outward_drop"]
+    ],
+    "capture_plan": {
+      "record_response_only": true,
+      "batch_exi_inputs": true,
+      "record_surface_collision_memory_rows": false,
+      "source_random_seed": 1,
+      "source_random_seed_post_hit_index": 5,
+      "surface_response_cases": [
+        {
+          "id": "quick_climb",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_GETUP_QUICK"],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "main": [-32767, 0]
+            }
+          }]
+        },
+        {
+          "id": "slow_climb",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_GETUP_SLOW"],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "main": [-32767, 0],
+              "damage_percent": 100.0
+            }
+          }]
+        },
+        {
+          "id": "quick_roll",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_ROLL_QUICK"],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "digital_left": true
+            }
+          }]
+        },
+        {
+          "id": "slow_roll",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_ROLL_SLOW"],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "digital_left": true,
+              "damage_percent": 100.0
+            }
+          }]
+        },
+        {
+          "id": "quick_attack",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_ATTACK_QUICK"],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "attack": true,
+              "opponent_x_override": 100.0
+            }
+          }]
+        },
+        {
+          "id": "slow_attack",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_ATTACK_SLOW"],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "attack": true,
+              "damage_percent": 100.0,
+              "opponent_x_override": 100.0
+            }
+          }]
+        },
+        {
+          "id": "quick_jump",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": [
+            "EDGE_HANGING", "EDGE_JUMP_1_QUICK", "EDGE_JUMP_2_QUICK"
+          ],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "jump": true
+            }
+          }]
+        },
+        {
+          "id": "slow_jump",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": [
+            "EDGE_HANGING", "EDGE_JUMP_1_SLOW", "EDGE_JUMP_2_SLOW"
+          ],
+          "observe_segments": [{
+            "id": "response", "ticks": 170,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "jump": true,
+              "damage_percent": 100.0
+            }
+          }]
+        },
+        {
+          "id": "drop",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "FALLING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 60,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "main": [32767, 0]
+            }
+          }]
+        },
+        {
+          "id": "quick_timeout",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "TUMBLING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 100,
+            "conditional_edge": {
+              "action": "EDGE_CATCHING", "frame": 7
+            },
+            "record_cliff_wait_timers": [640, 2, 1],
+            "cliff_wait_timer_jump": {
+              "write_on_action_frame": 38, "value": 3
+            }
+          }]
+        },
+        {
+          "id": "drop_cooldown",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["FALLING"],
+          "observe_segments": [{
+            "id": "release", "ticks": 57,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "main": [32767, 0]
+            },
+            "record_ledge_regrab_cooldowns": [29, 2, 1, 0]
+          }, {
+            "id": "cooldown", "ticks": 31,
+            "fighter_x_override": 240.0,
+            "fighter_y_override": -10.0,
+            "fighter_facing_override": -1.0,
+            "record_ledge_regrab_cooldowns": [29, 2, 1, 0]
+          }]
+        },
+        {
+          "id": "slow_timeout",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "TUMBLING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 145,
+            "conditional_edge": {
+              "action": "EDGE_CATCHING", "frame": 7,
+              "damage_percent": 100.0
+            },
+            "record_cliff_wait_timers": [480, 2, 1],
+            "cliff_wait_timer_jump": {
+              "write_on_action_frame": 28, "value": 3
+            }
+          }]
+        },
+        {
+          "id": "c_inward_no_climb",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 60,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "secondary": [-20000, 0]
+            }
+          }]
+        },
+        {
+          "id": "c_inward_roll",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_ROLL_QUICK"],
+          "observe_segments": [{
+            "id": "response", "ticks": 62,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "secondary": [-32767, 0]
+            }
+          }]
+        },
+        {
+          "id": "c_up_attack",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_ATTACK_QUICK"],
+          "observe_segments": [{
+            "id": "response", "ticks": 62,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "secondary": [0, 32767],
+              "opponent_x_override": 100.0
+            }
+          }]
+        },
+        {
+          "id": "c_outward_drop",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "FALLING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 60,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "secondary": [32767, 0]
+            }
+          }]
+        },
+        {
+          "id": "main_priority_climb",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "EDGE_GETUP_QUICK"],
+          "observe_segments": [{
+            "id": "response", "ticks": 62,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "main": [-32767, 0], "secondary": [32767, 0]
+            }
+          }]
+        },
+        {
+          "id": "main_priority_drop",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING", "FALLING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 60,
+            "conditional_edge": {
+              "action": "EDGE_HANGING", "frame": 2,
+              "main": [32767, 0], "secondary": [-20000, 0]
+            }
+          }]
+        },
+        {
+          "id": "c_outward_before_ready",
+          "damage_percent": 50.0,
+          "target_start": [190.0, 10.0],
+          "opponent_start": [165.0, 10.0],
+          "approach_main": 32767,
+          "settle_ticks": 55,
+          "approach_ticks": 4,
+          "post_hit_ticks": 6,
+          "impact_x": null,
+          "impact_y": null,
+          "impact_main": [0, 0],
+          "record_actions": ["EDGE_HANGING"],
+          "observe_segments": [{
+            "id": "response", "ticks": 58,
+            "secondary": [32767, 0]
+          }]
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {"id": "quick_climb", "start_label": "surface_response_quick_climb_setup"},
+    {"id": "slow_climb", "start_label": "surface_response_slow_climb_setup"},
+    {"id": "quick_roll", "start_label": "surface_response_quick_roll_setup"},
+    {"id": "slow_roll", "start_label": "surface_response_slow_roll_setup"},
+    {"id": "quick_attack", "start_label": "surface_response_quick_attack_setup"},
+    {"id": "slow_attack", "start_label": "surface_response_slow_attack_setup"},
+    {"id": "quick_jump", "start_label": "surface_response_quick_jump_setup"},
+    {"id": "slow_jump", "start_label": "surface_response_slow_jump_setup"},
+    {"id": "drop", "start_label": "surface_response_drop_setup"},
+    {"id": "quick_timeout", "start_label": "surface_response_quick_timeout_setup"},
+    {"id": "drop_cooldown", "start_label": "surface_response_drop_cooldown_setup"},
+    {"id": "slow_timeout", "start_label": "surface_response_slow_timeout_setup"},
+    {"id": "c_inward_no_climb", "start_label": "surface_response_c_inward_no_climb_setup"},
+    {"id": "c_inward_roll", "start_label": "surface_response_c_inward_roll_setup"},
+    {"id": "c_up_attack", "start_label": "surface_response_c_up_attack_setup"},
+    {"id": "c_outward_drop", "start_label": "surface_response_c_outward_drop_setup"},
+    {"id": "main_priority_climb", "start_label": "surface_response_main_priority_climb_setup"},
+    {"id": "main_priority_drop", "start_label": "surface_response_main_priority_drop_setup"},
+    {"id": "c_outward_before_ready", "start_label": "surface_response_c_outward_before_ready_setup"}
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_ntsc102_common_data.inc",
+      "generated/data/m4_ssbm_falcon_ledge_options_oracle.inc",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_ssbm_common_data.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_checkpoint_shards.py",
+      "tools/capture_ssbm_falcon_ledge_options.sh",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/import_ssbm_common_data.py",
+      "tools/merge_ssbm_checkpoint_captures.py",
+      "tools/ssbm_falcon_ledge_options_coverage.json",
+      "tools/verify_ssbm_falcon_ledge_options.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "80c9ab75a98e2e7ef901055131b24f413c5e2672038315b526999f3143b38383",
+    "production_trace_sha256": "136f2c97c30bf041018014d0e1a5fb20caf0c942a77aca5a53ab465cd99adfcf",
+    "comparison_policy": {
+      "velocity_tolerance_q16": 32,
+      "position_tolerance_q16": 288,
+      "position_bound": "maximum observed 274 LSB over 35 accumulated fixed-point air-physics steps"
+    },
+    "samples_per_case": 80,
+    "serialized_fields": [
+      "position_x", "position_y", "self_velocity_x", "self_velocity_y",
+      "action_ticks", "action_state", "grounded", "invulnerable", "facing"
+    ],
+    "cases": [
+      {
+        "id": "quick_climb", "sample_count": 34, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"main": [-32767, 0]}]},
+          {"ticks": 31, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "slow_climb", "sample_count": 60,
+        "initial_state_variant": 1, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"main": [-32767, 0]}]},
+          {"ticks": 57, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "quick_roll", "sample_count": 50, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"left_trigger": 65535}]},
+          {"ticks": 47, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "slow_roll", "sample_count": 80,
+        "initial_state_variant": 1, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"left_trigger": 65535}]},
+          {"ticks": 77, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "quick_attack", "sample_count": 56, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"buttons": ["attack"]}]},
+          {"ticks": 53, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "slow_attack", "sample_count": 70,
+        "initial_state_variant": 1, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"buttons": ["attack"]}]},
+          {"ticks": 67, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "quick_jump", "sample_count": 45, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}]},
+          {"ticks": 42, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "slow_jump", "sample_count": 55,
+        "initial_state_variant": 1, "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}]},
+          {"ticks": 52, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "drop", "sample_count": 6,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"main": [32767, 0]}]},
+          {"ticks": 3, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "quick_timeout", "sample_count": 4,
+        "initial_facing": -1,
+        "source_samples": [
+          ["EDGE_HANGING", 640], ["EDGE_HANGING", 2],
+          ["EDGE_HANGING", 1], ["TUMBLING", 0]
+        ],
+        "inputs": [
+          {"lanes": [{}]},
+          {"lanes": [{"advance_ticks": 638}]},
+          {"lanes": [{"advance_ticks": 1}]},
+          {"lanes": [{"advance_ticks": 1}]}
+        ]
+      },
+      {
+        "id": "drop_cooldown", "sample_count": 4,
+        "initial_state_variant": 2,
+        "initial_facing": -1,
+        "serialized_fields": [
+          "action_state", "grounded", "tumble", "facing",
+          "ledge_regrab_lockout"
+        ],
+        "source_cooldown_samples": [
+          ["FALLING", 29], ["FALLING", 2],
+          ["FALLING", 1], ["FALLING", 0]
+        ],
+        "inputs": [
+          {"lanes": [{"main": [32767, 0]}]},
+          {"lanes": [{"advance_ticks": 27}]},
+          {"lanes": [{"advance_ticks": 1}]},
+          {"lanes": [{"advance_ticks": 1}]}
+        ]
+      },
+      {
+        "id": "slow_timeout", "sample_count": 4,
+        "initial_state_variant": 1, "initial_facing": -1,
+        "source_samples": [
+          ["EDGE_HANGING", 480], ["EDGE_HANGING", 2],
+          ["EDGE_HANGING", 1], ["TUMBLING", 0]
+        ],
+        "inputs": [
+          {"lanes": [{}]},
+          {"lanes": [{"advance_ticks": 478}]},
+          {"lanes": [{"advance_ticks": 1}]},
+          {"lanes": [{"advance_ticks": 1}]}
+        ]
+      },
+      {
+        "id": "c_inward_no_climb", "sample_count": 6,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"c_stick": [-20000, 0]}]},
+          {"ticks": 3, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "c_inward_roll", "sample_count": 8,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"c_stick": [-32767, 0]}]},
+          {"ticks": 5, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "c_up_attack", "sample_count": 8,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"c_stick": [0, 32767]}]},
+          {"ticks": 5, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "c_outward_drop", "sample_count": 6,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{"c_stick": [32767, 0]}]},
+          {"ticks": 3, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "main_priority_climb", "sample_count": 8,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{
+            "main": [-32767, 0], "c_stick": [32767, 0]
+          }]},
+          {"ticks": 5, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "main_priority_drop", "sample_count": 6,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 2, "lanes": [{}]},
+          {"ticks": 1, "lanes": [{
+            "main": [32767, 0], "c_stick": [-20000, 0]
+          }]},
+          {"ticks": 3, "lanes": [{}]}
+        ]
+      },
+      {
+        "id": "c_outward_before_ready", "sample_count": 4,
+        "initial_facing": -1,
+        "input_phases": [
+          {"ticks": 4, "lanes": [{"c_stick": [32767, 0]}]}
+        ]
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_ledge_options",
+      "macro_prefix": "PF_M4_SSBM_FALCON_LEDGE_OPTIONS"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_ledge_options_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": ["--ssbm-oracle", "falcon-common-ledge-options"]
+    }
+  }
+}

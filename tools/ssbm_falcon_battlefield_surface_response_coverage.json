@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "scope": "falcon-common-battlefield-surface-response",
+  "domain": "falcon-common-battlefield-surface-response",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 168,
+    "warm_budget_seconds": 1.0,
+    "capture_plan": {
+      "stage": "BATTLEFIELD",
+      "source_random_seed_before_attack": 3,
+      "surface_response_cases": [
+        {
+          "id": "battlefield_line10_ceiling_bounce",
+          "damage_percent": 200.0,
+          "target_start": [30.0, 27.2001],
+          "opponent_start": [55.0, 27.2001],
+          "approach_main": -32767,
+          "settle_ticks": 30,
+          "approach_ticks": 4,
+          "post_hit_ticks": 8,
+          "impact_waypoints": [
+            [100.0, 30.0],
+            [100.0, -30.0],
+            [50.0, -30.0]
+          ],
+          "observe_ticks": 12,
+          "impact_main": [0, 0]
+        },
+        {
+          "id": "battlefield_line15_wall_bounce",
+          "damage_percent": 200.0,
+          "target_start": [30.0, 27.2001],
+          "opponent_start": [55.0, 27.2001],
+          "approach_main": -32767,
+          "settle_ticks": 30,
+          "approach_ticks": 4,
+          "post_hit_ticks": 8,
+          "impact_waypoints": [
+            [100.0, 30.0],
+            [100.0, -32.0],
+            [41.0, -32.0]
+          ],
+          "observe_ticks": 12,
+          "impact_main": [0, 0]
+        }
+      ]
+    }
+  },
+  "checkpoint_cases": [
+    {
+      "id": "battlefield-line10-ceiling-bounce",
+      "start_label": "surface_response_battlefield_line10_ceiling_bounce_setup"
+    },
+    {
+      "id": "battlefield-line15-wall-bounce",
+      "start_label": "surface_response_battlefield_line15_wall_bounce_setup"
+    }
+  ],
+  "selection": {
+    "paths": [
+      "generated/data/m4_ssbm_falcon_battlefield_surface_response_oracle.inc",
+      "generated/data/m4_ssbm_ntsc102_battlefield_collision.inc",
+      "include/pf/m4.h",
+      "src/sim/sim_movement.c",
+      "src/sim/sim_ssbm_damage.c",
+      "src/sim/sim_ssbm_damage.h",
+      "src/sim/sim_ssbm_stage_data.c",
+      "src/sim/sim_ssbm_stage_data.h",
+      "tests/sim/ssbm_stored_oracle.c",
+      "tests/sim/ssbm_stored_oracle.h",
+      "tests/sim/test_m4_combat.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_stage_collision.py",
+      "tools/ssbm_falcon_battlefield_surface_response_coverage.json",
+      "tools/verify_ssbm_falcon_battlefield_surface_response.py",
+      "tools/verify_ssbm_falcon_battlefield_surface_response.sh"
+    ]
+  },
+  "live_contacts": {
+    "battlefield_line10_ceiling_bounce": {
+      "precontact_label_suffix": "impact_waypoint_2",
+      "impact_label_suffix": "impact",
+      "source_action": "BOUNCE_CEILING",
+      "production_action": 31,
+      "surface": "ceiling",
+      "line_index": 10,
+      "normal": [0.378117442131042, -0.925757586956024]
+    },
+    "battlefield_line15_wall_bounce": {
+      "precontact_label_suffix": "impact_waypoint_2",
+      "impact_label_suffix": "impact",
+      "source_action": "BOUNCE_WALL",
+      "production_action": 30,
+      "surface": "right_facing_wall",
+      "line_index": 15,
+      "normal": [0.56920999288559, -0.822192251682281]
+    }
+  },
+  "stored_oracle": {
+    "kind": "numeric-trace-v1",
+    "source_trace_sha256": "8a0c463ffae10b1567815013c85c500bcb25869727874086c96d0e9c522a2f68",
+    "production_trace_sha256": "107ea657a7bad069ea8ee02cb98306dd116b78838c8e6899a4adf9ff6fcf0982",
+    "samples_per_case": 12,
+    "serialized_fields": [
+      "position_x",
+      "position_y",
+      "self_velocity_x",
+      "self_velocity_y",
+      "knockback_velocity_x",
+      "knockback_velocity_y",
+      "action_ticks",
+      "hitstun_ticks",
+      "action_state",
+      "grounded",
+      "tumble",
+      "invulnerable"
+    ],
+    "cases": [
+      {
+        "id": "battlefield_line10_ceiling_bounce",
+        "initial_state_variant": 1
+      },
+      {
+        "id": "battlefield_line15_wall_bounce",
+        "initial_state_variant": 2
+      }
+    ],
+    "c": {
+      "symbol_prefix": "pf_m4_ssbm_falcon_battlefield_surface_response",
+      "macro_prefix": "PF_M4_SSBM_FALCON_BATTLEFIELD_SURFACE_RESPONSE"
+    },
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_battlefield_surface_response_oracle.inc"
+    },
+    "runner": {
+      "executable": "m4_combat_test",
+      "arguments": [
+        "--ssbm-oracle",
+        "falcon-common-battlefield-surface-response"
+      ]
+    }
+  }
+}

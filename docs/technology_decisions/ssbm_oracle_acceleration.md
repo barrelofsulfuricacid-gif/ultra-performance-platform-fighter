@@ -192,10 +192,21 @@ verified warm runs take 2.635-2.729 seconds and pass the manifest's
 three-second changed-domain budget. Lifecycle instrumentation
 showed that the apparent 18-21-second cold invocation was not primarily
 emulation: about nine seconds were spent re-hashing the unchanged 1.4-GB disc
-image. Oracle-input digests are now cached atomically against path, size,
-mtime, and ctime; any change forces a complete re-hash. After the one-time
+image. Oracle-input digests are now cached atomically against device, inode,
+size, and mtime; any change forces a complete re-hash, while verified hardlinks
+reuse the same digest. After the one-time
 qualification, an unchanged capture lifecycle measures 7.27-8.13 seconds
 including process launch, menus, capture, and cleanup.
+
+Large sharded packs also avoid libmelee's redundant executable-version probe.
+`Console` normally launches `dolphin --version` in every worker constructor.
+The parent now probes once before `fork` and reuses that immutable result only
+when the worker executable has the same device/inode/size/mtime fingerprint as
+the hash-qualified launcher. The 19-case ledge pack then passes three fresh
+runs at 9.649, 8.924, and 9.614 seconds warm under its enforced 10.0-second
+budget, with identical 558-row / 514-sample semantic digest. This optimization
+does not weaken executable identity or apply to a different filesystem
+revision.
 
 Linux ExiAI observations use Dolphin's existing read-only MEM1 shared-memory
 mapping behind the same memory-engine interface, eliminating per-field

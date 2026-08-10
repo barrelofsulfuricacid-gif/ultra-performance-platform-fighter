@@ -1164,6 +1164,54 @@ static int pf_m4_attack_for_action(
     return 0;
 }
 
+static int pf_m4_attack_for_state(
+    const pf_m4_content *content,
+    uint8_t action_state,
+    uint16_t action_ticks,
+    uint16_t source_submotion,
+    uint16_t charge_ticks,
+    uint16_t smash_charge_ticks,
+    pf_m4_attack_runtime *out_attack)
+{
+    const pf_m4_falcon_ledge_attack_reference *ledge_attack;
+
+    if (!pf_m4_attack_for_action(
+            content,
+            action_state,
+            action_ticks,
+            charge_ticks,
+            smash_charge_ticks,
+            out_attack))
+    {
+        return 0;
+    }
+    if (action_state != (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
+        content->fighter.reference_frame_data_enabled == UINT8_C(0))
+    {
+        return 1;
+    }
+    ledge_attack =
+        pf_m4_falcon_reference_ledge_attack(source_submotion);
+    if (ledge_attack == NULL ||
+        ledge_attack->first_active_frame == UINT16_C(0) ||
+        ledge_attack->last_active_frame <
+            ledge_attack->first_active_frame)
+    {
+        return 0;
+    }
+    out_attack->active_begin_tick =
+        ledge_attack->first_active_frame - UINT16_C(1);
+    out_attack->active_end_tick =
+        ledge_attack->last_active_frame - UINT16_C(1);
+    pf_m4_apply_falcon_reference_effect(
+        &content->fighter,
+        action_state,
+        smash_charge_ticks,
+        &ledge_attack->effect,
+        out_attack);
+    return 1;
+}
+
 typedef struct pf_m4_shield_hit_response
 {
     uint32_t damage_q16;
@@ -1574,6 +1622,7 @@ int pf_m4_attack_hitbox(
     int8_t facing,
     uint8_t action_state,
     uint16_t action_ticks,
+    uint16_t source_submotion,
     int32_t *out_left_q16,
     int32_t *out_right_q16,
     int32_t *out_top_q16,
@@ -1622,10 +1671,11 @@ int pf_m4_attack_hitbox(
             out_bottom_q16);
     }
 
-    if (!pf_m4_attack_for_action(
+    if (!pf_m4_attack_for_state(
             content,
             action_state,
             action_ticks,
+            source_submotion,
             UINT16_C(0),
             UINT16_C(0),
             &attack))
@@ -2075,12 +2125,13 @@ static inline uint16_t pf_m4_reference_common_hurt_frame(
 
 static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     const pf_m4_fighter_data *fighter,
-    const pf_sim_scratch *scratch,
-    uint32_t target_index,
+    uint8_t grounded,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action,
+    uint16_t action_ticks,
     uint8_t *out_count)
 {
     pf_m4_falcon_move_index move_index;
-    uint8_t action_state = scratch->action_state[target_index];
 
     if (out_count != NULL)
     {
@@ -2091,11 +2142,11 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
         return NULL;
     }
     if (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
-        scratch->hitlag_resume_action[target_index] != UINT8_C(0))
+        hitlag_resume_action != UINT8_C(0))
     {
-        action_state = scratch->hitlag_resume_action[target_index];
+        action_state = hitlag_resume_action;
     }
-    if (scratch->grounded[target_index] != UINT8_C(0) &&
+    if (grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
         return pf_m4_falcon_reference_standing_hurt_capsules(out_count);
@@ -2106,7 +2157,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
                 action_state,
                 pf_m4_reference_common_hurt_frame(
                     action_state,
-                    scratch->action_ticks[target_index]),
+                    action_ticks),
                 out_count);
 
         if (common_pose != NULL)
@@ -2122,23 +2173,23 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     }
     return pf_m4_falcon_reference_hurt_capsules_at_frame(
         move_index,
-        scratch->action_ticks[target_index],
+        action_ticks,
         out_count);
 }
 
 static pf_m4_world_hurt_capsule pf_m4_world_hurt_capsule_from_reference(
     const pf_m4_fighter_data *fighter,
-    const pf_sim_scratch *scratch,
-    uint32_t target_index,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing_value,
     const pf_m4_reference_hurt_capsule *source)
 {
-    const int64_t position_x =
-        (int64_t)scratch->position_x_q16[target_index];
+    const int64_t position_x = (int64_t)position_x_q16;
     const int64_t position_y =
         (int64_t)pf_m4_reference_origin_y_q16(
             fighter,
-            scratch->position_y_q16[target_index]);
-    const int64_t facing = (int64_t)scratch->facing[target_index];
+            position_y_q16);
+    const int64_t facing = (int64_t)facing_value;
     const pf_m4_world_hurt_capsule world = {
         position_x + facing * (int64_t)source->endpoint_a_x_q16,
         position_y + (int64_t)source->endpoint_a_y_q16,
@@ -2149,6 +2200,93 @@ static pf_m4_world_hurt_capsule pf_m4_world_hurt_capsule_from_reference(
         (int64_t)source->radius_q16};
 
     return world;
+}
+
+uint8_t pf_m4_reference_world_hurt_capsules(
+    const pf_m4_fighter_data *fighter,
+    int32_t position_x_q16,
+    int32_t position_y_q16,
+    int8_t facing,
+    uint8_t grounded,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action,
+    uint16_t action_ticks,
+    pf_m4_hurt_capsule_inspection
+        out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY])
+{
+    uint8_t capsule_count;
+    const pf_m4_reference_hurt_capsule *source_capsules;
+    uint8_t capsule_index;
+
+    if (fighter == NULL || out_capsules == NULL)
+    {
+        return UINT8_C(0);
+    }
+    source_capsules = pf_m4_reference_hurt_pose(
+        fighter,
+        grounded,
+        action_state,
+        hitlag_resume_action,
+        action_ticks,
+        &capsule_count);
+    if (source_capsules == NULL ||
+        capsule_count > UINT8_C(PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY))
+    {
+        return UINT8_C(0);
+    }
+
+    for (capsule_index = UINT8_C(0);
+         capsule_index < capsule_count;
+         ++capsule_index)
+    {
+        const pf_m4_reference_hurt_capsule *source =
+            &source_capsules[capsule_index];
+        const pf_m4_world_hurt_capsule world =
+            pf_m4_world_hurt_capsule_from_reference(
+                fighter,
+                position_x_q16,
+                position_y_q16,
+                facing,
+                source);
+        pf_m4_hurt_capsule_inspection *destination =
+            &out_capsules[capsule_index];
+
+        if (world.endpoint_a_x_q16 < (int64_t)INT32_MIN ||
+            world.endpoint_a_x_q16 > (int64_t)INT32_MAX ||
+            world.endpoint_a_y_q16 < (int64_t)INT32_MIN ||
+            world.endpoint_a_y_q16 > (int64_t)INT32_MAX ||
+            world.endpoint_a_z_q16 < (int64_t)INT32_MIN ||
+            world.endpoint_a_z_q16 > (int64_t)INT32_MAX ||
+            world.endpoint_b_x_q16 < (int64_t)INT32_MIN ||
+            world.endpoint_b_x_q16 > (int64_t)INT32_MAX ||
+            world.endpoint_b_y_q16 < (int64_t)INT32_MIN ||
+            world.endpoint_b_y_q16 > (int64_t)INT32_MAX ||
+            world.endpoint_b_z_q16 < (int64_t)INT32_MIN ||
+            world.endpoint_b_z_q16 > (int64_t)INT32_MAX ||
+            world.radius_q16 < (int64_t)INT32_MIN ||
+            world.radius_q16 > (int64_t)INT32_MAX)
+        {
+            return UINT8_C(0);
+        }
+        destination->endpoint_a_x_q16 =
+            (int32_t)world.endpoint_a_x_q16;
+        destination->endpoint_a_y_q16 =
+            (int32_t)world.endpoint_a_y_q16;
+        destination->endpoint_a_z_q16 =
+            (int32_t)world.endpoint_a_z_q16;
+        destination->endpoint_b_x_q16 =
+            (int32_t)world.endpoint_b_x_q16;
+        destination->endpoint_b_y_q16 =
+            (int32_t)world.endpoint_b_y_q16;
+        destination->endpoint_b_z_q16 =
+            (int32_t)world.endpoint_b_z_q16;
+        destination->radius_q16 = (int32_t)world.radius_q16;
+        destination->hurtbox_id = source->hurtbox_id;
+        destination->height = source->height;
+        destination->grabbable = source->grabbable;
+        destination->reserved = UINT8_C(0);
+    }
+    return capsule_count;
 }
 
 static int pf_m4_hitbox_overlaps_player(
@@ -2164,8 +2302,10 @@ static int pf_m4_hitbox_overlaps_player(
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
-            scratch,
-            target_index,
+            scratch->grounded[target_index],
+            scratch->action_state[target_index],
+            scratch->hitlag_resume_action[target_index],
+            scratch->action_ticks[target_index],
             &capsule_count);
 
     if (capsules != NULL)
@@ -2179,8 +2319,9 @@ static int pf_m4_hitbox_overlaps_player(
             const pf_m4_world_hurt_capsule capsule =
                 pf_m4_world_hurt_capsule_from_reference(
                     fighter,
-                    scratch,
-                    target_index,
+                    scratch->position_x_q16[target_index],
+                    scratch->position_y_q16[target_index],
+                    scratch->facing[target_index],
                     &capsules[capsule_index]);
             const int64_t capsule_left =
                 (capsule.endpoint_a_x_q16 < capsule.endpoint_b_x_q16
@@ -2329,8 +2470,9 @@ static int pf_m4_hit_sphere_overlaps_reference_pose(
         const pf_m4_world_hurt_capsule capsule =
             pf_m4_world_hurt_capsule_from_reference(
                 fighter,
-                scratch,
-                target_index,
+                scratch->position_x_q16[target_index],
+                scratch->position_y_q16[target_index],
+                scratch->facing[target_index],
                 &capsules[capsule_index]);
         const pf_m4_collision_capsule3_q16 collision_hit = {
             (int64_t)previous_sphere->center_x_q16,
@@ -2367,8 +2509,10 @@ static int pf_m4_hit_sphere_overlaps_player(
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
-            scratch,
-            target_index,
+            scratch->grounded[target_index],
+            scratch->action_state[target_index],
+            scratch->hitlag_resume_action[target_index],
+            scratch->action_ticks[target_index],
             &capsule_count);
 
     if (capsules != NULL)
@@ -2428,8 +2572,10 @@ static int pf_m4_grab_sphere_overlaps_player(
     const pf_m4_reference_hurt_capsule *capsules =
         pf_m4_reference_hurt_pose(
             fighter,
-            scratch,
-            target_index,
+            scratch->grounded[target_index],
+            scratch->action_state[target_index],
+            scratch->hitlag_resume_action[target_index],
+            scratch->action_ticks[target_index],
             &capsule_count);
 
     if (capsules != NULL)
@@ -3697,6 +3843,11 @@ static pf_status pf_m4_resolve_grabs(
                     scratch->prone_orientation[target_index],
                     scratch->tech_direction[target_index],
                     scratch->facing[target_index]) ||
+                (content->fighter.reference_frame_data_enabled !=
+                     UINT8_C(0) &&
+                 pf_m4_falcon_reference_body_invulnerable(
+                     scratch->source_submotion[target_index],
+                     scratch->action_ticks[target_index])) ||
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[attacker_index] ==
                      world->team[target_index]))
@@ -3911,6 +4062,10 @@ static pf_status pf_m4_resolve_item_combat(
                 scratch->prone_orientation[target_index],
                 scratch->tech_direction[target_index],
                 scratch->facing[target_index]) ||
+            (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+             pf_m4_falcon_reference_body_invulnerable(
+                 scratch->source_submotion[target_index],
+                 scratch->action_ticks[target_index])) ||
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[source_index] == world->team[target_index]) ||
             !pf_m4_hitbox_overlaps_player_or_shield(
@@ -4096,6 +4251,7 @@ static pf_status pf_m4_resolve_projectile_combat(
                 scratch->facing[target_index],
                 scratch->action_state[target_index],
                 scratch->action_ticks[target_index],
+                scratch->source_submotion[target_index],
                 &reflector_left,
                 &reflector_right,
                 &reflector_top,
@@ -4133,6 +4289,10 @@ static pf_status pf_m4_resolve_projectile_combat(
                 scratch->prone_orientation[target_index],
                 scratch->tech_direction[target_index],
                 scratch->facing[target_index]) ||
+            (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+             pf_m4_falcon_reference_body_invulnerable(
+                 scratch->source_submotion[target_index],
+                 scratch->action_ticks[target_index])) ||
             (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
              world->team[owner_index] == world->team[target_index]) ||
             (reflector_active == 0 &&
@@ -4512,6 +4672,7 @@ pf_status pf_m4_resolve_combat(
                 scratch->facing[attacker_index],
                 scratch->action_state[attacker_index],
                 scratch->action_ticks[attacker_index],
+                scratch->source_submotion[attacker_index],
                 &hitbox_left,
                 &hitbox_right,
                 &hitbox_top,
@@ -4521,10 +4682,11 @@ pf_status pf_m4_resolve_combat(
         }
         attacker_action[attacker_index] =
             scratch->action_state[attacker_index];
-        if (!pf_m4_attack_for_action(
+        if (!pf_m4_attack_for_state(
                 content,
                 attacker_action[attacker_index],
                 scratch->action_ticks[attacker_index],
+                scratch->source_submotion[attacker_index],
                 scratch->charge_ticks[attacker_index],
                 scratch->smash_charge_ticks[attacker_index],
                 &attacker_attack[attacker_index]))
@@ -4623,6 +4785,11 @@ pf_status pf_m4_resolve_combat(
                     scratch->prone_orientation[target_index],
                     scratch->tech_direction[target_index],
                     scratch->facing[target_index]) ||
+                (content->fighter.reference_frame_data_enabled !=
+                     UINT8_C(0) &&
+                 pf_m4_falcon_reference_body_invulnerable(
+                     scratch->source_submotion[target_index],
+                     scratch->action_ticks[target_index])) ||
                 (scratch->attack_hit_mask[attacker_index] &
                  target_bit) != UINT8_C(0) ||
                 scratch->hitlag_ticks[target_index] != UINT16_C(0) ||

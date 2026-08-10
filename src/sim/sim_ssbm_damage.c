@@ -132,6 +132,100 @@ pf_status pf_m4_ssbm_decay_air_knockback_q16(
     return PF_STATUS_OK;
 }
 
+pf_status pf_m4_ssbm_mirror_velocity_q16(
+    int32_t source_normal_x_q16,
+    int32_t source_normal_y_q16,
+    int32_t multiplier_q16,
+    int32_t *velocity_x_q16,
+    int32_t *velocity_y_q16)
+{
+    int64_t source_x;
+    int64_t source_y_math;
+    int64_t dot;
+    int64_t mirrored_source_x;
+    int64_t mirrored_source_y_math;
+    int64_t mirrored_x;
+    int64_t mirrored_y;
+
+    if (multiplier_q16 < INT32_C(0) || velocity_x_q16 == NULL ||
+        velocity_y_q16 == NULL ||
+        (source_normal_x_q16 == INT32_C(0) &&
+         source_normal_y_q16 == INT32_C(0)))
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+
+    /* Axis-aligned surfaces need no coordinate conversion. Besides avoiding
+     * needless divisions, this preserves the already live-qualified integer
+     * result for ordinary vertical walls and horizontal ceilings. */
+    if (source_normal_y_q16 == INT32_C(0))
+    {
+        mirrored_x =
+            -(int64_t)*velocity_x_q16 * (int64_t)multiplier_q16 /
+            (int64_t)PF_Q16_ONE;
+        mirrored_y =
+            (int64_t)*velocity_y_q16 * (int64_t)multiplier_q16 /
+            (int64_t)PF_Q16_ONE;
+        goto store_result;
+    }
+    if (source_normal_x_q16 == INT32_C(0))
+    {
+        mirrored_x =
+            (int64_t)*velocity_x_q16 * (int64_t)multiplier_q16 /
+            (int64_t)PF_Q16_ONE;
+        mirrored_y =
+            -(int64_t)*velocity_y_q16 * (int64_t)multiplier_q16 /
+            (int64_t)PF_Q16_ONE;
+        goto store_result;
+    }
+
+    /* lbVector_Mirror operates in Melee's isotropic, positive-Y-up physics
+     * coordinates. Preserve eight guard bits while undoing this project's
+     * anisotropic world conversion, mirror around the generated source-space
+     * unit normal, apply common-data x1BC, and convert back once. */
+    source_x =
+        (int64_t)*velocity_x_q16 * INT64_C(115) *
+        PF_M4_SSBM_VECTOR_EXTRA_SCALE / INT64_C(12);
+    source_y_math =
+        -(int64_t)*velocity_y_q16 * INT64_C(62) *
+        PF_M4_SSBM_VECTOR_EXTRA_SCALE / INT64_C(11);
+    dot =
+        (source_x * (int64_t)source_normal_x_q16 +
+         source_y_math * (int64_t)source_normal_y_q16) /
+        (int64_t)PF_Q16_ONE;
+    mirrored_source_x =
+        source_x -
+        INT64_C(2) * dot * (int64_t)source_normal_x_q16 /
+            (int64_t)PF_Q16_ONE;
+    mirrored_source_y_math =
+        source_y_math -
+        INT64_C(2) * dot * (int64_t)source_normal_y_q16 /
+            (int64_t)PF_Q16_ONE;
+    mirrored_source_x =
+        mirrored_source_x * (int64_t)multiplier_q16 /
+        (int64_t)PF_Q16_ONE;
+    mirrored_source_y_math =
+        mirrored_source_y_math * (int64_t)multiplier_q16 /
+        (int64_t)PF_Q16_ONE;
+    mirrored_x =
+        mirrored_source_x * INT64_C(12) /
+        (INT64_C(115) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
+    mirrored_y =
+        -mirrored_source_y_math * INT64_C(11) /
+        (INT64_C(62) * PF_M4_SSBM_VECTOR_EXTRA_SCALE);
+store_result:
+    if (mirrored_x < (int64_t)INT32_MIN ||
+        mirrored_x > (int64_t)INT32_MAX ||
+        mirrored_y < (int64_t)INT32_MIN ||
+        mirrored_y > (int64_t)INT32_MAX)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    *velocity_x_q16 = (int32_t)mirrored_x;
+    *velocity_y_q16 = (int32_t)mirrored_y;
+    return PF_STATUS_OK;
+}
+
 pf_status pf_m4_ssbm_apply_di_q16(
     int32_t max_angle_radians_q30,
     int16_t stick_x,

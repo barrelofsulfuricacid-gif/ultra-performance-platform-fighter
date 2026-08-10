@@ -57,6 +57,16 @@ _Static_assert(
 _Static_assert(
     PF_M4_MELEE_STALE_MOVE_SLOT_COUNT == PF_SIM_STALE_MOVE_QUEUE_CAPACITY,
     "Imported Melee stale-move table must cover the runtime queue");
+_Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce) /
+            sizeof(pf_m4_falcon_collision_pose_data.ceiling_bounce[0]) ==
+        (size_t)PF_M4_FALCON_CEILING_BOUNCE_ECB_FRAME_COUNT,
+    "Falcon ceiling-bounce ECB table must be complete");
+_Static_assert(
+    sizeof(pf_m4_falcon_collision_pose_data.wall_bounce) /
+            sizeof(pf_m4_falcon_collision_pose_data.wall_bounce[0]) ==
+        (size_t)PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT,
+    "Falcon wall-bounce ECB table must be complete");
 
 const uint8_t *pf_m4_falcon_reference_source_sha256(void)
 {
@@ -161,6 +171,152 @@ const pf_m4_falcon_ledge_root_positions *
 pf_m4_falcon_reference_ledge_root_positions(void)
 {
     return &pf_m4_falcon_ledge_root_position_data;
+}
+
+const pf_m4_falcon_ledge_attack_reference *
+pf_m4_falcon_reference_ledge_attack(uint16_t submotion_index)
+{
+    if (submotion_index <
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW ||
+        submotion_index >
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK)
+    {
+        return NULL;
+    }
+    return &pf_m4_falcon_ledge_attack_references[
+        submotion_index -
+        (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW];
+}
+
+int pf_m4_falcon_reference_ledge_option_anchor_q16(
+    uint16_t submotion_index,
+    int32_t *out_x_q16,
+    int32_t *out_y_q16)
+{
+    uint16_t option_index;
+
+    if (submotion_index < PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST ||
+        submotion_index >=
+            PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST +
+                PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT ||
+        submotion_index ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2 ||
+        submotion_index ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2)
+    {
+        return 0;
+    }
+    option_index = (uint16_t)(
+        submotion_index - PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST);
+    if (out_x_q16 != NULL)
+    {
+        *out_x_q16 =
+            pf_m4_falcon_ledge_root_position_data
+                .option_frame_one_x_q16[option_index];
+    }
+    if (out_y_q16 != NULL)
+    {
+        *out_y_q16 =
+            pf_m4_falcon_ledge_root_position_data
+                .option_frame_one_y_q16[option_index];
+    }
+    return 1;
+}
+
+uint16_t pf_m4_falcon_reference_ledge_option_ground_frame(
+    uint16_t submotion_index)
+{
+    if (submotion_index < PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST ||
+        submotion_index >=
+            PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST +
+                PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_COUNT)
+    {
+        return UINT16_C(0);
+    }
+    return pf_m4_falcon_ledge_root_position_data.option_ground_frame[
+        submotion_index - PF_M4_FALCON_LEDGE_OPTION_SUBMOTION_FIRST];
+}
+
+int pf_m4_falcon_reference_hyrule_ledge_jump_position_q16(
+    uint16_t submotion_index,
+    uint16_t displayed_frame,
+    int32_t *out_x_from_wait_q16,
+    int32_t *out_y_from_wait_q16)
+{
+    const int32_t (*path_q16)[2];
+    uint16_t frame_count;
+
+    if (submotion_index ==
+        (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1)
+    {
+        path_q16 = pf_m4_falcon_hyrule_ledge_jump1_quick_from_wait_q16;
+        frame_count = PF_M4_FALCON_LEDGE_JUMP1_QUICK_FRAME_COUNT;
+    }
+    else if (submotion_index ==
+             (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1)
+    {
+        path_q16 = pf_m4_falcon_hyrule_ledge_jump1_slow_from_wait_q16;
+        frame_count = PF_M4_FALCON_LEDGE_JUMP1_SLOW_FRAME_COUNT;
+    }
+    else if (displayed_frame == UINT16_C(1) &&
+             (submotion_index ==
+                  (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2 ||
+              submotion_index ==
+                  (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2))
+    {
+        const uint16_t phase_two_index =
+            submotion_index ==
+                    (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2
+                ? UINT16_C(0)
+                : UINT16_C(1);
+
+        if (out_x_from_wait_q16 != NULL)
+        {
+            *out_x_from_wait_q16 =
+                pf_m4_falcon_hyrule_ledge_jump2_frame_one_from_wait_q16
+                    [phase_two_index][0];
+        }
+        if (out_y_from_wait_q16 != NULL)
+        {
+            *out_y_from_wait_q16 =
+                pf_m4_falcon_hyrule_ledge_jump2_frame_one_from_wait_q16
+                    [phase_two_index][1];
+        }
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+    if (displayed_frame == UINT16_C(0) || displayed_frame > frame_count)
+    {
+        return 0;
+    }
+    if (out_x_from_wait_q16 != NULL)
+    {
+        *out_x_from_wait_q16 = path_q16[displayed_frame - UINT16_C(1)][0];
+    }
+    if (out_y_from_wait_q16 != NULL)
+    {
+        *out_y_from_wait_q16 = path_q16[displayed_frame - UINT16_C(1)][1];
+    }
+    return 1;
+}
+
+int pf_m4_falcon_reference_body_invulnerable(
+    uint16_t submotion_index,
+    uint16_t action_ticks)
+{
+    const pf_m4_falcon_body_collision_timing *timing =
+        pf_m4_falcon_reference_body_collision_timing(submotion_index);
+    const uint32_t displayed_frame =
+        (uint32_t)action_ticks + UINT32_C(1);
+
+    return timing != NULL &&
+           timing->state_two_frame != UINT16_MAX &&
+           displayed_frame >= (uint32_t)timing->state_two_frame &&
+           (timing->state_zero_frame == UINT16_MAX ||
+            displayed_frame < (uint32_t)timing->state_zero_frame);
 }
 
 const pf_m4_falcon_special_attributes *

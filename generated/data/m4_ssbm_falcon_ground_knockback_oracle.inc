@@ -27,11 +27,12 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_ground_knockback_cases[] = {
-    { "late_dash_attack_flat", pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "late_dash_attack_flat", pf_m4_ssbm_falcon_ground_knockback_late_dash_attack_flat_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(15) },
 };
 
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_CASE_COUNT UINT16_C(1)
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SAMPLES_PER_CASE UINT8_C(15)
+#define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_TOTAL_SAMPLE_COUNT UINT16_C(15)
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_LANES_PER_SAMPLE UINT8_C(1)
 #define PF_M4_SSBM_FALCON_GROUND_KNOCKBACK_SERIALIZED_FIELDS \
     (PF_SSBM_STORED_TRACE_FIELDS_V1)

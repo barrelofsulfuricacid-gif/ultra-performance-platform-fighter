@@ -17,6 +17,12 @@ from hsd_figatree import (
     sample_track,
 )
 from ssbm_dat import ft_common_data
+from ssbm_ecb_pose import (
+    ECB_POINTS,
+    canonical_sha256 as ecb_canonical_sha256,
+    pose_q16 as ecb_pose_q16,
+    semantic_payload as ecb_semantic_payload,
+)
 
 
 EXPECTED_CANONICAL_SHA256 = (
@@ -44,8 +50,35 @@ DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256 = (
 DAMAGE_FLY_ECB_CAPTURE_SHA256 = (
     "d011c9bb79f93840d1d97fbf241b754cedf5669c2578c9f1f7f85b45a3f6bd84"
 )
+DAMAGE_FLY_ECB_FULL_SEMANTIC_SHA256 = (
+    "9efade94dbd61446decfabeedce910e4a2823bfc65299b7ecb4cb31fb368eee1"
+)
+PLATFORM_DROP_ECB_CAPTURE_SHA256 = (
+    "0dc57f8ffb85549be76b3b5a0017690b0df16905456169eaceaa2e7975eedc0c"
+)
+PLATFORM_DROP_ECB_SEMANTIC_SHA256 = (
+    "90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8"
+)
+JUMP_FORWARD_ECB_CAPTURE_SHA256 = (
+    "28c4e902d8860f6d02ec779004c67c7ab94f87c7f3970699cfd9a44a8844cf1d"
+)
+JUMP_FORWARD_ECB_SEMANTIC_SHA256 = (
+    "6db927d319942e07d90ba6dd30aad39ad40bb42ab3cc09d498ea2587bfe233bb"
+)
+BOUNCE_ECB_PROFILE_SHA256 = (
+    "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
+)
+BOUNCE_ECB_CAPTURE_SHA256 = (
+    "f1989a139185635d41d5cc2a51b0f88d41c1a26cf24c57fa82614feed6fda1c2"
+)
+BOUNCE_ECB_SEMANTIC_SHA256 = (
+    "9d162fe7917f0c23894ad1fe54a1a665d5c8e446d5ca439180811d706b2431a5"
+)
 LEDGE_ROOT_CAPTURE_SHA256 = (
     "0b23132b7a217ff173397faf8ac9e59169092c99095b4b4e3fbd885526b7a3f3"
+)
+LEDGE_JUMP1_HYRULE_SOURCE_TRACE_SHA256 = (
+    "0882c32de5571a7fedec49d2b7e447bd46ccef930274b9603682239de57ce371"
 )
 
 # Absolute frame-one TransN positions from the live-qualified Hyrule line-37
@@ -54,6 +87,46 @@ LEDGE_ROOT_CAPTURE_SHA256 = (
 # to the ledge endpoint every frame.
 LEDGE_CATCH_FRAME_ONE_ROOT_MELEE = (-5.906890869140625, -20.114771366119385)
 LEDGE_WAIT_FRAME_ONE_ROOT_MELEE = (-2.4527130126953125, -23.096231937408447)
+LEDGE_OPTION_FRAME_ONE_ROOT_MELEE = (
+    (-2.03436279296875, -24.829246997833252),
+    (-2.008941650390625, -24.652788639068604),
+    (-2.0343017578125, -24.829304218292236),
+    (-2.391510009765625, -21.520670413970947),
+    (-2.4515228271484375, -23.096231937408447),
+    (-2.390594482421875, -21.520813465118408),
+    (-2.2660675048828125, -21.522364139556885),
+    (0.0, 0.0),
+    (-2.124969482421875, -21.4601788520813),
+    (0.0, 0.0),
+)
+# First source animation frame whose Cliff* collision callback grounds the
+# rooted option on the live-qualified Hyrule line-37 route. Zero means that
+# phase is never grounded. Order is submotions 219 through 228.
+LEDGE_OPTION_GROUND_FRAME = (37, 19, 28, 21, 37, 17, 0, 0, 0, 0)
+
+# Post-collision world displacement from CliffWait frame one on Hyrule's
+# right ledge. CliffJump1_Phys writes TransN relative to the ledge and its
+# collision callback resolves the animated ECB against the ledge wall; the X
+# result therefore cannot be reconstructed from the character root track
+# alone. The left ledge is the exact mirror in the compact stage profile.
+LEDGE_JUMP1_HYRULE_QUICK_FROM_WAIT_Q16 = (
+    (-2241, -19023), (-4704, -39525), (-7286, -60950),
+    (-9886, -82744), (-11067, -104351), (-11406, -125215),
+    (-10904, -144782), (-11240, -155183), (-14591, -168594),
+    (-14382, -199956), (-14753, -237028),
+)
+LEDGE_JUMP1_HYRULE_SLOW_FROM_WAIT_Q16 = (
+    (-1276, -18300), (-2717, -37657), (-4235, -57819),
+    (-5741, -78532), (-7148, -99543), (-8369, -120598),
+    (-9315, -141444), (-9956, -163244), (-10345, -186483),
+    (-10520, -209898), (-10518, -232223), (-10379, -252195),
+    (-10140, -268548), (-9157, -274407), (-7621, -270851),
+    (-6823, -268548), (-7130, -272307), (-8174, -277320),
+)
+LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_Q16 = (
+    (-20192, -275398),
+    (-15013, -315690),
+)
 
 COMMON_ATTRIBUTE_COUNT = 97
 SUBMOTION_COUNT = 318
@@ -209,6 +282,88 @@ DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK = 0x03C0000F
 # 4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb).
 FALLING_ECB_BOTTOM_Y_MELEE = 7.932853698730469
 
+# Pass is a 30-frame common submotion (index 244). Its animation clock is
+# independent from common-data x470, which only controls how long collision
+# skips the platform that was just left. The complete frame 0..29 ECB was
+# captured with the fighter relocated after Pass became active so landing
+# could not truncate the animation. The raw capture and the canonical
+# big-endian (u32 action frame, f32 bottom-Y) stream are pinned above.
+PLATFORM_DROP_ECB_BOTTOM_Y_MELEE = (
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    6.50372314453125,
+    4.010986328125,
+    0.781219482421875,
+    0.16302490234375,
+    2.0479736328125,
+    0.787353515625,
+    0.23211669921875,
+    0.577789306640625,
+    0.728912353515625,
+    0.3431396484375,
+    0.202789306640625,
+    0.1751708984375,
+    0.2315673828125,
+    0.36334228515625,
+    0.560394287109375,
+    0.79730224609375,
+    1.043670654296875,
+    1.24462890625,
+    1.4481201171875,
+    1.646820068359375,
+    1.834503173828125,
+)
+
+# Complete displayed-frame JumpF ECB bottom from the pinned natural
+# Battlefield left-platform route. The raw capture and the canonical
+# big-endian (u32 displayed frame, f32 bottom-Y) stream are pinned above.
+# JumpF's animated bottom, rather than Fall's steady-state pose, determines
+# the exact frame on which the descending fighter recontacts a soft floor.
+JUMP_FORWARD_ECB_BOTTOM_Y_MELEE = (
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    3.251678466796875,
+    3.19659423828125,
+    3.143585205078125,
+    3.09197998046875,
+    3.04095458984375,
+    2.98968505859375,
+    2.937255859375,
+    2.72930908203125,
+    2.56195068359375,
+    2.4234619140625,
+    2.30523681640625,
+    2.20367431640625,
+    2.12274169921875,
+    2.07855224609375,
+    2.09344482421875,
+    2.237457275390625,
+    2.547332763671875,
+    2.994537353515625,
+    3.495758056640625,
+    3.857330322265625,
+    4.177001953125,
+    3.8646240234375,
+    3.344024658203125,
+    2.875091552734375,
+    2.486053466796875,
+    2.19189453125,
+)
+
 # Complete displayed-frame ECB bottom for the pinned natural Hyrule
 # DamageFlyN route. Frames 1-5 use the source zero-bottom fallback; the later
 # pose is what defers line-37 landing until displayed frame 24.
@@ -237,6 +392,89 @@ DAMAGE_FLY_ECB_BOTTOM_Y_MELEE = (
     7.744410037994385,
     7.750994682312012,
     7.681281089782715,
+)
+
+# Complete DamageFlyN ECB top and symmetric side point. Three independently
+# captured Hyrule routes produce the same 24-frame Q16 table and semantic
+# digest above. Melee's wall and ceiling queries consume these points; the
+# bottom-only table is insufficient for sloped Battlefield collision.
+DAMAGE_FLY_ECB_TOP_Y_MELEE = (
+    14.397089004516602,
+    13.162859916687012,
+    11.669897079467773,
+    11.075756072998047,
+    10.84164047241211,
+    11.1769380569458,
+    11.335014343261719,
+    11.350427627563477,
+    11.338473320007324,
+    11.39617919921875,
+    11.492490768432617,
+    11.588090896606445,
+    11.643549919128418,
+    11.68921184539795,
+    11.858858108520508,
+    12.093215942382812,
+    12.338375091552734,
+    12.583917617797852,
+    12.816632270812988,
+    13.137887954711914,
+    13.171178817749023,
+    13.244199752807617,
+    13.136595726013184,
+    13.367762565612793,
+)
+DAMAGE_FLY_ECB_SIDE_X_MELEE = (
+    3.7614593505859375,
+    3.92529296875,
+    4.276664733886719,
+    4.552490234375,
+    4.5292205810546875,
+    4.490440368652344,
+    4.4280853271484375,
+    4.367012023925781,
+    4.300819396972656,
+    4.229911804199219,
+    4.154304504394531,
+    4.0759735107421875,
+    4.0001983642578125,
+    3.925323486328125,
+    3.8440704345703125,
+    3.7541122436523438,
+    3.6508026123046875,
+    3.58642578125,
+    3.5352783203125,
+    3.3623733520507812,
+    3.1258544921875,
+    2.8462753295898438,
+    3.7246017456054688,
+    4.9794464111328125,
+)
+DAMAGE_FLY_ECB_SIDE_Y_MELEE = (
+    9.784567832946777,
+    10.077530860900879,
+    9.982057571411133,
+    9.595584869384766,
+    8.790365219116211,
+    9.128870010375977,
+    9.325274467468262,
+    9.411949157714844,
+    9.45164966583252,
+    9.499107360839844,
+    9.54520320892334,
+    9.576480865478516,
+    9.579131126403809,
+    9.573993682861328,
+    9.633525848388672,
+    9.733704566955566,
+    9.853341102600098,
+    9.993192672729492,
+    10.152685165405273,
+    10.36670970916748,
+    10.426342964172363,
+    10.494304656982422,
+    10.443795204162598,
+    10.524521827697754,
 )
 
 # FallSpecial is a distinct common animation from Falling. These eight live
@@ -520,6 +758,85 @@ def canonical_sha256(data: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def render_ecb_pose_q16(frame: dict[str, Any]) -> str:
+    ecb = frame["ecb_q16"]
+    values = [
+        value
+        for point in ECB_POINTS
+        for value in ecb[point]
+    ]
+    return "{ " + ", ".join(f"INT32_C({value})" for value in values) + " }"
+
+
+def load_bounce_ecb_profile(path: Path) -> dict[str, Any]:
+    raw = path.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != BOUNCE_ECB_PROFILE_SHA256:
+        raise ValueError(f"unexpected bounce ECB profile SHA-256: {digest}")
+    profile = json.loads(raw)
+    if (
+        profile.get("schema") != 1
+        or profile.get("scope") != "ssbm-action-owned-ecb-pose-tracks"
+        or profile.get("capture_sha256") != BOUNCE_ECB_CAPTURE_SHA256
+        or profile.get("semantic_sha256") != BOUNCE_ECB_SEMANTIC_SHA256
+        or profile.get("coordinate_conversion")
+        != {
+            "rounding": "nearest-python-round",
+            "x_sim_units_per_melee_unit": "12/115",
+            "y_sim_units_per_melee_unit": "11/62",
+        }
+    ):
+        raise ValueError("unexpected bounce ECB profile provenance")
+    tracks = profile.get("tracks")
+    expected_tracks = (
+        ("ceiling_bounce", "BOUNCE_CEILING", 9),
+        ("wall_bounce", "BOUNCE_WALL", 51),
+    )
+    if not isinstance(tracks, list) or len(tracks) != len(expected_tracks):
+        raise ValueError("incomplete bounce ECB profile")
+    for track, (track_id, source_action, frame_count) in zip(
+        tracks, expected_tracks, strict=True
+    ):
+        if (
+            not isinstance(track, dict)
+            or track.get("id") != track_id
+            or track.get("source_action") != source_action
+            or track.get("canonical_facing") != 1
+            or track.get("frame_count") != frame_count
+            or not isinstance(track.get("frames"), list)
+            or len(track["frames"]) != frame_count
+        ):
+            raise ValueError(f"invalid bounce ECB track {track_id!r}")
+        for displayed_frame, frame in enumerate(track["frames"]):
+            source_ecb = frame.get("source_ecb")
+            q16_ecb = frame.get("ecb_q16")
+            if (
+                not isinstance(frame, dict)
+                or frame.get("displayed_frame") != displayed_frame
+                or not isinstance(source_ecb, dict)
+                or not isinstance(q16_ecb, dict)
+                or set(source_ecb) != set(ECB_POINTS)
+                or set(q16_ecb) != set(ECB_POINTS)
+                or ecb_pose_q16(source_ecb) != q16_ecb
+                or any(
+                    not isinstance(value, int)
+                    or isinstance(value, bool)
+                    or not -(1 << 31) <= value < (1 << 31)
+                    for point in ECB_POINTS
+                    for value in q16_ecb[point]
+                )
+            ):
+                raise ValueError(
+                    f"invalid bounce ECB pose {track_id}:{displayed_frame}"
+                )
+    actual_semantic = ecb_canonical_sha256(ecb_semantic_payload(tracks))
+    if actual_semantic != BOUNCE_ECB_SEMANTIC_SHA256:
+        raise ValueError(
+            f"unexpected bounce ECB semantic SHA-256: {actual_semantic}"
+        )
+    return profile
+
+
 def hash_figatree(
     digest: Any,
     submotion_index: int,
@@ -699,6 +1016,24 @@ def u16(value: Any) -> int:
 
 def q16(value: float) -> int:
     return round(value * 65536.0)
+
+
+def c_hit_effect(effect: dict[str, Any]) -> str:
+    element = ELEMENTS[str(effect["element"])]
+    return (
+        "{ "
+        f"UINT16_C({int(effect['angle'])}), "
+        f"UINT16_C({int(effect['kbGrowth'])}), "
+        f"UINT16_C({int(effect['weightDepKb'])}), "
+        f"UINT16_C({int(effect['baseKb'])}), "
+        f"UINT8_C({int(effect['damage'])}), "
+        f"UINT8_C({int(effect['shieldDamage'])}), "
+        f"UINT8_C({int(effect['hitboxInteraction'])}), "
+        f"(uint8_t){element}, "
+        f"UINT8_C({1 if effect['hitGrounded'] else 0}), "
+        f"UINT8_C({1 if effect['hitAirborne'] else 0}), "
+        "{ UINT8_C(0), UINT8_C(0) } }"
+    )
 
 
 def raw_f32(words: list[int], index: int) -> float:
@@ -927,12 +1262,84 @@ def throw_release_frame(
     return releases[0]
 
 
+def ledge_attack_reference(
+    subactions: list[dict[str, Any]],
+    submotion_catalog: list[dict[str, int]],
+    submotion_index: int,
+) -> dict[str, Any]:
+    """Collapse one CliffAttack script into a zero-cost runtime phase."""
+
+    subaction = subactions[submotion_index]
+    frame = 0
+    first_frame: int | None = None
+    end_frame: int | None = None
+    effects: list[dict[str, Any]] = []
+    for event in subaction.get("events", []):
+        command_id = int(str(event["commandId"]), 16)
+        fields = event.get("fields") or {}
+        if command_id == 0x08:
+            frame = int(fields["frame"])
+        elif command_id == 0x04:
+            frame += int(fields["frames"])
+        elif command_id == 0x2C:
+            if first_frame is None:
+                first_frame = frame
+            elif frame != first_frame:
+                raise ValueError(
+                    f"submotion {submotion_index}: disjoint CliffAttack hitboxes"
+                )
+            effects.append(
+                {
+                    key: fields[key]
+                    for key in (
+                        "damage",
+                        "angle",
+                        "kbGrowth",
+                        "weightDepKb",
+                        "hitboxInteraction",
+                        "baseKb",
+                        "element",
+                        "shieldDamage",
+                        "hitGrounded",
+                        "hitAirborne",
+                    )
+                }
+            )
+        elif command_id == 0x40 and first_frame is not None:
+            if end_frame is not None:
+                raise ValueError(
+                    f"submotion {submotion_index}: repeated CliffAttack clear"
+                )
+            end_frame = frame
+    if first_frame is None or end_frame is None or end_frame <= first_frame:
+        raise ValueError(
+            f"submotion {submotion_index}: incomplete CliffAttack phase"
+        )
+    if not effects or any(effect != effects[0] for effect in effects[1:]):
+        raise ValueError(
+            f"submotion {submotion_index}: non-uniform CliffAttack effects"
+        )
+    total_frames = submotion_catalog[submotion_index]["gameplay_frame_count"]
+    if end_frame > total_frames:
+        raise ValueError(
+            f"submotion {submotion_index}: CliffAttack exceeds animation"
+        )
+    return {
+        "submotion": submotion_index,
+        "total_frames": total_frames,
+        "first_frame": first_frame,
+        "last_frame": end_frame - 1,
+        "effect": effects[0],
+    }
+
+
 def generate(
     data: dict[str, Any],
     dat_data: dict[str, Any],
     source_dat: bytes,
     animation_dat: bytes,
     common_dat: bytes,
+    bounce_ecb_profile: dict[str, Any],
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -940,6 +1347,11 @@ def generate(
     moves: list[dict[str, int]] = []
     motion_x_q16: list[int] = []
     motion_y_q16: list[int] = []
+    bounce_tracks = {
+        str(track["id"]): track for track in bounce_ecb_profile["tracks"]
+    }
+    ceiling_bounce_frames = bounce_tracks["ceiling_bounce"]["frames"]
+    wall_bounce_frames = bounce_tracks["wall_bounce"]["frames"]
 
     fighter_data = dat_data["nodes"][0]["data"]
     subactions = fighter_data["subactions"]
@@ -1075,6 +1487,17 @@ def generate(
             }
         )
         body_collision_timings.append(body_collision_timing(subaction))
+    ledge_attacks = [
+        ledge_attack_reference(
+            subactions,
+            submotion_catalog,
+            submotion_index,
+        )
+        for submotion_index in (
+            221,
+            222,
+        )
+    ]
     if (
         sum(row["animation_frame_count"] != 0 for row in submotion_catalog) != 275
         or sum(row["animation_frame_count"] == 0 for row in submotion_catalog) != 43
@@ -1337,6 +1760,8 @@ def generate(
         + bytes.fromhex(SOURCE_DAT_SHA256)
         + bytes.fromhex(SOURCE_ANIMATION_DAT_SHA256)
         + bytes.fromhex(SOURCE_COMMON_DAT_SHA256)
+        + bytes.fromhex(BOUNCE_ECB_PROFILE_SHA256)
+        + bytes.fromhex(BOUNCE_ECB_SEMANTIC_SHA256)
         + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
         + json.dumps(
             {
@@ -1352,6 +1777,7 @@ def generate(
                 ),
                 "fighter_special": special_attributes,
                 "fighter_collision": collision_attributes,
+                "ledge_attacks": ledge_attacks,
                 "down_bound_floor_contact_capture_sha256": (
                     DOWN_BOUND_FLOOR_CONTACT_CAPTURE_SHA256
                 ),
@@ -1362,8 +1788,14 @@ def generate(
                 "damage_fly_ecb_capture_sha256": (
                     DAMAGE_FLY_ECB_CAPTURE_SHA256
                 ),
+                "damage_fly_ecb_full_semantic_sha256": (
+                    DAMAGE_FLY_ECB_FULL_SEMANTIC_SHA256
+                ),
                 "falcon_damage_fly_collision_pose_melee": {
                     "bottom_y_from_origin": DAMAGE_FLY_ECB_BOTTOM_Y_MELEE,
+                    "top_y_from_origin": DAMAGE_FLY_ECB_TOP_Y_MELEE,
+                    "side_x_from_origin": DAMAGE_FLY_ECB_SIDE_X_MELEE,
+                    "side_y_from_origin": DAMAGE_FLY_ECB_SIDE_Y_MELEE,
                 },
                 "falcon_dive_ledge_ecb_capture_sha256": (
                     SPECIALHI_LEDGE_ECB_CAPTURE_SHA256
@@ -1376,6 +1808,24 @@ def generate(
                 },
                 "falcon_falling_collision_pose_melee": {
                     "bottom_y_from_origin": FALLING_ECB_BOTTOM_Y_MELEE,
+                },
+                "falcon_platform_drop_ecb_capture_sha256": (
+                    PLATFORM_DROP_ECB_CAPTURE_SHA256
+                ),
+                "falcon_platform_drop_ecb_semantic_sha256": (
+                    PLATFORM_DROP_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_platform_drop_collision_pose_melee": {
+                    "bottom_y_from_origin": PLATFORM_DROP_ECB_BOTTOM_Y_MELEE,
+                },
+                "falcon_jump_forward_ecb_capture_sha256": (
+                    JUMP_FORWARD_ECB_CAPTURE_SHA256
+                ),
+                "falcon_jump_forward_ecb_semantic_sha256": (
+                    JUMP_FORWARD_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_jump_forward_collision_pose_melee": {
+                    "bottom_y_from_origin": JUMP_FORWARD_ECB_BOTTOM_Y_MELEE,
                 },
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
@@ -1478,6 +1928,8 @@ def generate(
         f"/* PlCaAJ.dat SHA-256: {SOURCE_ANIMATION_DAT_SHA256} */",
         f"/* PlCa.dat JSON SHA-256: {SOURCE_DAT_JSON_SHA256} */",
         f"/* PlCo.dat SHA-256: {SOURCE_COMMON_DAT_SHA256} */",
+        f"/* bounce ECB profile SHA-256: {BOUNCE_ECB_PROFILE_SHA256} */",
+        f"/* bounce ECB semantic SHA-256: {BOUNCE_ECB_SEMANTIC_SHA256} */",
         f"/* complete Falcon source SHA-256: {complete_source_digest} */",
         f"/* complete 318-submotion catalog SHA-256: {submotion_catalog_digest} */",
         f"/* complete action-script SHA-256: {action_script_digest} */",
@@ -1642,6 +2094,67 @@ def generate(
             "    .wait_frame_one_y_q16 = INT32_C("
             f"{round(-LEDGE_WAIT_FRAME_ONE_ROOT_MELEE[1] * MELEE_Y_TO_SIM_Q16)}"
             "),",
+            "    .option_frame_one_x_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value[0] * MELEE_X_TO_SIM_Q16)})"
+                for value in LEDGE_OPTION_FRAME_ONE_ROOT_MELEE
+            )
+            + ",",
+            "    },",
+            "    .option_frame_one_y_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(-value[1] * MELEE_Y_TO_SIM_Q16)})"
+                for value in LEDGE_OPTION_FRAME_ONE_ROOT_MELEE
+            )
+            + ",",
+            "    },",
+            "    .option_ground_frame = {",
+            "        "
+            + ", ".join(
+                f"UINT16_C({value})" for value in LEDGE_OPTION_GROUND_FRAME
+            )
+            + ",",
+            "    },",
+            "};",
+            "",
+            "static const pf_m4_falcon_ledge_attack_reference",
+            "pf_m4_falcon_ledge_attack_references[2] = {",
+            *(
+                "    { "
+                f"UINT16_C({attack['total_frames']}), "
+                f"UINT16_C({attack['first_frame']}), "
+                f"UINT16_C({attack['last_frame']}), UINT16_C(0), "
+                f"{c_hit_effect(attack['effect'])} }},"
+                for attack in ledge_attacks
+            ),
+            "};",
+            "",
+            "/* qualified Hyrule CliffJump1 trace SHA-256: "
+            f"{LEDGE_JUMP1_HYRULE_SOURCE_TRACE_SHA256} */",
+            "static const int32_t",
+            "pf_m4_falcon_hyrule_ledge_jump1_quick_from_wait_q16"
+            "[PF_M4_FALCON_LEDGE_JUMP1_QUICK_FRAME_COUNT][2] = {",
+            *(
+                f"    {{ INT32_C({x}), INT32_C({y}) }},"
+                for x, y in LEDGE_JUMP1_HYRULE_QUICK_FROM_WAIT_Q16
+            ),
+            "};",
+            "static const int32_t",
+            "pf_m4_falcon_hyrule_ledge_jump1_slow_from_wait_q16"
+            "[PF_M4_FALCON_LEDGE_JUMP1_SLOW_FRAME_COUNT][2] = {",
+            *(
+                f"    {{ INT32_C({x}), INT32_C({y}) }},"
+                for x, y in LEDGE_JUMP1_HYRULE_SLOW_FROM_WAIT_Q16
+            ),
+            "};",
+            "static const int32_t",
+            "pf_m4_falcon_hyrule_ledge_jump2_frame_one_from_wait_q16[2][2] = {",
+            *(
+                f"    {{ INT32_C({x}), INT32_C({y}) }},"
+                for x, y in LEDGE_JUMP2_HYRULE_FRAME_ONE_FROM_WAIT_Q16
+            ),
             "};",
             "",
             "static const pf_m4_falcon_common_special_attributes",
@@ -1786,6 +2299,30 @@ def generate(
             )
             + ",",
             "    },",
+            "    .damage_fly_top_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in DAMAGE_FLY_ECB_TOP_Y_MELEE
+            )
+            + ",",
+            "    },",
+            "    .damage_fly_side_x_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_X_TO_SIM_Q16)})"
+                for value in DAMAGE_FLY_ECB_SIDE_X_MELEE
+            )
+            + ",",
+            "    },",
+            "    .damage_fly_side_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in DAMAGE_FLY_ECB_SIDE_Y_MELEE
+            )
+            + ",",
+            "    },",
             "    .air_dodge_bottom_y_from_origin_q16 = {",
             "        "
             + ", ".join(
@@ -1793,6 +2330,34 @@ def generate(
                 for value in AIR_DODGE_ECB_BOTTOM_Y_MELEE
             )
             + ",",
+            "    },",
+            "    .platform_drop_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in PLATFORM_DROP_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
+            "    .jump_forward_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({round(value * MELEE_Y_TO_SIM_Q16)})"
+                for value in JUMP_FORWARD_ECB_BOTTOM_Y_MELEE
+            )
+            + ",",
+            "    },",
+            "    .ceiling_bounce = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in ceiling_bounce_frames
+            ),
+            "    },",
+            "    .wall_bounce = {",
+            *(
+                f"        {render_ecb_pose_q16(frame)},"
+                for frame in wall_bounce_frames
+            ),
             "    },",
             "    .fall_special_bottom_y_from_origin_q16 = {",
             "        "
@@ -1843,21 +2408,7 @@ def generate(
         )
     )
     for effect in effects:
-        element = ELEMENTS[str(effect["element"])]
-        lines.append(
-            "    { "
-            f"UINT16_C({int(effect['angle'])}), "
-            f"UINT16_C({int(effect['kbGrowth'])}), "
-            f"UINT16_C({int(effect['weightDepKb'])}), "
-            f"UINT16_C({int(effect['baseKb'])}), "
-            f"UINT8_C({int(effect['damage'])}), "
-            f"UINT8_C({int(effect['shieldDamage'])}), "
-            f"UINT8_C({int(effect['hitboxInteraction'])}), "
-            f"(uint8_t){element}, "
-            f"UINT8_C({1 if effect['hitGrounded'] else 0}), "
-            f"UINT8_C({1 if effect['hitAirborne'] else 0}), "
-            "{ UINT8_C(0), UINT8_C(0) } },"
-        )
+        lines.append(f"    {c_hit_effect(effect)},")
     lines.extend(
         ("};", "", "static const pf_m4_reference_throw pf_m4_falcon_throws[] = {")
     )
@@ -1957,10 +2508,20 @@ def main() -> int:
     common_dat_digest = hashlib.sha256(common_dat).hexdigest()
     if common_dat_digest != SOURCE_COMMON_DAT_SHA256:
         raise SystemExit(f"unexpected PlCo.dat SHA-256: {common_dat_digest}")
+    bounce_ecb_profile = load_bounce_ecb_profile(
+        Path(__file__).with_name("data") / "ssbm_falcon_bounce_ecb.json"
+    )
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
-    output = generate(data, dat_data, source_dat, animation_dat, common_dat)
+    output = generate(
+        data,
+        dat_data,
+        source_dat,
+        animation_dat,
+        common_dat,
+        bounce_ecb_profile,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")
     print(

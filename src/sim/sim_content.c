@@ -1635,6 +1635,7 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     const pf_m4_falcon_air_dodge_attributes *air_dodge_attributes;
     const pf_m4_ssbm_damage_response_attributes *damage_response;
     const pf_m4_ssbm_surface_response_attributes *surface_response;
+    const pf_m4_ssbm_ledge_response_attributes *ledge_response;
     const pf_m4_melee_stale_move_data *stale_move_data;
     pf_m4_fighter_data *fighter;
     pf_m4_stage_data *stage;
@@ -1653,9 +1654,11 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     air_dodge_attributes = pf_m4_falcon_reference_air_dodge_attributes();
     damage_response = pf_m4_ssbm_common_reference_damage_response();
     surface_response = pf_m4_ssbm_common_reference_surface_response();
+    ledge_response = pf_m4_ssbm_common_reference_ledge_response();
     stale_move_data = pf_m4_falcon_reference_stale_move_data();
     if (falcon_attributes == NULL || air_dodge_attributes == NULL ||
         damage_response == NULL || surface_response == NULL ||
+        ledge_response == NULL ||
         stale_move_data == NULL)
     {
         return PF_STATUS_DETERMINISTIC_FAULT;
@@ -2132,7 +2135,8 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     fighter->platform_drop_ticks = UINT16_C(9);
     fighter->platform_drop_startup_ticks = UINT16_C(3);
     fighter->ledge_invulnerability_ticks = UINT16_C(37);
-    fighter->ledge_regrab_lockout_ticks = UINT16_C(29);
+    fighter->ledge_regrab_lockout_ticks =
+        (uint16_t)(ledge_response->regrab_cooldown_ticks - UINT16_C(1));
     fighter->ledge_transition_ticks = UINT16_C(8);
     fighter->ledge_roll_ticks = UINT16_C(30);
     fighter->ledge_roll_movement_ticks = UINT16_C(20);
@@ -2408,6 +2412,137 @@ pf_status pf_m4_default_content(pf_m4_content *out_content)
     return PF_STATUS_OK;
 }
 
+static int32_t pf_m4_stage_line_center_x_q16(
+    const pf_m4_ssbm_stage_collision_line *line)
+{
+    return (int32_t)(
+        ((int64_t)line->start_x_q16 + (int64_t)line->end_x_q16) /
+        INT64_C(2));
+}
+
+static int32_t pf_m4_stage_line_half_width_q16(
+    const pf_m4_ssbm_stage_collision_line *line)
+{
+    const int64_t width =
+        line->end_x_q16 >= line->start_x_q16
+            ? (int64_t)line->end_x_q16 - (int64_t)line->start_x_q16
+            : (int64_t)line->start_x_q16 - (int64_t)line->end_x_q16;
+
+    return (int32_t)(width / INT64_C(2));
+}
+
+static pf_status pf_m4_apply_battlefield_stage(pf_m4_content *content)
+{
+    const pf_m4_ssbm_stage_collision_profile *profile =
+        pf_m4_ssbm_reference_stage_collision(
+            (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD);
+    const pf_m4_ssbm_stage_spawn_point *spawn;
+    const pf_m4_ssbm_stage_collision_line *left_edge;
+    const pf_m4_ssbm_stage_collision_line *main_floor;
+    const pf_m4_ssbm_stage_collision_line *side_platform;
+    const pf_m4_ssbm_stage_collision_line *top_platform;
+    const pf_m4_ssbm_stage_collision_line *right_edge;
+    pf_m4_stage_data *stage;
+
+    if (profile == NULL || profile->line_count != UINT16_C(23) ||
+        profile->floor_start != UINT16_C(0) ||
+        profile->floor_count != UINT16_C(6) ||
+        profile->spawn_point_count != UINT8_C(4) ||
+        profile->source_grkind != UINT16_C(36))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    spawn = &profile->spawn_points[0];
+    left_edge = &profile->lines[0];
+    main_floor = &profile->lines[1];
+    side_platform = &profile->lines[2];
+    top_platform = &profile->lines[3];
+    right_edge = &profile->lines[5];
+    if (spawn->support == UINT8_C(0) ||
+        left_edge->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+        main_floor->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+        side_platform->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+        top_platform->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+        right_edge->kind != (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR)
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+
+    stage = &content->stage;
+    stage->reference_collision_profile =
+        (uint16_t)PF_M4_REFERENCE_STAGE_BATTLEFIELD;
+    stage->floor_left_q16 =
+        left_edge->start_x_q16 < left_edge->end_x_q16
+            ? left_edge->start_x_q16
+            : left_edge->end_x_q16;
+    stage->floor_right_q16 =
+        right_edge->start_x_q16 > right_edge->end_x_q16
+            ? right_edge->start_x_q16
+            : right_edge->end_x_q16;
+    stage->floor_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+        main_floor,
+        pf_m4_stage_line_center_x_q16(main_floor));
+    stage->platform_center_x_q16 =
+        pf_m4_stage_line_center_x_q16(top_platform);
+    stage->platform_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+        top_platform,
+        stage->platform_center_x_q16);
+    stage->platform_half_width_q16 =
+        pf_m4_stage_line_half_width_q16(top_platform);
+    stage->platform_motion_amplitude_q16 = INT32_C(0);
+    stage->upper_platform_center_x_q16 =
+        pf_m4_stage_line_center_x_q16(side_platform);
+    stage->upper_platform_y_q16 = pf_m4_ssbm_stage_line_y_q16(
+        side_platform,
+        stage->upper_platform_center_x_q16);
+    stage->upper_platform_half_width_q16 =
+        pf_m4_stage_line_half_width_q16(side_platform);
+    stage->solid_left_q16 = -PF_Q16_ONE;
+    stage->solid_right_q16 = PF_Q16_ONE;
+    stage->solid_top_q16 = stage->floor_y_q16 - INT32_C(3) * PF_Q16_ONE;
+    stage->solid_bottom_q16 = stage->floor_y_q16 - PF_Q16_ONE;
+    stage->blast_left_q16 = profile->blast_left_q16;
+    stage->blast_right_q16 = profile->blast_right_q16;
+    stage->blast_top_q16 = profile->blast_top_q16;
+    stage->blast_bottom_q16 = profile->blast_bottom_q16;
+    stage->spawn_spacing_q16 = PF_Q16_ONE;
+    stage->platform_motion_period_ticks = UINT16_C(120);
+    stage->reference_spawn_line = (uint16_t)spawn->support - UINT16_C(1);
+    stage->reference_spawn_x_q16 = spawn->position_x_q16;
+    stage->revival_platform_start_y_q16 = profile->camera_top_q16;
+    stage->revival_platform_end_y_q16 = INT32_C(2) * PF_Q16_ONE;
+    stage->revival_platform_half_width_q16 = INT32_C(2) * PF_Q16_ONE;
+    return PF_STATUS_OK;
+}
+
+pf_status pf_m4_reference_stage_content(
+    pf_m4_reference_stage reference_stage,
+    pf_m4_content *out_content)
+{
+    pf_status status;
+
+    if (out_content == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    status = pf_m4_default_content(out_content);
+    if (status != PF_STATUS_OK ||
+        reference_stage == PF_M4_REFERENCE_STAGE_AUTHORED)
+    {
+        return status;
+    }
+    if (reference_stage != PF_M4_REFERENCE_STAGE_BATTLEFIELD)
+    {
+        return PF_STATUS_INVALID_CONFIG;
+    }
+    status = pf_m4_apply_battlefield_stage(out_content);
+    if (status != PF_STATUS_OK)
+    {
+        return status;
+    }
+    return pf_m4_validate_content(out_content);
+}
+
 pf_status pf_m4_validate_content(const pf_m4_content *content)
 {
     const pf_m4_fighter_data *fighter;
@@ -2457,6 +2592,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
     int upper_overlaps_platform;
     int upper_overlaps_revival;
     int upper_overlaps_solid;
+    uint32_t reference_spawn_index;
 
     if (content == NULL)
     {
@@ -3587,6 +3723,53 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         {
             return PF_STATUS_INVALID_CONFIG;
         }
+        if (reference_stage->spawn_point_count > UINT8_C(0))
+        {
+            if (reference_stage->spawn_points == NULL ||
+                reference_stage->spawn_point_count >
+                    (uint8_t)PF_SIM_MAX_PLAYERS ||
+                stage->blast_left_q16 != reference_stage->blast_left_q16 ||
+                stage->blast_right_q16 != reference_stage->blast_right_q16 ||
+                stage->blast_top_q16 != reference_stage->blast_top_q16 ||
+                stage->blast_bottom_q16 != reference_stage->blast_bottom_q16)
+            {
+                return PF_STATUS_INVALID_CONFIG;
+            }
+            for (reference_spawn_index = UINT32_C(0);
+                 reference_spawn_index <
+                     (uint32_t)reference_stage->spawn_point_count;
+                 ++reference_spawn_index)
+            {
+                const pf_m4_ssbm_stage_spawn_point *spawn =
+                    &reference_stage->spawn_points[reference_spawn_index];
+                const pf_m4_ssbm_stage_collision_line *spawn_line =
+                    pf_m4_ssbm_reference_stage_line(
+                        stage->reference_collision_profile,
+                        spawn->support);
+                const int32_t spawn_left =
+                    spawn_line != NULL &&
+                            spawn_line->start_x_q16 < spawn_line->end_x_q16
+                        ? spawn_line->start_x_q16
+                        : spawn_line != NULL ? spawn_line->end_x_q16
+                                             : INT32_C(0);
+                const int32_t spawn_right =
+                    spawn_line != NULL &&
+                            spawn_line->start_x_q16 > spawn_line->end_x_q16
+                        ? spawn_line->start_x_q16
+                        : spawn_line != NULL ? spawn_line->end_x_q16
+                                             : INT32_C(0);
+
+                if (spawn->source_index != (uint8_t)reference_spawn_index ||
+                    spawn_line == NULL ||
+                    spawn_line->kind !=
+                        (uint8_t)PF_M4_SSBM_STAGE_SURFACE_FLOOR ||
+                    spawn->position_x_q16 < spawn_left ||
+                    spawn->position_x_q16 > spawn_right)
+                {
+                    return PF_STATUS_INVALID_CONFIG;
+                }
+            }
+        }
     }
     platform_left_extent =
         (int64_t)stage->platform_center_x_q16 -
@@ -3693,7 +3876,9 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             UINT32_C(600) ||
         stage->blast_left_q16 < -maximum_coordinate_q16 ||
         stage->blast_right_q16 > maximum_coordinate_q16 ||
-        stage->blast_top_q16 < INT32_C(0) ||
+        (stage->reference_collision_profile ==
+             (uint16_t)PF_M4_REFERENCE_STAGE_AUTHORED &&
+         stage->blast_top_q16 < INT32_C(0)) ||
         stage->blast_bottom_q16 > maximum_coordinate_q16 ||
         stage->platform_motion_period_ticks < UINT16_C(4) ||
         (stage->platform_motion_period_ticks % UINT16_C(4)) !=

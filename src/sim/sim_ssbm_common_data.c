@@ -42,3 +42,9 @@ pf_m4_ssbm_common_reference_surface_response(void)
 {
     return &pf_m4_ssbm_surface_response_attribute_data;
 }
+
+const pf_m4_ssbm_ledge_response_attributes *
+pf_m4_ssbm_common_reference_ledge_response(void)
+{
+    return &pf_m4_ssbm_ledge_response_attribute_data;
+}

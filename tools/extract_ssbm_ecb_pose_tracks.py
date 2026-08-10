@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Canonicalize action-owned ECB tracks from a Dolphin movement capture."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+from ssbm_ecb_pose import (
+    ECB_POINTS,
+    canonical_source_ecb,
+    canonical_sha256,
+    pose_q16,
+    semantic_payload,
+)
+
+
+def extract_track(
+    rows: list[dict[str, Any]],
+    track_id: str,
+    source_action: str,
+    label_substring: str,
+    last_displayed_frame: int,
+) -> dict[str, Any]:
+    selected = [
+        row
+        for row in rows
+        if row.get("action") == source_action
+        and label_substring in str(row.get("label", ""))
+    ]
+    if not selected:
+        raise ValueError(f"track {track_id!r} selected no rows")
+
+    frames: dict[int, dict[str, Any]] = {}
+    last_new_frame = -1
+    for row in selected:
+        action_frame = row.get("action_frame")
+        if (
+            not isinstance(action_frame, (int, float))
+            or isinstance(action_frame, bool)
+            or float(action_frame) != int(action_frame)
+        ):
+            raise ValueError(f"track {track_id!r} has a non-integral frame")
+        displayed_frame = int(action_frame)
+        surface = row.get("surface_collision_memory")
+        if not isinstance(surface, dict) or not isinstance(surface.get("ecb"), dict):
+            raise ValueError(f"track {track_id!r} is missing an ECB probe")
+        raw_facing = row.get("facing")
+        if raw_facing not in (-1, 1) or isinstance(raw_facing, bool):
+            raise ValueError(f"track {track_id!r} has invalid facing")
+        source_ecb = canonical_source_ecb(surface["ecb"], int(raw_facing))
+        current_q16 = pose_q16(source_ecb)
+        existing = frames.get(displayed_frame)
+        if existing is not None:
+            if existing["ecb_q16"] != current_q16:
+                raise ValueError(
+                    f"track {track_id!r} frame {displayed_frame} has "
+                    "non-deterministic Q16.16 ECB values"
+                )
+            continue
+        if displayed_frame != last_new_frame + 1:
+            raise ValueError(
+                f"track {track_id!r} first exposed frame {displayed_frame} "
+                f"after {last_new_frame}"
+            )
+        frames[displayed_frame] = {
+            "displayed_frame": displayed_frame,
+            "source_ecb": source_ecb,
+            "ecb_q16": current_q16,
+        }
+        last_new_frame = displayed_frame
+
+    expected_frames = list(range(last_displayed_frame + 1))
+    if list(frames) != expected_frames:
+        raise ValueError(
+            f"track {track_id!r} frames are {list(frames)}, "
+            f"expected {expected_frames}"
+        )
+    return {
+        "id": track_id,
+        "source_action": source_action,
+        "canonical_facing": 1,
+        "label_substring": label_substring,
+        "frame_count": last_displayed_frame + 1,
+        "frames": list(frames.values()),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("capture", type=Path)
+    parser.add_argument("output", type=Path)
+    parser.add_argument(
+        "--track",
+        action="append",
+        nargs=4,
+        metavar=("ID", "SOURCE_ACTION", "LABEL_SUBSTRING", "LAST_FRAME"),
+        required=True,
+    )
+    args = parser.parse_args()
+
+    capture_bytes = args.capture.read_bytes()
+    capture = json.loads(capture_bytes)
+    rows = capture.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise SystemExit("capture has no rows")
+
+    tracks: list[dict[str, Any]] = []
+    track_ids: set[str] = set()
+    for raw_id, source_action, label_substring, raw_last_frame in args.track:
+        if (
+            not raw_id
+            or raw_id in track_ids
+            or any(character not in "abcdefghijklmnopqrstuvwxyz0123456789_-" for character in raw_id)
+        ):
+            raise SystemExit(f"invalid or duplicate track id: {raw_id!r}")
+        try:
+            last_frame = int(raw_last_frame)
+        except ValueError as error:
+            raise SystemExit(f"invalid last frame: {raw_last_frame!r}") from error
+        if last_frame < 0 or str(last_frame) != raw_last_frame:
+            raise SystemExit(f"invalid last frame: {raw_last_frame!r}")
+        tracks.append(
+            extract_track(
+                rows,
+                raw_id,
+                source_action,
+                label_substring,
+                last_frame,
+            )
+        )
+        track_ids.add(raw_id)
+
+    semantic = semantic_payload(tracks)
+    profile = {
+        "schema": 1,
+        "scope": "ssbm-action-owned-ecb-pose-tracks",
+        "oracle": capture.get("oracle"),
+        "disc": capture.get("disc"),
+        "fighter": capture.get("fighter"),
+        "stage": capture.get("stage"),
+        "capture_sha256": hashlib.sha256(capture_bytes).hexdigest(),
+        "semantic_sha256": canonical_sha256(semantic),
+        "coordinate_conversion": {
+            "x_sim_units_per_melee_unit": "12/115",
+            "y_sim_units_per_melee_unit": "11/62",
+            "rounding": "nearest-python-round",
+        },
+        "tracks": tracks,
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    print(
+        "ssbm-ecb-pose-tracks=pass "
+        f"tracks={len(tracks)} "
+        f"poses={sum(track['frame_count'] for track in tracks)} "
+        f"capture_sha256={profile['capture_sha256']} "
+        f"semantic_sha256={profile['semantic_sha256']} "
+        f"output={args.output}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

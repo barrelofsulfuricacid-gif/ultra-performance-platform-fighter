@@ -38,6 +38,7 @@ TRACE_FIELDS = {
     "tech_direction": "PF_SSBM_TRACE_TECH_DIRECTION",
     "prone_orientation": "PF_SSBM_TRACE_PRONE_ORIENTATION",
     "facing": "PF_SSBM_TRACE_FACING",
+    "ledge_regrab_lockout": "PF_SSBM_TRACE_LEDGE_REGRAB_LOCKOUT",
 }
 
 
@@ -139,9 +140,9 @@ def generate(manifest: dict[str, Any]) -> str:
     if (
         not isinstance(samples_per_case, int)
         or isinstance(samples_per_case, bool)
-        or not 1 <= samples_per_case <= 64
+        or not 1 <= samples_per_case <= 128
     ):
-        raise ValueError("samples_per_case must be in [1, 64]")
+        raise ValueError("samples_per_case must be in [1, 128]")
     lanes_per_sample = stored.get("lanes_per_sample", 1)
     if (
         not isinstance(lanes_per_sample, int)
@@ -173,15 +174,30 @@ def generate(manifest: dict[str, Any]) -> str:
     rows: list[str] = []
     case_rows: list[str] = []
     ids: set[str] = set()
+    maximum_samples_per_case = 0
+    total_sample_count = 0
     for case_index, case in enumerate(raw_cases):
         if not isinstance(case, dict):
             raise ValueError(f"damage_response_cases[{case_index}] is invalid")
         case_id = case.get("id")
+        case_sample_count = case.get("sample_count", samples_per_case)
+        if (
+            not isinstance(case_sample_count, int)
+            or isinstance(case_sample_count, bool)
+            or not 1 <= case_sample_count <= samples_per_case
+        ):
+            raise ValueError(
+                f"{case_id}.sample_count must be in [1, {samples_per_case}]"
+            )
+        maximum_samples_per_case = max(
+            maximum_samples_per_case, case_sample_count
+        )
+        total_sample_count += case_sample_count * lanes_per_sample
         samples = case.get(sample_key)
         if samples is None and sample_key == "inputs":
             raw_phases = case.get("input_phases")
             if raw_phases is None:
-                samples = [{} for _ in range(samples_per_case)]
+                samples = [{} for _ in range(case_sample_count)]
             else:
                 if not isinstance(raw_phases, list) or not raw_phases:
                     raise ValueError(f"{case_id}.input_phases must be a list")
@@ -192,7 +208,7 @@ def generate(manifest: dict[str, Any]) -> str:
                         or set(phase) != {"ticks", "lanes"}
                         or not isinstance(phase.get("ticks"), int)
                         or isinstance(phase.get("ticks"), bool)
-                        or not 1 <= phase["ticks"] <= samples_per_case
+                        or not 1 <= phase["ticks"] <= case_sample_count
                     ):
                         raise ValueError(
                             f"{case_id}.input_phases[{phase_index}] is invalid"
@@ -206,7 +222,7 @@ def generate(manifest: dict[str, Any]) -> str:
             or not case_id
             or case_id in ids
             or not isinstance(samples, list)
-            or len(samples) != samples_per_case
+            or len(samples) != case_sample_count
         ):
             raise ValueError(f"invalid trace case {case_id!r}")
         ids.add(case_id)
@@ -317,7 +333,7 @@ def generate(manifest: dict[str, Any]) -> str:
                 "};",
                 "_Static_assert(",
                 f"    sizeof({input_symbol}) / sizeof({input_symbol}[0]) ==",
-                f"        UINT16_C({samples_per_case * lanes_per_sample}),",
+                f"        UINT16_C({case_sample_count * lanes_per_sample}),",
                 f'    "stored trace input lanes are incomplete for {case_id}");',
                 "",
             ]
@@ -328,7 +344,8 @@ def generate(manifest: dict[str, Any]) -> str:
         case_rows.append(
             f'    {{ {json.dumps(case_id)}, {input_symbol}, '
             f'UINT8_C({initial_state_variant}), '
-            f'INT8_C({initial_facing}), {explicit_case_fields} }},'
+            f'INT8_C({initial_facing}), {explicit_case_fields}, '
+            f'UINT8_C({case_sample_count}) }},'
         )
 
     return "\n".join(
@@ -345,7 +362,9 @@ def generate(manifest: dict[str, Any]) -> str:
             "",
             f"#define {macro_prefix}_CASE_COUNT UINT16_C({len(case_rows)})",
             f"#define {macro_prefix}_SAMPLES_PER_CASE "
-            f"UINT8_C({samples_per_case})",
+            f"UINT8_C({maximum_samples_per_case})",
+            f"#define {macro_prefix}_TOTAL_SAMPLE_COUNT "
+            f"UINT16_C({total_sample_count})",
             f"#define {macro_prefix}_LANES_PER_SAMPLE "
             f"UINT8_C({lanes_per_sample})",
             f"#define {macro_prefix}_SERIALIZED_FIELDS \\",

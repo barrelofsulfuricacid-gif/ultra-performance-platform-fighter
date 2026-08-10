@@ -70,16 +70,17 @@ _Static_assert(
 
 static const pf_ssbm_stored_trace_case
 pf_m4_ssbm_falcon_damage_response_cases[] = {
-    { "neutral", pf_m4_ssbm_falcon_damage_response_neutral_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "di_full_right", pf_m4_ssbm_falcon_damage_response_di_full_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "di_half_right", pf_m4_ssbm_falcon_damage_response_di_half_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "sdi_radial_diagonal", pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "sdi_below_radial", pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
-    { "asdi_c_priority", pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0) },
+    { "neutral", pf_m4_ssbm_falcon_damage_response_neutral_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(3) },
+    { "di_full_right", pf_m4_ssbm_falcon_damage_response_di_full_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(3) },
+    { "di_half_right", pf_m4_ssbm_falcon_damage_response_di_half_right_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(3) },
+    { "sdi_radial_diagonal", pf_m4_ssbm_falcon_damage_response_sdi_radial_diagonal_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(3) },
+    { "sdi_below_radial", pf_m4_ssbm_falcon_damage_response_sdi_below_radial_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(3) },
+    { "asdi_c_priority", pf_m4_ssbm_falcon_damage_response_asdi_c_priority_inputs, UINT8_C(0), INT8_C(0), UINT32_C(0), UINT8_C(3) },
 };
 
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_CASE_COUNT UINT16_C(6)
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SAMPLES_PER_CASE UINT8_C(3)
+#define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_TOTAL_SAMPLE_COUNT UINT16_C(18)
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_LANES_PER_SAMPLE UINT8_C(1)
 #define PF_M4_SSBM_FALCON_DAMAGE_RESPONSE_SERIALIZED_FIELDS \
     (PF_SSBM_STORED_TRACE_FIELDS_V1)

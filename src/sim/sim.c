@@ -259,9 +259,12 @@ pf_status pf_sim_init(
             -config->arena_half_width_q16 ||
         resolved_content.stage.blast_right_q16 >
             config->arena_half_width_q16 ||
-        resolved_content.stage.blast_top_q16 < INT32_C(0) ||
-        resolved_content.stage.blast_bottom_q16 >
-            config->arena_ceiling_q16)
+        !pf_sim_vertical_coordinate_is_within_arena(
+            resolved_content.stage.blast_top_q16,
+            config->arena_ceiling_q16) ||
+        !pf_sim_vertical_coordinate_is_within_arena(
+            resolved_content.stage.blast_bottom_q16,
+            config->arena_ceiling_q16))
     {
         return PF_STATUS_INVALID_CONFIG;
     }

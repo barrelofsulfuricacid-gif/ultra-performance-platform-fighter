@@ -11,6 +11,8 @@ build_root="${toolchain_root}/exiai-checkpoint-build"
 install_root="${toolchain_root}/exiai-checkpoint/Binaries"
 release_sys_root="${toolchain_root}/exiai-0.2.0/squashfs-root/usr/bin/Sys"
 patch_file="${repo_root}/tools/ssbm_exiai_checkpoint.patch"
+user_home="$(getent passwd "$(id -u)" | cut -d: -f6)"
+native_venv_root="${user_home}/.cache/pf-ssbm-exiai-python-0.47.2"
 cmake_bin="$(command -v cmake)"
 if [[ -x /usr/bin/cmake ]]; then
     cmake_bin=/usr/bin/cmake
@@ -19,6 +21,9 @@ fi
 "${repo_root}/tools/bootstrap_ssbm_exiai_oracle.sh" \
     "${toolchain_root}/exiai-0.2.0" \
     "${toolchain_root}/exiai-python"
+"${repo_root}/tools/bootstrap_ssbm_exiai_oracle.sh" \
+    "${toolchain_root}/exiai-0.2.0" \
+    "${native_venv_root}"
 
 if [[ ! -d "${source_root}/.git" ]]; then
     git clone --filter=blob:none --no-checkout \
@@ -65,4 +70,4 @@ fi
 
 printf 'ssbm-checkpoint-oracle-bootstrap=pass\nlauncher=%s\npython=%s\n' \
     "${install_root}/dolphin-emu" \
-    "${toolchain_root}/exiai-python/bin/python"
+    "${native_venv_root}/bin/python"

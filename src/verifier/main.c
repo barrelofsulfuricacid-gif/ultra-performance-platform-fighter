@@ -26,7 +26,7 @@
 #define PF_VERIFIER_M4_MATCH_CHECKPOINT_TICK 24U
 #define PF_VERIFIER_M4_REPLAY_CAPACITY (256U * 1024U)
 #define PF_VERIFIER_M4_MATCH_EXPECTED_DIGEST \
-    UINT64_C(0x419c5784632ad0fa)
+    UINT64_C(0xd3b4c23cb8a9dd7e)
 
 typedef struct pf_verifier_storage
 {
@@ -688,6 +688,10 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
             const size_t input_offset =
                 (size_t)tick * (size_t)PF_VERIFIER_M4_MATCH_PLAYERS;
             pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+            pf_status primary_tick_status;
+            pf_status twin_tick_status;
+            pf_status primary_hash_status;
+            pf_status twin_hash_status;
 
             if (pf_m4_inspect(primary, &inspection) != PF_STATUS_OK)
             {
@@ -700,23 +704,41 @@ static int run_m4_match_soak_invariant(pf_verifier_checks *checks)
                 inputs,
                 sizeof(inputs[0]) *
                     (size_t)PF_VERIFIER_M4_MATCH_PLAYERS);
-            if (pf_sim_tick(
+            primary_tick_status = pf_sim_tick(
                     primary,
                     inputs,
                     (size_t)PF_VERIFIER_M4_MATCH_PLAYERS,
-                    &primary_result) != PF_STATUS_OK ||
-                pf_sim_tick(
+                    &primary_result);
+            twin_tick_status = pf_sim_tick(
                     twin,
                     inputs,
                     (size_t)PF_VERIFIER_M4_MATCH_PLAYERS,
-                    &twin_result) != PF_STATUS_OK ||
+                    &twin_result);
+            primary_hash_status = pf_sim_hash(primary, &primary_hash);
+            twin_hash_status = pf_sim_hash(twin, &twin_hash);
+            if (primary_tick_status != PF_STATUS_OK ||
+                twin_tick_status != PF_STATUS_OK ||
                 !tick_results_equal(&primary_result, &twin_result) ||
                 primary_result.fault_flags != UINT32_C(0) ||
                 primary_result.completed_tick != tick + UINT64_C(1) ||
-                pf_sim_hash(primary, &primary_hash) != PF_STATUS_OK ||
-                pf_sim_hash(twin, &twin_hash) != PF_STATUS_OK ||
+                primary_hash_status != PF_STATUS_OK ||
+                twin_hash_status != PF_STATUS_OK ||
                 !state_hashes_equal(&primary_hash, &twin_hash))
             {
+                (void)fprintf(
+                    stderr,
+                    "m4-match-tick-failure match=%" PRIu32
+                    " tick=%" PRIu64 " primary=%s twin=%s"
+                    " primary_hash=%s twin_hash=%s faults=%" PRIu32
+                    " completed=%" PRIu64 "\n",
+                    match_index,
+                    tick,
+                    pf_status_name(primary_tick_status),
+                    pf_status_name(twin_tick_status),
+                    pf_status_name(primary_hash_status),
+                    pf_status_name(twin_hash_status),
+                    primary_result.fault_flags,
+                    primary_result.completed_tick);
                 passed = 0;
                 break;
             }

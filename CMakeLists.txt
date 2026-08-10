@@ -304,7 +304,10 @@ endfunction()
 
 if(PF_BUILD_NATIVE_CLIENT)
     if(PF_ENABLE_SDL_CLIENT)
-        add_executable(native_client src/native_client/main.c)
+        add_executable(
+            native_client
+            src/native_client/main.c
+            src/native_client/m4_native_playtest.c)
         target_link_libraries(
             native_client
             PRIVATE
@@ -619,6 +622,30 @@ if(BUILD_TESTING)
         sim.m4_ssbm_falcon_slope_ledge_response
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-common-slope-ledge-response poses=0 cases=2 samples=110")
+
+    add_test(
+        NAME sim.m4_ssbm_falcon_battlefield_surface_response
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-battlefield-surface-response)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_battlefield_surface_response
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-battlefield-surface-response poses=0 cases=2 samples=24")
+
+    add_test(
+        NAME sim.m4_ssbm_falcon_battlefield_bounce_recontact
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-battlefield-bounce-recontact)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_battlefield_bounce_recontact
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-battlefield-bounce-recontact poses=0 cases=2 samples=111")
+
+    add_test(
+        NAME sim.m4_ssbm_falcon_ledge_options
+        COMMAND m4_combat_test --ssbm-oracle falcon-common-ledge-options)
+    set_tests_properties(
+        sim.m4_ssbm_falcon_ledge_options
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-ssbm-stored-oracle=pass domain=falcon-common-ledge-options poses=0 cases=19 samples=514")
 
     add_executable(m4_item_test tests/sim/test_m4_item.c)
     target_link_libraries(m4_item_test PRIVATE sim)

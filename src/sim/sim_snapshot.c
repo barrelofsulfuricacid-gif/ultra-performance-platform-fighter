@@ -248,7 +248,7 @@ static void pf_reader_bytes(
     reader->position += byte_count;
 }
 
-static uint16_t pf_m4_snapshot_canonical_airborne_submotion(
+static uint16_t pf_m4_snapshot_canonical_source_submotion(
     const pf_world_state *world,
     uint32_t player_index)
 {
@@ -256,10 +256,10 @@ static uint16_t pf_m4_snapshot_canonical_airborne_submotion(
     {
         return UINT16_C(0);
     }
-    return pf_m4_action_retains_airborne_submotion(
+    return pf_m4_action_retains_source_submotion(
                world->action_state[player_index],
                world->hitlag_resume_action[player_index])
-               ? world->airborne_submotion[player_index]
+               ? world->source_submotion[player_index]
                : (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
 }
 
@@ -342,7 +342,7 @@ static void pf_write_payload(
     {
         pf_writer_u16(
             writer,
-            pf_m4_snapshot_canonical_airborne_submotion(
+            pf_m4_snapshot_canonical_source_submotion(
                 world,
                 player_index));
     }
@@ -862,7 +862,7 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        world->airborne_submotion[player_index] = pf_reader_u16(reader);
+        world->source_submotion[player_index] = pf_reader_u16(reader);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1687,12 +1687,102 @@ static int32_t pf_m4_snapshot_revival_platform_y(
                (int64_t)stage->revival_platform_descent_ticks);
 }
 
-static int pf_m4_snapshot_airborne_submotion_valid(uint16_t submotion)
+static int pf_m4_snapshot_source_submotion_valid_for_action(
+    uint8_t action,
+    uint8_t resume_action,
+    uint16_t submotion,
+    uint16_t action_ticks,
+    uint8_t reference_frame_data_enabled)
 {
-    return submotion >=
-               (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_FORWARD &&
-           submotion <=
-               (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD;
+    const uint8_t effective_action =
+        action == (uint8_t)PF_M4_ACTION_HITLAG
+            ? resume_action
+            : action;
+    const pf_m4_falcon_submotion_data *motion =
+        pf_m4_falcon_reference_submotion(submotion);
+    int identity_valid = 0;
+
+    if (reference_frame_data_enabled == UINT8_C(0) &&
+        pf_m4_action_uses_ledge(effective_action))
+    {
+        return submotion ==
+               (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+    }
+    if (effective_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
+        effective_action == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP)
+    {
+        identity_valid =
+            (submotion >=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_FORWARD &&
+             submotion <=
+                 (uint16_t)PF_M4_FALCON_SUBMOTION_FALL_AERIAL_BACKWARD) ||
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_PLATFORM_DROP;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_CATCH)
+    {
+        identity_valid =
+            submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_HANG)
+    {
+        return submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_WAIT &&
+               action_ticks <= UINT16_C(640);
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB)
+    {
+        identity_valid =
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_SLOW ||
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_QUICK;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK)
+    {
+        identity_valid =
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW ||
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL)
+    {
+        identity_valid =
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_SLOW ||
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_QUICK;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_JUMP)
+    {
+        identity_valid =
+            submotion >=
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1 &&
+            submotion <=
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2;
+    }
+    return identity_valid != 0 && motion != NULL &&
+           action_ticks < motion->animation_frame_count;
+}
+
+static uint32_t pf_m4_snapshot_ledge_attack_ticks(
+    const pf_m4_fighter_data *fighter,
+    uint16_t source_submotion)
+{
+    const pf_m4_falcon_ledge_attack_reference *reference_attack =
+        fighter->reference_frame_data_enabled != UINT8_C(0)
+            ? pf_m4_falcon_reference_ledge_attack(source_submotion)
+            : NULL;
+
+    if (reference_attack != NULL)
+    {
+        return (uint32_t)reference_attack->total_frames;
+    }
+    return (uint32_t)fighter->ledge_attack.startup_ticks +
+           (uint32_t)fighter->ledge_attack.active_ticks +
+           (uint32_t)fighter->ledge_attack.recovery_ticks;
 }
 
 static int pf_m4_snapshot_content_state_consistent(
@@ -1718,10 +1808,8 @@ static int pf_m4_snapshot_content_state_consistent(
             world->hitlag_resume_action[player_index];
         const uint16_t action_ticks =
             world->action_ticks[player_index];
-        const uint16_t airborne_submotion =
-            world->airborne_submotion[player_index];
-        const pf_m4_falcon_submotion_data *airborne_motion =
-            pf_m4_falcon_reference_submotion(airborne_submotion);
+        const uint16_t source_submotion =
+            world->source_submotion[player_index];
         const uint8_t prone_roll_motion_orientation =
             world->prone_roll_motion_orientation[player_index];
         const int charge_action =
@@ -1746,22 +1834,24 @@ static int pf_m4_snapshot_content_state_consistent(
         {
             return 0;
         }
-        if (pf_m4_action_retains_airborne_submotion(
+        if (pf_m4_action_retains_source_submotion(
                 action,
                 resume_action))
         {
-            if (!pf_m4_snapshot_airborne_submotion_valid(
-                    airborne_submotion) ||
-                airborne_motion == NULL ||
-                action_ticks >= airborne_motion->animation_frame_count)
+            if (!pf_m4_snapshot_source_submotion_valid_for_action(
+                    action,
+                    resume_action,
+                    source_submotion,
+                    action_ticks,
+                    content->fighter.reference_frame_data_enabled))
             {
                 return 0;
             }
         }
         const uint32_t ledge_attack_ticks =
-            (uint32_t)content->fighter.ledge_attack.startup_ticks +
-            (uint32_t)content->fighter.ledge_attack.active_ticks +
-            (uint32_t)content->fighter.ledge_attack.recovery_ticks;
+            pf_m4_snapshot_ledge_attack_ticks(
+                &content->fighter,
+                source_submotion);
         const pf_m4_attack_data *ground_attack =
             pf_m4_snapshot_ground_attack_data(
                 &content->fighter,
@@ -2032,10 +2122,10 @@ static int pf_m4_player_state_consistent(
                action != (uint8_t)PF_M4_ACTION_REFLECTOR_AIR &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_CATCH &&
                action != (uint8_t)PF_M4_ACTION_LEDGE_HANG &&
-               action != (uint8_t)PF_M4_ACTION_LEDGE_CLIMB &&
-               action != (uint8_t)PF_M4_ACTION_LEDGE_ROLL &&
-               action != (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
                (world->velocity_y_q16[player_index] == INT32_C(0) ||
+                 action == (uint8_t)PF_M4_ACTION_LEDGE_CLIMB ||
+                 action == (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
+                 action == (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
                  action == (uint8_t)PF_M4_ACTION_HITLAG ||
                  (pf_m4_snapshot_action_is_landing(action) &&
                   world->action_ticks[player_index] == UINT16_C(0)) ||
@@ -2074,7 +2164,8 @@ static int pf_m4_player_state_consistent(
         pf_m4_snapshot_action_is_aerial_attack(action) ||
         action == (uint8_t)PF_M4_ACTION_PROJECTILE_FIRE_AIR ||
         pf_m4_snapshot_action_is_reference_air_special(action) ||
-        action == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR)
+        action == (uint8_t)PF_M4_ACTION_REFLECTOR_AIR ||
+        action == (uint8_t)PF_M4_ACTION_LEDGE_JUMP)
     {
         return 1;
     }
@@ -2180,8 +2271,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
     if (world->item_position_x_q16 <
             -world->arena_half_width_q16 ||
         world->item_position_x_q16 > world->arena_half_width_q16 ||
-        world->item_position_y_q16 < INT32_C(0) ||
-        world->item_position_y_q16 > world->arena_ceiling_q16 ||
+        !pf_sim_vertical_coordinate_is_within_arena(
+            world->item_position_y_q16,
+            world->arena_ceiling_q16) ||
         world->item_velocity_x_q16 <
             -PF_SIM_MAX_MOTION_SPEED_Q16 ||
         world->item_velocity_x_q16 >
@@ -2277,8 +2369,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
             -world->arena_half_width_q16 ||
         world->projectile_position_x_q16 >
             world->arena_half_width_q16 ||
-        world->projectile_position_y_q16 < INT32_C(0) ||
-        world->projectile_position_y_q16 > world->arena_ceiling_q16 ||
+        !pf_sim_vertical_coordinate_is_within_arena(
+            world->projectile_position_y_q16,
+            world->arena_ceiling_q16) ||
         world->projectile_velocity_x_q16 <
             -PF_SIM_MAX_MOTION_SPEED_Q16 ||
         world->projectile_velocity_x_q16 >
@@ -2415,9 +2508,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     -world->arena_half_width_q16 ||
                 world->position_x_q16[player_index] >
                     world->arena_half_width_q16 ||
-                world->position_y_q16[player_index] < INT32_C(0) ||
-                world->position_y_q16[player_index] >
-                    world->arena_ceiling_q16 ||
+                !pf_sim_vertical_coordinate_is_within_arena(
+                    world->position_y_q16[player_index],
+                    world->arena_ceiling_q16) ||
                 world->velocity_x_q16[player_index] <
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->velocity_x_q16[player_index] >
@@ -2437,10 +2530,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     -PF_SIM_MAX_MOTION_SPEED_Q16 ||
                 world->shield_recoil_x_q16[player_index] >
                     PF_SIM_MAX_MOTION_SPEED_Q16 ||
-                world->action_ticks[player_index] > UINT16_C(600) ||
-                world->airborne_submotion[player_index] >=
+                world->action_ticks[player_index] > UINT16_C(640) ||
+                world->source_submotion[player_index] >=
                     PF_M4_FALCON_SUBMOTION_COUNT ||
-                action > (uint8_t)PF_M4_ACTION_LEDGE_CATCH ||
+                action > (uint8_t)PF_M4_ACTION_LEDGE_JUMP ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2709,12 +2802,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_LEDGE_ATTACK &&
                  (hitstun_is_active != 0 ||
-                  tumble != UINT8_C(0) ||
-                  world->grounded[player_index] != UINT8_C(0) ||
-                  world->support[player_index] !=
-                      (uint8_t)PF_M4_SURFACE_NONE ||
-                  world->velocity_x_q16[player_index] != INT32_C(0) ||
-                  world->velocity_y_q16[player_index] != INT32_C(0))) ||
+                  tumble != UINT8_C(0))) ||
                 ((pf_m4_action_is_damage(resume_action) ||
                   resume_action ==
                       (uint8_t)PF_M4_ACTION_RESET_BOUND) &&
@@ -2908,6 +2996,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     (uint8_t)PF_M4_ACTION_LEDGE_ROLL ||
                 world->action_state[player_index] ==
                     (uint8_t)PF_M4_ACTION_LEDGE_ATTACK ||
+                world->action_state[player_index] ==
+                    (uint8_t)PF_M4_ACTION_LEDGE_JUMP ||
                 (world->action_state[player_index] ==
                      (uint8_t)PF_M4_ACTION_HITLAG &&
                  world->hitlag_resume_action[player_index] ==
@@ -2933,7 +3023,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->shield_recoil_x_q16[player_index] !=
                      INT32_C(0) ||
                  world->action_ticks[player_index] != UINT16_C(0) ||
-                 world->airborne_submotion[player_index] != UINT16_C(0) ||
+                 world->source_submotion[player_index] != UINT16_C(0) ||
                  world->respawn_count[player_index] != UINT16_C(0) ||
                  world->team[player_index] != UINT8_C(0) ||
                  world->grounded[player_index] != UINT8_C(0) ||
@@ -3441,8 +3531,8 @@ pf_status pf_sim_load(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
-        if (candidate.airborne_submotion[player_index] !=
-            pf_m4_snapshot_canonical_airborne_submotion(
+        if (candidate.source_submotion[player_index] !=
+            pf_m4_snapshot_canonical_source_submotion(
                 &candidate,
                 player_index))
         {

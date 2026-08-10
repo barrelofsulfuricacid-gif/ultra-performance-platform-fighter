@@ -10,15 +10,25 @@ from pathlib import Path
 from typing import Any
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("inputs", nargs="+", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    case_order = [case["id"] for case in manifest["checkpoint_cases"]]
+    case_specs = list(manifest["checkpoint_cases"])
+    case_order = [str(case["id"]) for case in case_specs]
+    case_by_start_label = {
+        str(case["start_label"]): str(case["id"])
+        for case in case_specs
+    }
+    if (
+        len(case_by_start_label) != len(case_specs)
+        or len(set(case_order)) != len(case_specs)
+    ):
+        raise SystemExit("duplicate checkpoint case id or start label")
     captures: list[dict[str, Any]] = [
         json.loads(path.read_text(encoding="utf-8")) for path in args.inputs
     ]
@@ -47,12 +57,15 @@ def main() -> int:
         for label in capture.get("checkpoint_pack", {}).get(
             "case_start_labels", []
         ):
-            case_id = str(label).removeprefix("floor_response_").removesuffix(
-                "_setup"
-            )
+            start_label = str(label)
+            case_id = case_by_start_label.get(start_label)
+            if case_id is None:
+                raise SystemExit(
+                    f"unknown checkpoint shard start label: {start_label}"
+                )
             if case_id in rows_by_case:
                 raise SystemExit(f"duplicate checkpoint shard case: {case_id}")
-            prefix = f"floor_response_{case_id}_observe_"
+            prefix = start_label.removesuffix("_setup") + "_observe"
             rows_by_case[case_id] = [
                 row for row in capture["rows"] if row["label"].startswith(prefix)
             ]
@@ -69,7 +82,7 @@ def main() -> int:
     pack = merged["checkpoint_pack"]
     pack["case_count"] = len(case_order)
     pack["case_start_labels"] = [
-        f"floor_response_{case_id}_setup" for case_id in case_order
+        str(case["start_label"]) for case in case_specs
     ]
     pack["coverage_manifest"] = manifest
     merged["parallel_capture"] = {
@@ -79,7 +92,8 @@ def main() -> int:
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        json.dumps(merged, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(merged, separators=(",", ":"), sort_keys=True) + "\n",
+        encoding="utf-8",
     )
     print(
         f"ssbm-checkpoint-merge=pass shards={len(captures)} "

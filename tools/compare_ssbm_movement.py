@@ -222,6 +222,10 @@ def normalized_shield_strength(
 
 def expected_action_ticks(action: str, action_frame: float) -> int | None:
     frame = round(action_frame)
+    if action == "PLATFORM_DROP":
+        # Pass exposes source frames 0..29 directly; unlike Jump/Fall it does
+        # not use the public displayed-frame-minus-one convention.
+        return frame
     if action in {
         "DASHING",
         "RUN_BRAKE",
@@ -1185,6 +1189,28 @@ def main() -> int:
         )
         expected_grounded = 1 if bool(oracle["grounded"]) else 0
         actual_grounded = int(native["grounded"])
+        expected_support: int | None = None
+        expected_surface_normal: tuple[int, int] | None = None
+        if str(capture.get("stage", "")) == "BATTLEFIELD" and expected_grounded:
+            collision_memory = oracle.get("surface_collision_memory")
+            if isinstance(collision_memory, dict):
+                surfaces = collision_memory.get("surfaces")
+                floor = surfaces.get("floor") if isinstance(surfaces, dict) else None
+                if isinstance(floor, dict):
+                    source_floor = int(floor.get("index", 0xFFFFFFFF))
+                    if 0 <= source_floor < 0xFFFFFFFF:
+                        expected_support = source_floor + 1
+                        normal = floor.get("normal")
+                        if isinstance(normal, list) and len(normal) >= 2:
+                            expected_surface_normal = (
+                                round(float(normal[0]) * 65536.0),
+                                round(float(normal[1]) * 65536.0),
+                            )
+        actual_support = int(native["support"])
+        actual_surface_normal = (
+            int(native["surface_normal_source_x_q16"]),
+            int(native["surface_normal_source_y_q16"]),
+        )
         expected_shield_health = round(float(oracle["shield_health"]) * 65536.0)
         actual_shield_health = int(native["shield_health_q16"])
         expected_shield_strength = normalized_shield_strength(
@@ -1253,6 +1279,20 @@ def main() -> int:
         if actual_grounded != expected_grounded:
             differences.append(
                 f"grounded expected={expected_grounded} actual={actual_grounded}"
+            )
+        if expected_support is not None and actual_support != expected_support:
+            differences.append(
+                f"support expected={expected_support} actual={actual_support}"
+            )
+        if expected_surface_normal is not None and any(
+            abs(actual - expected) > 8
+            for actual, expected in zip(
+                actual_surface_normal, expected_surface_normal, strict=True
+            )
+        ):
+            differences.append(
+                "surface_normal_source_q16 "
+                f"expected={expected_surface_normal} actual={actual_surface_normal}"
             )
         if (
             not skip_special_physics

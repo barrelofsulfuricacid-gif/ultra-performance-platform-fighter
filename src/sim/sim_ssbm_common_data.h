@@ -52,6 +52,19 @@ typedef struct pf_m4_ssbm_surface_response_attributes
     uint16_t down_c_up_axis_threshold;
 } pf_m4_ssbm_surface_response_attributes;
 
+typedef struct pf_m4_ssbm_ledge_response_attributes
+{
+    int32_t direction_angle_tan_q16;
+    uint16_t damage_threshold_percent;
+    uint16_t quick_wait_ticks;
+    uint16_t slow_wait_ticks;
+    uint16_t stick_axis_threshold;
+    uint16_t regrab_cooldown_ticks;
+    uint16_t wait_invulnerability_ticks;
+    uint16_t c_attack_axis_threshold;
+    uint16_t c_roll_axis_threshold;
+} pf_m4_ssbm_ledge_response_attributes;
+
 const uint8_t *pf_m4_ssbm_common_reference_source_sha256(void);
 
 const uint32_t *pf_m4_ssbm_common_reference_raw_words(
@@ -64,5 +77,8 @@ pf_m4_ssbm_common_reference_damage_response(void);
 
 const pf_m4_ssbm_surface_response_attributes *
 pf_m4_ssbm_common_reference_surface_response(void);
+
+const pf_m4_ssbm_ledge_response_attributes *
+pf_m4_ssbm_common_reference_ledge_response(void);
 
 #endif
