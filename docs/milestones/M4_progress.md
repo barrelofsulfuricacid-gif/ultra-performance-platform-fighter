@@ -5274,3 +5274,25 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `0x03` where the assertion expected only player 0. The fixture now waits for
   the setup attacker to return to idle before the final-stock phase. All 27
   WSL headless tests and the strict Windows MSVC match suite pass.
+
+## 2026-08-10 Falcon Kick stored qualification and domain-level acceleration
+
+- The current upstream decomp has no Falcon Kick state-table, attribute, or
+  callback change relative to pinned revision `9509dc0`. The existing six
+  hash-pinned live captures remain the source owner.
+- Falcon Kick now reuses the generic `native-csv-trace-v1` stored path. Shared
+  pure helpers own action/timer projection for both the live comparator and
+  source verifier; the manifest owns exact inputs, fields, and sparse hitlag /
+  Hyrule wall masks. Six cases bind all 399 live-qualified rows under source /
+  production SHA-256
+  `2c6f28a9701990b913adb2f2daa214433bb18174a610af6c96fc1dce39deaf33` /
+  `19a4dd302f0e51fa9d01d8fe7193d57e1b3ea5979e496fb6138bc0c85f356f4e`.
+- The mandatory live rerun caught a first-frame ground-edge discrepancy before
+  the new production digest was accepted. Ground-origin Falcon Kick now keeps
+  its source zero-velocity/no-gravity aerial-end conversion update; all six
+  live scenarios pass again for 70/59/65/70/77/58 frames.
+- The root stored gate now runs independent domain generation and execution
+  concurrently and restores manifest order before counting and hashing. The
+  full 16-domain / 96-case gate plus replay fell from 1.758-1.819 seconds to
+  0.430-0.508 seconds on Windows and 0.384-0.408 seconds in WSL. Focused
+  movement, combat, and Falcon Kick CTests pass on both hosts.

@@ -25,6 +25,7 @@
     "tools/ssbm_falcon_dive_grab_coverage.json",
     "tools/ssbm_falcon_punch_coverage.json",
     "tools/ssbm_falcon_raptor_boost_coverage.json",
+    "tools/ssbm_falcon_kick_coverage.json",
     "tools/ssbm_falcon_damage_response_coverage.json",
     "tools/ssbm_falcon_ground_knockback_coverage.json",
     "tools/ssbm_falcon_surface_response_coverage.json",

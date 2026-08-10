@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for fifteen domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, bounce-pose floor re-contact, Falcon Dive grab geometry, Falcon Punch, Raptor Boost, and natural airborne landing contain 90 registered cases plus deterministic replay. The registered pose domains hash 701 production poses: 689 common/ledge poses plus 12 Dive-victim JumpF poses. Raptor Boost adds 502 field-masked numeric samples; the natural movement domain adds 520 samples. Three current full Windows runs take 1.592-1.678 seconds and three WSL runs take 1.279-1.578 seconds. |
+| Fast stored equivalence | done for sixteen domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, bounce-pose floor re-contact, Falcon Dive grab geometry, Falcon Punch, Raptor Boost, Falcon Kick, and natural airborne landing contain 96 registered cases plus deterministic replay. The registered pose domains hash 701 production poses: 689 common/ledge poses plus 12 Dive-victim JumpF poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, and the natural movement domain adds 520. Independent domain generation and execution now run concurrently while canonical output retains manifest order. Three current full Windows runs take 0.430-0.508 seconds and three WSL runs take 0.384-0.408 seconds. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and keep one observer connected while compatible cases replay checkpoints. The common-hurt changed-domain route measures 2.635-2.729 seconds warm. Three independent 19-case ledge runs pass the enforced 10.0-second warm guardrail at 9.649, 8.924, and 9.614 seconds with the same 558-row / 514-sample semantic digest. Unsafe cross-invocation observer reconnection is rejected, not a remaining deliverable. |
 | Falcon bounded hurt poses | common, ledge, and Dive-victim JumpF poses imported and physically qualified | The common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules). The repaired Dive theorem adds exact JumpF frames 9-20 from collision-authoritative post-transition rows. The common/ledge digest protects 689 poses and the Dive geometry digest protects the 12 JumpF poses. Separate two-case geometry theorems qualify quick-climb/Jab and Dive/JumpF hit-versus-nearby-miss boundaries. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, and a source-qualified complete Battlefield collision/environment catalog. A 520-frame natural Battlefield route now strictly matches all jump/fall actions, clocks, facing, support, surface normals, and velocities, with only the declared 640-Q16 accumulated-position envelope. Production imports complete JumpF/JumpB/JumpAerialF/JumpAerialB and looping Fall/FallAerial ECB bottoms. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Falcon Kick's ground-origin edge conversion now preserves the source update's zero-velocity/no-gravity entry row. A 520-frame natural Battlefield route strictly matches all jump/fall actions, clocks, facing, support, surface normals, and velocities, with only the declared 640-Q16 accumulated-position envelope. Production imports complete JumpF/JumpB/JumpAerialF/JumpAerialB and looping Fall/FallAerial ECB bottoms. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -1159,6 +1159,27 @@ other stage/pushbox topologies.
   player-0 KO tick after the corrected trajectory shifted that tick. The match
   test now settles the setup attacker before asserting the final-stock journal;
   all 27 headless tests and strict Windows MSVC pass.
+
+### Validated: Falcon Kick stored oracle and edge-conversion ordering
+
+- [x] Recheck current upstream decomp against pinned revision `9509dc0`; the
+  Falcon Kick state table, attributes, and callback implementation are
+  unchanged at current revision `6ddd74e`.
+- [x] Reuse the generic `native-csv-trace-v1` runner and factor the live
+  Falcon Kick action/timer mapping into shared pure projections. Six
+  hash-pinned ground, air, landing, edge, hit, and Hyrule wall routes bind 399
+  source samples under source/production SHA-256
+  `2c6f28a9701990b913adb2f2daa214433bb18174a610af6c96fc1dce39deaf33` /
+  `19a4dd302f0e51fa9d01d8fe7193d57e1b3ea5979e496fb6138bc0c85f356f4e`.
+- [x] Let the live rerun reject a one-frame regression before accepting the
+  stored digest. Ground-origin edge conversion now enters its aerial end state
+  with zero self velocity and suppresses ordinary air physics on that update;
+  all six live routes pass again on WSL.
+- [x] Run independent registered domains concurrently, retaining deterministic
+  manifest order for counts and the final digest. The complete 16-domain /
+  96-case gate plus replay now takes 0.430-0.508 seconds on Windows and
+  0.384-0.408 seconds in WSL, down from 1.758-1.819 seconds immediately before
+  the domain-level concurrency refactor.
 
 ## Completion gate
 

@@ -244,6 +244,14 @@ airborne, and lands through the normal collision callback beside the rising
 wall in `GrSh.dat`. The route qualifies displayed-frame-22 wall contact,
 preserved entry self velocity, no same-tick floor reattachment, and the full
 rebound root trajectory. No Falcon Kick dynamic route remains unqualified.
+The same six routes are registered through the generic native-CSV stored
+domain with exact input equality and sparse per-field masks. Canonical
+live-source and production-trace SHA-256 are
+`2c6f28a9701990b913adb2f2daa214433bb18174a610af6c96fc1dce39deaf33`
+and `19a4dd302f0e51fa9d01d8fe7193d57e1b3ea5979e496fb6138bc0c85f356f4e`.
+The live projection also guards the ground-origin edge-conversion update: it
+enters the aerial end state at zero self velocity without same-update ordinary
+air gravity.
 
 Raptor Boost likewise consumes only the generated Falcon action, command,
 root-motion, search-sphere, effect, and attribute tables. A clean 431-row

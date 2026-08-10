@@ -269,9 +269,12 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains fourteen domains and 89 cases. The complete
-stored gate, including deterministic replay, measures 1.435-1.550 seconds
-across six native Windows runs and 1.448-1.585 seconds across three WSL runs.
+The registry currently contains sixteen domains and 96 cases. Independent
+domain generation and execution run concurrently; each native-CSV domain also
+runs its independent cases concurrently, and both levels restore manifest
+order before counting or hashing. The complete stored gate, including
+deterministic replay, measures 0.430-0.508 seconds across three native Windows
+runs and 0.384-0.408 seconds across three WSL runs.
 Numeric C cases may narrow a domain's inherited serialized-field mask when a
 physical setup intentionally isolates only part of the response; the generated
 C always writes an explicit zero for inherited masks so GCC and MSVC apply the
@@ -284,7 +287,8 @@ and half-open per-field row exclusions matching the live comparator. The
 generator emits only immutable JSON execution metadata; the root verifier
 expands inputs, runs independent cases concurrently, parses declared CSV
 columns, restores manifest order, and hashes one canonical payload. Raptor
-Boost uses this route for five cases / 502 samples. Its separate native Capsule
+Boost uses this route for five cases / 502 samples and Falcon Kick for six
+cases / 399 samples. Raptor Boost's separate native Capsule
 search remains live-only because the project-specific Relay Rod is not source-
 equivalent item content.
 

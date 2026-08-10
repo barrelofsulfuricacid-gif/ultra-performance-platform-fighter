@@ -10076,7 +10076,13 @@ pf_status pf_m4_step_player(
                         UINT8_C(0);
                     scratch->attack_stale_registered[player_index] =
                         UINT8_C(0);
-                    launched_this_tick = 0;
+                    /* SpecialLw_ChangeMotion's ground-origin edge conversion
+                     * enters the aerial end state with zero self velocity and
+                     * does not run ordinary air physics on that conversion
+                     * update. The natural aerial route already ran its source
+                     * air callback above and continues through the shared
+                     * airborne phase below. */
+                    launched_this_tick = ground_origin != 0;
                 }
                 else
                 {

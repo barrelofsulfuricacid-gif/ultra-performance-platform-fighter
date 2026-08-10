@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "scope": "falcon-down-special",
+  "domain": "falcon-down-special",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "ground_capture_sha256": "6244baaf1354749a118a3577f3ca080f87dc4ba59d60f14b947077922a667a2d",
+    "air_capture_sha256": "1b72cb23727cd0770ee2fb5c4a7c8e9e17e91c71548e45be57bbe85cb8df5990",
+    "air_land_capture_sha256": "b86de007baeb6048488d4f2aaa258690ef2d09693033fd9b0f78865d81ea80d2",
+    "ground_edge_capture_sha256": "ae4d9c2f3cb19af35e9288d5f9dcc9a7a4a72adc1baa220bc3ffe03b8e17ddfc",
+    "ground_hit_capture_sha256": "0dcf3574554a97a4760ff93e51dd24ebeb6d84d8dc5c23e777054ebe46a5ac32",
+    "ground_wall_capture_sha256": "fd4b04d9128486d2b690ce7d9b701fa12c7762367d5f822d2f3baca3c3f0d70e",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "6ddd74ecbb755df25b32f137b5f7b7f6d7005e91",
+    "dolphin_version": "3.4.0",
+    "libmelee_version": "0.40.1",
+    "memory_engine_version": "1.3.1",
+    "qualified_route_frames": {
+      "ground": 70,
+      "air": 59,
+      "air_land": 65,
+      "ground_edge": 70,
+      "ground_hit": 77,
+      "ground_wall": 58
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_kick_oracle.json",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tools/compare_ssbm_movement.py",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/ssbm_falcon_kick_coverage.json",
+      "tools/verify_m4_falcon_kick.sh",
+      "tools/verify_ssbm_falcon_kick.py"
+    ]
+  },
+  "checkpoint_pack": {
+    "capture_plan": {
+      "route": "falcon-kick-ground-air"
+    }
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "2c6f28a9701990b913adb2f2daa214433bb18174a610af6c96fc1dce39deaf33",
+    "production_trace_sha256": "19a4dd302f0e51fa9d01d8fe7193d57e1b3ea5979e496fb6138bc0c85f356f4e",
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded",
+      "position_x_q16_from_origin",
+      "position_y_q16_from_origin",
+      "velocity_x_q16",
+      "velocity_y_q16",
+      "shield_health_q16",
+      "shield_strength"
+    ],
+    "cases": [
+      {
+        "id": "ground",
+        "runner_arguments": ["--falcon-kick-ground"],
+        "sample_count": 70,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 69, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "air",
+        "runner_arguments": ["--falcon-kick-air"],
+        "sample_count": 59,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength"
+        ],
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 58, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "air_land",
+        "runner_arguments": ["--falcon-kick-air-land"],
+        "sample_count": 65,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 64, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ground_edge",
+        "runner_arguments": ["--falcon-kick-ground-edge"],
+        "sample_count": 70,
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 69, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ground_hit",
+        "runner_arguments": ["--falcon-kick-ground-hit"],
+        "sample_count": 77,
+        "serialized_fields": [
+          "action_state",
+          "action_ticks",
+          "facing",
+          "grounded",
+          "position_x_q16_from_origin",
+          "position_y_q16_from_origin",
+          "velocity_x_q16",
+          "velocity_y_q16",
+          "shield_health_q16",
+          "shield_strength",
+          "hitlag_ticks",
+          "opponent_hitlag_ticks",
+          "opponent_damage_q16"
+        ],
+        "field_exclusions": {
+          "action_ticks": [[15, 23]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 76, "lanes": [{}, {}] }
+        ]
+      },
+      {
+        "id": "ground_wall",
+        "runner_arguments": ["--falcon-kick-ground-wall"],
+        "sample_count": 58,
+        "field_exclusions": {
+          "position_x_q16_from_origin": [[0, 22]],
+          "position_y_q16_from_origin": [[0, 22]],
+          "velocity_x_q16": [[0, 22]],
+          "velocity_y_q16": [[0, 22]]
+        },
+        "input_phases": [
+          { "ticks": 1, "lanes": [{ "main": [0, -32767], "buttons": ["special"] }, {}] },
+          { "ticks": 57, "lanes": [{}, {}] }
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_kick_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

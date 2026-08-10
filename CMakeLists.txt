@@ -620,6 +620,18 @@ if(BUILD_TESTING)
             sim.m4_ssbm_falcon_raptor_boost
             PROPERTIES PASS_REGULAR_EXPRESSION
                        "ssbm-stored-equivalence=pass domains=falcon-side-special generated_checks=1 stored_cases=5 replay=pass")
+
+        add_test(
+            NAME sim.m4_ssbm_falcon_kick
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --domain falcon-down-special)
+        set_tests_properties(
+            sim.m4_ssbm_falcon_kick
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-stored-equivalence=pass domains=falcon-down-special generated_checks=1 stored_cases=6 replay=pass")
     endif()
 
     add_test(

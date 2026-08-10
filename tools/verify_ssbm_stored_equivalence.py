@@ -371,6 +371,138 @@ def manifest_digest(
     return digest.hexdigest()
 
 
+def run_stored_domain(
+    item: tuple[Path, dict[str, Any]],
+    build_directory: Path,
+) -> int:
+    """Check one independently generated domain and return its case count."""
+
+    domain_path, domain = item
+    domain_name = str(domain["domain"])
+    stored = domain.get("stored_oracle")
+    if not isinstance(stored, dict):
+        fail(f"operation=manifest domain={domain_name} reason=missing-stored-oracle")
+    generator = stored.get("generator")
+    if not isinstance(generator, dict):
+        fail(f"operation=manifest domain={domain_name} reason=missing-generator")
+    generator_script = repository_path(
+        generator.get("script"),
+        f"{domain_name}.stored_oracle.generator.script",
+    )
+    generated_output = repository_path(
+        generator.get("output"),
+        f"{domain_name}.stored_oracle.generator.output",
+    )
+    run_checked(
+        [
+            sys.executable,
+            str(generator_script),
+            str(domain_path),
+            str(generated_output),
+            "--check",
+        ],
+        f"generated-check-{domain_name}",
+    )
+
+    kind = stored.get("kind", "pose-geometry-v1")
+    if kind == "native-csv-trace-v1":
+        return run_native_csv_trace_domain(
+            domain_name,
+            stored,
+            generated_output,
+            build_directory,
+        )
+
+    executable, arguments = require_runner(
+        stored.get("runner"),
+        f"{domain_name}.stored_oracle.runner",
+    )
+    output = run_checked(
+        [str(executable_path(build_directory, executable)), *arguments],
+        f"stored-runner-{domain_name}",
+    )
+    fields = output_fields(
+        output,
+        "m4-ssbm-stored-oracle",
+        f"stored-runner-{domain_name}",
+    )
+    if kind == "numeric-trace-v1":
+        cases = numeric_trace_cases(domain, stored)
+        case_count = len(cases)
+        samples_per_case = stored.get("samples_per_case")
+        if (
+            not isinstance(samples_per_case, int)
+            or isinstance(samples_per_case, bool)
+            or samples_per_case <= 0
+        ):
+            fail(
+                f"operation=manifest domain={domain_name} "
+                "reason=invalid-samples-per-case"
+            )
+        lanes_per_sample = stored.get("lanes_per_sample", 1)
+        if (
+            not isinstance(lanes_per_sample, int)
+            or isinstance(lanes_per_sample, bool)
+            or not 1 <= lanes_per_sample <= 2
+        ):
+            fail(
+                f"operation=manifest domain={domain_name} "
+                "reason=invalid-lanes-per-sample"
+            )
+        expected = {
+            "domain": domain_name,
+            "poses": "0",
+            "cases": str(case_count),
+            "samples": str(
+                sum(
+                    int(case.get("sample_count", samples_per_case))
+                    for case in cases
+                )
+                * lanes_per_sample
+            ),
+            "source_trace_sha256": str(stored.get("source_trace_sha256")),
+            "production_trace_sha256": str(
+                stored.get("production_trace_sha256")
+            ),
+        }
+    elif kind == "pose-geometry-v1":
+        cases = stored.get("cases")
+        if not isinstance(cases, list):
+            fail(
+                f"operation=manifest domain={domain_name} reason=invalid-cases"
+            )
+        case_count = len(cases)
+        expected_pose_count = stored.get("expected_pose_count")
+        if (
+            not isinstance(expected_pose_count, int)
+            or isinstance(expected_pose_count, bool)
+            or expected_pose_count <= 0
+        ):
+            fail(
+                f"operation=manifest domain={domain_name} "
+                "reason=invalid-expected-pose-count"
+            )
+        expected = {
+            "domain": domain_name,
+            "poses": str(expected_pose_count),
+            "cases": str(case_count),
+            "source_pose_sha256": str(stored.get("source_pose_sha256")),
+            "production_pose_sha256": str(stored.get("production_pose_sha256")),
+        }
+    else:
+        fail(
+            f"operation=manifest domain={domain_name} "
+            f"reason=unsupported-stored-kind kind={kind!r}"
+        )
+    for field, value in expected.items():
+        if fields.get(field) != value:
+            fail(
+                f"operation=stored-runner-{domain_name} field={field} "
+                f"expected={value} actual={fields.get(field)}"
+            )
+    return case_count
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -470,140 +602,15 @@ def main() -> int:
     build_directory = args.build_dir
     if not build_directory.is_absolute():
         build_directory = (REPOSITORY_ROOT / build_directory).resolve()
-    generated_checks = 0
-    stored_cases = 0
-    for domain_path, domain in selected:
-        domain_name = str(domain["domain"])
-        stored = domain.get("stored_oracle")
-        if not isinstance(stored, dict):
-            fail(f"operation=manifest domain={domain_name} reason=missing-stored-oracle")
-        generator = stored.get("generator")
-        if not isinstance(generator, dict):
-            fail(f"operation=manifest domain={domain_name} reason=missing-generator")
-        generator_script = repository_path(
-            generator.get("script"),
-            f"{domain_name}.stored_oracle.generator.script",
-        )
-        generated_output = repository_path(
-            generator.get("output"),
-            f"{domain_name}.stored_oracle.generator.output",
-        )
-        run_checked(
-            [
-                sys.executable,
-                str(generator_script),
-                str(domain_path),
-                str(generated_output),
-                "--check",
-            ],
-            f"generated-check-{domain_name}",
-        )
-        generated_checks += 1
-
-        kind = stored.get("kind", "pose-geometry-v1")
-        if kind == "native-csv-trace-v1":
-            stored_cases += run_native_csv_trace_domain(
-                domain_name,
-                stored,
-                generated_output,
-                build_directory,
+    generated_checks = len(selected)
+    worker_count = min(len(selected), max(1, os.cpu_count() or 1))
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        stored_cases = sum(
+            executor.map(
+                lambda item: run_stored_domain(item, build_directory),
+                selected,
             )
-            continue
-
-        executable, arguments = require_runner(
-            stored.get("runner"),
-            f"{domain_name}.stored_oracle.runner",
         )
-        output = run_checked(
-            [str(executable_path(build_directory, executable)), *arguments],
-            f"stored-runner-{domain_name}",
-        )
-        fields = output_fields(
-            output,
-            "m4-ssbm-stored-oracle",
-            f"stored-runner-{domain_name}",
-        )
-        if kind == "numeric-trace-v1":
-            numeric_cases = numeric_trace_cases(domain, stored)
-            case_count = len(numeric_cases)
-            samples_per_case = stored.get("samples_per_case")
-            if (
-                not isinstance(samples_per_case, int)
-                or isinstance(samples_per_case, bool)
-                or samples_per_case <= 0
-            ):
-                fail(
-                    f"operation=manifest domain={domain_name} "
-                    "reason=invalid-samples-per-case"
-                )
-            lanes_per_sample = stored.get("lanes_per_sample", 1)
-            if (
-                not isinstance(lanes_per_sample, int)
-                or isinstance(lanes_per_sample, bool)
-                or not 1 <= lanes_per_sample <= 2
-            ):
-                fail(
-                    f"operation=manifest domain={domain_name} "
-                    "reason=invalid-lanes-per-sample"
-                )
-            expected = {
-                "domain": domain_name,
-                "poses": "0",
-                "cases": str(case_count),
-                "samples": str(
-                    sum(
-                        int(case.get("sample_count", samples_per_case))
-                        for case in numeric_cases
-                    ) * lanes_per_sample
-                ),
-                "source_trace_sha256": str(
-                    stored.get("source_trace_sha256")
-                ),
-                "production_trace_sha256": str(
-                    stored.get("production_trace_sha256")
-                ),
-            }
-        elif kind == "pose-geometry-v1":
-            cases = stored.get("cases")
-            if not isinstance(cases, list):
-                fail(
-                    f"operation=manifest domain={domain_name} "
-                    "reason=invalid-cases"
-                )
-            case_count = len(cases)
-            expected_pose_count = stored.get("expected_pose_count")
-            if (
-                not isinstance(expected_pose_count, int)
-                or isinstance(expected_pose_count, bool)
-                or expected_pose_count <= 0
-            ):
-                fail(
-                    f"operation=manifest domain={domain_name} "
-                    "reason=invalid-expected-pose-count"
-                )
-            expected = {
-                "domain": domain_name,
-                "poses": str(expected_pose_count),
-                "cases": str(case_count),
-                "source_pose_sha256": str(
-                    stored.get("source_pose_sha256")
-                ),
-                "production_pose_sha256": str(
-                    stored.get("production_pose_sha256")
-                ),
-            }
-        else:
-            fail(
-                f"operation=manifest domain={domain_name} "
-                f"reason=unsupported-stored-kind kind={kind!r}"
-            )
-        for field, value in expected.items():
-            if fields.get(field) != value:
-                fail(
-                    f"operation=stored-runner-{domain_name} field={field} "
-                    f"expected={value} actual={fields.get(field)}"
-                )
-        stored_cases += case_count
 
     replay = manifest.get("replay")
     executable, arguments = require_runner(replay, "replay")

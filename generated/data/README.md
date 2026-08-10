@@ -83,6 +83,12 @@ plus sparse per-field row exclusions; it contains no Falcon behavior or copied
 frame data. The root verifier reuses the production `pf_m4_movement_trace`
 binary and hashes its declared columns in manifest order.
 
+`m4_ssbm_falcon_kick_oracle.json` uses that same generic native-CSV path for
+six already-live-qualified Falcon Kick routes. Its manifest binds 399 source
+samples, exact route inputs, qualified columns, and the sparse hitlag/wall
+field masks to hash-pinned Final Destination and Hyrule captures. It adds no
+second runner and contains no Falcon Kick implementation logic.
+
 `m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored
 JSON preserves source joint-local vertices and transform provenance; the

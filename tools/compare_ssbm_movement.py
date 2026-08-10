@@ -403,6 +403,91 @@ def raptor_boost_expected_ticks(
     return expected_action_ticks(action, action_frame)
 
 
+def falcon_kick_expected_action(
+    route: str,
+    action: str,
+    action_frame: float,
+    hitlag_left: float,
+) -> int | None:
+    """Map one live down-special row to the production action contract."""
+
+    expected = expected_action_state(action, action_frame)
+    overrides = {
+        "ground": {
+            "SWORD_DANCE_4_LOW": 123,
+            "SWORD_DANCE_1_AIR": 124,
+            "STANDING": 0,
+        },
+        "ground_hit": {
+            "SWORD_DANCE_4_LOW": 123,
+            "SWORD_DANCE_1_AIR": 124,
+            "STANDING": 0,
+        },
+        "ground_wall": {
+            "SWORD_DANCE_4_LOW": 123,
+            "SWORD_DANCE_1_AIR": 124,
+            "SWORD_DANCE_3_LOW_AIR": 129,
+        },
+        "ground_edge": {
+            "SWORD_DANCE_4_LOW": 123,
+            "SWORD_DANCE_3_MID_AIR": 127,
+            "FALLING": 6,
+        },
+        "air": {
+            "SWORD_DANCE_2_HIGH_AIR": 125,
+            "DOWN_B_GROUND": 128,
+            "FALLING": 6,
+        },
+        "air_land": {
+            "SWORD_DANCE_2_HIGH_AIR": 125,
+            "DOWN_B_GROUND_START": 126,
+            "STANDING": 0,
+        },
+    }
+    expected = overrides.get(route, {}).get(action, expected)
+    if route == "ground_hit" and hitlag_left > 0.0:
+        return 13
+    return expected
+
+
+def falcon_kick_expected_ticks(
+    route: str,
+    action: str,
+    action_frame: float,
+    hitlag_left: float,
+) -> int | None:
+    """Map one live down-special row to the production action clock."""
+
+    if route == "ground_hit" and hitlag_left > 0.0:
+        return None
+    frame = round(action_frame)
+    if route in {"ground", "ground_hit", "ground_wall"}:
+        if action in {"SWORD_DANCE_4_LOW", "SWORD_DANCE_3_LOW_AIR"}:
+            return frame
+        if action == "SWORD_DANCE_1_AIR":
+            return frame - 1
+        if action == "STANDING":
+            return 0
+    elif route == "ground_edge":
+        if action in {"SWORD_DANCE_4_LOW", "SWORD_DANCE_3_MID_AIR"}:
+            return frame
+        if action == "FALLING":
+            return frame - 1
+    elif route == "air":
+        if action == "SWORD_DANCE_2_HIGH_AIR":
+            return frame
+        if action == "DOWN_B_GROUND":
+            return frame - 1
+        if action == "FALLING":
+            return 0
+    elif route == "air_land":
+        if action in {"SWORD_DANCE_2_HIGH_AIR", "DOWN_B_GROUND_START"}:
+            return frame
+        if action == "STANDING":
+            return 0
+    return expected_action_ticks(action, action_frame)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
@@ -832,6 +917,21 @@ def main() -> int:
             len(oracle_rows) - 1,
         )
         oracle_rows = oracle_rows[: first_idle_after_special + 1]
+    falcon_kick_route = next(
+        (
+            route
+            for active, route in (
+                (falcon_kick_ground_mode, "ground"),
+                (falcon_kick_ground_hit_mode, "ground_hit"),
+                (falcon_kick_ground_wall_mode, "ground_wall"),
+                (falcon_kick_ground_edge_mode, "ground_edge"),
+                (falcon_kick_air_mode, "air"),
+                (falcon_kick_air_land_mode, "air_land"),
+            )
+            if active
+        ),
+        None,
+    )
     push_mode = bool(oracle_rows) and str(oracle_rows[0].get("label", "")).startswith(
         "push_"
     )
@@ -1060,40 +1160,13 @@ def main() -> int:
                 float(oracle["action_frame"]),
                 float(oracle.get("hitlag_left", 0.0)),
             )
-        if (
-            falcon_kick_ground_mode
-            or falcon_kick_ground_hit_mode
-            or falcon_kick_ground_wall_mode
-        ):
-            expected_action = {
-                "SWORD_DANCE_4_LOW": 123,
-                "SWORD_DANCE_1_AIR": 124,
-                "SWORD_DANCE_3_LOW_AIR": 129,
-                "STANDING": 0,
-            }.get(action_name, expected_action)
-            if (
-                falcon_kick_ground_hit_mode
-                and float(oracle.get("hitlag_left", 0.0)) > 0.0
-            ):
-                expected_action = 13
-        if falcon_kick_ground_edge_mode:
-            expected_action = {
-                "SWORD_DANCE_4_LOW": 123,
-                "SWORD_DANCE_3_MID_AIR": 127,
-                "FALLING": 6,
-            }.get(action_name, expected_action)
-        if falcon_kick_air_mode:
-            expected_action = {
-                "SWORD_DANCE_2_HIGH_AIR": 125,
-                "DOWN_B_GROUND": 128,
-                "FALLING": 6,
-            }.get(action_name, expected_action)
-        if falcon_kick_air_land_mode:
-            expected_action = {
-                "SWORD_DANCE_2_HIGH_AIR": 125,
-                "DOWN_B_GROUND_START": 126,
-                "STANDING": 0,
-            }.get(action_name, expected_action)
+        if falcon_kick_route is not None:
+            expected_action = falcon_kick_expected_action(
+                falcon_kick_route,
+                action_name,
+                float(oracle["action_frame"]),
+                float(oracle.get("hitlag_left", 0.0)),
+            )
         if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
         actual_action = int(native["action_state"])
@@ -1144,40 +1217,13 @@ def main() -> int:
                 float(oracle["action_frame"]),
                 float(oracle.get("hitlag_left", 0.0)),
             )
-        if (
-            falcon_kick_ground_mode
-            or falcon_kick_ground_hit_mode
-            or falcon_kick_ground_wall_mode
-        ):
-            if action_name == "SWORD_DANCE_4_LOW":
-                expected_ticks = action_frame
-            elif action_name == "SWORD_DANCE_1_AIR":
-                expected_ticks = action_frame - 1
-            elif action_name == "SWORD_DANCE_3_LOW_AIR":
-                expected_ticks = action_frame
-            elif action_name == "STANDING":
-                expected_ticks = 0
-        if falcon_kick_ground_edge_mode:
-            if action_name == "SWORD_DANCE_4_LOW":
-                expected_ticks = action_frame
-            elif action_name == "SWORD_DANCE_3_MID_AIR":
-                expected_ticks = action_frame
-            elif action_name == "FALLING":
-                expected_ticks = action_frame - 1
-        if falcon_kick_air_mode:
-            if action_name == "SWORD_DANCE_2_HIGH_AIR":
-                expected_ticks = action_frame
-            elif action_name == "DOWN_B_GROUND":
-                expected_ticks = action_frame - 1
-            elif action_name == "FALLING":
-                expected_ticks = 0
-        if falcon_kick_air_land_mode:
-            if action_name == "SWORD_DANCE_2_HIGH_AIR":
-                expected_ticks = action_frame
-            elif action_name == "DOWN_B_GROUND_START":
-                expected_ticks = action_frame
-            elif action_name == "STANDING":
-                expected_ticks = 0
+        if falcon_kick_route is not None:
+            expected_ticks = falcon_kick_expected_ticks(
+                falcon_kick_route,
+                action_name,
+                float(oracle["action_frame"]),
+                float(oracle.get("hitlag_left", 0.0)),
+            )
         if shield_hit_mode or (
             (
                 raptor_boost_ground_hit_mode
