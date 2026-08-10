@@ -68,6 +68,15 @@ AIRBORNE_ECB_CAPTURE_SHA256 = (
 AIRBORNE_ECB_SEMANTIC_SHA256 = (
     "21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a"
 )
+AERIAL_ATTACK_ECB_PROFILE_SHA256 = (
+    "209fa9712c2f12f81f9eededd15e08fcfaef20f87cffc3f0f00a4c6d42f50b04"
+)
+AERIAL_ATTACK_ECB_CAPTURE_SHA256 = (
+    "9978972ba84a870ae5456c2403234d837c8b425f6dde4f3df83993a809e5534d"
+)
+AERIAL_ATTACK_ECB_SEMANTIC_SHA256 = (
+    "55e686a07cf3d064618104051f0085ed2a398e9a1612847200b2cba51a665f10"
+)
 BOUNCE_ECB_PROFILE_SHA256 = (
     "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
 )
@@ -1306,6 +1315,7 @@ def generate(
     common_dat: bytes,
     bounce_ecb_profile: dict[str, Any],
     airborne_ecb_profile: dict[str, Any],
+    aerial_attack_ecb_profile: dict[str, Any],
 ) -> str:
     phases: list[tuple[int, int, int]] = []
     effects: list[dict[str, Any]] = []
@@ -1332,6 +1342,15 @@ def generate(
             "fall_aerial",
         )
         for frame in airborne_tracks[track_id]["frames"]
+    )
+    aerial_attack_tracks = {
+        str(track["id"]): track
+        for track in aerial_attack_ecb_profile["tracks"]
+    }
+    aerial_attack_frames = tuple(
+        frame
+        for track_id in ("nair", "fair", "bair", "uair", "dair")
+        for frame in aerial_attack_tracks[track_id]["frames"]
     )
 
     fighter_data = dat_data["nodes"][0]["data"]
@@ -1743,6 +1762,8 @@ def generate(
         + bytes.fromhex(SOURCE_COMMON_DAT_SHA256)
         + bytes.fromhex(BOUNCE_ECB_PROFILE_SHA256)
         + bytes.fromhex(BOUNCE_ECB_SEMANTIC_SHA256)
+        + bytes.fromhex(AERIAL_ATTACK_ECB_PROFILE_SHA256)
+        + bytes.fromhex(AERIAL_ATTACK_ECB_SEMANTIC_SHA256)
         + b"".join(value.to_bytes(4, "big") for value in common_attribute_bits)
         + json.dumps(
             {
@@ -1814,6 +1835,19 @@ def generate(
                         for frame in track["frames"]
                     )
                     for track_id, track in airborne_tracks.items()
+                },
+                "falcon_aerial_attack_ecb_capture_sha256": (
+                    AERIAL_ATTACK_ECB_CAPTURE_SHA256
+                ),
+                "falcon_aerial_attack_ecb_semantic_sha256": (
+                    AERIAL_ATTACK_ECB_SEMANTIC_SHA256
+                ),
+                "falcon_aerial_attack_bottom_y_q16": {
+                    track_id: tuple(
+                        int(frame["ecb_q16"]["bottom"][1])
+                        for frame in track["frames"]
+                    )
+                    for track_id, track in aerial_attack_tracks.items()
                 },
                 "falcon_fall_special_collision_pose_melee": {
                     "bottom_y_from_origin": FALL_SPECIAL_ECB_BOTTOM_Y_MELEE,
@@ -2333,6 +2367,14 @@ def generate(
                 for frame in airborne_frames
             ),
             "    },",
+            "    .aerial_attack_bottom_y_from_origin_q16 = {",
+            "        "
+            + ", ".join(
+                f"INT32_C({int(frame['ecb_q16']['bottom'][1])})"
+                for frame in aerial_attack_frames
+            )
+            + ",",
+            "    },",
             "    .ceiling_bounce = {",
             *(
                 f"        {render_ecb_pose_q16(frame)},"
@@ -2518,6 +2560,20 @@ def main() -> int:
             ("fall_aerial", "FALLING_AERIAL", 1, 8),
         ),
     )
+    aerial_attack_ecb_profile = load_ecb_profile(
+        Path(__file__).with_name("data")
+        / "ssbm_falcon_aerial_attack_ecb.json",
+        expected_profile_sha256=AERIAL_ATTACK_ECB_PROFILE_SHA256,
+        expected_capture_sha256=AERIAL_ATTACK_ECB_CAPTURE_SHA256,
+        expected_semantic_sha256=AERIAL_ATTACK_ECB_SEMANTIC_SHA256,
+        expected_tracks=(
+            ("nair", "NAIR", 1, 44),
+            ("fair", "FAIR", 1, 39),
+            ("bair", "BAIR", 1, 35),
+            ("uair", "UAIR", 1, 33),
+            ("dair", "DAIR", 1, 44),
+        ),
+    )
     digest = canonical_sha256(data)
     if digest != EXPECTED_CANONICAL_SHA256:
         raise SystemExit(f"unexpected Falcon frame-data SHA-256: {digest}")
@@ -2529,6 +2585,7 @@ def main() -> int:
         common_dat,
         bounce_ecb_profile,
         airborne_ecb_profile,
+        aerial_attack_ecb_profile,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8", newline="\n")

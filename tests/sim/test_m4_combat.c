@@ -26732,8 +26732,8 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0xa7) ||
-        complete_source_sha256[31] != UINT8_C(0x1c) ||
+        complete_source_sha256[0] != UINT8_C(0xc5) ||
+        complete_source_sha256[31] != UINT8_C(0xd8) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
         common_attribute_bits[0] != UINT32_C(0x3e19999a) ||
@@ -26803,6 +26803,18 @@ static int run_falcon_reference_table_test(void)
             INT32_C(75621) ||
         collision_pose->platform_drop_bottom_y_from_origin_q16[29] !=
             INT32_C(21330) ||
+        collision_pose->aerial_attack_bottom_y_from_origin_q16[0] !=
+            INT32_C(0) ||
+        collision_pose->aerial_attack_bottom_y_from_origin_q16[43] !=
+            INT32_C(25538) ||
+        collision_pose->aerial_attack_bottom_y_from_origin_q16[82] !=
+            INT32_C(24952) ||
+        collision_pose->aerial_attack_bottom_y_from_origin_q16[117] !=
+            INT32_C(22943) ||
+        collision_pose->aerial_attack_bottom_y_from_origin_q16[150] !=
+            INT32_C(25930) ||
+        collision_pose->aerial_attack_bottom_y_from_origin_q16[194] !=
+            INT32_C(41004) ||
         jump_forward_first_ecb == NULL ||
         jump_forward_first_ecb->top_y_from_origin_q16 != INT32_C(203229) ||
         jump_forward_first_ecb->bottom_y_from_origin_q16 != INT32_C(0) ||

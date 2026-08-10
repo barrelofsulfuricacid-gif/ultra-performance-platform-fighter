@@ -89,6 +89,8 @@ def input_trace(
     defense_state_only: bool = False,
     attack_iasa_only: bool = False,
     aerial_iasa_only: bool = False,
+    aerial_attack_ecb_only: bool = False,
+    aerial_attack_landing_only: bool = False,
     ground_attack_iasa_only: bool = False,
     hitbox_geometry_only: bool = False,
     throw_geometry_only: bool = False,
@@ -194,6 +196,29 @@ def input_trace(
         ):
             raise ValueError("checkpoint stick axis is invalid")
         return (float(source_axis) / 32767.0 + 1.0) * 0.5
+
+    aerial_attack_inputs: dict[str, dict[str, object]] = {
+        "nair": {"attack": True},
+        "fair": {"c_x": 1.0},
+        "bair": {"c_x": 0.0},
+        "uair": {"c_y": 1.0},
+        "dair": {"c_y": 0.0},
+    }
+
+    def reset_reference_airborne_route(prefix: str) -> None:
+        trace.append(
+            command(
+                f"{prefix}_reset",
+                fighter_x_override=-38.8,
+                fighter_y_override=28.0,
+                fighter_self_velocity_x_override=0.0,
+                fighter_self_velocity_y_override=0.0,
+                fighter_knockback_velocity_x_override=0.0,
+                fighter_knockback_velocity_y_override=0.0,
+                fighter_position_state_reset=True,
+            )
+        )
+        repeat(f"{prefix}_settle", 60)
 
     if push_only:
         if checkpoint_isolated:
@@ -343,14 +368,6 @@ def input_trace(
         if falcon_frame_data is None:
             raise ValueError("aerial IASA capture requires Falcon frame data")
 
-        attack_inputs: dict[str, dict[str, object]] = {
-            "nair": {"attack": True},
-            "fair": {"c_x": 1.0},
-            "bair": {"c_x": 0.0},
-            "uair": {"c_y": 1.0},
-            "dair": {"c_y": 0.0},
-        }
-
         def aerial_interrupt_route(
             move: str,
             route: str,
@@ -363,7 +380,7 @@ def input_trace(
             trace.append(
                 command(
                     f"{prefix}_start",
-                    **attack_inputs[move],
+                    **aerial_attack_inputs[move],
                 )
             )
             repeat(f"{prefix}_before", interrupt_frame - 2)
@@ -383,6 +400,45 @@ def input_trace(
             "jump_no_iasa",
             int(dict(falcon_frame_data["nair"])["totalFrames"]) - 1,
         )
+        return trace
+
+    if aerial_attack_ecb_only:
+        if falcon_frame_data is None:
+            raise ValueError(
+                "aerial-attack ECB capture requires Falcon frame data"
+            )
+
+        def capture_aerial_pose_route(move: str) -> None:
+            prefix = f"aerial_attack_ecb_{move}"
+            reset_reference_airborne_route(prefix)
+            trace.append(command(f"{prefix}_jump", jump=True))
+            repeat(f"{prefix}_jump_squat", 4, jump=True)
+            repeat(f"{prefix}_ascent", 2)
+            trace.append(command(f"{prefix}_double_jump", jump=True))
+            trace.append(
+                command(f"{prefix}_start", **aerial_attack_inputs[move])
+            )
+            total_frames = int(dict(falcon_frame_data[move])["totalFrames"])
+            for _ in range(total_frames + 8):
+                trace.append(
+                    command(
+                        f"{prefix}_observe",
+                        fighter_y_override=40.0,
+                    )
+                )
+
+        for move in aerial_attack_inputs:
+            capture_aerial_pose_route(move)
+        return trace
+
+    if aerial_attack_landing_only:
+        for move, attack_input in aerial_attack_inputs.items():
+            prefix = f"aerial_attack_landing_{move}"
+            reset_reference_airborne_route(prefix)
+            trace.append(command(f"{prefix}_jump", jump=True))
+            repeat(f"{prefix}_jump_squat_release", 4)
+            trace.append(command(f"{prefix}_start", **attack_input))
+            repeat(f"{prefix}_observe", 70)
         return trace
 
     if hitbox_geometry_only:
@@ -3384,21 +3440,6 @@ def input_trace(
         return trace
 
     if airborne_ecb_only:
-        def reset_airborne_ecb_route(label: str) -> None:
-            trace.append(
-                command(
-                    f"{label}_reset",
-                    fighter_x_override=-38.8,
-                    fighter_y_override=28.0,
-                    fighter_self_velocity_x_override=0.0,
-                    fighter_self_velocity_y_override=0.0,
-                    fighter_knockback_velocity_x_override=0.0,
-                    fighter_knockback_velocity_y_override=0.0,
-                    fighter_position_state_reset=True,
-                )
-            )
-            repeat(f"{label}_settle", 60)
-
         def observe_airborne_ecb_route(label: str, count: int) -> None:
             # Relocate only after native action entry. This preserves the
             # source action and exposes its complete animated ECB without a
@@ -3411,24 +3452,24 @@ def input_trace(
                     )
                 )
 
-        reset_airborne_ecb_route("jump_forward_ecb")
+        reset_reference_airborne_route("jump_forward_ecb")
         trace.append(command("jump_forward_ecb_entry", jump=True))
         repeat("jump_forward_ecb_arm", 6)
         observe_airborne_ecb_route("jump_forward_ecb", 45)
 
-        reset_airborne_ecb_route("jump_backward_ecb")
+        reset_reference_airborne_route("jump_backward_ecb")
         trace.append(command("jump_backward_ecb_entry", main_x=0.0, jump=True))
         repeat("jump_backward_ecb_arm", 6, main_x=0.0)
         observe_airborne_ecb_route("jump_backward_ecb", 60)
 
-        reset_airborne_ecb_route("jump_aerial_forward_ecb")
+        reset_reference_airborne_route("jump_aerial_forward_ecb")
         trace.append(command("jump_aerial_forward_ecb_ground_entry", jump=True))
         repeat("jump_aerial_forward_ecb_ground_arm", 8)
         trace.append(command("jump_aerial_forward_ecb_entry", jump=True))
         repeat("jump_aerial_forward_ecb_arm", 3)
         observe_airborne_ecb_route("jump_aerial_forward_ecb", 60)
 
-        reset_airborne_ecb_route("jump_aerial_backward_ecb")
+        reset_reference_airborne_route("jump_aerial_backward_ecb")
         trace.append(command("jump_aerial_backward_ecb_ground_entry", jump=True))
         repeat("jump_aerial_backward_ecb_ground_arm", 8)
         trace.append(
@@ -5565,6 +5606,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         args.platform_only
                         or args.platform_drop_ecb_only
                         or args.airborne_ecb_only
+                        or args.aerial_attack_ecb_only
+                        or args.aerial_attack_landing_only
                         or args.airborne_landing_only
                         or battlefield_checkpoint_route
                     )
@@ -5740,6 +5783,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             defense_state_only=args.defense_state_only,
             attack_iasa_only=args.attack_iasa_only,
             aerial_iasa_only=args.aerial_iasa_only,
+            aerial_attack_ecb_only=args.aerial_attack_ecb_only,
+            aerial_attack_landing_only=args.aerial_attack_landing_only,
             ground_attack_iasa_only=args.ground_attack_iasa_only,
             hitbox_geometry_only=args.hitbox_geometry_only,
             throw_geometry_only=args.throw_geometry_only,
@@ -6735,6 +6780,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     args.platform_only
                     or args.platform_drop_ecb_only
                     or args.airborne_ecb_only
+                    or args.aerial_attack_ecb_only
+                    or args.aerial_attack_landing_only
                     or args.airborne_landing_only
                     or battlefield_checkpoint_route
                 )
@@ -6746,6 +6793,10 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "damage_hit_route": bool(args.damage_hit_only),
             "defense_state_route": bool(args.defense_state_only),
             "aerial_iasa_route": bool(args.aerial_iasa_only),
+            "aerial_attack_ecb_route": bool(args.aerial_attack_ecb_only),
+            "aerial_attack_landing_route": bool(
+                args.aerial_attack_landing_only
+            ),
             "common_hurt_geometry_route": bool(
                 args.common_hurt_geometry_only
             ),
@@ -6947,6 +6998,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--defense-state-only", action="store_true")
     mode.add_argument("--attack-iasa-only", action="store_true")
     mode.add_argument("--aerial-iasa-only", action="store_true")
+    mode.add_argument("--aerial-attack-ecb-only", action="store_true")
+    mode.add_argument("--aerial-attack-landing-only", action="store_true")
     mode.add_argument("--ground-attack-iasa-only", action="store_true")
     mode.add_argument("--hitbox-geometry-only", action="store_true")
     mode.add_argument("--throw-geometry-only", action="store_true")
@@ -7024,12 +7077,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         args.platform_only
         or args.platform_drop_ecb_only
         or args.airborne_ecb_only
+        or args.aerial_attack_ecb_only
+        or args.aerial_attack_landing_only
         or args.airborne_landing_only
         or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(
             "--memory-probe-surface requires --platform-only, "
             "--platform-drop-ecb-only, --airborne-ecb-only, "
+            "--aerial-attack-ecb-only, --aerial-attack-landing-only, "
             "--airborne-landing-only, or a "
             "--damage-hit-only checkpoint pack"
         )

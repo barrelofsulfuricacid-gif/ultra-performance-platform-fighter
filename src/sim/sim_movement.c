@@ -1660,6 +1660,14 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
+    else if (pf_m4_falcon_reference_aerial_attack_bottom_q16(
+                 action_state,
+                 action_ticks,
+                 &bottom_y_from_origin_q16) != 0)
+    {
+        has_reference_pose = 1;
+        exact_reference_pose = 1;
+    }
     else if (action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE)
     {
         const uint16_t frame_index =
@@ -11320,6 +11328,14 @@ pf_status pf_m4_step_player(
     {
         const int32_t previous_bottom =
             position_y + fighter->half_height_q16;
+        int previous_exact_floor_contact_pose = 0;
+        const int32_t previous_floor_contact_bottom_extent_q16 =
+            pf_m4_floor_contact_bottom_extent_q16(
+                fighter,
+                world->action_state[player_index],
+                world->action_ticks[player_index],
+                world->source_submotion[player_index],
+                &previous_exact_floor_contact_pose);
         int exact_floor_contact_pose = 0;
         int32_t ceiling_top_extent_q16 = fighter->half_height_q16;
         pf_m4_falcon_ecb_pose_q16 ceiling_pose;
@@ -11333,7 +11349,8 @@ pf_status pf_m4_step_player(
         const int defer_pass_through_crossing =
             exact_floor_contact_pose == 0;
         const int32_t previous_floor_contact =
-            position_y + floor_contact_bottom_extent_q16;
+            world->position_y_q16[player_index] +
+            previous_floor_contact_bottom_extent_q16;
         if (pf_m4_reference_ecb_pose_q16(
                 fighter,
                 action_state,
