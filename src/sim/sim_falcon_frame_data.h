@@ -127,6 +127,7 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_ROLL_FORWARD = 42,
     PF_M4_FALCON_SUBMOTION_ROLL_BACKWARD = 43,
     PF_M4_FALCON_SUBMOTION_AIR_DODGE = 44,
+    PF_M4_FALCON_SUBMOTION_REBOUND = 45,
     PF_M4_FALCON_SUBMOTION_DOWN_BOUND_BACK = 183,
     PF_M4_FALCON_SUBMOTION_DOWN_WAIT_BACK = 184,
     PF_M4_FALCON_SUBMOTION_GETUP_NEUTRAL_BACK = 186,
@@ -145,6 +146,15 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_WALL_TECH = 202,
     PF_M4_FALCON_SUBMOTION_WALL_TECH_JUMP = 203,
     PF_M4_FALCON_SUBMOTION_CEILING_TECH = 204,
+    PF_M4_FALCON_SUBMOTION_FURAFURA = 205,
+    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY = 286,
+    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FALL = 287,
+    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP = 288,
+    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN = 289,
+    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP = 290,
+    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN = 291,
+    PF_M4_FALCON_SUBMOTION_CATCH_CUT = 246,
+    PF_M4_FALCON_SUBMOTION_CAPTURE_CUT = 257,
     PF_M4_FALCON_SUBMOTION_LEDGE_CATCH = 216,
     PF_M4_FALCON_SUBMOTION_LEDGE_WAIT = 217,
     PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_SLOW = 219,
@@ -159,7 +169,9 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2 = 228,
     PF_M4_FALCON_SUBMOTION_APPEAL_RIGHT = 239,
     PF_M4_FALCON_SUBMOTION_APPEAL_LEFT = 240,
-    PF_M4_FALCON_SUBMOTION_PLATFORM_DROP = 244
+    PF_M4_FALCON_SUBMOTION_PLATFORM_DROP = 209,
+    PF_M4_FALCON_SUBMOTION_TEETER = 210,
+    PF_M4_FALCON_SUBMOTION_TEETER_WAIT = 211
 } pf_m4_falcon_submotion_index;
 
 /* Qualified common-state hurt-pose tracks. Keep this compact index separate
@@ -342,6 +354,7 @@ typedef struct pf_m4_falcon_common_attributes
     int32_t fast_fall_terminal_velocity_q16;
     int32_t maximum_horizontal_air_velocity_q16;
     int32_t shield_break_initial_velocity_q16;
+    int32_t rebound_animation_length_q16;
     int32_t ledge_jump_horizontal_velocity_q16;
     int32_t ledge_jump_vertical_velocity_q16;
     int32_t wall_jump_horizontal_velocity_q16;
@@ -350,6 +363,19 @@ typedef struct pf_m4_falcon_common_attributes
     uint16_t number_of_jumps;
     uint16_t turn_duration_ticks;
     uint16_t weight;
+    uint16_t jab_2_input_window_ticks;
+    uint16_t jab_3_input_window_ticks;
+    uint16_t rapid_jab_input_count;
+    uint16_t jab_1_combo_enable_frame;
+    uint16_t jab_2_combo_enable_frame;
+    uint16_t jab_3_rapid_enable_frame;
+    uint16_t rapid_jab_first_decision_frame;
+    uint16_t rapid_jab_decision_interval;
+    uint16_t rapid_jab_last_decision_frame;
+    uint16_t rapid_jab_loop_frame_count;
+    uint16_t down_tilt_repeat_enable_frame;
+    uint8_t weight_independent_throws_mask;
+    uint8_t reserved;
     uint16_t normal_landing_lag_ticks;
     uint16_t neutral_aerial_landing_lag_ticks;
     uint16_t forward_aerial_landing_lag_ticks;
@@ -453,6 +479,15 @@ typedef struct pf_m4_falcon_air_dodge_attributes
     uint16_t ordinary_physics_begin_frame;
     uint16_t reserved;
 } pf_m4_falcon_air_dodge_attributes;
+
+/* Raw parameters of Falcon's shared action-script Smash Charge command.
+ * damage_multiplier_q8 is the command's 16-bit rate interpreted over 256,
+ * exactly as ftAction_80073008 does before ftCo_800DEEB8 applies it. */
+typedef struct pf_m4_falcon_smash_charge_attributes
+{
+    uint16_t max_charge_ticks;
+    uint16_t damage_multiplier_q8;
+} pf_m4_falcon_smash_charge_attributes;
 
 typedef struct pf_m4_falcon_neutral_special_timing
 {
@@ -681,6 +716,9 @@ pf_m4_falcon_reference_air_dodge_attributes(void);
 const pf_m4_melee_stale_move_data *
 pf_m4_falcon_reference_stale_move_data(void);
 
+const pf_m4_falcon_smash_charge_attributes *
+pf_m4_falcon_reference_smash_charge_attributes(void);
+
 const pf_m4_falcon_neutral_special_timing *
 pf_m4_falcon_reference_neutral_special_timing(void);
 
@@ -728,6 +766,9 @@ const pf_m4_reference_hit_effect *pf_m4_falcon_reference_primary_effect(
     pf_m4_falcon_move_index move_index);
 
 const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame);
+uint16_t pf_m4_falcon_reference_effective_hit_frame(
     pf_m4_falcon_move_index move_index,
     uint16_t action_frame);
 

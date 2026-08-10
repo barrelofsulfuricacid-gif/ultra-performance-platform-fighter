@@ -32,6 +32,14 @@ Shield tilt and geometry additionally follow `ftCo_80091BC4`,
 `ftCo_80091E78`, `ftAnim_80070108`, `ftColl_8007B1B8`, and the transformed
 sphere path in `lbcollision.c` at the same pinned revision.
 
+The 2026-08-10 static differential additionally follows `ftCo_Wait.c`,
+`ftCo_Damage.c`, `ftCo_Guard.c`, `ftCo_Ottotto.c`, `ftCo_Catch.c`, the common
+throw/release routes, `ftCo_Rebirth.c`, `ftCo_Rebound.c`, `ftcoll.c`, and the
+complete Falcon neutral/side/up/down-special callback families. It imports
+typed values from the same pinned common/Falcon data and does not introduce
+guessed frame constants. That slice was intentionally not built or executed;
+its provenance is source-level until the next validation pass.
+
 ## Complete attack-frame table
 
 The complete Falcon attack table is generated from the owner's same NTSC 1.02
@@ -954,8 +962,8 @@ add no Falcon-specific runtime switch.
 
 ## Imported Pass collision pose
 
-Pinned decomp `ftCo_8009A228` enters common motion state `Pass` (Falcon
-submotion 244), applies `ftCommon_8007D5D4`, clamps air drift, writes
+Pinned decomp `ftCo_8009A228` enters common motion state `Pass` (Falcon raw
+submotion 209), applies `ftCommon_8007D5D4`, clamps air drift, writes
 `ftCommonData.x46C`, and calls `mpUpdateFloorSkip`. Its animation callback does
 not enter `Fall` until the complete 30-frame motion finishes. The separate
 common-data `x470` value controls only the departed-platform collision skip;

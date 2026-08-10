@@ -57,6 +57,7 @@ static inline uint32_t pf_m4_u64_sqrt(uint64_t value)
 #define PF_SIM_MAX_SHIELD_HEALTH_Q16 \
     (UINT32_C(100) * UINT32_C(65536))
 #define PF_SIM_MAX_HITSTUN_TICKS UINT16_C(600)
+#define PF_SIM_MAX_GRAB_ESCAPE_TICKS UINT16_C(2048)
 
 #define PF_M4_TRIGGER_STATE_LEFT_HELD UINT8_C(1)
 #define PF_M4_TRIGGER_STATE_RIGHT_HELD UINT8_C(2)
@@ -89,6 +90,54 @@ static inline int pf_m4_action_uses_ledge(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_LEDGE_JUMP;
 }
 
+static inline int pf_m4_action_is_reference_jab_extension(
+    uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_JAB_THIRD ||
+           action_state == (uint8_t)PF_M4_ACTION_RAPID_JAB_START ||
+           action_state == (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP ||
+           action_state == (uint8_t)PF_M4_ACTION_RAPID_JAB_END;
+}
+
+static inline int pf_m4_action_is_reference_jab_chain(uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_GROUND_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_JAB_FINAL ||
+           pf_m4_action_is_reference_jab_extension(action_state);
+}
+
+static inline int pf_m4_action_is_reference_angled_normal(
+    uint8_t action_state)
+{
+    return action_state == (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_HIGH ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_MID_HIGH ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_MID_LOW ||
+           action_state == (uint8_t)PF_M4_ACTION_FORWARD_ATTACK_LOW ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW;
+}
+
+static inline int pf_m4_action_is_forward_smash_release(uint8_t action_state)
+{
+    return action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW;
+}
+
+static inline int pf_m4_action_is_smash_release(uint8_t action_state)
+{
+    return pf_m4_action_is_forward_smash_release(action_state) ||
+           action_state == (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
+           action_state == (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK;
+}
+
 static inline int pf_m4_action_retains_source_submotion(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
@@ -98,6 +147,13 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
+        action_state == (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+        action_state == (uint8_t)PF_M4_ACTION_TEETER ||
+        action_state == (uint8_t)PF_M4_ACTION_REBOUND ||
+        action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(action_state);
     const int resume_owns_submotion =
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
@@ -105,6 +161,16 @@ static inline int pf_m4_action_retains_source_submotion(
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK ||
+        hitlag_resume_action ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN ||
+        hitlag_resume_action ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND ||
+        hitlag_resume_action ==
+            (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_TEETER ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_REBOUND ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
         pf_m4_action_uses_ledge(hitlag_resume_action);
 
     return action_owns_submotion ||
@@ -170,6 +236,10 @@ enum
     PF_M4_DIRECTIONAL_INPUT_LEDGE_READY = UINT8_C(1) << 4,
     PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ATTACK = UINT8_C(1) << 5,
     PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ROLL_INWARD = UINT8_C(1) << 6,
+    /* Compact damage-state work bit. It is not an input edge: combat sets it
+     * only for the decomp's 260..280 degree meteor-cancellable launch range,
+     * and movement preserves it until damage ends or the cancel succeeds. */
+    PF_M4_DIRECTIONAL_INPUT_METEOR_CANCEL = UINT8_C(1) << 7,
     PF_M4_DIRECTIONAL_INPUT_ALL =
         PF_M4_DIRECTIONAL_INPUT_DODGE_DOWN |
         PF_M4_DIRECTIONAL_INPUT_C_UP |
@@ -177,7 +247,8 @@ enum
         PF_M4_DIRECTIONAL_INPUT_C_RIGHT |
         PF_M4_DIRECTIONAL_INPUT_LEDGE_READY |
         PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ATTACK |
-        PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ROLL_INWARD
+        PF_M4_DIRECTIONAL_INPUT_LEDGE_C_ROLL_INWARD |
+        PF_M4_DIRECTIONAL_INPUT_METEOR_CANCEL
 };
 
 typedef struct pf_world_state
@@ -209,6 +280,8 @@ typedef struct pf_world_state
     int32_t position_y_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    uint16_t match_kos[PF_SIM_MAX_PLAYERS];
+    uint16_t match_falls[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
@@ -217,6 +290,7 @@ typedef struct pf_world_state
     uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t damage_jump_buffer_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t smash_charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t shield_strength[PF_SIM_MAX_PLAYERS];
@@ -241,8 +315,14 @@ typedef struct pf_world_state
     uint8_t previous_directional_input_flags[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_x_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_y_direction[PF_SIM_MAX_PLAYERS];
+    int8_t mash_stick_x_direction[PF_SIM_MAX_PLAYERS];
+    int8_t mash_stick_y_direction[PF_SIM_MAX_PLAYERS];
+    int16_t previous_secondary_stick_x[PF_SIM_MAX_PLAYERS];
+    int16_t previous_secondary_stick_y[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
+    uint8_t horizontal_input_age[PF_SIM_MAX_PLAYERS];
+    int8_t horizontal_input_direction[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
@@ -260,6 +340,11 @@ typedef struct pf_world_state
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
     uint8_t falcon_kick_hit_count[PF_SIM_MAX_PLAYERS];
+    uint16_t rebound_duration_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t jab_chain_buffered[PF_SIM_MAX_PLAYERS];
+    uint8_t rapid_jab_input_count[PF_SIM_MAX_PLAYERS];
+    uint8_t rapid_jab_continue[PF_SIM_MAX_PLAYERS];
+    uint8_t down_tilt_repeat_buffered[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_count[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_ids[PF_SIM_MAX_PLAYERS]
                           [PF_SIM_STALE_MOVE_QUEUE_CAPACITY];
@@ -306,6 +391,8 @@ typedef struct pf_sim_scratch
     int32_t position_y_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t velocity_y_q16[PF_SIM_MAX_PLAYERS];
+    uint16_t match_kos[PF_SIM_MAX_PLAYERS];
+    uint16_t match_falls[PF_SIM_MAX_PLAYERS];
     uint16_t action_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
@@ -314,6 +401,7 @@ typedef struct pf_sim_scratch
     uint16_t ledge_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t ledge_regrab_lockout_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t grab_escape_ticks[PF_SIM_MAX_PLAYERS];
+    uint16_t damage_jump_buffer_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t smash_charge_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t shield_strength[PF_SIM_MAX_PLAYERS];
@@ -337,8 +425,14 @@ typedef struct pf_sim_scratch
     uint8_t previous_directional_input_flags[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_x_direction[PF_SIM_MAX_PLAYERS];
     int8_t previous_tilt_y_direction[PF_SIM_MAX_PLAYERS];
+    int8_t mash_stick_x_direction[PF_SIM_MAX_PLAYERS];
+    int8_t mash_stick_y_direction[PF_SIM_MAX_PLAYERS];
+    int16_t previous_secondary_stick_x[PF_SIM_MAX_PLAYERS];
+    int16_t previous_secondary_stick_y[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_x_age[PF_SIM_MAX_PLAYERS];
     uint8_t tilt_y_age[PF_SIM_MAX_PLAYERS];
+    uint8_t horizontal_input_age[PF_SIM_MAX_PLAYERS];
+    int8_t horizontal_input_direction[PF_SIM_MAX_PLAYERS];
     uint32_t damage_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_x_q16[PF_SIM_MAX_PLAYERS];
     int32_t knockback_velocity_y_q16[PF_SIM_MAX_PLAYERS];
@@ -356,6 +450,11 @@ typedef struct pf_sim_scratch
     uint8_t attack_hit_mask[PF_SIM_MAX_PLAYERS];
     uint8_t attack_stale_registered[PF_SIM_MAX_PLAYERS];
     uint8_t falcon_kick_hit_count[PF_SIM_MAX_PLAYERS];
+    uint16_t rebound_duration_ticks[PF_SIM_MAX_PLAYERS];
+    uint8_t jab_chain_buffered[PF_SIM_MAX_PLAYERS];
+    uint8_t rapid_jab_input_count[PF_SIM_MAX_PLAYERS];
+    uint8_t rapid_jab_continue[PF_SIM_MAX_PLAYERS];
+    uint8_t down_tilt_repeat_buffered[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_count[PF_SIM_MAX_PLAYERS];
     uint8_t stale_move_ids[PF_SIM_MAX_PLAYERS]
                           [PF_SIM_STALE_MOVE_QUEUE_CAPACITY];

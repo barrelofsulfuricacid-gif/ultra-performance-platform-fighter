@@ -48,3 +48,27 @@ pf_m4_ssbm_common_reference_ledge_response(void)
 {
     return &pf_m4_ssbm_ledge_response_attribute_data;
 }
+
+const pf_m4_ssbm_mash_attributes *
+pf_m4_ssbm_common_reference_mash(void)
+{
+    return &pf_m4_ssbm_mash_attribute_data;
+}
+
+const pf_m4_ssbm_ground_input_attributes *
+pf_m4_ssbm_common_reference_ground_input(void)
+{
+    return &pf_m4_ssbm_ground_input_attribute_data;
+}
+
+const pf_m4_ssbm_rebirth_attributes *
+pf_m4_ssbm_common_reference_rebirth(void)
+{
+    return &pf_m4_ssbm_rebirth_attribute_data;
+}
+
+const pf_m4_ssbm_clank_attributes *
+pf_m4_ssbm_common_reference_clank(void)
+{
+    return &pf_m4_ssbm_clank_attribute_data;
+}

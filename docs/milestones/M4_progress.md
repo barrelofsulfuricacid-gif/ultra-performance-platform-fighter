@@ -29,6 +29,36 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the 2026-08-10 static decomp differential (unverified)
+
+- Audited pinned NTSC 1.02 common callbacks and all Falcon special callbacks
+  directly against production. Closed every discrepancy visible within the
+  represented state/data model; no runtime experiment or guessed frame datum
+  was used.
+- Added exact source-routed mash/capture escape, shield-break and Furafura,
+  Damage/DamageFall IASA and buffering, crouch/smash knockback modifiers,
+  electric hitlag, meteor cancel, repeated-hit velocity merging, rebound/clank,
+  rebirth timers, teeter, grab/release, throw weight scaling, and pummel hitlag.
+- Added Falcon Jab 3 and rapid-jab lifecycle, down-tilt repeat, angled forward
+  tilt/smash variants, exact smash charging, C-stick defensive buffering, and
+  source input-priority arbitration. Authored moonwalk states are bypassed for
+  source Falcon movement.
+- Corrected raw submotion identity throughout: `Pass` is 209,
+  `Ottotto`/`OttottoWait` are 210/211, `CatchCut`/`CaptureCut` are 246/257, and
+  shield-break fly/down/stand motions are 286-291. Earlier notes that called
+  `Pass` submotion 244 were wrong; 244 is an action-state identity, not
+  Falcon's raw DAT submotion slot.
+- Advanced compatibility to content 76, fighter 68, state 69, save format 64,
+  `PFSAVE58`, a 775-byte payload, and a 915-byte checkpoint. Only callback-
+  consumed history/continuation is canonicalized.
+- No tests, builds, generator executions, Dolphin runs, benchmarks, or runtime
+  validation were performed by explicit request. Exact geometry for new jab,
+  angled-normal, pummel/capture, common-pose, and shield-break orientation
+  paths remains an import/evidence boundary. Dynamic rebirth targets,
+  companions, broader stages/items, aerial item/tether callbacks, and match
+  choreography require a wider model. This section must not be cited as a
+  verified equivalence result.
+
 ## Implemented in the TurnRun display-facing closure
 
 - Current and pinned `doldecomp/melee` agree on `ftCo_TurnRun_Anim`: frozen
@@ -4911,10 +4941,10 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 - The decomp route is `ftCo_8009A228` -> `ftCo_Pass_Anim` / `_Phys` /
   `_Coll`, with `ft_80084DB0` for common air physics and `ft_80082F28` for
-  ground/ledge collision. Common `Pass` submotion 244 has a 30-frame animation;
+  ground/ledge collision. Falcon raw `Pass` submotion 209 has a 30-frame animation;
   common-data x470 is a separate nine-frame floor-skip countdown. The runtime
   keeps both identities without a new allocation, public action, byte, or
-  schema: `AIRBORNE` carries source submotion 244 and its zero-based phase,
+  schema: `AIRBORNE` carries source submotion 209 and its zero-based phase,
   while the existing collision field owns the skip timer.
 - A focused headless/null/unlimited ExiAI route entered Pass normally, then
   relocated Falcon after entry to prevent natural landing from truncating the

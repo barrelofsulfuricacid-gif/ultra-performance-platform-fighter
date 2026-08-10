@@ -380,6 +380,12 @@ pf_m4_falcon_reference_stale_move_data(void)
     return &pf_m4_melee_stale_move_data_source;
 }
 
+const pf_m4_falcon_smash_charge_attributes *
+pf_m4_falcon_reference_smash_charge_attributes(void)
+{
+    return &pf_m4_falcon_smash_charge_attributes_source;
+}
+
 const pf_m4_falcon_neutral_special_timing *
 pf_m4_falcon_reference_neutral_special_timing(void)
 {
@@ -621,6 +627,9 @@ const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
     {
         return NULL;
     }
+    action_frame = pf_m4_falcon_reference_effective_hit_frame(
+        move_index,
+        action_frame);
     for (phase_index = UINT16_C(0);
          phase_index < (uint16_t)move->phase_count;
          ++phase_index)
@@ -635,6 +644,24 @@ const pf_m4_reference_hit_phase *pf_m4_falcon_reference_phase_at_frame(
         }
     }
     return NULL;
+}
+
+uint16_t pf_m4_falcon_reference_effective_hit_frame(
+    pf_m4_falcon_move_index move_index,
+    uint16_t action_frame)
+{
+    if (move_index != PF_M4_FALCON_RAPID_JABS_LOOP ||
+        action_frame < UINT16_C(4))
+    {
+        return action_frame;
+    }
+    if (action_frame >= UINT16_C(35))
+    {
+        return (uint16_t)(UINT16_C(4) +
+                          (action_frame - UINT16_C(35)));
+    }
+    return (uint16_t)(UINT16_C(4) +
+                      (action_frame - UINT16_C(4)) % UINT16_C(8));
 }
 
 const pf_m4_reference_hit_effect *pf_m4_falcon_reference_effect_at_frame(
@@ -677,6 +704,9 @@ pf_m4_falcon_reference_hit_spheres_at_frame(
     {
         return NULL;
     }
+    action_frame = pf_m4_falcon_reference_effective_hit_frame(
+        move_index,
+        action_frame);
     geometry = &pf_m4_falcon_geometry_moves[move_index];
     if (geometry->frame_count == UINT8_C(0) ||
         action_frame < (uint16_t)geometry->first_frame)
@@ -1010,11 +1040,35 @@ int pf_m4_falcon_reference_move_for_action(
         case PF_M4_ACTION_JAB_FINAL:
             move_index = PF_M4_FALCON_JAB2;
             break;
+        case PF_M4_ACTION_JAB_THIRD:
+            move_index = PF_M4_FALCON_JAB3;
+            break;
+        case PF_M4_ACTION_RAPID_JAB_START:
+            move_index = PF_M4_FALCON_RAPID_JABS_START;
+            break;
+        case PF_M4_ACTION_RAPID_JAB_LOOP:
+            move_index = PF_M4_FALCON_RAPID_JABS_LOOP;
+            break;
+        case PF_M4_ACTION_RAPID_JAB_END:
+            move_index = PF_M4_FALCON_RAPID_JABS_END;
+            break;
         case PF_M4_ACTION_DASH_ATTACK:
             move_index = PF_M4_FALCON_DASH_ATTACK;
             break;
         case PF_M4_ACTION_FORWARD_ATTACK:
             move_index = PF_M4_FALCON_FORWARD_TILT;
+            break;
+        case PF_M4_ACTION_FORWARD_ATTACK_HIGH:
+            move_index = PF_M4_FALCON_FORWARD_TILT_HIGH;
+            break;
+        case PF_M4_ACTION_FORWARD_ATTACK_MID_HIGH:
+            move_index = PF_M4_FALCON_FORWARD_TILT_MID_HIGH;
+            break;
+        case PF_M4_ACTION_FORWARD_ATTACK_MID_LOW:
+            move_index = PF_M4_FALCON_FORWARD_TILT_MID_LOW;
+            break;
+        case PF_M4_ACTION_FORWARD_ATTACK_LOW:
+            move_index = PF_M4_FALCON_FORWARD_TILT_LOW;
             break;
         case PF_M4_ACTION_UP_ATTACK:
             move_index = PF_M4_FALCON_UP_TILT;
@@ -1024,6 +1078,12 @@ int pf_m4_falcon_reference_move_for_action(
             break;
         case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
             move_index = PF_M4_FALCON_FORWARD_SMASH;
+            break;
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH:
+            move_index = PF_M4_FALCON_FORWARD_SMASH_HIGH;
+            break;
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW:
+            move_index = PF_M4_FALCON_FORWARD_SMASH_LOW;
             break;
         case PF_M4_ACTION_UP_STRONG_ATTACK:
             move_index = PF_M4_FALCON_UP_SMASH;
@@ -1219,8 +1279,14 @@ pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
         case PF_M4_ACTION_GROUND_ATTACK:
         case PF_M4_ACTION_JAB_FINAL:
             return PF_M4_REFERENCE_IASA_JAB_CHAIN;
+        case PF_M4_ACTION_JAB_THIRD:
+            return PF_M4_REFERENCE_IASA_WAIT;
         case PF_M4_ACTION_DASH_ATTACK:
         case PF_M4_ACTION_FORWARD_ATTACK:
+        case PF_M4_ACTION_FORWARD_ATTACK_HIGH:
+        case PF_M4_ACTION_FORWARD_ATTACK_MID_HIGH:
+        case PF_M4_ACTION_FORWARD_ATTACK_MID_LOW:
+        case PF_M4_ACTION_FORWARD_ATTACK_LOW:
         case PF_M4_ACTION_UP_ATTACK:
         case PF_M4_ACTION_UP_STRONG_ATTACK:
         case PF_M4_ACTION_DOWN_STRONG_ATTACK:
@@ -1228,6 +1294,8 @@ pf_m4_reference_iasa_policy pf_m4_falcon_reference_iasa_policy_for_action(
         case PF_M4_ACTION_DOWN_ATTACK:
             return PF_M4_REFERENCE_IASA_DOWN_TILT;
         case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW:
             return PF_M4_REFERENCE_IASA_FORWARD_SMASH;
         default:
             return PF_M4_REFERENCE_IASA_NONE;
@@ -1246,8 +1314,14 @@ pf_m4_falcon_reference_ground_physics_for_action(uint8_t action_state)
     {
         case PF_M4_ACTION_GROUND_ATTACK:
         case PF_M4_ACTION_JAB_FINAL:
+        case PF_M4_ACTION_JAB_THIRD:
+        case PF_M4_ACTION_RAPID_JAB_START:
+        case PF_M4_ACTION_RAPID_JAB_LOOP:
+        case PF_M4_ACTION_RAPID_JAB_END:
         case PF_M4_ACTION_DASH_ATTACK:
         case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW:
             return PF_M4_REFERENCE_GROUND_PHYSICS_ROOT_MOTION;
         default:
             return PF_M4_REFERENCE_GROUND_PHYSICS_FRICTION;

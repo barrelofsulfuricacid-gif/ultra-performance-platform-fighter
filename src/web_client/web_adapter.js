@@ -3312,6 +3312,21 @@ mergeInto(LibraryManager.library, {
       "DAMAGE LOW 2",
       "DAMAGE LOW 3",
       "LEDGE CATCH",
+      "LEDGE JUMP",
+      "REBOUND STOP",
+      "REBOUND",
+      "JAB THIRD",
+      "RAPID JAB START",
+      "RAPID JAB LOOP",
+      "RAPID JAB END",
+      "FORWARD TILT HIGH",
+      "FORWARD TILT MID HIGH",
+      "FORWARD TILT MID LOW",
+      "FORWARD TILT LOW",
+      "FORWARD SMASH HIGH",
+      "FORWARD SMASH LOW",
+      "FORWARD SMASH CHARGE HIGH",
+      "FORWARD SMASH CHARGE LOW",
     ];
 
     if (view[1] < previousTick) {

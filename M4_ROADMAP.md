@@ -32,6 +32,48 @@ separately because a stored pass cannot establish new SSBM truth.
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
 | Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, per-surface collision routing, previous/current animated-ECB identity, and bounded one-way-platform crossing qualification guidance. |
 
+## Implemented locally: exhaustive static decomp differential
+
+This 2026-08-10 slice is intentionally **not marked verified**. At the owner's
+request, it was produced only by comparing the pinned NTSC 1.02 decomp,
+owner-extracted generated data, and production code. No test, build, generator,
+Dolphin route, benchmark, or runtime validation was run for the slice.
+
+- [x] Replace authored or collapsed common behavior with source-routed mash,
+  capture, grab/release, throw, shield-break, damage, hitlag, hitstun, meteor-
+  cancel, rebirth, teeter, rebound/clank, dash/walk, jump, escape, and input-
+  priority semantics wherever the current state model can express the decomp.
+- [x] Add Falcon's missing Jab 3 and rapid-jab lifecycle, angled forward-tilt
+  and forward-smash actions, exact smash-charge release clock, down-tilt repeat,
+  pummel hitlag, throw weight scaling, stale scaling, C-stick defensive edges,
+  and special/common collision transitions without adding authored frame data.
+- [x] Preserve exact source identities for `Pass` (raw submotion 209),
+  `Ottotto`/`OttottoWait` (210/211), `CatchCut`/`CaptureCut` (246/257), and the
+  shield-break family (286-291). Keep raw DAT submotion identity separate from
+  action-state identity.
+- [x] Extend canonical rollback state only for callback-consumed history and
+  continuation: mash directions, previous C-stick samples, horizontal input
+  age/direction, rebound duration, jab-chain state, damage-jump buffering, and
+  match KO/fall counters. The active compatibility tuple is content 76,
+  fighter 68, state 69, save format 64, magic `PFSAVE58`, 775-byte payload,
+  and 915-byte checkpoint.
+- [x] Repeat the source-to-production callback audit across Wait, Dash/Run,
+  Damage/DamageFall, Guard, Ottotto, Catch/Throw, Rebirth, Rebound, common
+  ledge eligibility, and all four Falcon specials. No further discrepancy was
+  found that is decidable from the currently represented decomp/data paths.
+
+Remaining work is evidence/model work rather than a known code-only fix:
+
+- [ ] Import exact pose/hit geometry for Jab 3, rapid jab, angled normals,
+  pummel/CaptureDamage, crouch-wait/walk/run/taunt, and shield-break DownU/DownD
+  selection (the latter depends on the terminal HipN matrix).
+- [ ] Represent dynamic rebirth targets/companion coordination, full stage and
+  item-kind behavior, aerial item/tether callbacks, and tournament entry/rule
+  choreography before claiming those wider SSBM domains.
+- [ ] Run generation, compile, snapshot/replay, native/WSL/browser, stored-
+  oracle, and live Dolphin qualification in the next validation slice. Until
+  then, all behavior above is implemented-but-unverified.
+
 ## Completed and verified
 
 ### Equivalence architecture
@@ -127,6 +169,8 @@ Relevant commits on `agent/m4-combat-vertical-slice`:
 - [x] Extend canonical snapshot/hash/replay state by eight fixed bytes, reject
   invalid action/submotion/clock combinations, and migrate to state schema 64,
   save format 60, magic `PFSAVE54`, a 695-byte payload, and an 835-byte save.
+  This is the verified historical checkpoint; the newer unverified static
+  slice is recorded separately above.
 - [x] Qualify the eight-frame Fall loop in the registered Hyrule theorem and
   compare the existing 1,250-frame Dolphin aerial-iasa capture. All 350
   JumpAerial/FallAerial action-frame samples pass strictly. WSL and Windows
@@ -1068,7 +1112,7 @@ other stage/pushbox topologies.
   incoming vertical self velocity on the `Landing` entry row; project it to
   zero on the next grounded-physics update, matching the saved source trace.
 - [x] Follow `ftCo_8009A228`, `ftCo_Pass_Anim`, `ftCo_Pass_Phys`, and
-  `ftCo_Pass_Coll`; retain submotion 244 inside the existing allocation-free
+  `ftCo_Pass_Coll`; retain raw submotion 209 inside the existing allocation-free
   public-`AIRBORNE` source-submotion adapter instead of adding a duplicate
   public action or schema field.
 - [x] Capture all source `Pass` frames 0..29 by moving the fighter only after

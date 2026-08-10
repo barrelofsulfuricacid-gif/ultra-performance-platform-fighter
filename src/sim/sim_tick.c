@@ -325,8 +325,8 @@ static pf_status pf_m4_emit_action_transitions(
     uint32_t player_index;
 
     _Static_assert(
-        PF_M4_ACTION_REVIVAL_PLATFORM < 128,
-        "packed action-transition values must remain nonnegative int32 values");
+        PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW <= UINT8_MAX,
+        "packed action-transition values must fit one byte per player");
 
     if (scratch->action_transition_mask == UINT8_C(0))
     {
@@ -436,6 +436,14 @@ pf_status pf_sim_tick_impl(
     scratch->stale_move_sync_valid = UINT8_C(0);
     scratch->stale_move_dirty_mask = UINT8_C(0);
     scratch->action_transition_mask = UINT8_C(0);
+    (void)memcpy(
+        scratch->match_kos,
+        world->match_kos,
+        sizeof(scratch->match_kos));
+    (void)memcpy(
+        scratch->match_falls,
+        world->match_falls,
+        sizeof(scratch->match_falls));
     scratch->shield_recoil_mask = world->shield_recoil_mask;
     if (world->shield_recoil_mask != UINT8_C(0))
     {
@@ -590,6 +598,10 @@ pf_status pf_sim_tick_impl(
             scratch->velocity_x_q16[player_index];
         world->velocity_y_q16[player_index] =
             scratch->velocity_y_q16[player_index];
+        world->match_kos[player_index] =
+            scratch->match_kos[player_index];
+        world->match_falls[player_index] =
+            scratch->match_falls[player_index];
         world->action_ticks[player_index] =
             scratch->action_ticks[player_index];
         world->source_submotion[player_index] =
@@ -607,6 +619,8 @@ pf_status pf_sim_tick_impl(
             scratch->ledge_regrab_lockout_ticks[player_index];
         world->grab_escape_ticks[player_index] =
             scratch->grab_escape_ticks[player_index];
+        world->damage_jump_buffer_ticks[player_index] =
+            scratch->damage_jump_buffer_ticks[player_index];
         world->charge_ticks[player_index] =
             scratch->charge_ticks[player_index];
         world->smash_charge_ticks[player_index] =
@@ -655,10 +669,22 @@ pf_status pf_sim_tick_impl(
             scratch->previous_tilt_x_direction[player_index];
         world->previous_tilt_y_direction[player_index] =
             scratch->previous_tilt_y_direction[player_index];
+        world->mash_stick_x_direction[player_index] =
+            scratch->mash_stick_x_direction[player_index];
+        world->mash_stick_y_direction[player_index] =
+            scratch->mash_stick_y_direction[player_index];
+        world->previous_secondary_stick_x[player_index] =
+            scratch->previous_secondary_stick_x[player_index];
+        world->previous_secondary_stick_y[player_index] =
+            scratch->previous_secondary_stick_y[player_index];
         world->tilt_x_age[player_index] =
             scratch->tilt_x_age[player_index];
         world->tilt_y_age[player_index] =
             scratch->tilt_y_age[player_index];
+        world->horizontal_input_age[player_index] =
+            scratch->horizontal_input_age[player_index];
+        world->horizontal_input_direction[player_index] =
+            scratch->horizontal_input_direction[player_index];
         world->damage_q16[player_index] =
             scratch->damage_q16[player_index];
         world->knockback_velocity_x_q16[player_index] =
@@ -693,6 +719,16 @@ pf_status pf_sim_tick_impl(
             scratch->attack_stale_registered[player_index];
         world->falcon_kick_hit_count[player_index] =
             scratch->falcon_kick_hit_count[player_index];
+        world->rebound_duration_ticks[player_index] =
+            scratch->rebound_duration_ticks[player_index];
+        world->jab_chain_buffered[player_index] =
+            scratch->jab_chain_buffered[player_index];
+        world->rapid_jab_input_count[player_index] =
+            scratch->rapid_jab_input_count[player_index];
+        world->rapid_jab_continue[player_index] =
+            scratch->rapid_jab_continue[player_index];
+        world->down_tilt_repeat_buffered[player_index] =
+            scratch->down_tilt_repeat_buffered[player_index];
         world->last_hit_attacker[player_index] =
             scratch->last_hit_attacker[player_index];
         world->shield_held[player_index] =

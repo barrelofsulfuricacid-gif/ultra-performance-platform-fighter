@@ -1,6 +1,6 @@
 # TDR-0006: Canonical state format and hash
 
-- **Status:** Accepted for save formats 1–60 / state schemas 1–64
+- **Status:** Accepted through save format 64 / state schema 69
 - **Date:** 2026-08-01
 
 ## Decision
@@ -70,6 +70,7 @@ Save formats are fixed, field-by-field little-endian encodings:
 | 58 | 62 | 140 | 671 | 811 | Packed directional-edge history and A/B prone-option buffer age per player |
 | 59 | 63 | 140 | 687 | 827 | Imported Hyrule support-line identity and slope/ledge continuation state |
 | 60 | 64 | 140 | 695 | 835 | One 16-bit resolved airborne source submotion per player; imported Jump-to-Fall transition and Fall-loop phase |
+| 64 | 69 | 140 | 775 | 915 | Static-decomp closure state: KO/fall counters, mash/C-stick/horizontal-input history, rebound and jab-chain continuation, and damage-jump buffering; fail-closed expanded Falcon/common action vocabulary |
 
 The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE05`, `PFSAVE06`, `PFSAVE07`, `PFSAVE08`, `PFSAVE09`, `PFSAVE10`, or
@@ -80,9 +81,10 @@ The header magic is `PFSAVE01`, `PFSAVE02`, `PFSAVE03`, `PFSAVE04`, or
 `PFSAVE35`, `PFSAVE36`, `PFSAVE37`, `PFSAVE38`, `PFSAVE39`, `PFSAVE40`,
 `PFSAVE41`, `PFSAVE42`, `PFSAVE43`, `PFSAVE44`, `PFSAVE45`, `PFSAVE46`,
 `PFSAVE47`, `PFSAVE48`, `PFSAVE49`, `PFSAVE50`, `PFSAVE51`, `PFSAVE52`,
-`PFSAVE53`, or `PFSAVE54`.
-The active M4 runtime emits and accepts format 60 with state schema 64 and
-magic `PFSAVE54`. Earlier
+`PFSAVE53`, `PFSAVE54`, or `PFSAVE58`.
+The active M4 runtime emits and accepts format 64 with state schema 69 and
+magic `PFSAVE58`; formats 61-63 were compatibility steps inside the same
+unverified static slice and are not accepted by the final reader. Earlier
 schemas and formats remain documented as historical evidence rather than
 being silently converted. The
 configuration identity is SHA-256 over the domain `PFCFG001` followed by the

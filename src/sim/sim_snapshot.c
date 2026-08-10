@@ -9,7 +9,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)695)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)775)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -32,7 +32,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x34)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x38)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -326,6 +326,13 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_u16(writer, world->match_kos[player_index]);
+        pf_writer_u16(writer, world->match_falls[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_i32(
             writer,
             world->shield_recoil_x_q16[player_index]);
@@ -496,6 +503,38 @@ static void pf_write_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        pf_writer_i8(
+            writer,
+            world->mash_stick_x_direction[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i8(
+            writer,
+            world->mash_stick_y_direction[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            (uint16_t)world->previous_secondary_stick_x[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            (uint16_t)world->previous_secondary_stick_y[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         pf_writer_u8(writer, world->tilt_x_age[player_index]);
     }
     for (player_index = UINT32_C(0);
@@ -503,6 +542,20 @@ static void pf_write_payload(
          ++player_index)
     {
         pf_writer_u8(writer, world->tilt_y_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u8(writer, world->horizontal_input_age[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_i8(
+            writer,
+            world->horizontal_input_direction[player_index]);
     }
     pf_writer_u32(writer, world->combat_event_sequence);
     for (player_index = UINT32_C(0);
@@ -589,6 +642,30 @@ static void pf_write_payload(
         writer,
         world->falcon_kick_hit_count,
         sizeof(world->falcon_kick_hit_count));
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            world->rebound_duration_ticks[player_index]);
+    }
+    pf_writer_bytes(
+        writer,
+        world->jab_chain_buffered,
+        sizeof(world->jab_chain_buffered));
+    pf_writer_bytes(
+        writer,
+        world->rapid_jab_input_count,
+        sizeof(world->rapid_jab_input_count));
+    pf_writer_bytes(
+        writer,
+        world->rapid_jab_continue,
+        sizeof(world->rapid_jab_continue));
+    pf_writer_bytes(
+        writer,
+        world->down_tilt_repeat_buffered,
+        sizeof(world->down_tilt_repeat_buffered));
     pf_writer_bytes(
         writer,
         world->stale_move_count,
@@ -704,6 +781,14 @@ static void pf_write_payload(
          ++player_index)
     {
         pf_writer_u16(writer, world->grab_escape_ticks[player_index]);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        pf_writer_u16(
+            writer,
+            world->damage_jump_buffer_ticks[player_index]);
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -836,6 +921,13 @@ static void pf_read_payload(
          ++player_index)
     {
         world->velocity_y_q16[player_index] = pf_reader_i32(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->match_kos[player_index] = pf_reader_u16(reader);
+        world->match_falls[player_index] = pf_reader_u16(reader);
     }
     world->shield_recoil_mask = UINT8_C(0);
     for (player_index = UINT32_C(0);
@@ -1005,6 +1097,34 @@ static void pf_read_payload(
          player_index < PF_SIM_MAX_PLAYERS;
          ++player_index)
     {
+        world->mash_stick_x_direction[player_index] =
+            pf_reader_i8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->mash_stick_y_direction[player_index] =
+            pf_reader_i8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->previous_secondary_stick_x[player_index] =
+            (int16_t)pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->previous_secondary_stick_y[player_index] =
+            (int16_t)pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
         world->tilt_x_age[player_index] = pf_reader_u8(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1012,6 +1132,20 @@ static void pf_read_payload(
          ++player_index)
     {
         world->tilt_y_age[player_index] = pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->horizontal_input_age[player_index] =
+            pf_reader_u8(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->horizontal_input_direction[player_index] =
+            pf_reader_i8(reader);
     }
     world->combat_event_sequence = pf_reader_u32(reader);
     for (player_index = UINT32_C(0);
@@ -1094,6 +1228,29 @@ static void pf_read_payload(
         reader,
         world->falcon_kick_hit_count,
         sizeof(world->falcon_kick_hit_count));
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->rebound_duration_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    pf_reader_bytes(
+        reader,
+        world->jab_chain_buffered,
+        sizeof(world->jab_chain_buffered));
+    pf_reader_bytes(
+        reader,
+        world->rapid_jab_input_count,
+        sizeof(world->rapid_jab_input_count));
+    pf_reader_bytes(
+        reader,
+        world->rapid_jab_continue,
+        sizeof(world->rapid_jab_continue));
+    pf_reader_bytes(
+        reader,
+        world->down_tilt_repeat_buffered,
+        sizeof(world->down_tilt_repeat_buffered));
     pf_reader_bytes(
         reader,
         world->stale_move_count,
@@ -1225,6 +1382,13 @@ static void pf_read_payload(
          ++player_index)
     {
         world->grab_escape_ticks[player_index] =
+            pf_reader_u16(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        world->damage_jump_buffer_ticks[player_index] =
             pf_reader_u16(reader);
     }
     for (player_index = UINT32_C(0);
@@ -1504,6 +1668,7 @@ static int pf_m4_snapshot_action_is_ground_attack(uint8_t action)
            action == (uint8_t)PF_M4_ACTION_UP_ATTACK ||
            action == (uint8_t)PF_M4_ACTION_DOWN_ATTACK ||
            action == (uint8_t)PF_M4_ACTION_FORWARD_ATTACK ||
+           pf_m4_action_is_reference_angled_normal(action) ||
            action == (uint8_t)PF_M4_ACTION_STRONG_ATTACK ||
            action ==
                (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
@@ -1511,7 +1676,11 @@ static int pf_m4_snapshot_action_is_ground_attack(uint8_t action)
            action ==
                (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK ||
            action == (uint8_t)PF_M4_ACTION_DASH_ATTACK ||
-           action == (uint8_t)PF_M4_ACTION_JAB_FINAL;
+           action == (uint8_t)PF_M4_ACTION_JAB_FINAL ||
+           action == (uint8_t)PF_M4_ACTION_JAB_THIRD ||
+           action == (uint8_t)PF_M4_ACTION_RAPID_JAB_START ||
+           action == (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP ||
+           action == (uint8_t)PF_M4_ACTION_RAPID_JAB_END;
 }
 
 static int pf_m4_snapshot_action_is_landing(uint8_t action)
@@ -1634,16 +1803,45 @@ static int pf_m4_snapshot_action_is_smash_charge(uint8_t action)
                (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE ||
            action == (uint8_t)PF_M4_ACTION_UP_STRONG_CHARGE ||
            action ==
-               (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE;
+               (uint8_t)PF_M4_ACTION_DOWN_STRONG_CHARGE ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_HIGH ||
+           action ==
+               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW;
 }
 
 static int pf_m4_snapshot_action_is_smash_release(uint8_t action)
 {
-    return action ==
-               (uint8_t)PF_M4_ACTION_FORWARD_STRONG_ATTACK ||
-           action == (uint8_t)PF_M4_ACTION_UP_STRONG_ATTACK ||
-           action ==
-               (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK;
+    return pf_m4_action_is_smash_release(action);
+}
+
+static uint16_t pf_m4_snapshot_smash_charge_frame(uint8_t action)
+{
+    pf_m4_falcon_move_index move_index;
+    const pf_m4_reference_move *move;
+
+    switch ((pf_m4_action_state)action)
+    {
+        case PF_M4_ACTION_FORWARD_STRONG_CHARGE:
+            move_index = PF_M4_FALCON_FORWARD_SMASH;
+            break;
+        case PF_M4_ACTION_FORWARD_STRONG_CHARGE_HIGH:
+            move_index = PF_M4_FALCON_FORWARD_SMASH_HIGH;
+            break;
+        case PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW:
+            move_index = PF_M4_FALCON_FORWARD_SMASH_LOW;
+            break;
+        case PF_M4_ACTION_UP_STRONG_CHARGE:
+            move_index = PF_M4_FALCON_UP_SMASH;
+            break;
+        case PF_M4_ACTION_DOWN_STRONG_CHARGE:
+            move_index = PF_M4_FALCON_DOWN_SMASH;
+            break;
+        default:
+            return UINT16_C(0);
+    }
+    move = pf_m4_falcon_reference_move(move_index);
+    return move != NULL ? move->charge_frame : UINT16_C(0);
 }
 
 static const pf_m4_attack_data *pf_m4_snapshot_ground_attack_data(
@@ -1657,8 +1855,14 @@ static const pf_m4_attack_data *pf_m4_snapshot_ground_attack_data(
         case PF_M4_ACTION_DOWN_ATTACK:
             return &fighter->down_attack;
         case PF_M4_ACTION_FORWARD_ATTACK:
+        case PF_M4_ACTION_FORWARD_ATTACK_HIGH:
+        case PF_M4_ACTION_FORWARD_ATTACK_MID_HIGH:
+        case PF_M4_ACTION_FORWARD_ATTACK_MID_LOW:
+        case PF_M4_ACTION_FORWARD_ATTACK_LOW:
             return &fighter->forward_attack;
         case PF_M4_ACTION_FORWARD_STRONG_ATTACK:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH:
+        case PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW:
             return &fighter->forward_strong_attack;
         case PF_M4_ACTION_UP_STRONG_ATTACK:
             return &fighter->up_strong_attack;
@@ -1734,6 +1938,63 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
     {
         identity_valid =
             submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_SHIELD_BREAK)
+    {
+        identity_valid =
+            submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_FLY;
+    }
+    else if (effective_action ==
+             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_DOWN)
+    {
+        identity_valid =
+            submotion ==
+                (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP ||
+            submotion ==
+                (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN;
+    }
+    else if (effective_action ==
+             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STAND)
+    {
+        identity_valid =
+            submotion ==
+                (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP ||
+            submotion ==
+                (uint16_t)
+                    PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN;
+    }
+    else if (effective_action ==
+             (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+    {
+        /* action_ticks is the source grab/daze countdown here, not the
+         * looping FuraFura animation cursor. */
+        return submotion ==
+                   (uint16_t)PF_M4_FALCON_SUBMOTION_FURAFURA &&
+               action_ticks != UINT16_C(0);
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_TEETER)
+    {
+        identity_valid =
+            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TEETER ||
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_TEETER_WAIT;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_REBOUND)
+    {
+        identity_valid =
+            reference_frame_data_enabled != UINT8_C(0) &&
+            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_REBOUND;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE)
+    {
+        identity_valid =
+            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_CATCH_CUT ||
+            submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_CAPTURE_CUT;
     }
     else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_HANG)
     {
@@ -1891,6 +2152,10 @@ static int pf_m4_snapshot_content_state_consistent(
             pf_m4_snapshot_action_is_smash_release(action);
         const int smash_release_resume =
             pf_m4_snapshot_action_is_smash_release(resume_action);
+        const uint16_t source_smash_charge_frame =
+            content->fighter.reference_frame_data_enabled != UINT8_C(0)
+                ? pf_m4_snapshot_smash_charge_frame(action)
+                : UINT16_C(0);
         const uint16_t shield_strength =
             world->shield_strength[player_index];
         const int shield_strength_action =
@@ -1919,10 +2184,17 @@ static int pf_m4_snapshot_content_state_consistent(
             smash_charge_ticks >
                 content->fighter.smash_charge_max_ticks ||
             (smash_charge_action &&
-             (smash_charge_ticks == UINT16_C(0) ||
-              smash_charge_ticks != action_ticks ||
-              smash_charge_ticks >=
-                  content->fighter.smash_charge_max_ticks)) ||
+             (source_smash_charge_frame != UINT16_C(0)
+                  ? (action_ticks == UINT16_C(0) ||
+                     action_ticks > source_smash_charge_frame ||
+                     (smash_charge_ticks != UINT16_C(0) &&
+                      action_ticks != source_smash_charge_frame) ||
+                     smash_charge_ticks >=
+                         content->fighter.smash_charge_max_ticks)
+                  : (smash_charge_ticks == UINT16_C(0) ||
+                     smash_charge_ticks != action_ticks ||
+                     smash_charge_ticks >=
+                         content->fighter.smash_charge_max_ticks))) ||
             (smash_charge_ticks != UINT16_C(0) &&
              !smash_charge_action && !smash_release_action &&
              !smash_release_resume) ||
@@ -1958,8 +2230,7 @@ static int pf_m4_snapshot_content_state_consistent(
              (action_ticks == UINT16_C(0) ||
               action_ticks >= content->fighter.initial_dash_ticks)) ||
             (action == (uint8_t)PF_M4_ACTION_TEETER &&
-             (action_ticks >= content->fighter.teeter_ticks ||
-              world->velocity_x_q16[player_index] != INT32_C(0))) ||
+             world->velocity_x_q16[player_index] != INT32_C(0)) ||
             (action == (uint8_t)PF_M4_ACTION_CROUCH_STEP &&
              action_ticks >= content->fighter.crouch_step_ticks) ||
             (action == (uint8_t)PF_M4_ACTION_CROUCH_START &&
@@ -2543,7 +2814,30 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->action_ticks[player_index] > UINT16_C(640) ||
                 world->source_submotion[player_index] >=
                     PF_M4_FALCON_SUBMOTION_COUNT ||
-                action > (uint8_t)PF_M4_ACTION_LEDGE_JUMP ||
+                action >
+                    (uint8_t)PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW ||
+                world->rebound_duration_ticks[player_index] >
+                    UINT16_C(640) ||
+                world->jab_chain_buffered[player_index] > UINT8_C(1) ||
+                world->rapid_jab_continue[player_index] > UINT8_C(1) ||
+                world->down_tilt_repeat_buffered[player_index] >
+                    UINT8_C(1) ||
+                (world->down_tilt_repeat_buffered[player_index] !=
+                     UINT8_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_DOWN_ATTACK &&
+                 !(action == (uint8_t)PF_M4_ACTION_HITLAG &&
+                   world->hitlag_resume_action[player_index] ==
+                       (uint8_t)PF_M4_ACTION_DOWN_ATTACK)) ||
+                ((action == (uint8_t)PF_M4_ACTION_REBOUND_STOP ||
+                  action == (uint8_t)PF_M4_ACTION_REBOUND) &&
+                 (world->rebound_duration_ticks[player_index] ==
+                      UINT16_C(0) ||
+                  world->action_ticks[player_index] >=
+                      world->rebound_duration_ticks[player_index])) ||
+                (world->rebound_duration_ticks[player_index] !=
+                     UINT16_C(0) &&
+                 action != (uint8_t)PF_M4_ACTION_REBOUND_STOP &&
+                 action != (uint8_t)PF_M4_ACTION_REBOUND) ||
                 world->respawn_ticks[player_index] >
                     (world->respawn_delay_config_ticks != UINT16_C(0)
                          ? world->respawn_delay_config_ticks
@@ -2583,6 +2877,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(1) ||
                 (world->previous_directional_input_flags[player_index] &
                  (uint8_t)~PF_M4_DIRECTIONAL_INPUT_ALL) != UINT8_C(0) ||
+                (((world->previous_directional_input_flags[player_index] &
+                   PF_M4_DIRECTIONAL_INPUT_METEOR_CANCEL) != UINT8_C(0)) &&
+                 action != (uint8_t)PF_M4_ACTION_HITSTUN &&
+                 !pf_m4_snapshot_action_is_surface_bounce(action) &&
+                 !(action == (uint8_t)PF_M4_ACTION_HITLAG &&
+                   resume_action ==
+                       (uint8_t)PF_M4_ACTION_HITSTUN)) ||
                 world->previous_tilt_x_direction[player_index] <
                     INT8_C(-1) ||
                 world->previous_tilt_x_direction[player_index] >
@@ -2591,8 +2892,18 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(-1) ||
                 world->previous_tilt_y_direction[player_index] >
                     INT8_C(1) ||
+                world->mash_stick_x_direction[player_index] < INT8_C(-1) ||
+                world->mash_stick_x_direction[player_index] > INT8_C(1) ||
+                world->mash_stick_y_direction[player_index] < INT8_C(-1) ||
+                world->mash_stick_y_direction[player_index] > INT8_C(1) ||
                 world->tilt_x_age[player_index] > UINT8_C(254) ||
                 world->tilt_y_age[player_index] > UINT8_C(254) ||
+                world->horizontal_input_age[player_index] >
+                    UINT8_C(254) ||
+                world->horizontal_input_direction[player_index] <
+                    INT8_C(-1) ||
+                world->horizontal_input_direction[player_index] >
+                    INT8_C(1) ||
                 world->damage_q16[player_index] >
                     PF_SIM_MAX_DAMAGE_Q16 ||
                 world->knockback_velocity_x_q16[player_index] <
@@ -2648,7 +2959,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (prone_action != 0 &&
                  prone_orientation ==
                      (uint8_t)PF_M4_PRONE_NONE) ||
-                world->grab_escape_ticks[player_index] > UINT16_C(600) ||
+                world->grab_escape_ticks[player_index] >
+                    PF_SIM_MAX_GRAB_ESCAPE_TICKS ||
+                world->damage_jump_buffer_ticks[player_index] >
+                    PF_SIM_MAX_HITSTUN_TICKS ||
                 world->charge_ticks[player_index] > UINT16_C(600) ||
                 world->smash_charge_ticks[player_index] >
                     UINT16_C(600) ||
@@ -2824,7 +3138,6 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 (resume_action ==
                      (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
                  (shield_stun == UINT16_C(0) ||
-                  shield_health == UINT32_C(0) ||
                   hitstun_is_active != 0 ||
                   world->grounded[player_index] == UINT8_C(0))) ||
                 (resume_action ==
@@ -2861,9 +3174,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       (uint8_t)PF_M4_ACTION_SHIELD_STUN)) ||
                 (shield_health == UINT32_C(0) &&
                  !pf_m4_snapshot_action_is_shield_break(action) &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD &&
+                 action != (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
                  (action != (uint8_t)PF_M4_ACTION_HITLAG ||
-                  resume_action !=
-                      (uint8_t)PF_M4_ACTION_SHIELD_BREAK)) ||
+                  (resume_action !=
+                       (uint8_t)PF_M4_ACTION_SHIELD_STUN &&
+                   resume_action !=
+                       (uint8_t)PF_M4_ACTION_SHIELD_BREAK))) ||
                 (pf_m4_snapshot_action_is_shield_break(action) &&
                  (shield_health != UINT32_C(0) ||
                   shield_stun != UINT16_C(0) ||
@@ -2880,8 +3197,7 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 ((action == (uint8_t)PF_M4_ACTION_SHIELD ||
                   action ==
                       (uint8_t)PF_M4_ACTION_SHIELD_RELEASE) &&
-                 (shield_health == UINT32_C(0) ||
-                  shield_stun != UINT16_C(0) ||
+                 (shield_stun != UINT16_C(0) ||
                   hitlag != UINT16_C(0) ||
                   hitstun_is_active != 0 ||
                   world->grounded[player_index] == UINT8_C(0))) ||
@@ -2992,6 +3308,14 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                       world->player_count ||
                   world->last_hit_attacker[player_index] ==
                       (uint8_t)player_index)) ||
+                (world->damage_jump_buffer_ticks[player_index] !=
+                     UINT16_C(0) &&
+                 !pf_m4_action_is_damage(action) &&
+                 !pf_m4_snapshot_action_is_surface_bounce(action) &&
+                 !(action == (uint8_t)PF_M4_ACTION_HITLAG &&
+                   (pf_m4_action_is_damage(resume_action) ||
+                    pf_m4_snapshot_action_is_surface_bounce(
+                        resume_action)))) ||
                 !pf_m4_player_state_consistent(world, player_index))
             {
                 return PF_STATUS_INVALID_STATE;
@@ -3030,6 +3354,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  world->position_y_q16[player_index] != INT32_C(0) ||
                  world->velocity_x_q16[player_index] != INT32_C(0) ||
                  world->velocity_y_q16[player_index] != INT32_C(0) ||
+                 world->match_kos[player_index] != UINT16_C(0) ||
+                 world->match_falls[player_index] != UINT16_C(0) ||
                  world->shield_recoil_x_q16[player_index] !=
                      INT32_C(0) ||
                  world->action_ticks[player_index] != UINT16_C(0) ||
@@ -3055,8 +3381,19 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      INT8_C(0) ||
                  world->previous_tilt_y_direction[player_index] !=
                      INT8_C(0) ||
+                 world->mash_stick_x_direction[player_index] !=
+                     INT8_C(0) ||
+                 world->mash_stick_y_direction[player_index] !=
+                     INT8_C(0) ||
+                 world->previous_secondary_stick_x[player_index] !=
+                     INT16_C(0) ||
+                 world->previous_secondary_stick_y[player_index] !=
+                     INT16_C(0) ||
                  world->tilt_x_age[player_index] != UINT8_C(0) ||
                  world->tilt_y_age[player_index] != UINT8_C(0) ||
+                 world->horizontal_input_age[player_index] != UINT8_C(0) ||
+                 world->horizontal_input_direction[player_index] !=
+                     INT8_C(0) ||
                  world->damage_q16[player_index] != UINT32_C(0) ||
                  world->knockback_velocity_x_q16[player_index] !=
                      INT32_C(0) ||
@@ -3072,6 +3409,13 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      UINT8_C(0) ||
                  world->attack_hit_mask[player_index] != UINT8_C(0) ||
                  world->attack_stale_registered[player_index] !=
+                     UINT8_C(0) ||
+                 world->rebound_duration_ticks[player_index] !=
+                     UINT16_C(0) ||
+                 world->jab_chain_buffered[player_index] != UINT8_C(0) ||
+                 world->rapid_jab_input_count[player_index] != UINT8_C(0) ||
+                 world->rapid_jab_continue[player_index] != UINT8_C(0) ||
+                 world->down_tilt_repeat_buffered[player_index] !=
                      UINT8_C(0) ||
                  world->stale_move_count[player_index] != UINT8_C(0) ||
                  world->last_hit_attacker[player_index] != UINT8_C(0) ||
@@ -3100,9 +3444,11 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                      UINT16_C(0) ||
                  world->ledge_invulnerability_ticks[player_index] !=
                      UINT16_C(0) ||
-                 world->ledge_regrab_lockout_ticks[player_index] !=
+                  world->ledge_regrab_lockout_ticks[player_index] !=
                       UINT16_C(0) ||
                   world->grab_escape_ticks[player_index] != UINT16_C(0) ||
+                  world->damage_jump_buffer_ticks[player_index] !=
+                      UINT16_C(0) ||
                   world->charge_ticks[player_index] != UINT16_C(0) ||
                   world->smash_charge_ticks[player_index] !=
                       UINT16_C(0) ||

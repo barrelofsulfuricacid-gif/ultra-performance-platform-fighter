@@ -122,10 +122,24 @@ pf_m4_ssbm_damage_response_attribute_data = {
     INT32_C(20516),
     INT32_C(34882),
     INT32_C(43254),
+    INT32_C(357913952),
+    UINT32_C(43691),
+    UINT32_C(98304),
+    UINT32_C(43691),
+    UINT32_C(78643),
     UINT16_C(8192),
     UINT16_C(22937),
     UINT16_C(4),
-    UINT16_C(0),
+    UINT16_C(3),
+    UINT16_C(20),
+    UINT16_C(260),
+    UINT16_C(280),
+    UINT16_C(8),
+    UINT16_C(12),
+    UINT16_C(26214),
+    UINT16_C(1),
+    UINT16_C(10),
+    UINT16_C(20),
 };
 
 static const pf_m4_ssbm_surface_response_attributes
@@ -160,4 +174,75 @@ pf_m4_ssbm_ledge_response_attribute_data = {
     UINT16_C(30),
     UINT16_C(21708),
     UINT16_C(26214),
+};
+
+static const pf_m4_ssbm_mash_attributes
+pf_m4_ssbm_mash_attribute_data = {
+    UINT32_C(1966080),
+    INT32_C(1966080),
+    INT32_C(524288),
+    INT32_C(589824),
+    INT32_C(983040),
+    INT32_C(262144),
+    INT32_C(104858),
+    UINT16_C(16384),
+    UINT16_C(400),
+    UINT16_C(90),
+    UINT16_C(1),
+    UINT16_C(3),
+    UINT16_C(1),
+    UINT16_C(6),
+    UINT16_C(0),
+};
+
+static const pf_m4_ssbm_ground_input_attributes
+pf_m4_ssbm_ground_input_attribute_data = {
+    INT32_C(6839),
+    INT32_C(6839),
+    INT32_C(23254),
+    INT32_C(655),
+    UINT16_C(8192),
+    UINT16_C(24575),
+    UINT16_C(5898),
+    UINT16_C(8192),
+    UINT16_C(8192),
+    UINT16_C(26214),
+    UINT16_C(21708),
+    UINT16_C(21708),
+    UINT16_C(22937),
+    UINT16_C(4),
+    UINT16_C(18022),
+    UINT16_C(20),
+    UINT16_C(4),
+    UINT16_C(20),
+    UINT16_C(18431),
+    UINT16_C(2),
+    UINT16_C(4),
+    UINT16_C(8192),
+    UINT16_C(8192),
+    UINT16_C(21708),
+    INT32_C(78103),
+    INT32_C(78103),
+    INT32_C(20036),
+    INT32_C(11556),
+    INT32_C(20036),
+    INT32_C(11556),
+};
+
+static const pf_m4_ssbm_rebirth_attributes
+pf_m4_ssbm_rebirth_attribute_data = {
+    UINT16_C(60),
+    UINT16_C(240),
+    UINT16_C(120),
+    UINT16_C(0),
+};
+
+static const pf_m4_ssbm_clank_attributes
+pf_m4_ssbm_clank_attribute_data = {
+    INT32_C(19661),
+    INT32_C(196608),
+    INT32_C(48),
+    INT32_C(3420),
+    UINT16_C(9),
+    UINT16_C(0),
 };

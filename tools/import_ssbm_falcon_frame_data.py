@@ -249,6 +249,8 @@ MOVE_KEYS = (
 # intentionally absent rather than incomplete extraction results.
 EXPECTED_ABSENT_MOVE_KEYS = frozenset({"fsmash_mh", "fsmash_ml"})
 
+SMASH_MOVE_KEYS = ("fsmash_h", "fsmash_m", "fsmash_l", "usmash", "dsmash")
+
 ELEMENTS = {
     "empty": "PF_M4_REFERENCE_HIT_EMPTY",
     "normal": "PF_M4_REFERENCE_HIT_NORMAL",
@@ -294,7 +296,7 @@ DOWN_BOUND_STOMACH_FLOOR_CONTACT_MASK = 0x03C0000F
 # 4518dbb5cd43158baeaa1ddad7d5ffd073b4dda46ecbe2aa55d8c7efa9eadfdb).
 FALLING_ECB_BOTTOM_Y_MELEE = 7.932853698730469
 
-# Pass is a 30-frame common submotion (index 244). Its animation clock is
+# Pass is a 30-frame common submotion (index 209). Its animation clock is
 # independent from common-data x470, which only controls how long collision
 # skips the platform that was just left. The complete frame 0..29 ECB was
 # captured with the fighter relocated after Pass became active so landing
@@ -1366,6 +1368,38 @@ def generate(
         raise ValueError(
             f"incomplete Falcon submotion catalog: {len(subactions)}"
         )
+
+    smash_charge_rows: list[tuple[int, int]] = []
+    for key in SMASH_MOVE_KEYS:
+        move = data[key]
+        if move is None:
+            raise ValueError(f"{key}: missing smash-charge source move")
+        subaction = subactions[int(move["subactionIndex"])]
+        commands = [
+            bytes.fromhex(str(event["bytes"]))
+            for event in subaction["events"]
+            if int(str(event["commandId"]), 16) == 0xE0
+        ]
+        if len(commands) != 1 or len(commands[0]) != 8:
+            raise ValueError(f"{key}: expected one complete Smash Charge command")
+        command_word = struct.unpack_from(">I", commands[0], 0)[0]
+        smash_charge_rows.append(
+            ((command_word >> 16) & 0x3FF, command_word & 0xFFFF)
+        )
+    if len(set(smash_charge_rows)) != 1:
+        raise ValueError(
+            f"Falcon smash moves disagree on charge command: {smash_charge_rows}"
+        )
+    smash_charge_ticks, smash_charge_damage_multiplier_q8 = smash_charge_rows[0]
+    if (
+        smash_charge_ticks != 60
+        or smash_charge_damage_multiplier_q8 != 350
+    ):
+        raise ValueError(
+            "unexpected Falcon Smash Charge parameters: "
+            f"ticks={smash_charge_ticks} "
+            f"damage_q8={smash_charge_damage_multiplier_q8}"
+        )
     if subactions_offset + SUBMOTION_COUNT * 0x18 > len(source_dat_block):
         raise ValueError("Falcon submotion records are out of bounds")
     submotion_catalog: list[dict[str, int]] = []
@@ -1655,6 +1689,59 @@ def generate(
         == speciallw_ground_origin_edge_fall_begin
     ):
         raise ValueError("invalid SpecialLw command-variable ordering")
+    weight_independent_throws_word = common_attribute_bits[96]
+    weight_independent_throws_mask = weight_independent_throws_word >> 24
+    if (
+        weight_independent_throws_word & 0x00FFFFFF
+        or weight_independent_throws_mask & ~0x0F
+    ):
+        raise ValueError("invalid weight-independent throw mask")
+    # These are action opcodes rather than command-variable writes. Decode the
+    # exact script frames directly: opcode 29 enables the ordinary jab link,
+    # opcode 30 enables rapid-jab selection, and the loop's five calls enter a
+    # two-frame hit/decision subroutine.
+    def action_opcode_frames(
+        subaction_index: int,
+        opcode: int,
+    ) -> list[tuple[int, bytes]]:
+        frame = 0
+        result: list[tuple[int, bytes]] = []
+        for event in subactions[subaction_index].get("events", []):
+            command_id = int(str(event["commandId"]), 16)
+            fields = event.get("fields") or {}
+            if command_id == 0x08:
+                frame = int(fields["frame"])
+            elif command_id == 0x04:
+                frame += int(fields["frames"])
+            if command_id == opcode << 2:
+                result.append((frame, bytes.fromhex(str(event["bytes"]))))
+        return result
+
+    jab_1_combo = action_opcode_frames(46, 29)
+    jab_2_combo = action_opcode_frames(47, 29)
+    jab_3_rapid = action_opcode_frames(48, 30)
+    rapid_calls = action_opcode_frames(50, 5)
+    down_tilt_continuation = action_opcode_frames(59, 52)
+    if (
+        jab_1_combo
+        != [
+            (5, bytes.fromhex("74 00 00 01")),
+            (9, bytes.fromhex("74 00 00 00")),
+        ]
+        or jab_2_combo
+        != [
+            (4, bytes.fromhex("74 00 00 01")),
+            (8, bytes.fromhex("74 00 00 00")),
+        ]
+        or jab_3_rapid != [(10, bytes.fromhex("78 00 00 01"))]
+        or [frame for frame, _ in rapid_calls] != [4, 12, 20, 28, 35]
+        or down_tilt_continuation
+        != [
+            (0, bytes.fromhex("d0 00 00 04")),
+            (29, bytes.fromhex("d0 00 00 03")),
+        ]
+    ):
+        raise ValueError("unexpected Falcon jab action-script timeline")
     common_attributes = {
         "initial_walk_velocity_q16": round(
             raw_f32(common_attribute_bits, 0) * MELEE_X_TO_SIM_Q16
@@ -1731,6 +1818,9 @@ def generate(
         "shield_break_initial_velocity_q16": round(
             raw_f32(common_attribute_bits, 37) * MELEE_Y_TO_SIM_Q16
         ),
+        "rebound_animation_length_q16": q16(
+            raw_f32(common_attribute_bits, 39)
+        ),
         "ledge_jump_horizontal_velocity_q16": round(
             raw_f32(common_attribute_bits, 42) * MELEE_X_TO_SIM_Q16
         ),
@@ -1747,6 +1837,21 @@ def generate(
         "number_of_jumps": common_attribute_bits[22],
         "turn_duration_ticks": round(raw_f32(common_attribute_bits, 33)),
         "weight": round(raw_f32(common_attribute_bits, 34)),
+        "jab_2_input_window_ticks": round(raw_f32(common_attribute_bits, 31)),
+        "jab_3_input_window_ticks": round(raw_f32(common_attribute_bits, 32)),
+        "rapid_jab_input_count": common_attribute_bits[38],
+        "jab_1_combo_enable_frame": jab_1_combo[-1][0],
+        "jab_2_combo_enable_frame": jab_2_combo[-1][0],
+        "jab_3_rapid_enable_frame": jab_3_rapid[0][0],
+        "rapid_jab_first_decision_frame": rapid_calls[0][0] + 2,
+        "rapid_jab_decision_interval": rapid_calls[1][0] - rapid_calls[0][0],
+        "rapid_jab_last_decision_frame": rapid_calls[-1][0] + 2,
+        "rapid_jab_loop_frame_count": submotion_catalog[50][
+            "gameplay_frame_count"
+        ],
+        "down_tilt_repeat_enable_frame": down_tilt_continuation[-1][0],
+        "weight_independent_throws_mask": weight_independent_throws_mask,
+        "reserved": 0,
         "normal_landing_lag_ticks": round(raw_f32(common_attribute_bits, 57)),
         "neutral_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 58)),
         "forward_aerial_landing_lag_ticks": round(raw_f32(common_attribute_bits, 59)),
@@ -2004,6 +2109,12 @@ def generate(
         f"    UINT32_C({animation_key_count}),",
         "};",
         "",
+        "static const pf_m4_falcon_smash_charge_attributes",
+        "pf_m4_falcon_smash_charge_attributes_source = {",
+        f"    UINT16_C({smash_charge_ticks}),",
+        f"    UINT16_C({smash_charge_damage_multiplier_q8}),",
+        "};",
+        "",
         "static const pf_m4_falcon_submotion_data",
         "pf_m4_falcon_submotions[PF_M4_FALCON_SUBMOTION_COUNT] = {",
     ]
@@ -2081,7 +2192,17 @@ def generate(
     lines.extend(
         (
             f"    .{name} = UINT16_C({value}),"
-            if name.endswith("_ticks") or name in {"number_of_jumps", "weight"}
+            if name.endswith("_ticks")
+            or name.endswith("_frame")
+            or name
+            in {
+                "number_of_jumps",
+                "weight",
+                "rapid_jab_input_count",
+                "rapid_jab_loop_frame_count",
+            }
+            else f"    .{name} = UINT8_C({value}),"
+            if name in {"weight_independent_throws_mask", "reserved"}
             else f"    .{name} = INT32_C({value}),"
         )
         for name, value in common_attributes.items()

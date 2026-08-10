@@ -10,8 +10,8 @@ extern "C"
 {
 #endif
 
-#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(75)
-#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(67)
+#define PF_M4_CONTENT_SCHEMA_VERSION UINT16_C(76)
+#define PF_M4_FIGHTER_SCHEMA_VERSION UINT16_C(68)
 #define PF_M4_STAGE_SCHEMA_VERSION UINT16_C(5)
 #define PF_M4_ITEM_SCHEMA_VERSION UINT16_C(1)
 #define PF_M4_PROJECTILE_SCHEMA_VERSION UINT16_C(1)
@@ -165,7 +165,21 @@ typedef enum pf_m4_action_state
     PF_M4_ACTION_DAMAGE_LOW_2 = 131,
     PF_M4_ACTION_DAMAGE_LOW_3 = 132,
     PF_M4_ACTION_LEDGE_CATCH = 133,
-    PF_M4_ACTION_LEDGE_JUMP = 134
+    PF_M4_ACTION_LEDGE_JUMP = 134,
+    PF_M4_ACTION_REBOUND_STOP = 135,
+    PF_M4_ACTION_REBOUND = 136,
+    PF_M4_ACTION_JAB_THIRD = 137,
+    PF_M4_ACTION_RAPID_JAB_START = 138,
+    PF_M4_ACTION_RAPID_JAB_LOOP = 139,
+    PF_M4_ACTION_RAPID_JAB_END = 140,
+    PF_M4_ACTION_FORWARD_ATTACK_HIGH = 141,
+    PF_M4_ACTION_FORWARD_ATTACK_MID_HIGH = 142,
+    PF_M4_ACTION_FORWARD_ATTACK_MID_LOW = 143,
+    PF_M4_ACTION_FORWARD_ATTACK_LOW = 144,
+    PF_M4_ACTION_FORWARD_STRONG_ATTACK_HIGH = 145,
+    PF_M4_ACTION_FORWARD_STRONG_ATTACK_LOW = 146,
+    PF_M4_ACTION_FORWARD_STRONG_CHARGE_HIGH = 147,
+    PF_M4_ACTION_FORWARD_STRONG_CHARGE_LOW = 148
 } pf_m4_action_state;
 
 typedef enum pf_m4_projectile_state
@@ -612,6 +626,9 @@ typedef struct pf_m4_fighter_data
     uint16_t dash_input_window_ticks;
     uint16_t moonwalk_setup_ticks;
     uint16_t teeter_ticks;
+    uint16_t teeter_turn_axis_threshold;
+    uint16_t teeter_walk_axis_threshold;
+    uint16_t walk_axis_threshold;
     uint16_t crouch_step_ticks;
     uint16_t taunt_ticks;
     uint16_t forward_smash_input_window_ticks;
@@ -745,6 +762,8 @@ typedef struct pf_m4_fighter_data
     uint16_t shield_break_down_ticks;
     uint16_t shield_break_stand_ticks;
     uint16_t shield_break_mash_reduction_ticks;
+    uint16_t mash_stick_axis_threshold;
+    uint16_t shield_break_stun_tick_decrement;
     uint16_t grab_startup_ticks;
     uint16_t grab_active_ticks;
     uint16_t grab_recovery_ticks;
@@ -754,7 +773,11 @@ typedef struct pf_m4_fighter_data
     uint16_t grab_escape_base_ticks;
     uint16_t grab_escape_max_ticks;
     uint16_t grab_mash_reduction_ticks;
+    uint16_t grab_escape_tick_decrement;
     uint16_t grab_release_ticks;
+    int32_t grab_release_speed_x_q16;
+    int32_t grab_release_air_speed_x_q16;
+    int32_t grab_release_air_speed_y_q16;
     uint8_t air_jump_count;
     uint8_t powershield_cancel_enabled;
     uint8_t wall_jump_enabled;

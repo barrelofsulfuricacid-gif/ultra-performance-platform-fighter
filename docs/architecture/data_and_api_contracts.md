@@ -3,6 +3,15 @@
 This document fixes interface shape rather than wire layout. M2 implements the
 contracts incrementally in public headers and conformance tests.
 
+The active unverified static-decomp slice uses content schema 76, fighter
+schema 68, canonical state schema 69, save format 64, and magic `PFSAVE58`.
+Its fixed checkpoint is a 140-byte header plus a 775-byte payload, 915 bytes
+total. The added canonical fields are only callback-consumed history and
+continuation: per-player KO/fall counters, mash and prior C-stick directions,
+horizontal-input age/direction, rebound duration, jab-chain state, and damage-
+jump buffering. The older schema-64/format-60/`PFSAVE54` 835-byte checkpoint
+below remains historical verified evidence, not the active layout.
+
 ## Simulation lifecycle
 
 The public API must support this conceptual C surface:

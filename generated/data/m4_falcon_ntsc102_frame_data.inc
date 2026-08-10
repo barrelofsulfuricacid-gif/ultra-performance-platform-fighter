@@ -41,6 +41,12 @@ pf_m4_falcon_animation_decode_summary_data = {
     UINT32_C(308057),
 };
 
+static const pf_m4_falcon_smash_charge_attributes
+pf_m4_falcon_smash_charge_attributes_source = {
+    UINT16_C(60),
+    UINT16_C(350),
+};
+
 static const pf_m4_falcon_submotion_data
 pf_m4_falcon_submotions[PF_M4_FALCON_SUBMOTION_COUNT] = {
     { UINT16_C(50), UINT16_C(49), UINT16_C(1), UINT16_C(0), UINT16_C(0), UINT16_C(0), UINT32_C(0x00000002), UINT32_C(7478) },
@@ -4172,6 +4178,7 @@ pf_m4_falcon_common_attribute_data = {
     .fast_fall_terminal_velocity_q16 = INT32_C(40696),
     .maximum_horizontal_air_velocity_q16 = INT32_C(20516),
     .shield_break_initial_velocity_q16 = INT32_C(31394),
+    .rebound_animation_length_q16 = INT32_C(1048576),
     .ledge_jump_horizontal_velocity_q16 = INT32_C(6839),
     .ledge_jump_vertical_velocity_q16 = INT32_C(38370),
     .wall_jump_horizontal_velocity_q16 = INT32_C(9574),
@@ -4180,6 +4187,19 @@ pf_m4_falcon_common_attribute_data = {
     .number_of_jumps = UINT16_C(2),
     .turn_duration_ticks = UINT16_C(6),
     .weight = UINT16_C(104),
+    .jab_2_input_window_ticks = UINT16_C(24),
+    .jab_3_input_window_ticks = UINT16_C(24),
+    .rapid_jab_input_count = UINT16_C(4),
+    .jab_1_combo_enable_frame = UINT16_C(9),
+    .jab_2_combo_enable_frame = UINT16_C(8),
+    .jab_3_rapid_enable_frame = UINT16_C(10),
+    .rapid_jab_first_decision_frame = UINT16_C(6),
+    .rapid_jab_decision_interval = UINT16_C(8),
+    .rapid_jab_last_decision_frame = UINT16_C(37),
+    .rapid_jab_loop_frame_count = UINT16_C(39),
+    .down_tilt_repeat_enable_frame = UINT16_C(29),
+    .weight_independent_throws_mask = UINT8_C(7),
+    .reserved = UINT8_C(0),
     .normal_landing_lag_ticks = UINT16_C(4),
     .neutral_aerial_landing_lag_ticks = UINT16_C(15),
     .forward_aerial_landing_lag_ticks = UINT16_C(19),
