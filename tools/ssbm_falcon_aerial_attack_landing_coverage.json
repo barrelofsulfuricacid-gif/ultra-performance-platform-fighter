@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "scope": "falcon-aerial-attack-landing",
+  "domain": "falcon-aerial-attack-landing",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "live_source": {
+    "capture_sha256": "ed821d83e5b2dcebf6d10aa5d9eaac83eb6c66bc22bace5faa85b933f36454a1",
+    "repeat_capture_sha256": "071ed0fe2ce2fd228b8ff099b1367cfb2c5d6eb3d64e79399563772574cf28b7",
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "launcher_sha256": "f06b96ddf780417e7c23ad2001879207ff8ea4bd88cc52195b297eae37661455",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "current_decomp_revision": "6ddd74ecbb755df25b32f137b5f7b7f6d7005e91",
+    "dolphin_version": "3.5.1",
+    "libmelee_version": "0.47.2",
+    "execution_mode": "exiai-headless-null-unlimited",
+    "row_count": 685,
+    "position_tolerance_q16": 640,
+    "velocity_tolerance_q16": 32
+  },
+  "checkpoint_pack": {
+    "capture_plan": {
+      "stage": "BATTLEFIELD",
+      "route": "aerial-attack-landing"
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_ntsc102_frame_data.inc",
+      "generated/data/m4_ssbm_falcon_aerial_attack_landing_oracle.json",
+      "src/sim/sim_falcon_frame_data.c",
+      "src/sim/sim_falcon_frame_data.h",
+      "src/sim/sim_movement.c",
+      "src/tools/m4_movement_trace.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/compare_ssbm_movement.py",
+      "tools/data/ssbm_falcon_aerial_attack_ecb.json",
+      "tools/generate_ssbm_stored_trace_oracle.py",
+      "tools/import_ssbm_falcon_frame_data.py",
+      "tools/ssbm_falcon_aerial_attack_landing_coverage.json",
+      "tools/ssbm_live_trace.py",
+      "tools/ssbm_natural_movement_domain.py",
+      "tools/verify_ssbm_falcon_aerial_attack_landing.py"
+    ]
+  },
+  "stored_oracle": {
+    "kind": "native-csv-trace-v1",
+    "source_trace_sha256": "83e1fadc017af2c5005411ea2fae8d378855127662196fa0b9b81a37c7a11efe",
+    "production_trace_sha256": "dd14d194d15a115925c17761fd5fff692413b26a268ef96286180e176273e490",
+    "serialized_fields": [
+      "action_state",
+      "action_ticks",
+      "facing",
+      "grounded",
+      "support",
+      "surface_normal_source_x_q16",
+      "surface_normal_source_y_q16",
+      "position_x_q16_from_origin",
+      "position_y_q16_from_origin",
+      "velocity_x_q16",
+      "velocity_y_q16"
+    ],
+    "cases": [
+      {
+        "id": "battlefield_short_hop_nair_landing",
+        "source_label_prefix": "aerial_attack_landing_nair",
+        "runner_arguments": ["--platform"],
+        "sample_count": 137,
+        "field_exclusions": {
+          "action_ticks": [[0, 61], [111, 137]],
+          "velocity_y_q16": [[96, 97]]
+        },
+        "input_phases": [
+          {"ticks": 61, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}, {}]},
+          {"ticks": 4, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"buttons": ["attack"]}, {}]},
+          {"ticks": 70, "lanes": [{}, {}]}
+        ]
+      },
+      {
+        "id": "battlefield_short_hop_fair_landing",
+        "source_label_prefix": "aerial_attack_landing_fair",
+        "runner_arguments": ["--platform"],
+        "sample_count": 137,
+        "field_exclusions": {
+          "action_ticks": [[0, 61], [115, 137]],
+          "velocity_y_q16": [[96, 97]]
+        },
+        "input_phases": [
+          {"ticks": 61, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}, {}]},
+          {"ticks": 4, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"c_stick": [32767, 0], "buttons": ["strong_attack"]}, {}]},
+          {"ticks": 70, "lanes": [{}, {}]}
+        ]
+      },
+      {
+        "id": "battlefield_short_hop_bair_autocancel",
+        "source_label_prefix": "aerial_attack_landing_bair",
+        "runner_arguments": ["--platform"],
+        "sample_count": 137,
+        "field_exclusions": {
+          "action_ticks": [[0, 61], [126, 137]]
+        },
+        "input_phases": [
+          {"ticks": 61, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}, {}]},
+          {"ticks": 4, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"c_stick": [-32767, 0], "buttons": ["strong_attack"]}, {}]},
+          {"ticks": 70, "lanes": [{}, {}]}
+        ]
+      },
+      {
+        "id": "battlefield_short_hop_uair_autocancel",
+        "source_label_prefix": "aerial_attack_landing_uair",
+        "runner_arguments": ["--platform"],
+        "sample_count": 137,
+        "field_exclusions": {
+          "action_ticks": [[0, 61], [126, 137]]
+        },
+        "input_phases": [
+          {"ticks": 61, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}, {}]},
+          {"ticks": 4, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"c_stick": [0, 32767], "buttons": ["strong_attack"]}, {}]},
+          {"ticks": 70, "lanes": [{}, {}]}
+        ]
+      },
+      {
+        "id": "battlefield_short_hop_dair_landing",
+        "source_label_prefix": "aerial_attack_landing_dair",
+        "runner_arguments": ["--platform"],
+        "sample_count": 137,
+        "field_exclusions": {
+          "action_ticks": [[0, 61], [121, 137]],
+          "velocity_y_q16": [[97, 98]]
+        },
+        "input_phases": [
+          {"ticks": 61, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"buttons": ["jump"]}, {}]},
+          {"ticks": 4, "lanes": [{}, {}]},
+          {"ticks": 1, "lanes": [{"c_stick": [0, -32767], "buttons": ["strong_attack"]}, {}]},
+          {"ticks": 70, "lanes": [{}, {}]}
+        ]
+      }
+    ],
+    "generator": {
+      "script": "tools/generate_ssbm_stored_trace_oracle.py",
+      "output": "generated/data/m4_ssbm_falcon_aerial_attack_landing_oracle.json"
+    },
+    "runner": {
+      "executable": "pf_m4_movement_trace",
+      "arguments": []
+    }
+  }
+}

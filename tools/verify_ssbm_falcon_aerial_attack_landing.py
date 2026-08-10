@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Verify Falcon's natural Battlefield jump/landing stored projection."""
+"""Verify Falcon's five natural Battlefield aerial-landing routes."""
 
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
-from typing import Any
 
 from ssbm_live_trace import canonical_sha256
 from ssbm_natural_movement_domain import (
@@ -17,26 +16,9 @@ from ssbm_natural_movement_domain import (
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"ssbm-falcon-airborne-landing=fail reason={message}")
-
-
-def require_action_span(
-    rows: list[dict[str, Any]],
-    label_prefix: str,
-    action: str,
-    expected_frames: list[int],
-) -> None:
-    actual = [
-        round(float(row["action_frame"]))
-        for row in rows
-        if str(row.get("label", "")).startswith(label_prefix)
-        and row.get("action") == action
-    ]
-    if actual != expected_frames:
-        fail(
-            f"action-span route={label_prefix} action={action} "
-            f"expected={expected_frames} actual={actual}"
-        )
+    raise SystemExit(
+        f"ssbm-falcon-aerial-attack-landing=fail reason={message}"
+    )
 
 
 def main() -> int:
@@ -49,10 +31,11 @@ def main() -> int:
     coverage = json.loads(args.coverage.read_text(encoding="utf-8"))
     if (
         coverage.get("schema") != 1
-        or coverage.get("domain") != "falcon-common-airborne-landing"
+        or coverage.get("domain") != "falcon-aerial-attack-landing"
         or not isinstance(coverage.get("live_source"), dict)
         or coverage.get("stored_oracle", {}).get("kind")
         != "native-csv-trace-v1"
+        or len(coverage.get("stored_oracle", {}).get("cases", [])) != 5
     ):
         fail("coverage-schema")
     live_source = coverage["live_source"]
@@ -67,36 +50,6 @@ def main() -> int:
             str(live_source["repeat_capture_sha256"]),
             live_source,
         )
-    except NaturalMovementDomainError as error:
-        fail(str(error))
-    for current in (capture, repeat_capture):
-        rows = current["rows"]
-        require_action_span(
-            rows,
-            "airborne_landing_jump_backward",
-            "JUMPING_BACKWARD",
-            list(range(1, 32)),
-        )
-        require_action_span(
-            rows,
-            "airborne_landing_jump_aerial_forward",
-            "JUMPING_ARIAL_FORWARD",
-            list(range(1, 46)),
-        )
-        require_action_span(
-            rows,
-            "airborne_landing_jump_aerial_backward",
-            "JUMPING_ARIAL_BACKWARD",
-            list(range(1, 36)),
-        )
-        require_action_span(
-            rows,
-            "airborne_landing_jump_aerial_backward",
-            "FALLING_AERIAL",
-            list(range(1, 9)) * 2 + list(range(1, 5)),
-        )
-
-    try:
         canonical = canonical_capture(capture, coverage)
         repeat_canonical = canonical_capture(repeat_capture, coverage)
     except NaturalMovementDomainError as error:
@@ -111,8 +64,8 @@ def main() -> int:
             f"actual={observed_digest}"
         )
     print(
-        "ssbm-falcon-airborne-landing=pass "
-        f"rows={len(capture['rows'])} stored_cases=1 "
+        "ssbm-falcon-aerial-attack-landing=pass "
+        f"rows={len(capture['rows'])} stored_cases=5 "
         f"source_trace_sha256={observed_digest}"
     )
     return 0

@@ -5300,3 +5300,34 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   full 16-domain / 96-case gate plus replay fell from 1.758-1.819 seconds to
   0.430-0.508 seconds on Windows and 0.384-0.408 seconds in WSL. Focused
   movement, combat, and Falcon Kick CTests pass on both hosts.
+
+## 2026-08-10 aerial-attack ECB and natural landing qualification
+
+- A current-upstream decomp sweep rejected the initial aerial-ledge
+  hypothesis: `ftCo_AttackAir_Coll` performs floor collision but does not call
+  the ordinary Fall callback's ledge-acquisition branch. Production therefore
+  continues to exclude ordinary aerial attacks from ledge catch.
+- Two independent no-fast-forward captures reproduce all 195
+  Nair/Fair/Bair/Uair/Dair ECB poses under semantic SHA-256
+  `55e686a07cf3d064618104051f0085ed2a398e9a1612847200b2cba51a665f10`.
+  The importer generates one packed bottom table for the floor-only callback;
+  the checked-in full profile retains all four ECB points as source evidence.
+- Natural short-hop routes found the first production divergence at Nair's
+  platform contact. Animated ECB sweeps now preserve the previous action pose
+  and the current post-callback pose, and imported aerial ECBs accept either a
+  direct crossing or only the immediately preceding bounded crossing when the
+  source contact flag is one update late. This cannot snap an arbitrary
+  already-below fighter upward.
+- Nair/Fair/Dair landing lag and Bair/Uair auto-cancel now pass all 685 source
+  frames twice. Shared source projection replaces duplicate one-case verifier
+  logic. Five generic concurrent stored cases are pinned under source /
+  production SHA-256
+  `83e1fadc017af2c5005411ea2fae8d378855127662196fa0b9b81a37c7a11efe` /
+  `dd14d194d15a115925c17761fd5fff692413b26a268ef96286180e176273e490`.
+- The complete registry is 17 domains / 101 cases plus replay: 0.575 seconds
+  in WSL and 1.458 seconds on native Windows, below the two-second budget.
+  WSL and Windows movement/combat/replay, deterministic generation, and WSL
+  ASan/UBSan pass. Three stable replay reruns pin corpus/final/event SHA-256
+  `9c0c87842664d5bbde8f50dd672f804e8a62d1a32f2a5d9bf5c3d7a9c031cc73` /
+  `3a9bb1e28fd635dcde8f1ec98d0705babd12ee64ee7e036e8f986c5a15a874d5` /
+  `370975f72bbd6546f5253607ef62b811cb4f126889ad3c89bf4b2955703430cb`.

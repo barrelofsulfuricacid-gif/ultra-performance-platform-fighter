@@ -1834,19 +1834,27 @@ static void pf_m4_surface_bounds_q16(
     }
 }
 
+typedef enum pf_m4_pass_through_floor_sweep_policy
+{
+    PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT = 0,
+    PF_M4_PASS_THROUGH_FLOOR_SWEEP_DEFERRED = 1,
+    PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT_OR_DEFERRED = 2
+} pf_m4_pass_through_floor_sweep_policy;
+
 static int pf_m4_floor_sweep_crosses_surface(
     int32_t previous_floor_contact_q16,
     int32_t new_floor_contact_q16,
     int32_t surface_y_q16,
     int is_pass_through,
-    uint8_t action_state,
     uint8_t fast_fall,
-    int defer_pass_through_crossing)
+    pf_m4_pass_through_floor_sweep_policy pass_through_policy)
 {
-    if (defer_pass_through_crossing != 0 &&
-        is_pass_through != 0 &&
-        action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-        fast_fall == UINT8_C(0))
+    const int direct_crossing =
+        previous_floor_contact_q16 <= surface_y_q16 &&
+        new_floor_contact_q16 >= surface_y_q16;
+
+    if (is_pass_through != 0 && fast_fall == UINT8_C(0) &&
+        pass_through_policy != PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT)
     {
         const int64_t previous_overshoot =
             (int64_t)previous_floor_contact_q16 -
@@ -1855,16 +1863,23 @@ static int pf_m4_floor_sweep_crosses_surface(
             (int64_t)new_floor_contact_q16 -
             (int64_t)previous_floor_contact_q16;
 
-        /* The compact ordinary-airborne ECB adapter exposes Melee's landing
-         * transition one update after its approximate bottom crosses a
-         * platform. Accept only that immediately preceding crossing; treating
-         * every already-below point as eligible teleports fighters upward. */
-        return previous_overshoot > INT64_C(0) &&
-               current_displacement > INT64_C(0) &&
-               previous_overshoot <= current_displacement;
+        const int immediately_previous_crossing =
+            previous_overshoot > INT64_C(0) &&
+            current_displacement > INT64_C(0) &&
+            previous_overshoot <= current_displacement;
+
+        /* Melee reports some one-way-platform contacts on the update after
+         * the swept ECB bottom first crosses the line.  The approximate
+         * ordinary-airborne adapter requires that deferred result, while an
+         * imported animated ECB can legitimately report either the direct or
+         * immediately previous crossing.  Bounding the latter by one current
+         * displacement prevents already-below fighters from teleporting up. */
+        return pass_through_policy ==
+                       PF_M4_PASS_THROUGH_FLOOR_SWEEP_DEFERRED
+                   ? immediately_previous_crossing
+                   : direct_crossing || immediately_previous_crossing;
     }
-    return previous_floor_contact_q16 <= surface_y_q16 &&
-           new_floor_contact_q16 >= surface_y_q16;
+    return direct_crossing;
 }
 
 static int pf_m4_reference_stage_find_floor_landing(
@@ -1872,9 +1887,8 @@ static int pf_m4_reference_stage_find_floor_landing(
     int32_t position_x_q16,
     int32_t previous_floor_contact_q16,
     int32_t new_floor_contact_q16,
-    uint8_t action_state,
     uint8_t fast_fall,
-    int defer_pass_through_crossing,
+    pf_m4_pass_through_floor_sweep_policy pass_through_policy,
     int pass_through_allowed,
     uint8_t platform_drop_ticks,
     int32_t *out_surface_y_q16,
@@ -1930,9 +1944,8 @@ static int pf_m4_reference_stage_find_floor_landing(
             new_floor_contact_q16,
             surface_y_q16,
             is_pass_through,
-            action_state,
             fast_fall,
-            defer_pass_through_crossing);
+            pass_through_policy);
         if (crosses_surface != 0 &&
             surface_y_q16 < best_surface_y_q16)
         {
@@ -2018,9 +2031,8 @@ static int pf_m4_body_sweep_hits_solid(
                     current_position_x_q16,
                     (int32_t)previous_bottom,
                     (int32_t)bottom,
-                    (uint8_t)PF_M4_ACTION_HITLAG,
                     UINT8_C(0),
-                    0,
+                    PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT,
                     1,
                     UINT8_C(0),
                     &contact_y_q16,
@@ -11346,8 +11358,15 @@ pf_status pf_m4_step_player(
                 action_ticks,
                 source_submotion,
                 &exact_floor_contact_pose);
-        const int defer_pass_through_crossing =
-            exact_floor_contact_pose == 0;
+        const pf_m4_pass_through_floor_sweep_policy
+            pass_through_floor_sweep_policy =
+                exact_floor_contact_pose == 0
+                    ? PF_M4_PASS_THROUGH_FLOOR_SWEEP_DEFERRED
+                    : (pf_m4_action_is_light_aerial(action_state) ||
+                               action_state == (uint8_t)
+                                                   PF_M4_ACTION_STRONG_AERIAL_ATTACK
+                           ? PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT_OR_DEFERRED
+                           : PF_M4_PASS_THROUGH_FLOOR_SWEEP_DIRECT);
         const int32_t previous_floor_contact =
             world->position_y_q16[player_index] +
             previous_floor_contact_bottom_extent_q16;
@@ -11482,9 +11501,8 @@ pf_status pf_m4_step_player(
                     position_x,
                     previous_floor_contact,
                     new_floor_contact,
-                    action_state,
                     fast_fall,
-                    defer_pass_through_crossing,
+                    pass_through_floor_sweep_policy,
                     pass_through_allowed,
                     platform_drop_ticks,
                     &landing_y_q16,
@@ -11513,9 +11531,8 @@ pf_status pf_m4_step_player(
                         new_bottom,
                         stage->platform_y_q16,
                         1,
-                        action_state,
                         fast_fall,
-                        defer_pass_through_crossing) &&
+                        pass_through_floor_sweep_policy) &&
                     stage->platform_y_q16 < landing_y_q16)
                 {
                     landing_y_q16 = stage->platform_y_q16;
@@ -11531,9 +11548,8 @@ pf_status pf_m4_step_player(
                         new_bottom,
                         stage->upper_platform_y_q16,
                         1,
-                        action_state,
                         fast_fall,
-                        defer_pass_through_crossing) &&
+                        pass_through_floor_sweep_policy) &&
                     stage->upper_platform_y_q16 < landing_y_q16)
                 {
                     landing_y_q16 = stage->upper_platform_y_q16;
@@ -11547,9 +11563,8 @@ pf_status pf_m4_step_player(
                         new_floor_contact,
                         stage->floor_y_q16,
                         0,
-                        action_state,
                         fast_fall,
-                        defer_pass_through_crossing) &&
+                        pass_through_floor_sweep_policy) &&
                     stage->floor_y_q16 < landing_y_q16)
                 {
                     landing_y_q16 = stage->floor_y_q16;

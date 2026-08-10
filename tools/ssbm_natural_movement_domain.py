@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""Shared live-capture projection for native CSV movement domains."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+from compare_ssbm_movement import (
+    CHARACTER_AERIAL_LANDING_ACTIONS,
+    expected_action_state,
+    expected_action_ticks,
+    native_input_line,
+)
+from generate_ssbm_stored_trace_oracle import (
+    expand_case_samples,
+    native_csv_input_line,
+)
+from ssbm_live_trace import (
+    common_movement_source_sample,
+    selected_trace_fields,
+)
+
+
+class NaturalMovementDomainError(ValueError):
+    """A live capture does not satisfy its checked-in domain contract."""
+
+
+def raw_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_capture(
+    path: Path,
+    expected_sha256: str,
+    live_source: dict[str, Any],
+) -> dict[str, Any]:
+    actual_sha256 = raw_sha256(path)
+    if actual_sha256 != expected_sha256:
+        raise NaturalMovementDomainError(
+            f"capture-sha256 path={path} expected={expected_sha256} "
+            f"actual={actual_sha256}"
+        )
+    capture = json.loads(path.read_text(encoding="utf-8"))
+    execution = capture.get("oracle_execution")
+    disc = capture.get("disc")
+    rows = capture.get("rows")
+    if (
+        capture.get("schema") != live_source.get("capture_schema", 11)
+        or capture.get("oracle")
+        != "SSBM GALE01 NTSC-U revision 2 via Dolphin/Slippi"
+        or capture.get("stage") != live_source.get("stage", "BATTLEFIELD")
+        or capture.get("fighter") != live_source.get("fighter", "CPTFALCON")
+        or capture.get("opponent") != live_source.get("opponent", "FOX")
+        or capture.get("dolphin_version") != live_source.get("dolphin_version")
+        or capture.get("libmelee_version") != live_source.get("libmelee_version")
+        or not isinstance(execution, dict)
+        or execution.get("mode")
+        != live_source.get(
+            "execution_mode", "exiai-headless-null-fast-forward"
+        )
+        or execution.get("release_artifact_sha256")
+        != live_source.get("release_artifact_sha256")
+        or execution.get("launcher_sha256")
+        != live_source.get("launcher_sha256")
+        or not isinstance(disc, dict)
+        or disc.get("game_id") != "GALE01"
+        or disc.get("revision") != 2
+        or disc.get("sha256") != live_source.get("disc_sha256")
+        or not isinstance(rows, list)
+        or len(rows) != live_source.get("row_count")
+    ):
+        raise NaturalMovementDomainError(f"capture-provenance path={path}")
+    if any(row.get("damage_percent") != 0.0 for row in rows):
+        raise NaturalMovementDomainError(f"capture-damage-contamination path={path}")
+    return capture
+
+
+def _case_rows(
+    rows: list[dict[str, Any]],
+    case: dict[str, Any],
+) -> list[dict[str, Any]]:
+    prefix = case.get("source_label_prefix")
+    if prefix is None:
+        return rows
+    if not isinstance(prefix, str) or not prefix:
+        raise NaturalMovementDomainError(
+            f"source-label-prefix case={case.get('id')}"
+        )
+    return [
+        row
+        for row in rows
+        if str(row.get("label", "")).startswith(prefix)
+    ]
+
+
+def _source_action_ticks(
+    rows: list[dict[str, Any]],
+    sample_index: int,
+) -> int | None:
+    row = rows[sample_index]
+    action = str(row["action"])
+    action_ticks = expected_action_ticks(action, float(row["action_frame"]))
+    if action not in CHARACTER_AERIAL_LANDING_ACTIONS:
+        return action_ticks
+    elapsed = 0
+    previous_index = sample_index - 1
+    while (
+        previous_index >= 0
+        and str(rows[previous_index].get("action", "")) == action
+    ):
+        elapsed += 1
+        previous_index -= 1
+    return elapsed
+
+
+def canonical_capture(
+    capture: dict[str, Any],
+    coverage: dict[str, Any],
+) -> dict[str, Any]:
+    all_rows = capture["rows"]
+    stored = coverage["stored_oracle"]
+    cases = stored.get("cases")
+    fields = stored.get("serialized_fields")
+    if not isinstance(cases, list) or not cases or not isinstance(fields, list):
+        raise NaturalMovementDomainError("stored-case-schema")
+
+    canonical_cases: list[dict[str, Any]] = []
+    for case in cases:
+        if not isinstance(case, dict):
+            raise NaturalMovementDomainError("stored-case-schema")
+        case_id = str(case.get("id"))
+        rows = _case_rows(all_rows, case)
+        if len(rows) != case.get("sample_count"):
+            raise NaturalMovementDomainError(
+                f"sample-count case={case_id} expected={case.get('sample_count')} "
+                f"actual={len(rows)}"
+            )
+        inputs = expand_case_samples(case, case_id, len(rows), "inputs")
+        stored_input_lines = [
+            native_csv_input_line(sample, case_id, sample_index)
+            for sample_index, sample in enumerate(inputs)
+        ]
+        live_input_lines = [native_input_line(row) for row in rows]
+        if stored_input_lines != live_input_lines:
+            mismatch = next(
+                index
+                for index, (stored_line, live_line) in enumerate(
+                    zip(stored_input_lines, live_input_lines, strict=True)
+                )
+                if stored_line != live_line
+            )
+            raise NaturalMovementDomainError(
+                f"input case={case_id} sample={mismatch}"
+            )
+
+        exclusions = case.get("field_exclusions", {})
+        if not isinstance(exclusions, dict):
+            raise NaturalMovementDomainError(
+                f"field-exclusions case={case_id}"
+            )
+        origin_y = float(rows[0]["position_y"])
+        samples: list[dict[str, int]] = []
+        for sample_index, row in enumerate(rows):
+            action_state = expected_action_state(
+                str(row["action"]),
+                float(row["action_frame"]),
+            )
+            action_ticks = _source_action_ticks(rows, sample_index)
+            selected_fields = selected_trace_fields(
+                fields,
+                exclusions,
+                sample_index,
+            )
+            if not isinstance(action_state, int):
+                raise NaturalMovementDomainError(
+                    f"action-state case={case_id} sample={sample_index}"
+                )
+            if (action_ticks is not None) != (
+                "action_ticks" in selected_fields
+            ):
+                raise NaturalMovementDomainError(
+                    f"action-tick-mask case={case_id} sample={sample_index}"
+                )
+            values = common_movement_source_sample(
+                row,
+                action_state=action_state,
+                action_ticks=action_ticks if action_ticks is not None else 0,
+                origin_y=origin_y,
+            )
+            samples.append(
+                {field: values[field] for field in selected_fields}
+            )
+        canonical_cases.append({"id": case_id, "samples": samples})
+    return {
+        "schema": 1,
+        "domain": str(coverage["domain"]),
+        "cases": canonical_cases,
+    }

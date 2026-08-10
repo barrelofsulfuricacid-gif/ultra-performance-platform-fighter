@@ -67,6 +67,11 @@ SSBM_TO_M4_ACTION = {
     "BAIR": 82,
     "UAIR": 83,
     "DAIR": 84,
+    "NAIR_LANDING": 36,
+    "FAIR_LANDING": 95,
+    "BAIR_LANDING": 96,
+    "UAIR_LANDING": 97,
+    "DAIR_LANDING": 98,
     "LANDING_SPECIAL": 34,
     "LANDING": 7,
     "TAUNT_RIGHT": 75,
@@ -81,6 +86,14 @@ SSBM_TO_M4_ACTION = {
 }
 
 M4_DELAYED_AIR_JUMP = 61
+
+CHARACTER_AERIAL_LANDING_ACTIONS = {
+    "NAIR_LANDING",
+    "FAIR_LANDING",
+    "BAIR_LANDING",
+    "UAIR_LANDING",
+    "DAIR_LANDING",
+}
 
 POSITION_ANCHOR_LABELS = {
     "recenter_after_defense",
@@ -303,6 +316,8 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
         "SWORD_DANCE_3_HIGH",
     }:
         return frame
+    if action in {"NAIR", "FAIR", "BAIR", "UAIR", "DAIR"}:
+        return frame - 1
     if action == "TURNING_RUN":
         return frame + 1
     if action in {"KNEE_BEND", "AIRDODGE", "LANDING"}:
@@ -1051,6 +1066,7 @@ def main() -> int:
     shield_contact_seen = False
     shield_numeric_ticks = 0
     expected_shield_strength = 0
+    source_action_elapsed_ticks = 0
     for oracle_index, (oracle, native) in enumerate(
         zip(oracle_rows, native_rows, strict=True)
     ):
@@ -1088,6 +1104,12 @@ def main() -> int:
             native_anchor_y = int(native["position_y_q16_from_origin"])
         action_name = str(oracle["action"])
         action_frame = round(float(oracle["action_frame"]))
+        source_action_elapsed_ticks = (
+            source_action_elapsed_ticks + 1
+            if previous_oracle is not None
+            and str(previous_oracle.get("action", "")) == action_name
+            else 0
+        )
         if (
             falcon_kick_ground_wall_mode
             and action_name == "SWORD_DANCE_3_LOW_AIR"
@@ -1175,6 +1197,8 @@ def main() -> int:
             if label in CONTENT_ROUTE_ENTRY_ACTIONS
             else expected_action_ticks(action_name, float(oracle["action_frame"]))
         )
+        if action_name in CHARACTER_AERIAL_LANDING_ACTIONS:
+            expected_ticks = source_action_elapsed_ticks
         if falcon_dive_ground_miss_mode:
             if action_name == "SWORD_DANCE_3_MID":
                 expected_ticks = action_frame
@@ -1276,6 +1300,12 @@ def main() -> int:
         actual_velocity = int(native["velocity_x_q16"])
         expected_velocity_y = scaled_y_q16(float(oracle["velocity_y"]))
         actual_velocity_y = int(native["velocity_y_q16"])
+        landing_transition_velocity_stale = (
+            action_name
+            in CHARACTER_AERIAL_LANDING_ACTIONS
+            and previous_oracle is not None
+            and str(previous_oracle.get("action", "")) != action_name
+        )
         skip_special_physics = (
             (
                 falcon_punch_air_mode
@@ -1438,6 +1468,7 @@ def main() -> int:
             )
         if (
             not skip_special_physics
+            and not landing_transition_velocity_stale
             and abs(actual_velocity_y - expected_velocity_y)
             > args.velocity_tolerance_q16
         ):
