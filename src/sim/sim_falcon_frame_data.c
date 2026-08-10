@@ -9,6 +9,7 @@
 #include "../../generated/data/m4_falcon_ntsc102_hit_geometry.inc"
 #include "../../generated/data/m4_ssbm_falcon_ledge_hurt.inc"
 #include "../../generated/data/m4_ssbm_falcon_airborne_hurt.inc"
+#include "../../generated/data/m4_ssbm_falcon_turn_hurt.inc"
 
 _Static_assert(
     (size_t)PF_M4_FALCON_LEDGE_HURT_COUNT ==
@@ -917,6 +918,28 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
                 action_frame,
                 out_count);
         }
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN &&
+        source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN)
+    {
+        return pf_m4_falcon_reference_hurt_track_at_frame(
+            &pf_m4_falcon_turn_hurt_moves[
+                PF_M4_FALCON_TURN_HURT_STANDING_TURN],
+            pf_m4_falcon_turn_hurt_frames,
+            pf_m4_falcon_turn_hurt_capsules,
+            action_frame,
+            out_count);
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND &&
+        source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN)
+    {
+        return pf_m4_falcon_reference_hurt_track_at_frame(
+            &pf_m4_falcon_turn_hurt_moves[
+                PF_M4_FALCON_TURN_HURT_RUN_TURNAROUND],
+            pf_m4_falcon_turn_hurt_frames,
+            pf_m4_falcon_turn_hurt_capsules,
+            action_frame,
+            out_count);
     }
 
     switch ((pf_m4_action_state)action_state)

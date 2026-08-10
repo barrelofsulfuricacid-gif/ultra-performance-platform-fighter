@@ -712,6 +712,17 @@ meet the separate three-second changed-domain target. Additional behavior
 domains must join the same registry as their live evidence becomes
 source-complete.
 
+Turn and TurnRun now use a separate focused two-case pack rather than
+lengthening the common-hurt session beyond its stable rollback window. The
+accelerated and no-fast-forward control captures each contain 39 rows and
+reproduce the same 33-pose / 363-capsule semantic payload. Production retains
+source submotions 10/11, imports Turn frames 1-11 and TurnRun frames 0-21, and
+registers a distinct four-case stored domain. The complete 18-domain /
+105-case gate plus replay runs warm in 0.573 seconds on Windows and 0.669
+seconds in WSL. One TurnRun collision phase remains open: after gameplay
+facing flips on frozen displayed frame 9, display-owned bones retain their
+previous facing for one update; production currently mirrors immediately.
+
 This gate is not limited to locomotion. It also covers every implemented shared
 simulation path for which SSBM supplies the intended behavior, including
 shield and light-shield input/health/size, roll, spot dodge, air dodge, jump

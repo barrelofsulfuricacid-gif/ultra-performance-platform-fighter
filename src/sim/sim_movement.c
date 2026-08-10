@@ -11955,6 +11955,20 @@ pf_status pf_m4_step_player(
         scratch->shield_strength[player_index] = UINT16_C(0);
     }
 
+    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    {
+        if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
+        {
+            source_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_TURN;
+        }
+        else if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
+        {
+            source_submotion =
+                (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
+        }
+    }
+
     if (!pf_m4_action_retains_source_submotion(
             action_state,
             scratch->hitlag_resume_action[player_index]))

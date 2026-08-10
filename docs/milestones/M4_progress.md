@@ -29,6 +29,33 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
+## Implemented in the Turn/TurnRun hurt-pose follow-up
+
+- A focused two-case checkpoint pack now captures only `Turn` and `TurnRun`:
+  39 rows in 0.227533 seconds warm with ExiAI fast-forward and 0.565447
+  seconds with fast-forward disabled. Independent raw captures have SHA-256
+  `e0240567b226cdd1802a3b7ad14384cf5096df9c8b323b383020c0a1844cf901`
+  and `18abfc0b39cc15614dcda03e243abb8298adcd4738869ea1738cf550cbed6be5`.
+- Both captures reproduce the same 33-pose / 363-capsule semantic payload,
+  SHA-256 `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`.
+  Turn covers frames 1-11; TurnRun covers source frames 0-21 and explicitly
+  classifies the seven-observation frame-9 freeze plus its one pending-display-
+  facing row.
+- Production retains source submotions 10/11 for the two public actions and
+  uses one immutable generated table. The separate stored domain hashes 33
+  poses under production digest
+  `0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07`.
+  The full registry is now 18 domains / 105 cases plus replay and runs warm in
+  0.573 seconds on Windows and 0.669 seconds in WSL.
+- Source-submotion retention intentionally changes the replay corpus identity
+  to `0d3ccb293d0735102c13d020d469f13b202eede2b54052881d0380efb765e172`;
+  final-state and event digests remain unchanged. Windows, WSL, replay, and
+  WSL ASan/UBSan suites pass.
+- Remaining exactness gap: on one TurnRun update, gameplay facing has flipped
+  while the display-owned collision bones still retain the previous facing.
+  The source pose importer recognizes that phase; production collision does
+  not yet preserve the transient world-facing identity.
+
 ## Implemented in the native Wii U adapter follow-up
 
 - Windows identified the owner's switched adapter as `WUP-028` USB
@@ -5328,7 +5355,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   in WSL and 1.458 seconds on native Windows, below the two-second budget.
   WSL and Windows movement/combat/replay, deterministic generation, and WSL
   ASan/UBSan pass. Three stable replay reruns pin corpus/final/event SHA-256
-  `9c0c87842664d5bbde8f50dd672f804e8a62d1a32f2a5d9bf5c3d7a9c031cc73` /
+  `0d3ccb293d0735102c13d020d469f13b202eede2b54052881d0380efb765e172` /
   `3a9bb1e28fd635dcde8f1ec98d0705babd12ee64ee7e036e8f986c5a15a874d5` /
   `370975f72bbd6546f5253607ef62b811cb4f126889ad3c89bf4b2955703430cb`.
 

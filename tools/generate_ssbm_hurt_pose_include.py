@@ -100,7 +100,7 @@ def load_and_validate(
             or track.get("canonical_facing") != 1
             or not isinstance(track.get("first_displayed_frame"), int)
             or isinstance(track.get("first_displayed_frame"), bool)
-            or track.get("first_displayed_frame") < 1
+            or track.get("first_displayed_frame") < 0
             or not isinstance(expected_count, int)
             or isinstance(expected_count, bool)
             or track.get("frame_count") != expected_count

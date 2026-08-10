@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "../../generated/data/m4_ssbm_falcon_common_hurt_oracle.inc"
+#include "../../generated/data/m4_ssbm_falcon_turn_hurt_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_dive_grab_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_punch_oracle.inc"
 #include "../../generated/data/m4_ssbm_falcon_damage_response_oracle.inc"
@@ -13919,6 +13920,45 @@ static int reference_common_hurt_run_geometry_case(
         stored_case->height_hundredths);
 }
 
+static int run_reference_pose_stored_oracle(
+    const pf_ssbm_stored_oracle_domain *domain,
+    const char *source_pose_sha256,
+    int print_pass)
+{
+    pf_ssbm_stored_oracle_result result;
+
+    if (!pf_ssbm_stored_oracle_run(domain, &result))
+    {
+        (void)fprintf(
+            stderr,
+            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
+            "case=%s expected_production_pose_sha256=%s "
+            "actual_production_pose_sha256=%s\n",
+            domain->name,
+            result.failed_operation != NULL
+                ? result.failed_operation
+                : "unknown",
+            result.failed_case != NULL ? result.failed_case : "none",
+            domain->expected_production_pose_sha256,
+            result.production_pose_sha256[0] != '\0'
+                ? result.production_pose_sha256
+                : "unavailable");
+        return 0;
+    }
+    if (print_pass != 0)
+    {
+        (void)printf(
+            "m4-ssbm-stored-oracle=pass domain=%s poses=%u cases=%u "
+            "source_pose_sha256=%s production_pose_sha256=%s\n",
+            domain->name,
+            (unsigned int)domain->expected_pose_count,
+            (unsigned int)domain->case_count,
+            source_pose_sha256,
+            result.production_pose_sha256);
+    }
+    return 1;
+}
+
 static int run_reference_common_hurt_stored_oracle(int print_pass)
 {
     static const pf_ssbm_stored_oracle_domain domain = {
@@ -13936,38 +13976,34 @@ static int run_reference_common_hurt_stored_oracle(int print_pass)
         reference_common_hurt_read_pose,
         reference_common_hurt_run_runtime_case,
         reference_common_hurt_run_geometry_case};
-    pf_ssbm_stored_oracle_result result;
+    return run_reference_pose_stored_oracle(
+        &domain,
+        PF_M4_SSBM_FALCON_COMMON_HURT_SOURCE_POSE_SHA256,
+        print_pass);
+}
 
-    if (!pf_ssbm_stored_oracle_run(&domain, &result))
-    {
-        (void)fprintf(
-            stderr,
-            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
-            "case=%s expected_production_pose_sha256=%s "
-            "actual_production_pose_sha256=%s\n",
-            domain.name,
-            result.failed_operation != NULL
-                ? result.failed_operation
-                : "unknown",
-            result.failed_case != NULL ? result.failed_case : "none",
-            domain.expected_production_pose_sha256,
-            result.production_pose_sha256[0] != '\0'
-                ? result.production_pose_sha256
-                : "unavailable");
-        return 0;
-    }
-    if (print_pass != 0)
-    {
-        (void)printf(
-            "m4-ssbm-stored-oracle=pass domain=falcon-common-hurt "
-            "poses=%u cases=%u source_pose_sha256=%s "
-            "production_pose_sha256=%s\n",
-            (unsigned int)PF_M4_SSBM_FALCON_COMMON_HURT_POSE_COUNT,
-            (unsigned int)PF_M4_SSBM_FALCON_COMMON_HURT_CASE_COUNT,
-            PF_M4_SSBM_FALCON_COMMON_HURT_SOURCE_POSE_SHA256,
-            result.production_pose_sha256);
-    }
-    return 1;
+static int run_reference_falcon_turn_hurt_stored_oracle(int print_pass)
+{
+    static const pf_ssbm_stored_oracle_domain domain = {
+        "falcon-turn-hurt",
+        pf_m4_ssbm_falcon_turn_hurt_pose_tracks,
+        (uint16_t)(
+            sizeof(pf_m4_ssbm_falcon_turn_hurt_pose_tracks) /
+            sizeof(pf_m4_ssbm_falcon_turn_hurt_pose_tracks[0])),
+        pf_m4_ssbm_falcon_turn_hurt_cases,
+        PF_M4_SSBM_FALCON_TURN_HURT_CASE_COUNT,
+        PF_M4_SSBM_FALCON_TURN_HURT_POSE_COUNT,
+        PF_M4_SSBM_FALCON_TURN_HURT_CAPSULES_PER_POSE,
+        PF_M4_SSBM_FALCON_TURN_HURT_PRODUCTION_POSE_SHA256,
+        NULL,
+        reference_common_hurt_read_pose,
+        reference_common_hurt_run_runtime_case,
+        reference_common_hurt_run_geometry_case};
+
+    return run_reference_pose_stored_oracle(
+        &domain,
+        PF_M4_SSBM_FALCON_TURN_HURT_SOURCE_POSE_SHA256,
+        print_pass);
 }
 
 static int reference_geometry_only_runtime_case(
@@ -14021,38 +14057,10 @@ static int run_reference_falcon_dive_grab_stored_oracle(int print_pass)
         reference_common_hurt_read_pose,
         reference_geometry_only_runtime_case,
         reference_falcon_dive_grab_geometry_case};
-    pf_ssbm_stored_oracle_result result;
-
-    if (!pf_ssbm_stored_oracle_run(&domain, &result))
-    {
-        (void)fprintf(
-            stderr,
-            "m4-ssbm-stored-oracle=fail domain=%s operation=%s "
-            "case=%s expected_production_pose_sha256=%s "
-            "actual_production_pose_sha256=%s\n",
-            domain.name,
-            result.failed_operation != NULL
-                ? result.failed_operation
-                : "unknown",
-            result.failed_case != NULL ? result.failed_case : "none",
-            domain.expected_production_pose_sha256,
-            result.production_pose_sha256[0] != '\0'
-                ? result.production_pose_sha256
-                : "unavailable");
-        return 0;
-    }
-    if (print_pass != 0)
-    {
-        (void)printf(
-            "m4-ssbm-stored-oracle=pass "
-            "domain=falcon-dive-grab-geometry poses=%u cases=%u "
-            "source_pose_sha256=%s production_pose_sha256=%s\n",
-            (unsigned int)PF_M4_SSBM_FALCON_DIVE_GRAB_POSE_COUNT,
-            (unsigned int)PF_M4_SSBM_FALCON_DIVE_GRAB_CASE_COUNT,
-            PF_M4_SSBM_FALCON_DIVE_GRAB_SOURCE_POSE_SHA256,
-            result.production_pose_sha256);
-    }
-    return 1;
+    return run_reference_pose_stored_oracle(
+        &domain,
+        PF_M4_SSBM_FALCON_DIVE_GRAB_SOURCE_POSE_SHA256,
+        print_pass);
 }
 
 static int make_shield_break_content(
@@ -28212,6 +28220,11 @@ int main(int argc, char **argv)
             strcmp(argv[2], "falcon-common-hurt") == 0)
         {
             return run_reference_common_hurt_stored_oracle(1) ? 0 : 1;
+        }
+        if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
+            strcmp(argv[2], "falcon-turn-hurt") == 0)
+        {
+            return run_reference_falcon_turn_hurt_stored_oracle(1) ? 0 : 1;
         }
         if (argc == 3 && strcmp(argv[1], "--ssbm-oracle") == 0 &&
             strcmp(argv[2], "falcon-dive-grab-geometry") == 0)

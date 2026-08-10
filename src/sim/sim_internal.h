@@ -96,11 +96,15 @@ static inline int pf_m4_action_retains_source_submotion(
     const int action_owns_submotion =
         action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         action_state == (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         pf_m4_action_uses_ledge(action_state);
     const int resume_owns_submotion =
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
         hitlag_resume_action ==
             (uint8_t)PF_M4_ACTION_DELAYED_AIR_JUMP ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_STANDING_TURN ||
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND ||
         pf_m4_action_uses_ledge(hitlag_resume_action);
 
     return action_owns_submotion ||

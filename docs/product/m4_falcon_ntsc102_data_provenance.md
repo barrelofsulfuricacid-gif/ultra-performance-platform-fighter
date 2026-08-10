@@ -1140,6 +1140,34 @@ the canonical outcome/pose/attacker semantic SHA-256 is
 The route is a supplemental projection of the existing ledge setup, so it does
 not add frames to the default 19-case numeric pack.
 
+## Falcon Turn and TurnRun hurt poses
+
+The focused Final Destination checkpoint pack uses the pinned ExiAI 0.2.0
+launcher, libmelee 0.47.2, GALE01 NTSC-U revision 2, and decomp revision
+`9509dc04406fb2028bfab01243841ba4787c0fb7`. Its accelerated and
+no-fast-forward raw captures have SHA-256
+`e0240567b226cdd1802a3b7ad14384cf5096df9c8b323b383020c0a1844cf901`
+and `18abfc0b39cc15614dcda03e243abb8298adcd4738869ea1738cf550cbed6be5`.
+The warm capture portions take 0.227533 and 0.565447 seconds respectively.
+
+Both captures reproduce Turn frames 1-11 and TurnRun frames 0-21 under the
+same 33-pose / 363-capsule semantic SHA-256
+`1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`.
+The checked canonical profile SHA-256 is
+`6addc920dda39acf06df2f8bcecee7ee23a3200c128b6545d0232c58c5704ea6`.
+TurnRun freezes displayed frame 9 for seven observations; the final duplicate
+has gameplay facing reversed while its display bones still retain the prior
+facing. The extractor classifies exactly one such row and rejects any other
+conflicting duplicate.
+
+Production retains source submotions 10 and 11 and selects one immutable
+generated table in O(1). The separate stored domain hashes all 33 production
+poses under SHA-256
+`0750e32d78d2b51b49f4e917dde6088a266e6940d92351250c8a167422563d07`.
+The stored digest is regression evidence, not new source evidence. The
+transient pending display-facing collision phase remains an explicit fidelity
+gap until production carries that phase through world-pose construction.
+
 ## Repository controls
 
 - Only the converted constants and independently written C state machine ship.

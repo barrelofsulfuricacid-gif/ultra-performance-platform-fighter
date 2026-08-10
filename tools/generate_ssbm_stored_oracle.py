@@ -172,7 +172,7 @@ def stored_pose_tracks(
                 or isinstance(first, bool)
                 or not isinstance(frame_count, int)
                 or isinstance(frame_count, bool)
-                or first < 1
+                or first < 0
                 or frame_count < 1
                 or not isinstance(frames, list)
                 or len(frames) != frame_count
@@ -198,7 +198,7 @@ def stored_pose_tracks(
                             profile_track["id"], 1
                         ),
                         f"{track_label}.first_action_frame",
-                        1,
+                        0,
                         65535,
                     ),
                     "frames": {
@@ -281,13 +281,17 @@ def generate(
         frames = track.get("frames")
         if not isinstance(action, str) or not isinstance(frames, dict):
             raise ValueError(f"pose_tracks[{index}] is incomplete")
-        first = require_int(frames.get("first"), f"{action}.first", 1, 65535)
+        # Melee's TurnRun owns displayed source frame zero while the target
+        # runtime intentionally enters its public action at tick one. Keep
+        # those clocks independently expressible instead of shifting or
+        # cloning the source pose track.
+        first = require_int(frames.get("first"), f"{action}.first", 0, 65535)
         last = require_int(frames.get("last"), f"{action}.last", first, 65535)
         step = require_int(frames.get("step"), f"{action}.step", 1, 65535)
         first_action_frame = require_int(
             track.get("first_action_frame", 1),
             f"{action}.first_action_frame",
-            1,
+            0,
             65535,
         )
         if (last - first) % step != 0:

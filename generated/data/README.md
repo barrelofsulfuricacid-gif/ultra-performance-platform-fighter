@@ -62,6 +62,13 @@ profile and generator counts; the Falcon Dive stored domain reuses this table
 for its frame-20 physical hit/miss theorem instead of retaining a partial
 JumpF-specific copy.
 
+`m4_ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
+source poses, including TurnRun frame zero. Its import manifest pins both an
+accelerated and a no-fast-forward control capture with identical semantics.
+`m4_ssbm_falcon_turn_hurt_oracle.inc` is test-only metadata for a separate
+stored domain; it hashes the production accessor and four robust overlap/
+separation cases without copying capsules into the test binary.
+
 `m4_ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
 fast stored-equivalence lane. Its single authored source is
 `tools/ssbm_falcon_common_hurt_coverage.json`; the generic generator validates

@@ -1725,6 +1725,16 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
             submotion ==
             (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH;
     }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_STANDING_TURN)
+    {
+        identity_valid =
+            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN;
+    }
+    else if (effective_action == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
+    {
+        identity_valid =
+            submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
+    }
     else if (effective_action == (uint8_t)PF_M4_ACTION_LEDGE_HANG)
     {
         return submotion ==

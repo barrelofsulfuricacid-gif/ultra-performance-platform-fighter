@@ -2113,6 +2113,10 @@ static inline uint16_t pf_m4_reference_common_hurt_frame(
     }
     switch ((pf_m4_action_state)action_state)
     {
+        case PF_M4_ACTION_RUN_TURNAROUND:
+            return action_ticks == UINT16_C(0)
+                       ? UINT16_C(0)
+                       : (uint16_t)(action_ticks - UINT16_C(1));
         case PF_M4_ACTION_INITIAL_DASH:
         case PF_M4_ACTION_RUN_BRAKE:
         case PF_M4_ACTION_CROUCH_START:

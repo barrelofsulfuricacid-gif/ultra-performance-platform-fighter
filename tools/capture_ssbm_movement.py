@@ -1368,6 +1368,9 @@ def input_trace(
             raw_command_overrides = checkpoint_capture_plan.get(
                 "command_overrides"
             )
+            raw_trace_start_label = checkpoint_capture_plan.get(
+                "trace_start_label"
+            )
             if (
                 not isinstance(raw_record_actions, dict)
                 or not isinstance(raw_command_limits, dict)
@@ -1375,6 +1378,11 @@ def input_trace(
                 or not isinstance(raw_command_overrides, list)
             ):
                 raise ValueError("checkpoint capture plan is incomplete")
+            if raw_trace_start_label is not None and (
+                not isinstance(raw_trace_start_label, str)
+                or not raw_trace_start_label
+            ):
+                raise ValueError("checkpoint trace start label is invalid")
             recorded_actions_by_label = {
                 str(label): tuple(str(action) for action in actions)
                 for label, actions in raw_record_actions.items()
@@ -1444,6 +1452,8 @@ def input_trace(
             retained_counts = dict.fromkeys(retained_command_limits, 0)
             direct_boundaries = {
                 "common_hurt_dash_place",
+                "common_hurt_standing_turn_place",
+                "common_hurt_run_turn_place",
                 "common_hurt_crouch_place",
                 "common_hurt_spot_dodge_shield",
             }
@@ -1520,6 +1530,17 @@ def input_trace(
                 elif not label.startswith(always_record_prefixes):
                     isolated = {**isolated, "record": False}
                 result.append(isolated)
+            if raw_trace_start_label is not None:
+                start_indices = [
+                    index
+                    for index, sample in enumerate(result)
+                    if sample["label"] == raw_trace_start_label
+                ]
+                if len(start_indices) != 1:
+                    raise ValueError(
+                        "checkpoint trace start label must occur exactly once"
+                    )
+                result = result[start_indices[0] :]
             return result
 
         def reset_common_hurt_route(
@@ -1563,6 +1584,7 @@ def input_trace(
         repeat("common_hurt_dash_place_settle", 10)
         repeat("common_hurt_dash_hold", 18, main_x=1.0)
         repeat("common_hurt_dash_recover", 45)
+
         trace.append(
             command(
                 "common_hurt_crouch_place",
@@ -2038,6 +2060,44 @@ def input_trace(
             )
             repeat(f"{route_prefix}_observe", 8)
             repeat(f"{route_prefix}_recover", 40)
+
+        if (
+            checkpoint_capture_plan is not None
+            and checkpoint_capture_plan.get("trace_start_label")
+            == "common_hurt_standing_turn_place"
+        ):
+            # Turn and TurnRun form a compact supplemental profile. Keep them
+            # consecutive so trace_start_label can omit every unrelated common
+            # route before the first checkpoint, and end on the held reverse
+            # direction because no later case may inherit host controller state.
+            reset_common_hurt_route("common_hurt_standing_turn")
+            trace.append(
+                command(
+                    "common_hurt_standing_turn_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat("common_hurt_standing_turn_settle", 10)
+            trace.append(command("common_hurt_standing_turn_entry", main_x=0.0))
+            repeat("common_hurt_standing_turn_hold", 14)
+
+            reset_common_hurt_route("common_hurt_run_turn")
+            trace.append(
+                command(
+                    "common_hurt_run_turn_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat("common_hurt_run_turn_settle", 10)
+            repeat("common_hurt_run_turn_run", 25, main_x=1.0)
+            trace.append(command("common_hurt_run_turn_entry", main_x=0.0))
+            repeat("common_hurt_run_turn_hold", 35, main_x=0.0)
         return (
             checkpoint_isolated_common_hurt_trace(trace)
             if checkpoint_isolated

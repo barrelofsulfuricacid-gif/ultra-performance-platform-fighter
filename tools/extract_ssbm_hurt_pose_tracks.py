@@ -30,6 +30,7 @@ def extract_track(
     opponent: bool = False,
     collision_trace_frames: dict[int, int] | None = None,
     label_prefix: str | None = None,
+    pending_pose_facing_frame: int | None = None,
 ) -> dict[str, Any]:
     frames: dict[int, tuple[tuple[int, ...], ...]] = {}
     collision_trace_frames = collision_trace_frames or {}
@@ -42,6 +43,7 @@ def extract_track(
     fighter_position_key = (
         "opponent_fighter_position" if opponent else "fighter_position"
     )
+    pending_pose_facing_rows = 0
     for row in rows:
         if label_prefix is not None and not str(row.get("label", "")).startswith(
             label_prefix
@@ -96,9 +98,27 @@ def extract_track(
             )
         previous = frames.get(displayed_frame)
         if previous is not None and not q16_hurt_poses_equivalent(previous, pose):
-            raise ValueError(
-                f"track {track_id!r} frame {displayed_frame} is inconsistent"
+            pending_pose = canonical_hurt_pose_q16(
+                memory,
+                hurtbox_key,
+                fighter_position_key,
+                -int(facing),
+                MELEE_TO_SIM_Q16,
+                (
+                    "collision_position"
+                    if "hurtbox_memory" not in row or collision_frame is not None
+                    else "position"
+                ),
             )
+            if (
+                displayed_frame == pending_pose_facing_frame
+                and q16_hurt_poses_equivalent(previous, pending_pose)
+            ):
+                pending_pose_facing_rows += 1
+            else:
+                raise ValueError(
+                    f"track {track_id!r} frame {displayed_frame} is inconsistent"
+                )
         if previous is None:
             frames[displayed_frame] = pose
 
@@ -106,6 +126,11 @@ def extract_track(
     if sorted(frames) != expected:
         raise ValueError(
             f"track {track_id!r} frames are {sorted(frames)}, expected {expected}"
+        )
+    if pending_pose_facing_frame is not None and pending_pose_facing_rows != 1:
+        raise ValueError(
+            f"track {track_id!r} expected one pending-pose-facing row on "
+            f"frame {pending_pose_facing_frame}, got {pending_pose_facing_rows}"
         )
     return {
         "id": track_id,
@@ -156,6 +181,16 @@ def main() -> int:
         metavar=("TRACK_ID", "PREFIX"),
         help="restrict one track to capture rows whose labels share this prefix",
     )
+    parser.add_argument(
+        "--pending-pose-facing-frame",
+        action="append",
+        nargs=2,
+        metavar=("TRACK_ID", "DISPLAYED_FRAME"),
+        help=(
+            "classify one duplicate whose display bones retain the previous "
+            "facing after gameplay facing flips"
+        ),
+    )
     args = parser.parse_args()
 
     capture_bytes = args.capture.read_bytes()
@@ -177,6 +212,21 @@ def main() -> int:
             raise SystemExit("invalid or duplicate track label prefix")
         label_prefix_by_track[track_id] = prefix
     collision_frames_by_track: dict[str, dict[int, int]] = {}
+    pending_pose_facing_by_track: dict[str, int] = {}
+    for track_id, raw_displayed in args.pending_pose_facing_frame or []:
+        try:
+            displayed_frame = int(raw_displayed)
+        except ValueError as error:
+            raise SystemExit(
+                "pending-pose-facing frame must be an integer"
+            ) from error
+        if (
+            displayed_frame < 0
+            or str(displayed_frame) != raw_displayed
+            or track_id in pending_pose_facing_by_track
+        ):
+            raise SystemExit("invalid or duplicate pending-pose-facing frame")
+        pending_pose_facing_by_track[track_id] = displayed_frame
     for track_id, raw_displayed, raw_trace in (
         args.opponent_collision_frame or []
     ):
@@ -233,6 +283,7 @@ def main() -> int:
                 opponent=opponent,
                 collision_trace_frames=collision_frames_by_track.get(raw_id),
                 label_prefix=label_prefix_by_track.get(raw_id),
+                pending_pose_facing_frame=pending_pose_facing_by_track.get(raw_id),
             )
         )
         track_ids.add(raw_id)
@@ -249,6 +300,12 @@ def main() -> int:
         raise SystemExit(
             "label prefixes reference unknown tracks: "
             + ", ".join(sorted(unknown_label_tracks))
+        )
+    unknown_pending_tracks = set(pending_pose_facing_by_track) - track_ids
+    if unknown_pending_tracks:
+        raise SystemExit(
+            "pending-pose-facing frames reference unknown tracks: "
+            + ", ".join(sorted(unknown_pending_tracks))
         )
     if len(roles) != 1:
         raise SystemExit("one profile may not mix fighter and opponent tracks")
