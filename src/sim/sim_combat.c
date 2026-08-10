@@ -1993,8 +1993,6 @@ int pf_m4_grabbox(
         (uint16_t)(startup_ticks + active_ticks);
     int64_t center_x;
     int64_t center_y;
-    uint16_t effective_action_ticks = action_ticks;
-
     if (content == NULL ||
         out_left_q16 == NULL ||
         out_right_q16 == NULL ||
@@ -4069,7 +4067,9 @@ static pf_status pf_m4_resolve_grabs(
             scratch->grounded[holder_index];
         scratch->support[target_index] =
             scratch->support[holder_index];
-        if (holder_action == (uint8_t)PF_M4_ACTION_PUMMEL)
+        if (holder_action == (uint8_t)PF_M4_ACTION_PUMMEL &&
+            scratch->action_state[holder_index] !=
+                (uint8_t)PF_M4_ACTION_HITLAG)
         {
             const uint16_t action_ticks =
                 scratch->action_ticks[holder_index];

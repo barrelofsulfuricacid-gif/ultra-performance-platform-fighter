@@ -22,7 +22,7 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for eighteen domains | The registry contains 108 cases plus deterministic replay. The pose domains hash 908 production poses: 689 common/ledge, 33 Turn/TurnRun, and 186 ordinary-airborne poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, and the five aerial-landing routes add 685. Independent domains run concurrently while output retains manifest order. Warm full-gate measurements are 0.614 seconds on Windows and 0.605 seconds in WSL, below the two-second budget. |
+| Fast stored equivalence | done for eighteen domains | The registry contains 108 cases plus deterministic replay. The pose domains hash 908 production poses: 689 common/ledge, 33 Turn/TurnRun, and 186 ordinary-airborne poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, and the five aerial-landing routes add 685. Independent domains run concurrently while output retains manifest order. The post-cleanup full-gate measurements are 0.843 seconds on Windows and 0.783 seconds in WSL, below the two-second budget. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and checkpoint-isolated cases. The focused Turn/TurnRun pack captures 39 rows in 0.228 seconds warm with fast-forward and 0.565 seconds with fast-forward disabled; both produce semantic SHA `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`. The common-hurt changed-domain route remains separate. Unsafe cross-invocation observer reconnection is rejected. |
 | Falcon bounded hurt poses | common, turn, ledge, and complete ordinary airborne poses imported and physically qualified | The common-state domain covers 255 source poses. Turn/TurnRun add 33 unique poses / 363 capsules, including source frame zero and the seven-observation frame-9 freeze. The single update where gameplay facing has flipped but display bones retain their prior facing is derived from the existing TurnRun tick/facing/direction tuple and now drives combat plus inspection without new snapshot state. Three stored phase cases cover pre-flip frame 9, pending-display frame 9, and resumed frame 10. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules). Two independent unlimited headless captures add all 186 ordinary-airborne poses / 2,046 capsules. |
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall and all five aerial-attack ECB bottoms. Two independent 685-frame captures now qualify natural short-hop Nair/Fair/Dair landing lag plus Bair/Uair auto-cancel, including exact actions, elapsed clocks, support, normals, velocity, and the declared 640-Q16 position envelope. The current decomp confirms ordinary aerial attacks use floor collision without the Fall callback's ledge-acquisition branch. The next slice continues remaining special-action edge acquisition and action-specific ECB coverage. |
@@ -32,12 +32,12 @@ separately because a stored pass cannot establish new SSBM truth.
 | Native Battlefield frontend | implemented locally; hands-on gate remains | The SDL target runs the real simulation at fixed 60 Hz, supports 2P Duel and 4P Teams plus 1-8 stocks through the core config contract, renders the complete source-derived 23-line Battlefield catalog and blast-zone inset, and visualizes fighters, crouch, shields, hitboxes, exact 11-capsule source hurt poses, damage, stocks, and actions. Strict MSVC, WSL, smoke, and screenshot QA pass. One real-controller hands-on pass remains. |
 | Character-importer skill | active | The skill records reusable HSD/PlCo import, damage-channel, callback-order, ground-projection, save/load, action-release, physical surface-route, lifecycle, semantic-digest, `StageInfo`/JObj stage-import, per-surface collision routing, previous/current animated-ECB identity, and bounded one-way-platform crossing qualification guidance. |
 
-## Implemented locally: exhaustive static decomp differential
+## Implemented and verified: decomp differential and web-startup cleanup
 
-This 2026-08-10 slice is intentionally **not marked verified**. At the owner's
-request, it was produced only by comparing the pinned NTSC 1.02 decomp,
-owner-extracted generated data, and production code. No test, build, generator,
-Dolphin route, benchmark, or runtime validation was run for the slice.
+The 2026-08-10 source audit is now followed by actual generation, native/WSL,
+stored-oracle, live Dolphin, Emscripten, and browser validation. The audit still
+does not imply whole-game equivalence: only the registered live and stored
+domains below are empirically qualified.
 
 - [x] Replace authored or collapsed common behavior with source-routed mash,
   capture, grab/release, throw, shield-break, damage, hitlag, hitstun, meteor-
@@ -70,9 +70,23 @@ Remaining work is evidence/model work rather than a known code-only fix:
 - [ ] Represent dynamic rebirth targets/companion coordination, full stage and
   item-kind behavior, aerial item/tether callbacks, and tournament entry/rule
   choreography before claiming those wider SSBM domains.
-- [ ] Run generation, compile, snapshot/replay, native/WSL/browser, stored-
-  oracle, and live Dolphin qualification in the next validation slice. Until
-  then, all behavior above is implemented-but-unverified.
+- [x] Remove the duplicated simulation scenarios from production browser
+  startup. `m4_playtest.c` is reduced from roughly 14,000 to 1,100 lines and
+  `pf_web_m4_playtest_install` now receives four real configuration values
+  instead of four values plus 58 probe statuses. Native simulation suites own
+  simulation fidelity; the web gate retains adapter ABI, controller polling,
+  mapping, UI, Wasm-load, and real browser interaction checks.
+- [x] Correct the imported initial-dash frame clock so an A press after source
+  Dash frame 4 enters DashAttack, keep ground-damage animation advancing after
+  hitstun unlocks, and remove Falcon's incorrect six-frame delayed-double-jump
+  projection. The pinned 64-row ground-knockback capture passes all 15 compared
+  samples, and both 520-row natural-landing captures pass the corrected ordinary
+  JumpAerial projection.
+- [x] Pass Windows Release 32/32 in 3.45 seconds and WSL Release 34/34 in 3.81
+  seconds. All 18 stored domains / 108 cases plus replay pass in 0.843 seconds
+  on Windows and 0.783 seconds in WSL. WSL ASan/UBSan passes 25/25. The browser
+  adapter verifier, rebuilt Emscripten target, and real in-app-browser
+  startup/control/console smoke pass.
 
 ## Completed and verified
 

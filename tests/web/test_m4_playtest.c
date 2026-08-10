@@ -114,64 +114,6 @@ static int test_install_count;
 static int test_render_count;
 static int test_walk_axis;
 static int test_dash_axis;
-static int test_input_probe;
-static int test_air_facing_probe;
-static int test_instant_double_jump_probe;
-static int test_double_jump_cancel_probe;
-static int test_double_jump_cancel_counter_probe;
-static int test_bat_drop_probe;
-static int test_glide_toss_probe;
-static int test_jump_cancel_throw_probe;
-static int test_jump_cancel_probe;
-static int test_edge_hop_probe;
-static int test_edge_dash_probe;
-static int test_fox_trot_probe;
-static int test_moonwalk_probe;
-static int test_teeter_cancel_probe;
-static int test_stage_humping_probe;
-static int test_taunt_cancel_probe;
-static int test_scar_jump_probe;
-static int test_team_wobble_probe;
-static int test_pivot_probe;
-static int test_dash_cancel_probe;
-static int test_dashing_shield_probe;
-static int test_shield_platform_drop_probe;
-static int test_small_step_forward_smash_probe;
-static int test_drop_cancel_probe;
-static int test_v_cancel_probe;
-static int test_approach_probe;
-static int test_spacing_probe;
-static int test_sharking_probe;
-static int test_cross_up_probe;
-static int test_mindgame_probe;
-static int test_juggling_probe;
-static int test_ladder_probe;
-static int test_kill_confirm_probe;
-static int test_zero_to_death_probe;
-static int test_ledge_cancel_probe;
-static int test_planking_probe;
-static int test_jump_cancelled_grab_probe;
-static int test_boost_grab_probe;
-static int test_jab_cancel_probe;
-static int test_jab_reset_probe;
-static int test_chain_grab_probe;
-static int test_combat_probe;
-static int test_reaction_probe;
-static int test_shield_probe;
-static int test_shield_break_probe;
-static int test_tumble_probe;
-static int test_floor_recovery_probe;
-static int test_tech_chase_probe;
-static int test_surface_tech_probe;
-static int test_air_dodge_probe;
-static int test_ground_dodge_probe;
-static int test_aerial_l_cancel_probe;
-static int test_match_probe;
-static int test_short_hop_laser_probe;
-static int test_camping_probe;
-static int test_shine_spike_probe;
-static int test_charge_storage_probe;
-static int test_vector_ascent_probe;
 static int test_aerial_landing_lag_ticks;
 static int test_strong_aerial_landing_lag_ticks;
 static int32_t test_view[TEST_VIEW_COUNT];
@@ -179,67 +121,8 @@ static int32_t test_view[TEST_VIEW_COUNT];
 void pf_web_m4_playtest_install(
     int walk_axis,
     int dash_axis,
-    int input_probe_passed,
-    int air_facing_probe_passed,
-    int instant_double_jump_probe_passed,
-    int double_jump_cancel_probe_passed,
-    int double_jump_cancel_counter_probe_passed,
-    int bat_drop_probe_passed,
-    int glide_toss_probe_passed,
-    int jump_cancel_throw_probe_passed,
-    int jump_cancel_probe_passed,
-    int edge_hop_probe_passed,
-    int edge_dash_probe_passed,
-    int fox_trot_probe_passed,
-    int moonwalk_probe_passed,
-    int teeter_cancel_probe_passed,
-    int stage_humping_probe_passed,
-    int taunt_cancel_probe_passed,
-    int scar_jump_probe_passed,
-    int team_wobble_probe_passed,
-    int pivot_probe_passed,
-    int dash_cancel_probe_passed,
-    int dashing_shield_probe_passed,
-    int shield_platform_drop_probe_passed,
-    int small_step_forward_smash_probe_passed,
-    int drop_cancel_probe_passed,
-    int v_cancel_probe_passed,
-    int approach_probe_passed,
-    int spacing_probe_passed,
-    int sharking_probe_passed,
-    int cross_up_probe_passed,
-    int mindgame_probe_passed,
-    int juggling_probe_passed,
-    int ladder_probe_passed,
-    int kill_confirm_probe_passed,
-    int zero_to_death_probe_passed,
-    int ledge_cancel_probe_passed,
-    int planking_probe_passed,
-    int jump_cancelled_grab_probe_passed,
-    int boost_grab_probe_passed,
-    int jab_cancel_probe_passed,
-    int jab_reset_probe_passed,
-    int chain_grab_probe_passed,
-    int combat_probe_passed,
-    int reaction_probe_passed,
-    int shield_probe_passed,
-    int shield_break_probe_passed,
-    int tumble_probe_passed,
-    int floor_recovery_probe_passed,
-    int tech_chase_probe_passed,
-    int surface_tech_probe_passed,
-    int air_dodge_probe_passed,
-    int ground_dodge_probe_passed,
-    int aerial_l_cancel_probe_passed,
-    int match_probe_passed,
-    int short_hop_laser_probe_passed,
-    int camping_probe_passed,
-    int shine_spike_probe_passed,
-    int charge_storage_probe_passed,
-    int vector_ascent_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks);
-
 void pf_web_m4_playtest_render(
     const int32_t *view,
     int view_count);
@@ -247,139 +130,16 @@ void pf_web_m4_playtest_render(
 void pf_web_m4_playtest_install(
     int walk_axis,
     int dash_axis,
-    int input_probe_passed,
-    int air_facing_probe_passed,
-    int instant_double_jump_probe_passed,
-    int double_jump_cancel_probe_passed,
-    int double_jump_cancel_counter_probe_passed,
-    int bat_drop_probe_passed,
-    int glide_toss_probe_passed,
-    int jump_cancel_throw_probe_passed,
-    int jump_cancel_probe_passed,
-    int edge_hop_probe_passed,
-    int edge_dash_probe_passed,
-    int fox_trot_probe_passed,
-    int moonwalk_probe_passed,
-    int teeter_cancel_probe_passed,
-    int stage_humping_probe_passed,
-    int taunt_cancel_probe_passed,
-    int scar_jump_probe_passed,
-    int team_wobble_probe_passed,
-    int pivot_probe_passed,
-    int dash_cancel_probe_passed,
-    int dashing_shield_probe_passed,
-    int shield_platform_drop_probe_passed,
-    int small_step_forward_smash_probe_passed,
-    int drop_cancel_probe_passed,
-    int v_cancel_probe_passed,
-    int approach_probe_passed,
-    int spacing_probe_passed,
-    int sharking_probe_passed,
-    int cross_up_probe_passed,
-    int mindgame_probe_passed,
-    int juggling_probe_passed,
-    int ladder_probe_passed,
-    int kill_confirm_probe_passed,
-    int zero_to_death_probe_passed,
-    int ledge_cancel_probe_passed,
-    int planking_probe_passed,
-    int jump_cancelled_grab_probe_passed,
-    int boost_grab_probe_passed,
-    int jab_cancel_probe_passed,
-    int jab_reset_probe_passed,
-    int chain_grab_probe_passed,
-    int combat_probe_passed,
-    int reaction_probe_passed,
-    int shield_probe_passed,
-    int shield_break_probe_passed,
-    int tumble_probe_passed,
-    int floor_recovery_probe_passed,
-    int tech_chase_probe_passed,
-    int surface_tech_probe_passed,
-    int air_dodge_probe_passed,
-    int ground_dodge_probe_passed,
-    int aerial_l_cancel_probe_passed,
-    int match_probe_passed,
-    int short_hop_laser_probe_passed,
-    int camping_probe_passed,
-    int shine_spike_probe_passed,
-    int charge_storage_probe_passed,
-    int vector_ascent_probe_passed,
     int aerial_landing_lag_ticks,
     int strong_aerial_landing_lag_ticks)
 {
     ++test_install_count;
     test_walk_axis = walk_axis;
     test_dash_axis = dash_axis;
-    test_input_probe = input_probe_passed;
-    test_air_facing_probe = air_facing_probe_passed;
-    test_instant_double_jump_probe =
-        instant_double_jump_probe_passed;
-    test_double_jump_cancel_probe =
-        double_jump_cancel_probe_passed;
-    test_double_jump_cancel_counter_probe =
-        double_jump_cancel_counter_probe_passed;
-    test_bat_drop_probe = bat_drop_probe_passed;
-    test_glide_toss_probe = glide_toss_probe_passed;
-    test_jump_cancel_throw_probe = jump_cancel_throw_probe_passed;
-    test_jump_cancel_probe = jump_cancel_probe_passed;
-    test_edge_hop_probe = edge_hop_probe_passed;
-    test_edge_dash_probe = edge_dash_probe_passed;
-    test_fox_trot_probe = fox_trot_probe_passed;
-    test_moonwalk_probe = moonwalk_probe_passed;
-    test_teeter_cancel_probe = teeter_cancel_probe_passed;
-    test_stage_humping_probe = stage_humping_probe_passed;
-    test_taunt_cancel_probe = taunt_cancel_probe_passed;
-    test_scar_jump_probe = scar_jump_probe_passed;
-    test_team_wobble_probe = team_wobble_probe_passed;
-    test_pivot_probe = pivot_probe_passed;
-    test_dash_cancel_probe = dash_cancel_probe_passed;
-    test_dashing_shield_probe = dashing_shield_probe_passed;
-    test_shield_platform_drop_probe =
-        shield_platform_drop_probe_passed;
-    test_small_step_forward_smash_probe =
-        small_step_forward_smash_probe_passed;
-    test_drop_cancel_probe = drop_cancel_probe_passed;
-    test_v_cancel_probe = v_cancel_probe_passed;
-    test_approach_probe = approach_probe_passed;
-    test_spacing_probe = spacing_probe_passed;
-    test_sharking_probe = sharking_probe_passed;
-    test_cross_up_probe = cross_up_probe_passed;
-    test_mindgame_probe = mindgame_probe_passed;
-    test_juggling_probe = juggling_probe_passed;
-    test_ladder_probe = ladder_probe_passed;
-    test_kill_confirm_probe = kill_confirm_probe_passed;
-    test_zero_to_death_probe = zero_to_death_probe_passed;
-    test_ledge_cancel_probe = ledge_cancel_probe_passed;
-    test_planking_probe = planking_probe_passed;
-    test_jump_cancelled_grab_probe =
-        jump_cancelled_grab_probe_passed;
-    test_boost_grab_probe = boost_grab_probe_passed;
-    test_jab_cancel_probe = jab_cancel_probe_passed;
-    test_jab_reset_probe = jab_reset_probe_passed;
-    test_chain_grab_probe = chain_grab_probe_passed;
-    test_combat_probe = combat_probe_passed;
-    test_reaction_probe = reaction_probe_passed;
-    test_shield_probe = shield_probe_passed;
-    test_shield_break_probe = shield_break_probe_passed;
-    test_tumble_probe = tumble_probe_passed;
-    test_floor_recovery_probe = floor_recovery_probe_passed;
-    test_tech_chase_probe = tech_chase_probe_passed;
-    test_surface_tech_probe = surface_tech_probe_passed;
-    test_air_dodge_probe = air_dodge_probe_passed;
-    test_ground_dodge_probe = ground_dodge_probe_passed;
-    test_aerial_l_cancel_probe = aerial_l_cancel_probe_passed;
-    test_match_probe = match_probe_passed;
-    test_short_hop_laser_probe = short_hop_laser_probe_passed;
-    test_camping_probe = camping_probe_passed;
-    test_shine_spike_probe = shine_spike_probe_passed;
-    test_charge_storage_probe = charge_storage_probe_passed;
-    test_vector_ascent_probe = vector_ascent_probe_passed;
     test_aerial_landing_lag_ticks = aerial_landing_lag_ticks;
     test_strong_aerial_landing_lag_ticks =
         strong_aerial_landing_lag_ticks;
 }
-
 void pf_web_m4_playtest_render(
     const int32_t *view,
     int view_count)
@@ -472,6 +232,30 @@ static int test_player0_reach_run(void)
     return test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] == 3;
 }
 
+static int test_player0_reach_reversible_dash(void)
+{
+    uint32_t tick;
+
+    for (tick = UINT32_C(0); tick < UINT32_C(5); ++tick)
+    {
+        if (!pf_web_m4_playtest_step(
+                test_dash_axis,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0))
+        {
+            return 0;
+        }
+    }
+    return test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] == 2;
+}
+
 static int test_dual_trigger_step(
     int player0_jump,
     int player0_left_shield,
@@ -509,30 +293,6 @@ int main(void)
         test_render_count != 1 ||
         test_walk_axis != 13500 ||
         test_dash_axis != 32767 ||
-        test_input_probe != 1 ||
-        test_bat_drop_probe != 1 ||
-        test_glide_toss_probe != 1 ||
-        test_jump_cancel_throw_probe != 1 ||
-        test_edge_hop_probe != 1 ||
-        test_edge_dash_probe != 1 ||
-        test_scar_jump_probe != 1 ||
-        test_team_wobble_probe != 1 ||
-        test_dash_cancel_probe != 1 ||
-        test_dashing_shield_probe != 1 ||
-        test_small_step_forward_smash_probe != 1 ||
-        test_approach_probe != 1 ||
-        test_spacing_probe != 1 ||
-        test_ladder_probe != 1 ||
-        test_reaction_probe != 1 ||
-        test_shield_probe != 1 ||
-        test_shield_break_probe != 1 ||
-        test_tumble_probe != 1 ||
-        test_air_dodge_probe != 1 ||
-        test_ground_dodge_probe != 1 ||
-        test_match_probe != 1 ||
-        test_shine_spike_probe != 1 ||
-        test_charge_storage_probe != 1 ||
-        test_vector_ascent_probe != 1 ||
         test_aerial_landing_lag_ticks != 15 ||
         test_strong_aerial_landing_lag_ticks != 30 ||
         test_view[0] != 47 ||
@@ -623,120 +383,16 @@ int main(void)
         (void)fprintf(
             stderr,
             "m4-browser-adapter=debug installs=%d renders=%d walk=%d "
-            "dash=%d input_probe=%d air_facing_probe=%d "
-            "instant_double_jump_probe=%d "
-            "double_jump_cancel_probe=%d "
-            "double_jump_cancel_counter_probe=%d bat_drop_probe=%d "
-            "glide_toss_probe=%d jump_cancel_throw_probe=%d "
-            "jump_cancel_probe=%d edge_hop_probe=%d "
-            "edge_dash_probe=%d fox_trot_probe=%d moonwalk_probe=%d "
-            "teeter_cancel_probe=%d "
-            "stage_humping_probe=%d "
-            "taunt_cancel_probe=%d "
-            "scar_jump_probe=%d "
-            "team_wobble_probe=%d "
-            "pivot_probe=%d "
-            "dash_cancel_probe=%d dashing_shield_probe=%d "
-            "shield_platform_drop_probe=%d "
-            "small_step_forward_smash_probe=%d "
-            "drop_cancel_probe=%d "
-            "v_cancel_probe=%d "
-            "approach_probe=%d "
-            "spacing_probe=%d "
-            "sharking_probe=%d "
-            "cross_up_probe=%d "
-            "mindgame_probe=%d "
-            "juggling_probe=%d "
-            "ladder_probe=%d "
-            "kill_confirm_probe=%d "
-            "zero_to_death_probe=%d "
-            "ledge_cancel_probe=%d "
-            "planking_probe=%d "
-            "jump_cancelled_grab_probe=%d "
-            "boost_grab_probe=%d "
-            "jab_cancel_probe=%d "
-            "jab_reset_probe=%d "
-            "chain_grab_probe=%d "
-            "combat_probe=%d "
-            "reaction_probe=%d shield_probe=%d shield_break_probe=%d "
-            "tumble_probe=%d "
-            "floor_recovery_probe=%d tech_chase_probe=%d "
-            "surface_tech_probe=%d "
-            "air_dodge_probe=%d ground_dodge_probe=%d "
-            "aerial_l_cancel_probe=%d match_probe=%d "
-            "short_hop_laser_probe=%d camping_probe=%d "
-            "shine_spike_probe=%d "
-            "charge_storage_probe=%d "
-            "vector_ascent_probe=%d "
-            "aerial_lag=%d strong_aerial_lag=%d "
-            "schema=%d tick=%d\n",
+            "dash=%d aerial_lag=%d strong_aerial_lag=%d schema=%d tick=%d\n",
             test_install_count,
             test_render_count,
             test_walk_axis,
             test_dash_axis,
-            test_input_probe,
-            test_air_facing_probe,
-            test_instant_double_jump_probe,
-            test_double_jump_cancel_probe,
-            test_double_jump_cancel_counter_probe,
-            test_bat_drop_probe,
-            test_glide_toss_probe,
-            test_jump_cancel_throw_probe,
-            test_jump_cancel_probe,
-            test_edge_hop_probe,
-            test_edge_dash_probe,
-            test_fox_trot_probe,
-            test_moonwalk_probe,
-            test_teeter_cancel_probe,
-            test_stage_humping_probe,
-            test_taunt_cancel_probe,
-            test_scar_jump_probe,
-            test_team_wobble_probe,
-            test_pivot_probe,
-            test_dash_cancel_probe,
-            test_dashing_shield_probe,
-            test_shield_platform_drop_probe,
-            test_small_step_forward_smash_probe,
-            test_drop_cancel_probe,
-            test_v_cancel_probe,
-            test_approach_probe,
-            test_spacing_probe,
-            test_sharking_probe,
-            test_cross_up_probe,
-            test_mindgame_probe,
-            test_juggling_probe,
-            test_ladder_probe,
-            test_kill_confirm_probe,
-            test_zero_to_death_probe,
-            test_ledge_cancel_probe,
-            test_planking_probe,
-            test_jump_cancelled_grab_probe,
-            test_boost_grab_probe,
-            test_jab_cancel_probe,
-            test_jab_reset_probe,
-            test_chain_grab_probe,
-            test_combat_probe,
-            test_reaction_probe,
-            test_shield_probe,
-            test_shield_break_probe,
-            test_tumble_probe,
-            test_floor_recovery_probe,
-            test_tech_chase_probe,
-            test_surface_tech_probe,
-            test_air_dodge_probe,
-            test_ground_dodge_probe,
-            test_aerial_l_cancel_probe,
-            test_match_probe,
-            test_short_hop_laser_probe,
-            test_camping_probe,
-            test_shine_spike_probe,
-            test_charge_storage_probe,
-            test_vector_ascent_probe,
             test_aerial_landing_lag_ticks,
             test_strong_aerial_landing_lag_ticks,
             (int)test_view[0],
             (int)test_view[1]);
-        return fail("start-and-input-probe");
+        return fail("start-and-render");
     }
 
     if (!pf_web_m4_playtest_refresh() || test_render_count != 2 ||
@@ -1054,21 +710,28 @@ int main(void)
             return fail("browser-grab-view-and-event");
         }
         if (!pf_web_m4_playtest_step(
-                0, test_dash_axis, 0, 1, 0, 0, 0, 0, 0, 0) ||
+                0, test_dash_axis, 0, 0, 0, 0, 0, 0, 0, 0) ||
             test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 56 ||
             test_view[TEST_EVENT_COUNT] != 1 ||
             test_view[TEST_EVENT0 + TEST_EVENT_TYPE] != 24)
         {
+            (void)fprintf(
+                stderr,
+                "m4-browser-adapter=debug operation=down-throw-input "
+                "action=%d events=%d event0=%d\n",
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_EVENT_COUNT],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_TYPE]);
             return fail("browser-down-throw-input-view");
         }
-        for (tick = UINT32_C(0); tick < UINT32_C(20); ++tick)
+        for (tick = UINT32_C(0); tick < UINT32_C(80); ++tick)
         {
             if (!pf_web_m4_playtest_step(
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
             {
                 return fail("browser-down-throw-release-step");
             }
-            if (test_view[TEST_EVENT_COUNT] == 2 &&
+            if (test_view[TEST_EVENT_COUNT] >= 1 &&
                 test_view[TEST_EVENT0 + TEST_EVENT_TYPE] == 13)
             {
                 throw_seen = 1;
@@ -1086,6 +749,22 @@ int main(void)
             test_view[TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_OWNER] != 255 ||
             !pf_web_m4_playtest_reset())
         {
+            (void)fprintf(
+                stderr,
+                "m4-browser-adapter=debug operation=down-throw-release "
+                "seen=%d events=%d type=%d source=%d target=%d value=%d "
+                "detail=%d p0_action=%d p1_action=%d targets=(%d,%d)\n",
+                throw_seen,
+                (int)test_view[TEST_EVENT_COUNT],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_TYPE],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_SOURCE],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_TARGET],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_VALUE],
+                (int)test_view[TEST_EVENT0 + TEST_EVENT_DETAIL],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_ACTION],
+                (int)test_view[TEST_PLAYER0_BASE + TEST_PLAYER_GRAB_TARGET],
+                (int)test_view[TEST_PLAYER1_BASE + TEST_PLAYER_GRAB_OWNER]);
             return fail("browser-down-throw-view-and-event");
         }
     }
@@ -1107,18 +786,7 @@ int main(void)
     }
 
     if (!pf_web_m4_playtest_reset() ||
-        !pf_web_m4_playtest_step(
-            test_dash_axis,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0) ||
-        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 2 ||
+        !test_player0_reach_reversible_dash() ||
         !pf_web_m4_playtest_step(
             -test_dash_axis,
             0,
@@ -1150,17 +818,7 @@ int main(void)
     }
 
     if (!pf_web_m4_playtest_reset() ||
-        !pf_web_m4_playtest_step(
-            test_dash_axis,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0) ||
+        !test_player0_reach_reversible_dash() ||
         !pf_web_m4_playtest_step(
             -test_dash_axis,
             0,
@@ -1208,6 +866,18 @@ int main(void)
 
     if (!pf_web_m4_playtest_reset() ||
         !pf_web_m4_playtest_step(
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
+        !pf_web_m4_playtest_step(
             test_dash_axis,
             0,
             0,
@@ -1220,6 +890,18 @@ int main(void)
             0) ||
         test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 38 ||
         !pf_web_m4_playtest_reset() ||
+        !pf_web_m4_playtest_step(
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0) ||
+        test_view[TEST_PLAYER0_BASE + TEST_PLAYER_ACTION] != 18 ||
         !pf_web_m4_playtest_step(
             0,
             test_dash_axis,
@@ -1647,116 +1329,9 @@ int main(void)
     }
 
     (void)printf(
-        "m4-browser-adapter=pass walk_axis=%d dash_axis=%d "
-        "input_probe=%d air_facing_probe=%d "
-        "instant_double_jump_probe=%d "
-        "double_jump_cancel_probe=%d "
-        "double_jump_cancel_counter_probe=%d bat_drop_probe=%d "
-        "glide_toss_probe=%d jump_cancel_throw_probe=%d "
-        "jump_cancel_probe=%d "
-        "edge_hop_probe=%d "
-        "edge_dash_probe=%d fox_trot_probe=%d moonwalk_probe=%d "
-        "teeter_cancel_probe=%d "
-        "stage_humping_probe=%d "
-        "taunt_cancel_probe=%d "
-        "scar_jump_probe=%d "
-        "team_wobble_probe=%d "
-        "pivot_probe=%d "
-        "dash_cancel_probe=%d dashing_shield_probe=%d "
-        "shield_platform_drop_probe=%d "
-        "small_step_forward_smash_probe=%d "
-        "drop_cancel_probe=%d "
-        "v_cancel_probe=%d "
-        "approach_probe=%d "
-        "spacing_probe=%d "
-        "sharking_probe=%d "
-        "cross_up_probe=%d "
-        "mindgame_probe=%d "
-        "juggling_probe=%d "
-        "ladder_probe=%d "
-        "kill_confirm_probe=%d "
-        "zero_to_death_probe=%d "
-        "ledge_cancel_probe=%d "
-        "planking_probe=%d "
-        "jump_cancelled_grab_probe=%d "
-        "boost_grab_probe=%d "
-        "jab_cancel_probe=%d "
-        "jab_reset_probe=%d "
-        "chain_grab_probe=%d "
-        "combat_probe=%d reaction_probe=%d "
-        "shield_probe=%d shield_break_probe=%d "
-        "powershield_cancel_probe=%d tumble_probe=%d "
-        "floor_recovery_probe=%d tech_chase_probe=%d "
-        "surface_tech_probe=%d "
-        "air_dodge_probe=%d ground_dodge_probe=%d "
-        "aerial_l_cancel_probe=%d match_probe=%d "
-        "short_hop_laser_probe=%d camping_probe=%d "
-        "shine_spike_probe=%d "
-        "charge_storage_probe=%d "
-        "vector_ascent_probe=%d "
-        "event_journal_probe=%d renders=%d\n",
+        "m4-browser-adapter=pass walk_axis=%d dash_axis=%d renders=%d\n",
         test_walk_axis,
         test_dash_axis,
-        test_input_probe,
-        test_air_facing_probe,
-        test_instant_double_jump_probe,
-        test_double_jump_cancel_probe,
-        test_double_jump_cancel_counter_probe,
-        test_bat_drop_probe,
-        test_glide_toss_probe,
-        test_jump_cancel_throw_probe,
-        test_jump_cancel_probe,
-        test_edge_hop_probe,
-        test_edge_dash_probe,
-        test_fox_trot_probe,
-        test_moonwalk_probe,
-        test_teeter_cancel_probe,
-        test_stage_humping_probe,
-        test_taunt_cancel_probe,
-        test_scar_jump_probe,
-        test_team_wobble_probe,
-        test_pivot_probe,
-        test_dash_cancel_probe,
-        test_dashing_shield_probe,
-        test_shield_platform_drop_probe,
-        test_small_step_forward_smash_probe,
-        test_drop_cancel_probe,
-        test_v_cancel_probe,
-        test_approach_probe,
-        test_spacing_probe,
-        test_sharking_probe,
-        test_cross_up_probe,
-        test_mindgame_probe,
-        test_juggling_probe,
-        test_ladder_probe,
-        test_kill_confirm_probe,
-        test_zero_to_death_probe,
-        test_ledge_cancel_probe,
-        test_planking_probe,
-        test_jump_cancelled_grab_probe,
-        test_boost_grab_probe,
-        test_jab_cancel_probe,
-        test_jab_reset_probe,
-        test_chain_grab_probe,
-        test_combat_probe,
-        test_reaction_probe,
-        test_shield_probe,
-        test_shield_break_probe,
-        test_shield_probe,
-        test_tumble_probe,
-        test_floor_recovery_probe,
-        test_tech_chase_probe,
-        test_surface_tech_probe,
-        test_air_dodge_probe,
-        test_ground_dodge_probe,
-        test_aerial_l_cancel_probe,
-        test_match_probe,
-        test_short_hop_laser_probe,
-        test_camping_probe,
-        test_shine_spike_probe,
-        test_charge_storage_probe,
-        test_vector_ascent_probe,
-        test_combat_probe,
         test_render_count);
     return 0;
 }

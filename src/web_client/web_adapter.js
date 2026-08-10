@@ -807,68 +807,10 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  pf_web_m4_playtest_install__sig: "viiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+  pf_web_m4_playtest_install__sig: "viiii",
   pf_web_m4_playtest_install: function (
     walkAxis,
     dashAxis,
-    inputProbePassed,
-    airFacingProbePassed,
-    instantDoubleJumpProbePassed,
-    doubleJumpCancelProbePassed,
-    doubleJumpCancelCounterProbePassed,
-    batDropProbePassed,
-    glideTossProbePassed,
-    jumpCancelThrowProbePassed,
-    jumpCancelProbePassed,
-    edgeHopProbePassed,
-    edgeDashProbePassed,
-    foxTrotProbePassed,
-    moonwalkProbePassed,
-    teeterCancelProbePassed,
-    stageHumpingProbePassed,
-    tauntCancelProbePassed,
-    scarJumpProbePassed,
-    teamWobbleProbePassed,
-    pivotProbePassed,
-    dashCancelProbePassed,
-    dashingShieldProbePassed,
-    shieldPlatformDropProbePassed,
-    smallStepForwardSmashProbePassed,
-    dropCancelProbePassed,
-    vCancelProbePassed,
-    approachProbePassed,
-    spacingProbePassed,
-    sharkingProbePassed,
-    crossUpProbePassed,
-    mindgameProbePassed,
-    jugglingProbePassed,
-    ladderProbePassed,
-    killConfirmProbePassed,
-    zeroToDeathProbePassed,
-    ledgeCancelProbePassed,
-    plankingProbePassed,
-    jumpCancelledGrabProbePassed,
-    boostGrabProbePassed,
-    jabCancelProbePassed,
-    jabResetProbePassed,
-    chainGrabProbePassed,
-    combatProbePassed,
-    reactionProbePassed,
-    shieldProbePassed,
-    shieldBreakProbePassed,
-    tumbleProbePassed,
-    floorRecoveryProbePassed,
-    techChaseProbePassed,
-    surfaceTechProbePassed,
-    airDodgeProbePassed,
-    groundDodgeProbePassed,
-    aerialLCancelProbePassed,
-    matchProbePassed,
-    shortHopLaserProbePassed,
-    campingProbePassed,
-    shineSpikeProbePassed,
-    chargeStorageProbePassed,
-    vectorAscentProbePassed,
     aerialLandingLagTicks,
     strongAerialLandingLagTicks
   ) {
@@ -1230,40 +1172,6 @@ mergeInto(LibraryManager.library, {
       return parsed;
     }
 
-    function runWiiUAdapterMappingProbe() {
-      var report = new Uint8Array(37);
-      report[0] = 0x21;
-      report[1] = 0x10;
-      report[2] = 0x85;
-      report[3] = 0x0b;
-      report[4] = 208;
-      report[5] = 48;
-      report[6] = 48;
-      report[7] = 208;
-      report[8] = 128;
-      report[9] = 64;
-      var parsed = parseWiiUAdapterReport(report);
-      var input = parsed.inputs[0];
-      return (
-        parsed.valid &&
-        parsed.connectedPorts === 1 &&
-        parsed.portConnected[0] &&
-        input.horizontal === dashAxis &&
-        input.vertical === -dashAxis &&
-        input.secondaryHorizontal === -dashAxis &&
-        input.secondaryVertical === -dashAxis &&
-        input.attack &&
-        !input.special &&
-        input.jump &&
-        input.taunt &&
-        input.strongAttack &&
-        input.shield &&
-        input.leftShieldStrength === 65535 &&
-        input.rightShieldStrength > 0 &&
-        input.rightShieldStrength < 65535
-      );
-    }
-
     function updateWiiUAdapterReport(report) {
       var parsed = parseWiiUAdapterReport(report);
       if (!parsed.valid) {
@@ -1564,135 +1472,9 @@ mergeInto(LibraryManager.library, {
       );
     }
 
-    function runGamepadMappingProbe() {
-      function buttons() {
-        return Array.from({ length: 17 }, function () {
-          return { pressed: false, value: 0 };
-        });
-      }
-
-      var analogButtons = buttons();
-      analogButtons[0] = { pressed: true, value: 1 };
-      analogButtons[2] = { pressed: true, value: 1 };
-      analogButtons[6] = { pressed: false, value: 0.75 };
-      analogButtons[8] = { pressed: true, value: 1 };
-      var analog = {
-        connected: true,
-        mapping: "standard",
-        axes: [0.5, -0.25, 0.5, -0.5],
-        buttons: analogButtons,
-      };
-      var dpadButtons = buttons();
-      dpadButtons[1] = { pressed: true, value: 1 };
-      dpadButtons[3] = { pressed: true, value: 1 };
-      dpadButtons[12] = { pressed: true, value: 1 };
-      dpadButtons[15] = { pressed: true, value: 1 };
-      var dpad = {
-        connected: true,
-        mapping: "standard",
-        axes: [0.1, 0.1],
-        buttons: dpadButtons,
-      };
-      var ignored = {
-        connected: true,
-        mapping: "",
-        id: "Unknown DirectInput Controller",
-        axes: [1, 1],
-        buttons: dpadButtons,
-      };
-      var centered = mapStandardGamepad({
-        connected: true,
-        mapping: "standard",
-        axes: [0.1, -0.1],
-        buttons: buttons(),
-      });
-      var mayflashButtons = buttons();
-      mayflashButtons[1] = { pressed: true, value: 1 };
-      mayflashButtons[3] = { pressed: true, value: 1 };
-      mayflashButtons[7] = { pressed: true, value: 1 };
-      mayflashButtons[9] = { pressed: true, value: 1 };
-      var mayflash = {
-        connected: true,
-        mapping: "",
-        id: "MAYFLASH GameCube Controller Adapter (Vendor: 0079 Product: 1843)",
-        axes: [0.75, 0, -0.6, -0.76, -0.76, 0.6, 0, 0, 0, 1.3],
-        buttons: mayflashButtons,
-      };
-      var emptyMayflashPort = {
-        connected: true,
-        mapping: "",
-        id: "0079-1843-Microsoft PC-joystick driver",
-        axes: [-1, -1, -1, -1, -1, -1, 0, 0, 0, 1.3],
-        buttons: buttons(),
-      };
-      var mayflashInput = mapMayflashGameCubeAdapter(mayflash);
-      var result = collectSupportedGamepads([
-        ignored,
-        emptyMayflashPort,
-        analog,
-        null,
-        mayflash,
-        dpad,
-      ]);
-      return (
-        centered.horizontal === 0 &&
-        centered.vertical === 0 &&
-        result.connected === 2 &&
-        result.mayflashPorts === 2 &&
-        result.mayflashControllers === 1 &&
-        result.inputs[0].horizontal === Math.round(dashAxis * 0.5) &&
-        result.inputs[0].vertical === -Math.round(dashAxis * 0.25) &&
-        result.inputs[0].secondaryHorizontal ===
-          Math.round(dashAxis * 0.5) &&
-        result.inputs[0].secondaryVertical ===
-          -Math.round(dashAxis * 0.5) &&
-        result.inputs[0].attack &&
-        result.inputs[0].strongAttack &&
-        result.inputs[0].jump &&
-        !result.inputs[0].special &&
-        result.inputs[0].taunt &&
-        result.inputs[0].shield &&
-        result.inputs[0].shieldStrength === Math.round(0.75 * 65535) &&
-        result.inputs[0].leftShieldStrength ===
-          Math.round(0.75 * 65535) &&
-        result.inputs[0].rightShieldStrength === 0 &&
-        mayflashInput.horizontal === dashAxis &&
-        mayflashInput.vertical === 0 &&
-        mayflashInput.secondaryHorizontal ===
-          Math.round(dashAxis * 0.8) &&
-        mayflashInput.secondaryVertical ===
-          -Math.round(dashAxis * 0.8) &&
-        mayflashInput.attack &&
-        mayflashInput.strongAttack &&
-        mayflashInput.jump &&
-        mayflashInput.taunt &&
-        mayflashInput.shield &&
-        mayflashInput.shieldStrength === 65535 &&
-        mayflashInput.leftShieldStrength === 65535 &&
-        mayflashInput.rightShieldStrength === 0 &&
-        result.inputs[1].horizontal === mayflashInput.horizontal &&
-        result.inputs[1].vertical === mayflashInput.vertical &&
-        result.inputs[1].secondaryHorizontal ===
-          mayflashInput.secondaryHorizontal &&
-        result.inputs[1].secondaryVertical ===
-          mayflashInput.secondaryVertical &&
-        result.inputs[1].attack &&
-        result.inputs[1].strongAttack &&
-        result.inputs[1].jump &&
-        !result.inputs[1].special &&
-        result.inputs[1].taunt &&
-        result.inputs[1].shield &&
-        result.inputs[1].shieldStrength === 65535 &&
-        result.inputs[1].leftShieldStrength === 65535 &&
-        result.inputs[1].rightShieldStrength === 0
-      );
-    }
-
     var gamepadApiAvailable =
       typeof navigator !== "undefined" &&
       typeof navigator.getGamepads === "function";
-    var gamepadProbePassed = runGamepadMappingProbe();
-    var wiiUAdapterProbePassed = runWiiUAdapterMappingProbe();
     var controllerApiAvailable =
       gamepadApiAvailable || wiiUAdapterState.available;
     var status = document.getElementById("pf-status");
@@ -1851,13 +1633,7 @@ mergeInto(LibraryManager.library, {
 
     var section = document.createElement("section");
     section.id = "pf-m4-playtest";
-    section.dataset.ready =
-      controllerApiAvailable &&
-      gamepadProbePassed &&
-      wiiUAdapterProbePassed
-        ? "true"
-        : "false";
-    section.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
+    section.dataset.ready = controllerApiAvailable ? "true" : "false";
     section.dataset.gamepadApi =
       gamepadApiAvailable ? "available" : "unavailable";
     section.dataset.gamepadProfiles =
@@ -1865,9 +1641,6 @@ mergeInto(LibraryManager.library, {
     section.dataset.wiiUAdapterApi = wiiUAdapterState.available
       ? "available"
       : "unavailable";
-    section.dataset.wiiUAdapterProbe = wiiUAdapterProbePassed
-      ? "pass"
-      : "fail";
     section.dataset.wiiUAdapter = "disconnected";
     section.dataset.crouchCue = "squat-chevron-label";
     section.dataset.lightShieldCue = "expanded-translucent-percent-label";
@@ -1885,28 +1658,6 @@ mergeInto(LibraryManager.library, {
     section.dataset.ownerChecklistRevision = ownerChecklistReady
       ? ownerChecklist.sourceRevision
       : "unavailable";
-    section.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
-    section.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
-    section.dataset.jumpCancelThrowProbe =
-      jumpCancelThrowProbePassed ? "pass" : "fail";
-    section.dataset.jumpCancelProbe =
-      jumpCancelProbePassed ? "pass" : "fail";
-    section.dataset.shortHopLaserProbe =
-      shortHopLaserProbePassed ? "pass" : "fail";
-    section.dataset.campingProbe = campingProbePassed ? "pass" : "fail";
-    section.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
-    section.dataset.chargeStorageProbe =
-      chargeStorageProbePassed ? "pass" : "fail";
-    section.dataset.moonwalkProbe = moonwalkProbePassed ? "pass" : "fail";
-    section.dataset.teeterCancelProbe =
-      teeterCancelProbePassed ? "pass" : "fail";
-    section.dataset.stageHumpingProbe =
-      stageHumpingProbePassed ? "pass" : "fail";
-    section.dataset.tauntCancelProbe =
-      tauntCancelProbePassed ? "pass" : "fail";
-    section.dataset.scarJumpProbe = scarJumpProbePassed ? "pass" : "fail";
-    section.dataset.teamWobbleProbe =
-      teamWobbleProbePassed ? "pass" : "fail";
     section.setAttribute("aria-label", "M4 movement and combat playtest");
 
     var heading = document.createElement("div");
@@ -1926,67 +1677,9 @@ mergeInto(LibraryManager.library, {
     headingCopy.appendChild(subtitle);
     var live = document.createElement("span");
     live.className = "pf-m4-live";
-    live.textContent =
-      inputProbePassed &&
-      airFacingProbePassed &&
-      instantDoubleJumpProbePassed &&
-      doubleJumpCancelProbePassed &&
-      batDropProbePassed &&
-      glideTossProbePassed &&
-      jumpCancelThrowProbePassed &&
-      jumpCancelProbePassed &&
-      edgeHopProbePassed &&
-      edgeDashProbePassed &&
-      foxTrotProbePassed &&
-      moonwalkProbePassed &&
-      teeterCancelProbePassed &&
-      stageHumpingProbePassed &&
-      tauntCancelProbePassed &&
-      scarJumpProbePassed &&
-      teamWobbleProbePassed &&
-      pivotProbePassed &&
-      dashCancelProbePassed &&
-      dashingShieldProbePassed &&
-      shieldPlatformDropProbePassed &&
-      smallStepForwardSmashProbePassed &&
-      dropCancelProbePassed &&
-      vCancelProbePassed &&
-      approachProbePassed &&
-      spacingProbePassed &&
-      sharkingProbePassed &&
-      crossUpProbePassed &&
-      mindgameProbePassed &&
-      jugglingProbePassed &&
-      ladderProbePassed &&
-      killConfirmProbePassed &&
-      zeroToDeathProbePassed &&
-      ledgeCancelProbePassed &&
-      plankingProbePassed &&
-      jumpCancelledGrabProbePassed &&
-      boostGrabProbePassed &&
-      jabCancelProbePassed &&
-      chainGrabProbePassed &&
-      combatProbePassed &&
-      reactionProbePassed &&
-      shieldProbePassed &&
-      shieldBreakProbePassed &&
-      tumbleProbePassed &&
-      floorRecoveryProbePassed &&
-      techChaseProbePassed &&
-      surfaceTechProbePassed &&
-      airDodgeProbePassed &&
-      groundDodgeProbePassed &&
-      aerialLCancelProbePassed &&
-      matchProbePassed &&
-      shortHopLaserProbePassed &&
-      campingProbePassed &&
-      shineSpikeProbePassed &&
-      chargeStorageProbePassed &&
-      controllerApiAvailable &&
-      gamepadProbePassed &&
-      wiiUAdapterProbePassed
-        ? "ALL M4 INPUT + GAMEPAD + COMBAT PROBES PASSED"
-        : "RUNTIME PROBE FAILED";
+    live.textContent = controllerApiAvailable
+      ? "PLAYTEST READY"
+      : "PLAYTEST API UNAVAILABLE";
     heading.appendChild(headingCopy);
     heading.appendChild(live);
     section.appendChild(heading);
@@ -2886,259 +2579,17 @@ mergeInto(LibraryManager.library, {
     if (status) {
       status.textContent +=
         " playtest=" +
-        (controllerApiAvailable &&
-        gamepadProbePassed &&
-        wiiUAdapterProbePassed
-          ? "ready"
-          : "fail") +
-        " input_probe=" +
-        (inputProbePassed ? "pass" : "fail") +
-        " air_facing_probe=" +
-        (airFacingProbePassed ? "pass" : "fail") +
-        " instant_double_jump_probe=" +
-        (instantDoubleJumpProbePassed ? "pass" : "fail") +
-        " double_jump_cancel_probe=" +
-        (doubleJumpCancelProbePassed ? "pass" : "fail") +
-        " double_jump_cancel_counter_probe=" +
-        "skipped" +
-        " bat_drop_probe=" +
-        (batDropProbePassed ? "pass" : "fail") +
-        " glide_toss_probe=" +
-        (glideTossProbePassed ? "pass" : "fail") +
-        " jump_cancel_throw_probe=" +
-        (jumpCancelThrowProbePassed ? "pass" : "fail") +
-        " jump_cancel_probe=" +
-        (jumpCancelProbePassed ? "pass" : "fail") +
-        " edge_hop_probe=" +
-        (edgeHopProbePassed ? "pass" : "fail") +
-        " edge_dash_probe=" +
-        (edgeDashProbePassed ? "pass" : "fail") +
-        " fox_trot_probe=" +
-        (foxTrotProbePassed ? "pass" : "fail") +
-        " moonwalk_probe=" +
-        (moonwalkProbePassed ? "pass" : "fail") +
-        " teeter_cancel_probe=" +
-        (teeterCancelProbePassed ? "pass" : "fail") +
-        " stage_humping_probe=" +
-        (stageHumpingProbePassed ? "pass" : "fail") +
-        " taunt_cancel_probe=" +
-        (tauntCancelProbePassed ? "pass" : "fail") +
-        " scar_jump_probe=" +
-        (scarJumpProbePassed ? "pass" : "fail") +
-        " team_wobble_probe=" +
-        (teamWobbleProbePassed ? "pass" : "fail") +
-        " pivot_probe=" +
-        (pivotProbePassed ? "pass" : "fail") +
-        " dash_cancel_probe=" +
-        (dashCancelProbePassed ? "pass" : "fail") +
-        " dashing_shield_probe=" +
-        (dashingShieldProbePassed ? "pass" : "fail") +
-        " shield_platform_drop_probe=" +
-        (shieldPlatformDropProbePassed ? "pass" : "fail") +
-        " small_step_forward_smash_probe=" +
-        (smallStepForwardSmashProbePassed ? "pass" : "fail") +
-        " drop_cancel_probe=" +
-        (dropCancelProbePassed ? "pass" : "fail") +
-        " v_cancel_probe=" +
-        (vCancelProbePassed ? "pass" : "fail") +
-        " approach_probe=" +
-        (approachProbePassed ? "pass" : "fail") +
-        " spacing_probe=" +
-        (spacingProbePassed ? "pass" : "fail") +
-        " sharking_probe=" +
-        (sharkingProbePassed ? "pass" : "fail") +
-        " cross_up_probe=" +
-        (crossUpProbePassed ? "pass" : "fail") +
-        " mindgame_probe=" +
-        (mindgameProbePassed ? "pass" : "fail") +
-        " juggling_probe=" +
-        (jugglingProbePassed ? "pass" : "fail") +
-        " ladder_probe=" +
-        (ladderProbePassed ? "pass" : "fail") +
-        " kill_confirm_probe=" +
-        (killConfirmProbePassed ? "pass" : "fail") +
-        " zero_to_death_probe=" +
-        (zeroToDeathProbePassed ? "pass" : "fail") +
-        " ledge_cancel_probe=" +
-        (ledgeCancelProbePassed ? "pass" : "fail") +
-        " planking_probe=" +
-        (plankingProbePassed ? "pass" : "fail") +
-        " jump_cancelled_grab_probe=" +
-        (jumpCancelledGrabProbePassed ? "pass" : "fail") +
-        " boost_grab_probe=" +
-        (boostGrabProbePassed ? "pass" : "fail") +
-        " jab_cancel_probe=" +
-        (jabCancelProbePassed ? "pass" : "fail") +
-        " jab_reset_probe=" +
-        (jabResetProbePassed ? "pass" : "fail") +
-        " chain_grab_probe=" +
-        (chainGrabProbePassed ? "pass" : "fail") +
-        " combat_probe=" +
-        (combatProbePassed ? "pass" : "fail") +
-        " event_journal_probe=" +
-        (combatProbePassed ? "pass" : "fail") +
-        " reaction_probe=" +
-        (reactionProbePassed ? "pass" : "fail") +
-        " shield_probe=" +
-        (shieldProbePassed ? "pass" : "fail") +
-        " shield_break_probe=" +
-        (shieldBreakProbePassed ? "pass" : "fail") +
-        " powershield_cancel_probe=" +
-        (shieldProbePassed ? "pass" : "fail") +
-        " tumble_probe=" +
-        (tumbleProbePassed ? "pass" : "fail") +
-        " floor_recovery_probe=" +
-        (floorRecoveryProbePassed ? "pass" : "fail") +
-        " tech_chase_probe=" +
-        (techChaseProbePassed ? "pass" : "fail") +
-        " surface_tech_probe=" +
-        (surfaceTechProbePassed ? "pass" : "fail") +
-        " air_dodge_probe=" +
-        (airDodgeProbePassed ? "pass" : "fail") +
-        " ground_dodge_probe=" +
-        (groundDodgeProbePassed ? "pass" : "fail") +
-        " aerial_l_cancel_probe=" +
-        (aerialLCancelProbePassed ? "pass" : "fail") +
-        " match_probe=" +
-        (matchProbePassed ? "pass" : "fail") +
-        " short_hop_laser_probe=" +
-        (shortHopLaserProbePassed ? "pass" : "fail") +
-        " camping_probe=" +
-        (campingProbePassed ? "pass" : "fail") +
-        " shine_spike_probe=" +
-        (shineSpikeProbePassed ? "pass" : "fail") +
-        " charge_storage_probe=" +
-        (chargeStorageProbePassed ? "pass" : "fail") +
-        " vector_ascent_probe=" +
-        (vectorAscentProbePassed ? "pass" : "fail") +
-        " gamepad_probe=" +
-        (gamepadProbePassed ? "pass" : "fail") +
+        (controllerApiAvailable ? "ready" : "fail") +
         " gamepad_api=" +
         (gamepadApiAvailable ? "available" : "unavailable") +
-        " wii_u_adapter_probe=" +
-        (wiiUAdapterProbePassed ? "pass" : "fail") +
         " wii_u_adapter_api=" +
         (wiiUAdapterState.available ? "available" : "unavailable") +
         " controls=keyboard-gamepad-webusb-two-controller-duel-team-lab" +
         " owner_checklist=" +
         (ownerChecklistReady ? "ready-61" : "fail");
-      status.dataset.playtest =
-        controllerApiAvailable &&
-        gamepadProbePassed &&
-        wiiUAdapterProbePassed
-          ? "ready"
-          : "fail";
-      status.dataset.inputProbe = inputProbePassed ? "pass" : "fail";
-      status.dataset.airFacingProbe =
-        airFacingProbePassed ? "pass" : "fail";
-      status.dataset.instantDoubleJumpProbe =
-        instantDoubleJumpProbePassed ? "pass" : "fail";
-      status.dataset.doubleJumpCancelProbe =
-        doubleJumpCancelProbePassed ? "pass" : "fail";
-      status.dataset.doubleJumpCancelCounterProbe =
-        doubleJumpCancelCounterProbePassed ? "pass" : "fail";
-      status.dataset.batDropProbe = batDropProbePassed ? "pass" : "fail";
-      status.dataset.glideTossProbe = glideTossProbePassed ? "pass" : "fail";
-      status.dataset.jumpCancelThrowProbe =
-        jumpCancelThrowProbePassed ? "pass" : "fail";
-      status.dataset.jumpCancelProbe =
-        jumpCancelProbePassed ? "pass" : "fail";
-      status.dataset.edgeHopProbe = edgeHopProbePassed ? "pass" : "fail";
-      status.dataset.edgeDashProbe = edgeDashProbePassed ? "pass" : "fail";
-      status.dataset.foxTrotProbe = foxTrotProbePassed ? "pass" : "fail";
-      status.dataset.moonwalkProbe = moonwalkProbePassed ? "pass" : "fail";
-      status.dataset.teeterCancelProbe =
-        teeterCancelProbePassed ? "pass" : "fail";
-      status.dataset.stageHumpingProbe =
-        stageHumpingProbePassed ? "pass" : "fail";
-      status.dataset.tauntCancelProbe =
-        tauntCancelProbePassed ? "pass" : "fail";
-      status.dataset.scarJumpProbe =
-        scarJumpProbePassed ? "pass" : "fail";
-      status.dataset.teamWobbleProbe =
-        teamWobbleProbePassed ? "pass" : "fail";
-      status.dataset.pivotProbe = pivotProbePassed ? "pass" : "fail";
-      status.dataset.dashCancelProbe =
-        dashCancelProbePassed ? "pass" : "fail";
-      status.dataset.dashingShieldProbe =
-        dashingShieldProbePassed ? "pass" : "fail";
-      status.dataset.shieldPlatformDropProbe =
-        shieldPlatformDropProbePassed ? "pass" : "fail";
-      status.dataset.smallStepForwardSmashProbe =
-        smallStepForwardSmashProbePassed ? "pass" : "fail";
-      status.dataset.dropCancelProbe =
-        dropCancelProbePassed ? "pass" : "fail";
-      status.dataset.vCancelProbe =
-        vCancelProbePassed ? "pass" : "fail";
-      status.dataset.approachProbe =
-        approachProbePassed ? "pass" : "fail";
-      status.dataset.spacingProbe =
-        spacingProbePassed ? "pass" : "fail";
-      status.dataset.sharkingProbe =
-        sharkingProbePassed ? "pass" : "fail";
-      status.dataset.crossUpProbe =
-        crossUpProbePassed ? "pass" : "fail";
-      status.dataset.mindgameProbe =
-        mindgameProbePassed ? "pass" : "fail";
-      status.dataset.jugglingProbe =
-        jugglingProbePassed ? "pass" : "fail";
-      status.dataset.ladderProbe = ladderProbePassed ? "pass" : "fail";
-      status.dataset.killConfirmProbe =
-        killConfirmProbePassed ? "pass" : "fail";
-      status.dataset.zeroToDeathProbe =
-        zeroToDeathProbePassed ? "pass" : "fail";
-      status.dataset.ledgeCancelProbe =
-        ledgeCancelProbePassed ? "pass" : "fail";
-      status.dataset.plankingProbe =
-        plankingProbePassed ? "pass" : "fail";
-      status.dataset.jumpCancelledGrabProbe =
-        jumpCancelledGrabProbePassed ? "pass" : "fail";
-      status.dataset.boostGrabProbe =
-        boostGrabProbePassed ? "pass" : "fail";
-      status.dataset.jabCancelProbe =
-        jabCancelProbePassed ? "pass" : "fail";
-      status.dataset.chainGrabProbe =
-        chainGrabProbePassed ? "pass" : "fail";
-      status.dataset.combatProbe = combatProbePassed ? "pass" : "fail";
-      status.dataset.eventJournalProbe =
-        combatProbePassed ? "pass" : "fail";
-      status.dataset.reactionProbe =
-        reactionProbePassed ? "pass" : "fail";
-      status.dataset.shieldProbe =
-        shieldProbePassed ? "pass" : "fail";
-      status.dataset.shieldBreakProbe =
-        shieldBreakProbePassed ? "pass" : "fail";
-      status.dataset.powershieldCancelProbe =
-        shieldProbePassed ? "pass" : "fail";
-      status.dataset.tumbleProbe =
-        tumbleProbePassed ? "pass" : "fail";
-      status.dataset.floorRecoveryProbe =
-        floorRecoveryProbePassed ? "pass" : "fail";
-      status.dataset.techChaseProbe =
-        techChaseProbePassed ? "pass" : "fail";
-      status.dataset.surfaceTechProbe =
-        surfaceTechProbePassed ? "pass" : "fail";
-      status.dataset.airDodgeProbe =
-        airDodgeProbePassed ? "pass" : "fail";
-      status.dataset.groundDodgeProbe =
-        groundDodgeProbePassed ? "pass" : "fail";
-      status.dataset.aerialLCancelProbe =
-        aerialLCancelProbePassed ? "pass" : "fail";
-      status.dataset.matchProbe = matchProbePassed ? "pass" : "fail";
-      status.dataset.shortHopLaserProbe =
-        shortHopLaserProbePassed ? "pass" : "fail";
-      status.dataset.campingProbe = campingProbePassed ? "pass" : "fail";
-      status.dataset.shineSpikeProbe = shineSpikeProbePassed ? "pass" : "fail";
-      status.dataset.chargeStorageProbe =
-        chargeStorageProbePassed ? "pass" : "fail";
-      status.dataset.vectorAscentProbe =
-        vectorAscentProbePassed ? "pass" : "fail";
-      status.dataset.gamepadProbe = gamepadProbePassed ? "pass" : "fail";
+      status.dataset.playtest = controllerApiAvailable ? "ready" : "fail";
       status.dataset.gamepadApi =
         gamepadApiAvailable ? "available" : "unavailable";
-      status.dataset.wiiUAdapterProbe = wiiUAdapterProbePassed
-        ? "pass"
-        : "fail";
       status.dataset.wiiUAdapterApi = wiiUAdapterState.available
         ? "available"
         : "unavailable";

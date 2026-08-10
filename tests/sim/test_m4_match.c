@@ -66,8 +66,8 @@ static int run_revival_content_contract_test(void)
             INT32_C(12) * PF_Q16_ONE ||
         content.stage.revival_platform_half_width_q16 !=
             INT32_C(2) * PF_Q16_ONE ||
-        content.stage.revival_platform_descent_ticks != UINT16_C(30) ||
-        content.stage.revival_platform_hold_ticks != UINT16_C(90) ||
+        content.stage.revival_platform_descent_ticks != UINT16_C(60) ||
+        content.stage.revival_platform_hold_ticks != UINT16_C(240) ||
         !expect_status(
             pf_m4_make_content_view(&content, &content_view),
             PF_STATUS_OK,

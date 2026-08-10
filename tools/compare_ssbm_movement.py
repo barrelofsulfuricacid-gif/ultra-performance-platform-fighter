@@ -85,8 +85,6 @@ SSBM_TO_M4_ACTION = {
     "SWORD_DANCE_3_HIGH": 112,
 }
 
-M4_DELAYED_AIR_JUMP = 61
-
 CHARACTER_AERIAL_LANDING_ACTIONS = {
     "NAIR_LANDING",
     "FAIR_LANDING",
@@ -344,12 +342,6 @@ def expected_action_ticks(action: str, action_frame: float) -> int | None:
 
 
 def expected_action_state(action: str, action_frame: float) -> int | None:
-    if action in {"JUMPING_ARIAL_FORWARD", "JUMPING_ARIAL_BACKWARD"}:
-        # M4 exposes the six-frame deterministic double-jump-cancel window as
-        # a distinct internal action before returning to its common airborne
-        # state. Both states correspond to Melee's JumpAerial action.
-        if round(action_frame) <= 6:
-            return M4_DELAYED_AIR_JUMP
     return SSBM_TO_M4_ACTION.get(action)
 
 

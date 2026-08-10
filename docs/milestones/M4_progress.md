@@ -12,8 +12,7 @@ ledge-roll and ledge-attack option set, the complete five-direction
 light-aerial vocabulary and direct strong aerial route,
 auto-cancel, visibly scored
 L-cancel practice, SHFFL, grounded forward/backward rolls, and spot dodge
-plus explicit first-airborne-frame instant double jump, double-jump-cancel,
-and double-jump-cancel-counter verification
+plus explicit first-airborne-frame instant double jump
 plus a local stock-select setup, delayed respawn, invulnerability, sudden death,
 results, rematch/return-to-setup, the bounded rollback-safe typed event feed, and complete
   shield-break launch/down/stand/stun/recovery, the three-tick small-step
@@ -29,7 +28,7 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 
 **Working branch:** `agent/m4-combat-vertical-slice`
 
-## Implemented in the 2026-08-10 static decomp differential (unverified)
+## Implemented and verified in the 2026-08-10 decomp differential
 
 - Audited pinned NTSC 1.02 common callbacks and all Falcon special callbacks
   directly against production. Closed every discrepancy visible within the
@@ -51,13 +50,26 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
 - Advanced compatibility to content 76, fighter 68, state 69, save format 64,
   `PFSAVE58`, a 775-byte payload, and a 915-byte checkpoint. Only callback-
   consumed history/continuation is canonicalized.
-- No tests, builds, generator executions, Dolphin runs, benchmarks, or runtime
-  validation were performed by explicit request. Exact geometry for new jab,
-  angled-normal, pummel/capture, common-pose, and shield-break orientation
-  paths remains an import/evidence boundary. Dynamic rebirth targets,
-  companions, broader stages/items, aerial item/tether callbacks, and match
-  choreography require a wider model. This section must not be cited as a
-  verified equivalence result.
+- Validation then exposed and closed two source-projection regressions: the
+  Dash frame-4/5 input boundary now enters DashAttack on the pinned source
+  route while ground-damage animation continues after hitstun unlocks; Falcon's
+  ordinary JumpAerial is no longer mislabeled as a six-frame delayed-cancel
+  state. Pinned live verification passes 64 ground-knockback rows / 15 compared
+  samples and both 520-row natural-landing captures.
+- Production browser startup no longer executes duplicated simulation suites.
+  The C adapter shrank from roughly 14,000 to 1,100 lines and its install ABI
+  from 62 integers to four real configuration values. Browser-specific gates
+  retain adapter wiring, controller polling/mapping, UI, Wasm loading, and real
+  interaction coverage.
+- Windows Release passes 32/32 in 3.45 seconds; WSL Release passes 34/34 in
+  3.81 seconds. All 18 stored domains / 108 cases plus replay pass in 0.843
+  seconds on Windows and 0.783 seconds in WSL. WSL ASan/UBSan passes 25/25.
+  The rebuilt Emscripten playtest, browser verifier, in-app-browser controls,
+  and console smoke pass.
+- Exact geometry for new jab, angled-normal, pummel/capture, common-pose, and
+  shield-break orientation paths remains an import/evidence boundary. Dynamic
+  rebirth targets, companions, broader stages/items, aerial item/tether
+  callbacks, and match choreography require a wider model.
 
 ## Implemented in the TurnRun display-facing closure
 

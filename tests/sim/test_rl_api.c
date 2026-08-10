@@ -264,6 +264,7 @@ static int run_duel_test(const pf_content_view *content)
     pf_state_hash after_invalid;
     pf_sim_identity identity;
     pf_sim_observation diagnostic_observation;
+    uint64_t charge_tick;
     uint64_t movement_tick;
 
     if (!expect_status(
@@ -408,8 +409,30 @@ static int run_duel_test(const pf_content_view *content)
             pf_rl_step(sim, actions, (size_t)2, &transition),
             PF_STATUS_OK,
             "duel-smash-charge-step") ||
-        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)) ||
-        transition.structured_observation.players[0]
+        !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(1)))
+    {
+        (void)fprintf(stderr, "rl-api=fail operation=duel-smash-entry\n");
+        return 0;
+    }
+    for (charge_tick = UINT64_C(2);
+         charge_tick <= UINT64_C(30) &&
+         transition.structured_observation.players[0]
+                 .smash_charge_ticks == UINT16_C(0);
+         ++charge_tick)
+    {
+        if (!expect_status(
+                pf_rl_step(sim, actions, (size_t)2, &transition),
+                PF_STATUS_OK,
+                "duel-smash-charge-advance") ||
+            !verify_transition_contract(
+                &transition,
+                UINT8_C(2),
+                charge_tick))
+        {
+            return 0;
+        }
+    }
+    if (transition.structured_observation.players[0]
                 .smash_charge_ticks != UINT16_C(1) ||
         transition.compact_observation.values[
             PF_RL_COMPACT_SMASH_CHARGE_BASE] != INT32_C(1) ||
@@ -422,7 +445,15 @@ static int run_duel_test(const pf_content_view *content)
             "duel-post-smash-charge-reset") ||
         !verify_transition_contract(&transition, UINT8_C(2), UINT64_C(0)))
     {
-        (void)fprintf(stderr, "rl-api=fail operation=duel-smash-charge\n");
+        (void)fprintf(
+            stderr,
+            "rl-api=fail operation=duel-smash-charge tick=%" PRIu64
+            " charge=%u compact=%" PRId32 "\n",
+            transition.structured_observation.tick,
+            (unsigned int)transition.structured_observation.players[0]
+                .smash_charge_ticks,
+            transition.compact_observation.values[
+                PF_RL_COMPACT_SMASH_CHARGE_BASE]);
         return 0;
     }
 

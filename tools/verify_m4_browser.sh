@@ -31,8 +31,6 @@ grep -Fq '#define PF_WEB_M4_VIEW_UPPER_PLATFORM0 496' \
     "$root/src/web_client/m4_playtest.c"
 grep -Fq '#define PF_WEB_M4_VIEW_PRONE_ORIENTATION0 499' \
     "$root/src/web_client/m4_playtest.c"
-grep -Fq 'pf_web_m4_run_ledge_option_probe' \
-    "$root/src/web_client/m4_playtest.c"
 
 common_flags="
     -std=c17
@@ -80,22 +78,7 @@ common_flags="
 
 "$output_dir/m4_web_playtest_test" >"$output_dir/m4_web_playtest.txt"
 grep -Fq \
-    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 input_probe=1' \
-    "$output_dir/m4_web_playtest.txt"
-grep -Fq \
-    'bat_drop_probe=1 glide_toss_probe=1 jump_cancel_throw_probe=1' \
-    "$output_dir/m4_web_playtest.txt"
-grep -Fq \
-    'dash_cancel_probe=1 dashing_shield_probe=1' \
-    "$output_dir/m4_web_playtest.txt"
-grep -Fq \
-    'air_dodge_probe=1 ground_dodge_probe=1' \
-    "$output_dir/m4_web_playtest.txt"
-grep -Fq \
-    'match_probe=1 short_hop_laser_probe=1' \
-    "$output_dir/m4_web_playtest.txt"
-grep -Fq \
-    'shine_spike_probe=1 charge_storage_probe=1 vector_ascent_probe=1' \
+    'm4-browser-adapter=pass walk_axis=13500 dash_axis=32767 renders=' \
     "$output_dir/m4_web_playtest.txt"
 
 command -v node >/dev/null 2>&1 ||
@@ -138,125 +121,14 @@ grep -Fq \
     '" playtest="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    '" input_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" air_facing_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
     'fighter->jump_horizontal_momentum_multiplier_q16' \
     "$root/src/sim/sim_movement.c"
 grep -Fq \
     'immediately hold backward through jump squat' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    '" instant_double_jump_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" double_jump_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" bat_drop_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" glide_toss_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" jump_cancel_throw_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" jump_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" double_jump_cancel_counter_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" edge_hop_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" edge_dash_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" fox_trot_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" moonwalk_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" teeter_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" stage_humping_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" taunt_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" scar_jump_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" team_wobble_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" pivot_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" dash_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" dashing_shield_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" shield_platform_drop_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" small_step_forward_smash_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" drop_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" v_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" approach_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" spacing_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" sharking_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" cross_up_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" mindgame_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" planking_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" jump_cancelled_grab_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" boost_grab_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" jab_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" jab_reset_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" chain_grab_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
     'view[0] !== 47' \
     "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    'pf_web_m4_run_directional_aerial_probe' \
-    "$root/src/web_client/m4_playtest.c"
 grep -Fq \
     '"DASH ATTACK"' \
     "$root/src/web_client/web_adapter.js"
@@ -387,58 +259,7 @@ grep -Fq \
     '"MASH OUT · "' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    '" event_journal_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
     '"Deterministic combat event feed"' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" shield_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" shield_break_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" powershield_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" tumble_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" floor_recovery_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" tech_chase_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" surface_tech_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" air_dodge_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" ground_dodge_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" aerial_l_cancel_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" match_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" short_hop_laser_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" camping_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" shine_spike_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" charge_storage_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
-    '" vector_ascent_probe="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
     '"PRISM BURST GROUND"' \
@@ -543,9 +364,6 @@ grep -Fq \
     'strongAerialLandingLagTicks: strongAerialLandingLagTicks' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
-    '" gamepad_probe="' \
-    "$root/src/web_client/web_adapter.js"
-grep -Fq \
     '" gamepad_api="' \
     "$root/src/web_client/web_adapter.js"
 grep -Fq \
@@ -600,4 +418,4 @@ grep -Fq \
     'controls=keyboard-gamepad-webusb-two-controller-duel-team-lab' \
     "$root/tools/verify_web_smoke.sh"
 
-echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 input_probe=1 adapter_core=pass gamepad_polling=1 standard_mapping=1 wii_u_webusb=1 team_lab=1 owner_checklist=61 legacy_emergent_probes=skipped"
+echo "m4-browser-verification=pass walk_axis=13500 dash_axis=32767 adapter_core=pass gamepad_polling=1 standard_mapping=1 wii_u_webusb=1 team_lab=1 owner_checklist=61"

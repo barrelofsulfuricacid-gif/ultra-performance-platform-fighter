@@ -172,6 +172,37 @@ static uint16_t pf_m4_ground_damage_submotion(uint8_t action_state)
     }
 }
 
+static pf_status pf_m4_advance_ground_damage_animation(
+    uint8_t *action_state,
+    uint16_t *action_ticks,
+    uint16_t hitstun_ticks,
+    int32_t *ground_knockback_velocity_q16)
+{
+    const uint16_t submotion_index =
+        pf_m4_ground_damage_submotion(*action_state);
+    const pf_m4_falcon_submotion_data *motion =
+        submotion_index != UINT16_MAX
+            ? pf_m4_falcon_reference_submotion(submotion_index)
+            : NULL;
+
+    if (motion == NULL || motion->gameplay_frame_count == UINT16_C(0))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    if (*action_ticks < UINT16_MAX)
+    {
+        ++*action_ticks;
+    }
+    if (*action_ticks >= motion->gameplay_frame_count &&
+        hitstun_ticks == UINT16_C(0))
+    {
+        *action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
+        *action_ticks = UINT16_C(0);
+        *ground_knockback_velocity_q16 = INT32_C(0);
+    }
+    return PF_STATUS_OK;
+}
+
 static int32_t pf_m4_clamp_i32(int32_t value, int32_t minimum, int32_t maximum)
 {
     return value < minimum ? minimum : value > maximum ? maximum : value;
@@ -2017,10 +2048,6 @@ static int pf_m4_body_sweep_hits_solid(
 {
     const pf_m4_fighter_data *fighter = &content->fighter;
     const pf_m4_stage_data *stage = &content->stage;
-    const pf_m4_falcon_common_attributes *source_character =
-        fighter->reference_frame_data_enabled != UINT8_C(0)
-            ? pf_m4_falcon_reference_common_attributes()
-            : NULL;
     const int64_t left =
         (int64_t)current_position_x_q16 - fighter->half_width_q16;
     const int64_t right =
@@ -4080,6 +4107,10 @@ static int pf_m4_try_grab_ledge(
     *velocity_x = INT32_C(0);
     *velocity_y = INT32_C(0);
     *action_ticks = UINT16_C(0);
+    *source_submotion =
+        fighter->reference_frame_data_enabled != UINT8_C(0)
+            ? (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CATCH
+            : UINT16_C(0);
     *grounded = UINT8_C(0);
     *action_state =
         fighter->reference_frame_data_enabled != UINT8_C(0)
@@ -5168,6 +5199,7 @@ static void pf_m4_prepare_spawn(
     int32_t *velocity_x,
     int32_t *velocity_y,
     uint16_t *action_ticks,
+    uint16_t *source_submotion,
     uint8_t *grounded,
     uint8_t *action_state,
     uint8_t *support,
@@ -5190,6 +5222,10 @@ static void pf_m4_prepare_spawn(
     *velocity_x = INT32_C(0);
     *velocity_y = INT32_C(0);
     *action_ticks = UINT16_C(0);
+    *source_submotion =
+        fighter->reference_frame_data_enabled != UINT8_C(0)
+            ? (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT
+            : UINT16_C(0);
     *grounded = UINT8_C(1);
     *action_state = (uint8_t)PF_M4_ACTION_REVIVAL_PLATFORM;
     *support = (uint8_t)PF_M4_SURFACE_REVIVAL_PLATFORM;
@@ -5721,6 +5757,12 @@ pf_status pf_m4_step_player(
         source_ground_input != NULL
             ? source_ground_input->initial_dash_special_end_frame
             : UINT16_C(0);
+    /* ftCo_Dash_IASA observes the animation frame being processed now,
+     * whereas action_ticks is the last completed frame exposed by the sim.
+     * Keep that clock conversion explicit so the imported x44/x4C branch
+     * boundaries retain their source meaning. */
+    const uint32_t reference_current_anim_frame =
+        (uint32_t)world->action_ticks[player_index] + UINT32_C(1);
     const int secondary_stick_active =
         secondary_horizontal_magnitude >= fighter->axis_dead_zone ||
         secondary_vertical_magnitude >= fighter->axis_dead_zone;
@@ -5817,7 +5859,7 @@ pf_status pf_m4_step_player(
         source_ground_input != NULL &&
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-        world->action_ticks[player_index] <=
+        reference_current_anim_frame <=
             initial_dash_early_end_frame &&
         (forward_smash_pressed != 0 ||
          reference_c_stick_attack_action ==
@@ -5826,9 +5868,9 @@ pf_status pf_m4_step_player(
         source_ground_input != NULL &&
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
-        world->action_ticks[player_index] >
+        reference_current_anim_frame >
             initial_dash_early_end_frame &&
-        world->action_ticks[player_index] <=
+        reference_current_anim_frame <=
             initial_dash_special_end_frame &&
         grab_blocks_attack == 0 && light_attack_pressed != 0;
     const int reference_initial_dash_attack_allowed =
@@ -5914,9 +5956,7 @@ pf_status pf_m4_step_player(
         world->action_state[player_index] ==
             (uint8_t)PF_M4_ACTION_SHIELD &&
         input->main_stick_y >=
-            (int16_t)fighter->shield_drop_axis_threshold &&
-        input->main_stick_y <
-            (int16_t)fighter->crouch_axis_threshold;
+            (int16_t)fighter->shield_drop_axis_threshold;
     const pf_m4_reference_move *ground_reference_attack =
         world->grounded[player_index] != UINT8_C(0) &&
         pf_m4_action_is_ground_attack(
@@ -6823,9 +6863,8 @@ pf_status pf_m4_step_player(
         }
     }
 
-    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-        (pf_m4_action_is_damage(action_state) ||
-         pf_m4_action_is_surface_bounce(action_state)))
+    if (pf_m4_action_is_damage(action_state) ||
+        pf_m4_action_is_surface_bounce(action_state))
     {
         const pf_m4_ssbm_damage_response_attributes *damage_response =
             pf_m4_ssbm_common_reference_damage_response();
@@ -6857,6 +6896,18 @@ pf_status pf_m4_step_player(
             scratch->hitstun_ticks[player_index] = UINT16_C(0);
             scratch->damage_jump_buffer_ticks[player_index] =
                 UINT16_C(0);
+            if (action_state == (uint8_t)PF_M4_ACTION_HITSTUN)
+            {
+                action_state =
+                    grounded != UINT8_C(0)
+                        ? (uint8_t)PF_M4_ACTION_GROUND_IDLE
+                        : (uint8_t)PF_M4_ACTION_AIRBORNE;
+                action_ticks = UINT16_C(0);
+                source_submotion =
+                    grounded != UINT8_C(0)
+                        ? (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT
+                        : (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+            }
             /* Damage_IASA synthesizes X/Y from the stored x14 timer and
              * then enters the ordinary Wait/Fall IASA table. Preserve that
              * request until those tables reach their jump callback: special,
@@ -7052,7 +7103,7 @@ pf_status pf_m4_step_player(
                  * then the climb/drop router. The C-stick predicates are
                  * rising edges using ftCommonData x7F8/x7FC. */
                 if (light_attack_pressed != 0 ||
-                    strong_attack_pressed != 0 ||
+                    special_pressed != 0 ||
                     ledge_c_attack_pressed != 0)
                 {
                     next_action = (uint8_t)PF_M4_ACTION_LEDGE_ATTACK;
@@ -7624,6 +7675,7 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
+        released_ledge_this_tick == 0 &&
         !hitstun_locked &&
         grounded == UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
@@ -7697,6 +7749,7 @@ pf_status pf_m4_step_player(
     }
 
     if (!ledge_motion_handled &&
+        released_ledge_this_tick == 0 &&
         !hitstun_locked &&
         reference_rapid_jab_ready == 0 &&
         !pf_m4_action_is_reference_special_locked(action_state) &&
@@ -8256,7 +8309,8 @@ pf_status pf_m4_step_player(
         !pf_m4_action_is_shield(action_state) &&
         !(action_state == (uint8_t)PF_M4_ACTION_INITIAL_DASH &&
           (source_ground_input == NULL ||
-           action_ticks <= initial_dash_early_end_frame)) &&
+           reference_current_anim_frame <=
+               initial_dash_early_end_frame)) &&
         (!pf_m4_action_is_ground_attack(action_state) ||
          (ground_iasa_capabilities &
           PF_M4_FALCON_IASA_GUARD) != UINT8_C(0)) &&
@@ -10586,7 +10640,8 @@ pf_status pf_m4_step_player(
             else if (fresh_dash_input != 0 &&
                      strong_direction == -dash_direction &&
                      (source_ground_input == NULL ||
-                      action_ticks > initial_dash_early_end_frame))
+                      reference_current_anim_frame >
+                          initial_dash_early_end_frame))
             {
                 dash_direction = strong_direction;
                 action_state =
@@ -10917,6 +10972,16 @@ pf_status pf_m4_step_player(
                     velocity_x,
                     INT32_C(0),
                     fighter->traction_q16);
+                status = pf_m4_advance_ground_damage_animation(
+                    &action_state,
+                    &action_ticks,
+                    scratch->hitstun_ticks[player_index],
+                    &scratch
+                         ->ground_knockback_velocity_q16[player_index]);
+                if (status != PF_STATUS_OK)
+                {
+                    return status;
+                }
             }
             else if (moonwalk_setup_started)
             {
@@ -11985,6 +12050,7 @@ pf_status pf_m4_step_player(
                 fast_fall = UINT8_C(0);
             }
             else if (
+                released_ledge_this_tick == 0 &&
                 dense_shield_pressed != 0 &&
                 input_shield_strength >=
                     fighter->digital_trigger_threshold &&
@@ -12007,8 +12073,9 @@ pf_status pf_m4_step_player(
                 fast_fall = UINT8_C(0);
                 scratch->tumble[player_index] = UINT8_C(0);
             }
-            else if (strong_attack_pressed != 0 ||
-                     light_attack_pressed != 0)
+            else if (released_ledge_this_tick == 0 &&
+                     (strong_attack_pressed != 0 ||
+                      light_attack_pressed != 0))
             {
                 if (double_jump_cancel_window != 0)
                 {
@@ -12094,6 +12161,7 @@ pf_status pf_m4_step_player(
                  (damage_released_jump_requested != 0 &&
                   pf_m4_action_is_damage(action_state))) &&
                 !launched_this_tick &&
+                released_ledge_this_tick == 0 &&
                 (jump_pressed != 0 ||
                  damage_released_jump_requested != 0) &&
                 air_jumps_remaining > UINT8_C(0))
@@ -13161,33 +13229,22 @@ pf_status pf_m4_step_player(
     else if (hitstun_locked &&
         !pf_m4_action_is_surface_tech(action_state))
     {
-        const uint16_t ground_damage_submotion =
-            pf_m4_ground_damage_submotion(action_state);
-        const pf_m4_falcon_submotion_data *ground_damage_motion =
-            ground_damage_submotion != UINT16_MAX
-                ? pf_m4_falcon_reference_submotion(
-                      ground_damage_submotion)
-                : NULL;
-
         if (scratch->hitstun_ticks[player_index] > UINT16_C(0))
         {
             --scratch->hitstun_ticks[player_index];
         }
         if (grounded != UINT8_C(0) &&
-            pf_m4_action_is_ground_damage(action_state) &&
-            ground_damage_motion != NULL)
+            pf_m4_action_is_ground_damage(action_state))
         {
-            if (action_ticks < UINT16_MAX)
+            status = pf_m4_advance_ground_damage_animation(
+                &action_state,
+                &action_ticks,
+                scratch->hitstun_ticks[player_index],
+                &scratch
+                     ->ground_knockback_velocity_q16[player_index]);
+            if (status != PF_STATUS_OK)
             {
-                ++action_ticks;
-            }
-            if (action_ticks >= ground_damage_motion->gameplay_frame_count &&
-                scratch->hitstun_ticks[player_index] == UINT16_C(0))
-            {
-                action_state = (uint8_t)PF_M4_ACTION_GROUND_IDLE;
-                action_ticks = UINT16_C(0);
-                scratch->ground_knockback_velocity_q16[player_index] =
-                    INT32_C(0);
+                return status;
             }
         }
         else if (scratch->hitstun_ticks[player_index] == UINT16_C(0) &&
@@ -13307,6 +13364,7 @@ pf_status pf_m4_step_player(
             &velocity_x,
             &velocity_y,
             &action_ticks,
+            &source_submotion,
             &grounded,
             &action_state,
             &support,
@@ -13440,6 +13498,17 @@ pf_status pf_m4_step_player(
         scratch->down_tilt_repeat_buffered[player_index] = UINT8_C(0);
     }
 
+    if (!pf_m4_action_is_damage(action_state) &&
+        !pf_m4_action_is_surface_bounce(action_state) &&
+        !(action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
+          (pf_m4_action_is_damage(
+               scratch->hitlag_resume_action[player_index]) ||
+           pf_m4_action_is_surface_bounce(
+               scratch->hitlag_resume_action[player_index]))))
+    {
+        scratch->damage_jump_buffer_ticks[player_index] = UINT16_C(0);
+    }
+
     if (!pf_m4_action_retains_shield_strength(
             action_state,
             scratch->hitlag_resume_action[player_index]))
@@ -13447,18 +13516,15 @@ pf_status pf_m4_step_player(
         scratch->shield_strength[player_index] = UINT16_C(0);
     }
 
-    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
     {
-        if (action_state == (uint8_t)PF_M4_ACTION_STANDING_TURN)
-        {
-            source_submotion =
-                (uint16_t)PF_M4_FALCON_SUBMOTION_TURN;
-        }
-        else if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
-        {
-            source_submotion =
-                (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
-        }
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_TURN;
+    }
+    else if (action_state == (uint8_t)PF_M4_ACTION_RUN_TURNAROUND)
+    {
+        source_submotion =
+            (uint16_t)PF_M4_FALCON_SUBMOTION_TURN_RUN;
     }
 
     if (!pf_m4_action_retains_source_submotion(

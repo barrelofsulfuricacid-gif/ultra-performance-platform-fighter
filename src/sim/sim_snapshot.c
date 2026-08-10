@@ -1787,6 +1787,19 @@ static int pf_m4_snapshot_action_is_grabbed(
             resume_action == (uint8_t)PF_M4_ACTION_GRABBED);
 }
 
+static int pf_m4_snapshot_action_is_normal_grab_holder(
+    uint8_t action,
+    uint8_t resume_action)
+{
+    const uint8_t effective_action =
+        action == (uint8_t)PF_M4_ACTION_HITLAG
+            ? resume_action
+            : action;
+
+    return effective_action == (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
+           effective_action == (uint8_t)PF_M4_ACTION_PUMMEL;
+}
+
 static int pf_m4_snapshot_action_is_throw_holder(
     uint8_t action,
     uint8_t resume_action)
@@ -2138,12 +2151,18 @@ static int pf_m4_snapshot_content_state_consistent(
                       ground_attack->active_ticks,
                       ground_attack->recovery_ticks}
                 : (pf_m4_reference_timing){0};
+        pf_m4_falcon_move_index ground_attack_move_index;
         const int falcon_ground_attack =
             ground_attack != NULL &&
-            pf_m4_falcon_reference_attack_matches(
-                action,
-                ground_attack_timing,
-                ground_attack->damage_q16);
+            (content->fighter.reference_frame_data_enabled != UINT8_C(0) &&
+                     pf_m4_action_is_reference_angled_normal(action)
+                 ? pf_m4_falcon_reference_move_for_action(
+                       action,
+                       &ground_attack_move_index)
+                 : pf_m4_falcon_reference_attack_matches(
+                       action,
+                       ground_attack_timing,
+                       ground_attack->damage_q16));
         const uint16_t smash_charge_ticks =
             world->smash_charge_ticks[player_index];
         const int smash_charge_action =
@@ -2200,6 +2219,10 @@ static int pf_m4_snapshot_content_state_consistent(
              !smash_release_resume) ||
             ((shield_strength != UINT16_C(0)) !=
              (shield_strength_action != 0)) ||
+            (action ==
+                 (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN &&
+             world->shield_health_q16[player_index] !=
+                 content->fighter.shield_reset_health_q16) ||
             ((world->shield_angle_turn[player_index] != UINT16_C(0) ||
               world->shield_magnitude[player_index] != UINT16_C(0)) &&
              shield_strength == UINT16_C(0)) ||
@@ -3074,6 +3097,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_GETUP_ATTACK &&
                  resume_action !=
+                     (uint8_t)PF_M4_ACTION_PUMMEL &&
+                 resume_action !=
                      (uint8_t)PF_M4_ACTION_FALCON_KICK_START_GROUND &&
                  resume_action !=
                      (uint8_t)PF_M4_ACTION_FALCON_KICK_START_AIR &&
@@ -3182,7 +3207,10 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                    resume_action !=
                        (uint8_t)PF_M4_ACTION_SHIELD_BREAK))) ||
                 (pf_m4_snapshot_action_is_shield_break(action) &&
-                 (shield_health != UINT32_C(0) ||
+                 (((action ==
+                        (uint8_t)PF_M4_ACTION_SHIELD_BREAK_STUN)
+                       ? shield_health == UINT32_C(0)
+                       : shield_health != UINT32_C(0)) ||
                   shield_stun != UINT16_C(0) ||
                   hitlag != UINT16_C(0) ||
                   hitstun_is_active != 0 ||
@@ -3481,10 +3509,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->active[target_index] == UINT8_C(0) ||
                 (world->mode == (uint8_t)PF_SIM_MODE_TEAMS &&
                  world->team[player_index] == world->team[target_index]) ||
-                (world->action_state[player_index] !=
-                     (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
-                 world->action_state[player_index] !=
-                     (uint8_t)PF_M4_ACTION_PUMMEL &&
+                (!pf_m4_snapshot_action_is_normal_grab_holder(
+                     world->action_state[player_index],
+                     world->hitlag_resume_action[player_index]) &&
                  !pf_m4_snapshot_action_is_falcon_dive_capture_holder(
                      world->action_state[player_index],
                      world->hitlag_resume_action[player_index]) &&
@@ -3501,10 +3528,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 return PF_STATUS_INVALID_STATE;
             }
         }
-        else if (world->action_state[player_index] ==
-                     (uint8_t)PF_M4_ACTION_GRAB_HOLD ||
-                 world->action_state[player_index] ==
-                     (uint8_t)PF_M4_ACTION_PUMMEL)
+        else if (pf_m4_snapshot_action_is_normal_grab_holder(
+                     world->action_state[player_index],
+                     world->hitlag_resume_action[player_index]))
         {
             return PF_STATUS_INVALID_STATE;
         }
@@ -3521,10 +3547,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 !pf_m4_snapshot_action_is_grabbed(
                     world->action_state[player_index],
                     world->hitlag_resume_action[player_index]) ||
-                (world->action_state[owner_index] !=
-                     (uint8_t)PF_M4_ACTION_GRAB_HOLD &&
-                 world->action_state[owner_index] !=
-                     (uint8_t)PF_M4_ACTION_PUMMEL &&
+                (!pf_m4_snapshot_action_is_normal_grab_holder(
+                     world->action_state[owner_index],
+                     world->hitlag_resume_action[owner_index]) &&
                  !pf_m4_snapshot_action_is_falcon_dive_capture_holder(
                      world->action_state[owner_index],
                      world->hitlag_resume_action[owner_index]) &&

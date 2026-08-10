@@ -571,6 +571,7 @@
       {
         "id": "timeout",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 26 }, { "advance_ticks": 1 },
           { "advance_ticks": 109 }, { "advance_ticks": 109 },
@@ -583,6 +584,7 @@
       {
         "id": "buffered_a_getup_attack",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 8 },
           { "buttons": ["attack"], "advance_ticks": 1 },
@@ -596,6 +598,7 @@
       {
         "id": "buffered_b_getup_attack",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 8 },
           { "buttons": ["special"], "advance_ticks": 1 },
@@ -609,6 +612,7 @@
       {
         "id": "c_up_getup_attack",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 24 },
           { "c_stick": [0, 32767], "advance_ticks": 1 },
@@ -622,6 +626,7 @@
       {
         "id": "c_roll_forward",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 24 },
           { "c_stick": [32767, 0], "advance_ticks": 1 },
@@ -635,6 +640,7 @@
       {
         "id": "main_roll_backward",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "main": [-32767, 0], "advance_ticks": 26 },
           { "advance_ticks": 1 }, { "advance_ticks": 10 },
@@ -648,6 +654,7 @@
       {
         "id": "up_neutral_getup",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "main": [0, 32767], "advance_ticks": 26 },
           { "advance_ticks": 1 }, { "advance_ticks": 1 },
@@ -661,6 +668,7 @@
       {
         "id": "shield_neutral_getup",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 25 },
           { "left_trigger": 65535, "advance_ticks": 1 },
@@ -674,6 +682,7 @@
       {
         "id": "attack_over_roll_priority",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "main": [32767, 0], "advance_ticks": 8 },
           { "main": [32767, 0], "buttons": ["attack"], "advance_ticks": 1 },
@@ -688,6 +697,7 @@
       {
         "id": "c_roll_below_threshold",
         "initial_state_variant": 2,
+        "initial_facing": 1,
         "inputs": [
           { "advance_ticks": 24 },
           { "c_stick": [6500, 0], "advance_ticks": 1 },

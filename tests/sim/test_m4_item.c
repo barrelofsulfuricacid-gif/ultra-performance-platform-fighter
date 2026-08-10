@@ -458,10 +458,16 @@ static int advance_roll_to_tick(
         INT16_C(0),
         UINT64_C(0),
         UINT16_MAX};
+    const test_command shield = {
+        INT16_C(0),
+        INT16_C(0),
+        UINT64_C(0),
+        UINT16_MAX};
     const test_command neutral = {0};
     uint32_t guard;
 
-    if (!step_sim(sim, roll, neutral, result, inspection))
+    if (!step_sim(sim, shield, neutral, result, inspection) ||
+        !step_sim(sim, roll, neutral, result, inspection))
     {
         return 0;
     }
@@ -551,8 +557,26 @@ static int start_jump_from_dash(
         PF_INPUT_BUTTON_JUMP,
         0};
     const test_command neutral = {0};
+    uint32_t guard;
 
-    return step_sim(sim, dash, neutral, result, inspection) &&
+    if (!step_sim(sim, dash, neutral, result, inspection))
+    {
+        return 0;
+    }
+    for (guard = UINT32_C(0); guard < UINT32_C(40); ++guard)
+    {
+        if (inspection->players[0].action_state ==
+            (uint8_t)PF_M4_ACTION_RUN)
+        {
+            break;
+        }
+        if (!step_sim(sim, dash, neutral, result, inspection))
+        {
+            return 0;
+        }
+    }
+    return inspection->players[0].action_state ==
+               (uint8_t)PF_M4_ACTION_RUN &&
            step_sim(sim, jump, neutral, result, inspection) &&
            inspection->players[0].action_state ==
                (uint8_t)PF_M4_ACTION_JUMP_SQUAT;
@@ -581,6 +605,14 @@ static int run_jump_cancel_throw_contract(
         !start_jump_from_dash(sim, &result, &inspection) ||
         !step_sim(sim, attack, neutral, &result, &inspection))
     {
+        (void)fprintf(
+            stderr,
+            "m4-item=debug jump-cancel-setup action=%u ticks=%u"
+            " grounded=%u item=%u\n",
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.players[0].action_ticks,
+            (unsigned int)inspection.players[0].grounded,
+            (unsigned int)inspection.item.state);
         return 0;
     }
     jump_cancel_velocity = inspection.players[0].velocity_x_q16;

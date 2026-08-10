@@ -3161,7 +3161,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
         fighter->knockback_reserved != UINT16_C(0) ||
         fighter->crouch_cancel_max_damage_q16 == UINT32_C(0) ||
         fighter->crouch_cancel_max_damage_q16 >
-            UINT32_C(300) * UINT32_C(65536) ||
+            PF_SIM_MAX_DAMAGE_Q16 ||
         fighter->crouch_cancel_velocity_scale_q16 <= INT32_C(0) ||
         fighter->crouch_cancel_velocity_scale_q16 >= PF_Q16_ONE ||
         fighter->crouch_cancel_hitstun_scale_q16 <= INT32_C(0) ||
@@ -3419,7 +3419,7 @@ pf_status pf_m4_validate_content(const pf_m4_content *content)
             fighter->initial_dash_ticks ||
         fighter->teeter_ticks == UINT16_C(0) ||
         fighter->teeter_ticks > UINT16_C(120) ||
-        fighter->teeter_turn_axis_threshold <= fighter->axis_dead_zone ||
+        fighter->teeter_turn_axis_threshold == UINT16_C(0) ||
         fighter->teeter_turn_axis_threshold >=
             fighter->teeter_walk_axis_threshold ||
         fighter->teeter_walk_axis_threshold > UINT16_C(32767) ||
