@@ -1630,12 +1630,19 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
     int has_reference_pose = 0;
     int exact_reference_pose = 0;
     pf_m4_falcon_ecb_pose_q16 action_pose;
+    const pf_m4_falcon_ecb_pose_q16 *airborne_pose = NULL;
 
     *out_exact_reference_pose = 0;
 
     if (fighter->reference_frame_data_enabled == UINT8_C(0) || pose == NULL)
     {
         return fighter->half_height_q16;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
+    {
+        airborne_pose = pf_m4_falcon_reference_airborne_ecb_pose(
+            source_submotion,
+            action_ticks);
     }
     if (pf_m4_reference_ecb_pose_q16(
             fighter,
@@ -1644,6 +1651,12 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
             &action_pose) != 0)
     {
         bottom_y_from_origin_q16 = action_pose.bottom_y_from_origin_q16;
+        has_reference_pose = 1;
+        exact_reference_pose = 1;
+    }
+    else if (airborne_pose != NULL)
+    {
+        bottom_y_from_origin_q16 = airborne_pose->bottom_y_from_origin_q16;
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
@@ -1674,22 +1687,6 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
 
         bottom_y_from_origin_q16 =
             pose->platform_drop_bottom_y_from_origin_q16[frame_index];
-        has_reference_pose = 1;
-        exact_reference_pose = 1;
-    }
-    else if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-             source_submotion ==
-                 (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_FORWARD)
-    {
-        const uint16_t frame_index =
-            action_ticks < PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT
-                ? action_ticks
-                : (uint16_t)(
-                      PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT -
-                      UINT16_C(1));
-
-        bottom_y_from_origin_q16 =
-            pose->jump_forward_bottom_y_from_origin_q16[frame_index];
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
@@ -4798,6 +4795,15 @@ static void pf_m4_enter_double_jump(
     *velocity_x = pf_m4_scale_axis_q16(
         input->main_stick_x,
         fighter->double_jump_horizontal_speed_q16);
+    /* Melee enters JumpAerial during IASA, then executes its ordinary aerial
+     * physics callback on that same fighter update. Apply air control to the
+     * newly assigned jump velocity here; applying it before entry is lost when
+     * the entry callback replaces self_vel.x. */
+    *velocity_x = pf_m4_apply_air_input(
+        fighter,
+        *velocity_x,
+        input->main_stick_x,
+        fighter->air_speed_q16);
     *velocity_y = -fighter->double_jump_speed_q16;
     --*air_jumps_remaining;
     *fast_fall = UINT8_C(0);

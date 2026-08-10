@@ -75,6 +75,7 @@ def input_trace(
     platform_only: bool = False,
     platform_drop_ecb_only: bool = False,
     airborne_ecb_only: bool = False,
+    airborne_landing_only: bool = False,
     push_only: bool = False,
     shield_only: bool = False,
     shield_geometry_only: bool = False,
@@ -3346,6 +3347,42 @@ def input_trace(
         repeat("platform_drop_ecb_recovery", 10)
         return trace
 
+    if airborne_landing_only:
+        repeat("airborne_landing_settle", 60)
+
+        trace.append(
+            command("airborne_landing_jump_backward_entry", main_x=0.3, jump=True)
+        )
+        repeat("airborne_landing_jump_backward_arm", 6, main_x=0.3)
+        repeat("airborne_landing_jump_backward_observe", 100)
+        repeat("airborne_landing_jump_backward_settle", 30)
+
+        trace.append(
+            command("airborne_landing_jump_aerial_forward_ground", jump=True)
+        )
+        repeat("airborne_landing_jump_aerial_forward_ground_arm", 8)
+        trace.append(
+            command("airborne_landing_jump_aerial_forward_entry", jump=True)
+        )
+        repeat("airborne_landing_jump_aerial_forward_observe", 120)
+        repeat("airborne_landing_jump_aerial_forward_settle", 30)
+
+        trace.append(
+            command("airborne_landing_jump_aerial_backward_ground", jump=True)
+        )
+        repeat("airborne_landing_jump_aerial_backward_ground_arm", 8)
+        trace.append(
+            command(
+                "airborne_landing_jump_aerial_backward_entry",
+                main_x=0.3,
+                jump=True,
+            )
+        )
+        repeat("airborne_landing_jump_aerial_backward_arm", 3, main_x=0.3)
+        repeat("airborne_landing_jump_aerial_backward_observe", 120)
+        repeat("airborne_landing_jump_aerial_backward_settle", 30)
+        return trace
+
     if airborne_ecb_only:
         def reset_airborne_ecb_route(label: str) -> None:
             trace.append(
@@ -5528,6 +5565,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         args.platform_only
                         or args.platform_drop_ecb_only
                         or args.airborne_ecb_only
+                        or args.airborne_landing_only
                         or battlefield_checkpoint_route
                     )
                     else melee.Stage.FINAL_DESTINATION
@@ -5688,6 +5726,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             platform_only=args.platform_only,
             platform_drop_ecb_only=args.platform_drop_ecb_only,
             airborne_ecb_only=args.airborne_ecb_only,
+            airborne_landing_only=args.airborne_landing_only,
             push_only=args.push_only,
             shield_only=args.shield_only,
             shield_geometry_only=args.shield_geometry_only,
@@ -6696,6 +6735,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     args.platform_only
                     or args.platform_drop_ecb_only
                     or args.airborne_ecb_only
+                    or args.airborne_landing_only
                     or battlefield_checkpoint_route
                 )
                 else "FINAL_DESTINATION"
@@ -6894,6 +6934,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "--jump-forward-ecb-only is a compatibility alias"
         ),
     )
+    mode.add_argument("--airborne-landing-only", action="store_true")
     mode.add_argument("--push-only", action="store_true")
     mode.add_argument("--shield-only", action="store_true")
     mode.add_argument("--shield-geometry-only", action="store_true")
@@ -6983,11 +7024,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         args.platform_only
         or args.platform_drop_ecb_only
         or args.airborne_ecb_only
+        or args.airborne_landing_only
         or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(
             "--memory-probe-surface requires --platform-only, "
-            "--platform-drop-ecb-only, --airborne-ecb-only, or a "
+            "--platform-drop-ecb-only, --airborne-ecb-only, "
+            "--airborne-landing-only, or a "
             "--damage-hit-only checkpoint pack"
         )
     if args.memory_probe_hitbox and not (

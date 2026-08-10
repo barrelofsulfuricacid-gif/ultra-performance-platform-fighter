@@ -5237,3 +5237,34 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - The focused native-CSV domain is part of ordinary CTest and therefore the
   GitHub Actions native matrix. Windows and WSL Release pass 33/33 tests; the
   added test takes 0.36 seconds on each host.
+
+## 2026-08-10 natural airborne landing equivalence
+
+- The first divergent natural frame was JumpAerialB entry: source horizontal
+  velocity was `-0.396`, while production retained only the imported `-0.36`
+  jump impulse. Pinned decomp shows the interrupt transition completes before
+  the fighter's physics callback, so the new JumpAerial state applies ordinary
+  air control in that same update. The shared double-jump entry now preserves
+  that order; no Falcon-only movement branch was added.
+- A second divergence was a one-update-late FallAerial landing. The owner
+  capture already exposed complete eight-frame Fall and FallAerial loops, so
+  the importer now packs those with all four jump tracks: six tracks / 186
+  poses under profile/semantic SHA-256
+  `407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba` /
+  `21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a`.
+- Two independent 520-frame Battlefield captures have different raw JSON
+  hashes because process-local addresses and nonsemantic probe values differ,
+  but their canonical controller/action/physics traces are identical. Windows
+  and WSL both pass all 520 identical-input frames with strict discrete and
+  velocity fields and the documented 640-Q16 position envelope. Source and
+  production SHA-256 are
+  `43eb893b7d70852b03b696c993db09e08ee4554bee5922c2a214aef73da7bf95` /
+  `9e8fd5b0c3ee8d065c0fef6c906c9700d1600d6ef34e7eb498735a25ed81f26b`.
+- The route is the fifteenth generic stored domain and raises the registry to
+  90 cases. Three full Windows runs take 1.592-1.678 seconds; three WSL runs
+  take 1.279-1.578 seconds, including deterministic replay and all generated
+  checks. The new replay identities are corpus
+  `540695baf9fa0bce01ac9342310f78ecd40b5406bd03df57a81e8b557663d798`
+  and final state
+  `4ffccdd98a49489adf6737f54d5d987bc1c591c71cb1d39aa53d33f2e9c630f6`;
+  the event digest remains unchanged.

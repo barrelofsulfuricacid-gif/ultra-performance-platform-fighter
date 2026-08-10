@@ -32,6 +32,8 @@ NATIVE_CSV_TRACE_FIELDS = {
     "facing",
     "grounded",
     "support",
+    "surface_normal_source_x_q16",
+    "surface_normal_source_y_q16",
     "position_x_q16_from_origin",
     "position_y_q16_from_origin",
     "velocity_x_q16",

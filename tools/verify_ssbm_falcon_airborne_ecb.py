@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Falcon's four physical jump ECB captures and imported profile."""
+"""Verify Falcon's physical jump/fall ECB capture and imported profile."""
 
 from __future__ import annotations
 
@@ -18,10 +18,10 @@ CAPTURE_SHA256 = (
     "4e6768e0862307eb32a14532fae8e2991e2900ea932b7af45850803c2ec8673f"
 )
 PROFILE_SHA256 = (
-    "1cb4add0a9d499d9699ff651a325e5e663f6e27ad22cb7898cf36d93eff91491"
+    "407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba"
 )
 SEMANTIC_SHA256 = (
-    "6fb15eca10471f717e217b14f0931bfd6a7c120a7430e8ee19ec7ce862602ff1"
+    "21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a"
 )
 DISC_SHA256 = (
     "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464"
@@ -56,6 +56,16 @@ ROUTES = (
         "jump_aerial_backward_ecb",
         35,
         "FALLING_AERIAL",
+    ),
+)
+
+SUCCESSOR_TRACKS = (
+    ("fall", "FALLING", "jump_forward_ecb_observe", 8),
+    (
+        "fall_aerial",
+        "FALLING_AERIAL",
+        "jump_aerial_forward_ecb_observe",
+        8,
     ),
 )
 
@@ -131,6 +141,28 @@ def extract_verified_tracks(capture: dict[str, Any]) -> list[dict[str, Any]]:
                 route.frame_count,
             )
         )
+    for track_id, source_action, label, frame_count in SUCCESSOR_TRACKS:
+        successor_rows = [
+            row
+            for row in rows
+            if row.get("label") == label and row.get("action") == source_action
+        ]
+        if (
+            not successor_rows
+            or any(row.get("grounded") is not False for row in successor_rows)
+            or any(row.get("facing") != 1 for row in successor_rows)
+        ):
+            raise ValueError(f"invalid physical action span for {track_id}")
+        tracks.append(
+            extract_track(
+                rows,
+                track_id,
+                source_action,
+                label,
+                1,
+                frame_count,
+            )
+        )
     return tracks
 
 
@@ -167,10 +199,13 @@ def main() -> int:
     ):
         raise SystemExit("airborne ECB profile does not match live capture")
 
+    pose_count = sum(route.frame_count for route in ROUTES) + sum(
+        track[3] for track in SUCCESSOR_TRACKS
+    )
     print(
         "ssbm-falcon-airborne-ecb=pass "
         f"rows={len(capture['rows'])} tracks={len(tracks)} "
-        f"poses={sum(route.frame_count for route in ROUTES)} "
+        f"poses={pose_count} "
         f"capture_sha256={CAPTURE_SHA256} "
         f"semantic_sha256={SEMANTIC_SHA256}"
     )

@@ -990,6 +990,23 @@ one-update compatibility path.
 The resulting complete Falcon source SHA-256 is
 `46c97fcbe303628fb1bf0ce3415431c01c16a0e73961ce5a1e78dd5dd1f1bfa9`.
 
+## Complete ordinary airborne collision poses
+
+The focused headless/null/unlimited capture now supplies all four directional
+jump tracks and both ordinary looping successors: JumpF 35, JumpB 50,
+JumpAerialF 50, JumpAerialB 35, Fall 8, and FallAerial 8 displayed poses. The
+494-row raw captures are byte-identical at SHA-256
+`4e6768e0862307eb32a14532fae8e2991e2900ea932b7af45850803c2ec8673f`.
+The six-track profile and canonical `(action, displayed frame, ECB)` stream are
+`407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba`
+and `21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a`.
+The generator packs all 186 bottom samples into immutable Q16.16 data and the
+allocation-free source-submotion accessor selects the exact track in O(1).
+The resulting complete Falcon source SHA-256 is
+`a71076ea7bb97215e95afdf2be5b395791ab34cb28ca3c60fe478d026e48d51c`;
+the generated include SHA-256 is
+`9587384e409f8275c03459d29f947e9f4a01c99c0a359d867bb3d354ffb67946`.
+
 ## Imported DamageFlyN complete collision pose
 
 Three independent owner captures in

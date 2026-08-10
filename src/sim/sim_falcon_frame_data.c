@@ -73,7 +73,9 @@ _Static_assert(
     PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT +
             PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT +
             PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT +
-            PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT ==
+            PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT +
+            PF_M4_FALCON_FALL_ECB_FRAME_COUNT +
+            PF_M4_FALCON_FALL_AERIAL_ECB_FRAME_COUNT ==
         PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
     "Falcon airborne ECB track spans must cover the packed table");
 _Static_assert(
@@ -420,6 +422,21 @@ pf_m4_falcon_reference_airborne_ecb_pose(
                             PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT +
                             PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT);
         frame_count = PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT;
+        break;
+    case PF_M4_FALCON_SUBMOTION_FALL:
+        offset = (uint16_t)(PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT);
+        frame_count = PF_M4_FALCON_FALL_ECB_FRAME_COUNT;
+        break;
+    case PF_M4_FALCON_SUBMOTION_FALL_AERIAL:
+        offset = (uint16_t)(PF_M4_FALCON_JUMP_FORWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_BACKWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_AERIAL_FORWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_JUMP_AERIAL_BACKWARD_ECB_FRAME_COUNT +
+                            PF_M4_FALCON_FALL_ECB_FRAME_COUNT);
+        frame_count = PF_M4_FALCON_FALL_AERIAL_ECB_FRAME_COUNT;
         break;
     default:
         return NULL;

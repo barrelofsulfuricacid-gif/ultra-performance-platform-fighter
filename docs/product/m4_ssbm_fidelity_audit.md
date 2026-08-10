@@ -30,7 +30,7 @@ threshold, and route differences are not.
 | Run turnaround | equivalent for captured route | Full reversal from terminal run retains the old facing, applies full TurnRun acceleration, freezes displayed frame 9 until velocity crosses the common 0.01 threshold, flips facing on the following physics tick, resumes through displayed frame 21, and enters the ten-tick locked run route. The identical-input oracle covers the complete held reversal and neutral brake after exit. |
 | Jump squat and takeoff momentum | equivalent | Falcon startup 4, 0.75 retained momentum, 0.95 stick contribution, and 2.1 cap are mapped. X/Y and main-stick tap jump match from idle, Landing, shield, and air. |
 | Short/full hop | equivalent | Falcon 1.9 and 3.1 vertical velocities are converted to stage units. |
-| Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. |
+| Double jump | equivalent | Horizontal velocity is replaced from neutral/stick input using Falcon's 0.9 multiplier; vertical velocity uses the 0.9 multiplier. The decomp's interrupt-to-physics order is preserved: JumpAerial entry is immediately followed by ordinary air control in the same update. A natural opposite-stick route catches the former 0.36-versus-0.396 first-frame discrepancy. |
 | Gravity, terminal velocity, air drift | equivalent | Falcon A/B acceleration, drift target, friction, gravity, terminal, and absolute horizontal cap are mapped. |
 | Fast fall | equivalent | Requires a fresh downward tilt within four ticks after descent begins; holding down before the apex does not trigger it. |
 | Crouch/crawl | equivalent for captured routes | Full-down input produces Falcon's seven displayed `Squat` frames, held `SquatWait`, ten displayed `SquatRv` frames, then standing. Exact 0.6875 entry and 0.625 release boundaries preserve the decomp's hysteresis. Jump, fresh guard, fresh taunt, neutral A, and down-special from all three states match, as do held-crouch dash/turn and release-state walk. Neutral B is accepted only from `Squat`. Physical Z enters `Catch` from `Squat`, but its A component falls back to `Attack11` from `SquatWait`/`SquatRv`, where catch is absent. `Squat` and `SquatWait` are crouch-cancel eligible while `SquatRv` is not; crawl entry remains disabled because Falcon cannot crawl. A separate Battlefield route proves the one-frame-down negative control and held-down `Squat` frames 1-3 into `Pass`. Every CrouchStart/CrouchEnd hurt pose is imported; Jab 1 hits CrouchStart frame 3 at 17.7 units and misses at 17.84, while the old rectangle falsely reports +0.596595764 overlap for the miss. |
@@ -94,11 +94,13 @@ poses and 434 quick/slow ledge poses share one source-submotion-aware generic
 runner under source/production SHA-256
 `2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151` /
 `d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
-The complete fourteen-domain / 89-case gate plus replay passes in
-1.435-1.550 seconds across six Windows runs and 1.448-1.585 seconds across
+The complete fifteen-domain / 90-case gate plus replay passes in
+1.592-1.678 seconds across three Windows runs and 1.279-1.578 seconds across
 three WSL runs. Raptor Boost contributes five cases / 502 samples through the
 generic production-CSV runner with the live comparator's exact field masks and
-per-row clock exclusions. This is regression against already-
+per-row clock exclusions. The natural airborne-landing case adds 520 samples
+covering JumpB, JumpAerialF/B, looping FallAerial, Landing, supports, surface
+normals, and all movement channels. This is regression against already-
 qualified live truth; it does not turn uncovered routes into evidence or replace a fresh
 Dolphin qualification when a golden changes. The corresponding live common-
 hurt pack executes eight checkpoint-isolated cases in one headless/null/

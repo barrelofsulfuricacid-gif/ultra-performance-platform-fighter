@@ -60,13 +60,13 @@ PLATFORM_DROP_ECB_SEMANTIC_SHA256 = (
     "90060e614f359189c32b25d76b780b3fa92861dfdcfae0fd357dcc07ec10e6f8"
 )
 AIRBORNE_ECB_PROFILE_SHA256 = (
-    "1cb4add0a9d499d9699ff651a325e5e663f6e27ad22cb7898cf36d93eff91491"
+    "407a62269b2aa65002bb4a78152f12a49b56d36d8b68a684c6d55a11ce69a1ba"
 )
 AIRBORNE_ECB_CAPTURE_SHA256 = (
     "4e6768e0862307eb32a14532fae8e2991e2900ea932b7af45850803c2ec8673f"
 )
 AIRBORNE_ECB_SEMANTIC_SHA256 = (
-    "6fb15eca10471f717e217b14f0931bfd6a7c120a7430e8ee19ec7ce862602ff1"
+    "21a2d02fbb3abfcd9c29bb170c4c378fc8972fe191098fb5587140e965dac25a"
 )
 BOUNCE_ECB_PROFILE_SHA256 = (
     "d6ccb5701f0bada0d7de1874004281e8ca46fcc0070db94e529d84d3fc637608"
@@ -1328,6 +1328,8 @@ def generate(
             "jump_backward",
             "jump_aerial_forward",
             "jump_aerial_backward",
+            "fall",
+            "fall_aerial",
         )
         for frame in airborne_tracks[track_id]["frames"]
     )
@@ -2512,6 +2514,8 @@ def main() -> int:
             ("jump_backward", "JUMPING_BACKWARD", 1, 50),
             ("jump_aerial_forward", "JUMPING_ARIAL_FORWARD", 1, 50),
             ("jump_aerial_backward", "JUMPING_ARIAL_BACKWARD", 1, 35),
+            ("fall", "FALLING", 1, 8),
+            ("fall_aerial", "FALLING_AERIAL", 1, 8),
         ),
     )
     digest = canonical_sha256(data)

@@ -127,6 +127,56 @@ def source_y_to_sim_q16(value: float) -> int:
     return round(-value * MELEE_Y_TO_SIM_Q16)
 
 
+def common_movement_source_sample(
+    row: dict[str, Any],
+    *,
+    action_state: int,
+    action_ticks: int,
+    origin_x: float = 0.0,
+    origin_y: float = 0.0,
+) -> dict[str, int]:
+    """Project one ordinary movement row into the native CSV field contract."""
+
+    grounded = int(bool(row["grounded"]))
+    support = 0
+    normal_x_q16 = 0
+    normal_y_q16 = 0
+    if grounded != 0:
+        collision = row.get("surface_collision_memory")
+        surfaces = collision.get("surfaces") if isinstance(collision, dict) else None
+        floor = surfaces.get("floor") if isinstance(surfaces, dict) else None
+        if isinstance(floor, dict):
+            line_index = floor.get("index")
+            normal = floor.get("normal")
+            if (
+                isinstance(line_index, int)
+                and not isinstance(line_index, bool)
+                and 0 <= line_index < 0xFFFFFFFF
+            ):
+                support = line_index + 1
+            if isinstance(normal, list) and len(normal) >= 2:
+                normal_x_q16 = round(float(normal[0]) * 65536.0)
+                normal_y_q16 = round(float(normal[1]) * 65536.0)
+    velocity_x_key = "ground_velocity_x" if grounded != 0 else "air_velocity_x"
+    return {
+        "action_state": action_state,
+        "action_ticks": action_ticks,
+        "facing": int(row["facing"]),
+        "grounded": grounded,
+        "support": support,
+        "surface_normal_source_x_q16": normal_x_q16,
+        "surface_normal_source_y_q16": normal_y_q16,
+        "position_x_q16_from_origin": source_x_to_sim_q16(
+            float(row["position_x_from_origin"]) - origin_x
+        ),
+        "position_y_q16_from_origin": source_y_to_sim_q16(
+            float(row["position_y"]) - origin_y
+        ),
+        "velocity_x_q16": source_x_to_sim_q16(float(row[velocity_x_key])),
+        "velocity_y_q16": source_y_to_sim_q16(float(row["velocity_y"])),
+    }
+
+
 def validate_capture_provenance(
     capture: dict[str, Any],
     *,
