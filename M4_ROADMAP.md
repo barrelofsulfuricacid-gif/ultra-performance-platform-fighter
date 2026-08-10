@@ -1175,6 +1175,10 @@ other stage/pushbox topologies.
   stored digest. Ground-origin edge conversion now enters its aerial end state
   with zero self velocity and suppresses ordinary air physics on that update;
   all six live routes pass again on WSL.
+- [x] Repin the intentional seeded verifier soak only after Windows and WSL
+  independently reproduced 2,848 ticks and digest `b9239b63a68a1a18` for all
+  eight twin/save-load/replay matches. The deterministic replay corpus remains
+  unchanged.
 - [x] Run independent registered domains concurrently, retaining deterministic
   manifest order for counts and the final digest. The complete 16-domain /
   96-case gate plus replay now takes 0.430-0.508 seconds on Windows and

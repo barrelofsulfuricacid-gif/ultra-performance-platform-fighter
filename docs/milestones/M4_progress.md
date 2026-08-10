@@ -5291,6 +5291,10 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the new production digest was accepted. Ground-origin Falcon Kick now keeps
   its source zero-velocity/no-gravity aerial-end conversion update; all six
   live scenarios pass again for 70/59/65/70/77/58 frames.
+- The corrected conversion shifts the intentional seeded verifier soak by one
+  tick. Windows and WSL independently reproduce eight matches, 2,848 total
+  ticks, and digest `b9239b63a68a1a18`; that content-bearing golden is repinned
+  while the separate deterministic replay corpus remains unchanged.
 - The root stored gate now runs independent domain generation and execution
   concurrently and restores manifest order before counting and hashing. The
   full 16-domain / 96-case gate plus replay fell from 1.758-1.819 seconds to
