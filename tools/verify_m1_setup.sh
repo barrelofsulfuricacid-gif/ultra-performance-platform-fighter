@@ -223,7 +223,7 @@ for native_api in \
     SDL_AddGamepadMapping \
     SDL_PushEvent
 do
-    grep -Fq "$native_api" "$repository_root/src/native_client/main.c" ||
+    grep -R -Fq "$native_api" "$repository_root/src/native_client" ||
         fail "native SDL adapter is missing $native_api"
 done
 for web_api in \
