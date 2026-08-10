@@ -43,6 +43,13 @@ only converted numeric tables are tracked. The importer rejects mismatched
 disc, capture, extractor, or decomp provenance and cross-checks every captured
 sphere's effect against the complete frame-data table.
 
+`m4_ssbm_falcon_ledge_hurt.inc` is the bounded common-action companion for
+Falcon's quick/slow ledge climb, roll, attack, and two-phase jump poses. The
+character-independent `tools/generate_ssbm_hurt_pose_include.py` consumes a
+hash-pinned canonical hurt-pose profile plus the small character binding in
+`tools/ssbm_falcon_ledge_hurt_import.json`; production selects its immutable
+tracks by retained source submotion without runtime parsing or allocation.
+
 `m4_ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
 fast stored-equivalence lane. Its single authored source is
 `tools/ssbm_falcon_common_hurt_coverage.json`; the generic generator validates

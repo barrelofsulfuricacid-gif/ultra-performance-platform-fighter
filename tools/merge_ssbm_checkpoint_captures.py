@@ -44,6 +44,8 @@ def main(argv: list[str] | None = None) -> int:
         "libmelee_version",
         "stage_collision_memory",
         "surface_collision_memory_probe",
+        "hitbox_memory_probe",
+        "hurtbox_memory_probe",
     )
     for capture in captures[1:]:
         for key in invariant_keys:

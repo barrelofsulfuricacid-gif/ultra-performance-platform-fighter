@@ -2128,6 +2128,7 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
+    uint16_t source_submotion,
     uint16_t action_ticks,
     uint8_t *out_count)
 {
@@ -2153,8 +2154,9 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     }
     {
         const pf_m4_reference_hurt_capsule *common_pose =
-            pf_m4_falcon_reference_common_hurt_capsules_at_frame(
+            pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
                 action_state,
+                source_submotion,
                 pf_m4_reference_common_hurt_frame(
                     action_state,
                     action_ticks),
@@ -2210,6 +2212,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
+    uint16_t source_submotion,
     uint16_t action_ticks,
     pf_m4_hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY])
@@ -2227,6 +2230,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
         grounded,
         action_state,
         hitlag_resume_action,
+        source_submotion,
         action_ticks,
         &capsule_count);
     if (source_capsules == NULL ||
@@ -2305,6 +2309,7 @@ static int pf_m4_hitbox_overlaps_player(
             scratch->grounded[target_index],
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
+            scratch->source_submotion[target_index],
             scratch->action_ticks[target_index],
             &capsule_count);
 
@@ -2512,6 +2517,7 @@ static int pf_m4_hit_sphere_overlaps_player(
             scratch->grounded[target_index],
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
+            scratch->source_submotion[target_index],
             scratch->action_ticks[target_index],
             &capsule_count);
 
@@ -2575,6 +2581,7 @@ static int pf_m4_grab_sphere_overlaps_player(
             scratch->grounded[target_index],
             scratch->action_state[target_index],
             scratch->hitlag_resume_action[target_index],
+            scratch->source_submotion[target_index],
             scratch->action_ticks[target_index],
             &capsule_count);
 

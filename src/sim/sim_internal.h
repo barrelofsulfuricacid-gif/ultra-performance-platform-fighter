@@ -607,6 +607,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint8_t grounded,
     uint8_t action_state,
     uint8_t hitlag_resume_action,
+    uint16_t source_submotion,
     uint16_t action_ticks,
     pf_m4_hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY]);

@@ -4314,6 +4314,36 @@ def read_fighter_hurt_capsules(
     return hurtboxes
 
 
+def read_hurtbox_memory_probe(memory_engine: object) -> dict[str, object]:
+    """Read one fighter's collision-authoritative hurt-capsule pose."""
+
+    fighter = read_fighter_address(memory_engine, 0)
+    snapshot = BigEndianSnapshot.read(memory_engine, fighter, 0x2350)
+    hurtbox_count = snapshot.u8(fighter + 0x119E)
+    if hurtbox_count > 15:
+        raise RuntimeError(f"invalid Fighter hurt-capsule count: {hurtbox_count}")
+    hurtboxes = []
+    for index in range(hurtbox_count):
+        hurtbox = fighter + 0x11A0 + index * 0x4C
+        hurtboxes.append(
+            {
+                "state": snapshot.u32(hurtbox),
+                "state_bytes": snapshot.bytes_at(hurtbox, 4).hex(),
+                "radius": snapshot.f32(hurtbox + 0x1C),
+                "position_a": snapshot.f32_vector(hurtbox + 0x28, 3),
+                "position_b": snapshot.f32_vector(hurtbox + 0x34, 3),
+                "bone_index": snapshot.u32(hurtbox + 0x40),
+                "height": snapshot.u32(hurtbox + 0x44),
+                "grabbable": snapshot.u32(hurtbox + 0x48),
+            }
+        )
+    return {
+        "fighter_address": fighter,
+        "fighter_position": snapshot.f32_vector(fighter + 0xB0, 3),
+        "fighter_hurtboxes": hurtboxes,
+    }
+
+
 def read_hitbox_memory_probe(memory_engine: object) -> dict[str, object]:
     """Read both Falcons' live attack and hurt-capsule geometry."""
 
@@ -5290,7 +5320,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         console_kwargs.update(
             gfx_backend="Null",
             use_exi_inputs=True,
-            enable_ffw=True,
+            enable_ffw=not args.oracle_exiai_no_fast_forward,
             emulation_speed=0.0,
             online_delay=0,
         )
@@ -6397,6 +6427,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                     row["damage_memory"] = read_damage_memory_probe(memory_engine)
                 if args.memory_probe_hitbox:
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
+                if args.memory_probe_hurtbox:
+                    row["hurtbox_memory"] = read_hurtbox_memory_probe(memory_engine)
                 if args.memory_probe_collision:
                     row["shield_memory"] = read_shield_memory_probe(memory_engine)
                     row["hitbox_memory"] = read_hitbox_memory_probe(memory_engine)
@@ -6449,7 +6481,9 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         )
         return {
             "schema": (
-                11
+                12
+                if args.memory_probe_hurtbox
+                else 11
                 if args.memory_probe_surface
                 else 10
                 if args.memory_probe_collision
@@ -6461,7 +6495,11 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "dolphin_version": console.version,
             "oracle_execution": (
                 {
-                    "mode": "exiai-headless-null-fast-forward",
+                    "mode": (
+                        "exiai-headless-null-unlimited"
+                        if args.oracle_exiai_no_fast_forward
+                        else "exiai-headless-null-fast-forward"
+                    ),
                     "release": "exi-ai-0.2.0",
                     "release_artifact_sha256": EXIAI_020_APPIMAGE_SHA256,
                     "launcher_sha256": cached_sha256(executable),
@@ -6600,6 +6638,24 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                 if args.memory_probe_hitbox or args.memory_probe_collision
                 else None
             ),
+            "hurtbox_memory_probe": (
+                {
+                    "engine_version": importlib.metadata.version(
+                        "dolphin-memory-engine"
+                    ),
+                    "player_slot_address": "0x80453080",
+                    "fighter_hurtbox_count": "fighter+0x119e",
+                    "fighter_hurtbox_array": "fighter+0x11a0",
+                    "hurtbox_stride": "0x4c",
+                    "position_a": "hurtbox+0x28 collision-authoritative Vec3",
+                    "position_b": "hurtbox+0x34 collision-authoritative Vec3",
+                    "decomp_revision": (
+                        "9509dc04406fb2028bfab01243841ba4787c0fb7"
+                    ),
+                }
+                if args.memory_probe_hurtbox
+                else None
+            ),
             "rows": rows,
         }
     finally:
@@ -6644,6 +6700,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--oracle-exiai",
         action="store_true",
         help="use the pinned ExiAI 0.2.0 headless Null-video fast-forward path",
+    )
+    parser.add_argument(
+        "--oracle-exiai-no-fast-forward",
+        action="store_true",
+        help="retain ExiAI/checkpoints but disable display-bone-skipping FFW",
     )
     parser.add_argument(
         "--oracle-release-artifact",
@@ -6713,12 +6774,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--memory-probe-shield", action="store_true")
     parser.add_argument("--memory-probe-damage", action="store_true")
     parser.add_argument("--memory-probe-hitbox", action="store_true")
+    parser.add_argument("--memory-probe-hurtbox", action="store_true")
     parser.add_argument("--memory-probe-collision", action="store_true")
     parser.add_argument("--memory-probe-surface", action="store_true")
     parser.add_argument("--shield-hit-pressure", type=float, default=0.35)
     args = parser.parse_args(argv)
     if args.oracle_exiai and args.batch:
         parser.error("--oracle-exiai launches its own headless process")
+    if args.oracle_exiai_no_fast_forward and not args.oracle_exiai:
+        parser.error("--oracle-exiai-no-fast-forward requires --oracle-exiai")
     if args.oracle_exiai and args.oracle_release_artifact is None:
         parser.error("--oracle-exiai requires --oracle-release-artifact")
     if args.oracle_release_artifact is not None and not args.oracle_exiai:
@@ -6774,8 +6838,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or args.hitbox_geometry_only
         or args.throw_geometry_only
         or args.special_geometry_only
+        or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
-        parser.error("--memory-probe-hitbox requires a geometry-only mode")
+        parser.error(
+            "--memory-probe-hitbox requires a geometry-only mode or a "
+            "damage-hit checkpoint pack"
+        )
+    if args.memory_probe_hurtbox and not (
+        args.common_hurt_geometry_only
+        or args.hitbox_geometry_only
+        or args.throw_geometry_only
+        or args.special_geometry_only
+        or (args.damage_hit_only and args.oracle_checkpoint_pack)
+    ):
+        parser.error(
+            "--memory-probe-hurtbox requires a geometry-only mode or a "
+            "damage-hit checkpoint pack"
+        )
     if args.memory_probe_collision and not (
         args.shield_collision_only or args.moving_hit_sweep_only
     ):
@@ -6789,6 +6868,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                 args.memory_probe_shield,
                 args.memory_probe_damage,
                 args.memory_probe_hitbox,
+                args.memory_probe_hurtbox,
                 args.memory_probe_collision,
                 args.memory_probe_surface,
             )

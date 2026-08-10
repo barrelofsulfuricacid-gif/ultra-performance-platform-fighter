@@ -24,7 +24,7 @@ separately because a stored pass cannot establish new SSBM truth.
 | --- | --- | --- |
 | Fast stored equivalence | done for eleven domains | Common hurt, open-air damage, flat-ground knockback, wall/ceiling response, flat-floor response, prone/getup response, paired player push, Hyrule slope/ledge response, ledge options, Battlefield sloped wall/ceiling response, and bounce-pose floor re-contact contain 77 registered cases plus deterministic replay. The current gate checks eleven generated artifacts and replay in about 1.12-1.14 seconds warm on Windows and 1.12 seconds on WSL. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and keep one observer connected while compatible cases replay checkpoints. The common-hurt changed-domain route measures 2.635-2.729 seconds warm. Three independent 19-case ledge runs pass the enforced 10.0-second warm guardrail at 9.649, 8.924, and 9.614 seconds with the same 558-row / 514-sample semantic digest. Unsafe cross-invocation observer reconnection is rejected, not a remaining deliverable. |
-| Falcon common hurt poses | done | 255 source poses, eleven capsules per pose, runtime/source mappings and live Dash hit/miss discriminators qualified. |
+| Falcon bounded hurt poses | common complete; ledge integration in progress | The original common-state domain covers 255 source poses with live Dash hit/miss discriminators. Two byte-identical no-fast-forward captures now add 434 quick/slow ledge-option poses (4,774 capsules) through a reusable manifest-driven generator and the production collision/inspection path. Extending the generic stored digest and the smallest ledge hit/miss discriminator is the next gate. |
 | Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, and a source-qualified complete Battlefield collision/environment catalog. The production Battlefield route qualifies JumpF/Pass ECB timing, selected floor lines 2/1, exact sloped wall/ceiling normals and reflection, and complete `BOUNCE_CEILING`/`BOUNCE_WALL` pose-driven descent through first top-platform re-contact. The next slice continues the remaining edge-acquisition/action-specific ECB audit. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
@@ -661,6 +661,33 @@ Execution results:
   The final current-production verifier independently passes all 558 rows / 19
   cases / 514 samples against the latest simulator build with the same source
   digest.
+
+## In progress: exact quick/slow ledge hurt poses
+
+- [x] Reject ExiAI fast-forward pose capture after two clean runs preserved
+  action, clock, and root state but produced different display-bone endpoints.
+  Use checkpointed ExiAI input with fast-forward disabled and read all eleven
+  collision-authoritative `FighterHurtCapsule` records from one contiguous
+  fighter snapshot instead.
+- [x] Reproduce the compact 450-row, eight-case capture byte-for-byte twice.
+  The raw capture SHA-256 is
+  `3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3`;
+  its ten action tracks contain 434 exact displayed poses with semantic
+  SHA-256
+  `9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a`.
+- [x] Add one character-independent profile extractor and immutable C include
+  generator. Falcon-specific code is limited to a data manifest and the
+  zero-cost public-action/source-submotion binding; the shared pose lookup,
+  world transform, combat collision, and inspection paths remain common.
+- [x] Route quick/slow climb, roll, attack, and both jump phases through the
+  generated 434-pose table. Strict Windows and WSL builds plus focused
+  movement, combat, and deterministic replay tests pass.
+- [x] Repin the intentional seeded match-soak identity after both Windows and
+  WSL independently reproduced `52600d79f2b95349`; the prior digest did not
+  include the newly routed ledge hurt geometry.
+- [ ] Extend the generic `falcon-common-hurt` stored-equivalence digest to the
+  ten ledge tracks, add the smallest source-qualified ledge hit/miss
+  discriminator, and record the final production digest and measured budget.
 
 ## Completed locally: source-qualified Battlefield catalog and content
 

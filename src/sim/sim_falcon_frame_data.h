@@ -730,6 +730,13 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
     uint16_t action_frame,
     uint8_t *out_count);
 
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_frame,
+    uint8_t *out_count);
+
 int pf_m4_falcon_reference_move_for_action(
     uint8_t action_state,
     pf_m4_falcon_move_index *out_move_index);

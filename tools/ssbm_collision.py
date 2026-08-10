@@ -7,6 +7,8 @@ deterministic fixed-point specialization.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from typing import Any, Sequence
 
@@ -242,3 +244,33 @@ def q16_hurt_poses_equivalent(
         )
         for left_capsule, right_capsule in zip(left, right, strict=True)
     )
+
+
+def hurt_pose_tracks_semantic_payload(
+    tracks: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Strip capture provenance while retaining every bounded source pose."""
+
+    return [
+        {
+            "id": track["id"],
+            "source_action": track["source_action"],
+            "first_displayed_frame": track["first_displayed_frame"],
+            "frames": [
+                {
+                    "displayed_frame": frame["displayed_frame"],
+                    "capsules_q16": frame["capsules_q16"],
+                }
+                for frame in track["frames"]
+            ],
+        }
+        for track in tracks
+    ]
+
+
+def canonical_json_sha256(value: object) -> str:
+    """Hash one JSON-compatible value with the repository's canonical form."""
+
+    return hashlib.sha256(
+        json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()

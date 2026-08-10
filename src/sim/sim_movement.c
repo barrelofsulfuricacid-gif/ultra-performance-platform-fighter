@@ -12387,6 +12387,7 @@ pf_status pf_m4_inspect(
                 player->grounded,
                 player->action_state,
                 player->hitlag_resume_action,
+                sim->world.source_submotion[player_index],
                 player->action_ticks,
                 player->hurt_capsules);
     }

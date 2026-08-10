@@ -5021,3 +5021,29 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   also pass; the Windows build uses a separate output because the hands-on
   playtest executable remains open. M4 remains open for the remaining fidelity-
   audit rows and the hands-on native controller gate.
+
+## 2026-08-09 exact quick/slow ledge hurt poses
+
+- ExiAI fast-forward was rejected for this geometry family: repeated projected
+  captures preserved action/state/root behavior but skipped display-bone work
+  and produced different hurt endpoints. The accepted path keeps checkpointed
+  headless/null/unlimited input while disabling fast-forward and reads all
+  eleven collision-authoritative hurt capsules from one fighter snapshot.
+- Two independent compact runs produced byte-identical 450-row, eight-case
+  captures at SHA-256
+  `3055455eb02949e15c240f563a49648578b6c5affa4dc5dd7ca62f2c7b19c1e3`.
+  Ten quick/slow climb, roll, attack, and two-phase jump tracks contain 434
+  complete displayed poses under semantic SHA-256
+  `9125200e3e162822131fd8805ae1551371c4ebf0abc2256bba9a167cc181103a`.
+- A character-independent profile extractor and manifest-driven C generator
+  emit 4,774 immutable capsules. Production retains the already-serialized
+  source submotion and selects the exact track through the shared allocation-
+  free pose lookup used by combat and collision inspection; legacy common-pose
+  callers keep their zero-submotion adapter.
+- Strict Windows and WSL builds pass, as do focused movement, combat, and
+  deterministic replay tests on both hosts. Both hosts independently reproduce
+  the intentional new seeded match-soak identity `52600d79f2b95349`, replacing
+  the pre-ledge-geometry golden. The next gate is to extend the
+  generic stored-equivalence digest over these ten tracks and qualify the
+  smallest physical ledge hit/miss discriminator before calling the geometry
+  family complete.

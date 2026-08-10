@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -28,6 +30,100 @@ def run_worker(argv: list[str]) -> None:
     os._exit(status)
 
 
+def projected_manifest(
+    manifest: dict[str, object],
+    requested_case_ids: list[str],
+    source_sha256: str,
+    shard_count: int | None,
+    warm_budget_seconds: float | None,
+    cold_budget_seconds: float | None,
+) -> dict[str, object]:
+    """Return a capture-only projection in original case/shard order."""
+
+    if not requested_case_ids:
+        return manifest
+    if len(requested_case_ids) != len(set(requested_case_ids)):
+        raise SystemExit("duplicate --case value")
+
+    case_specs = manifest.get("checkpoint_cases")
+    checkpoint_pack = manifest.get("checkpoint_pack")
+    if not isinstance(case_specs, list) or not isinstance(checkpoint_pack, dict):
+        raise SystemExit("checkpoint cases or pack are missing")
+    available_case_ids = [
+        str(case["id"])
+        for case in case_specs
+        if isinstance(case, dict) and "id" in case
+    ]
+    if len(available_case_ids) != len(case_specs) or len(available_case_ids) != len(
+        set(available_case_ids)
+    ):
+        raise SystemExit("checkpoint case ids are invalid")
+    requested = set(requested_case_ids)
+    missing = requested - set(available_case_ids)
+    if missing:
+        raise SystemExit("unknown checkpoint case(s): " + ", ".join(sorted(missing)))
+
+    projected = copy.deepcopy(manifest)
+    projected["checkpoint_cases"] = [
+        case for case in projected["checkpoint_cases"] if str(case["id"]) in requested
+    ]
+    projected_pack = projected["checkpoint_pack"]
+    projected_pack.pop("expected_rows", None)
+    if warm_budget_seconds is not None:
+        projected_pack["warm_budget_seconds"] = warm_budget_seconds
+        projected_pack["cold_budget_seconds"] = cold_budget_seconds
+    selected_case_ids = [
+        case_id for case_id in available_case_ids if case_id in requested
+    ]
+    if shard_count is not None:
+        if not 1 <= shard_count <= len(selected_case_ids):
+            raise SystemExit("--shard-count must be within the selected case count")
+        projected_pack["capture_shards"] = [
+            selected_case_ids[index::shard_count] for index in range(shard_count)
+        ]
+    else:
+        projected_pack["capture_shards"] = [
+            [case_id for case_id in shard if str(case_id) in requested]
+            for shard in projected_pack["capture_shards"]
+        ]
+        projected_pack["capture_shards"] = [
+            shard for shard in projected_pack["capture_shards"] if shard
+        ]
+    capture_plan = projected_pack.get("capture_plan")
+    if not isinstance(capture_plan, dict):
+        raise SystemExit("checkpoint capture plan is missing")
+    case_fields = [
+        key
+        for key, value in capture_plan.items()
+        if key.endswith("_cases") and isinstance(value, list)
+    ]
+    if len(case_fields) != 1:
+        raise SystemExit("checkpoint capture plan must contain exactly one case list")
+    case_field = case_fields[0]
+    capture_plan[case_field] = [
+        case
+        for case in capture_plan[case_field]
+        if isinstance(case, dict) and str(case.get("id")) in requested
+    ]
+    projected.pop("selection", None)
+    projected.pop("stored_oracle", None)
+    projected["capture_projection"] = {
+        "schema": 1,
+        "source_manifest_sha256": source_sha256,
+        "case_ids": selected_case_ids,
+        "shards": len(projected_pack["capture_shards"]),
+        **(
+            {
+                "warm_budget_seconds": warm_budget_seconds,
+                "cold_budget_seconds": cold_budget_seconds,
+            }
+            if warm_budget_seconds is not None
+            else {}
+        ),
+    }
+    return projected
+
+
 def main() -> int:
     warm_started_ns = time.time_ns()
     parser = argparse.ArgumentParser()
@@ -38,9 +134,63 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--base-port", type=int, default=51441)
     parser.add_argument("--started-ns", required=True, type=int)
+    parser.add_argument(
+        "--case",
+        action="append",
+        default=[],
+        help="capture only this manifest case; repeat to select a projection",
+    )
+    parser.add_argument(
+        "--shard-count",
+        type=int,
+        help="repartition a selected case projection across this many workers",
+    )
+    parser.add_argument(
+        "--memory-probe",
+        choices=("surface", "hitbox", "hurtbox"),
+        default="surface",
+        help="live-memory observation family recorded by every shard",
+    )
+    parser.add_argument(
+        "--disable-fast-forward",
+        action="store_true",
+        help="keep ExiAI input/checkpoints but evaluate display-side bones",
+    )
+    parser.add_argument(
+        "--projection-warm-budget-seconds",
+        type=float,
+        help="wall budget for a selected observation-family projection",
+    )
+    parser.add_argument(
+        "--projection-cold-budget-seconds",
+        type=float,
+        help="cold wall budget for a selected observation-family projection",
+    )
     args = parser.parse_args()
+    if args.shard_count is not None and not args.case:
+        parser.error("--shard-count requires at least one --case")
+    if (args.projection_warm_budget_seconds is None) != (
+        args.projection_cold_budget_seconds is None
+    ):
+        parser.error("projection warm and cold budgets must be provided together")
+    if args.projection_warm_budget_seconds is not None and (
+        not args.case
+        or args.projection_warm_budget_seconds <= 0.0
+        or args.projection_cold_budget_seconds
+        < args.projection_warm_budget_seconds
+    ):
+        parser.error("projection budgets require cases and cold >= warm > 0")
 
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    manifest_bytes = args.manifest.read_bytes()
+    manifest = json.loads(manifest_bytes)
+    manifest = projected_manifest(
+        manifest,
+        [str(case_id) for case_id in args.case],
+        hashlib.sha256(manifest_bytes).hexdigest(),
+        args.shard_count,
+        args.projection_warm_budget_seconds,
+        args.projection_cold_budget_seconds,
+    )
     checkpoint_pack = manifest.get("checkpoint_pack")
     if not isinstance(checkpoint_pack, dict):
         raise SystemExit("checkpoint_pack is missing")
@@ -71,8 +221,8 @@ def main() -> int:
     dolphin = args.dolphin.resolve()
     release_artifact = args.oracle_release_artifact.resolve()
     iso = args.iso.resolve()
-    manifest_path = args.manifest.resolve()
-    for required in (dolphin, release_artifact, iso, manifest_path):
+    source_manifest_path = args.manifest.resolve()
+    for required in (dolphin, release_artifact, iso, source_manifest_path):
         if not required.is_file():
             raise SystemExit(f"missing required oracle input: {required}")
 
@@ -82,6 +232,11 @@ def main() -> int:
     workers_finished_ns = 0
     merge_finished_ns = 0
     with tempfile.TemporaryDirectory(prefix="pf-ssbm-checkpoint-") as temporary:
+        manifest_path = Path(temporary) / "capture-manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest, separators=(",", ":"), sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         shard_outputs = [
             Path(temporary) / f"shard-{index}.json"
             for index in range(len(shards))
@@ -116,12 +271,14 @@ def main() -> int:
                     "--slippi-port",
                     str(args.base_port + index),
                     "--damage-hit-only",
-                    "--memory-probe-surface",
+                    f"--memory-probe-{args.memory_probe}",
                     "--oracle-exiai",
                     "--oracle-checkpoint-pack",
                     "--oracle-coverage-manifest",
                     str(manifest_path),
                 ]
+                if args.disable_fast_forward:
+                    worker_argv.append("--oracle-exiai-no-fast-forward")
                 for case_id in shard:
                     worker_argv.extend(("--oracle-case", str(case_id)))
                 child_pid = os.fork()

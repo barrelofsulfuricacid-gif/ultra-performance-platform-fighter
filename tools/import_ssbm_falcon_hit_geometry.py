@@ -433,6 +433,34 @@ def generate(
     hurt_moves: list[dict[str, int]] = []
     common_hurt_moves: list[dict[str, int]] = []
     hurt_pose_offsets: dict[tuple[tuple[int, ...], ...], int] = {}
+
+    def append_common_hurt_track(
+        first_frame: int,
+        poses: list[tuple[tuple[int, ...], ...]],
+    ) -> None:
+        frame_offset = len(hurt_frames)
+        for pose in poses:
+            capsule_offset = hurt_pose_offsets.get(pose)
+            if capsule_offset is None:
+                capsule_offset = len(hurt_capsules)
+                if capsule_offset > 0xFFFF:
+                    raise ValueError("too many Falcon hurt capsules")
+                hurt_pose_offsets[pose] = capsule_offset
+                hurt_capsules.extend(pose)
+            hurt_frames.append(
+                {
+                    "capsule_offset": capsule_offset,
+                    "capsule_count": len(pose),
+                }
+            )
+        common_hurt_moves.append(
+            {
+                "frame_offset": frame_offset,
+                "first_frame": first_frame,
+                "frame_count": len(poses),
+            }
+        )
+
     subactions = dat_data["nodes"][0]["data"]["subactions"]
     ground_assignments = command_variable_assignments(subactions, 303)
     air_assignments = command_variable_assignments(subactions, 305)
@@ -822,28 +850,9 @@ def generate(
                 f"common {action_name}: expected frames "
                 f"{list(source_frames)}, captured {sorted(hurt_by_frame)}"
             )
-        frame_offset = len(hurt_frames)
-        for action_frame in source_frames:
-            pose = hurt_by_frame[action_frame]
-            capsule_offset = hurt_pose_offsets.get(pose)
-            if capsule_offset is None:
-                capsule_offset = len(hurt_capsules)
-                if capsule_offset > 0xFFFF:
-                    raise ValueError("too many Falcon hurt capsules")
-                hurt_pose_offsets[pose] = capsule_offset
-                hurt_capsules.extend(pose)
-            hurt_frames.append(
-                {
-                    "capsule_offset": capsule_offset,
-                    "capsule_count": len(pose),
-                }
-            )
-        common_hurt_moves.append(
-            {
-                "frame_offset": frame_offset,
-                "first_frame": first_frame,
-                "frame_count": len(source_frames),
-            }
+        append_common_hurt_track(
+            first_frame,
+            [hurt_by_frame[action_frame] for action_frame in source_frames],
         )
 
     geometry_digest = hashlib.sha256(

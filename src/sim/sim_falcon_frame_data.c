@@ -7,6 +7,7 @@
 
 #include "../../generated/data/m4_falcon_ntsc102_frame_data.inc"
 #include "../../generated/data/m4_falcon_ntsc102_hit_geometry.inc"
+#include "../../generated/data/m4_ssbm_falcon_ledge_hurt.inc"
 
 _Static_assert(
     sizeof(pf_m4_falcon_moves) / sizeof(pf_m4_falcon_moves[0]) ==
@@ -575,6 +576,8 @@ pf_m4_falcon_reference_standing_hurt_capsules(uint8_t *out_count)
 static const pf_m4_reference_hurt_capsule *
 pf_m4_falcon_reference_hurt_track_at_frame(
     const pf_m4_reference_hurt_move *move,
+    const pf_m4_reference_hurt_frame *frames,
+    const pf_m4_reference_hurt_capsule *capsules,
     uint16_t action_frame,
     uint8_t *out_count)
 {
@@ -595,8 +598,7 @@ pf_m4_falcon_reference_hurt_track_at_frame(
     {
         return NULL;
     }
-    frame = &pf_m4_falcon_hurt_frames[
-        move->frame_offset + relative_frame];
+    frame = &frames[move->frame_offset + relative_frame];
     if (frame->capsule_count == UINT8_C(0))
     {
         return NULL;
@@ -605,7 +607,7 @@ pf_m4_falcon_reference_hurt_track_at_frame(
     {
         *out_count = frame->capsule_count;
     }
-    return &pf_m4_falcon_hurt_capsules[frame->capsule_offset];
+    return &capsules[frame->capsule_offset];
 }
 
 const pf_m4_reference_hurt_capsule *
@@ -624,8 +626,73 @@ pf_m4_falcon_reference_hurt_capsules_at_frame(
     }
     return pf_m4_falcon_reference_hurt_track_at_frame(
         &pf_m4_falcon_hurt_moves[move_index],
+        pf_m4_falcon_hurt_frames,
+        pf_m4_falcon_hurt_capsules,
         action_frame,
         out_count);
+}
+
+static uint8_t pf_m4_falcon_ledge_hurt_track_for_action(
+    uint8_t action_state,
+    uint16_t source_submotion)
+{
+    switch ((pf_m4_action_state)action_state)
+    {
+        case PF_M4_ACTION_LEDGE_CLIMB:
+            if (source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_QUICK)
+            {
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_CLIMB_QUICK;
+            }
+            if (source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_CLIMB_SLOW)
+            {
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_CLIMB_SLOW;
+            }
+            break;
+        case PF_M4_ACTION_LEDGE_ROLL:
+            if (source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_QUICK)
+            {
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_ROLL_QUICK;
+            }
+            if (source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ROLL_SLOW)
+            {
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_ROLL_SLOW;
+            }
+            break;
+        case PF_M4_ACTION_LEDGE_ATTACK:
+            if (source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_QUICK)
+            {
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_ATTACK_QUICK;
+            }
+            if (source_submotion ==
+                (uint16_t)PF_M4_FALCON_SUBMOTION_LEDGE_ATTACK_SLOW)
+            {
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_ATTACK_SLOW;
+            }
+            break;
+        case PF_M4_ACTION_LEDGE_JUMP:
+            switch ((pf_m4_falcon_submotion_index)source_submotion)
+            {
+                case PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_1:
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_JUMP_QUICK_1;
+                case PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_QUICK_2:
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_JUMP_QUICK_2;
+                case PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_1:
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_JUMP_SLOW_1;
+                case PF_M4_FALCON_SUBMOTION_LEDGE_JUMP_SLOW_2:
+                return (uint8_t)PF_M4_FALCON_LEDGE_HURT_JUMP_SLOW_2;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+    return UINT8_MAX;
 }
 
 const pf_m4_reference_hurt_capsule *
@@ -634,7 +701,36 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
     uint16_t action_frame,
     uint8_t *out_count)
 {
+    return
+        pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+            action_state,
+            UINT16_C(0),
+            action_frame,
+            out_count);
+}
+
+const pf_m4_reference_hurt_capsule *
+pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
+    uint8_t action_state,
+    uint16_t source_submotion,
+    uint16_t action_frame,
+    uint8_t *out_count)
+{
     pf_m4_falcon_common_hurt_index track_index;
+    const uint8_t ledge_track_index =
+        pf_m4_falcon_ledge_hurt_track_for_action(
+            action_state,
+            source_submotion);
+
+    if (ledge_track_index != UINT8_MAX)
+    {
+        return pf_m4_falcon_reference_hurt_track_at_frame(
+            &pf_m4_falcon_ledge_hurt_moves[ledge_track_index],
+            pf_m4_falcon_ledge_hurt_frames,
+            pf_m4_falcon_ledge_hurt_capsules,
+            action_frame,
+            out_count);
+    }
 
     switch ((pf_m4_action_state)action_state)
     {
@@ -684,6 +780,8 @@ pf_m4_falcon_reference_common_hurt_capsules_at_frame(
     }
     return pf_m4_falcon_reference_hurt_track_at_frame(
         &pf_m4_falcon_common_hurt_moves[track_index],
+        pf_m4_falcon_hurt_frames,
+        pf_m4_falcon_hurt_capsules,
         action_frame,
         out_count);
 }
