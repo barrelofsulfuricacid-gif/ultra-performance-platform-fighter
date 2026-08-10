@@ -824,6 +824,33 @@ static int run_stock_respawn_match_test(
         return fail("expired-respawn-invulnerability-accepts-hit");
     }
 
+    /* Keep the final-stock journal assertion focused on the eliminated
+     * player. A still-active opponent attack can otherwise finish on the KO
+     * tick and legitimately add player 1 to the packed transition mask. */
+    for (tick = UINT32_C(0); tick < UINT32_C(120); ++tick)
+    {
+        if (!step_duel(
+                source,
+                INT16_C(0),
+                UINT64_C(0),
+                INT16_C(0),
+                UINT64_C(0),
+                &result,
+                &inspection))
+        {
+            return 0;
+        }
+        if (inspection.players[1].action_state ==
+            (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+        {
+            break;
+        }
+    }
+    if (tick == UINT32_C(120))
+    {
+        return fail("final-stock-opponent-neutral-timeout");
+    }
+
     if (!run_player0_to_ko(source, &inspection, &result) ||
         inspection.players[0].stocks_remaining != UINT8_C(0) ||
         inspection.players[0].active != UINT8_C(0) ||
@@ -851,6 +878,29 @@ static int run_stock_respawn_match_test(
         result.events[2].sequence !=
             result.events[0].sequence + UINT32_C(2))
     {
+        (void)fprintf(
+            stderr,
+            "m4-match=debug operation=final-stock-match-result"
+            " stocks=%u active=%u action=%u terminated=(%u,%u)"
+            " winner=(%u,%u) events=%u"
+            " types=(%u,%u,%u) details=(%u,%u,%u)"
+            " transitions=(0x%08" PRIx32 ",0x%08" PRIx32 ")\n",
+            (unsigned int)inspection.players[0].stocks_remaining,
+            (unsigned int)inspection.players[0].active,
+            (unsigned int)inspection.players[0].action_state,
+            (unsigned int)inspection.terminated,
+            (unsigned int)result.terminated,
+            (unsigned int)inspection.winner_mask,
+            (unsigned int)result.winner_mask,
+            (unsigned int)result.event_count,
+            (unsigned int)result.events[0].type,
+            (unsigned int)result.events[1].type,
+            (unsigned int)result.events[2].type,
+            (unsigned int)result.events[0].detail,
+            (unsigned int)result.events[1].detail,
+            (unsigned int)result.events[2].detail,
+            (uint32_t)result.events[1].velocity_x_q16,
+            result.events[1].value_q16);
         return fail("final-stock-match-result");
     }
     return 1;

@@ -5268,3 +5268,9 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   and final state
   `4ffccdd98a49489adf6737f54d5d987bc1c591c71cb1d39aa53d33f2e9c630f6`;
   the event digest remains unchanged.
+- The first CI headless run exposed a test-choreography collision rather than a
+  match-system defect: player 1's earlier attack recovered to idle on the same
+  tick that player 0 lost its final stock, correctly producing transition mask
+  `0x03` where the assertion expected only player 0. The fixture now waits for
+  the setup attacker to return to idle before the final-stock phase. All 27
+  WSL headless tests and the strict Windows MSVC match suite pass.

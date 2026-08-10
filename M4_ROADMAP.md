@@ -1154,6 +1154,11 @@ other stage/pushbox topologies.
   runs in 1.592-1.678 seconds and three WSL runs in 1.279-1.578 seconds, below
   the two-second edit-loop budget. Byte-identical regeneration, Python syntax,
   focused movement/combat, and replay pass on both hosts.
+- [x] Reproduce the first CI result locally: the headless lane's only failure
+  was an incidental player-1 attack-recovery transition landing on the final
+  player-0 KO tick after the corrected trajectory shifted that tick. The match
+  test now settles the setup attacker before asserting the final-stock journal;
+  all 27 headless tests and strict Windows MSVC pass.
 
 ## Completion gate
 
