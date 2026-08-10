@@ -297,6 +297,18 @@ does not activate Falcon's source item-search branch; no invented positive
 classification is attached to that custom fixture. The at-will Raptor Boost
 suite now covers 657 frames across all six routes.
 
+Five fighter routes are also registered in the character-independent stored
+gate as 502 numeric samples. `native-csv-trace-v1` reuses the same production
+`pf_m4_movement_trace` executable and the same controller normalization and
+Raptor action/timer projection as the live comparator; no second C state setup
+exists. Per-field row exclusions preserve the live clock boundary exactly for
+hitlag-frozen and special-landing samples. The pinned source projection is
+`19b5d604d5721e20bc2151e41c11054632a5c384dfd5528cf373dac2bd1abe2c`;
+the production projection is
+`7733655e234ac2de12fe1b674ed6be967ad7de39b848d94cf97b2e36547509a0`.
+The Capsule branch remains live-only because production intentionally has no
+source Capsule counterpart.
+
 Ground-attack interruption is routed from the same generated rows rather than
 from authored frame guesses. Jab 1/2 use their chain callback; dash attack,
 forward/up tilt, and up/down smash use `ftCo_Wait_IASA`; down tilt uses its

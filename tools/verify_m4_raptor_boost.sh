@@ -45,6 +45,7 @@ common_flags="
     "$root/src/sim/sim_falcon_frame_data.c" \
     "$root/src/sim/sim_ssbm_common_data.c" \
     "$root/src/sim/sim_ssbm_damage.c" \
+    "$root/src/sim/sim_ssbm_stage_data.c" \
     "$root/src/sim/sim_event.c" \
     "$root/src/sim/sim_item.c" \
     "$root/src/sim/sim_projectile.c" \
@@ -94,6 +95,14 @@ common_flags="
     --native-input-output "$output_dir/ground-edge.inputs"
 
 "$python" "$root/tools/verify_ssbm_falcon_item_search.py" \
+    "$item_search_capture"
+
+"$python" "$root/tools/verify_ssbm_falcon_raptor_boost.py" \
+    "$root/tools/ssbm_falcon_raptor_boost_coverage.json" \
+    "$ground_hit_capture" \
+    "$remaining_capture" \
+    "$air_hit_capture" \
+    "$ground_edge_capture" \
     "$item_search_capture"
 
 echo "m4-raptor-boost-verification=pass ground_hit_frames=46 ground_miss_frames=80 air_miss_frames=180 air_hit_floor_frames=145 ground_edge_frames=51 item_search_frames=155 total_frames=657"

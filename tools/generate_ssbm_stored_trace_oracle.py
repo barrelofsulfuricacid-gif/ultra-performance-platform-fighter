@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a C binding for a manifest-owned numeric SSBM trace domain."""
+"""Generate a binding for a manifest-owned stored SSBM trace domain."""
 
 from __future__ import annotations
 
@@ -16,6 +16,41 @@ BUTTONS = {
     "special": "PF_INPUT_BUTTON_SPECIAL",
     "jump": "PF_INPUT_BUTTON_JUMP",
     "taunt": "PF_INPUT_BUTTON_TAUNT",
+}
+
+BUTTON_MASKS = {
+    "jump": 1 << 0,
+    "attack": 1 << 1,
+    "strong_attack": 1 << 2,
+    "special": 1 << 3,
+    "taunt": 1 << 4,
+}
+
+NATIVE_CSV_TRACE_FIELDS = {
+    "action_state",
+    "action_ticks",
+    "facing",
+    "grounded",
+    "support",
+    "position_x_q16_from_origin",
+    "position_y_q16_from_origin",
+    "velocity_x_q16",
+    "velocity_y_q16",
+    "shield_health_q16",
+    "shield_strength",
+    "hitlag_ticks",
+    "invulnerable",
+    "opponent_action_state",
+    "opponent_action_ticks",
+    "opponent_hitlag_ticks",
+    "opponent_hitstun_ticks",
+    "opponent_facing",
+    "opponent_grounded",
+    "opponent_position_x_q16_from_origin",
+    "opponent_position_y_q16_from_origin",
+    "opponent_velocity_x_q16",
+    "opponent_velocity_y_q16",
+    "opponent_damage_q16",
 }
 
 TRACE_FIELDS = {
@@ -90,6 +125,16 @@ def buttons(value: Any, field: str) -> str:
     return " | ".join(BUTTONS[name] for name in value) or "UINT64_C(0)"
 
 
+def button_mask(value: Any, field: str) -> int:
+    if value is None:
+        return 0
+    if not isinstance(value, list) or any(name not in BUTTON_MASKS for name in value):
+        raise ValueError(f"{field} contains an unsupported button")
+    if len(set(value)) != len(value):
+        raise ValueError(f"{field} contains duplicate buttons")
+    return sum(BUTTON_MASKS[name] for name in value)
+
+
 def stick(
     value: Any,
     field: str,
@@ -103,7 +148,41 @@ def stick(
     return x, -y if invert_y else y
 
 
-def generate(manifest: dict[str, Any]) -> str:
+def expand_case_samples(
+    case: dict[str, Any],
+    case_id: str,
+    sample_count: int,
+    sample_key: str,
+) -> list[dict[str, Any]]:
+    samples = case.get(sample_key)
+    if samples is not None or sample_key != "inputs":
+        if not isinstance(samples, list) or len(samples) != sample_count:
+            raise ValueError(f"invalid trace samples for {case_id!r}")
+        return samples
+    raw_phases = case.get("input_phases")
+    if raw_phases is None:
+        return [{} for _ in range(sample_count)]
+    if not isinstance(raw_phases, list) or not raw_phases:
+        raise ValueError(f"{case_id}.input_phases must be a list")
+    samples = []
+    for phase_index, phase in enumerate(raw_phases):
+        if (
+            not isinstance(phase, dict)
+            or set(phase) != {"ticks", "lanes"}
+            or not isinstance(phase.get("ticks"), int)
+            or isinstance(phase.get("ticks"), bool)
+            or not 1 <= phase["ticks"] <= sample_count
+        ):
+            raise ValueError(f"{case_id}.input_phases[{phase_index}] is invalid")
+        samples.extend({"lanes": phase["lanes"]} for _ in range(phase["ticks"]))
+    if len(samples) != sample_count:
+        raise ValueError(
+            f"{case_id}.input_phases expand to {len(samples)}, expected {sample_count}"
+        )
+    return samples
+
+
+def generate_numeric_c(manifest: dict[str, Any]) -> str:
     if manifest.get("schema") != 1:
         raise ValueError("unsupported trace coverage schema")
     stored = manifest.get("stored_oracle")
@@ -193,30 +272,12 @@ def generate(manifest: dict[str, Any]) -> str:
             maximum_samples_per_case, case_sample_count
         )
         total_sample_count += case_sample_count * lanes_per_sample
-        samples = case.get(sample_key)
-        if samples is None and sample_key == "inputs":
-            raw_phases = case.get("input_phases")
-            if raw_phases is None:
-                samples = [{} for _ in range(case_sample_count)]
-            else:
-                if not isinstance(raw_phases, list) or not raw_phases:
-                    raise ValueError(f"{case_id}.input_phases must be a list")
-                samples = []
-                for phase_index, phase in enumerate(raw_phases):
-                    if (
-                        not isinstance(phase, dict)
-                        or set(phase) != {"ticks", "lanes"}
-                        or not isinstance(phase.get("ticks"), int)
-                        or isinstance(phase.get("ticks"), bool)
-                        or not 1 <= phase["ticks"] <= case_sample_count
-                    ):
-                        raise ValueError(
-                            f"{case_id}.input_phases[{phase_index}] is invalid"
-                        )
-                    samples.extend(
-                        {"lanes": phase["lanes"]}
-                        for _ in range(phase["ticks"])
-                    )
+        samples = expand_case_samples(
+            case,
+            str(case_id),
+            case_sample_count,
+            sample_key,
+        )
         if (
             not isinstance(case_id, str)
             or not case_id
@@ -384,6 +445,216 @@ def generate(manifest: dict[str, Any]) -> str:
             "",
         ]
     )
+
+
+def native_csv_fields(value: Any, field: str) -> list[str]:
+    if (
+        not isinstance(value, list)
+        or not value
+        or any(name not in NATIVE_CSV_TRACE_FIELDS for name in value)
+        or len(set(value)) != len(value)
+    ):
+        raise ValueError(f"{field} contains an unsupported field")
+    return list(value)
+
+
+def native_csv_field_exclusions(
+    value: Any,
+    fields: list[str],
+    sample_count: int,
+    field: str,
+) -> dict[str, list[list[int]]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict) or any(name not in fields for name in value):
+        raise ValueError(f"{field} contains an unsupported field")
+    result: dict[str, list[list[int]]] = {}
+    for name, ranges in value.items():
+        if not isinstance(ranges, list) or not ranges:
+            raise ValueError(f"{field}.{name} must be a non-empty list")
+        normalized: list[list[int]] = []
+        previous_end = 0
+        for range_index, sample_range in enumerate(ranges):
+            if (
+                not isinstance(sample_range, list)
+                or len(sample_range) != 2
+                or any(
+                    not isinstance(bound, int) or isinstance(bound, bool)
+                    for bound in sample_range
+                )
+            ):
+                raise ValueError(f"{field}.{name}[{range_index}] is invalid")
+            start, end = sample_range
+            if not 0 <= start < end <= sample_count or start < previous_end:
+                raise ValueError(f"{field}.{name}[{range_index}] is invalid")
+            normalized.append([start, end])
+            previous_end = end
+        result[name] = normalized
+    return result
+
+
+def native_csv_input_line(
+    sample: dict[str, Any],
+    case_id: str,
+    sample_index: int,
+) -> str:
+    raw_lanes = sample.get("lanes")
+    if (
+        not isinstance(raw_lanes, list)
+        or len(raw_lanes) != 2
+        or any(not isinstance(lane, dict) for lane in raw_lanes)
+    ):
+        raise ValueError(
+            f"{case_id}.inputs[{sample_index}].lanes must contain two inputs"
+        )
+    player = raw_lanes[0]
+    opponent = raw_lanes[1]
+    player_field = f"{case_id}.inputs[{sample_index}].lanes[0]"
+    opponent_field = f"{case_id}.inputs[{sample_index}].lanes[1]"
+    main_x, main_y = stick(
+        player.get("main", [0, 0]),
+        f"{player_field}.main",
+        invert_y=True,
+    )
+    c_x, c_y = stick(
+        player.get("c_stick", [0, 0]),
+        f"{player_field}.c_stick",
+        invert_y=True,
+    )
+    opponent_x, opponent_y = stick(
+        opponent.get("main", [0, 0]),
+        f"{opponent_field}.main",
+        invert_y=True,
+    )
+    opponent_c_x, opponent_c_y = stick(
+        opponent.get("c_stick", [0, 0]),
+        f"{opponent_field}.c_stick",
+        invert_y=True,
+    )
+    if opponent_y != 0 or opponent_c_x != 0 or opponent_c_y != 0:
+        raise ValueError(
+            f"{opponent_field} uses axes unsupported by the native CSV runner"
+        )
+    if opponent.get("left_trigger", 0) != 0 or opponent.get("right_trigger", 0) != 0:
+        raise ValueError(
+            f"{opponent_field} uses triggers unsupported by the native CSV runner"
+        )
+    player_buttons = button_mask(player.get("buttons"), f"{player_field}.buttons")
+    opponent_buttons = button_mask(
+        opponent.get("buttons"),
+        f"{opponent_field}.buttons",
+    )
+    left_trigger = unsigned_16(
+        player.get("left_trigger", 0),
+        f"{player_field}.left_trigger",
+    )
+    right_trigger = unsigned_16(
+        player.get("right_trigger", 0),
+        f"{player_field}.right_trigger",
+    )
+    return (
+        f"{main_x},{main_y},{c_x},{c_y},{left_trigger},{right_trigger},"
+        f"{player_buttons},{opponent_x},{opponent_buttons}"
+    )
+
+
+def generate_native_csv(manifest: dict[str, Any]) -> str:
+    if manifest.get("schema") != 1:
+        raise ValueError("unsupported trace coverage schema")
+    domain = manifest.get("domain")
+    stored = manifest.get("stored_oracle")
+    if not isinstance(domain, str) or not domain:
+        raise ValueError("domain must be a non-empty string")
+    if not isinstance(stored, dict) or stored.get("kind") != "native-csv-trace-v1":
+        raise ValueError("stored_oracle.kind must be native-csv-trace-v1")
+    fields = native_csv_fields(
+        stored.get("serialized_fields"),
+        "stored_oracle.serialized_fields",
+    )
+    source_digest = digest(
+        stored.get("source_trace_sha256"),
+        "stored_oracle.source_trace_sha256",
+    )
+    production_digest = digest(
+        stored.get("production_trace_sha256"),
+        "stored_oracle.production_trace_sha256",
+    )
+    raw_cases = stored.get("cases")
+    if not isinstance(raw_cases, list) or not raw_cases:
+        raise ValueError("stored trace cases must be a non-empty list")
+    cases: list[dict[str, Any]] = []
+    ids: set[str] = set()
+    for case_index, case in enumerate(raw_cases):
+        if not isinstance(case, dict):
+            raise ValueError(f"stored_oracle.cases[{case_index}] is invalid")
+        case_id = case.get("id")
+        sample_count = case.get("sample_count")
+        runner_arguments = case.get("runner_arguments")
+        if (
+            not isinstance(case_id, str)
+            or not case_id
+            or case_id in ids
+            or not isinstance(sample_count, int)
+            or isinstance(sample_count, bool)
+            or not 1 <= sample_count <= 4096
+            or not isinstance(runner_arguments, list)
+            or any(
+                not isinstance(value, str) or not value
+                for value in runner_arguments
+            )
+        ):
+            raise ValueError(f"invalid native CSV trace case {case_id!r}")
+        ids.add(case_id)
+        case_fields = native_csv_fields(
+            case.get("serialized_fields", fields),
+            f"{case_id}.serialized_fields",
+        )
+        field_exclusions = native_csv_field_exclusions(
+            case.get("field_exclusions"),
+            case_fields,
+            sample_count,
+            f"{case_id}.field_exclusions",
+        )
+        samples = expand_case_samples(case, case_id, sample_count, "inputs")
+        lines = [
+            native_csv_input_line(sample, case_id, sample_index)
+            for sample_index, sample in enumerate(samples)
+        ]
+        runs: list[dict[str, Any]] = []
+        for line in lines:
+            if runs and runs[-1]["input"] == line:
+                runs[-1]["ticks"] += 1
+            else:
+                runs.append({"ticks": 1, "input": line})
+        cases.append(
+            {
+                "id": case_id,
+                "runner_arguments": runner_arguments,
+                "sample_count": sample_count,
+                "serialized_fields": case_fields,
+                "field_exclusions": field_exclusions,
+                "input_runs": runs,
+            }
+        )
+    generated = {
+        "schema": 1,
+        "kind": "native-csv-trace-v1",
+        "domain": domain,
+        "source_trace_sha256": source_digest,
+        "production_trace_sha256": production_digest,
+        "cases": cases,
+    }
+    return json.dumps(generated, indent=2, sort_keys=True) + "\n"
+
+
+def generate(manifest: dict[str, Any]) -> str:
+    stored = manifest.get("stored_oracle")
+    kind = stored.get("kind") if isinstance(stored, dict) else None
+    if kind == "numeric-trace-v1":
+        return generate_numeric_c(manifest)
+    if kind == "native-csv-trace-v1":
+        return generate_native_csv(manifest)
+    raise ValueError(f"unsupported stored_oracle.kind: {kind!r}")
 
 
 def main() -> int:

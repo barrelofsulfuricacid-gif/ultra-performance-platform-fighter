@@ -195,6 +195,64 @@ def controller_trigger(value: float) -> int:
     return round(max(0.0, min(1.0, value)) * 65535.0)
 
 
+def native_input_line(row: dict[str, object]) -> str:
+    """Normalize one captured GameCube sample for the native CSV runner."""
+
+    observed_analog = float(row.get("observed_analog_shoulder", 0.0))
+    # The project action packet has no device-specific Z bit. Its input
+    # normalizer represents GameCube Z as the canonical full-shield-plus-A
+    # grab chord, so replay the same physical sample through that mapping.
+    left_trigger = (
+        65535
+        if bool(row.get("observed_grab", False))
+        or bool(row.get("requested_digital_left"))
+        else (
+            controller_trigger(observed_analog)
+            if float(row.get("requested_left_shoulder", 0.0)) > 0.0
+            else 0
+        )
+    )
+    right_trigger = (
+        65535
+        if bool(row.get("requested_digital_right"))
+        else (
+            controller_trigger(observed_analog)
+            if float(row.get("requested_right_shoulder", 0.0)) > 0.0
+            else 0
+        )
+    )
+    buttons = 1 if bool(row.get("observed_jump", False)) else 0
+    if bool(row.get("observed_attack", False)) or bool(
+        row.get("observed_grab", False)
+    ):
+        buttons |= 2
+    if bool(row.get("observed_special", False)):
+        buttons |= 8
+    if (
+        abs(float(row.get("observed_c_x", 0.5)) - 0.5) > 0.02
+        or abs(float(row.get("observed_c_y", 0.5)) - 0.5) > 0.02
+    ):
+        # Device normalization emits the canonical strong-attack bit with
+        # every non-neutral C-stick sample.
+        buttons |= 4
+    if bool(row.get("observed_taunt", False)):
+        buttons |= 16
+    opponent_input_x = controller_axis(
+        float(row.get("observed_opponent_main_x", 0.5))
+    )
+    opponent_buttons = (
+        2 if bool(row.get("observed_opponent_attack", False)) else 0
+    )
+    return (
+        f"{controller_axis(float(row['observed_main_x']))},"
+        f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
+        f"{controller_axis(float(row.get('observed_c_x', 0.5)))},"
+        f"{controller_axis_y(float(row.get('observed_c_y', 0.5)))},"
+        f"{left_trigger},{right_trigger},{buttons},{opponent_input_x},"
+        f"{opponent_buttons}"
+    )
+
+
 def normalized_shield_strength(
     row: dict[str, object], retained_strength: int = 0
 ) -> int:
@@ -278,6 +336,71 @@ def expected_action_state(action: str, action_frame: float) -> int | None:
         if round(action_frame) <= 6:
             return M4_DELAYED_AIR_JUMP
     return SSBM_TO_M4_ACTION.get(action)
+
+
+def raptor_boost_expected_action(
+    route: str,
+    action: str,
+    action_frame: float,
+    hitlag_left: float,
+) -> int | None:
+    """Map one live side-special row to the production action contract."""
+
+    expected = expected_action_state(action, action_frame)
+    overrides = {
+        "air_miss": {
+            "SWORD_DANCE_2_MID": 111,
+            "DEAD_FALL": 113,
+        },
+        "ground_edge": {
+            "SWORD_DANCE_1": 109,
+            "DEAD_FALL": 113,
+        },
+        "air_hit_floor": {
+            "SWORD_DANCE_2_MID": 111,
+            "SWORD_DANCE_3_HIGH": 112,
+            "DEAD_FALL": 114,
+            "LANDING_SPECIAL": 116,
+            "STANDING": 0,
+        },
+    }
+    expected = overrides.get(route, {}).get(action, expected)
+    if route in {"ground_hit", "air_hit_floor"} and hitlag_left > 0.0:
+        return 13
+    return expected
+
+
+def raptor_boost_expected_ticks(
+    route: str,
+    action: str,
+    action_frame: float,
+    hitlag_left: float,
+) -> int | None:
+    """Map one live side-special row to the production action clock."""
+
+    if route in {"ground_hit", "air_hit_floor"} and hitlag_left > 0.0:
+        return None
+    frame = round(action_frame)
+    if route == "air_miss":
+        if action == "SWORD_DANCE_2_MID":
+            return frame
+        if action == "DEAD_FALL":
+            return frame - 1
+    elif route == "ground_edge":
+        if action == "SWORD_DANCE_1":
+            return frame
+        if action == "DEAD_FALL":
+            return frame - 1
+    elif route == "air_hit_floor":
+        if action in {"SWORD_DANCE_2_MID", "SWORD_DANCE_3_HIGH"}:
+            return frame
+        if action == "DEAD_FALL":
+            return frame - 1
+        if action == "LANDING_SPECIAL":
+            return None
+        if action == "STANDING":
+            return 0
+    return expected_action_ticks(action, action_frame)
 
 
 def main() -> int:
@@ -478,6 +601,20 @@ def main() -> int:
                 len(oracle_rows),
             )
             oracle_rows = oracle_rows[:first_fixture_floor_boundary]
+    raptor_boost_route = next(
+        (
+            route
+            for active, route in (
+                (raptor_boost_ground_hit_mode, "ground_hit"),
+                (raptor_boost_ground_miss_mode, "ground_miss"),
+                (raptor_boost_air_miss_mode, "air_miss"),
+                (raptor_boost_air_hit_mode, "air_hit_floor"),
+                (raptor_boost_ground_edge_mode, "ground_edge"),
+            )
+            if active
+        ),
+        None,
+    )
     falcon_dive_ground_miss_mode = any(
         str(row.get("label", "")) == "special_geometry_up_ground_miss_start"
         for row in oracle_rows
@@ -709,60 +846,7 @@ def main() -> int:
     position_tolerance_q16 = args.position_tolerance_q16
     if push_mode:
         position_tolerance_q16 += abs(scaled_q16(0.3))
-    input_lines: list[str] = []
-    for row in oracle_rows:
-        observed_analog = float(row.get("observed_analog_shoulder", 0.0))
-        # The project action packet has no device-specific Z bit. Its input
-        # normalizer represents GameCube Z as the canonical full-shield-plus-A
-        # grab chord, so replay the same physical sample through that mapping.
-        left_trigger = (
-            65535
-            if bool(row.get("observed_grab", False))
-            or bool(row.get("requested_digital_left"))
-            else (
-                controller_trigger(observed_analog)
-                if float(row.get("requested_left_shoulder", 0.0)) > 0.0
-                else 0
-            )
-        )
-        right_trigger = (
-            65535
-            if bool(row.get("requested_digital_right"))
-            else (
-                controller_trigger(observed_analog)
-                if float(row.get("requested_right_shoulder", 0.0)) > 0.0
-                else 0
-            )
-        )
-        buttons = 1 if bool(row.get("observed_jump", False)) else 0
-        if bool(row.get("observed_attack", False)) or bool(
-            row.get("observed_grab", False)
-        ):
-            buttons |= 2
-        if bool(row.get("observed_special", False)):
-            buttons |= 8
-        if (
-            abs(float(row.get("observed_c_x", 0.5)) - 0.5) > 0.02
-            or abs(float(row.get("observed_c_y", 0.5)) - 0.5) > 0.02
-        ):
-            # Device normalization emits the canonical strong-attack bit with
-            # every non-neutral C-stick sample.
-            buttons |= 4
-        if bool(row.get("observed_taunt", False)):
-            buttons |= 16
-        opponent_input_x = controller_axis(
-            float(row.get("observed_opponent_main_x", 0.5))
-        )
-        opponent_buttons = 2 if bool(row.get("observed_opponent_attack", False)) else 0
-        input_lines.append(
-            f"{controller_axis(float(row['observed_main_x']))},"
-            f"{controller_axis_y(float(row.get('observed_main_y', 0.5)))},"
-            f"{controller_axis(float(row.get('observed_c_x', 0.5)))},"
-            f"{controller_axis_y(float(row.get('observed_c_y', 0.5)))},"
-            f"{left_trigger},{right_trigger},{buttons},{opponent_input_x},"
-            f"{opponent_buttons}\n"
-        )
-    input_text = "".join(input_lines)
+    input_text = "".join(f"{native_input_line(row)}\n" for row in oracle_rows)
     if args.native_input_output is not None:
         args.native_input_output.write_text(input_text, encoding="utf-8")
     runner_command = [str(args.runner)]
@@ -969,26 +1053,13 @@ def main() -> int:
             }.get(action_name, expected_action)
             if float(oracle.get("hitlag_left", 0.0)) > 0.0:
                 expected_action = 13
-        if raptor_boost_air_miss_mode:
-            expected_action = {
-                "SWORD_DANCE_2_MID": 111,
-                "DEAD_FALL": 113,
-            }.get(action_name, expected_action)
-        if raptor_boost_ground_edge_mode:
-            expected_action = {
-                "SWORD_DANCE_1": 109,
-                "DEAD_FALL": 113,
-            }.get(action_name, expected_action)
-        if raptor_boost_air_hit_mode:
-            expected_action = {
-                "SWORD_DANCE_2_MID": 111,
-                "SWORD_DANCE_3_HIGH": 112,
-                "DEAD_FALL": 114,
-                "LANDING_SPECIAL": 116,
-                "STANDING": 0,
-            }.get(action_name, expected_action)
-            if float(oracle.get("hitlag_left", 0.0)) > 0.0:
-                expected_action = 13
+        if raptor_boost_route is not None:
+            expected_action = raptor_boost_expected_action(
+                raptor_boost_route,
+                action_name,
+                float(oracle["action_frame"]),
+                float(oracle.get("hitlag_left", 0.0)),
+            )
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode
@@ -1024,8 +1095,6 @@ def main() -> int:
                 "STANDING": 0,
             }.get(action_name, expected_action)
         if shield_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
-            expected_action = 13
-        if raptor_boost_ground_hit_mode and float(oracle.get("hitlag_left", 0.0)) > 0.0:
             expected_action = 13
         actual_action = int(native["action_state"])
         expected_ticks = (
@@ -1068,27 +1137,13 @@ def main() -> int:
                 expected_ticks = action_frame - 1
             elif action_name == "EDGE_HANGING":
                 expected_ticks = min(8, action_frame + 6)
-        if raptor_boost_air_miss_mode:
-            if action_name == "SWORD_DANCE_2_MID":
-                expected_ticks = action_frame
-            elif action_name == "DEAD_FALL":
-                expected_ticks = action_frame - 1
-        if raptor_boost_ground_edge_mode:
-            if action_name == "SWORD_DANCE_1":
-                expected_ticks = action_frame
-            elif action_name == "DEAD_FALL":
-                expected_ticks = action_frame - 1
-        if raptor_boost_air_hit_mode:
-            if action_name == "SWORD_DANCE_2_MID":
-                expected_ticks = action_frame
-            elif action_name == "SWORD_DANCE_3_HIGH":
-                expected_ticks = action_frame
-            elif action_name == "DEAD_FALL":
-                expected_ticks = action_frame - 1
-            elif action_name == "LANDING_SPECIAL":
-                expected_ticks = None
-            elif action_name == "STANDING":
-                expected_ticks = 0
+        if raptor_boost_route is not None:
+            expected_ticks = raptor_boost_expected_ticks(
+                raptor_boost_route,
+                action_name,
+                float(oracle["action_frame"]),
+                float(oracle.get("hitlag_left", 0.0)),
+            )
         if (
             falcon_kick_ground_mode
             or falcon_kick_ground_hit_mode

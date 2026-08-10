@@ -75,6 +75,14 @@ did not qualify out of the regression claim. The generated include contains
 inputs, field masks, case bounds, and digests; it does not duplicate Falcon
 Punch physics or frame data.
 
+`m4_ssbm_falcon_raptor_boost_oracle.json` is test-only execution metadata for
+the generic native-CSV stored-equivalence path. Its sole authored input is
+`tools/ssbm_falcon_raptor_boost_coverage.json`. It compresses identical-input
+phases for five already-live-qualified routes and records exact per-case fields
+plus sparse per-field row exclusions; it contains no Falcon behavior or copied
+frame data. The root verifier reuses the production `pf_m4_movement_trace`
+binary and hashes its declared columns in manifest order.
+
 `m4_ssbm_ntsc102_hyrule_collision.inc` is the immutable production stage
 catalog generated from the reviewed Hyrule MapCollData subset. Its authored
 JSON preserves source joint-local vertices and transform provenance; the

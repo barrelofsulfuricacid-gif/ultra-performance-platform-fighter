@@ -607,6 +607,21 @@ if(BUILD_TESTING)
         PROPERTIES PASS_REGULAR_EXPRESSION
                    "m4-ssbm-stored-oracle=pass domain=falcon-neutral-special poses=0 cases=3 samples=251")
 
+    if(PF_BUILD_TOOLS)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(
+            NAME sim.m4_ssbm_falcon_raptor_boost
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_ssbm_stored_equivalence.py"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --domain falcon-side-special)
+        set_tests_properties(
+            sim.m4_ssbm_falcon_raptor_boost
+            PROPERTIES PASS_REGULAR_EXPRESSION
+                       "ssbm-stored-equivalence=pass domains=falcon-side-special generated_checks=1 stored_cases=5 replay=pass")
+    endif()
+
     add_test(
         NAME sim.m4_ssbm_falcon_floor_response
         COMMAND m4_combat_test --ssbm-oracle falcon-common-floor-response)

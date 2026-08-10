@@ -15,6 +15,7 @@
       "tools/ssbm_collision.py",
       "tools/ssbm_equivalence_manifest.json",
       "tools/ssbm_exiai_checkpoint.patch",
+      "tools/ssbm_live_trace.py",
       "tools/verify_ssbm_oracle_acceleration.py",
       "tools/verify_ssbm_stored_equivalence.py"
     ]
@@ -23,6 +24,7 @@
     "tools/ssbm_falcon_common_hurt_coverage.json",
     "tools/ssbm_falcon_dive_grab_coverage.json",
     "tools/ssbm_falcon_punch_coverage.json",
+    "tools/ssbm_falcon_raptor_boost_coverage.json",
     "tools/ssbm_falcon_damage_response_coverage.json",
     "tools/ssbm_falcon_ground_knockback_coverage.json",
     "tools/ssbm_falcon_surface_response_coverage.json",

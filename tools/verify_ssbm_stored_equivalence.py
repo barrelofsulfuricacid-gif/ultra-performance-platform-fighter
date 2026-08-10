@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
+import csv
 import fnmatch
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -13,6 +16,8 @@ import subprocess
 import sys
 import time
 from typing import Any
+
+from ssbm_live_trace import canonical_sha256, selected_trace_fields
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
@@ -119,7 +124,11 @@ def executable_path(build_directory: Path, name: str) -> Path:
     )
 
 
-def run_checked(command: list[str], label: str) -> str:
+def run_checked(
+    command: list[str],
+    label: str,
+    input_text: str | None = None,
+) -> str:
     try:
         result = subprocess.run(
             command,
@@ -127,6 +136,7 @@ def run_checked(command: list[str], label: str) -> str:
             check=False,
             capture_output=True,
             text=True,
+            input=input_text,
             encoding="utf-8",
             errors="replace",
             timeout=30,
@@ -142,6 +152,157 @@ def run_checked(command: list[str], label: str) -> str:
             f"operation={label} reason=exit-code code={result.returncode}"
         )
     return result.stdout
+
+
+def run_native_csv_trace_domain(
+    domain_name: str,
+    stored: dict[str, Any],
+    generated_output: Path,
+    build_directory: Path,
+) -> int:
+    generated = load_json(generated_output, f"generated-{domain_name}")
+    if (
+        generated.get("kind") != "native-csv-trace-v1"
+        or generated.get("domain") != domain_name
+    ):
+        fail(
+            f"operation=stored-runner-{domain_name} "
+            "reason=invalid-generated-native-csv-domain"
+        )
+    executable, common_arguments = require_runner(
+        stored.get("runner"),
+        f"{domain_name}.stored_oracle.runner",
+    )
+    cases = generated.get("cases")
+    if not isinstance(cases, list) or not cases:
+        fail(
+            f"operation=stored-runner-{domain_name} "
+            "reason=invalid-generated-native-csv-cases"
+        )
+    executable_file = executable_path(build_directory, executable)
+    prepared_cases: list[
+        tuple[str, list[str], list[str], dict[str, Any], int, str]
+    ] = []
+    for case_index, case in enumerate(cases):
+        if not isinstance(case, dict):
+            fail(
+                f"operation=stored-runner-{domain_name} "
+                f"reason=invalid-native-csv-case index={case_index}"
+            )
+        case_id = case.get("id")
+        arguments = case.get("runner_arguments")
+        fields = case.get("serialized_fields")
+        field_exclusions = case.get("field_exclusions")
+        runs = case.get("input_runs")
+        sample_count = case.get("sample_count")
+        if (
+            not isinstance(case_id, str)
+            or not isinstance(arguments, list)
+            or any(not isinstance(value, str) for value in arguments)
+            or not isinstance(fields, list)
+            or not fields
+            or any(not isinstance(value, str) for value in fields)
+            or not isinstance(field_exclusions, dict)
+            or not isinstance(runs, list)
+            or not isinstance(sample_count, int)
+        ):
+            fail(
+                f"operation=stored-runner-{domain_name} "
+                f"reason=invalid-native-csv-case case={case_id!r}"
+            )
+        input_lines: list[str] = []
+        for run in runs:
+            if (
+                not isinstance(run, dict)
+                or not isinstance(run.get("ticks"), int)
+                or run["ticks"] <= 0
+                or not isinstance(run.get("input"), str)
+            ):
+                fail(
+                    f"operation=stored-runner-{domain_name} "
+                    f"reason=invalid-native-csv-input-run case={case_id}"
+                )
+            input_lines.extend([run["input"]] * run["ticks"])
+        if len(input_lines) != sample_count:
+            fail(
+                f"operation=stored-runner-{domain_name} "
+                f"reason=native-csv-input-count case={case_id} "
+                f"expected={sample_count} actual={len(input_lines)}"
+            )
+        prepared_cases.append(
+            (
+                case_id,
+                arguments,
+                fields,
+                field_exclusions,
+                sample_count,
+                "\n".join(input_lines) + "\n",
+            )
+        )
+
+    def run_case(
+        prepared: tuple[str, list[str], list[str], dict[str, Any], int, str],
+    ) -> dict[str, Any]:
+        (
+            case_id,
+            arguments,
+            fields,
+            field_exclusions,
+            sample_count,
+            input_text,
+        ) = prepared
+        output = run_checked(
+            [
+                str(executable_file),
+                *common_arguments,
+                *arguments,
+            ],
+            f"stored-runner-{domain_name}-{case_id}",
+            input_text,
+        )
+        reader = csv.DictReader(io.StringIO(output))
+        rows = list(reader)
+        if len(rows) != sample_count:
+            fail(
+                f"operation=stored-runner-{domain_name} "
+                f"reason=native-csv-row-count case={case_id} "
+                f"expected={sample_count} actual={len(rows)}"
+            )
+        samples: list[dict[str, int]] = []
+        try:
+            for sample_index, row in enumerate(rows):
+                selected_fields = selected_trace_fields(
+                    fields,
+                    field_exclusions,
+                    sample_index,
+                )
+                samples.append(
+                    {field: int(row[field]) for field in selected_fields}
+                )
+        except (KeyError, TypeError, ValueError) as error:
+            fail(
+                f"operation=stored-runner-{domain_name} "
+                f"reason=native-csv-field case={case_id} detail={error}"
+            )
+        return {"id": case_id, "samples": samples}
+
+    worker_count = min(len(prepared_cases), os.cpu_count() or 1, 8)
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        canonical_cases = list(executor.map(run_case, prepared_cases))
+    canonical = {
+        "schema": 1,
+        "domain": domain_name,
+        "cases": canonical_cases,
+    }
+    actual_digest = canonical_sha256(canonical)
+    expected_digest = stored.get("production_trace_sha256")
+    if actual_digest != expected_digest:
+        fail(
+            f"operation=stored-runner-{domain_name} "
+            "reason=production-trace-digest "
+            f"expected={expected_digest} actual={actual_digest}"
+        )
+    return len(cases)
 
 
 def output_fields(output: str, prefix: str, label: str) -> dict[str, str]:
@@ -339,6 +500,16 @@ def main() -> int:
         )
         generated_checks += 1
 
+        kind = stored.get("kind", "pose-geometry-v1")
+        if kind == "native-csv-trace-v1":
+            stored_cases += run_native_csv_trace_domain(
+                domain_name,
+                stored,
+                generated_output,
+                build_directory,
+            )
+            continue
+
         executable, arguments = require_runner(
             stored.get("runner"),
             f"{domain_name}.stored_oracle.runner",
@@ -352,7 +523,6 @@ def main() -> int:
             "m4-ssbm-stored-oracle",
             f"stored-runner-{domain_name}",
         )
-        kind = stored.get("kind", "pose-geometry-v1")
         if kind == "numeric-trace-v1":
             numeric_cases = numeric_trace_cases(domain, stored)
             case_count = len(numeric_cases)

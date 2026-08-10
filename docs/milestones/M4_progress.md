@@ -5208,3 +5208,29 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   on each platform. The importer skill now records the reusable partial-prefix
   projection rule. M4 remains incomplete for the other partial fidelity rows
   and the native hands-on controller gate.
+
+## 2026-08-10 generic Raptor Boost stored oracle
+
+- A fresh prior-art/decomp sweep found no current callback change or maintained
+  exact stored-regression runner that supersedes the existing live path. The
+  full 657-frame at-will verifier remains green: five fighter routes plus the
+  source-native grounded Capsule search.
+- The new generic `native-csv-trace-v1` schema reuses the production
+  `pf_m4_movement_trace` binary. It generates compressed input runs and exact
+  field/exclusion metadata instead of another Falcon-specific C adapter.
+- Shared controller normalization and shared Raptor action/timer mapping prove
+  the stored inputs and source projection are the same ones used by the live
+  comparator. Per-field row exclusions retain all qualified action-clock rows
+  and omit only the live-unqualified hitlag and special-landing samples.
+- Five cases / 502 samples are pinned under source/production SHA-256
+  `19b5d604d5721e20bc2151e41c11054632a5c384dfd5528cf373dac2bd1abe2c` /
+  `7733655e234ac2de12fe1b674ed6be967ad7de39b848d94cf97b2e36547509a0`.
+  The Capsule route remains live-only because original Relay Rod content is not
+  a source Capsule.
+- Independent native cases now run concurrently while canonical results retain
+  manifest order. The 14-domain / 89-case gate plus replay passes six Windows
+  runs in 1.435-1.550 seconds and three WSL runs in 1.448-1.585 seconds, below the
+  two-second budget.
+- The focused native-CSV domain is part of ordinary CTest and therefore the
+  GitHub Actions native matrix. Windows and WSL Release pass 33/33 tests; the
+  added test takes 0.36 seconds on each host.

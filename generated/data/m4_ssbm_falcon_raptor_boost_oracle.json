@@ -1,0 +1,189 @@
+{
+  "cases": [
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            19,
+            24
+          ],
+          [
+            45,
+            46
+          ]
+        ]
+      },
+      "id": "ground_hit",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 45
+        }
+      ],
+      "runner_arguments": [
+        "--raptor-boost-ground-hit"
+      ],
+      "sample_count": 46,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            79,
+            80
+          ]
+        ]
+      },
+      "id": "ground_miss",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 79
+        }
+      ],
+      "runner_arguments": [
+        "--raptor-boost-ground-miss"
+      ],
+      "sample_count": 80,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "air_miss",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 179
+        }
+      ],
+      "runner_arguments": [
+        "--raptor-boost-air-miss"
+      ],
+      "sample_count": 180,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    },
+    {
+      "field_exclusions": {
+        "action_ticks": [
+          [
+            20,
+            25
+          ],
+          [
+            56,
+            96
+          ]
+        ]
+      },
+      "id": "air_hit_floor",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,8,0,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,0,0",
+          "ticks": 144
+        }
+      ],
+      "runner_arguments": [
+        "--raptor-boost-air-hit"
+      ],
+      "sample_count": 145,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength",
+        "hitlag_ticks",
+        "opponent_hitlag_ticks",
+        "opponent_damage_q16"
+      ]
+    },
+    {
+      "field_exclusions": {},
+      "id": "ground_edge",
+      "input_runs": [
+        {
+          "input": "32767,0,0,0,0,0,8,-32767,0",
+          "ticks": 1
+        },
+        {
+          "input": "0,0,0,0,0,0,0,-32767,0",
+          "ticks": 50
+        }
+      ],
+      "runner_arguments": [
+        "--raptor-boost-ground-edge"
+      ],
+      "sample_count": 51,
+      "serialized_fields": [
+        "action_state",
+        "action_ticks",
+        "facing",
+        "grounded",
+        "position_x_q16_from_origin",
+        "position_y_q16_from_origin",
+        "velocity_x_q16",
+        "velocity_y_q16",
+        "shield_health_q16",
+        "shield_strength"
+      ]
+    }
+  ],
+  "domain": "falcon-side-special",
+  "kind": "native-csv-trace-v1",
+  "production_trace_sha256": "7733655e234ac2de12fe1b674ed6be967ad7de39b848d94cf97b2e36547509a0",
+  "schema": 1,
+  "source_trace_sha256": "19b5d604d5721e20bc2151e41c11054632a5c384dfd5528cf373dac2bd1abe2c"
+}

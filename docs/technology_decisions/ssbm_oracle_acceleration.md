@@ -269,17 +269,24 @@ Idle animation phase can vary between otherwise equivalent boots, so the
 verifier pins the ordered action/frame/Q16.16 payload and explicit physical
 discriminator instead of hashing incidental idle rows.
 
-The registry currently contains eight domains and 54 cases. The complete
-stored gate, including deterministic replay, measures 0.804 seconds on native
-Windows and 0.778 seconds in WSL. Numeric cases may narrow a domain's inherited
-serialized-field mask when a physical setup intentionally isolates only part
-of the response; the generated C always writes an explicit zero for inherited
-masks so GCC and MSVC apply the same zero-cost representation. The newest
-Hyrule slope/ledge pack runs two physical cases and 180 source rows in 1.234
-seconds warm / 4.859 seconds for the full Dolphin lifecycle. Its shared live
-trace helper centralizes canonical hashing, labeled-row selection, strict
-comparison, and Q16-bound comparison rather than duplicating those primitives
-inside another Falcon verifier.
+The registry currently contains fourteen domains and 89 cases. The complete
+stored gate, including deterministic replay, measures 1.435-1.550 seconds
+across six native Windows runs and 1.448-1.585 seconds across three WSL runs.
+Numeric C cases may narrow a domain's inherited serialized-field mask when a
+physical setup intentionally isolates only part of the response; the generated
+C always writes an explicit zero for inherited masks so GCC and MSVC apply the
+same zero-cost representation.
+
+The reusable `native-csv-trace-v1` kind admits an already-qualified production
+trace executable without adding another character-specific C adapter. Its
+manifest owns runner arguments, compressed input phases, exact integer fields,
+and half-open per-field row exclusions matching the live comparator. The
+generator emits only immutable JSON execution metadata; the root verifier
+expands inputs, runs independent cases concurrently, parses declared CSV
+columns, restores manifest order, and hashes one canonical payload. Raptor
+Boost uses this route for five cases / 502 samples. Its separate native Capsule
+search remains live-only because the project-specific Relay Rod is not source-
+equivalent item content.
 
 ## Geometry-sampling limitation
 

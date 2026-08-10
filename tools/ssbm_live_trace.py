@@ -28,6 +28,23 @@ def canonical_sha256(value: object) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def selected_trace_fields(
+    fields: list[str],
+    field_exclusions: dict[str, list[list[int]]],
+    sample_index: int,
+) -> list[str]:
+    """Return the fields live-qualified for one stored numeric sample."""
+
+    return [
+        field
+        for field in fields
+        if not any(
+            start <= sample_index < end
+            for start, end in field_exclusions.get(field, [])
+        )
+    ]
+
+
 def parse_integer_observations(
     path: Path,
     prefix: str,

@@ -94,8 +94,11 @@ poses and 434 quick/slow ledge poses share one source-submotion-aware generic
 runner under source/production SHA-256
 `2aadf4b37b26796bdbc08fe026b234542f2c61914a4488e35e0dccd72a72e151` /
 `d691705692841bfabb8a2407ab31037bf398b097fc461574ecd07954e16a4331`.
-The complete thirteen-domain / 84-case gate plus replay passes in 1.065 seconds
-on Windows and 1.366 seconds in WSL. This is regression against already-
+The complete fourteen-domain / 89-case gate plus replay passes in
+1.435-1.550 seconds across six Windows runs and 1.448-1.585 seconds across
+three WSL runs. Raptor Boost contributes five cases / 502 samples through the
+generic production-CSV runner with the live comparator's exact field masks and
+per-row clock exclusions. This is regression against already-
 qualified live truth; it does not turn uncovered routes into evidence or replace a fresh
 Dolphin qualification when a golden changes. The corresponding live common-
 hurt pack executes eight checkpoint-isolated cases in one headless/null/
