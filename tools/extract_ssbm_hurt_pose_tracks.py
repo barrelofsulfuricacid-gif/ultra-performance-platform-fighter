@@ -29,6 +29,7 @@ def extract_track(
     *,
     opponent: bool = False,
     collision_trace_frames: dict[int, int] | None = None,
+    label_prefix: str | None = None,
 ) -> dict[str, Any]:
     frames: dict[int, tuple[tuple[int, ...], ...]] = {}
     collision_trace_frames = collision_trace_frames or {}
@@ -42,6 +43,10 @@ def extract_track(
         "opponent_fighter_position" if opponent else "fighter_position"
     )
     for row in rows:
+        if label_prefix is not None and not str(row.get("label", "")).startswith(
+            label_prefix
+        ):
+            continue
         trace_frame = row.get("trace_frame")
         collision_frame = next(
             (
@@ -144,6 +149,13 @@ def main() -> int:
             "pending displayed pose evaluated on that source frame."
         ),
     )
+    parser.add_argument(
+        "--track-label-prefix",
+        action="append",
+        nargs=2,
+        metavar=("TRACK_ID", "PREFIX"),
+        help="restrict one track to capture rows whose labels share this prefix",
+    )
     args = parser.parse_args()
 
     capture_bytes = args.capture.read_bytes()
@@ -159,6 +171,11 @@ def main() -> int:
     ]
     if not track_specs:
         raise SystemExit("at least one --track or --opponent-track is required")
+    label_prefix_by_track: dict[str, str] = {}
+    for track_id, prefix in args.track_label_prefix or []:
+        if not track_id or not prefix or track_id in label_prefix_by_track:
+            raise SystemExit("invalid or duplicate track label prefix")
+        label_prefix_by_track[track_id] = prefix
     collision_frames_by_track: dict[str, dict[int, int]] = {}
     for track_id, raw_displayed, raw_trace in (
         args.opponent_collision_frame or []
@@ -215,6 +232,7 @@ def main() -> int:
                 last_frame,
                 opponent=opponent,
                 collision_trace_frames=collision_frames_by_track.get(raw_id),
+                label_prefix=label_prefix_by_track.get(raw_id),
             )
         )
         track_ids.add(raw_id)
@@ -225,6 +243,12 @@ def main() -> int:
         raise SystemExit(
             "collision frames reference unknown tracks: "
             + ", ".join(sorted(unknown_collision_tracks))
+        )
+    unknown_label_tracks = set(label_prefix_by_track) - track_ids
+    if unknown_label_tracks:
+        raise SystemExit(
+            "label prefixes reference unknown tracks: "
+            + ", ".join(sorted(unknown_label_tracks))
         )
     if len(roles) != 1:
         raise SystemExit("one profile may not mix fighter and opponent tracks")

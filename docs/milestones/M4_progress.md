@@ -5331,3 +5331,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `9c0c87842664d5bbde8f50dd672f804e8a62d1a32f2a5d9bf5c3d7a9c031cc73` /
   `3a9bb1e28fd635dcde8f1ec98d0705babd12ee64ee7e036e8f986c5a15a874d5` /
   `370975f72bbd6546f5253607ef62b811cb4f126889ad3c89bf4b2955703430cb`.
+
+## 2026-08-10 complete ordinary-airborne hurt poses
+
+- A current-upstream `doldecomp/melee` sweep reconfirmed the six source
+  submotions retained by ordinary airborne movement. The existing 494-row
+  airborne-ECB choreography already covers every displayed frame, so no new
+  scenario or technique-specific test was added.
+- Two independent headless/null/unlimited captures disabled fast-forward and
+  enabled the collision-authoritative hurtbox probe. Their distinct raw
+  SHA-256 values canonicalize to the same 186-pose / 2,046-capsule semantic
+  SHA-256
+  `71c9e643816604f9d2e90cfc226b907e7ce7cb48edc4fa2fea51d6797013ee7f`.
+- The generic extractor gained per-track label projection so looping Fall
+  actions cannot absorb setup rows from the next checkpoint. One generated
+  immutable table now serves JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and
+  FallAerial through retained source-submotion lookup.
+- Falcon Dive's existing hit/miss theorem now consumes JumpF frame 20 from
+  that complete table. The 12-frame Dive-only JumpF profile, binding, and
+  generated include were removed, eliminating 132 duplicated capsules.
+- The seventeen-domain / 101-case registry now hashes 875 production poses
+  and completes in 0.433 seconds on WSL and 0.581 seconds on warm Windows. Both
+  platforms pass the full stored gate, movement, combat, and deterministic
+  replay without changing the pinned replay hashes.

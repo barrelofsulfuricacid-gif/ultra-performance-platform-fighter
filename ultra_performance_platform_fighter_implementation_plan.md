@@ -636,7 +636,8 @@ without identical-input qualification.
 Hurt capsules and action-command/callback semantics for common actions beyond
 Initial Dash, RunBrake, CrouchStart, CrouchEnd, KneeBend, SpotDodge,
 RollForward, RollBackward, AirDodge, FallSpecial, LandingFallSpecial, and
-ordinary Landing remain
+ordinary Landing, JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and
+FallAerial remain
 explicit
 M4 gaps and must be extracted or qualified rather than approximated with
 invented frame data. Common poses use

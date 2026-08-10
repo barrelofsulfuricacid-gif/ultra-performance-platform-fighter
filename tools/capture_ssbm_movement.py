@@ -5643,6 +5643,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             args.memory_probe_shield
             or args.memory_probe_damage
             or args.memory_probe_hitbox
+            or args.memory_probe_hurtbox
             or args.memory_probe_collision
             or args.memory_probe_surface
             or args.oracle_checkpoint_pack
@@ -7103,13 +7104,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     if args.memory_probe_hurtbox and not (
         args.common_hurt_geometry_only
+        or args.airborne_ecb_only
         or args.hitbox_geometry_only
         or args.throw_geometry_only
         or args.special_geometry_only
         or (args.damage_hit_only and args.oracle_checkpoint_pack)
     ):
         parser.error(
-            "--memory-probe-hurtbox requires a geometry-only mode or a "
+            "--memory-probe-hurtbox requires a geometry/ECB-only mode or a "
             "damage-hit checkpoint pack"
         )
     if args.memory_probe_collision and not (

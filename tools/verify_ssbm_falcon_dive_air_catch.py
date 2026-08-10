@@ -15,6 +15,7 @@ from ssbm_collision import (
     canonical_json_sha256,
     captured_collision_margin,
     hurt_pose_tracks_semantic_payload,
+    q16_hurt_poses_equivalent,
 )
 
 
@@ -25,27 +26,32 @@ def maximum_grab_margin(
     memory: dict[str, Any],
     shift_x: float,
     shift_y: float,
-) -> float:
+) -> tuple[float, int]:
     hitboxes = [
         dict(hitbox)
         for hitbox in memory["hitboxes"]
         if float(hitbox["radius"]) > 0.0
     ]
     hurtboxes = [
-        dict(hurtbox)
-        for hurtbox in memory["opponent_hurtboxes"]
+        {**dict(hurtbox), "hurtbox_id": hurtbox_id}
+        for hurtbox_id, hurtbox in enumerate(memory["opponent_hurtboxes"])
         if int(hurtbox["state"]) == 0 and int(hurtbox["grabbable"]) != 0
     ]
     if not hitboxes or not hurtboxes:
         raise ValueError("capture has no active grab/hurt geometry")
-    margins: list[float] = []
+    margins: list[tuple[float, int]] = []
     for hitbox in hitboxes:
         for source_hurtbox in hurtboxes:
             hurtbox = copy.deepcopy(source_hurtbox)
             for endpoint in ("collision_position_a", "collision_position_b"):
                 hurtbox[endpoint][0] += shift_x
                 hurtbox[endpoint][1] += shift_y
-            margins.append(captured_collision_margin(hitbox, hurtbox, False))
+            margins.append(
+                (
+                    captured_collision_margin(hitbox, hurtbox, False),
+                    int(hurtbox["hurtbox_id"]),
+                )
+            )
     return max(margins)
 
 
@@ -56,7 +62,7 @@ def main() -> int:
     parser.add_argument(
         "--profile",
         type=Path,
-        default=repository / "tools/data/ssbm_falcon_jump_forward_hurt.json",
+        default=repository / "tools/data/ssbm_falcon_airborne_hurt.json",
     )
     parser.add_argument(
         "--manifest",
@@ -86,10 +92,9 @@ def main() -> int:
     if (
         hashlib.sha256(profile_bytes).hexdigest()
         != declaration.get("profile_sha256")
-        or profile.get("capture_sha256") != qualification.get("capture_sha256")
+        or profile.get("capture_sha256") != declaration.get("capture_sha256")
         or profile.get("fighter") != "CPTFALCON"
         or not isinstance(profile_tracks, list)
-        or len(profile_tracks) != 1
         or canonical_json_sha256(hurt_pose_tracks_semantic_payload(profile_tracks))
         != declaration.get("semantic_sha256")
     ):
@@ -127,8 +132,45 @@ def main() -> int:
             int(qualification["target_pending_frame"]): collision_frame
         },
     )
-    if extracted != profile_tracks[0]:
+    jump_forward_track = next(
+        (track for track in profile_tracks if track.get("id") == "jump_forward"),
+        None,
+    )
+    expected_frames = (
+        []
+        if not isinstance(jump_forward_track, dict)
+        else [
+            frame
+            for frame in jump_forward_track["frames"]
+            if 9 <= int(frame["displayed_frame"]) <= 20
+        ]
+    )
+    if len(expected_frames) != len(extracted["frames"]):
         raise SystemExit("Falcon Dive pending hurt pose no longer matches profile")
+    for extracted_frame, expected_frame in zip(
+        extracted["frames"], expected_frames, strict=True
+    ):
+        actual_pose = tuple(
+            tuple(int(value) for value in capsule)
+            for capsule in extracted_frame["capsules_q16"]
+        )
+        expected_pose = tuple(
+            tuple(int(value) for value in capsule)
+            for capsule in expected_frame["capsules_q16"]
+        )
+        if int(extracted_frame["displayed_frame"]) < 20:
+            if not q16_hurt_poses_equivalent(actual_pose, expected_pose):
+                raise SystemExit("Falcon Dive pre-catch JumpF pose drifted")
+        else:
+            hurtbox_id = int(qualification["target_collision_hurtbox_id"])
+            actual_capsule = next(
+                capsule for capsule in actual_pose if capsule[7] == hurtbox_id
+            )
+            expected_capsule = next(
+                capsule for capsule in expected_pose if capsule[7] == hurtbox_id
+            )
+            if actual_capsule != expected_capsule:
+                raise SystemExit("Falcon Dive colliding JumpF capsule drifted")
 
     memory = dict(collision["hitbox_memory"])
     attacker_position = [float(value) for value in memory["fighter_position"]]
@@ -153,13 +195,19 @@ def main() -> int:
     ]
     actual_dx = actual_target[0] - attacker_position[0]
     actual_dy = actual_target[1] - attacker_position[1]
+    actual_margin, actual_hurtbox_id = maximum_grab_margin(memory, 0.0, 0.0)
+    if (
+        actual_margin < 0.0
+        or actual_hurtbox_id != int(qualification["target_collision_hurtbox_id"])
+    ):
+        raise SystemExit("Falcon Dive live collision winner drifted")
     margins: list[float] = []
     for case in manifest["stored_oracle"]["cases"]:
         geometry = case["geometry_q16"]
         offset_x_q16, offset_y_q16 = geometry["target_offset_q16"]
         requested_dx = float(offset_x_q16) / MELEE_TO_SIM_Q16
         requested_dy = -float(offset_y_q16) / MELEE_TO_SIM_Q16
-        margin = maximum_grab_margin(
+        margin, _ = maximum_grab_margin(
             memory,
             requested_dx - actual_dx,
             requested_dy - actual_dy,
@@ -172,7 +220,8 @@ def main() -> int:
 
     print(
         "ssbm-falcon-dive-air-catch=pass "
-        f"poses={profile_tracks[0]['frame_count']} "
+        f"profile_poses={sum(int(track['frame_count']) for track in profile_tracks)} "
+        f"qualified_jump_forward_poses={extracted['frame_count']} "
         f"pending_target_frame={qualification['target_pending_frame']} "
         f"pending_attacker_frame={qualification['attacker_pending_frame']} "
         f"hit_margin={margins[0]:.9f} miss_margin={margins[1]:.9f} "

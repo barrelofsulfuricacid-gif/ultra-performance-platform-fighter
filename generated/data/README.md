@@ -55,6 +55,13 @@ and one nearby miss placement. The physical routes remain supplemental
 checkpoint projections, so they do not duplicate capsules or lengthen the
 default ledge trace pack.
 
+`m4_ssbm_falcon_airborne_hurt.inc` is the same generic format for Falcon's
+complete JumpF, JumpB, JumpAerialF, JumpAerialB, Fall, and FallAerial tracks.
+`tools/ssbm_falcon_airborne_hurt_import.json` pins the canonical 186-pose
+profile and generator counts; the Falcon Dive stored domain reuses this table
+for its frame-20 physical hit/miss theorem instead of retaining a partial
+JumpF-specific copy.
+
 `m4_ssbm_falcon_common_hurt_oracle.inc` is test-only generated metadata for the
 fast stored-equivalence lane. Its single authored source is
 `tools/ssbm_falcon_common_hurt_coverage.json`; the generic generator validates

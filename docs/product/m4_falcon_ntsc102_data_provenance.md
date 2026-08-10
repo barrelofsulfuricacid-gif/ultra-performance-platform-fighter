@@ -1015,6 +1015,30 @@ The resulting complete Falcon source SHA-256 is
 the generated include SHA-256 is
 `9587384e409f8275c03459d29f947e9f4a01c99c0a359d867bb3d354ffb67946`.
 
+## Complete ordinary airborne hurt poses
+
+The same 494-row physical route was captured twice with the
+collision-authoritative hurtbox probe, headless/null rendering, unlimited
+emulation speed, and fast-forward disabled so display-side bones remain live.
+The raw captures have distinct SHA-256 identities
+`cf458d593451c210b69fe45305c7affa992bf179d14aa2e3ce0b00e81d150a26`
+and
+`7f8aee28a613ca5b1ec5c1ea552b140ec515adbd28a4af071931c99d49ecfcab`,
+but canonicalize to the same 186-pose / 2,046-capsule semantic SHA-256
+`71c9e643816604f9d2e90cfc226b907e7ce7cb48edc4fa2fea51d6797013ee7f`.
+The six complete tracks are JumpF 35, JumpB 50, JumpAerialF 50,
+JumpAerialB 35, Fall 8, and FallAerial 8.
+
+`tools/generate_ssbm_hurt_pose_include.py` consumes the profile and its small
+binding manifest and emits one deduplicated immutable table. Runtime selects
+it by retained source submotion in O(1). The stored source and production
+digests are respectively
+`de89004396090825835ef3e8606d852fc3d1f41414f4c61c4fe139ed45079b4f`
+and
+`13763a74d044b686b5ae065e7120ac984d823cb8e31f7bf15597c16268277a72`.
+Falcon Dive's existing hit/miss theorem consumes JumpF frame 20 from this
+complete table; the prior 12-frame Dive-only JumpF table was deleted.
+
 ## Imported DamageFlyN complete collision pose
 
 Three independent owner captures in

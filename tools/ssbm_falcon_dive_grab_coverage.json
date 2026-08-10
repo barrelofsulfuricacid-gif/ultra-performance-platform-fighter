@@ -14,6 +14,7 @@
     "target_source_action": "JUMPING_FORWARD",
     "target_pending_frame": 20,
     "target_result_action": "CAPTURE_CAPTAIN",
+    "target_collision_hurtbox_id": 0,
     "attacker_hit_spheres_q16": [
       [39798, -57002, 0, 18698],
       [88431, -57002, 0, 29382]
@@ -22,18 +23,20 @@
   "selection": {
     "paths": [
       "generated/data/m4_ssbm_falcon_dive_grab_oracle.inc",
-      "generated/data/m4_ssbm_falcon_jump_forward_hurt.inc",
+      "generated/data/m4_ssbm_falcon_airborne_hurt.inc",
       "src/sim/sim_combat.c",
       "src/sim/sim_falcon_frame_data.c",
       "src/sim/sim_falcon_frame_data.h",
       "tests/sim/test_m4_combat.c",
-      "tools/data/ssbm_falcon_jump_forward_hurt.json",
+      "tools/data/ssbm_falcon_airborne_hurt.json",
       "tools/extract_ssbm_hurt_pose_tracks.py",
       "tools/generate_ssbm_hurt_pose_include.py",
       "tools/generate_ssbm_stored_oracle.py",
       "tools/ssbm_collision.py",
+      "tools/ssbm_falcon_airborne_routes.py",
       "tools/ssbm_falcon_dive_grab_coverage.json",
-      "tools/ssbm_falcon_jump_forward_hurt_import.json",
+      "tools/ssbm_falcon_airborne_hurt_import.json",
+      "tools/verify_ssbm_falcon_airborne_hurt.py",
       "tools/verify_ssbm_falcon_dive_air_catch.py"
     ]
   },
@@ -42,32 +45,44 @@
     "kind": "pose-geometry-v1",
     "pose_profiles": [
       {
-        "path": "data/ssbm_falcon_jump_forward_hurt.json",
-        "profile_sha256": "ca198cb02b56ecacb78efb9c4e25d7ee3b0c2e7fea303554fb1e5c439ae8c6b6",
-        "capture_sha256": "59a4489ea6e955c9bb587bb5e49bc5d34ce4cce6ae42accd98a24ff97e271a6f",
-        "semantic_sha256": "71d9ee617fc1824b7cd374a19448bd97e4e0cb5b3cfd567c34bbaeead26fd202",
+        "path": "data/ssbm_falcon_airborne_hurt.json",
+        "profile_sha256": "3eda3f573971b3f66e0e10e1087db444eb939cf67f6fb53ca72968ea730afb38",
+        "capture_sha256": "cf458d593451c210b69fe45305c7affa992bf179d14aa2e3ce0b00e81d150a26",
+        "semantic_sha256": "71c9e643816604f9d2e90cfc226b907e7ce7cb48edc4fa2fea51d6797013ee7f",
         "track_submotions": {
-          "jump_forward": "JUMP_FORWARD"
-        },
-        "track_first_action_frames": {
-          "jump_forward": 9
+          "jump_forward": "JUMP_FORWARD",
+          "jump_backward": "JUMP_BACKWARD",
+          "jump_aerial_forward": "JUMP_AERIAL_FORWARD",
+          "jump_aerial_backward": "JUMP_AERIAL_BACKWARD",
+          "fall": "FALL",
+          "fall_aerial": "FALL_AERIAL"
         }
       }
     ],
-    "source_pose_sha256": "0409481263f9d10432b7e6f7ccd7e10d7b8cce69e3ba05676170cf3fc4fa9254",
+    "source_pose_sha256": "de89004396090825835ef3e8606d852fc3d1f41414f4c61c4fe139ed45079b4f",
     "production_pose_serialization": "action-name-nul,source-frame-u16le,capsule-count-u8,capsules-seven-i32le-four-u8-v1",
-    "production_pose_sha256": "0409481263f9d10432b7e6f7ccd7e10d7b8cce69e3ba05676170cf3fc4fa9254",
-    "expected_pose_count": 12,
+    "production_pose_sha256": "13763a74d044b686b5ae065e7120ac984d823cb8e31f7bf15597c16268277a72",
+    "expected_pose_count": 186,
     "expected_capsules_per_pose": 11,
     "c": {
       "symbol_prefix": "pf_m4_ssbm_falcon_dive_grab",
       "macro_prefix": "PF_M4_SSBM_FALCON_DIVE_GRAB",
-      "track_count_expression": "1",
+      "track_count_expression": "6",
       "actions": {
-        "JUMPING_FORWARD": "PF_M4_ACTION_AIRBORNE"
+        "JUMPING_FORWARD": "PF_M4_ACTION_AIRBORNE",
+        "JUMPING_BACKWARD": "PF_M4_ACTION_AIRBORNE",
+        "JUMPING_ARIAL_FORWARD": "PF_M4_ACTION_AIRBORNE",
+        "JUMPING_ARIAL_BACKWARD": "PF_M4_ACTION_AIRBORNE",
+        "FALLING": "PF_M4_ACTION_AIRBORNE",
+        "FALLING_AERIAL": "PF_M4_ACTION_AIRBORNE"
       },
       "submotions": {
-        "JUMP_FORWARD": "PF_M4_FALCON_SUBMOTION_JUMP_FORWARD"
+        "JUMP_FORWARD": "PF_M4_FALCON_SUBMOTION_JUMP_FORWARD",
+        "JUMP_BACKWARD": "PF_M4_FALCON_SUBMOTION_JUMP_BACKWARD",
+        "JUMP_AERIAL_FORWARD": "PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD",
+        "JUMP_AERIAL_BACKWARD": "PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD",
+        "FALL": "PF_M4_FALCON_SUBMOTION_FALL",
+        "FALL_AERIAL": "PF_M4_FALCON_SUBMOTION_FALL_AERIAL"
       },
       "buttons": {},
       "moves": {

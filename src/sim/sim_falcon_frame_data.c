@@ -8,7 +8,7 @@
 #include "../../generated/data/m4_falcon_ntsc102_frame_data.inc"
 #include "../../generated/data/m4_falcon_ntsc102_hit_geometry.inc"
 #include "../../generated/data/m4_ssbm_falcon_ledge_hurt.inc"
-#include "../../generated/data/m4_ssbm_falcon_jump_forward_hurt.inc"
+#include "../../generated/data/m4_ssbm_falcon_airborne_hurt.inc"
 
 _Static_assert(
     (size_t)PF_M4_FALCON_LEDGE_HURT_COUNT ==
@@ -878,17 +878,45 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
             action_frame,
             out_count);
     }
-    if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE &&
-        source_submotion ==
-            (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_FORWARD)
+    if (action_state == (uint8_t)PF_M4_ACTION_AIRBORNE)
     {
-        return pf_m4_falcon_reference_hurt_track_at_frame(
-            &pf_m4_falcon_jump_forward_hurt_moves[
-                PF_M4_FALCON_JUMP_FORWARD_HURT_JUMP_FORWARD],
-            pf_m4_falcon_jump_forward_hurt_frames,
-            pf_m4_falcon_jump_forward_hurt_capsules,
-            action_frame,
-            out_count);
+        uint8_t airborne_track;
+
+        switch ((pf_m4_falcon_submotion_index)source_submotion)
+        {
+        case PF_M4_FALCON_SUBMOTION_JUMP_FORWARD:
+            airborne_track = PF_M4_FALCON_AIRBORNE_HURT_JUMP_FORWARD;
+            break;
+        case PF_M4_FALCON_SUBMOTION_JUMP_BACKWARD:
+            airborne_track = PF_M4_FALCON_AIRBORNE_HURT_JUMP_BACKWARD;
+            break;
+        case PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD:
+            airborne_track =
+                PF_M4_FALCON_AIRBORNE_HURT_JUMP_AERIAL_FORWARD;
+            break;
+        case PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD:
+            airborne_track =
+                PF_M4_FALCON_AIRBORNE_HURT_JUMP_AERIAL_BACKWARD;
+            break;
+        case PF_M4_FALCON_SUBMOTION_FALL:
+            airborne_track = PF_M4_FALCON_AIRBORNE_HURT_FALL;
+            break;
+        case PF_M4_FALCON_SUBMOTION_FALL_AERIAL:
+            airborne_track = PF_M4_FALCON_AIRBORNE_HURT_FALL_AERIAL;
+            break;
+        default:
+            airborne_track = UINT8_MAX;
+            break;
+        }
+        if (airborne_track != UINT8_MAX)
+        {
+            return pf_m4_falcon_reference_hurt_track_at_frame(
+                &pf_m4_falcon_airborne_hurt_moves[airborne_track],
+                pf_m4_falcon_airborne_hurt_frames,
+                pf_m4_falcon_airborne_hurt_capsules,
+                action_frame,
+                out_count);
+        }
     }
 
     switch ((pf_m4_action_state)action_state)

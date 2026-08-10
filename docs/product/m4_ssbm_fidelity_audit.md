@@ -51,6 +51,15 @@ threshold, and route differences are not.
 | Stocks, respawn, match result | partial | Deterministic four-stock flow exists; all tournament-rule and revival-platform details are not decomp-equivalent. |
 | Replay, save/load, rollback state, RL API | project-specific | These are deterministic project infrastructure and have no claim of equivalence to SSBM internals. |
 
+The ordinary-airborne hurt-pose inventory is now source-complete for the six
+runtime submotions currently retained by movement: JumpF, JumpB, JumpAerialF,
+JumpAerialB, Fall, and FallAerial. Two independent unlimited headless captures
+produce the same 186-pose / 2,046-capsule semantic payload SHA-256
+`71c9e643816604f9d2e90cfc226b907e7ce7cb48edc4fa2fea51d6797013ee7f`.
+Production uses one generated table under binary digest
+`13763a74d044b686b5ae065e7120ac984d823cb8e31f7bf15597c16268277a72`;
+the former 12-frame Dive-only JumpF copy no longer exists.
+
 Current Falcon Dive boundary: independent facing-toward and facing-away ledge
 theorems remain green, and production follows the decomp's bidirectional
 start-state ledge query. The capture-authored aerial catch placement is now a separate exact-position
@@ -70,7 +79,8 @@ presented as a general identical-input aerial-catch trajectory theorem.
    crouch-cancel, and collision formulas field by field.
 3. Capture common-state hurt poses beyond Initial Dash/RunBrake/CrouchStart/
    CrouchEnd/KneeBend/SpotDodge/RollForward/RollBackward/AirDodge/
-   FallSpecial/LandingFallSpecial/Landing and qualify remaining aerial-IASA branches and unsampled dynamic
+   FallSpecial/LandingFallSpecial/Landing/JumpF/JumpB/JumpAerialF/
+   JumpAerialB/Fall/FallAerial and qualify remaining aerial-IASA branches and unsampled dynamic
    routes without duplicating constants. Looping motions require exact phase/
    rate reconstruction rather than a guessed linear pose track.
 5. Validate native Windows, WSL Linux, Wasm/browser, replay, save/load, and
