@@ -112,8 +112,16 @@ and 1,149 non-standing opponent rows. Of those, 1,909 Falcon and 1,120 opponent 
 initialized, non-hitlag, action-owned pose samples whose complete capsule
 geometry also matches exactly. The unaccelerated control SHA-256 is
 `32a0a742012f360c1e49b27d2fb2023e16eac5af23694b032a3777d41ad16a9d`;
-the selected accelerated capture is
-`8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc`.
+the current regenerated accelerated capture is
+`3d1d6b0047fadc3dc53cef830f0784216e8967f0e7424a08736ca787bec26de6`.
+
+Moving hit/hurt geometry uses a separate headless/null/unlimited lane with
+display-bone fast-forward disabled. Fast-forward can skip a display-bone
+evaluation that supplies the previous endpoint for a state-3 moving hit sphere,
+so equal current poses are not sufficient qualification. Two independent
+2,974-row runs are compared with `--same-runner-repeat`: raw process addresses
+and idle/setup phase are excluded, while every route, action/frame, hit sphere,
+hurt capsule, and previous/current geometry identity remains strict.
 
 Measured on the local WSL host:
 

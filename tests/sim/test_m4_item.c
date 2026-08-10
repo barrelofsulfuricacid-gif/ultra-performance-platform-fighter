@@ -589,7 +589,7 @@ static int run_jump_cancel_throw_contract(
     test_storage storage;
     pf_sim *sim = NULL;
     pf_tick_result result;
-    pf_m4_inspection inspection;
+    pf_m4_inspection inspection = {0};
     const test_command attack = {
         INT16_MAX,
         INT16_C(0),

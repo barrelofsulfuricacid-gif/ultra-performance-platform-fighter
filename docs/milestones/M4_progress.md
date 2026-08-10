@@ -66,10 +66,34 @@ results, rematch/return-to-setup, the bounded rollback-safe typed event feed, an
   seconds on Windows and 0.783 seconds in WSL. WSL ASan/UBSan passes 25/25.
   The rebuilt Emscripten playtest, browser verifier, in-app-browser controls,
   and console smoke pass.
-- Exact geometry for new jab, angled-normal, pummel/capture, common-pose, and
-  shield-break orientation paths remains an import/evidence boundary. Dynamic
+- Exact geometry for pummel/capture, remaining common poses, and shield-break
+  orientation paths remains an import/evidence boundary. Dynamic
   rebirth targets, companions, broader stages/items, aerial item/tether
   callbacks, and match choreography require a wider model.
+
+## Implemented and verified in the executable ordinary-geometry follow-up
+
+- Consolidated the former independent ordinary hit- and hurt-geometry inputs
+  into one 2,974-row Dolphin 3.5.1 memory capture. It now covers Jab 3, rapid
+  jab, every forward-tilt angle, and Falcon's real high/mid/low forward-smash
+  variants in addition to the previously imported actions.
+- All routes use natural controller/action transitions. Angled tilts age their
+  diagonal input during Landing's locked frames before the first IASA update;
+  no action or animation frame is mutated. Jab 3 imports only its executable
+  frames 1-12, rapid jab canonicalizes each repeated active window to its
+  source command phase, and the non-executable forward-smash-low frame-63
+  extractor spill is rejected by live memory.
+- Two independent headless/null/unlimited captures have raw SHA-256
+  `aeff75c16b2041fbecc6b8ec2322a614e0695f0d3d9088eb44d60aedbdeb7ca0`
+  and `5a797d05fe1dfd30ee1a82b7ede3cac3c003a668d20dcd1d53b824450e19bd55`.
+  Their address-free, route-qualified semantic projections match across all
+  2,974 rows. Display-bone fast-forward is intentionally disabled because it
+  breaks state-3 previous/current moving-sphere identity.
+- Generated production geometry identity is
+  `652d912618489111cd78541321f32c0f56e3d495380d0b7e1182a1bce4e4a1f7`.
+  Strict Windows and WSL Release pass 34/34 in 0.83/0.77 seconds, WSL
+  ASan/UBSan passes 25/25, and all 18 stored domains / 108 cases plus replay
+  pass in 0.645 seconds on Windows and 0.539 seconds in WSL.
 
 ## Implemented in the TurnRun display-facing closure
 

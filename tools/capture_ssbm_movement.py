@@ -461,6 +461,15 @@ def input_trace(
                 command(
                     f"hitbox_geometry_{move}_opponent_pose_reset",
                     opponent_attack=True,
+                    fighter_x_override=-60.0,
+                    fighter_y_override=0.0001,
+                    fighter_self_velocity_x_override=0.0,
+                    fighter_self_velocity_y_override=0.0,
+                    fighter_knockback_velocity_x_override=0.0,
+                    fighter_knockback_velocity_y_override=0.0,
+                    fighter_position_state_reset=True,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
                 )
             )
             repeat(f"hitbox_geometry_{move}_settle", 29)
@@ -483,6 +492,39 @@ def input_trace(
             ],
         )
         isolated_route(
+            "jab3",
+            [
+                command(
+                    f"hitbox_geometry_jab3_input_{index}",
+                    attack=index in {0, 8, 16},
+                )
+                for index in range(17)
+            ],
+        )
+
+        # Four fresh A presses arm Falcon's source rapid-jab counter. Keep
+        # alternating press/release through Attack13 and Attack100Loop, then
+        # release long enough for the script-owned loop-exit gate to select
+        # Attack100End. One natural route therefore captures all three source
+        # submotions without action/frame mutation.
+        rapid_starter: list[dict[str, object]] = []
+        for index in range(40):
+            rapid_starter.append(
+                command(
+                    f"hitbox_geometry_rapidjabs_input_{index}",
+                    attack=index % 2 == 0,
+                )
+            )
+        isolated_route(
+            "rapidjabs_loop",
+            rapid_starter,
+            recovery_padding=(
+                move_total("rapidjabs_start")
+                + move_total("rapidjabs_end")
+                + 80
+            ),
+        )
+        isolated_route(
             "dashattack",
             [
                 command("hitbox_geometry_dashattack_dash", main_x=1.0),
@@ -496,6 +538,60 @@ def input_trace(
                 ),
             ],
         )
+        def angled_ftilt_starter(
+            move: str, main_x: float, main_y: float
+        ) -> None:
+            # Age the diagonal while Falcon is locked in ordinary Landing,
+            # then press A on the first source IASA frame. This reaches the
+            # source angle bands naturally without a fresh smash input or an
+            # action/frame override.
+            isolated_route(
+                move,
+                [
+                    command(
+                        f"hitbox_geometry_{move}_jump",
+                        jump=True,
+                    ),
+                    command(f"hitbox_geometry_{move}_jump_squat_1"),
+                    command(f"hitbox_geometry_{move}_jump_squat_2"),
+                    command(f"hitbox_geometry_{move}_jump_squat_3"),
+                    command(f"hitbox_geometry_{move}_jump_squat_4"),
+                    command(
+                        f"hitbox_geometry_{move}_land",
+                        main_x=main_x,
+                        main_y=main_y,
+                        fighter_y_override=1.0,
+                        fighter_self_velocity_x_override=0.0,
+                        fighter_self_velocity_y_override=-2.0,
+                        fighter_knockback_velocity_x_override=0.0,
+                        fighter_knockback_velocity_y_override=0.0,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_landing_2",
+                        main_x=main_x,
+                        main_y=main_y,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_landing_3",
+                        main_x=main_x,
+                        main_y=main_y,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_landing_4",
+                        main_x=main_x,
+                        main_y=main_y,
+                    ),
+                    command(
+                        f"hitbox_geometry_{move}_start",
+                        main_x=main_x,
+                        main_y=main_y,
+                        attack=True,
+                    ),
+                ],
+            )
+
+        angled_ftilt_starter("ftilt_h", 0.90, 0.65)
+        angled_ftilt_starter("ftilt_mh", 0.975, 0.645)
         isolated_route(
             "ftilt_m",
             [
@@ -506,6 +602,8 @@ def input_trace(
                 )
             ],
         )
+        angled_ftilt_starter("ftilt_ml", 0.975, 0.355)
+        angled_ftilt_starter("ftilt_l", 0.90, 0.35)
         isolated_route(
             "utilt",
             [command("hitbox_geometry_utilt_start", main_y=0.65, attack=True)],
@@ -515,8 +613,30 @@ def input_trace(
             [command("hitbox_geometry_dtilt_start", main_y=0.35, attack=True)],
         )
         isolated_route(
+            "fsmash_h",
+            [
+                command(
+                    "hitbox_geometry_fsmash_h_start",
+                    main_x=1.0,
+                    main_y=0.85,
+                    attack=True,
+                )
+            ],
+        )
+        isolated_route(
             "fsmash_m",
             [command("hitbox_geometry_fsmash_m_start", c_x=1.0)],
+        )
+        isolated_route(
+            "fsmash_l",
+            [
+                command(
+                    "hitbox_geometry_fsmash_l_start",
+                    main_x=1.0,
+                    main_y=0.15,
+                    attack=True,
+                )
+            ],
         )
         isolated_route(
             "usmash",

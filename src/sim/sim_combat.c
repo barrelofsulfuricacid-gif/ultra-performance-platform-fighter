@@ -792,10 +792,9 @@ static int pf_m4_attack_for_action(
             else if (action_state ==
                          (uint8_t)PF_M4_ACTION_RAPID_JAB_LOOP)
             {
-                /* The exact source effect/timing is available without pose
-                 * capture. Reuse the existing jab collision envelope until
-                 * Attack100's bone-space poses join the geometry artifact;
-                 * a zero-sized box would silently delete the sourced move. */
+                /* Custom content still needs a rectangular fallback. The
+                 * generated Falcon path selects the executable Attack100
+                 * spheres before this envelope reaches collision. */
                 out_attack->hitbox_offset_x_q16 =
                     fighter->jab_hitbox_offset_x_q16;
                 out_attack->hitbox_offset_y_q16 =

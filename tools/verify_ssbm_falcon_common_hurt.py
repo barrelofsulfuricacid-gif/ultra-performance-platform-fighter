@@ -22,7 +22,7 @@ from ssbm_checkpoint_manifest import projected_manifest
 
 
 EXPECTED_CAPTURE_SHA256 = (
-    "8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc"
+    "3d1d6b0047fadc3dc53cef830f0784216e8967f0e7424a08736ca787bec26de6"
 )
 EXPECTED_CHECKPOINT_POSE_SHA256 = (
     "3a1b182dc64ee6db6caa7cc316c633e3330a9001344ca88f5cd57a441b48cdf1"

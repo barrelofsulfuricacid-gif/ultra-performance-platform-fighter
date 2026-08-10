@@ -405,13 +405,18 @@ or primary damage no longer identifies the generated default.
 ## Executable hit geometry
 
 The complete 50-slot frame-data table above is distinct from animated spatial
-geometry. For every normal and aerial currently routed by production combat,
-plus standing and dash grab,
-an identical-input Dolphin 3.4.0 capture reads the live transformed attack
+geometry. A 2,974-row Dolphin 3.5.1 ExiAI headless/null/unlimited capture reads
+the live transformed attack
 spheres from the owner's `GALE01` NTSC 1.02 executable. The disc SHA-256 is
 `0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464`;
-the 1,933-row capture SHA-256 is
-`5a7ac3a35775b0352d48566d622860c846fa2907c4bef03f760080f2a18ba3e8`.
+the raw capture SHA-256 is
+`aeff75c16b2041fbecc6b8ec2322a614e0695f0d3d9088eb44d60aedbdeb7ca0`.
+An independent repeat has raw SHA-256
+`5a797d05fe1dfd30ee1a82b7ede3cac3c003a668d20dcd1d53b824450e19bd55`;
+`tools/verify_ssbm_oracle_acceleration.py --same-runner-repeat` removes process
+addresses and non-importable idle, hitlag, or inherited-pose noise and requires
+all 2,974 rows plus 1,312 qualified fighter and 504 opponent pose rows to match
+semantically.
 The memory layout and transforms were checked against `doldecomp/melee`
 revision `9509dc04406fb2028bfab01243841ba4787c0fb7`. The capture records the
 active `ftHit` spheres and converts each bone-relative point through the live
@@ -422,8 +427,10 @@ an unrelated effect row.
 
 `tools/import_ssbm_falcon_hit_geometry.py` converts that evidence into
 `generated/data/m4_falcon_ntsc102_hit_geometry.inc`. The compact table includes
-jab 1, jab 2, dash attack, forward/up/down tilt, forward/up/down smash, all five
-aerials, standing grab, dash grab, all three ordinary throw-hitbox actions,
+jab 1-3, the rapid-jab start/loop/end lifecycle, dash attack, all five forward-
+tilt angles, up/down tilt, Falcon's real high/mid/low forward smashes, up/down
+smash, all five aerials, standing grab, dash grab, and all three ordinary
+throw-hitbox actions,
 and every damaging or grabbing Falcon-
 special phase. The special capture set covers ground/air Falcon Punch;
 ground/air Raptor Boost start and hit; ground/air Falcon Dive start, catch, and
@@ -441,21 +448,27 @@ frames 7-8; dash grab's three spheres are live on frames 11-12. Grab collision
 uses the same fixed-capacity sphere path as attacks and considers only source
 hurt capsules whose live `grabbable` flag is set.
 
-The probe reads Falcon's 11 live `FighterHurtCapsule` records from
-`fighter+0x11a0` with stride `0x4c`. A second 1,948-row Dolphin capture, SHA-256
-`d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32`,
-records the acting Falcon on every displayed frame of all 16 routed
-normal/aerial/grab actions. Its full-hop, delayed-double-jump aerial setup keeps
-Falcon airborne through neutral-air and down-air frame 44. Additional hash-
+The resulting canonical geometry SHA-256 is
+`652d912618489111cd78541321f32c0f56e3d495380d0b7e1182a1bce4e4a1f7`.
+Jab 3 contributes only live-reachable frames 1-12; rapid jab maps each repeated
+active window to its canonical source command phase. The importer rejects the
+static extractor's non-executable forward-smash-low frame-63 spill because live
+hit memory is inactive after frame 21.
+
+The same probe reads Falcon's 11 live `FighterHurtCapsule` records from
+`fighter+0x11a0` with stride `0x4c`; one route-qualified capture now owns both
+hit and hurt geometry instead of maintaining duplicate ordinary-action traces.
+It records every executable displayed frame of all 26 concrete ordinary action
+slots before pummel. Additional hash-
 pinned executable captures cover every displayed frame of all 17 Falcon
 special subactions. The final wall-rebound row reuses the source-defined Falcon
 Dive throw animation exactly as the pinned DAT motion-state table does; it is
 not an invented pose. The importer rejects even one missing source frame
 instead of cloning the previous pose. The phase-pinned Stand frame-18 pose
-remains the grounded-idle route. A third 4,198-row Slippi Dolphin 3.5.1 ExiAI
+remains the grounded-idle route. A separate 4,198-row Slippi Dolphin 3.5.1 ExiAI
 capture,
 SHA-256
-`8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc`,
+`3d1d6b0047fadc3dc53cef830f0784216e8967f0e7424a08736ca787bec26de6`,
 adds every displayed Initial Dash frame 1-15, RunBrake frame 1-28, CrouchStart
 frame 1-7, CrouchEnd frame 1-10, KneeBend frame 1-4, SpotDodge frame 1-32,
 RollForward frame 1-31, RollBackward frame 1-31, AirDodge frame 1-49,

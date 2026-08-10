@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qualify an accelerated ExiAI capture against an unaccelerated control."""
+"""Compare accelerated/control or independent same-runner oracle captures."""
 
 from __future__ import annotations
 
@@ -166,22 +166,42 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("control", type=Path)
     parser.add_argument("accelerated", type=Path)
+    parser.add_argument(
+        "--same-runner-repeat",
+        action="store_true",
+        help=(
+            "compare two captures from the same oracle mode after removing "
+            "address and non-action-owned idle-pose noise"
+        ),
+    )
     args = parser.parse_args()
 
     control = json.loads(args.control.read_text(encoding="utf-8"))
     accelerated = json.loads(args.accelerated.read_text(encoding="utf-8"))
     control_execution = control.get("oracle_execution", {})
     accelerated_execution = accelerated.get("oracle_execution", {})
-    if control_execution.get("mode") != "stock":
-        parser.error("control capture must use oracle_execution.mode=stock")
-    if accelerated_execution.get("mode") != "exiai-headless-null-fast-forward":
-        parser.error("accelerated capture must use the ExiAI fast-forward mode")
+    if args.same_runner_repeat:
+        if control_execution.get("mode") != accelerated_execution.get("mode"):
+            parser.error("repeat captures must use the same oracle mode")
+    else:
+        if control_execution.get("mode") != "stock":
+            parser.error("control capture must use oracle_execution.mode=stock")
+        if (
+            accelerated_execution.get("mode")
+            != "exiai-headless-null-fast-forward"
+        ):
+            parser.error("accelerated capture must use the ExiAI fast-forward mode")
 
     normalized_control = normalized_capture(control)
     normalized_accelerated = normalized_capture(accelerated)
     if normalized_control != normalized_accelerated:
+        result = (
+            "ssbm-oracle-repeat"
+            if args.same_runner_repeat
+            else "ssbm-oracle-acceleration"
+        )
         raise SystemExit(
-            "ssbm-oracle-acceleration=fail "
+            f"{result}=fail "
             + first_difference(normalized_control, normalized_accelerated)
         )
 
@@ -201,15 +221,25 @@ def main() -> int:
         and row["opponent_hitlag_left"] <= 0
         for row in control["rows"]
     )
+    result = (
+        "ssbm-oracle-repeat"
+        if args.same_runner_repeat
+        else "ssbm-oracle-acceleration"
+    )
+    digest_labels = (
+        ("first_sha256", "repeat_sha256")
+        if args.same_runner_repeat
+        else ("control_sha256", "accelerated_sha256")
+    )
     print(
-        "ssbm-oracle-acceleration=pass "
+        f"{result}=pass "
         f"rows={len(control['rows'])} "
         f"active_fighter_rows={active_fighter_rows} "
         f"active_opponent_rows={active_opponent_rows} "
         f"qualified_fighter_pose_rows={qualified_fighter_pose_rows} "
         f"qualified_opponent_pose_rows={qualified_opponent_pose_rows} "
-        f"control_sha256={sha256(args.control)} "
-        f"accelerated_sha256={sha256(args.accelerated)}"
+        f"{digest_labels[0]}={sha256(args.control)} "
+        f"{digest_labels[1]}={sha256(args.accelerated)}"
     )
     return 0
 

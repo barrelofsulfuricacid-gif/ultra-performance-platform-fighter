@@ -25,14 +25,11 @@ from ssbm_collision import (
 EXPECTED_FULL_SOURCE_SHA256 = (
     "287d53686aedb7469e455600cd749001b2f1a04081158236f26b1fae205f6dde"
 )
-EXPECTED_CAPTURE_SHA256 = (
-    "5a7ac3a35775b0352d48566d622860c846fa2907c4bef03f760080f2a18ba3e8"
-)
-EXPECTED_HURT_CAPTURE_SHA256 = (
-    "d9fea72b7eb86447e5bd53b2157ec7f3dde9a27f02a28750ec4964ab6bd7ef32"
+EXPECTED_GEOMETRY_CAPTURE_SHA256 = (
+    "aeff75c16b2041fbecc6b8ec2322a614e0695f0d3d9088eb44d60aedbdeb7ca0"
 )
 EXPECTED_COMMON_HURT_CAPTURE_SHA256 = (
-    "8ddb3245936d9ded82763481010e67f5968dbe7b50d14fe251db4ae25fedfbcc"
+    "3d1d6b0047fadc3dc53cef830f0784216e8967f0e7424a08736ca787bec26de6"
 )
 EXPECTED_THROW_CAPTURE_SHA256 = (
     "368c623e49231aff0f70c8aa687345f10e615b121a675dbddcb8abd99a3a0b95"
@@ -108,11 +105,21 @@ COMMON_HURT_ACTIONS = (
 ACTION_BY_MOVE = {
     "jab1": "NEUTRAL_ATTACK_1",
     "jab2": "NEUTRAL_ATTACK_2",
+    "jab3": "NEUTRAL_ATTACK_3",
+    "rapidjabs_start": "LOOPING_ATTACK_START",
+    "rapidjabs_loop": "LOOPING_ATTACK_MIDDLE",
+    "rapidjabs_end": "LOOPING_ATTACK_END",
     "dashattack": "DASH_ATTACK",
+    "ftilt_h": "FTILT_HIGH",
+    "ftilt_mh": "FTILT_HIGH_MID",
     "ftilt_m": "FTILT_MID",
+    "ftilt_ml": "FTILT_LOW_MID",
+    "ftilt_l": "FTILT_LOW",
     "utilt": "UPTILT",
     "dtilt": "DOWNTILT",
+    "fsmash_h": "FSMASH_HIGH",
     "fsmash_m": "FSMASH_MID",
+    "fsmash_l": "FSMASH_LOW",
     "usmash": "UPSMASH",
     "dsmash": "DOWNSMASH",
     "grab": "GRAB",
@@ -170,6 +177,14 @@ ACTION_VALUE_BY_MOVE = {
 # frame 14. Every other routed move matches the static active-frame set.
 EXECUTABLE_ACTIVE_FRAMES = {
     "jab2": frozenset({5, 6, 7}),
+    "jab3": frozenset(range(6, 13)),
+    "rapidjabs_loop": frozenset(
+        {5, 6, 13, 14, 21, 22, 29, 30, 36, 37}
+    ),
+    # The static FigaTree extractor bleeds the following submotion's create
+    # commands into Falcon AttackS4Lw frame 63. The live action has already
+    # cleared its two real forward-smash spheres after frames 18-21.
+    "fsmash_l": frozenset(range(18, 22)),
     "grab": frozenset({7, 8}),
     "dashgrab": frozenset({11, 12}),
     "uair": frozenset(range(6, 14)),
@@ -179,8 +194,17 @@ EXECUTABLE_ACTIVE_FRAMES = {
     "0x135": frozenset({1, 2}),
     "0x13a": frozenset({0, 1}),
 }
+EXECUTABLE_HURT_FRAMES = {
+    # Falcon necessarily accumulates the four A press/release edges required
+    # by Attack100 while chaining into Attack13. The source callback therefore
+    # leaves Attack13 after its twelfth displayed pose; frames 13-31 are not a
+    # runtime Falcon route and are not cloned into the production table.
+    "jab3": frozenset(range(1, 13)),
+}
 SOURCE_FRAME_OFFSET = {
     "jab2": -1,
+    "jab3": -1,
+    "rapidjabs_loop": -1,
     "grab": -1,
     "dashgrab": -1,
     "0x135": 2,
@@ -189,6 +213,36 @@ SOURCE_FRAME_OFFSET = {
 LIVE_EFFECT_ONLY_FRAMES = {"0x139": frozenset(range(26, 30))}
 POSE_ALIAS = {"0x13d": "0x136"}
 THROW_MOVE_KEYS = frozenset({"fthrow", "bthrow", "uthrow", "dthrow"})
+HITBOX_CAPTURE_MOVE_KEYS = frozenset(
+    {
+        "jab1",
+        "jab2",
+        "jab3",
+        "rapidjabs_start",
+        "rapidjabs_loop",
+        "rapidjabs_end",
+        "dashattack",
+        "ftilt_h",
+        "ftilt_mh",
+        "ftilt_m",
+        "ftilt_ml",
+        "ftilt_l",
+        "utilt",
+        "dtilt",
+        "fsmash_h",
+        "fsmash_m",
+        "fsmash_l",
+        "usmash",
+        "dsmash",
+        "grab",
+        "dashgrab",
+        "nair",
+        "fair",
+        "bair",
+        "uair",
+        "dair",
+    }
+)
 
 
 def file_sha256(path: Path) -> str:
@@ -378,6 +432,20 @@ def row_matches_move(row: dict[str, Any], move_key: str) -> bool:
     return action_value is None or int(row["action_value"]) == action_value
 
 
+def capture_row_matches_move(row: dict[str, Any], move_key: str) -> bool:
+    """Select one coherent live route when a chain repeats an action."""
+    if not row_matches_move(row, move_key):
+        return False
+    if move_key not in HITBOX_CAPTURE_MOVE_KEYS:
+        return True
+    route_move = (
+        "rapidjabs" if move_key.startswith("rapidjabs_") else move_key
+    )
+    return str(row.get("label", "")).startswith(
+        f"hitbox_geometry_{route_move}_"
+    )
+
+
 def active_frames(move: dict[str, Any]) -> set[int]:
     return {
         frame
@@ -400,12 +468,21 @@ def hitboxes_for_frame(move: dict[str, Any], action_frame: int) -> list[dict[str
     return sorted(phases[0]["hitboxes"], key=lambda hitbox: int(hitbox["id"]))
 
 
+def source_hitbox_frame(move_key: str, action_frame: int) -> int:
+    """Map executable post-pose frames to the decoded source effect phase."""
+    if move_key == "rapidjabs_loop":
+        # The extractor canonicalizes Attack100Loop's repeated create/delete
+        # commands to its first 4-5 phase. The executable repeats that exact
+        # two-frame effect at five observed windows.
+        return 4 if action_frame in {5, 13, 21, 29, 36} else 5
+    return action_frame + SOURCE_FRAME_OFFSET.get(move_key, 0)
+
+
 def generate(
     timing_data: dict[str, Any],
     full_data: dict[str, Any],
     dat_data: dict[str, Any],
-    hit_capture: dict[str, Any],
-    hurt_capture: dict[str, Any],
+    geometry_capture: dict[str, Any],
     common_hurt_capture: dict[str, Any],
     throw_capture: dict[str, Any],
     special_captures: list[dict[str, Any]],
@@ -419,12 +496,16 @@ def generate(
         for row in capture["rows"]
         if int(row["action_value"]) in SPECIAL_CAPTURE_ACTION_VALUES[digest]
     ]
-    rows = list(hit_capture["rows"]) + list(throw_capture["rows"]) + special_rows
+    rows = (
+        list(geometry_capture["rows"])
+        + list(throw_capture["rows"])
+        + special_rows
+    )
     # Throw animation rate depends on the captured fighter's weight, so its
     # hurt poses require a separate weight-qualified time axis. Keep this
     # import scoped to the throw attack spheres; do not pretend the raw
     # animation-frame samples are one fixed-tick hurt-pose sequence.
-    hurt_rows = list(hurt_capture["rows"]) + special_rows
+    hurt_rows = list(geometry_capture["rows"]) + special_rows
     frames: list[dict[str, int]] = []
     spheres: list[dict[str, int]] = []
     geometry_moves: list[dict[str, int]] = []
@@ -554,7 +635,7 @@ def generate(
         total_frames = int(timing_move["totalFrames"])
         hurt_by_frame: dict[int, tuple[tuple[int, ...], ...]] = {}
         for row in hurt_rows:
-            if not row_matches_move(row, capture_move_key):
+            if not capture_row_matches_move(row, capture_move_key):
                 continue
             raw_frame = float(row["action_frame"])
             action_frame = round(raw_frame)
@@ -580,7 +661,13 @@ def generate(
                 )
             hurt_by_frame[action_frame] = pose
         expected_hurt_frames = (
-            set() if move_key in THROW_MOVE_KEYS else set(range(1, total_frames + 1))
+            set()
+            if move_key in THROW_MOVE_KEYS
+            else set(
+                EXECUTABLE_HURT_FRAMES.get(
+                    move_key, frozenset(range(1, total_frames + 1))
+                )
+            )
         )
         if set(hurt_by_frame) != expected_hurt_frames:
             raise ValueError(
@@ -609,7 +696,7 @@ def generate(
             {
                 "frame_offset": hurt_frame_offset,
                 "first_frame": 0 if move_key in THROW_MOVE_KEYS else 1,
-                "frame_count": 0 if move_key in THROW_MOVE_KEYS else total_frames,
+                "frame_count": len(expected_hurt_frames),
             }
         )
         source_frames = active_frames(full_move)
@@ -622,7 +709,7 @@ def generate(
         captured_by_frame: dict[int, dict[str, Any]] = {}
         last_captured_by_frame: dict[int, dict[str, Any]] = {}
         for row in rows:
-            if not row_matches_move(row, capture_move_key):
+            if not capture_row_matches_move(row, capture_move_key):
                 continue
             memory = dict(row["hitbox_memory"])
             active = [
@@ -673,8 +760,8 @@ def generate(
                 fighter_position = [
                     float(value) for value in memory["fighter_position"]
                 ]
-                source_action_frame = action_frame + SOURCE_FRAME_OFFSET.get(
-                    move_key, 0
+                source_action_frame = source_hitbox_frame(
+                    move_key, action_frame
                 )
                 captured_hitboxes = [dict(hitbox) for hitbox in memory["hitboxes"]]
                 if action_frame in LIVE_EFFECT_ONLY_FRAMES.get(move_key, frozenset()):
@@ -877,8 +964,8 @@ def generate(
     lines = [
         "/* Generated by tools/import_ssbm_falcon_hit_geometry.py. */",
         f"/* full source SHA-256: {EXPECTED_FULL_SOURCE_SHA256} */",
-        f"/* hit-sphere capture SHA-256: {EXPECTED_CAPTURE_SHA256} */",
-        f"/* hurt-pose capture SHA-256: {EXPECTED_HURT_CAPTURE_SHA256} */",
+        f"/* executable geometry capture SHA-256: "
+        f"{EXPECTED_GEOMETRY_CAPTURE_SHA256} */",
         f"/* common hurt-pose capture SHA-256: "
         f"{EXPECTED_COMMON_HURT_CAPTURE_SHA256} */",
         f"/* throw capture SHA-256: {EXPECTED_THROW_CAPTURE_SHA256} */",
@@ -1069,8 +1156,7 @@ def main() -> int:
     parser.add_argument("timing_source", type=Path)
     parser.add_argument("full_source", type=Path)
     parser.add_argument("dat_source", type=Path)
-    parser.add_argument("hit_capture", type=Path)
-    parser.add_argument("hurt_capture", type=Path)
+    parser.add_argument("geometry_capture", type=Path)
     parser.add_argument("common_hurt_capture", type=Path)
     parser.add_argument("throw_capture", type=Path)
     parser.add_argument("output", type=Path)
@@ -1087,15 +1173,11 @@ def main() -> int:
     dat_digest = file_sha256(args.dat_source)
     if dat_digest != SOURCE_DAT_JSON_SHA256:
         raise SystemExit(f"unexpected Falcon DAT JSON SHA-256: {dat_digest}")
-    hit_capture_digest = file_sha256(args.hit_capture)
-    if hit_capture_digest != EXPECTED_CAPTURE_SHA256:
+    geometry_capture_digest = file_sha256(args.geometry_capture)
+    if geometry_capture_digest != EXPECTED_GEOMETRY_CAPTURE_SHA256:
         raise SystemExit(
-            "unexpected Dolphin hit-sphere capture SHA-256: " f"{hit_capture_digest}"
-        )
-    hurt_capture_digest = file_sha256(args.hurt_capture)
-    if hurt_capture_digest != EXPECTED_HURT_CAPTURE_SHA256:
-        raise SystemExit(
-            "unexpected Dolphin hurt-pose capture SHA-256: " f"{hurt_capture_digest}"
+            "unexpected Dolphin executable-geometry capture SHA-256: "
+            f"{geometry_capture_digest}"
         )
     common_hurt_capture_digest = file_sha256(args.common_hurt_capture)
     if common_hurt_capture_digest != EXPECTED_COMMON_HURT_CAPTURE_SHA256:
@@ -1119,8 +1201,9 @@ def main() -> int:
         )
     full_data = json.loads(args.full_source.read_text(encoding="utf-8"))
     dat_data = json.loads(args.dat_source.read_text(encoding="utf-8"))
-    hit_capture = json.loads(args.hit_capture.read_text(encoding="utf-8"))
-    hurt_capture = json.loads(args.hurt_capture.read_text(encoding="utf-8"))
+    geometry_capture = json.loads(
+        args.geometry_capture.read_text(encoding="utf-8")
+    )
     common_hurt_capture = json.loads(
         args.common_hurt_capture.read_text(encoding="utf-8")
     )
@@ -1138,8 +1221,21 @@ def main() -> int:
     special_captures = [
         json.loads(path.read_text(encoding="utf-8")) for path in args.special_capture
     ]
-    validate_capture(hit_capture, 8)
-    validate_capture(hurt_capture, 9)
+    geometry_execution = dict(geometry_capture.get("oracle_execution", {}))
+    if (
+        geometry_execution.get("mode") != "exiai-headless-null-unlimited"
+        or geometry_execution.get("release") != "exi-ai-0.2.0"
+        or geometry_execution.get("release_artifact_sha256")
+        != EXPECTED_COMMON_HURT_ORACLE_SHA256
+        or geometry_capture.get("libmelee_version")
+        != EXPECTED_COMMON_HURT_LIBMELEE_VERSION
+    ):
+        raise SystemExit("unexpected accelerated geometry-oracle provenance")
+    validate_capture(
+        geometry_capture,
+        9,
+        EXPECTED_COMMON_HURT_DOLPHIN_VERSION,
+    )
     validate_capture(
         common_hurt_capture,
         9,
@@ -1152,8 +1248,7 @@ def main() -> int:
         timing_data,
         full_data,
         dat_data,
-        hit_capture,
-        hurt_capture,
+        geometry_capture,
         common_hurt_capture,
         throw_capture,
         special_captures,

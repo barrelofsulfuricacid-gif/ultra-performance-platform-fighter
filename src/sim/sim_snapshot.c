@@ -2898,8 +2898,9 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                     INT8_C(-1) ||
                 world->previous_strong_direction[player_index] >
                     INT8_C(1) ||
-                (world->previous_directional_input_flags[player_index] &
-                 (uint8_t)~PF_M4_DIRECTIONAL_INPUT_ALL) != UINT8_C(0) ||
+                (world->previous_directional_input_flags[player_index] |
+                 PF_M4_DIRECTIONAL_INPUT_ALL) !=
+                    PF_M4_DIRECTIONAL_INPUT_ALL ||
                 (((world->previous_directional_input_flags[player_index] &
                    PF_M4_DIRECTIONAL_INPUT_METEOR_CANCEL) != UINT8_C(0)) &&
                  action != (uint8_t)PF_M4_ACTION_HITSTUN &&

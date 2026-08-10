@@ -26327,6 +26327,15 @@ static int run_falcon_reference_table_test(void)
     uint8_t jab_sphere_count = UINT8_C(0);
     uint8_t jab_continuing_sphere_count = UINT8_C(0);
     uint8_t jab2_sphere_count = UINT8_C(0);
+    uint8_t jab3_sphere_count = UINT8_C(0);
+    uint8_t rapid_jab_sphere_count = UINT8_C(0);
+    uint8_t rapid_jab_repeat_sphere_count = UINT8_C(0);
+    uint8_t forward_tilt_high_sphere_count = UINT8_C(0);
+    uint8_t forward_tilt_sphere_count = UINT8_C(0);
+    uint8_t forward_tilt_low_sphere_count = UINT8_C(0);
+    uint8_t forward_smash_high_sphere_count = UINT8_C(0);
+    uint8_t forward_smash_sphere_count = UINT8_C(0);
+    uint8_t forward_smash_low_sphere_count = UINT8_C(0);
     uint8_t up_smash_sphere_count = UINT8_C(0);
     uint8_t grab_sphere_count = UINT8_C(0);
     uint8_t dash_grab_sphere_count = UINT8_C(0);
@@ -26382,6 +26391,51 @@ static int run_falcon_reference_table_test(void)
             PF_M4_FALCON_JAB2,
             UINT16_C(5),
             &jab2_sphere_count);
+    const pf_m4_reference_hit_sphere *jab3_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_JAB3,
+            UINT16_C(6),
+            &jab3_sphere_count);
+    const pf_m4_reference_hit_sphere *rapid_jab_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_RAPID_JABS_LOOP,
+            UINT16_C(5),
+            &rapid_jab_sphere_count);
+    const pf_m4_reference_hit_sphere *rapid_jab_repeat_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_RAPID_JABS_LOOP,
+            UINT16_C(13),
+            &rapid_jab_repeat_sphere_count);
+    const pf_m4_reference_hit_sphere *forward_tilt_high_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_TILT_HIGH,
+            UINT16_C(9),
+            &forward_tilt_high_sphere_count);
+    const pf_m4_reference_hit_sphere *forward_tilt_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_TILT,
+            UINT16_C(9),
+            &forward_tilt_sphere_count);
+    const pf_m4_reference_hit_sphere *forward_tilt_low_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_TILT_LOW,
+            UINT16_C(9),
+            &forward_tilt_low_sphere_count);
+    const pf_m4_reference_hit_sphere *forward_smash_high_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_SMASH_HIGH,
+            UINT16_C(18),
+            &forward_smash_high_sphere_count);
+    const pf_m4_reference_hit_sphere *forward_smash_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_SMASH,
+            UINT16_C(18),
+            &forward_smash_sphere_count);
+    const pf_m4_reference_hit_sphere *forward_smash_low_spheres =
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_SMASH_LOW,
+            UINT16_C(18),
+            &forward_smash_low_sphere_count);
     const pf_m4_reference_hit_sphere *up_smash_spheres =
         pf_m4_falcon_reference_hit_spheres_at_frame(
             PF_M4_FALCON_UP_SMASH,
@@ -27270,6 +27324,64 @@ static int run_falcon_reference_table_test(void)
     {
         return fail("falcon-reference-timing");
     }
+    if (jab3_spheres == NULL || jab3_sphere_count != UINT8_C(2) ||
+        jab3_spheres[0].offset_x_q16 != INT32_C(47475) ||
+        jab3_spheres[0].offset_y_q16 != INT32_C(-80451) ||
+        jab3_spheres[0].radius_q16 != INT32_C(34725) ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_JAB3,
+            UINT16_C(5),
+            NULL) != NULL ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_JAB3,
+            UINT16_C(13),
+            NULL) != NULL)
+    {
+        return fail("falcon-reference-jab3-hit-geometry");
+    }
+    if (rapid_jab_spheres == NULL ||
+        rapid_jab_sphere_count != UINT8_C(2) ||
+        rapid_jab_spheres[0].offset_x_q16 != INT32_C(58668) ||
+        rapid_jab_spheres[0].offset_y_q16 != INT32_C(-91737) ||
+        rapid_jab_repeat_spheres == NULL ||
+        rapid_jab_repeat_sphere_count != UINT8_C(2) ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_RAPID_JABS_LOOP,
+            UINT16_C(7),
+            NULL) != NULL)
+    {
+        return fail("falcon-reference-rapid-jab-hit-geometry");
+    }
+    if (forward_tilt_high_spheres == NULL ||
+        forward_tilt_high_sphere_count != UINT8_C(3) ||
+        forward_tilt_spheres == NULL ||
+        forward_tilt_sphere_count != UINT8_C(3) ||
+        forward_tilt_low_spheres == NULL ||
+        forward_tilt_low_sphere_count != UINT8_C(3) ||
+        forward_tilt_high_spheres[0].offset_y_q16 ==
+            forward_tilt_spheres[0].offset_y_q16 ||
+        forward_tilt_low_spheres[0].offset_y_q16 ==
+            forward_tilt_spheres[0].offset_y_q16)
+    {
+        return fail("falcon-reference-angled-forward-tilt-hit-geometry");
+    }
+    if (forward_smash_high_spheres == NULL ||
+        forward_smash_high_sphere_count != UINT8_C(2) ||
+        forward_smash_spheres == NULL ||
+        forward_smash_sphere_count != UINT8_C(2) ||
+        forward_smash_low_spheres == NULL ||
+        forward_smash_low_sphere_count != UINT8_C(2) ||
+        forward_smash_high_spheres[1].offset_y_q16 ==
+            forward_smash_spheres[1].offset_y_q16 ||
+        forward_smash_low_spheres[1].offset_y_q16 ==
+            forward_smash_spheres[1].offset_y_q16 ||
+        pf_m4_falcon_reference_hit_spheres_at_frame(
+            PF_M4_FALCON_FORWARD_SMASH_LOW,
+            UINT16_C(63),
+            NULL) != NULL)
+    {
+        return fail("falcon-reference-angled-forward-smash-hit-geometry");
+    }
     if (jab_spheres == NULL || jab_sphere_count != UINT8_C(3) ||
         jab_spheres[0].offset_x_q16 != INT32_C(72548) ||
         jab_spheres[0].offset_y_q16 != INT32_C(-73843) ||
@@ -27571,10 +27683,10 @@ static int run_falcon_reference_table_test(void)
         neutral_special_air_hurt_capsules == NULL ||
         neutral_special_air_hurt_capsule_count != UINT8_C(11) ||
         geometry_sha256 == NULL ||
-        geometry_sha256[0] != UINT8_C(0x37) ||
-        geometry_sha256[1] != UINT8_C(0x7f) ||
-        geometry_sha256[30] != UINT8_C(0xe6) ||
-        geometry_sha256[31] != UINT8_C(0x45) ||
+        geometry_sha256[0] != UINT8_C(0x65) ||
+        geometry_sha256[1] != UINT8_C(0x2d) ||
+        geometry_sha256[30] != UINT8_C(0xa1) ||
+        geometry_sha256[31] != UINT8_C(0xf7) ||
         pf_m4_falcon_reference_hurt_capsules_at_frame(
             PF_M4_FALCON_JAB1,
             UINT16_C(0),
