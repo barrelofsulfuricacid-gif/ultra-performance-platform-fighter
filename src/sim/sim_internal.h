@@ -147,6 +147,7 @@ static inline int pf_m4_action_retains_source_submotion(
     uint8_t hitlag_resume_action)
 {
     const int action_owns_submotion =
+        action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         action_state == (uint8_t)PF_M4_ACTION_WALK ||
         action_state == (uint8_t)PF_M4_ACTION_RUN ||
         action_state == (uint8_t)PF_M4_ACTION_AIRBORNE ||
@@ -172,6 +173,7 @@ static inline int pf_m4_action_retains_source_submotion(
         pf_m4_action_uses_fall_special_pose(action_state) ||
         pf_m4_action_uses_direct_hsd_pose(action_state);
     const int resume_owns_submotion =
+        hitlag_resume_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_WALK ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_AIRBORNE ||
@@ -227,6 +229,19 @@ static inline int pf_m4_action_uses_velocity_animation_clock(
            effective_action == (uint8_t)PF_M4_ACTION_RUN;
 }
 
+static inline int pf_m4_action_uses_ground_animation_clock(
+    uint8_t action_state,
+    uint8_t hitlag_resume_action)
+{
+    return pf_m4_effective_action_state(
+               action_state,
+               hitlag_resume_action) ==
+               (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+           pf_m4_action_uses_velocity_animation_clock(
+               action_state,
+               hitlag_resume_action);
+}
+
 static inline int pf_m4_action_uses_source_animation_clock(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
@@ -235,7 +250,7 @@ static inline int pf_m4_action_uses_source_animation_clock(
         action_state,
         hitlag_resume_action);
 
-    return pf_m4_action_uses_velocity_animation_clock(
+    return pf_m4_action_uses_ground_animation_clock(
                action_state,
                hitlag_resume_action) ||
            effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||

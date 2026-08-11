@@ -45,6 +45,7 @@ controls. Remaining common-state poses stay explicitly incomplete.
 
 | System | Status | Evidence and remaining gap |
 |---|---|---|
+| Base standing/Wait animation and collision pose | partial | A bounded native SquatRv entry produces two independent 60-row captures with identical semantic payload. The shared compact HSD evaluator matches both captures over direct Wait frames 6-59: 108 observations / 1,188 hurt capsules plus ECB, with maximum one-Q16 coordinate error. Production retains Wait identity and advances its exact frame/rate clock, using the source-derived collision pose from frame 6 onward. Frames 0-5 are the still-unmodeled six-frame SquatRv-to-Wait blend. At base-Wait completion, SSBM selects Wait2/Wait3 through the process-global HSD RNG; production currently clamps frame 59, so the complete idle lifecycle is not yet equivalent. |
 | Stick aging, dead zones, dash/jump recognition | equivalent | Fresh horizontal/vertical tilt age, reversal reset, 0.80 dash threshold with two-tick dash window, and 0.6625 tap-jump threshold with four-tick window follow the common input/decomp routes. Just-below/above and slow/two-sample tap-jump controls match the executable. |
 | Initial dash and dash physics | equivalent | One-shot Falcon 2.0 impulse with no entry-frame displacement, full A/B dash acceleration from the next frame, held transition after 15 displayed dash frames, and released completion after 28 displayed dash frames match the executable oracle. Every displayed Dash hurt pose is imported; a pinned Falcon Jab 1 route hits at 31.0 Melee units and misses at 31.5, while the old generic body rectangle misses the positive route by 3.503404617 units. |
 | Walk/run acceleration and friction | equivalent | The generated typed view of Falcon's raw NTSC 1.02 common attributes drives the runtime friction-aware target/overshoot formulas; slow stick motion enters walk rather than dash. |
@@ -98,8 +99,9 @@ presented as a general identical-input aerial-catch trajectory theorem.
 1. Add live route coverage for still-unregistered common damage, shield,
    grab/throw, input, rebound/clank, rebirth, and Falcon action branches from
    the 2026-08-10 callback audit; native regression alone is not SSBM truth.
-2. Import exact pose geometry for the remaining common states; their current
-   fallback envelopes are not an equivalence claim.
+2. Import exact pose geometry for the remaining common states, including the
+   six-frame SquatRv-to-Wait blend and RNG-selected Wait2/Wait3 lifecycle;
+   current fallback envelopes and terminal clamps are not equivalence claims.
 3. Capture common-state hurt poses beyond Initial Dash/RunBrake/CrouchStart/
    CrouchEnd/KneeBend/SpotDodge/RollForward/RollBackward/AirDodge/
    FallSpecial/LandingFallSpecial/Landing/JumpF/JumpB/JumpAerialF/

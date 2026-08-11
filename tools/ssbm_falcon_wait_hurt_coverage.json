@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "falcon-wait-hurt-geometry",
+  "domain": "falcon-wait-hurt",
+  "character": "falcon",
+  "oracle": "SSBM GALE01 NTSC-U revision 2",
+  "checkpoint_pack": {
+    "protocol": "rebased-slippi-state-file-control-v1",
+    "expected_rows": 60,
+    "warm_budget_seconds": 3.0,
+    "capture_plan": {
+      "trace_start_label": "common_hurt_wait_place",
+      "record_actions_by_label": {
+        "common_hurt_wait_hold": ["STANDING"]
+      },
+      "command_limits_by_label": {
+        "common_hurt_wait_hold": 60
+      },
+      "always_record_prefixes": [],
+      "command_overrides": []
+    }
+  },
+  "selection": {
+    "paths": [
+      "generated/data/m4_falcon_dynamic_hsd_pose.inc",
+      "generated/data/m4_ssbm_falcon_wait_hsd_oracle.inc",
+      "src/sim/sim_combat.c",
+      "src/sim/sim_movement.c",
+      "tools/capture_ssbm_movement.py",
+      "tools/import_ssbm_falcon_ground_loop_hurt.py",
+      "tools/ssbm_falcon_ground_loop_hurt_import.json",
+      "tools/ssbm_falcon_wait_hurt_coverage.json",
+      "tools/verify_ssbm_hsd_action_hurt_source.py"
+    ]
+  },
+  "checkpoint_cases": [
+    {
+      "id": "wait-poses",
+      "start_label": "common_hurt_wait_place"
+    }
+  ]
+}

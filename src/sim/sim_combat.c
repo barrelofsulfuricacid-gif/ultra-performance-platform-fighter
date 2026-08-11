@@ -2412,6 +2412,18 @@ static const pf_m4_reference_hurt_capsule *pf_m4_reference_hurt_pose(
     if (grounded != UINT8_C(0) &&
         action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
     {
+        if (dynamic_capsules != NULL &&
+            pf_m4_falcon_wait_hsd_pose_is_direct(
+                source_submotion,
+                source_animation_frame_q16) &&
+            pf_m4_falcon_reference_hsd_hurt_capsules(
+                source_submotion,
+                source_animation_frame_q16,
+                dynamic_capsules,
+                out_count))
+        {
+            return dynamic_capsules;
+        }
         return pf_m4_falcon_reference_standing_hurt_capsules(out_count);
     }
     if (dynamic_capsules != NULL &&

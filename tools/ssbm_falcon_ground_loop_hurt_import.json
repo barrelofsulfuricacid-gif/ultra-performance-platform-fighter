@@ -98,6 +98,37 @@
       { "source_action": "SHIELD_BREAK_TEETER", "submotion_index": 205, "first_source_frame": 0, "last_source_frame": 99, "source_frame_cycle": 100, "expected_samples": 127 }
     ]
   },
+  "wait_pose_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "capture_route_field": "common_hurt_geometry_route",
+    "coordinate_tolerance_q16": 8,
+    "compare_ecb": true,
+    "ecb_joint_point_set_id": "ecb",
+    "captures": [
+      {
+        "id": "wait-control",
+        "sha256": "2a7a0d34e06655d9528bf64180fd053c154855f59184f6a88d81ed991e18ac3d"
+      },
+      {
+        "id": "wait-repeat",
+        "sha256": "e5584ca5e52dd0b7c3d54d9f16e45fe08ad74c0b00268b8f1fc0269bfabe7ca8",
+        "repeat_of": "wait-control"
+      }
+    ],
+    "cases": [
+      {
+        "source_action": "STANDING",
+        "submotion_index": 2,
+        "minimum_source_frame_exclusive_q16": 327680,
+        "first_source_frame": 6,
+        "last_source_frame": 59,
+        "expected_samples": 54
+      }
+    ]
+  },
   "guard_setoff_pose_qualification": {
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
@@ -278,6 +309,16 @@
       { "id": "walk-fast-looped-fractional", "trace_frame": 300, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
       { "id": "run-fractional", "trace_frame": 343, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" },
       { "id": "run-looped-fractional", "trace_frame": 355, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
+    ]
+  },
+  "wait_stored_oracle": {
+    "symbol_prefix": "pf_m4_falcon_wait_hsd",
+    "capture_sha256": "2a7a0d34e06655d9528bf64180fd053c154855f59184f6a88d81ed991e18ac3d",
+    "coordinate_tolerance_q16": 64,
+    "cases": [
+      { "id": "wait-first-unblended", "trace_frame": 29, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait-middle", "trace_frame": 53, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
+      { "id": "wait-terminal", "trace_frame": 82, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" }
     ]
   },
   "live_qualification": {

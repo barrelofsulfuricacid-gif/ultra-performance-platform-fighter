@@ -5836,6 +5836,26 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   gate passes in 910.252 ms on Windows and 814.570 ms in WSL, below its
   two-second post-build budget.
 
+## 2026-08-11 Base Wait source pose fidelity
+
+- A focused native SquatRv entry captures exactly Wait frames 0-59 twice.
+  The direct, post-blend frames 6-59 produce 108 observations / 1,188 hurt
+  capsules plus ECB and match the shared compact HSD evaluator within one Q16
+  unit. Three stored C observations cover frames 6, 30, and 59.
+- Production now retains the Wait submotion and advances its canonical
+  animation clock at rate 1. Dynamic source hurt/ECB geometry begins at frame
+  6; the incoming six-frame blend remains open. Terminal Wait2/Wait3 selection
+  remains open because it consumes process-global `HSD_Randi` state.
+- The new idle cursor changes intermediate replay hashes without changing the
+  tick-240 final-state or event stream. The reviewed replay corpus SHA-256 is
+  `0614479949db01ac2e8a0c13e6998103760f62e0e8c7681ee4f6553d765915e4`;
+  final/event SHA-256 values remain
+  `77ddce5af5e91b4c4e5d91bebcc3c4ad73ca0dc214262fbbc922222799033f33` /
+  `6f0f9376198d1f9507e6502da4eece00110a6ebe7c18233c78303d5b9764743d`.
+- Windows Release passes 40/40, WSL Release passes 40/40, and WSL ASan/UBSan
+  passes 26/26. The complete 21-domain / 117-case stored gate plus replay takes
+  832.743 ms on Windows and 1,001.002 ms in WSL.
+
 ## 2026-08-11 GuardSetOff dynamic pose fidelity
 
 - `ftCo_80092F2C` derives GuardSetOff's ordinary animation rate from

@@ -33,12 +33,30 @@ Shield tilt and geometry additionally follow `ftCo_80091BC4`,
 sphere path in `lbcollision.c` at the same pinned revision.
 
 The 2026-08-10 static differential additionally follows `ftCo_Wait.c`,
+`ftwaitanim.c`,
 `ftCo_Damage.c`, `ftCo_Guard.c`, `ftCo_Ottotto.c`, `ftCo_Catch.c`, the common
 throw/release routes, `ftCo_Rebirth.c`, `ftCo_Rebound.c`, `ftcoll.c`, and the
 complete Falcon neutral/side/up/down-special callback families. It imports
 typed values from the same pinned common/Falcon data and does not introduce
 guessed frame constants. That slice was intentionally not built or executed;
 its provenance is source-level until the next validation pass.
+
+The later base-Wait geometry slice enters Wait through Falcon's native
+`SquatRv` callback rather than sampling incidental menu idle. Two independent
+headless/null/unlimited captures have raw SHA-256 values
+`2a7a0d34e06655d9528bf64180fd053c154855f59184f6a88d81ed991e18ac3d`
+and `e5584ca5e52dd0b7c3d54d9f16e45fe08ad74c0b00268b8f1fc0269bfabe7ca8`;
+their address-free semantic projection is identical at
+`f2a336241e781472352210197d444b1dbe94b2d4b9ccf6f008f5d8efec079489`.
+Live motion state proves frames 0-5 are the ordinary incoming six-frame HSD
+blend. The source-direct theorem therefore covers only Wait frames 6-59:
+108 observations / 1,188 hurt capsules plus ECB agree with the compact HSD
+evaluator within one Q16 unit. Three generated stored observations protect the
+first unblended, middle, and terminal source poses. `ftCo_Wait_Anim` then calls
+`ftCo_8008A7A8`, and `ftwaitanim.c` selects Wait2/Wait3 with process-global
+`HSD_Randi`; that RNG state and call ordering remain outside the imported
+slice, so the production frame-59 clamp is documented as a bound, not an exact
+terminal-idle implementation.
 
 ## Complete attack-frame table
 

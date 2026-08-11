@@ -208,6 +208,20 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_TEETER_WAIT = 211
 } pf_m4_falcon_submotion_index;
 
+/* Ordinary motion changes use Falcon's six-frame default HSD blend. A Wait
+ * pose is source-direct only after this displayed-frame boundary. */
+#define PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME UINT16_C(6)
+
+static inline int pf_m4_falcon_wait_hsd_pose_is_direct(
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16)
+{
+    return source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT &&
+           source_animation_frame_q16 >=
+               (int32_t)PF_M4_FALCON_WAIT_HSD_FIRST_UNBLENDED_FRAME *
+                   INT32_C(65536);
+}
+
 typedef enum pf_m4_falcon_capture_hurt_index
 {
     PF_M4_FALCON_CAPTURE_HURT_WAIT_HIGH = 0,

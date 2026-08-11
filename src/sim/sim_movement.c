@@ -342,7 +342,8 @@ static pf_status pf_m4_update_falcon_ground_animation_clock(
             ? resume_action
             : action;
 
-    if (effective_action != (uint8_t)PF_M4_ACTION_WALK &&
+    if (effective_action != (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+        effective_action != (uint8_t)PF_M4_ACTION_WALK &&
         effective_action != (uint8_t)PF_M4_ACTION_RUN)
     {
         *source_animation_frame_q16 = INT32_C(0);
@@ -355,6 +356,46 @@ static pf_status pf_m4_update_falcon_ground_animation_clock(
         *source_submotion = previous_submotion;
         *source_animation_frame_q16 = previous_frame_q16;
         *source_animation_rate_q16 = previous_rate_q16;
+        return PF_STATUS_OK;
+    }
+    if (effective_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        const pf_m4_falcon_submotion_data *wait =
+            pf_m4_falcon_reference_submotion(
+                PF_M4_FALCON_SUBMOTION_WAIT);
+        const int32_t terminal_frame_q16 =
+            wait != NULL && wait->animation_frame_count != UINT16_C(0)
+                ? (int32_t)(wait->animation_frame_count - UINT16_C(1)) *
+                      PF_Q16_ONE
+                : INT32_C(-1);
+
+        if (terminal_frame_q16 < INT32_C(0))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        *source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+        if (effective_previous_action !=
+                (uint8_t)PF_M4_ACTION_GROUND_IDLE ||
+            previous_submotion !=
+                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT)
+        {
+            *source_animation_frame_q16 = INT32_C(0);
+            *source_animation_rate_q16 = PF_Q16_ONE;
+        }
+        else if (previous_frame_q16 >= terminal_frame_q16)
+        {
+            /* Wait's endpoint selects Wait2/Wait3 through the global HSD RNG.
+             * Until that source RNG lifecycle is imported, retain the last
+             * qualified Wait pose rather than inventing a deterministic loop. */
+            *source_animation_frame_q16 = terminal_frame_q16;
+            *source_animation_rate_q16 = INT32_C(0);
+        }
+        else
+        {
+            *source_animation_frame_q16 =
+                previous_frame_q16 + previous_rate_q16;
+            *source_animation_rate_q16 = PF_Q16_ONE;
+        }
         return PF_STATUS_OK;
     }
     if (effective_action == (uint8_t)PF_M4_ACTION_WALK)
@@ -2439,7 +2480,12 @@ static int pf_m4_reference_ecb_pose_q16(
     }
     if (pf_m4_falcon_reference_hsd_ecb_pose(
             source_submotion,
-            source_animation_frame_q16,
+            action_state == (uint8_t)PF_M4_ACTION_GROUND_IDLE &&
+                    !pf_m4_falcon_wait_hsd_pose_is_direct(
+                        source_submotion,
+                        source_animation_frame_q16)
+                ? INT32_C(0)
+                : source_animation_frame_q16,
             (pf_m4_action_uses_direct_hsd_pose(action_state) ||
              retained_hsd_pose)
                 ? grounded != UINT8_C(0)
@@ -14611,7 +14657,7 @@ pf_status pf_m4_step_player(
          * clock and direction blend were already advanced above. */
     }
     else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-             pf_m4_action_uses_velocity_animation_clock(
+             pf_m4_action_uses_ground_animation_clock(
             action_state,
             scratch->hitlag_resume_action[player_index]))
     {

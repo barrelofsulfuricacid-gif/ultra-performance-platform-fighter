@@ -1633,6 +1633,7 @@ def input_trace(
             retained_counts = dict.fromkeys(retained_command_limits, 0)
             direct_boundaries = {
                 "common_hurt_dash_place",
+                "common_hurt_wait_place",
                 "common_hurt_standing_turn_place",
                 "common_hurt_run_turn_place",
                 "common_hurt_guard_place",
@@ -1793,6 +1794,29 @@ def input_trace(
         repeat("common_hurt_dash_place_settle", 10)
         repeat("common_hurt_dash_hold", 18, main_x=1.0)
         repeat("common_hurt_dash_recover", 45)
+
+        if (
+            checkpoint_capture_plan is not None
+            and checkpoint_capture_plan.get("trace_start_label")
+            == "common_hurt_wait_place"
+        ):
+            # Force an ordinary Wait entry through SquatRv instead of sampling
+            # the arbitrary menu-origin idle phase. Stop before Wait's endpoint:
+            # ftCo_Wait_Anim can select Wait2/Wait3 there through HSD_Randi.
+            reset_common_hurt_route("common_hurt_wait")
+            trace.append(
+                command(
+                    "common_hurt_wait_place",
+                    fighter_x_override=-20.0,
+                    fighter_y_override=0.0001,
+                    opponent_x_override=60.0,
+                    opponent_y_override=0.0001,
+                )
+            )
+            repeat("common_hurt_wait_settle", 10)
+            repeat("common_hurt_wait_crouch", 12, main_y=0.0)
+            repeat("common_hurt_wait_release", 10)
+            repeat("common_hurt_wait_hold", 60)
 
         trace.append(
             command(

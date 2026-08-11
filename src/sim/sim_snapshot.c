@@ -2164,6 +2164,11 @@ static int pf_m4_snapshot_source_submotion_valid_for_action(
         return submotion ==
                (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
     }
+    if (effective_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        return motion != NULL &&
+               submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+    }
     if (effective_action == (uint8_t)PF_M4_ACTION_WALK)
     {
         return motion != NULL &&
@@ -2618,7 +2623,8 @@ static int pf_m4_snapshot_content_state_consistent(
         {
             return 0;
         }
-        if (pf_m4_action_retains_source_submotion(
+        if (world->active[player_index] != UINT8_C(0) &&
+            pf_m4_action_retains_source_submotion(
                 action,
                 resume_action))
         {
