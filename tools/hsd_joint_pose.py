@@ -275,18 +275,23 @@ def required_joint_indices(
     joints: tuple[Joint, ...],
     capsules: Iterable[HurtCapsule],
     part_layout: FighterPartLayout | None = None,
+    extra_source_indices: Iterable[int] = (),
 ) -> tuple[int, ...]:
     """Return the parent-closed joint subset in source traversal order."""
 
     required: set[int] = set()
-    for capsule in capsules:
-        index = (
+    requested = [
+        (
             capsule.bone_index
             if part_layout is None
             else part_layout.source_joint_by_runtime_part[capsule.bone_index]
         )
+        for capsule in capsules
+    ]
+    requested.extend(extra_source_indices)
+    for index in requested:
         if not 0 <= index < len(joints):
-            raise ValueError(f"hurt capsule references invalid joint {index}")
+            raise ValueError(f"pose output references invalid joint {index}")
         while index >= 0 and index not in required:
             required.add(index)
             index = joints[index].parent_index

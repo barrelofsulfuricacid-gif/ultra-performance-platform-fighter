@@ -791,10 +791,11 @@ pf_m4_falcon_reference_prone_ecb_pose(
     int8_t tech_direction,
     int8_t facing);
 
-const pf_m4_falcon_ecb_pose_q16 *
+int
 pf_m4_falcon_reference_ground_loop_ecb_pose(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16);
+    int32_t source_animation_frame_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose);
 
 const pf_m4_falcon_ecb_pose_q16 *
 pf_m4_falcon_reference_airborne_ecb_pose(

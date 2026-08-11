@@ -93,6 +93,14 @@ typedef struct pf_m4_hsd_evaluated_capsule
     uint8_t reserved;
 } pf_m4_hsd_evaluated_capsule;
 
+int pf_m4_hsd_evaluate_joint_origins_source_q16(
+    const pf_m4_hsd_pose_data *data,
+    uint16_t source_submotion,
+    int32_t frame_q16,
+    const uint8_t *joint_indices,
+    uint8_t joint_count,
+    int32_t out_origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3]);
+
 int pf_m4_hsd_evaluate_hurt_pose(
     const pf_m4_hsd_pose_data *data,
     uint16_t source_submotion,

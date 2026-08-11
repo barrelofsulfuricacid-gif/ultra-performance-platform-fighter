@@ -75,7 +75,42 @@ def build_payload(
     joints = read_joint_tree(model, str(manifest["model_root"]))
     layout = read_fighter_part_layout(common_raw, int(manifest["fighter_kind"]))
     capsules = read_fighter_hurt_capsules(fighter, fighter_root)
-    required = required_joint_indices(joints, capsules, layout)
+    raw_point_sets = manifest.get("joint_point_sets", [])
+    if not isinstance(raw_point_sets, list):
+        raise ValueError("manifest joint_point_sets must be a list")
+    point_set_specs: list[tuple[str, tuple[int, ...]]] = []
+    point_set_ids: set[str] = set()
+    for point_set in raw_point_sets:
+        if not isinstance(point_set, dict):
+            raise ValueError("joint point set must be an object")
+        point_set_id = point_set.get("id")
+        raw_indices = point_set.get("source_joint_indices")
+        if (
+            not isinstance(point_set_id, str)
+            or re.fullmatch(r"[a-z][a-z0-9_]*", point_set_id) is None
+            or point_set_id in point_set_ids
+            or not isinstance(raw_indices, list)
+            or not raw_indices
+            or any(
+                not isinstance(index, int)
+                or isinstance(index, bool)
+                or not 0 <= index < len(joints)
+                for index in raw_indices
+            )
+        ):
+            raise ValueError("manifest joint point set is invalid")
+        point_set_ids.add(point_set_id)
+        point_set_specs.append((point_set_id, tuple(raw_indices)))
+    required = required_joint_indices(
+        joints,
+        capsules,
+        layout,
+        (
+            source_index
+            for _, source_indices in point_set_specs
+            for source_index in source_indices
+        ),
+    )
     compact_by_source = {source: index for index, source in enumerate(required)}
     model_scale = fighter_model_scale(fighter, fighter_root)
     conversion = manifest.get("pose_conversion")
@@ -202,6 +237,17 @@ def build_payload(
                 "radius": q16(capsule.radius),
             }
         )
+    point_set_rows = [
+        {
+            "id": point_set_id,
+            "source_joint_indices": list(source_indices),
+            "joint_indices": [
+                compact_by_source[source_index]
+                for source_index in source_indices
+            ],
+        }
+        for point_set_id, source_indices in point_set_specs
+    ]
     branch_rows: list[dict[str, Any]] = []
     raw_branches = manifest.get("pose_branches", [])
     if not isinstance(raw_branches, list):
@@ -268,6 +314,7 @@ def build_payload(
         "tracks": track_rows,
         "keys": key_rows,
         "capsules": capsule_rows,
+        "joint_point_sets": point_set_rows,
         "pose_branches": branch_rows,
     }
 
@@ -284,6 +331,7 @@ def validate_expected(manifest: dict[str, Any], payload: dict[str, Any]) -> str:
         "track_count": len(payload["tracks"]),
         "key_count": len(payload["keys"]),
         "capsule_count": len(payload["capsules"]),
+        "joint_point_set_count": len(payload["joint_point_sets"]),
         "pose_branch_count": len(payload["pose_branches"]),
     }
     for name, actual in counts.items():
@@ -348,11 +396,22 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f" }}, {c_i32(row['radius'])}, UINT8_C({row['joint_index']}), "
             f"UINT8_C({row['hurtbox_id']}), UINT8_C({row['height']}), "
             f"UINT8_C({row['grabbable']}) }},"
+    )
+    lines.extend(["};", ""])
+    for row in payload["joint_point_sets"]:
+        point_set_prefix = f"{prefix}_{row['id']}_joint_indices"
+        lines.extend(
+            [
+                f"static const uint8_t {point_set_prefix}[] = {{",
+                "    " + ", ".join(
+                    f"UINT8_C({value})" for value in row["joint_indices"]
+                ),
+                "};",
+                "",
+            ]
         )
     lines.extend(
         [
-            "};",
-            "",
             f"static const pf_m4_hsd_pose_data {prefix}_data = {{",
             f"    {prefix}_joints,",
             f"    {prefix}_motions,",

@@ -41,6 +41,7 @@ typedef struct pf_m4_hsd_hurt_oracle_case
     uint16_t source_submotion;
     int32_t source_animation_frame_q16;
     pf_m4_reference_hurt_capsule capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
+    pf_m4_falcon_ecb_pose_q16 ecb;
 } pf_m4_hsd_hurt_oracle_case;
 
 typedef int (*pf_m4_hsd_hurt_pose_evaluator)(
@@ -26865,22 +26866,30 @@ static int run_falcon_reference_table_test(void)
             (uint8_t)PF_M4_PRONE_NONE,
             INT8_C(0),
             INT8_C(1));
-    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_first_ecb =
+    pf_m4_falcon_ecb_pose_q16 crouch_wait_first_ecb;
+    pf_m4_falcon_ecb_pose_q16 crouch_wait_middle_ecb;
+    pf_m4_falcon_ecb_pose_q16 crouch_wait_last_ecb;
+    pf_m4_falcon_ecb_pose_q16 crouch_wait_wrap_ecb;
+    const int crouch_wait_first_valid =
         pf_m4_falcon_reference_ground_loop_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
-            INT32_C(0));
-    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_middle_ecb =
+            INT32_C(0),
+            &crouch_wait_first_ecb);
+    const int crouch_wait_middle_valid =
         pf_m4_falcon_reference_ground_loop_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
-            INT32_C(79) * INT32_C(65536));
-    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_last_ecb =
+            INT32_C(79) * INT32_C(65536),
+            &crouch_wait_middle_ecb);
+    const int crouch_wait_last_valid =
         pf_m4_falcon_reference_ground_loop_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
-            INT32_C(157) * INT32_C(65536));
-    const pf_m4_falcon_ecb_pose_q16 *crouch_wait_wrap_ecb =
+            INT32_C(157) * INT32_C(65536),
+            &crouch_wait_last_ecb);
+    const int crouch_wait_wrap_valid =
         pf_m4_falcon_reference_ground_loop_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
-            INT32_C(158) * INT32_C(65536));
+            INT32_C(158) * INT32_C(65536),
+            &crouch_wait_wrap_ecb);
     const pf_m4_falcon_ecb_pose_q16 *direct_up_forward_roll_ecb =
         pf_m4_falcon_reference_prone_ecb_pose(
             (uint8_t)PF_M4_ACTION_GETUP_ROLL,
@@ -27816,19 +27825,25 @@ static int run_falcon_reference_table_test(void)
             INT32_C(114073) ||
         collision_pose->crouch_wait[157].right_x_from_origin_q16 !=
             INT32_C(27060) ||
-        crouch_wait_first_ecb == NULL ||
-        crouch_wait_first_ecb->left_x_from_origin_q16 != INT32_C(-27044) ||
-        crouch_wait_middle_ecb == NULL ||
-        crouch_wait_middle_ecb->top_y_from_origin_q16 != INT32_C(114991) ||
-        crouch_wait_last_ecb == NULL ||
-        crouch_wait_last_ecb->top_y_from_origin_q16 != INT32_C(114077) ||
-        crouch_wait_wrap_ecb != crouch_wait_first_ecb ||
+        !crouch_wait_first_valid ||
+        crouch_wait_first_ecb.left_x_from_origin_q16 != INT32_C(-27044) ||
+        !crouch_wait_middle_valid ||
+        crouch_wait_middle_ecb.top_y_from_origin_q16 != INT32_C(114991) ||
+        !crouch_wait_last_valid ||
+        crouch_wait_last_ecb.top_y_from_origin_q16 != INT32_C(114077) ||
+        !crouch_wait_wrap_valid ||
+        memcmp(
+            &crouch_wait_wrap_ecb,
+            &crouch_wait_first_ecb,
+            sizeof(crouch_wait_first_ecb)) != 0 ||
         pf_m4_falcon_reference_ground_loop_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT,
-            INT32_C(0)) != NULL ||
+            INT32_C(0),
+            &crouch_wait_wrap_ecb) ||
         pf_m4_falcon_reference_ground_loop_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
-            INT32_C(-1)) != NULL ||
+            INT32_C(-1),
+            &crouch_wait_wrap_ecb) ||
         collision_pose->air_dodge_bottom_y_from_origin_q16[0] !=
             INT32_C(0) ||
         collision_pose->air_dodge_bottom_y_from_origin_q16[47] !=
@@ -29320,6 +29335,62 @@ static int run_hsd_hurt_pose_oracle(
                         (unsigned int)field_index,
                         right_values[field_index],
                         left_values[field_index],
+                        difference);
+                    return 0;
+                }
+            }
+        }
+        {
+            pf_m4_falcon_ecb_pose_q16 actual_ecb;
+            int32_t actual_values[8];
+            int32_t expected_values[8];
+            uint8_t field_index;
+
+            if (!pf_m4_falcon_reference_ground_loop_ecb_pose(
+                    oracle->source_submotion,
+                    oracle->source_animation_frame_q16,
+                    &actual_ecb))
+            {
+                return fail("dynamic-ground-ecb-pose-evaluation");
+            }
+            actual_values[0] = actual_ecb.top_x_from_origin_q16;
+            actual_values[1] = actual_ecb.top_y_from_origin_q16;
+            actual_values[2] = actual_ecb.bottom_x_from_origin_q16;
+            actual_values[3] = actual_ecb.bottom_y_from_origin_q16;
+            actual_values[4] = actual_ecb.right_x_from_origin_q16;
+            actual_values[5] = actual_ecb.right_y_from_origin_q16;
+            actual_values[6] = actual_ecb.left_x_from_origin_q16;
+            actual_values[7] = actual_ecb.left_y_from_origin_q16;
+            expected_values[0] = oracle->ecb.top_x_from_origin_q16;
+            expected_values[1] = oracle->ecb.top_y_from_origin_q16;
+            expected_values[2] = oracle->ecb.bottom_x_from_origin_q16;
+            expected_values[3] = oracle->ecb.bottom_y_from_origin_q16;
+            expected_values[4] = oracle->ecb.right_x_from_origin_q16;
+            expected_values[5] = oracle->ecb.right_y_from_origin_q16;
+            expected_values[6] = oracle->ecb.left_x_from_origin_q16;
+            expected_values[7] = oracle->ecb.left_y_from_origin_q16;
+            for (field_index = UINT8_C(0);
+                 field_index < UINT8_C(8);
+                 ++field_index)
+            {
+                int64_t difference =
+                    (int64_t)actual_values[field_index] -
+                    (int64_t)expected_values[field_index];
+
+                if (difference < INT64_C(0))
+                {
+                    difference = -difference;
+                }
+                if (difference > (int64_t)coordinate_tolerance_q16)
+                {
+                    (void)fprintf(
+                        stderr,
+                        "case=%s ecb-field=%u expected=%" PRId32
+                        " actual=%" PRId32 " difference=%" PRId64 "\n",
+                        oracle->id,
+                        (unsigned int)field_index,
+                        expected_values[field_index],
+                        actual_values[field_index],
                         difference);
                     return 0;
                 }

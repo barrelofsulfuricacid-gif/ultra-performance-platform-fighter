@@ -5057,6 +5057,8 @@ def read_surface_collision_memory_probe(
     parts_snapshot = BigEndianSnapshot.read(memory_engine, parts, 0x3F0)
     return {
         "fighter_address": fighter,
+        "fighter_costume_id": snapshot.u8(fighter + 0x619),
+        "fighter_costume_joint": snapshot.u32(fighter + 0x108),
         "fighter_animation_frame": snapshot.f32(fighter + 0x894),
         "fighter_animation_rate": snapshot.f32(fighter + 0x89C),
         "fighter_motion_id": snapshot.u32(fighter + 0x10),
@@ -7284,6 +7286,8 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
                         "fighter_animation_id": "fighter+0x14",
                         "fighter_animation_blend_frames": "fighter+0x8a4",
                         "fighter_animation_blend_progress": "fighter+0x8a8",
+                        "fighter_costume_id": "fighter+0x619",
+                        "fighter_costume_joint": "fighter+0x108",
                         "fighter_parts": "fighter+0x5e8",
                         "ecb_source": "fighter+0x7f4",
                         "ecb_source_joints": "fighter+0x7fc..0x810",

@@ -1882,7 +1882,6 @@ static int pf_m4_reference_ecb_pose_q16(
 {
     const pf_m4_falcon_collision_pose *pose =
         pf_m4_falcon_reference_collision_pose();
-    const pf_m4_falcon_ecb_pose_q16 *ground_loop_pose;
     const pf_m4_falcon_ecb_pose_q16 *prone_pose;
     uint16_t frame_index;
 
@@ -1891,12 +1890,11 @@ static int pf_m4_reference_ecb_pose_q16(
     {
         return 0;
     }
-    ground_loop_pose = pf_m4_falcon_reference_ground_loop_ecb_pose(
-        source_submotion,
-        source_animation_frame_q16);
-    if (ground_loop_pose != NULL)
+    if (pf_m4_falcon_reference_ground_loop_ecb_pose(
+            source_submotion,
+            source_animation_frame_q16,
+            out_pose))
     {
-        *out_pose = *ground_loop_pose;
         return 1;
     }
     prone_pose = pf_m4_falcon_reference_prone_ecb_pose(

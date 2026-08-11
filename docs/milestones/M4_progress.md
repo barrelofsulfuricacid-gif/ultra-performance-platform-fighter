@@ -5572,10 +5572,11 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   shared stored numeric runner protects three clock cases / 111 source samples.
 - A prior-art sweep covered the pinned `doldecomp/melee` HSD runtime, the
   repository's existing FigaTree parser, and current HSDLib before extending
-  the smallest reusable source-data path. The resulting generic importer maps
-  the complete 63-joint Falcon model and 63-entry runtime part layout to a
-  23-joint parent-closed subset for all 11 hurt capsules, then emits 205 FObj
-  tracks / 1,198 keys across the four ground-loop motions.
+  the smallest reusable source-data path. The corrected generic importer maps
+  the complete 63-joint active gray-costume Falcon model and 63-entry runtime
+  part layout to a 25-joint parent-closed subset shared by all 11 hurt capsules
+  and six ECB selectors, then emits 229 FObj tracks / 1,295 keys across the
+  four ground-loop motions.
 - Exact `HSD_FObjReqAnim` behavior matters: each track's `startframe` is added
   to the requested animation frame. Preserving the older subtractive helper
   interpretation displaced WalkMiddle because two translation tracks start at
@@ -5666,22 +5667,34 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 
 - The required prior-art sweep compared pinned and current Melee decomp
   animation/collision code, current HSDLib, the repository's HSD evaluator,
-  and existing live captures. No upstream implementation supplies the missing
-  deterministic fixed-point retained-channel/blend state.
-- The surface probe now reads the six source-authoritative ECB JObjs plus their
+  and existing live captures. The retained-channel interpretation recorded in
+  the first version of this section was disproved by the costume probe below.
+- The surface probe reads the six source-authoritative ECB JObjs plus their
   parent-closed 25-joint local SRT/world-matrix closure directly from Melee's
   `CollData.ecb_source` and `Fighter.parts`. Four parallel checkpoint workers
   capture all 143 WalkSlow/Middle/Fast/Run rows in 7.48 seconds warm; a focused
   WalkMiddle run takes 4.66 seconds including Dolphin launch/menu setup.
-- Raw joint comparison rejects the earlier generic evaluator hypothesis. Four
-  ECB joints and every ancestor through joints 24 and 46 agree with the DAT
-  evaluator, but leaf joints 25 and 47 retain local translations not authored
-  by Walk/Run. Those motions animate leaf rotation only; HSD preserves the
-  preceding action's translation rather than resetting missing channels to the
-  bind pose. This retained state also explains the two false sides of the
-  strict 10-unit symmetry branch.
-- Production routing remains disabled until one compact persistent-channel
-  abstraction models missing-channel ownership, six-frame local-SRT blending,
-  and nested gait transitions for both hurt and ECB consumers. The importer
-  skill now records this gotcha so later characters do not mistake a
-  post-blend residual for frame-data error or procedural bone dynamics.
+- Player 1 reports costume ID 1 and the live costume-root pointer. Falcon's
+  decomp costume table maps ID 1 to gray `PlCaGy.dat`, while the original
+  evaluator incorrectly used neutral `PlCaNr.dat`. Live leaf translations 25
+  and 47 exactly match the gray model. `ftAnim_8006FA58` and
+  `ftAnim_8006FB88` copy the active costume bind SRT into the current or target
+  skeleton before attaching FigaTree tracks, so omitted post-blend channels
+  resolve to costume bind values rather than arbitrary preceding-action state.
+- The generic importer now parent-closes the six ECB selectors into the same
+  25-joint catalog used by the 11 hurt capsules. Production evaluates both
+  consumers through one Q16 HSD matrix core and reproduces grounded
+  `mpColl_LoadECB_JObj`, including the strict less-than-10 symmetry branch and
+  its side clamps. WalkSlow/Middle/Fast and Run production routing is enabled.
+- Two independent captures each qualify 131 post-blend poses. Across 262 live
+  poses / 2,882 capsules the maximum hurt-coordinate difference is 2 Q16 and
+  the maximum ECB difference is 1 Q16. Eight fractional and loop-adjacent
+  observations store both outputs and protect the C evaluator. Only the
+  six-frame local-SRT transition recurrence, including nested gait changes,
+  remains open for this ground-loop geometry path.
+- Windows Release passes 37/37, WSL Release passes 39/39, and WSL ASan/UBSan
+  passes 25/25. The complete 21-domain / 117-case stored-plus-replay gate takes
+  0.730 seconds on Windows and 0.947 seconds in WSL. A rebuilt five-repetition
+  WSL benchmark records 1,075,589 representative-1v1 and 699,630
+  maximum-combat ticks/s; its intentionally new local fingerprint makes the
+  history comparison invalid rather than silently comparing unlike builds.

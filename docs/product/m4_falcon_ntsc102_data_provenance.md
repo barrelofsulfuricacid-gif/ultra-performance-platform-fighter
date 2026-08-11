@@ -1240,27 +1240,33 @@ samples through the character-independent numeric runner.
 
 Walk and Run hurt geometry cannot be represented by a static one-pose-per-tick
 table. `tools/generate_ssbm_dynamic_hurt_pose_include.py` therefore reads the
-owner-extracted `PlCa.dat`, `PlCaAJ.dat`, `PlCo.dat`, and `PlCaNr.dat`, validates
-their pinned SHA-256 values, maps Falcon's 63 model joints through the complete
-63-entry runtime part layout, closes the 11 hurt capsules over their 23 required
-ancestor joints, and emits the original 205 FObj tracks / 1,198 keys for four
-motions. The generated semantic data SHA-256 is
-`a4536e8c9b91d5914681c20c5d83bf53823a2f6080e5a5d285e7460eec021965`.
+owner-extracted `PlCa.dat`, `PlCaAJ.dat`, `PlCo.dat`, and active gray-costume
+`PlCaGy.dat`, validates their pinned SHA-256 values, maps Falcon's 63 model
+joints through the complete 63-entry runtime part layout, and closes the 11
+hurt capsules plus six ECB source selectors over one 25-joint ancestor catalog.
+It emits the original 229 FObj tracks / 1,295 keys for four motions. The gray
+model SHA-256 is
+`dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872`;
+the generated semantic data SHA-256 is
+`aeb63682e4b3ae0cae4fd51f7db810ed86bfc164b9b647b5ac3464e7658ad846`.
 The shared runtime evaluator implements the HSD FObj interpolation and Euler
 SRT hierarchy in deterministic Q16.16. In particular, it follows
 `HSD_FObjReqAnim` by adding each FObj `startframe` to the requested animation
 frame; subtracting it produces a large, motion-specific WalkMiddle error.
 
 The two 423-row live headless/null/unlimited captures named above also record
-motion ID, animation ID, and blend state. After the source six-frame default
-blend finishes, the independent Python source evaluator agrees in each for all
-51 WalkSlow, 31 WalkMiddle, 29 WalkFast, and 20 Run observations: 131 poses /
-1,441 capsules, with maximum coordinate error 2 Q16 units under an 8-Q16
-qualification bound. Eight observations, including pre- and post-loop
-WalkFast samples, are stored as a separate C oracle with a 64-Q16
-deterministic-runtime bound. The WalkFast trace first enters Walk with a
-sub-dash tilt and then raises the stick above Falcon's fast-gait velocity
-boundary, avoiding an authored state override.
+motion ID, animation ID, blend state, complete ECB, costume ID, and the active
+costume-root pointer. Player 1 is costume ID 1, which the decomp maps to
+`PlCaGy.dat`; this resolves the former leaf-joint residual caused by evaluating
+the neutral model. After the source six-frame default blend finishes, the
+independent Python source evaluator agrees in each for all 51 WalkSlow, 31
+WalkMiddle, 29 WalkFast, and 20 Run observations: 131 poses / 1,441 capsules,
+with maximum capsule-coordinate error 2 Q16 units and maximum ECB-coordinate
+error 1 Q16 unit. Eight observations, including pre- and post-loop WalkFast
+samples, are stored as a separate C oracle with a 64-Q16 deterministic-runtime
+bound and now protect both the capsule and ECB consumers. The WalkFast trace
+first enters Walk with a sub-dash tilt and then raises the stick above Falcon's
+fast-gait velocity boundary, avoiding an authored state override.
 
 ## Falcon shield-break orientation branch
 
@@ -1380,12 +1386,15 @@ existing cursor is now retained for all source-clock-owning actions rather
 than only velocity-driven Walk/Run, so save/load, inspection, and every ECB
 collision query observe the same frame without adding rollback state.
 
-WalkSlow, WalkMiddle, WalkFast, and Run do not yet consume the generic source
-ECB evaluator. Their fractional clock and six-frame HSD blending can move the
-joint-derived left/right span across the decomp's 10-unit symmetry predicate;
-exploratory source evaluation produced ordinary errors up to 0.142 Melee units
-and a 1.52-unit WalkMiddle branch outlier. This is an explicit open fidelity
-gap, not an imported or qualified collision route.
+WalkSlow, WalkMiddle, WalkFast, and Run now consume the generic source ECB
+evaluator. The generated six-joint selector arrays share the same parent-closed
+catalog and matrix pass as hurt geometry. The runtime reproduces grounded
+`mpColl_LoadECB_JObj`: min/max reduction, its strict less-than-10 symmetry
+predicate, the plus/minus-2 side clamps, grounded zero bottom, and midpoint
+side height. Two independent 131-pose source comparisons have maximum 1-Q16
+ECB-coordinate error, and the eight stored fractional observations exercise
+the production C path. The source six-frame local-SRT transition recurrence is
+still open; post-blend Walk/Run geometry is now imported and qualified.
 
 ## Repository controls
 

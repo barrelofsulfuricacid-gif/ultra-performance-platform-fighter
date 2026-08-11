@@ -443,37 +443,26 @@ static int32_t pf_m4_hsd_source_coordinate_to_sim_q16(
            (int32_t)data->axis_sign[axis];
 }
 
-int pf_m4_hsd_evaluate_hurt_pose(
+static int pf_m4_hsd_evaluate_joint_matrices(
     const pf_m4_hsd_pose_data *data,
     uint16_t source_submotion,
     int32_t frame_q16,
-    pf_m4_hsd_evaluated_capsule
-        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
-    uint8_t *out_count)
+    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS])
 {
     int32_t rotation_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     int32_t scale_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     int32_t translation_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     int32_t cumulative_scale_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
     uint8_t has_cumulative_scale[PF_M4_HSD_POSE_MAX_JOINTS];
-    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
     const pf_m4_hsd_motion *motion = NULL;
     uint8_t motion_index;
     uint8_t joint_index;
     uint16_t track_index;
-    uint8_t capsule_index;
-
-    if (out_count != NULL)
-    {
-        *out_count = UINT8_C(0);
-    }
-    if (data == NULL || out_capsules == NULL || out_count == NULL ||
+    if (data == NULL || matrices == NULL ||
         data->joints == NULL || data->motions == NULL ||
         data->tracks == NULL || data->keys == NULL ||
-        data->capsules == NULL || data->joint_count == UINT8_C(0) ||
+        data->joint_count == UINT8_C(0) ||
         data->joint_count > PF_M4_HSD_POSE_MAX_JOINTS ||
-        data->capsule_count == UINT8_C(0) ||
-        data->capsule_count > PF_M4_HSD_POSE_MAX_CAPSULES ||
         data->source_to_sim_numerator <= INT32_C(0) ||
         data->source_to_sim_denominator <= INT32_C(0) ||
         (data->axis_sign[0] != INT8_C(-1) &&
@@ -621,6 +610,74 @@ int pf_m4_hsd_evaluate_hurt_pose(
                               parent_scale[axis]);
             }
         }
+    }
+    return 1;
+}
+
+int pf_m4_hsd_evaluate_joint_origins_source_q16(
+    const pf_m4_hsd_pose_data *data,
+    uint16_t source_submotion,
+    int32_t frame_q16,
+    const uint8_t *joint_indices,
+    uint8_t joint_count,
+    int32_t out_origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3])
+{
+    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
+    uint8_t output_index;
+
+    if (joint_indices == NULL || out_origins_q16 == NULL ||
+        joint_count == UINT8_C(0) ||
+        joint_count > PF_M4_HSD_POSE_MAX_JOINTS ||
+        !pf_m4_hsd_evaluate_joint_matrices(
+            data,
+            source_submotion,
+            frame_q16,
+            matrices))
+    {
+        return 0;
+    }
+    for (output_index = UINT8_C(0);
+         output_index < joint_count;
+         ++output_index)
+    {
+        const uint8_t joint_index = joint_indices[output_index];
+
+        if (joint_index >= data->joint_count)
+        {
+            return 0;
+        }
+        out_origins_q16[output_index][0] = matrices[joint_index].value[0][3];
+        out_origins_q16[output_index][1] = matrices[joint_index].value[1][3];
+        out_origins_q16[output_index][2] = matrices[joint_index].value[2][3];
+    }
+    return 1;
+}
+
+int pf_m4_hsd_evaluate_hurt_pose(
+    const pf_m4_hsd_pose_data *data,
+    uint16_t source_submotion,
+    int32_t frame_q16,
+    pf_m4_hsd_evaluated_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count)
+{
+    pf_m4_hsd_matrix matrices[PF_M4_HSD_POSE_MAX_JOINTS];
+    uint8_t capsule_index;
+
+    if (out_count != NULL)
+    {
+        *out_count = UINT8_C(0);
+    }
+    if (data == NULL || out_capsules == NULL || out_count == NULL ||
+        data->capsules == NULL || data->capsule_count == UINT8_C(0) ||
+        data->capsule_count > PF_M4_HSD_POSE_MAX_CAPSULES ||
+        !pf_m4_hsd_evaluate_joint_matrices(
+            data,
+            source_submotion,
+            frame_q16,
+            matrices))
+    {
+        return 0;
     }
     for (capsule_index = UINT8_C(0);
          capsule_index < data->capsule_count;

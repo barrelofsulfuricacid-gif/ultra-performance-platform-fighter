@@ -22,10 +22,10 @@ separately because a stored pass cannot establish new SSBM truth.
 
 | Workstream | State | Current evidence or next gate |
 | --- | --- | --- |
-| Fast stored equivalence | done for twenty-one domains | The registry contains 117 cases plus deterministic replay. The pose domains hash 1,265 production poses: 689 common/ledge, 33 Turn/TurnRun, 186 ordinary-airborne, 79 Pummel/CaptureWaitHi/CaptureDamageHi, and 278 CrouchWait/Appeal poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, the five aerial-landing routes add 685, and passive shield break adds 500. Independent domains run concurrently while output retains manifest order. The current full gate takes 0.764 seconds on Windows and 1.433 seconds in WSL, below the two-second budget. Eight dynamic HSD observations run inside the focused combat gate because they validate a generic source evaluator rather than duplicating production pose data in the registry. |
+| Fast stored equivalence | done for twenty-one domains | The registry contains 117 cases plus deterministic replay. The pose domains hash 1,265 production poses: 689 common/ledge, 33 Turn/TurnRun, 186 ordinary-airborne, 79 Pummel/CaptureWaitHi/CaptureDamageHi, and 278 CrouchWait/Appeal poses. Raptor Boost adds 502 field-masked numeric samples, Falcon Kick adds 399, natural movement adds 520, the five aerial-landing routes add 685, and passive shield break adds 500. Independent domains run concurrently while output retains manifest order. The current full gate takes 0.730 seconds on Windows and 0.947 seconds in WSL, below the two-second budget. Eight dynamic HSD observations run inside the focused combat gate because they validate a generic source evaluator rather than duplicating production pose data in the registry. |
 | Fast live Dolphin oracle | done for the current registered domains | Registered packs use headless/null/unlimited ExiAI and checkpoint-isolated cases. The focused Turn/TurnRun pack captures 39 rows in 0.228 seconds warm with fast-forward and 0.565 seconds with fast-forward disabled; both produce semantic SHA `1cc3543b1363ecb5c7427c36f4d8d8a2826f9fb7c5281877f54108e1ffe281a2`. Generic label-based projection now reduces the WalkFast changed-domain capture from seven cases / 423 rows / 4.820601 seconds warm to one case / 32 rows / 0.160820 seconds warm. Unsafe cross-invocation observer reconnection is rejected. |
 | Falcon bounded hurt poses | common, turn, ledge, ordinary airborne, pummel/capture, crouch-wait, taunt, and dynamic ground-loop poses imported | The common-state domain covers 255 source poses. Turn/TurnRun add 33 unique poses / 363 capsules, including source frame zero and the seven-observation frame-9 freeze. The single update where gameplay facing has flipped but display bones retain their prior facing is derived from the existing TurnRun tick/facing/direction tuple and now drives combat plus inspection without new snapshot state. Three stored phase cases cover pre-flip frame 9, pending-display frame 9, and resumed frame 10. Two byte-identical no-fast-forward captures add 434 quick/slow ledge-option poses (4,774 capsules). Two independent unlimited headless captures add all 186 ordinary-airborne poses / 2,046 capsules. The natural paired route adds all 24 CatchAttack, 35 CaptureWaitHi, and 20 CaptureDamageHi poses plus the measured 53,806-Q16 capture anchor. Two independent grounded-loop captures add all 158 CrouchWait and both 60-frame Appeal orientations (278 poses / 3,058 capsules). All four velocity-driven WalkSlow/Middle/Fast and Run motions resolve fractional poses from the compact shared Q16 HSD evaluator: each of two independent captures contributes 131 live samples / 1,441 capsules agreeing with Dolphin within 2 Q16 units, and eight stored source observations protect the C implementation. |
-| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall, all five aerial-attack ECB bottoms, all 42 ShieldBreakFly frames, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle: 648 exact four-point ground/prone poses total. The focused DownBound route reproduces 52 poses from 600 rows in 6.6 seconds; the eight-case getup route reproduces 438 poses from 1,150 rows in 10.5-10.9 seconds using four parallel headless workers. The one-case CrouchWait repeat reproduces all 158 source-frame-indexed poses from 160 rows in 5.31 seconds warm and confirms the authoritative five-case capture semantically. Two independent 500-frame passive-depletion captures qualify the exact Fly/DownD/StandD/Furafura sequence, animated-ECB contact update, transition velocity, shield regeneration, and Furafura reset behavior. Fractional Walk/Run ECB source ownership is now resolved: four source joints and every ancestor match the DAT evaluator, while leaf joints 25/47 retain untracked local translations from prior actions; six-frame local-SRT blending and those persistent channels must be represented before production routing. The decomp's 10-unit symmetry branch then remains the final numeric gate. Broader action-specific ECB and special-action acquisition coverage also remains open. |
+| Falcon movement and combat | partial | Captured routes include wall/ceiling response, flat-floor missed/neutral/directional techs, both Up/Down prone/getup orientations, grounded player push from both ports/directions, imported Hyrule slope/DownBound/ordinary-ledge response, the exact common-data `x480` down-input ledge rejection boundary, all eight quick/slow ledge options, exact 640/480-frame CliffWait timeout and regrab cooldown, ordinary Jump/Fall airborne animation clocks, Falcon Punch's complete ground/air clocks and qualified air-physics tail, Raptor Boost's five complete fighter routes plus its live-only native Capsule branch, all six Falcon Kick routes, and a source-qualified complete Battlefield collision/environment catalog. Production imports complete Jump/Fall, all five aerial-attack ECB bottoms, all 42 ShieldBreakFly frames, both 26-frame DownBound tracks, both 70-frame DownWait loops, both neutral getups, both getup attacks, all four prone-orientation/direction roll tracks, and the complete 158-frame CrouchWait ECB cycle: 648 exact four-point ground/prone poses total. The focused DownBound route reproduces 52 poses from 600 rows in 6.6 seconds; the eight-case getup route reproduces 438 poses from 1,150 rows in 10.5-10.9 seconds using four parallel headless workers. The one-case CrouchWait repeat reproduces all 158 source-frame-indexed poses from 160 rows in 5.31 seconds warm and confirms the authoritative five-case capture semantically. Two independent 500-frame passive-depletion captures qualify the exact Fly/DownD/StandD/Furafura sequence, animated-ECB contact update, transition velocity, shield regeneration, and Furafura reset behavior. WalkSlow/Middle/Fast and Run now derive post-blend ECB from the same compact HSD matrices as hurt geometry. The oracle's costume ID 1 maps to `PlCaGy.dat`; using that active costume bind model removes the former leaf residual and qualifies 262 live poses twice at a maximum one-Q16 ECB delta. Six-frame transition blending remains open, along with broader action-specific ECB and special-action acquisition coverage. |
 | Common damage response | qualified for open-air launch | Six-case live Dolphin trace and generic stored numeric trace pass. Ground and collision response remain separate domains. |
 | Separate knockback velocity and decay | open-air and flat-ground routes qualified | A pinned 64-row late DashAttack route agrees for 15 damage samples on action/frame, grounded/tumble, damage, timers, self velocity, projected knockback, and `xF0_ground_kb_vel` within 0.001 source units. Canonical save/load, replay, Windows, WSL, and sanitizers pass. |
 | Remaining Falcon gaps | not complete | Work through every incomplete row in `docs/product/m4_ssbm_fidelity_audit.md`; do not infer whole-character equivalence from one domain. |
@@ -37,29 +37,36 @@ separately because a stored pass cannot establish new SSBM truth.
 - [x] Re-sweep pinned/current `doldecomp/melee`, current HSDLib, and the
   existing HSD evaluator before changing production. Pinned/current
   `ftanim.c` and `mpcoll.c` are unchanged; no maintained external tool ports
-  Melee's retained-channel plus local-SRT blend state into a deterministic
-  fixed-point runtime.
+  Melee's complete local-SRT blend state into a deterministic fixed-point
+  runtime.
 - [x] Extend the existing surface probe with the six `ECBSource` JObj pointers,
   their parent-closed 25-joint local SRT/world matrices, and the corresponding
   `FighterBone` flags. A four-worker live pack captures all four gaits in
   7.48 seconds warm; the focused one-worker WalkMiddle pack takes 4.66 seconds
   warm including launch/menu setup.
-- [x] Isolate the former 0.02-0.16 source-unit discrepancy. All ancestors
-  through joints 24/46 and four of six ECB source joints agree with the DAT
-  evaluator; only leaf translations 25/47 differ. Their Walk/Run FigaTrees
-  contain rotations but no translation tracks, and live local translation is
-  constant through and after the six-frame blend. HSD therefore retains the
-  value owned by the preceding action instead of resetting to bind SRT.
-- [ ] Add one compact persistent HSD-channel representation shared by hurt and
-  ECB evaluation. It must preserve untracked channels, Melee's per-update
-  local-SRT blend recurrence, and nested gait changes without storing a full
-  63-joint pose per fighter.
-- [ ] Generate the six ECB source-joint selectors from the same parent-closed
-  joint catalog, reproduce `mpColl_LoadECB_JObj` including its strict 10-unit
-  symmetry predicate, and qualify transition plus post-blend rows twice in
-  Dolphin before enabling the production route.
-- [ ] Run the full Windows/WSL/sanitizer/stored/replay/benchmark gates and
-  update the canonical schema only after the persistent state is complete.
+- [x] Isolate and correct the former 0.02-0.16 source-unit discrepancy. The
+  capture's Player 1 uses costume ID 1 (`PlCaGy.dat`), while the evaluator used
+  neutral `PlCaNr.dat`. The live leaf translations 25/47 exactly match the gray
+  costume bind model; `ftAnim_8006FA58`/`ftAnim_8006FB88` copy that active
+  costume SRT before attaching target tracks. No persistent-channel state is
+  needed after blend completion.
+- [x] Generate the six ECB source-joint selectors from the same 25-joint
+  parent-closed catalog used by hurt geometry, reproduce grounded
+  `mpColl_LoadECB_JObj` including its strict 10-unit symmetry predicate, and
+  enable WalkSlow/Middle/Fast and Run production routing. Two independent live
+  captures qualify 262 post-blend poses / 2,882 hurt capsules at maxima of one
+  Q16 ECB unit and two Q16 hurt units; eight fractional/looped C observations
+  protect both consumers.
+- [ ] Add the smallest shared representation of Melee's six-frame local-SRT
+  transition recurrence, including a gait change begun before the previous
+  blend completes, then qualify transition rows twice. Do not add persistent
+  per-channel rollback state for post-blend poses.
+- [x] Run the full Windows/WSL/sanitizer/stored/replay/benchmark gates. Windows
+  Release passes 37/37, WSL Release passes 39/39, WSL ASan/UBSan passes 25/25,
+  and the full stored gates take 0.730/0.947 seconds. A rebuilt five-repetition
+  WSL benchmark records 1,075,589 representative-1v1 and 699,630
+  maximum-combat ticks/s. No canonical schema change was needed for post-blend
+  evaluation; revisit it only if transition state proves necessary.
 
 ## Implemented and verified: decomp differential and web-startup cleanup
 

@@ -4,7 +4,7 @@
   "fighter": "CPTFALCON",
   "fighter_kind": 2,
   "fighter_root": "ftDataCaptain",
-  "model_root": "PlyCaptain5K_Share_joint",
+  "model_root": "PlyCaptain5KGy_Share_joint",
   "pose_conversion": {
     "root_rotation_turns": [0.0, 0.25, 0.0],
     "source_to_sim_numerator": 12,
@@ -15,13 +15,19 @@
     "fighter_dat": "4cf61a52737d464df9298fd15573345fb3b9a15c79ab47dce4fd2e3e707917af",
     "animation_dat": "a9a0ccc2382a2f02d5423675469719488540dd119a14577712c97348f70e1c1a",
     "common_dat": "63841336337eb5a7366b06ccc60ea4bd37c3604ab56e19939d78b9aa9cdd234c",
-    "model_dat": "bdc91f7bde1da16ceefe332876c20b65b36ba2f30a1e94b59bb24a2f9fcfe163"
+    "model_dat": "dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872"
   },
   "motions": [
     { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
     { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
     { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
     { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
+  ],
+  "joint_point_sets": [
+    {
+      "id": "ecb",
+      "source_joint_indices": [39, 47, 25, 14, 8, 4]
+    }
   ],
   "pose_branches": [
     {
@@ -36,13 +42,14 @@
   "expected": {
     "source_joint_count": 63,
     "runtime_part_count": 63,
-    "joint_count": 23,
+    "joint_count": 25,
     "motion_count": 4,
-    "track_count": 205,
-    "key_count": 1198,
+    "track_count": 229,
+    "key_count": 1295,
     "capsule_count": 11,
+    "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "a4536e8c9b91d5914681c20c5d83bf53823a2f6080e5a5d285e7460eec021965"
+    "data_sha256": "aeb63682e4b3ae0cae4fd51f7db810ed86bfc164b9b647b5ac3464e7658ad846"
   },
   "stored_oracle": {
     "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",

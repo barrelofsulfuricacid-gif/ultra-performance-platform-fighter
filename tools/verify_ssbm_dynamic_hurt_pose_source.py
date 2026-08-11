@@ -24,6 +24,7 @@ from hsd_joint_pose import (
 )
 from ssbm_collision import canonical_hurt_pose_q16
 from ssbm_dat import read_hsd_archive
+from ssbm_ecb_pose import canonical_source_ecb, pose_q16
 from ssbm_ecb_pose import (
     canonical_sha256 as ecb_canonical_sha256,
     semantic_payload as ecb_semantic_payload,
@@ -109,6 +110,40 @@ def canonical_source_pose_q16(
             int(capsule[8]),
         )
         for hurtbox_id, capsule in enumerate(capsules)
+    )
+
+
+def source_joint_ecb_q16(
+    matrices: tuple[tuple[tuple[float, ...], ...], ...],
+    source_joint_indices: tuple[int, ...],
+) -> dict[str, list[int]]:
+    points = [
+        (matrices[index][0][3], matrices[index][1][3])
+        for index in source_joint_indices
+    ]
+    left = min(point[0] for point in points)
+    right = max(point[0] for point in points)
+    bottom = min(point[1] for point in points)
+    top = max(point[1] for point in points)
+    if right - left < 10.0:
+        right = 0.5 * (right - left)
+        left = -right
+    if top - bottom < 10.0:
+        half_height = 0.5 * (top - bottom)
+        middle = 0.5 * (top + bottom)
+        top = middle + half_height
+        bottom = middle - half_height
+    right = max(right, 2.0)
+    left = min(left, -2.0)
+    bottom = 0.0
+    side_y = 0.5 * (bottom + top)
+    return pose_q16(
+        {
+            "top": [0.0, top],
+            "bottom": [0.0, bottom],
+            "right": [right, side_y],
+            "left": [left, side_y],
+        }
     )
 
 
@@ -232,6 +267,25 @@ def main() -> int:
     source_joints = tuple(joints)
     layout = read_fighter_part_layout(common_raw, int(manifest["fighter_kind"]))
     capsules = read_fighter_hurt_capsules(fighter_archive, fighter_root)
+    point_sets = manifest.get("joint_point_sets")
+    require(isinstance(point_sets, list), "manifest joint point sets are missing")
+    ecb_point_sets = [
+        point_set
+        for point_set in point_sets
+        if isinstance(point_set, dict) and point_set.get("id") == "ecb"
+    ]
+    require(len(ecb_point_sets) == 1, "manifest ECB joint point set is not unique")
+    raw_ecb_source_joints = ecb_point_sets[0].get("source_joint_indices")
+    require(
+        isinstance(raw_ecb_source_joints, list)
+        and len(raw_ecb_source_joints) == 6
+        and all(
+            isinstance(index, int) and 0 <= index < len(source_joints)
+            for index in raw_ecb_source_joints
+        ),
+        "manifest ECB source joints are invalid",
+    )
+    ecb_source_joints = tuple(int(index) for index in raw_ecb_source_joints)
     tolerance = (
         int(qualification["coordinate_tolerance_q16"])
         if args.tolerance_q16 is None
@@ -252,6 +306,7 @@ def main() -> int:
     total_samples = 0
     total_capsules = 0
     maximum_difference = 0
+    maximum_ecb_difference = 0
     capture_digests: list[str] = []
     for capture_name, capture_digest, rows in capture_specs:
         capture_digests.append(capture_digest)
@@ -335,6 +390,36 @@ def main() -> int:
                             f"capsule={capsule_index} Q16 difference={difference}"
                         )
                     case_maximum = max(case_maximum, difference)
+                captured_ecb = memory.get("fighter_ecb")
+                require(
+                    isinstance(captured_ecb, dict),
+                    f"{capture_name}/{action}: missing fighter ECB",
+                )
+                expected_ecb = pose_q16(
+                    canonical_source_ecb(captured_ecb, int(facing))
+                )
+                actual_ecb = source_joint_ecb_q16(
+                    evaluate_joint_matrices(
+                        source_joints,
+                        animation,
+                        float(frame),
+                    ),
+                    ecb_source_joints,
+                )
+                ecb_difference = max(
+                    abs(actual_ecb[point][axis] - expected_ecb[point][axis])
+                    for point in ("top", "bottom", "right", "left")
+                    for axis in (0, 1)
+                )
+                if ecb_difference > tolerance:
+                    raise ValueError(
+                        f"{capture_name}/{action}: trace={row['trace_frame']} "
+                        f"ECB Q16 difference={ecb_difference}"
+                    )
+                maximum_ecb_difference = max(
+                    maximum_ecb_difference,
+                    ecb_difference,
+                )
             print(
                 "ssbm-dynamic-hurt-source-case=pass "
                 f"capture={capture_name} action={action} "
@@ -348,7 +433,7 @@ def main() -> int:
         "ssbm-dynamic-hurt-source=pass "
         f"captures={len(capture_specs)} cases={len(cases)} "
         f"samples={total_samples} capsules={total_capsules} "
-        f"max_q16={maximum_difference} "
+        f"max_q16={maximum_difference} ecb_max_q16={maximum_ecb_difference} "
         f"capture_sha256={','.join(capture_digests)}"
     )
 

@@ -530,22 +530,132 @@ pf_m4_falcon_reference_prone_ecb_pose(
     return NULL;
 }
 
-const pf_m4_falcon_ecb_pose_q16 *
+static int32_t pf_m4_falcon_ecb_source_scale_q16(
+    int32_t value_q16,
+    int32_t numerator,
+    int32_t denominator)
+{
+    const int64_t scaled = (int64_t)value_q16 * (int64_t)numerator;
+
+    return (int32_t)(scaled < INT64_C(0)
+                         ? -((-scaled + denominator / INT32_C(2)) /
+                             denominator)
+                         : (scaled + denominator / INT32_C(2)) /
+                               denominator);
+}
+
+int
 pf_m4_falcon_reference_ground_loop_ecb_pose(
     uint16_t source_submotion,
-    int32_t source_animation_frame_q16)
+    int32_t source_animation_frame_q16,
+    pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
-    uint16_t frame_index;
-
-    if (source_submotion != (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT ||
-        source_animation_frame_q16 < INT32_C(0))
+    int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
+    enum
     {
-        return NULL;
+        PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT =
+            sizeof(pf_m4_falcon_ground_loop_hsd_ecb_joint_indices) /
+            sizeof(pf_m4_falcon_ground_loop_hsd_ecb_joint_indices[0])
+    };
+    int32_t left_q16;
+    int32_t right_q16;
+    int32_t bottom_q16;
+    int32_t top_q16;
+    int32_t side_y_q16;
+    uint8_t index;
+
+    if (out_pose == NULL || source_animation_frame_q16 < INT32_C(0))
+    {
+        return 0;
     }
-    frame_index = (uint16_t)(
-        ((uint32_t)source_animation_frame_q16 >> UINT32_C(16)) %
-        PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT);
-    return &pf_m4_falcon_collision_pose_data.crouch_wait[frame_index];
+    if (source_submotion == (uint16_t)PF_M4_FALCON_SUBMOTION_SQUAT_WAIT)
+    {
+        const uint16_t frame_index = (uint16_t)(
+            ((uint32_t)source_animation_frame_q16 >> UINT32_C(16)) %
+            PF_M4_FALCON_CROUCH_WAIT_ECB_FRAME_COUNT);
+
+        *out_pose = pf_m4_falcon_collision_pose_data.crouch_wait[frame_index];
+        return 1;
+    }
+    if (!pf_m4_hsd_evaluate_joint_origins_source_q16(
+            &pf_m4_falcon_ground_loop_hsd_data,
+            source_submotion,
+            source_animation_frame_q16,
+            pf_m4_falcon_ground_loop_hsd_ecb_joint_indices,
+            (uint8_t)PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT,
+            origins_q16))
+    {
+        return 0;
+    }
+    left_q16 = right_q16 = origins_q16[0][0];
+    bottom_q16 = top_q16 = origins_q16[0][1];
+    for (index = UINT8_C(1);
+         index < (uint8_t)PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT;
+         ++index)
+    {
+        if (origins_q16[index][0] < left_q16)
+        {
+            left_q16 = origins_q16[index][0];
+        }
+        if (origins_q16[index][0] > right_q16)
+        {
+            right_q16 = origins_q16[index][0];
+        }
+        if (origins_q16[index][1] < bottom_q16)
+        {
+            bottom_q16 = origins_q16[index][1];
+        }
+        if (origins_q16[index][1] > top_q16)
+        {
+            top_q16 = origins_q16[index][1];
+        }
+    }
+    if (right_q16 - left_q16 < INT32_C(10) * INT32_C(65536))
+    {
+        right_q16 = (right_q16 - left_q16) / INT32_C(2);
+        left_q16 = -right_q16;
+    }
+    if (top_q16 - bottom_q16 < INT32_C(10) * INT32_C(65536))
+    {
+        const int32_t half_height_q16 =
+            (top_q16 - bottom_q16) / INT32_C(2);
+        const int32_t middle_q16 =
+            (top_q16 + bottom_q16) / INT32_C(2);
+
+        top_q16 = middle_q16 + half_height_q16;
+        bottom_q16 = middle_q16 - half_height_q16;
+    }
+    if (right_q16 < INT32_C(2) * INT32_C(65536))
+    {
+        right_q16 = INT32_C(2) * INT32_C(65536);
+    }
+    if (left_q16 > -INT32_C(2) * INT32_C(65536))
+    {
+        left_q16 = -INT32_C(2) * INT32_C(65536);
+    }
+    bottom_q16 = INT32_C(0);
+    side_y_q16 = (bottom_q16 + top_q16) / INT32_C(2);
+    out_pose->top_x_from_origin_q16 = INT32_C(0);
+    out_pose->top_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        top_q16,
+        INT32_C(11),
+        INT32_C(62));
+    out_pose->bottom_x_from_origin_q16 = INT32_C(0);
+    out_pose->bottom_y_from_origin_q16 = INT32_C(0);
+    out_pose->right_x_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        right_q16,
+        INT32_C(12),
+        INT32_C(115));
+    out_pose->right_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        side_y_q16,
+        INT32_C(11),
+        INT32_C(62));
+    out_pose->left_x_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
+        left_q16,
+        INT32_C(12),
+        INT32_C(115));
+    out_pose->left_y_from_origin_q16 = out_pose->right_y_from_origin_q16;
+    return 1;
 }
 
 const pf_m4_falcon_ecb_pose_q16 *
