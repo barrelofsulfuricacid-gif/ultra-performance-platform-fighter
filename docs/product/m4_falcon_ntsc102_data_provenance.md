@@ -1244,11 +1244,14 @@ owner-extracted `PlCa.dat`, `PlCaAJ.dat`, `PlCo.dat`, and active gray-costume
 `PlCaGy.dat`, validates their pinned SHA-256 values, maps Falcon's 63 model
 joints through the complete 63-entry runtime part layout, and closes the 11
 hurt capsules plus six ECB source selectors over one 25-joint ancestor catalog.
-It emits the original 229 FObj tracks / 1,295 keys for four motions. The gray
-model SHA-256 is
+It emits 580 FObj tracks / 5,346 keys for ten motions: the six compact
+Wait/Walk/Dash/Run blend motions plus all four Raptor Boost ground/air
+start/hit motions. Only the original six motions participate in compact
+rollback blend-channel generation, so direct action evaluation adds no
+persistent state. The gray model SHA-256 is
 `dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872`;
 the generated semantic data SHA-256 is
-`aeb63682e4b3ae0cae4fd51f7db810ed86bfc164b9b647b5ac3464e7658ad846`.
+`c8a4f062eb8a35d12d3ea2fa0787a76211bcee3d7379a6bd7c51b71d2cdd07ee`.
 The shared runtime evaluator implements the HSD FObj interpolation and Euler
 SRT hierarchy in deterministic Q16.16. In particular, it follows
 `HSD_FObjReqAnim` by adding each FObj `startframe` to the requested animation
@@ -1267,6 +1270,30 @@ samples, are stored as a separate C oracle with a 64-Q16 deterministic-runtime
 bound and now protect both the capsule and ECB consumers. The WalkFast trace
 first enters Walk with a sub-dash tilt and then raises the stick above Falcon's
 fast-gait velocity boundary, avoiding an authored state override.
+
+The same evaluator owns Raptor Boost ECB generation. It subtracts the
+TransN/current-position reference from the six source JObj origins before
+applying `mpColl_LoadECB_JObj`'s width, height, side-clamp, grounded-bottom,
+and airborne-bottom rules. Air start retains the zero actual bottom for its
+first four displayed frames while side Y uses the unlocked desired bottom,
+matching `ftCommon_8007D60C` and `Fighter_procMap` callback order. A hit-state
+frame zero still displays the final start-motion pose that entered the state;
+hitlag repeats that pose rather than advancing the new animation.
+
+Five manifest-bound captures with raw SHA-256 values
+`81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602`,
+`1780ae376ae2be8f26187db96b81df96b8a750ff9d1ef8934631ab02da6e4ae1`,
+`20f39477c01894751724b5e0097a7c2646baa4e12bfbbfe7bcdb09edf10bf864`,
+`9efacb94277b8cb870f8c69008e5dd248d4d31cec17e9713323abde94a577028`,
+and
+`86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e`
+cover 423 observations / 411 complete action frames across all four motions.
+The independent Python source evaluator differs from live Dolphin by at most
+one Q16 unit. Four selected C poses allow 32 Q16 units for deterministic
+fixed-point matrix evaluation, and the complete 657-frame production Raptor
+suite passes. The former authored 45-value aerial-hit ECB-bottom series is
+removed; the Falcon complete-source digest is now
+`af61fad2387f92067a0fc6eaefbd8322fa9fa0401e8281c4618e6949cf1c44f1`.
 
 ## Falcon shield-break orientation branch
 

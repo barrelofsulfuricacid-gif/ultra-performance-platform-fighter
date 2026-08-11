@@ -14,7 +14,6 @@
 #define PF_M4_MELEE_STALE_MOVE_SLOT_COUNT UINT16_C(9)
 #define PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT UINT16_C(8)
 #define PF_M4_FALCON_AIR_DODGE_ECB_FRAME_COUNT UINT16_C(48)
-#define PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT UINT16_C(45)
 #define PF_M4_FALCON_DIVE_ECB_FRAME_COUNT UINT16_C(64)
 #define PF_M4_FALCON_PRONE_ORIENTATION_COUNT UINT16_C(2)
 #define PF_M4_FALCON_GETUP_ROLL_DIRECTION_COUNT UINT16_C(2)
@@ -166,6 +165,10 @@ typedef enum pf_m4_falcon_submotion_index
     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_DOWN = 289,
     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_UP = 290,
     PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_STAND_DOWN = 291,
+    PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND = 303,
+    PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND = 304,
+    PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR = 305,
+    PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR = 306,
     PF_M4_FALCON_SUBMOTION_CATCH_WAIT = 244,
     PF_M4_FALCON_SUBMOTION_CATCH_ATTACK = 245,
     PF_M4_FALCON_SUBMOTION_CATCH_CUT = 246,
@@ -623,8 +626,6 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_WALL_BOUNCE_ECB_FRAME_COUNT];
     int32_t fall_special_bottom_y_from_origin_q16[
         PF_M4_FALCON_FALL_SPECIAL_ECB_FRAME_COUNT];
-    int32_t raptor_boost_hit_air_bottom_y_from_origin_q16[
-        PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT];
     int32_t falcon_dive_right_x_from_origin_q16[
         PF_M4_FALCON_DIVE_ECB_FRAME_COUNT];
     int32_t falcon_dive_bottom_y_from_origin_q16[
@@ -792,15 +793,15 @@ pf_m4_falcon_reference_prone_ecb_pose(
     int8_t facing);
 
 int
-pf_m4_falcon_reference_ground_loop_ecb_pose(
+pf_m4_falcon_reference_hsd_ecb_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose);
 
 const pf_m4_hsd_pose_data *
-pf_m4_falcon_reference_ground_loop_hsd_data(void);
+pf_m4_falcon_reference_hsd_pose_data(void);
 
-int pf_m4_falcon_reference_ground_loop_ecb_pose_from_local_pose(
+int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
     const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     pf_m4_falcon_ecb_pose_q16 *out_pose);
 

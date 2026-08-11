@@ -108,6 +108,37 @@ static uint16_t pf_m4_falcon_jump_submotion(
                : (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_FORWARD;
 }
 
+static int pf_m4_falcon_raptor_boost_submotion(
+    uint8_t action_state,
+    uint16_t *out_submotion)
+{
+    if (out_submotion == NULL)
+    {
+        return 0;
+    }
+    switch (action_state)
+    {
+    case PF_M4_ACTION_RAPTOR_BOOST_START_GROUND:
+        *out_submotion = (uint16_t)
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND;
+        return 1;
+    case PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND:
+        *out_submotion = (uint16_t)
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND;
+        return 1;
+    case PF_M4_ACTION_RAPTOR_BOOST_START_AIR:
+        *out_submotion = (uint16_t)
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR;
+        return 1;
+    case PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR:
+        *out_submotion = (uint16_t)
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR;
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 static int pf_m4_falcon_walk_submotion(uint16_t source_submotion)
 {
     return source_submotion ==
@@ -512,7 +543,7 @@ static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
     int32_t *out_progress_q16)
 {
     const pf_m4_hsd_pose_data *data =
-        pf_m4_falcon_reference_ground_loop_hsd_data();
+        pf_m4_falcon_reference_hsd_pose_data();
     const uint8_t previous_action = pf_m4_effective_action_state(
         world->action_state[player_index],
         world->hitlag_resume_action[player_index]);
@@ -2138,7 +2169,7 @@ static int pf_m4_reference_ecb_pose_q16(
     if (ground_loop_compact != NULL)
     {
         const pf_m4_hsd_pose_data *data =
-            pf_m4_falcon_reference_ground_loop_hsd_data();
+            pf_m4_falcon_reference_hsd_pose_data();
         pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
         pf_m4_hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
 
@@ -2150,14 +2181,14 @@ static int pf_m4_reference_ecb_pose_q16(
                 target) ||
             !pf_m4_hsd_inflate_compact_pose_q16(
                 data, target, ground_loop_compact, blended) ||
-            !pf_m4_falcon_reference_ground_loop_ecb_pose_from_local_pose(
+            !pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
                 blended, out_pose))
         {
             return 0;
         }
         return 1;
     }
-    if (pf_m4_falcon_reference_ground_loop_ecb_pose(
+    if (pf_m4_falcon_reference_hsd_ecb_pose(
             source_submotion,
             source_animation_frame_q16,
             out_pose))
@@ -2346,21 +2377,6 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
 
         bottom_y_from_origin_q16 =
             pose->platform_drop_bottom_y_from_origin_q16[frame_index];
-        has_reference_pose = 1;
-        exact_reference_pose = 1;
-    }
-    else if (action_state == (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR)
-    {
-        const uint16_t frame_index =
-            action_ticks <
-                    PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT
-                ? action_ticks
-                : (uint16_t)(
-                      PF_M4_FALCON_RAPTOR_BOOST_HIT_AIR_ECB_FRAME_COUNT -
-                      UINT16_C(1));
-
-        bottom_y_from_origin_q16 =
-            pose->raptor_boost_hit_air_bottom_y_from_origin_q16[frame_index];
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
@@ -12943,6 +12959,15 @@ pf_status pf_m4_step_player(
             &integrated_animation_y_q16);
     }
 
+    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+        pf_m4_falcon_raptor_boost_submotion(
+            action_state, &source_submotion))
+    {
+        source_animation_frame_q16 =
+            (int32_t)action_ticks * (int32_t)PF_Q16_ONE;
+        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+    }
+
     previous_position_x = position_x;
     next_position =
         (int64_t)position_x +
@@ -12996,7 +13021,7 @@ pf_status pf_m4_step_player(
         uint8_t wall_support = UINT8_C(0);
 
         if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
-            pf_m4_falcon_reference_ground_loop_ecb_pose(
+            pf_m4_falcon_reference_hsd_ecb_pose(
                 source_submotion,
                 source_animation_frame_q16,
                 &wall_pose) != 0)
@@ -14265,6 +14290,28 @@ pf_status pf_m4_step_player(
         }
         source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
     }
+    else if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+             pf_m4_action_is_raptor_boost_hsd(
+                 pf_m4_effective_action_state(
+                     action_state,
+                     scratch->hitlag_resume_action[player_index])))
+    {
+        const uint8_t effective_action = pf_m4_effective_action_state(
+            action_state,
+            scratch->hitlag_resume_action[player_index]);
+
+        if (!pf_m4_falcon_raptor_boost_submotion(
+                effective_action, &source_submotion))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (action_state != (uint8_t)PF_M4_ACTION_HITLAG)
+        {
+            source_animation_frame_q16 =
+                (int32_t)action_ticks * (int32_t)PF_Q16_ONE;
+        }
+        source_animation_rate_q16 = (int32_t)PF_Q16_ONE;
+    }
     else
     {
         source_animation_frame_q16 = INT32_C(0);
@@ -14858,7 +14905,7 @@ pf_status pf_m4_inspect(
             INT32_C(0))
         {
             const pf_m4_hsd_pose_data *data =
-                pf_m4_falcon_reference_ground_loop_hsd_data();
+                pf_m4_falcon_reference_hsd_pose_data();
             pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
 
             if (data == NULL ||

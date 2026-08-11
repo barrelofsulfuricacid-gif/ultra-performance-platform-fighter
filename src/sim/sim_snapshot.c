@@ -2348,7 +2348,7 @@ static int pf_m4_snapshot_ground_blend_valid(
     }
     {
         const pf_m4_hsd_pose_data *data =
-            pf_m4_falcon_reference_ground_loop_hsd_data();
+            pf_m4_falcon_reference_hsd_pose_data();
         pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
         pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
         pf_m4_reference_hurt_capsule

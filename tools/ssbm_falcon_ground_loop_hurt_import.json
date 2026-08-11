@@ -18,12 +18,16 @@
     "model_dat": "dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872"
   },
   "motions": [
-    { "submotion_index": 2, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
-    { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
-    { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
-    { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
-    { "submotion_index": 12, "c_submotion": "PF_M4_FALCON_SUBMOTION_DASH" },
-    { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
+    { "submotion_index": 2, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT", "compact_blend": true },
+    { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW", "compact_blend": true },
+    { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE", "compact_blend": true },
+    { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST", "compact_blend": true },
+    { "submotion_index": 12, "c_submotion": "PF_M4_FALCON_SUBMOTION_DASH", "compact_blend": true },
+    { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN", "compact_blend": true },
+    { "submotion_index": 303, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND" },
+    { "submotion_index": 304, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND" },
+    { "submotion_index": 305, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR" },
+    { "submotion_index": 306, "c_submotion": "PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR" }
   ],
   "joint_point_sets": [
     {
@@ -46,16 +50,62 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 6,
-    "track_count": 344,
-    "key_count": 3043,
+    "motion_count": 10,
+    "compact_motion_count": 6,
+    "track_count": 580,
+    "key_count": 5346,
     "capsule_count": 11,
     "rotation_joint_count": 19,
     "translation_joint_count": 6,
     "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "dfca517d662b6c2851a8e4a60243e6a214193f42c7f1632806bbc6959a8d5ad5"
+    "data_sha256": "c8a4f062eb8a35d12d3ea2fa0787a76211bcee3d7379a6bd7c51b71d2cdd07ee"
+  },
+  "action_ecb_qualification": {
+    "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
+    "probe_engine_version": "1.3.1",
+    "decomp_revision": "9509dc04406fb2028bfab01243841ba4787c0fb7",
+    "coordinate_tolerance_q16": 8,
+    "captures": [
+      {
+        "id": "raptor-start-control",
+        "sha256": "81cafb4d75e75c1f876b6a903a770a3e20376d0399d9374cab19d7feea413602",
+        "cases": [
+          { "source_action": "SWORD_DANCE_1", "submotion_index": 303, "first_frame": 1, "last_frame": 79, "grounded": true },
+          { "source_action": "SWORD_DANCE_2_MID", "submotion_index": 305, "first_frame": 1, "last_frame": 79, "grounded": false, "bottom_lock_through_frame": 4 }
+        ]
+      },
+      {
+        "id": "raptor-start-repeat",
+        "sha256": "1780ae376ae2be8f26187db96b81df96b8a750ff9d1ef8934631ab02da6e4ae1",
+        "cases": [
+          { "source_action": "SWORD_DANCE_1", "submotion_index": 303, "first_frame": 1, "last_frame": 79, "grounded": true },
+          { "source_action": "SWORD_DANCE_2_MID", "submotion_index": 305, "first_frame": 1, "last_frame": 79, "grounded": false, "bottom_lock_through_frame": 4 }
+        ]
+      },
+      {
+        "id": "raptor-ground-hit-control",
+        "sha256": "20f39477c01894751724b5e0097a7c2646baa4e12bfbbfe7bcdb09edf10bf864",
+        "cases": [
+          { "source_action": "SWORD_DANCE_2_HIGH", "submotion_index": 304, "first_frame": 0, "last_frame": 24, "grounded": true, "entry_submotion_index": 303, "entry_source_frame": 18, "entry_grounded": true }
+        ]
+      },
+      {
+        "id": "raptor-ground-hit-repeat",
+        "sha256": "9efacb94277b8cb870f8c69008e5dd248d4d31cec17e9713323abde94a577028",
+        "cases": [
+          { "source_action": "SWORD_DANCE_2_HIGH", "submotion_index": 304, "first_frame": 0, "last_frame": 24, "grounded": true, "entry_submotion_index": 303, "entry_source_frame": 15, "entry_grounded": true }
+        ]
+      },
+      {
+        "id": "raptor-air-hit-control",
+        "sha256": "86e0abff2d1de0483e25ef8db045da323a35331bf95fb7089b00283233b4fc8e",
+        "cases": [
+          { "source_action": "SWORD_DANCE_3_HIGH", "submotion_index": 306, "first_frame": 0, "last_frame": 44, "grounded": false, "entry_submotion_index": 305, "entry_source_frame": 18, "entry_grounded": false }
+        ]
+      }
+    ]
   },
   "stored_oracle": {
     "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
@@ -109,5 +159,5 @@
       { "source_action": "SHIELD_BREAK_TEETER", "action_value": 211, "expected_samples": 127 }
     ]
   },
-  "symbol_prefix": "pf_m4_falcon_ground_loop_hsd"
+  "symbol_prefix": "pf_m4_falcon_dynamic_hsd"
 }

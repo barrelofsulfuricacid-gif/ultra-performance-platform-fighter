@@ -114,6 +114,18 @@ static inline int pf_m4_action_is_smash_release(uint8_t action_state)
            action_state == (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK;
 }
 
+static inline int pf_m4_action_is_raptor_boost_hsd(uint8_t action_state)
+{
+    return action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_GROUND ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_START_AIR ||
+           action_state ==
+               (uint8_t)PF_M4_ACTION_RAPTOR_BOOST_HIT_AIR;
+}
+
 static inline int pf_m4_action_retains_source_submotion(
     uint8_t action_state,
     uint8_t hitlag_resume_action)
@@ -137,7 +149,8 @@ static inline int pf_m4_action_retains_source_submotion(
         action_state == (uint8_t)PF_M4_ACTION_PUMMEL ||
         action_state == (uint8_t)PF_M4_ACTION_GRABBED ||
         action_state == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
-        pf_m4_action_uses_ledge(action_state);
+        pf_m4_action_uses_ledge(action_state) ||
+        pf_m4_action_is_raptor_boost_hsd(action_state);
     const int resume_owns_submotion =
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_WALK ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_RUN ||
@@ -161,7 +174,8 @@ static inline int pf_m4_action_retains_source_submotion(
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_PUMMEL ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRABBED ||
         hitlag_resume_action == (uint8_t)PF_M4_ACTION_GRAB_RELEASE ||
-        pf_m4_action_uses_ledge(hitlag_resume_action);
+        pf_m4_action_uses_ledge(hitlag_resume_action) ||
+        pf_m4_action_is_raptor_boost_hsd(hitlag_resume_action);
 
     return action_owns_submotion ||
            (action_state == (uint8_t)PF_M4_ACTION_HITLAG &&
@@ -200,7 +214,8 @@ static inline int pf_m4_action_uses_source_animation_clock(
     return pf_m4_action_uses_velocity_animation_clock(
                action_state,
                hitlag_resume_action) ||
-           effective_action == (uint8_t)PF_M4_ACTION_CROUCH;
+           effective_action == (uint8_t)PF_M4_ACTION_CROUCH ||
+           pf_m4_action_is_raptor_boost_hsd(effective_action);
 }
 
 static inline int32_t pf_m4_multiply_q16(

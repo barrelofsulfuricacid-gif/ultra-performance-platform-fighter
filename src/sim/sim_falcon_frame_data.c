@@ -544,44 +544,87 @@ static int32_t pf_m4_falcon_ecb_source_scale_q16(
                                denominator);
 }
 
-static int pf_m4_falcon_ground_loop_ecb_from_origins(
+enum
+{
+    PF_M4_FALCON_HSD_ECB_JOINT_COUNT =
+        sizeof(pf_m4_falcon_dynamic_hsd_ecb_joint_indices) /
+        sizeof(pf_m4_falcon_dynamic_hsd_ecb_joint_indices[0]),
+    PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT =
+        PF_M4_FALCON_HSD_ECB_JOINT_COUNT + 1
+};
+
+static inline int pf_m4_falcon_hsd_ecb_evaluation_joints(
+    uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT])
+{
+    uint8_t joint_index;
+
+    if (joint_indices == NULL ||
+        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_count !=
+            UINT8_C(1))
+    {
+        return 0;
+    }
+    for (joint_index = UINT8_C(0);
+         joint_index < PF_M4_FALCON_HSD_ECB_JOINT_COUNT;
+         ++joint_index)
+    {
+        joint_indices[joint_index] =
+            pf_m4_falcon_dynamic_hsd_ecb_joint_indices[joint_index];
+    }
+    joint_indices[PF_M4_FALCON_HSD_ECB_JOINT_COUNT] =
+        pf_m4_falcon_dynamic_hsd_data.copy_target_joint_indices[0];
+    return 1;
+}
+
+static int pf_m4_falcon_hsd_ecb_from_origins(
     const int32_t *origins_q16,
     uint8_t origin_count,
+    const int32_t reference_origin_q16[3],
+    int grounded,
+    int bottom_locked,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     int32_t left_q16;
     int32_t right_q16;
     int32_t bottom_q16;
     int32_t top_q16;
+    int32_t desired_bottom_q16;
     int32_t side_y_q16;
     uint8_t index;
 
     if (origins_q16 == NULL || origin_count == UINT8_C(0) ||
-        out_pose == NULL)
+        reference_origin_q16 == NULL || out_pose == NULL)
     {
         return 0;
     }
-    left_q16 = right_q16 = origins_q16[0];
-    bottom_q16 = top_q16 = origins_q16[1];
+    left_q16 = right_q16 =
+        origins_q16[0] - reference_origin_q16[0];
+    bottom_q16 = top_q16 =
+        origins_q16[1] - reference_origin_q16[1];
     for (index = UINT8_C(1); index < origin_count; ++index)
     {
         const size_t offset = (size_t)index * (size_t)3;
 
-        if (origins_q16[offset] < left_q16)
+        const int32_t x_q16 =
+            origins_q16[offset] - reference_origin_q16[0];
+        const int32_t y_q16 =
+            origins_q16[offset + (size_t)1] - reference_origin_q16[1];
+
+        if (x_q16 < left_q16)
         {
-            left_q16 = origins_q16[offset];
+            left_q16 = x_q16;
         }
-        if (origins_q16[offset] > right_q16)
+        if (x_q16 > right_q16)
         {
-            right_q16 = origins_q16[offset];
+            right_q16 = x_q16;
         }
-        if (origins_q16[offset + (size_t)1] < bottom_q16)
+        if (y_q16 < bottom_q16)
         {
-            bottom_q16 = origins_q16[offset + (size_t)1];
+            bottom_q16 = y_q16;
         }
-        if (origins_q16[offset + (size_t)1] > top_q16)
+        if (y_q16 > top_q16)
         {
-            top_q16 = origins_q16[offset + (size_t)1];
+            top_q16 = y_q16;
         }
     }
     if (right_q16 - left_q16 < INT32_C(10) * INT32_C(65536))
@@ -607,13 +650,27 @@ static int pf_m4_falcon_ground_loop_ecb_from_origins(
     {
         left_q16 = -INT32_C(2) * INT32_C(65536);
     }
-    bottom_q16 = INT32_C(0);
-    side_y_q16 = (bottom_q16 + top_q16) / INT32_C(2);
+    if (grounded != 0)
+    {
+        bottom_q16 = INT32_C(0);
+    }
+    else if (bottom_q16 < INT32_C(0))
+    {
+        bottom_q16 = INT32_C(0);
+    }
+    desired_bottom_q16 = bottom_q16;
+    side_y_q16 = (desired_bottom_q16 + top_q16) / INT32_C(2);
+    if (bottom_locked != 0)
+    {
+        bottom_q16 = INT32_C(0);
+    }
     out_pose->top_x_from_origin_q16 = INT32_C(0);
     out_pose->top_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
         top_q16, INT32_C(11), INT32_C(62));
     out_pose->bottom_x_from_origin_q16 = INT32_C(0);
-    out_pose->bottom_y_from_origin_q16 = INT32_C(0);
+    out_pose->bottom_y_from_origin_q16 =
+        pf_m4_falcon_ecb_source_scale_q16(
+            bottom_q16, INT32_C(11), INT32_C(62));
     out_pose->right_x_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
         right_q16, INT32_C(12), INT32_C(115));
     out_pose->right_y_from_origin_q16 = pf_m4_falcon_ecb_source_scale_q16(
@@ -625,18 +682,22 @@ static int pf_m4_falcon_ground_loop_ecb_from_origins(
 }
 
 int
-pf_m4_falcon_reference_ground_loop_ecb_pose(
+pf_m4_falcon_reference_hsd_ecb_pose(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
-    enum
-    {
-        PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT =
-            sizeof(pf_m4_falcon_ground_loop_hsd_ecb_joint_indices) /
-            sizeof(pf_m4_falcon_ground_loop_hsd_ecb_joint_indices[0])
-    };
+    uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT];
+    const int airborne =
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR ||
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR;
+    const int bottom_locked =
+        source_submotion ==
+            (uint16_t)PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR &&
+        source_animation_frame_q16 < INT32_C(5) * INT32_C(65536);
 
     if (out_pose == NULL || source_animation_frame_q16 < INT32_C(0))
     {
@@ -651,53 +712,63 @@ pf_m4_falcon_reference_ground_loop_ecb_pose(
         *out_pose = pf_m4_falcon_collision_pose_data.crouch_wait[frame_index];
         return 1;
     }
+    if (!pf_m4_falcon_hsd_ecb_evaluation_joints(joint_indices))
+    {
+        return 0;
+    }
     if (!pf_m4_hsd_evaluate_joint_origins_source_q16(
-            &pf_m4_falcon_ground_loop_hsd_data,
+            &pf_m4_falcon_dynamic_hsd_data,
             source_submotion,
             source_animation_frame_q16,
-            pf_m4_falcon_ground_loop_hsd_ecb_joint_indices,
-            (uint8_t)PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT,
+            joint_indices,
+            (uint8_t)PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT,
             origins_q16))
     {
         return 0;
     }
-    return pf_m4_falcon_ground_loop_ecb_from_origins(
+    return pf_m4_falcon_hsd_ecb_from_origins(
         &origins_q16[0][0],
-        (uint8_t)PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT,
+        (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
+        origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT],
+        airborne == 0,
+        bottom_locked,
         out_pose);
 }
 
 const pf_m4_hsd_pose_data *
-pf_m4_falcon_reference_ground_loop_hsd_data(void)
+pf_m4_falcon_reference_hsd_pose_data(void)
 {
-    return &pf_m4_falcon_ground_loop_hsd_data;
+    return &pf_m4_falcon_dynamic_hsd_data;
 }
 
-int pf_m4_falcon_reference_ground_loop_ecb_pose_from_local_pose(
+int pf_m4_falcon_reference_hsd_ground_ecb_pose_from_local_pose(
     const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     int32_t origins_q16[PF_M4_HSD_POSE_MAX_JOINTS][3];
-    enum
-    {
-        PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT =
-            sizeof(pf_m4_falcon_ground_loop_hsd_ecb_joint_indices) /
-            sizeof(pf_m4_falcon_ground_loop_hsd_ecb_joint_indices[0])
-    };
+    uint8_t joint_indices[PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT];
 
     if (pose == NULL || out_pose == NULL ||
+        !pf_m4_falcon_hsd_ecb_evaluation_joints(joint_indices))
+    {
+        return 0;
+    }
+    if (
         !pf_m4_hsd_evaluate_joint_origins_from_local_pose_q16(
-            &pf_m4_falcon_ground_loop_hsd_data,
+            &pf_m4_falcon_dynamic_hsd_data,
             pose,
-            pf_m4_falcon_ground_loop_hsd_ecb_joint_indices,
-            (uint8_t)PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT,
+            joint_indices,
+            (uint8_t)PF_M4_FALCON_HSD_ECB_EVALUATION_JOINT_COUNT,
             origins_q16))
     {
         return 0;
     }
-    return pf_m4_falcon_ground_loop_ecb_from_origins(
+    return pf_m4_falcon_hsd_ecb_from_origins(
         &origins_q16[0][0],
-        (uint8_t)PF_M4_FALCON_GROUND_LOOP_ECB_JOINT_COUNT,
+        (uint8_t)PF_M4_FALCON_HSD_ECB_JOINT_COUNT,
+        origins_q16[PF_M4_FALCON_HSD_ECB_JOINT_COUNT],
+        1,
+        0,
         out_pose);
 }
 
@@ -1240,7 +1311,7 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
     uint8_t count;
 
     if (!pf_m4_hsd_evaluate_hurt_pose(
-            &pf_m4_falcon_ground_loop_hsd_data,
+            &pf_m4_falcon_dynamic_hsd_data,
             source_submotion,
             source_animation_frame_q16,
             evaluated,
@@ -1266,7 +1337,7 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
     uint8_t count;
 
     if (!pf_m4_hsd_evaluate_hurt_pose_from_local_pose(
-            &pf_m4_falcon_ground_loop_hsd_data,
+            &pf_m4_falcon_dynamic_hsd_data,
             pose,
             evaluated,
             &count))
@@ -1284,10 +1355,10 @@ int pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
 uint16_t pf_m4_falcon_reference_shield_break_down_submotion(void)
 {
     _Static_assert(
-        pf_m4_falcon_ground_loop_hsd_pose_branch_shield_break_down_up_component_q16 <
+        pf_m4_falcon_dynamic_hsd_pose_branch_shield_break_down_up_component_q16 <
             INT32_C(0),
         "Falcon terminal ShieldBreakFly HipN branch must remain DownD");
-    return pf_m4_falcon_ground_loop_hsd_pose_branch_shield_break_down_up !=
+    return pf_m4_falcon_dynamic_hsd_pose_branch_shield_break_down_up !=
                    UINT8_C(0)
                ? (uint16_t)
                      PF_M4_FALCON_SUBMOTION_SHIELD_BREAK_DOWN_UP

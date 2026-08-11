@@ -175,7 +175,12 @@ def build_payload(
     key_rows: list[dict[str, int]] = []
     track_rows: list[dict[str, int]] = []
     motion_rows: list[dict[str, Any]] = []
+    compact_track_rows: list[dict[str, int]] = []
+    compact_motion_count = 0
     for motion_spec in manifest["motions"]:
+        compact_blend = motion_spec.get("compact_blend", False)
+        if not isinstance(compact_blend, bool):
+            raise ValueError("motion compact_blend must be boolean")
         submotion = int(motion_spec["submotion_index"])
         tree = decode_figatree(
             fighter_animation_slice(fighter, animation_raw, fighter_root, submotion)
@@ -220,6 +225,11 @@ def build_payload(
                 "frame_count": round(tree.frame_count),
             }
         )
+        if compact_blend:
+            compact_track_rows.extend(track_rows[track_offset:])
+            compact_motion_count += 1
+    if compact_motion_count == 0:
+        raise ValueError("at least one motion must own compact blend state")
 
     capsule_rows: list[dict[str, Any]] = []
     for hurtbox_id, capsule in enumerate(capsules):
@@ -326,19 +336,20 @@ def build_payload(
         "axis_sign": axis_sign,
         "joints": joint_rows,
         "motions": motion_rows,
+        "compact_motion_count": compact_motion_count,
         "tracks": track_rows,
         "keys": key_rows,
         "rotation_joint_indices": sorted(
             {
                 row["joint_index"]
-                for row in track_rows
+                for row in compact_track_rows
                 if row["track_type"] in (1, 2, 3)
             }
         ),
         "translation_joint_indices": sorted(
             {
                 row["joint_index"]
-                for row in track_rows
+                for row in compact_track_rows
                 if row["track_type"] in (5, 6, 7)
             }
         ),
@@ -358,6 +369,7 @@ def validate_expected(manifest: dict[str, Any], payload: dict[str, Any]) -> str:
         "runtime_part_count": payload["runtime_part_count"],
         "joint_count": len(payload["joints"]),
         "motion_count": len(payload["motions"]),
+        "compact_motion_count": payload["compact_motion_count"],
         "track_count": len(payload["tracks"]),
         "key_count": len(payload["keys"]),
         "capsule_count": len(payload["capsules"]),

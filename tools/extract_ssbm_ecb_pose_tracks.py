@@ -18,6 +18,16 @@ from ssbm_ecb_pose import (
 )
 
 
+def captured_ecb(row: dict[str, Any], track_id: str) -> dict[str, Any]:
+    surface = row.get("surface_collision_memory")
+    if isinstance(surface, dict) and isinstance(surface.get("ecb"), dict):
+        return surface["ecb"]
+    hitbox = row.get("hitbox_memory")
+    if isinstance(hitbox, dict) and isinstance(hitbox.get("fighter_ecb"), dict):
+        return hitbox["fighter_ecb"]
+    raise ValueError(f"track {track_id!r} is missing an ECB probe")
+
+
 def extract_track(
     rows: list[dict[str, Any]],
     track_id: str,
@@ -46,13 +56,12 @@ def extract_track(
         ):
             raise ValueError(f"track {track_id!r} has a non-integral frame")
         displayed_frame = int(action_frame)
-        surface = row.get("surface_collision_memory")
-        if not isinstance(surface, dict) or not isinstance(surface.get("ecb"), dict):
-            raise ValueError(f"track {track_id!r} is missing an ECB probe")
         raw_facing = row.get("facing")
         if raw_facing not in (-1, 1) or isinstance(raw_facing, bool):
             raise ValueError(f"track {track_id!r} has invalid facing")
-        source_ecb = canonical_source_ecb(surface["ecb"], int(raw_facing))
+        source_ecb = canonical_source_ecb(
+            captured_ecb(row, track_id), int(raw_facing)
+        )
         current_q16 = pose_q16(source_ecb)
         existing = frames.get(displayed_frame)
         if existing is not None:
@@ -134,16 +143,12 @@ def extract_cyclic_track(
                 f"track {track_id!r} frame order diverged after {previous_frame}"
             )
         previous_frame = current_frame
-        surface = row.get("surface_collision_memory")
         facing = row.get("facing")
-        if (
-            not isinstance(surface, dict)
-            or not isinstance(surface.get("ecb"), dict)
-            or facing not in (-1, 1)
-            or isinstance(facing, bool)
-        ):
+        if facing not in (-1, 1) or isinstance(facing, bool):
             raise ValueError(f"track {track_id!r} has an invalid ECB row")
-        source_ecb = canonical_source_ecb(surface["ecb"], int(facing))
+        source_ecb = canonical_source_ecb(
+            captured_ecb(row, track_id), int(facing)
+        )
         current_q16 = pose_q16(source_ecb)
         existing = frames_by_index.get(current_frame)
         if existing is not None and existing["ecb_q16"] != current_q16:

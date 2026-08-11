@@ -116,9 +116,23 @@ def canonical_source_pose_q16(
 def source_joint_ecb_q16(
     matrices: tuple[tuple[tuple[float, ...], ...], ...],
     source_joint_indices: tuple[int, ...],
+    reference_joint_index: int | None = None,
+    grounded: bool = True,
+    bottom_locked: bool = False,
 ) -> dict[str, list[int]]:
+    reference_x = (
+        0.0 if reference_joint_index is None
+        else matrices[reference_joint_index][0][3]
+    )
+    reference_y = (
+        0.0 if reference_joint_index is None
+        else matrices[reference_joint_index][1][3]
+    )
     points = [
-        (matrices[index][0][3], matrices[index][1][3])
+        (
+            matrices[index][0][3] - reference_x,
+            matrices[index][1][3] - reference_y,
+        )
         for index in source_joint_indices
     ]
     left = min(point[0] for point in points)
@@ -135,8 +149,10 @@ def source_joint_ecb_q16(
         bottom = middle - half_height
     right = max(right, 2.0)
     left = min(left, -2.0)
-    bottom = 0.0
+    bottom = 0.0 if grounded else max(bottom, 0.0)
     side_y = 0.5 * (bottom + top)
+    if bottom_locked:
+        bottom = 0.0
     return pose_q16(
         {
             "top": [0.0, top],
@@ -405,6 +421,7 @@ def main() -> int:
                         float(frame),
                     ),
                     ecb_source_joints,
+                    int(manifest["blend_copy_target_source_joint_indices"][0]),
                 )
                 ecb_difference = max(
                     abs(actual_ecb[point][axis] - expected_ecb[point][axis])

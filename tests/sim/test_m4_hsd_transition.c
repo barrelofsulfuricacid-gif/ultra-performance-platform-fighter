@@ -281,20 +281,73 @@ static int run_production_transition_cases(
 int main(void)
 {
     const pf_m4_hsd_pose_data *data =
-        pf_m4_falcon_reference_ground_loop_hsd_data();
+        pf_m4_falcon_reference_hsd_pose_data();
     pf_m4_hsd_compact_pose current;
     uint32_t case_index;
     int32_t maximum_rotation_difference = INT32_C(0);
     int32_t maximum_translation_difference = INT32_C(0);
     int32_t production_maximum_rotation_difference = INT32_C(0);
     int32_t production_maximum_translation_difference = INT32_C(0);
+    pf_m4_falcon_ecb_pose_q16 raptor_ground_start;
+    pf_m4_falcon_ecb_pose_q16 raptor_air_start;
+    pf_m4_falcon_ecb_pose_q16 raptor_ground_hit;
+    pf_m4_falcon_ecb_pose_q16 raptor_air_hit;
 
     if (data == NULL ||
         data->rotation_joint_count != PF_M4_HSD_COMPACT_ROTATION_CAPACITY ||
         data->translation_joint_count !=
-            PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY)
+            PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY ||
+        !pf_m4_falcon_reference_hsd_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_GROUND,
+            INT32_C(3) * INT32_C(65536),
+            &raptor_ground_start) ||
+        !pf_m4_falcon_reference_hsd_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_START_AIR,
+            INT32_C(1) * INT32_C(65536),
+            &raptor_air_start) ||
+        !pf_m4_falcon_reference_hsd_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_GROUND,
+            INT32_C(1) * INT32_C(65536),
+            &raptor_ground_hit) ||
+        !pf_m4_falcon_reference_hsd_ecb_pose(
+            PF_M4_FALCON_SUBMOTION_RAPTOR_BOOST_HIT_AIR,
+            INT32_C(34) * INT32_C(65536),
+            &raptor_air_hit) ||
+        absolute_difference_i32(
+            raptor_ground_start.top_y_from_origin_q16,
+            INT32_C(146354)) > INT32_C(32) ||
+        absolute_difference_i32(
+            raptor_ground_start.right_x_from_origin_q16,
+            INT32_C(35880)) > INT32_C(32) ||
+        absolute_difference_i32(
+            raptor_ground_start.left_x_from_origin_q16,
+            -INT32_C(51798)) > INT32_C(32) ||
+        absolute_difference_i32(
+            raptor_air_start.bottom_y_from_origin_q16,
+            INT32_C(0)) > INT32_C(32) ||
+        absolute_difference_i32(
+            raptor_air_start.right_y_from_origin_q16,
+            INT32_C(93519)) > INT32_C(32) ||
+        absolute_difference_i32(
+            raptor_ground_hit.right_x_from_origin_q16,
+            INT32_C(62391)) > INT32_C(32) ||
+        absolute_difference_i32(
+            raptor_air_hit.bottom_y_from_origin_q16,
+            INT32_C(19452)) > INT32_C(32))
     {
-        (void)fprintf(stderr, "m4-hsd-transition=fail operation=data\n");
+        (void)fprintf(
+            stderr,
+            "m4-hsd-transition=fail operation=data"
+            " ground_start=%" PRId32 "/%" PRId32 "/%" PRId32
+            " air_start=%" PRId32 "/%" PRId32
+            " ground_hit=%" PRId32 " air_hit_bottom=%" PRId32 "\n",
+            raptor_ground_start.top_y_from_origin_q16,
+            raptor_ground_start.right_x_from_origin_q16,
+            raptor_ground_start.left_x_from_origin_q16,
+            raptor_air_start.bottom_y_from_origin_q16,
+            raptor_air_start.right_y_from_origin_q16,
+            raptor_ground_hit.right_x_from_origin_q16,
+            raptor_air_hit.bottom_y_from_origin_q16);
         return 1;
     }
     (void)memset(&current, 0, sizeof(current));
@@ -362,6 +415,7 @@ int main(void)
     (void)printf(
         "m4-hsd-transition=pass cases=%" PRIu32
         " production_cases=%" PRIu32
+        " action_ecb_cases=4 action_ecb_tolerance_q16=32"
         " rotation_max_q15=%" PRId32 " translation_max_q16=%" PRId32
         " production_rotation_max_q15=%" PRId32
         " production_translation_max_q16=%" PRId32

@@ -26872,22 +26872,22 @@ static int run_falcon_reference_table_test(void)
     pf_m4_falcon_ecb_pose_q16 crouch_wait_last_ecb;
     pf_m4_falcon_ecb_pose_q16 crouch_wait_wrap_ecb;
     const int crouch_wait_first_valid =
-        pf_m4_falcon_reference_ground_loop_ecb_pose(
+        pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(0),
             &crouch_wait_first_ecb);
     const int crouch_wait_middle_valid =
-        pf_m4_falcon_reference_ground_loop_ecb_pose(
+        pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(79) * INT32_C(65536),
             &crouch_wait_middle_ecb);
     const int crouch_wait_last_valid =
-        pf_m4_falcon_reference_ground_loop_ecb_pose(
+        pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(157) * INT32_C(65536),
             &crouch_wait_last_ecb);
     const int crouch_wait_wrap_valid =
-        pf_m4_falcon_reference_ground_loop_ecb_pose(
+        pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(158) * INT32_C(65536),
             &crouch_wait_wrap_ecb);
@@ -27761,7 +27761,7 @@ static int run_falcon_reference_table_test(void)
         standing_hurt_capsules[0].height != UINT8_C(1) ||
         standing_hurt_capsules[0].grabbable != UINT8_C(1) ||
         complete_source_sha256 == NULL ||
-        complete_source_sha256[0] != UINT8_C(0x2e) ||
+        complete_source_sha256[0] != UINT8_C(0xaf) ||
         complete_source_sha256[31] != UINT8_C(0xf1) ||
         common_attribute_bits == NULL ||
         common_attribute_count != UINT16_C(97) ||
@@ -27837,11 +27837,11 @@ static int run_falcon_reference_table_test(void)
             &crouch_wait_wrap_ecb,
             &crouch_wait_first_ecb,
             sizeof(crouch_wait_first_ecb)) != 0 ||
-        pf_m4_falcon_reference_ground_loop_ecb_pose(
+        pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT,
             INT32_C(0),
             &crouch_wait_wrap_ecb) ||
-        pf_m4_falcon_reference_ground_loop_ecb_pose(
+        pf_m4_falcon_reference_hsd_ecb_pose(
             PF_M4_FALCON_SUBMOTION_SQUAT_WAIT,
             INT32_C(-1),
             &crouch_wait_wrap_ecb) ||
@@ -27953,12 +27953,6 @@ static int run_falcon_reference_table_test(void)
             INT32_C(113769) ||
         collision_pose->damage_fly_side_y_from_origin_q16[23] !=
             INT32_C(122372) ||
-        collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[0] !=
-            INT32_C(25701) ||
-        collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[34] !=
-            INT32_C(19452) ||
-        collision_pose->raptor_boost_hit_air_bottom_y_from_origin_q16[44] !=
-            INT32_C(27795) ||
         stale_move_data == NULL ||
         stale_move_data->slot_reduction_q16[0] != UINT16_C(5898) ||
         stale_move_data->slot_reduction_q16[8] != UINT16_C(655) ||
@@ -29347,7 +29341,7 @@ static int run_hsd_hurt_pose_oracle(
             int32_t expected_values[8];
             uint8_t field_index;
 
-            if (!pf_m4_falcon_reference_ground_loop_ecb_pose(
+            if (!pf_m4_falcon_reference_hsd_ecb_pose(
                     oracle->source_submotion,
                     oracle->source_animation_frame_q16,
                     &actual_ecb))

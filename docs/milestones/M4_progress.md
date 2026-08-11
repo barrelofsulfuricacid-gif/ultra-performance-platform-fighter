@@ -5657,7 +5657,7 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   the registry to 117 cases without adding a Falcon-specific runner.
 - The content-bearing seeded verifier soak changes deterministically because
   shield health is part of canonical state. Windows and WSL independently
-  reproduce eight matches, 3,002 ticks, and digest `c8077bbd7756c531`; the
+  reproduce eight matches, 3,002 ticks, and digest `fc0c77b3bfcf5c24`; the
   separate replay corpus remains unchanged.
 - The Emscripten client rebuild and real headless-Chrome smoke pass. The smoke
   script's replay assertion is synchronized with the already-enforced current
@@ -5719,9 +5719,51 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Windows Release passes 40/40, WSL Release passes 40/40, and WSL ASan/UBSan
   passes 26/26. The 21-domain / 117-case stored-plus-replay gate passes in
   1.018 seconds on Windows and 0.686 seconds in WSL.
-- Windows Release passes 37/37, WSL Release passes 39/39, and WSL ASan/UBSan
-  passes 25/25. The complete 21-domain / 117-case stored-plus-replay gate takes
-  0.730 seconds on Windows and 0.947 seconds in WSL. A rebuilt five-repetition
-  WSL benchmark records 1,075,589 representative-1v1 and 699,630
-  maximum-combat ticks/s; its intentionally new local fingerprint makes the
-  history comparison invalid rather than silently comparing unlike builds.
+- A clean WSL clone measures exact parent `685afea` and corrected commit
+  `32aca0c` on one warm toolchain/build fingerprint. All ten available
+  scenarios compare as compatible with zero suspected or confirmed
+  regressions. The corrected commit records 1,014,990 representative-1v1 and
+  647,699 maximum-combat ticks/s. The host provides GCC 13.4.0 rather than the
+  pinned 13.3.x compiler, so both sides use the explicit unpinned-compiler
+  override and record the actual compiler identity.
+
+## 2026-08-11 DAT-driven Raptor Boost ECB ownership
+
+- The prior-art sweep covered pinned/current Melee decomp collision and
+  animation code, the existing HSD evaluator, all retained Raptor captures,
+  and owner-extracted Falcon DATs. The existing evaluator was extended rather
+  than introducing a second motion parser or another route-specific table.
+- The generated HSD profile now carries ten motions / 580 tracks / 5,346 keys:
+  six compact Wait/Walk/Dash/Run blend motions and four direct-only Raptor
+  Boost start/hit motions. Direct-only motions cannot enter compact rollback
+  channel generation, so the persistent 19-rotation / six-translation blend
+  representation does not grow.
+- The shared ECB path evaluates the six source JObjs plus TransN, subtracts
+  the reference origin, and implements `mpColl_LoadECB_JObj` grounded and
+  airborne policies. It also reproduces the first-four-update airborne bottom
+  lock and keeps desired bottom separate from locked actual bottom when
+  deriving side Y.
+- Hit transitions expose Melee's callback ordering: displayed action frame
+  zero still owns the source start pose that entered the state, and hitlag can
+  repeat that old pose. Production binds the Raptor source submotion and
+  animation clock before collision, retains the entry source during hitlag,
+  and only then lets the new hit animation advance.
+- Five manifest-bound captures contribute 423 observations across 411 complete
+  action frames. The independent source evaluator agrees with live Dolphin
+  within one Q16 unit. Four selected C poses agree within 32 Q16 units under
+  deterministic fixed-point matrix evaluation, and the complete 657-frame
+  production Raptor verifier passes.
+- The old 45-value `SpecialAirS` bottom-only table and its importer digest
+  member are removed. The complete Falcon source digest is now
+  `af61fad2387f92067a0fc6eaefbd8322fa9fa0401e8281c4618e6949cf1c44f1`.
+  This exposed a pre-existing one-frame floor-contact bug: an exact-parent
+  A/B run fails on the same aerial-hit landing row, while the source-derived
+  complete ECB fixes the route.
+- The focused Raptor script had independently drifted from the production
+  translation units and failed to link at the exact parent. Its manual compile
+  now includes the shared fixed-math and HSD-pose sources; this is harness
+  repair, not a simulation-behavior change.
+- Final local gates pass: Windows Release 38/38, WSL Release 40/40, WSL
+  ASan/UBSan 26/26, and the full 21-domain / 117-case stored-plus-replay lane
+  in 0.705 seconds on Windows and 0.586 seconds in WSL. Deterministic Falcon,
+  dynamic-HSD, stored-Raptor generation, and Python bytecode checks also pass.
