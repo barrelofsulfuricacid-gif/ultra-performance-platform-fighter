@@ -6213,15 +6213,17 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   submotion remains authoritative through its imported terminal frame, while
   ground physics updates velocity ownership independently. Authored fighter
   behavior retains its previous release policy.
-- The existing Hyrule line-36 pack now includes an actual-input low-speed Jab.
-  It lands while remaining DamageN2 on sample 16, continues through sample 24,
-  and enters Wait on sample 25. Two fresh 90-row captures pass with source
-  semantic SHA-256
-  `69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c`;
+- The existing Hyrule line-36 pack now includes two actual-input low-speed Jab
+  routes. The terminal route lands while remaining DamageN2 on sample 16,
+  continues through sample 24, and enters Wait on sample 25. The IASA route
+  presses B on released grounded Damage frame 15 and enters Falcon Punch on
+  sample 17, proving the source `ftCo_Damage_IASA` to `ftCo_Wait_IASA`
+  callback path. Two fresh 120-row captures pass with source semantic SHA-256
+  `2ad67d79ef1fa278e5ea55096b663b0e59793167161eedc870e4c7663fe7a6a5`;
   production SHA-256 is
-  `79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654`.
-  Their warm durations were 1.531242 and 1.257497 seconds.
-- The registered gate now covers 22 domains / 120 cases. It passes with replay
-  in 1,161.588 ms on native Windows and 1,025.755 ms in WSL, retaining the
+  `cb0b203a0a211baa55b800cd9e0cf0eb8e4595eaa069c8e865369cad8c94de61`.
+  Their warm durations were 2.294709 and 2.171371 seconds.
+- The registered gate now covers 22 domains / 121 cases. It passes with replay
+  in 1,142.906 ms on native Windows and 894.651 ms in WSL, retaining the
   two-second budget. Rebuilt Release suites pass 41/41 on native Windows and
   WSL; the full 20,000-tick WSL ASan/UBSan combat trace also passes.

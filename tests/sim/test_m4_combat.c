@@ -18853,7 +18853,7 @@ static int prepare_ground_slope_damage(
             ? -INT16_C(16000)
             : INT16_C(0);
 
-    if (state_variant > UINT8_C(2) ||
+    if (state_variant > UINT8_C(3) ||
         !place_player_on_reference_floor(
             sim,
             UINT32_C(1),
@@ -18889,7 +18889,7 @@ static int prepare_ground_slope_damage(
     }
     {
         const int ready =
-            state_variant == UINT8_C(2)
+            state_variant >= UINT8_C(2)
                 ? out_inspection->players[1].action_state ==
                       (uint8_t)PF_M4_ACTION_HITLAG
                 : out_inspection->players[0].action_state ==
@@ -18948,7 +18948,11 @@ static uint8_t run_ssbm_ground_slope_damage_trace_case(
          strcmp(
              stored_case->id,
              "hyrule_line36_jab_low_speed_keep_damage") != 0) ||
-        stored_case->initial_state_variant > UINT8_C(2))
+        (stored_case->initial_state_variant == UINT8_C(3) &&
+         strcmp(
+             stored_case->id,
+             "hyrule_line36_jab_damage_iasa_special") != 0) ||
+        stored_case->initial_state_variant > UINT8_C(3))
     {
         return UINT8_C(0);
     }

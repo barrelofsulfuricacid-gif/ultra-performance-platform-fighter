@@ -1803,13 +1803,15 @@ anisotropic Q16 velocity back to Melee coordinates, compares squared
 magnitudes at the exact inclusive boundaries, and selects DownBound, basic
 Landing, or keep-current-Damage without runtime floating point.
 
-The existing Hyrule line-36 physical pack was extended to three cases / 90
-rows with a real Falcon Jab route. Its last airborne magnitude is below 0.5;
-the source lands on sample 16 while retaining DamageN2, reaches the sourced
-terminal damage frame on sample 24, and enters Wait on sample 25. Two fresh
-captures share semantic source SHA-256
-`69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c`;
+The existing Hyrule line-36 physical pack was extended to four cases / 120
+rows with two real Falcon Jab routes. Their last airborne magnitude is below
+0.5. The terminal route lands on sample 16 while retaining DamageN2, reaches
+the sourced terminal damage frame on sample 24, and enters Wait on sample 25.
+The IASA route presses B on released grounded Damage frame 15 and enters
+Falcon Punch on sample 17 through the decomp's `ftCo_Wait_IASA` delegation.
+Two fresh captures share semantic source SHA-256
+`2ad67d79ef1fa278e5ea55096b663b0e59793167161eedc870e4c7663fe7a6a5`;
 the matched production trace is
-`79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654`.
+`cb0b203a0a211baa55b800cd9e0cf0eb8e4595eaa069c8e865369cad8c94de61`.
 This extends an existing actual-input theorem rather than introducing a web
 probe, synthetic source truth, duplicate action table, or rollback field.

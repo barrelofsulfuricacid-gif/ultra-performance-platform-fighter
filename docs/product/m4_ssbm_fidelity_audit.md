@@ -354,12 +354,14 @@ and stage combinations remain outside the claim.
 Current non-tumble floor-selector addendum: generated common data now includes
 the exact `ftCo_Damage_Coll` x1E0/x1E4 thresholds (5.0/0.5), and reference
 production preserves the selected Damage submotion after hitstun release. The
-existing Hyrule pack is three cases / 90 rows: a real low-speed Falcon Jab
-lands below 0.5 while remaining DamageN2 through its sourced terminal frame,
-then enters Wait. Two fresh captures share source semantic SHA-256
-`69fc76c7f72e92fedf00e78f54dc22d244c6d4583323e770ef16cda3d2f3587c`;
+existing Hyrule pack is four cases / 120 rows: actual low-speed Falcon Jabs
+land below 0.5 while remaining DamageN2. One runs through its sourced terminal
+frame and enters Wait; the other presses B on released grounded Damage frame
+15 and enters Falcon Punch through `ftCo_Wait_IASA`. Two fresh captures share
+source semantic SHA-256
+`2ad67d79ef1fa278e5ea55096b663b0e59793167161eedc870e4c7663fe7a6a5`;
 matched production SHA-256 is
-`79c5fa9423a2db5894e6613d5bf122caa33f697f7316bc276f96ed5e3ac1a654`.
+`cb0b203a0a211baa55b800cd9e0cf0eb8e4595eaa069c8e865369cad8c94de61`.
 The 5.0 DownBound boundary is protected by exact native threshold tests because
 ordinary actual-input knockback reaches tumbling routes before exposing that
 non-tumble branch. Wider attack, stage, and interrupt combinations remain open.

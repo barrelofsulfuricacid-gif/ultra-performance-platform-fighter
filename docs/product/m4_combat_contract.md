@@ -2454,3 +2454,7 @@ branch enters DownBound, the middle branch enters basic Landing, and the low
 branch keeps the selected Damage action. Hitstun release does not end that
 action; its imported source submotion runs to its terminal frame while
 ground/air physics and knockback-channel updates continue independently.
+Once hitstun is zero, retained grounded Damage delegates input processing to
+the common Wait IASA table. A fresh special edge can therefore enter the
+matching grounded character special before the Damage animation terminates;
+the live Falcon qualification enters Falcon Punch from DamageN2 frame 15.
