@@ -6,7 +6,7 @@
   "oracle": "SSBM GALE01 NTSC-U revision 2",
   "checkpoint_pack": {
     "protocol": "rebased-slippi-state-file-control-v1",
-    "expected_rows": 391,
+    "expected_rows": 423,
     "warm_budget_seconds": 5.0,
     "capture_plan": {
       "trace_start_label": "common_hurt_crouch_wait_place",
@@ -25,7 +25,7 @@
         "common_hurt_crouch_wait_hold": 160,
         "common_hurt_walk_slow_hold": 55,
         "common_hurt_walk_middle_hold": 41,
-        "common_hurt_walk_fast_hold": 26,
+        "common_hurt_walk_fast_hold": 40,
         "common_hurt_run_entry": 20,
         "common_hurt_run_hold": 21,
         "common_hurt_taunt_right_hold": 60,
@@ -67,7 +67,7 @@
   ],
   "capture_notes": [
     "CrouchWait and both Appeal orientations have bounded integer-frame pose tracks and are qualified below.",
-    "WalkSlow, WalkMiddle, WalkFast, and Run rows are retained only as raw diagnostic observations: Melee derives their animation rate from ground velocity and remaps walk phase when changing gait, so they require a deterministic dynamic animation cursor before pose binding."
+    "WalkSlow, WalkMiddle, WalkFast, and Run rows expose Melee's velocity-driven fractional animation clock and six-frame gait transitions for the source-data HSD pose evaluator."
   ],
   "capture_tracks": [
     {
@@ -99,22 +99,30 @@
       "src/sim/sim_snapshot.c",
       "tests/sim/test_m4_combat.c",
       "generated/data/m4_ssbm_falcon_crouch_taunt_hurt.inc",
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd.inc",
+      "generated/data/m4_ssbm_falcon_ground_loop_hsd_oracle.inc",
       "generated/data/m4_ssbm_falcon_grounded_loop_hurt_oracle.inc",
       "tools/capture_ssbm_movement.py",
       "tools/data/ssbm_falcon_crouch_taunt_hurt.json",
       "tools/extract_ssbm_hurt_pose_tracks.py",
       "tools/generate_ssbm_hurt_pose_include.py",
+      "tools/generate_ssbm_dynamic_hurt_oracle.py",
+      "tools/generate_ssbm_dynamic_hurt_pose_include.py",
       "tools/generate_ssbm_stored_oracle.py",
+      "tools/hsd_figatree.py",
+      "tools/hsd_joint_pose.py",
       "tools/ssbm_falcon_crouch_taunt_hurt_import.json",
-      "tools/ssbm_falcon_grounded_loop_hurt_coverage.json"
+      "tools/ssbm_falcon_ground_loop_hurt_import.json",
+      "tools/ssbm_falcon_grounded_loop_hurt_coverage.json",
+      "tools/verify_ssbm_dynamic_hurt_pose_source.py"
     ]
   },
   "live_qualification": {
-    "control_capture_sha256": "0c40e316047eab2b4922049a80cdc9e9b05a55b16e2299ad4ca64467ac257348",
-    "repeat_capture_sha256": "3d63b959c5b7aa7ef6d820fc188d3e249475b0d58abd3384ba7d7457e0333609",
+    "control_capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
+    "repeat_capture_sha256": "2c0dda770bd58774e0681b3736ea3f7c7de61f15a116849f9381b0460c4af529",
     "semantic_sha256": "3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3",
-    "control_warm_seconds": 4.130326,
-    "repeat_warm_seconds": 3.683832
+    "control_warm_seconds": 4.820601,
+    "repeat_warm_seconds": 4.932569
   },
   "stored_oracle": {
     "pose_profiles": [

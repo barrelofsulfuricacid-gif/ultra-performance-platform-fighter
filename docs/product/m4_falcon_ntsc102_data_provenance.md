@@ -1212,14 +1212,14 @@ resumed frame 10 to the live-qualified phase; the domain now owns seven cases.
 ## Falcon CrouchWait and Appeal hurt poses
 
 The grounded-loop checkpoint pack keeps one headless/null/unlimited ExiAI
-process and resets to seven independent checkpoints. Its raw 391-row control
-and repeat captures have SHA-256
-`0c40e316047eab2b4922049a80cdc9e9b05a55b16e2299ad4ca64467ac257348`
+process and resets to seven independent checkpoints. Its current 423-row
+control and repeat captures have SHA-256
+`4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e`
 and
-`3d63b959c5b7aa7ef6d820fc188d3e249475b0d58abd3384ba7d7457e0333609`;
+`2c0dda770bd58774e0681b3736ea3f7c7de61f15a116849f9381b0460c4af529`;
 their qualified CrouchWait/Appeal observations reproduce semantic SHA-256
 `3c72296c3c1558d7df32228892f5b1adec4b4370e72e4d415fdc981cd2aa3ed3`.
-The qualified capture portions complete in 4.130326 and 3.683832 seconds.
+The qualified capture portions complete in 4.820601 and 4.932569 seconds.
 
 The canonical profile contains all 158 `SquatWait`, 60 `AppealR`, and 60
 `AppealL` displayed poses: 278 poses and 3,058 eleven-capsule rows under profile
@@ -1251,16 +1251,16 @@ SRT hierarchy in deterministic Q16.16. In particular, it follows
 `HSD_FObjReqAnim` by adding each FObj `startframe` to the requested animation
 frame; subtracting it produces a large, motion-specific WalkMiddle error.
 
-A fresh live headless/null/unlimited capture with SHA-256
-`5d8b9090e8f03ffaac02ae1a69465c718da45a6159b0d2bf307eb00ea88ec3e5`
-also records motion ID, animation ID, and blend state. After the source six-frame
-default blend finishes, the independent Python source evaluator agrees for all
-51 WalkSlow, 31 WalkMiddle, and 20 Run observations: 102 poses / 1,122 capsules,
-with maximum coordinate error 2 Q16 units under an 8-Q16 qualification bound.
-Six observations from the original clock capture are stored as a separate C
-oracle with a 64-Q16 deterministic-runtime bound. WalkFast source tracks are
-imported but are not yet claimed live-qualified because this capture never
-naturally enters that gait.
+The two 423-row live headless/null/unlimited captures named above also record
+motion ID, animation ID, and blend state. After the source six-frame default
+blend finishes, the independent Python source evaluator agrees in each for all
+51 WalkSlow, 31 WalkMiddle, 29 WalkFast, and 20 Run observations: 131 poses /
+1,441 capsules, with maximum coordinate error 2 Q16 units under an 8-Q16
+qualification bound. Eight observations, including pre- and post-loop
+WalkFast samples, are stored as a separate C oracle with a 64-Q16
+deterministic-runtime bound. The WalkFast trace first enters Walk with a
+sub-dash tilt and then raises the stick above Falcon's fast-gait velocity
+boundary, avoiding an authored state override.
 
 ## Repository controls
 

@@ -34,25 +34,29 @@
     "data_sha256": "ea9603efe949a0d30673ccd119c97034cd08c5b85a0f3a2b066c843bdb49520c"
   },
   "stored_oracle": {
-    "capture_sha256": "0651712d514246b4cd8c01c2606adca1e561d31cf076f60610f7a8c2d2d5680b",
+    "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
     "coordinate_tolerance_q16": 64,
     "cases": [
       { "id": "walk-slow-fractional", "trace_frame": 190, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
       { "id": "walk-slow-looped-fractional", "trace_frame": 225, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
       { "id": "walk-middle-fractional", "trace_frame": 250, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
       { "id": "walk-middle-looped-fractional", "trace_frame": 268, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
-      { "id": "run-fractional", "trace_frame": 321, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" },
-      { "id": "run-looped-fractional", "trace_frame": 333, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
+      { "id": "walk-fast-fractional", "trace_frame": 291, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
+      { "id": "walk-fast-looped-fractional", "trace_frame": 300, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
+      { "id": "run-fractional", "trace_frame": 343, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" },
+      { "id": "run-looped-fractional", "trace_frame": 355, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
     ]
   },
   "live_qualification": {
-    "capture_sha256": "5d8b9090e8f03ffaac02ae1a69465c718da45a6159b0d2bf307eb00ea88ec3e5",
+    "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",
+    "repeat_capture_sha256": "2c0dda770bd58774e0681b3736ea3f7c7de61f15a116849f9381b0460c4af529",
     "disc_sha256": "0de05981a34156b9cedcef73c73d4244ac05cf6149ab3c9cfed917698819e464",
     "dolphin_release_artifact_sha256": "87e9ef6d80ed03354a1647d0616016dbc91399aa9e86a69ae5a398edd0a0c2bd",
     "coordinate_tolerance_q16": 8,
     "cases": [
       { "source_action": "WALK_SLOW", "submotion_index": 7, "expected_samples": 51 },
       { "source_action": "WALK_MIDDLE", "submotion_index": 8, "expected_samples": 31 },
+      { "source_action": "WALK_FAST", "submotion_index": 9, "expected_samples": 29 },
       { "source_action": "RUNNING", "submotion_index": 13, "expected_samples": 20 }
     ]
   },

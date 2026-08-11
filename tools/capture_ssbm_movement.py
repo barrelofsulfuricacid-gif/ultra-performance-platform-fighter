@@ -27,6 +27,8 @@ import time
 import melee
 from melee import console as melee_console
 
+from ssbm_checkpoint_manifest import projected_manifest
+
 
 SPECIAL_GEOMETRY_SOURCE_KEYS = {
     "neutral_ground": "0x12d",
@@ -99,6 +101,7 @@ def input_trace(
     special_geometry_moves: tuple[str, ...] | None = None,
     falcon_frame_data: dict[str, object] | None = None,
     checkpoint_capture_plan: dict[str, object] | None = None,
+    selected_checkpoint_start_labels: tuple[str, ...] = (),
     shield_hit_pressure: float = 0.35,
 ) -> list[dict[str, object]]:
     trace: list[dict[str, object]] = []
@@ -1705,6 +1708,26 @@ def input_trace(
                         "checkpoint trace start label must occur exactly once"
                     )
                 result = result[start_indices[0] :]
+            if selected_checkpoint_start_labels:
+                selected = set(selected_checkpoint_start_labels)
+                retained_labels: set[str] = set()
+                retained = False
+                filtered: list[dict[str, object]] = []
+                for sample in result:
+                    if bool(sample.get("restore_before", False)):
+                        label = str(sample["label"])
+                        retained = label in selected
+                        if retained:
+                            retained_labels.add(label)
+                    if retained:
+                        filtered.append(sample)
+                if retained_labels != selected:
+                    missing = sorted(selected - retained_labels)
+                    raise ValueError(
+                        "checkpoint start label(s) not found: "
+                        + ", ".join(missing)
+                    )
+                result = filtered
             return result
 
         def reset_common_hurt_route(
@@ -2247,7 +2270,7 @@ def input_trace(
         for walk_name, main_x, sample_count in (
             ("slow", 0.65, 55),
             ("middle", 0.75, 41),
-            ("fast", 0.85, 26),
+            ("fast", 0.95, 40),
         ):
             prefix = f"common_hurt_walk_{walk_name}"
             reset_common_hurt_route(prefix)
@@ -2262,6 +2285,12 @@ def input_trace(
             )
             repeat(f"{prefix}_settle", 10)
             trace.append(command(f"{prefix}_prime"))
+            if walk_name == "fast":
+                # Enter Walk below its fast-gait velocity threshold before
+                # raising the stick. A fresh 0.9 source-axis sample would be
+                # eligible for Dash; once Walk owns the callback, 0.9 reaches
+                # Falcon's 0.8 * walk_max_vel fast-gait boundary naturally.
+                repeat(f"{prefix}_ramp", 8, main_x=0.85)
             repeat(f"{prefix}_hold", sample_count, main_x=main_x)
 
         reset_common_hurt_route("common_hurt_run")
@@ -5671,13 +5700,19 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
         executable = dolphin
     if not iso.is_file():
         raise FileNotFoundError(f"missing GALE01 image: {iso}")
-    checkpoint_coverage_manifest = (
-        json.loads(
-            args.oracle_coverage_manifest.read_text(encoding="utf-8")
-        )
-        if args.oracle_coverage_manifest is not None
-        else None
-    )
+    checkpoint_coverage_manifest = None
+    if args.oracle_coverage_manifest is not None:
+        coverage_bytes = args.oracle_coverage_manifest.read_bytes()
+        checkpoint_coverage_manifest = json.loads(coverage_bytes)
+        if args.oracle_case:
+            checkpoint_coverage_manifest = projected_manifest(
+                checkpoint_coverage_manifest,
+                [str(case_id) for case_id in args.oracle_case],
+                hashlib.sha256(coverage_bytes).hexdigest(),
+                None,
+                None,
+                None,
+            )
     checkpoint_capture_plan = (
         dict(checkpoint_coverage_manifest["checkpoint_pack"]["capture_plan"])
         if checkpoint_coverage_manifest is not None
@@ -5698,6 +5733,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             "checkpoint_pack.capture_plan.stage must be FINAL_DESTINATION, "
             "BATTLEFIELD, or HYRULE_TEMPLE"
         )
+    selected_checkpoint_start_labels: tuple[str, ...] = ()
     if args.oracle_case:
         if checkpoint_capture_plan is None:
             raise ValueError("--oracle-case requires a checkpoint capture plan")
@@ -5706,22 +5742,25 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             for key, value in checkpoint_capture_plan.items()
             if key.endswith("_cases") and isinstance(value, list)
         ]
-        if len(case_fields) != 1:
-            raise ValueError(
-                "checkpoint capture plan must contain exactly one case list"
-            )
-        case_field = case_fields[0]
-        available_cases = list(checkpoint_capture_plan.get(case_field, []))
-        available_ids = {str(case.get("id")) for case in available_cases}
-        requested_ids = set(args.oracle_case)
-        missing_ids = requested_ids - available_ids
-        if missing_ids:
-            raise ValueError(
-                "unknown checkpoint case(s): " + ", ".join(sorted(missing_ids))
-            )
-        checkpoint_capture_plan[case_field] = [
-            case for case in available_cases if str(case.get("id")) in requested_ids
-        ]
+        if len(case_fields) > 1:
+            raise ValueError("checkpoint capture plan contains multiple case lists")
+        if not case_fields:
+            projected_cases = checkpoint_coverage_manifest.get("checkpoint_cases")
+            if not isinstance(projected_cases, list) or not projected_cases:
+                raise ValueError("projected checkpoint cases are missing")
+            selected_labels = [
+                case.get("start_label")
+                for case in projected_cases
+                if isinstance(case, dict)
+            ]
+            if (
+                len(selected_labels) != len(projected_cases)
+                or any(not isinstance(label, str) or not label for label in selected_labels)
+            ):
+                raise ValueError(
+                    "label-based checkpoint cases require nonempty start_label"
+                )
+            selected_checkpoint_start_labels = tuple(selected_labels)
     checkpoint_random_seed = (
         checkpoint_capture_plan.get("source_random_seed")
         if checkpoint_capture_plan is not None
@@ -6106,6 +6145,7 @@ def capture(args: argparse.Namespace) -> dict[str, object]:
             ),
             falcon_frame_data=falcon_frame_data,
             checkpoint_capture_plan=checkpoint_capture_plan,
+            selected_checkpoint_start_labels=selected_checkpoint_start_labels,
             shield_hit_pressure=args.shield_hit_pressure,
         )
         # libmelee's modern blocking-input scheduler applies each command to

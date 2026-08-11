@@ -74,9 +74,10 @@ by Falcon's 11 hurt capsules, and emits four motions containing 205 FObj tracks
 and 1,198 keys. The character-independent Q16 runtime evaluator samples these
 tracks at the canonical fractional animation cursor; Falcon only binds its
 source submotion IDs and converts the shared capsule result. The companion
-`m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains six test observations,
+`m4_ssbm_falcon_ground_loop_hsd_oracle.inc` contains eight test observations,
 not a duplicate production pose table. The live source verifier independently
-compares the DAT evaluator against Dolphin after animation blending completes.
+compares the DAT evaluator against two manifest-pinned Dolphin captures after
+animation blending completes.
 
 `m4_ssbm_falcon_turn_hurt.inc` contains the 11 `Turn` and 22 `TurnRun`
 source poses, including TurnRun frame zero. Its import manifest pins both an

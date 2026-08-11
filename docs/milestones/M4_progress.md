@@ -5483,15 +5483,38 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   to the requested animation frame. Preserving the older subtractive helper
   interpretation displaced WalkMiddle because two translation tracks start at
   frame 52. The shared Python and C evaluators now use the additive rule.
-- A fresh 391-row headless/null/unlimited checkpoint pack records live motion,
+- A fresh 423-row headless/null/unlimited checkpoint pack records live motion,
   animation, and six-frame default blend state. After blend completion, the
-  source evaluator agrees for all 51 WalkSlow, 31 WalkMiddle, and 20 Run
-  observations: 102 poses / 1,122 capsules with maximum 2-Q16 coordinate error.
-  Six stored observations / 66 capsules independently protect the production C
-  evaluator. WalkFast data ships but awaits a naturally reached live route.
+  source evaluator agrees for all 51 WalkSlow, 31 WalkMiddle, 29 WalkFast, and
+  20 Run observations: 131 poses / 1,441 capsules with maximum 2-Q16 coordinate
+  error. Eight stored observations / 88 capsules independently protect the
+  production C evaluator.
 - Portable MSVC Release passes 35/35 with bounded two-way scheduling; WSL
   Release passes 35/35, and WSL ASan/UBSan passes 25/25. The twenty-domain /
-  116-case stored gate plus replay completes in 0.700 seconds on Windows and
-  0.738 seconds in WSL. A five-repetition native benchmark records 983,690
+  116-case stored gate plus replay completes in 0.677 seconds on Windows and
+  1.308 seconds in WSL. A five-repetition native benchmark records 983,690
   representative 1v1 ticks/s and 568,368 maximum-combat ticks/s. The rebuilt
   Emscripten playtest reaches a live tick-50 match with clean browser logs.
+
+## 2026-08-10 WalkFast live qualification
+
+- The grounded-loop route now enters Walk below the dash threshold, then raises
+  libmelee's normalized stick from `0.85` (source `+0.7`) to `0.95` (source
+  `+0.9`). This crosses Falcon's decomp-derived `0.8 * walk_max_vel` gait
+  boundary while the Walk callback owns selection, naturally reaching
+  `WalkFast` without an action or velocity override.
+- The resulting 423-row headless/null/unlimited capture adds 29 post-blend
+  WalkFast samples. The shared DAT evaluator now passes 131 live fractional
+  poses / 1,441 capsules across all four ground-loop motions with a maximum
+  2-Q16 coordinate error. Two WalkFast discriminators extend the production C
+  oracle to eight observations / 88 capsules.
+- An independent repeat capture reproduces the same 131-sample source result
+  and the unchanged 278-pose CrouchWait/Appeal semantic SHA-256. The two raw
+  capture digests and warm timings are pinned in the coverage manifest.
+- Generic checkpoint projection now also supports label-delimited packs that
+  intentionally have neither `capture_shards` nor a character-specific
+  `*_cases` list. `--oracle-case walk-fast-clock-probe` retains the complete
+  restore-delimited setup/input segment but emits only its 32 WalkFast rows;
+  the measured warm capture falls from 4.820601 seconds for all seven cases to
+  0.160820 seconds for the focused case. The output embeds a one-case projected
+  manifest with the full-pack row expectation removed.

@@ -63,7 +63,11 @@ def projected_manifest(
     selected_case_ids = [
         case_id for case_id in available_case_ids if case_id in requested
     ]
-    if shard_count is not None:
+    capture_shards = projected_pack.get("capture_shards")
+    if capture_shards is None:
+        if shard_count is not None:
+            raise ValueError("projected shard count requires capture_shards")
+    elif shard_count is not None:
         if not 1 <= shard_count <= len(selected_case_ids):
             raise ValueError(
                 "projected shard count must be within the selected case count"
@@ -72,9 +76,11 @@ def projected_manifest(
             selected_case_ids[index::shard_count] for index in range(shard_count)
         ]
     else:
+        if not isinstance(capture_shards, list):
+            raise ValueError("checkpoint capture_shards must be a list")
         projected_pack["capture_shards"] = [
             [case_id for case_id in shard if str(case_id) in requested]
-            for shard in projected_pack["capture_shards"]
+            for shard in capture_shards
         ]
         projected_pack["capture_shards"] = [
             shard for shard in projected_pack["capture_shards"] if shard
@@ -87,21 +93,26 @@ def projected_manifest(
         for key, value in capture_plan.items()
         if key.endswith("_cases") and isinstance(value, list)
     ]
-    if len(case_fields) != 1:
-        raise ValueError("checkpoint capture plan must contain exactly one case list")
-    case_field = case_fields[0]
-    capture_plan[case_field] = [
-        case
-        for case in capture_plan[case_field]
-        if isinstance(case, dict) and str(case.get("id")) in requested
-    ]
+    if len(case_fields) > 1:
+        raise ValueError("checkpoint capture plan contains multiple case lists")
+    if case_fields:
+        case_field = case_fields[0]
+        capture_plan[case_field] = [
+            case
+            for case in capture_plan[case_field]
+            if isinstance(case, dict) and str(case.get("id")) in requested
+        ]
     projected.pop("selection", None)
     projected.pop("stored_oracle", None)
     projected["capture_projection"] = {
         "schema": 1,
         "source_manifest_sha256": source_sha256,
         "case_ids": selected_case_ids,
-        "shards": len(projected_pack["capture_shards"]),
+        **(
+            {"shards": len(projected_pack["capture_shards"])}
+            if "capture_shards" in projected_pack
+            else {}
+        ),
         **(
             {
                 "warm_budget_seconds": warm_budget_seconds,

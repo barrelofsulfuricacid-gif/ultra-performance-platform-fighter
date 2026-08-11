@@ -199,11 +199,11 @@ Production now retains the decomp-driven WalkSlow/Middle/Fast and Run source
 submotion, fractional animation cursor, and rate, including gait-phase remap.
 Because these poses cannot use a static displayed-frame lookup, a shared
 deterministic Q16 HSD evaluator consumes the pinned compact source joint/FObj
-data. Independent source evaluation agrees with a fresh live capture for 51
-WalkSlow, 31 WalkMiddle, and 20 Run samples (1,122 capsules) within 2 Q16 units;
-six stored observations protect the production C evaluator. WalkFast data is
-imported but remains outside the empirical claim until a natural live route
-reaches that gait.
+data. Independent source evaluation agrees in each of two live captures for 51
+WalkSlow, 31 WalkMiddle, 29 WalkFast, and 20 Run samples (1,441 capsules)
+within 2 Q16 units; eight stored observations protect the production C
+evaluator. The WalkFast route enters Walk below the dash threshold, then raises
+the stick above Falcon's fast-gait velocity boundary.
 The expanded route also covers common RunBrake IASA and crouch common-IASA
 entry: neutral A from all three crouch states; neutral B accepted only from
 `Squat`; and physical Z selecting `Catch` from `Squat` but `Attack11` from

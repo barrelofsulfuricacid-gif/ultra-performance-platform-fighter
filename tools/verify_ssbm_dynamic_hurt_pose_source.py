@@ -33,6 +33,39 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def load_qualified_capture(
+    path: Path,
+    expected_digest: object,
+    manifest: dict[str, Any],
+    qualification: dict[str, Any],
+    capture_name: str,
+) -> tuple[str, list[dict[str, Any]]]:
+    capture_raw = path.read_bytes()
+    capture_digest = sha256(capture_raw)
+    require(
+        capture_digest == expected_digest,
+        f"unexpected {capture_name} live capture SHA-256: {capture_digest}",
+    )
+    capture = json.loads(capture_raw)
+    require(
+        capture.get("fighter") == manifest.get("fighter"),
+        f"{capture_name}: fighter mismatch",
+    )
+    require(
+        capture.get("disc", {}).get("sha256")
+        == qualification.get("disc_sha256"),
+        f"{capture_name}: disc mismatch",
+    )
+    require(
+        capture.get("oracle_execution", {}).get("release_artifact_sha256")
+        == qualification.get("dolphin_release_artifact_sha256"),
+        f"{capture_name}: Dolphin oracle artifact mismatch",
+    )
+    rows = capture.get("rows")
+    require(isinstance(rows, list), f"{capture_name}: live capture rows are missing")
+    return capture_digest, rows
+
+
 def load_pinned_source(
     path: Path,
     manifest: dict[str, Any],
@@ -76,6 +109,11 @@ def main() -> int:
     parser.add_argument("common_dat", type=Path)
     parser.add_argument("model_dat", type=Path)
     parser.add_argument(
+        "--repeat-capture",
+        type=Path,
+        help="independent live capture declared by repeat_capture_sha256",
+    )
+    parser.add_argument(
         "--tolerance-q16",
         type=int,
         help="diagnostic override for the manifest coordinate tolerance",
@@ -88,24 +126,36 @@ def main() -> int:
     cases = qualification.get("cases")
     require(isinstance(cases, list) and cases, "live qualification has no cases")
 
-    capture_raw = args.capture.read_bytes()
-    capture_digest = sha256(capture_raw)
+    repeat_digest = qualification.get("repeat_capture_sha256")
     require(
-        capture_digest == qualification.get("capture_sha256"),
-        f"unexpected live capture SHA-256: {capture_digest}",
+        (repeat_digest is None) == (args.repeat_capture is None),
+        "repeat capture path and repeat_capture_sha256 must be declared together",
     )
-    capture = json.loads(capture_raw)
-    require(capture.get("fighter") == manifest.get("fighter"), "fighter mismatch")
-    require(
-        capture.get("disc", {}).get("sha256")
-        == qualification.get("disc_sha256"),
-        "disc mismatch",
-    )
-    require(
-        capture.get("oracle_execution", {}).get("release_artifact_sha256")
-        == qualification.get("dolphin_release_artifact_sha256"),
-        "Dolphin oracle artifact mismatch",
-    )
+    capture_specs = [
+        (
+            "control",
+            *load_qualified_capture(
+                args.capture,
+                qualification.get("capture_sha256"),
+                manifest,
+                qualification,
+                "control",
+            ),
+        )
+    ]
+    if args.repeat_capture is not None:
+        capture_specs.append(
+            (
+                "repeat",
+                *load_qualified_capture(
+                    args.repeat_capture,
+                    repeat_digest,
+                    manifest,
+                    qualification,
+                    "repeat",
+                ),
+            )
+        )
 
     fighter_raw = load_pinned_source(args.fighter_dat, manifest, "fighter_dat")
     animation_raw = load_pinned_source(
@@ -152,107 +202,124 @@ def main() -> int:
     source_joints = tuple(joints)
     layout = read_fighter_part_layout(common_raw, int(manifest["fighter_kind"]))
     capsules = read_fighter_hurt_capsules(fighter_archive, fighter_root)
-    rows = capture.get("rows")
-    require(isinstance(rows, list), "live capture rows are missing")
-
     tolerance = (
         int(qualification["coordinate_tolerance_q16"])
         if args.tolerance_q16 is None
         else args.tolerance_q16
     )
     require(tolerance >= 0, "coordinate tolerance must be nonnegative")
+    animations = {
+        int(case["submotion_index"]): decode_figatree(
+            fighter_animation_slice(
+                fighter_archive,
+                animation_raw,
+                fighter_root,
+                int(case["submotion_index"]),
+            )
+        )
+        for case in cases
+    }
     total_samples = 0
     total_capsules = 0
     maximum_difference = 0
-    for case in cases:
-        action = str(case["source_action"])
-        submotion = int(case["submotion_index"])
-        animation = decode_figatree(
-            fighter_animation_slice(
-                fighter_archive, animation_raw, fighter_root, submotion
-            )
-        )
-        selected: list[dict[str, Any]] = []
-        for row in rows:
-            if row.get("action") != action:
-                continue
-            memory = row.get("hitbox_memory")
-            require(isinstance(memory, dict), f"{action}: missing hitbox memory")
-            blend_frames = memory.get("fighter_animation_blend_frames")
-            blend_progress = memory.get("fighter_animation_blend_progress")
-            require(
-                isinstance(blend_frames, (int, float))
-                and isinstance(blend_progress, (int, float)),
-                f"{action}: missing animation blend probe",
-            )
-            if float(blend_progress) >= float(blend_frames):
-                selected.append(row)
-        require(
-            len(selected) == int(case["expected_samples"]),
-            f"{action}: expected {case['expected_samples']} qualified rows, "
-            f"got {len(selected)}",
-        )
-
-        case_maximum = 0
-        for row in selected:
-            memory = row["hitbox_memory"]
-            frame = memory.get("fighter_animation_frame")
-            facing = row.get("facing")
-            require(
-                isinstance(frame, (int, float)) and facing in (-1, 1),
-                f"{action}: invalid pose clock or facing",
-            )
-            expected = canonical_hurt_pose_q16(
-                memory,
-                "fighter_hurtboxes",
-                "fighter_position",
-                int(facing),
-                coordinate_scale_q16,
-                "position",
-            )
-            actual = canonical_source_pose_q16(
-                evaluate_hurt_capsules(
-                    source_joints,
-                    animation,
-                    capsules,
-                    float(frame),
-                    layout,
-                ),
-                coordinate_scale_q16,
-                axis_sign,
-            )
-            require(len(actual) == len(expected), f"{action}: capsule count mismatch")
-            for capsule_index, (left, right) in enumerate(
-                zip(actual, expected, strict=True)
-            ):
+    capture_digests: list[str] = []
+    for capture_name, capture_digest, rows in capture_specs:
+        capture_digests.append(capture_digest)
+        for case in cases:
+            action = str(case["source_action"])
+            submotion = int(case["submotion_index"])
+            animation = animations[submotion]
+            selected: list[dict[str, Any]] = []
+            for row in rows:
+                if row.get("action") != action:
+                    continue
+                memory = row.get("hitbox_memory")
                 require(
-                    left[7:] == right[7:],
-                    f"{action}: capsule {capsule_index} metadata mismatch",
+                    isinstance(memory, dict),
+                    f"{capture_name}/{action}: missing hitbox memory",
                 )
-                difference = max(
-                    abs(left_value - right_value)
-                    for left_value, right_value in zip(
-                        left[:7], right[:7], strict=True
-                    )
+                blend_frames = memory.get("fighter_animation_blend_frames")
+                blend_progress = memory.get("fighter_animation_blend_progress")
+                require(
+                    isinstance(blend_frames, (int, float))
+                    and isinstance(blend_progress, (int, float)),
+                    f"{capture_name}/{action}: missing animation blend probe",
                 )
-                if difference > tolerance:
-                    raise ValueError(
-                        f"{action}: trace={row['trace_frame']} "
-                        f"capsule={capsule_index} Q16 difference={difference}"
+                if float(blend_progress) >= float(blend_frames):
+                    selected.append(row)
+            require(
+                len(selected) == int(case["expected_samples"]),
+                f"{capture_name}/{action}: expected "
+                f"{case['expected_samples']} qualified rows, got {len(selected)}",
+            )
+
+            case_maximum = 0
+            for row in selected:
+                memory = row["hitbox_memory"]
+                frame = memory.get("fighter_animation_frame")
+                facing = row.get("facing")
+                require(
+                    isinstance(frame, (int, float)) and facing in (-1, 1),
+                    f"{capture_name}/{action}: invalid pose clock or facing",
+                )
+                expected = canonical_hurt_pose_q16(
+                    memory,
+                    "fighter_hurtboxes",
+                    "fighter_position",
+                    int(facing),
+                    coordinate_scale_q16,
+                    "position",
+                )
+                actual = canonical_source_pose_q16(
+                    evaluate_hurt_capsules(
+                        source_joints,
+                        animation,
+                        capsules,
+                        float(frame),
+                        layout,
+                    ),
+                    coordinate_scale_q16,
+                    axis_sign,
+                )
+                require(
+                    len(actual) == len(expected),
+                    f"{capture_name}/{action}: capsule count mismatch",
+                )
+                for capsule_index, (left, right) in enumerate(
+                    zip(actual, expected, strict=True)
+                ):
+                    require(
+                        left[7:] == right[7:],
+                        f"{capture_name}/{action}: capsule "
+                        f"{capsule_index} metadata mismatch",
                     )
-                case_maximum = max(case_maximum, difference)
-        print(
-            "ssbm-dynamic-hurt-source-case=pass "
-            f"action={action} samples={len(selected)} max_q16={case_maximum}"
-        )
-        total_samples += len(selected)
-        total_capsules += len(selected) * len(capsules)
-        maximum_difference = max(maximum_difference, case_maximum)
+                    difference = max(
+                        abs(left_value - right_value)
+                        for left_value, right_value in zip(
+                            left[:7], right[:7], strict=True
+                        )
+                    )
+                    if difference > tolerance:
+                        raise ValueError(
+                            f"{capture_name}/{action}: trace={row['trace_frame']} "
+                            f"capsule={capsule_index} Q16 difference={difference}"
+                        )
+                    case_maximum = max(case_maximum, difference)
+            print(
+                "ssbm-dynamic-hurt-source-case=pass "
+                f"capture={capture_name} action={action} "
+                f"samples={len(selected)} max_q16={case_maximum}"
+            )
+            total_samples += len(selected)
+            total_capsules += len(selected) * len(capsules)
+            maximum_difference = max(maximum_difference, case_maximum)
 
     print(
         "ssbm-dynamic-hurt-source=pass "
-        f"cases={len(cases)} samples={total_samples} capsules={total_capsules} "
-        f"max_q16={maximum_difference} capture_sha256={capture_digest}"
+        f"captures={len(capture_specs)} cases={len(cases)} "
+        f"samples={total_samples} capsules={total_capsules} "
+        f"max_q16={maximum_difference} "
+        f"capture_sha256={','.join(capture_digests)}"
     )
     return 0
 
