@@ -14,7 +14,7 @@
 #define TEST_MEMORY_ALIGNMENT 64U
 #define TEST_REPLAY_TICKS UINT32_C(24)
 #define TEST_SAVE_HEADER_BYTES ((size_t)140)
-#define TEST_SAVE_PAYLOAD_BYTES ((size_t)807)
+#define TEST_SAVE_PAYLOAD_BYTES ((size_t)1567)
 #define TEST_SAVE_CHECKSUM_OFFSET ((size_t)108)
 #define TEST_SAVE_CHARGE0_OFFSET ((size_t)815)
 
@@ -534,7 +534,7 @@ static int run_state_interfaces_contract(
     pf_m4_inspection inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     size_t save_size = (size_t)0;
     pf_mut_bytes save_destination;
     pf_bytes save;
@@ -580,7 +580,7 @@ static int run_state_interfaces_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "charge-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return fail("charge-save-setup");
     }
@@ -792,7 +792,7 @@ int main(void)
         return 1;
     }
     (void)printf(
-        "m4-charge=pass content_schema=%u state_schema=%u save_bytes=947 "
+        "m4-charge=pass content_schema=%u state_schema=%u save_bytes=1707 "
         "charge_invariants=28 charge_storage_cancel=1 resumed_release=1 "
         "replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,

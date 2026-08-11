@@ -5700,7 +5700,22 @@ M5 content scaling remains blocked until M4 combat feel is approved.
   `1.2330335e-6` for translation/scale and `2.20395109e-7` for quaternions;
   158 converged rows are pinned by semantic SHA-256
   `cd3aba1802a0b749e2b677e720eadb4c97b254574b548f184be529589ef16f1d`.
-  Production integration remains open.
+  Production now uses one compact rollback representation: 19 canonicalized
+  Q15 quaternion xyz triples, six Q16 translation triples, and one Q16 blend
+  progress value per player. A generated 27-row C oracle replays every
+  captured moving-target recurrence from the repeat capture, including nested
+  gait changes and accumulated compact re-quantization. It passes at maxima of
+  8 Q15 quaternion units and 4 Q16 translation units. Hurt geometry,
+  inspection, and wall ECB all reconstruct through the same local-pose core.
+  The remaining gate for this slice is a direct identical-input comparison of
+  production transition geometry rather than another source-math proof.
+- Canonical state schema 71 / save format 66 (`PFSAVE60`) serializes the
+  compact transition state explicitly. The payload is 1,567 bytes and the
+  complete checkpoint is 1,707 bytes; inactive blends serialize as canonical
+  zero. Replay grows by exactly the added 760 state bytes to 42,479 bytes.
+- Windows Release passes 38/38, WSL Release passes 40/40, and WSL ASan/UBSan
+  passes 26/26. The 21-domain / 117-case stored-plus-replay gate passes in
+  0.720 seconds on Windows and 0.801 seconds in WSL.
 - Windows Release passes 37/37, WSL Release passes 39/39, and WSL ASan/UBSan
   passes 25/25. The complete 21-domain / 117-case stored-plus-replay gate takes
   0.730 seconds on Windows and 0.947 seconds in WSL. A rebuilt five-repetition

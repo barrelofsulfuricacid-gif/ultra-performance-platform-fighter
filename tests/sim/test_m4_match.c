@@ -10,7 +10,7 @@
 
 #define TEST_MEMORY_BYTES 4096U
 #define TEST_MEMORY_ALIGNMENT 64U
-#define TEST_SAVE_CAPACITY 1024U
+#define TEST_SAVE_CAPACITY 2048U
 #define TEST_STEP_LIMIT UINT32_C(600)
 
 typedef struct test_sim_storage
@@ -483,7 +483,7 @@ static int run_stock_respawn_match_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return fail("respawn-save-size");
     }

@@ -797,6 +797,13 @@ pf_m4_falcon_reference_ground_loop_ecb_pose(
     int32_t source_animation_frame_q16,
     pf_m4_falcon_ecb_pose_q16 *out_pose);
 
+const pf_m4_hsd_pose_data *
+pf_m4_falcon_reference_ground_loop_hsd_data(void);
+
+int pf_m4_falcon_reference_ground_loop_ecb_pose_from_local_pose(
+    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
+    pf_m4_falcon_ecb_pose_q16 *out_pose);
+
 const pf_m4_falcon_ecb_pose_q16 *
 pf_m4_falcon_reference_airborne_ecb_pose(
     uint16_t source_submotion,
@@ -877,6 +884,12 @@ pf_m4_falcon_reference_common_hurt_capsules_for_submotion_at_frame(
 int pf_m4_falcon_reference_dynamic_ground_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
+    pf_m4_reference_hurt_capsule
+        out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
+    uint8_t *out_count);
+
+int pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+    const pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS],
     pf_m4_reference_hurt_capsule
         out_capsules[PF_M4_HSD_POSE_MAX_CAPSULES],
     uint8_t *out_count);

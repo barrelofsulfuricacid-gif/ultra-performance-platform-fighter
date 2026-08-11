@@ -248,6 +248,21 @@ def build_payload(
         }
         for point_set_id, source_indices in point_set_specs
     ]
+    raw_copy_target = manifest.get("blend_copy_target_source_joint_indices", [])
+    if (
+        not isinstance(raw_copy_target, list)
+        or any(
+            not isinstance(source_index, int)
+            or isinstance(source_index, bool)
+            or source_index not in compact_by_source
+            for source_index in raw_copy_target
+        )
+        or len(set(raw_copy_target)) != len(raw_copy_target)
+    ):
+        raise ValueError("manifest blend copy-target joints are invalid")
+    copy_target_joint_indices = sorted(
+        compact_by_source[source_index] for source_index in raw_copy_target
+    )
     branch_rows: list[dict[str, Any]] = []
     raw_branches = manifest.get("pose_branches", [])
     if not isinstance(raw_branches, list):
@@ -313,6 +328,21 @@ def build_payload(
         "motions": motion_rows,
         "tracks": track_rows,
         "keys": key_rows,
+        "rotation_joint_indices": sorted(
+            {
+                row["joint_index"]
+                for row in track_rows
+                if row["track_type"] in (1, 2, 3)
+            }
+        ),
+        "translation_joint_indices": sorted(
+            {
+                row["joint_index"]
+                for row in track_rows
+                if row["track_type"] in (5, 6, 7)
+            }
+        ),
+        "copy_target_joint_indices": copy_target_joint_indices,
         "capsules": capsule_rows,
         "joint_point_sets": point_set_rows,
         "pose_branches": branch_rows,
@@ -333,6 +363,9 @@ def validate_expected(manifest: dict[str, Any], payload: dict[str, Any]) -> str:
         "capsule_count": len(payload["capsules"]),
         "joint_point_set_count": len(payload["joint_point_sets"]),
         "pose_branch_count": len(payload["pose_branches"]),
+        "rotation_joint_count": len(payload["rotation_joint_indices"]),
+        "translation_joint_count": len(payload["translation_joint_indices"]),
+        "copy_target_joint_count": len(payload["copy_target_joint_indices"]),
     }
     for name, actual in counts.items():
         if expected.get(name) != actual:
@@ -398,6 +431,16 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f"UINT8_C({row['grabbable']}) }},"
     )
     lines.extend(["};", ""])
+    for channel in ("rotation", "translation", "copy_target"):
+        indices = payload[f"{channel}_joint_indices"]
+        lines.extend(
+            [
+                f"static const uint8_t {prefix}_{channel}_joint_indices[] = {{",
+                "    " + ", ".join(f"UINT8_C({value})" for value in indices),
+                "};",
+                "",
+            ]
+        )
     for row in payload["joint_point_sets"]:
         point_set_prefix = f"{prefix}_{row['id']}_joint_indices"
         lines.extend(
@@ -418,11 +461,17 @@ def render(manifest: dict[str, Any], payload: dict[str, Any], digest: str) -> st
             f"    {prefix}_tracks,",
             f"    {prefix}_keys,",
             f"    {prefix}_capsules,",
+            f"    {prefix}_rotation_joint_indices,",
+            f"    {prefix}_translation_joint_indices,",
+            f"    {prefix}_copy_target_joint_indices,",
             f"    UINT16_C({len(payload['keys'])}),",
             f"    UINT16_C({len(payload['tracks'])}),",
             f"    UINT8_C({len(payload['joints'])}),",
             f"    UINT8_C({len(payload['motions'])}),",
             f"    UINT8_C({len(payload['capsules'])}),",
+            f"    UINT8_C({len(payload['rotation_joint_indices'])}),",
+            f"    UINT8_C({len(payload['translation_joint_indices'])}),",
+            f"    UINT8_C({len(payload['copy_target_joint_indices'])}),",
             "    UINT8_C(0),",
             f"    INT32_C({payload['source_to_sim_numerator']}),",
             f"    INT32_C({payload['source_to_sim_denominator']}),",

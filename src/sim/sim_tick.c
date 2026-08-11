@@ -378,6 +378,11 @@ static void pf_m4_canonicalize_source_animation_state(
             scratch->source_submotion[player_index] = UINT16_C(0);
             scratch->source_animation_frame_q16[player_index] = INT32_C(0);
             scratch->source_animation_rate_q16[player_index] = INT32_C(0);
+            (void)memset(
+                &scratch->ground_blend_pose[player_index],
+                0,
+                sizeof(scratch->ground_blend_pose[player_index]));
+            scratch->ground_blend_progress_q16[player_index] = INT32_C(0);
             continue;
         }
         if ((fighter->reference_frame_data_enabled == UINT8_C(0) &&
@@ -397,6 +402,16 @@ static void pf_m4_canonicalize_source_animation_state(
         {
             scratch->source_animation_frame_q16[player_index] = INT32_C(0);
             scratch->source_animation_rate_q16[player_index] = INT32_C(0);
+        }
+        if (!pf_m4_action_uses_velocity_animation_clock(
+                scratch->action_state[player_index],
+                scratch->hitlag_resume_action[player_index]))
+        {
+            (void)memset(
+                &scratch->ground_blend_pose[player_index],
+                0,
+                sizeof(scratch->ground_blend_pose[player_index]));
+            scratch->ground_blend_progress_q16[player_index] = INT32_C(0);
         }
     }
 }
@@ -655,6 +670,10 @@ pf_status pf_sim_tick_impl(
             scratch->source_animation_frame_q16[player_index];
         world->source_animation_rate_q16[player_index] =
             scratch->source_animation_rate_q16[player_index];
+        world->ground_blend_pose[player_index] =
+            scratch->ground_blend_pose[player_index];
+        world->ground_blend_progress_q16[player_index] =
+            scratch->ground_blend_progress_q16[player_index];
         world->respawn_count[player_index] =
             scratch->respawn_count[player_index];
         world->respawn_ticks[player_index] =

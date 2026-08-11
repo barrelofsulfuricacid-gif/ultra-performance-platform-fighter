@@ -426,7 +426,7 @@ static int run_air_dodge_snapshot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t required_bytes = (size_t)0;
@@ -442,7 +442,7 @@ static int run_air_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "air-dodge-query-save-size") ||
-        required_bytes != (size_t)947)
+        required_bytes != (size_t)1707)
     {
         return 0;
     }
@@ -1172,7 +1172,7 @@ static int run_ledge_cancel_snapshot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t required_bytes = (size_t)0;
@@ -1188,7 +1188,7 @@ static int run_ledge_cancel_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ledge-cancel-query-save-size") ||
-        required_bytes != (size_t)947)
+        required_bytes != (size_t)1707)
     {
         return 0;
     }
@@ -1440,7 +1440,7 @@ static int run_ground_dodge_snapshot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t required_bytes = (size_t)0;
@@ -1456,7 +1456,7 @@ static int run_ground_dodge_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "ground-dodge-query-save-size") ||
-        required_bytes != (size_t)947)
+        required_bytes != (size_t)1707)
     {
         return 0;
     }
@@ -5156,7 +5156,7 @@ static int run_fox_trot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -5221,7 +5221,7 @@ static int run_fox_trot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "fox-trot-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -5453,7 +5453,7 @@ static int run_moonwalk_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -5501,7 +5501,7 @@ static int run_moonwalk_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "moonwalk-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -6012,7 +6012,7 @@ static int run_teeter_cancel_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -6053,7 +6053,7 @@ static int run_teeter_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "teeter-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }
@@ -6354,7 +6354,7 @@ static int run_taunt_cancel_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -6427,7 +6427,7 @@ static int run_taunt_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "taunt-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -6571,7 +6571,7 @@ static int run_stage_humping_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -6624,7 +6624,7 @@ static int run_stage_humping_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "stage-humping-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -6906,7 +6906,7 @@ static int run_pivot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -6978,7 +6978,7 @@ static int run_pivot_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "pivot-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -7239,7 +7239,7 @@ static int run_dash_cancel_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -7302,7 +7302,7 @@ static int run_dash_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "dash-cancel-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -7836,7 +7836,7 @@ static int run_instant_double_jump_test(
     pf_m4_inspection takeoff_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
@@ -7976,7 +7976,7 @@ static int run_instant_double_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "idj-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }
@@ -8195,7 +8195,7 @@ static int run_double_jump_cancel_test(
     pf_m4_inspection disabled_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes save;
     size_t save_size = (size_t)0;
@@ -8324,7 +8324,7 @@ static int run_double_jump_cancel_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "double-jump-cancel-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }
@@ -9131,7 +9131,7 @@ static int run_aerial_trigger_snapshot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t required_bytes = (size_t)0;
@@ -9146,7 +9146,7 @@ static int run_aerial_trigger_snapshot_test(
             pf_sim_query_save_size(source, &required_bytes),
             PF_STATUS_OK,
             "aerial-query-save-size") ||
-        required_bytes != (size_t)947)
+        required_bytes != (size_t)1707)
     {
         return 0;
     }
@@ -9899,7 +9899,7 @@ static int run_upper_platform_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     int32_t stationary_x;
@@ -10018,7 +10018,7 @@ static int run_upper_platform_test(
             pf_sim_save(source, &destination),
             PF_STATUS_OK,
             "upper-platform-save") ||
-        destination.size != (size_t)947)
+        destination.size != (size_t)1707)
     {
         return 0;
     }
@@ -10264,7 +10264,7 @@ static int run_shield_platform_drop_test(
     pf_m4_inspection floor_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -10341,7 +10341,7 @@ static int run_shield_platform_drop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "shield-platform-drop-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }
@@ -11246,7 +11246,7 @@ static int run_ledge_snapshot_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t required_bytes = (size_t)0;
@@ -11764,7 +11764,7 @@ static int run_scar_jump_test(
     pf_m4_inspection inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -11814,7 +11814,7 @@ static int run_scar_jump_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "scar-jump-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }
@@ -11986,7 +11986,7 @@ static int run_edge_hop_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -12040,7 +12040,7 @@ static int run_edge_hop_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-hop-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }
@@ -12191,7 +12191,7 @@ static int run_edge_dash_test(
     pf_m4_inspection loaded_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -12376,7 +12376,7 @@ static int run_edge_dash_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "edge-dash-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -12796,7 +12796,7 @@ static int run_planking_test(
     pf_m4_inspection missed_inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     pf_mut_bytes destination;
     pf_bytes source_bytes;
     size_t save_size = (size_t)0;
@@ -12869,7 +12869,7 @@ static int run_planking_test(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "planking-query-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         (void)fprintf(
             stderr,
@@ -13974,7 +13974,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
     pf_bytes save;
     pf_rl_transition transition;
     pf_rl_action actions[2];
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     size_t save_size = (size_t)0;
     int32_t grounded_recovery_x;
     uint32_t player_bits;
@@ -14202,7 +14202,7 @@ static int run_vector_ascent_test(const pf_m4_content *base_content)
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "vector-ascent-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return 0;
     }

@@ -3,6 +3,8 @@
 
 #include "pf/m4.h"
 #include "pf/sim.h"
+#include "sim_fixed_math.h"
+#include "sim_hsd_pose.h"
 
 #include <stdint.h>
 
@@ -27,32 +29,6 @@ static inline int32_t pf_m4_total_velocity_q16(
         (int64_t)self_velocity_q16 + (int64_t)knockback_velocity_q16);
 }
 
-static inline uint32_t pf_m4_u64_sqrt(uint64_t value)
-{
-    uint64_t result = UINT64_C(0);
-    uint64_t bit = UINT64_C(1) << 62U;
-
-    while (bit > value)
-    {
-        bit >>= 2U;
-    }
-    while (bit != UINT64_C(0))
-    {
-        if (value >= result + bit)
-        {
-            value -= result + bit;
-            result = (result >> 1U) + bit;
-        }
-        else
-        {
-            result >>= 1U;
-        }
-        bit >>= 2U;
-    }
-    return result > (uint64_t)UINT32_MAX
-               ? UINT32_MAX
-               : (uint32_t)result;
-}
 #define PF_SIM_MAX_DAMAGE_Q16 (UINT32_C(999) * UINT32_C(65536))
 #define PF_SIM_MAX_SHIELD_HEALTH_Q16 \
     (UINT32_C(100) * UINT32_C(65536))
@@ -335,6 +311,8 @@ typedef struct pf_world_state
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
+    pf_m4_hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
+    int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -448,6 +426,8 @@ typedef struct pf_sim_scratch
     uint16_t source_submotion[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_frame_q16[PF_SIM_MAX_PLAYERS];
     int32_t source_animation_rate_q16[PF_SIM_MAX_PLAYERS];
+    pf_m4_hsd_compact_pose ground_blend_pose[PF_SIM_MAX_PLAYERS];
+    int32_t ground_blend_progress_q16[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_count[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_ticks[PF_SIM_MAX_PLAYERS];
     uint16_t respawn_invulnerability_ticks[PF_SIM_MAX_PLAYERS];
@@ -767,6 +747,7 @@ uint8_t pf_m4_reference_world_hurt_capsules(
     uint16_t source_submotion,
     int32_t source_animation_frame_q16,
     uint16_t action_ticks,
+    const pf_m4_hsd_local_pose *ground_loop_pose,
     pf_m4_hurt_capsule_inspection
         out_capsules[PF_M4_INSPECTION_HURT_CAPSULE_CAPACITY]);
 int pf_m4_shield_box(

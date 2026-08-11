@@ -527,7 +527,7 @@ static int run_state_interfaces_contract(
     pf_m4_inspection inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     size_t save_size = (size_t)0;
     pf_mut_bytes save_destination;
     pf_bytes save;
@@ -559,7 +559,7 @@ static int run_state_interfaces_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "reflector-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return fail("reflector-save-setup");
     }
@@ -771,7 +771,7 @@ int main(void)
     }
     (void)printf(
         "m4-reflector=pass content_schema=%u state_schema=%u "
-        "save_bytes=947 reflector_invariants=32 shine_spike=1 "
+        "save_bytes=1707 reflector_invariants=32 shine_spike=1 "
         "projectile_reflect=1 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,
         (unsigned int)PF_SIM_STATE_SCHEMA_VERSION);

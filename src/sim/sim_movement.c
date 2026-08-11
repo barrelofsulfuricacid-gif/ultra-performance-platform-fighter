@@ -366,6 +366,272 @@ static pf_status pf_m4_update_falcon_ground_animation_clock(
     return PF_STATUS_OK;
 }
 
+static int32_t pf_m4_ground_blend_weight_q16(
+    int32_t old_progress_q16,
+    int32_t new_progress_q16)
+{
+    const int32_t old_remaining_q16 =
+        INT32_C(6) * PF_Q16_ONE - old_progress_q16;
+    const int32_t new_remaining_q16 =
+        INT32_C(6) * PF_Q16_ONE - new_progress_q16;
+
+    return old_remaining_q16 > INT32_C(0)
+               ? (int32_t)(
+                     ((int64_t)new_remaining_q16 * PF_Q16_ONE +
+                      old_remaining_q16 / INT32_C(2)) /
+                     old_remaining_q16)
+               : INT32_C(0);
+}
+
+static int pf_m4_falcon_ground_blend_source_pose(
+    const pf_world_state *world,
+    uint32_t player_index,
+    const pf_m4_hsd_pose_data *data,
+    pf_m4_hsd_local_pose out_pose[PF_M4_HSD_POSE_MAX_JOINTS])
+{
+    const uint8_t previous_action = pf_m4_effective_action_state(
+        world->action_state[player_index],
+        world->hitlag_resume_action[player_index]);
+    uint16_t source_submotion;
+    int32_t source_frame_q16;
+
+    if (world->ground_blend_progress_q16[player_index] > INT32_C(0))
+    {
+        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+
+        return pf_m4_hsd_evaluate_local_pose_q16(
+                   data,
+                   world->source_submotion[player_index],
+                   world->source_animation_frame_q16[player_index],
+                   target) &&
+               pf_m4_hsd_inflate_compact_pose_q16(
+                   data,
+                   target,
+                   &world->ground_blend_pose[player_index],
+                   out_pose);
+    }
+    if (previous_action == (uint8_t)PF_M4_ACTION_WALK ||
+        previous_action == (uint8_t)PF_M4_ACTION_RUN)
+    {
+        source_submotion = world->source_submotion[player_index];
+        source_frame_q16 = world->source_animation_frame_q16[player_index];
+    }
+    else if (previous_action == (uint8_t)PF_M4_ACTION_GROUND_IDLE)
+    {
+        const pf_m4_falcon_submotion_data *wait =
+            pf_m4_falcon_reference_submotion(
+                PF_M4_FALCON_SUBMOTION_WAIT);
+
+        if (wait == NULL || wait->animation_frame_count == UINT16_C(0))
+        {
+            return 0;
+        }
+        source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_WAIT;
+        source_frame_q16 = (int32_t)(
+            world->action_ticks[player_index] % wait->animation_frame_count) *
+            PF_Q16_ONE;
+    }
+    else if (previous_action == (uint8_t)PF_M4_ACTION_INITIAL_DASH)
+    {
+        const pf_m4_falcon_submotion_data *dash =
+            pf_m4_falcon_reference_submotion(
+                PF_M4_FALCON_SUBMOTION_DASH);
+
+        if (dash == NULL || dash->animation_frame_count == UINT16_C(0))
+        {
+            return 0;
+        }
+        source_submotion = (uint16_t)PF_M4_FALCON_SUBMOTION_DASH;
+        source_frame_q16 = (int32_t)(
+            world->action_ticks[player_index] < dash->animation_frame_count
+                ? world->action_ticks[player_index]
+                : dash->animation_frame_count - UINT16_C(1)) *
+            PF_Q16_ONE;
+    }
+    else
+    {
+        return 0;
+    }
+    return pf_m4_hsd_evaluate_local_pose_q16(
+        data, source_submotion, source_frame_q16, out_pose);
+}
+
+static pf_status pf_m4_evaluate_falcon_ground_blend_pose(
+    const pf_world_state *world,
+    uint32_t player_index,
+    uint8_t action_state,
+    uint8_t hitlag_resume_action,
+    uint16_t source_submotion,
+    int32_t source_animation_frame_q16,
+    pf_m4_hsd_compact_pose *out_pose,
+    int32_t *out_progress_q16)
+{
+    const pf_m4_hsd_pose_data *data =
+        pf_m4_falcon_reference_ground_loop_hsd_data();
+    const uint8_t previous_action = pf_m4_effective_action_state(
+        world->action_state[player_index],
+        world->hitlag_resume_action[player_index]);
+    const uint8_t action = pf_m4_effective_action_state(
+        action_state, hitlag_resume_action);
+    pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+    pf_m4_hsd_local_pose current[PF_M4_HSD_POSE_MAX_JOINTS];
+    pf_m4_hsd_local_pose result[PF_M4_HSD_POSE_MAX_JOINTS];
+    int32_t progress_q16 = INT32_C(0);
+    int transition_steps = 0;
+
+    if (out_pose == NULL || out_progress_q16 == NULL)
+    {
+        return PF_STATUS_INVALID_ARGUMENT;
+    }
+    if (data == NULL ||
+        (action != (uint8_t)PF_M4_ACTION_WALK &&
+         action != (uint8_t)PF_M4_ACTION_RUN))
+    {
+        (void)memset(out_pose, 0, sizeof(*out_pose));
+        *out_progress_q16 = INT32_C(0);
+        return PF_STATUS_OK;
+    }
+    if (action_state == (uint8_t)PF_M4_ACTION_HITLAG)
+    {
+        *out_pose = world->ground_blend_pose[player_index];
+        *out_progress_q16 = world->ground_blend_progress_q16[player_index];
+        return PF_STATUS_OK;
+    }
+    if (!pf_m4_hsd_evaluate_local_pose_q16(
+            data,
+            source_submotion,
+            source_animation_frame_q16,
+            target))
+    {
+        return PF_STATUS_DETERMINISTIC_FAULT;
+    }
+    if (source_submotion != world->source_submotion[player_index] ||
+        action != previous_action)
+    {
+        if (action == (uint8_t)PF_M4_ACTION_WALK)
+        {
+            transition_steps =
+                previous_action == (uint8_t)PF_M4_ACTION_WALK ? 3 : 2;
+        }
+        else
+        {
+            transition_steps = 1;
+        }
+    }
+    if (transition_steps > 0 &&
+        pf_m4_falcon_ground_blend_source_pose(
+            world, player_index, data, current))
+    {
+        int step;
+
+        for (step = 1; step <= transition_steps; ++step)
+        {
+            pf_m4_hsd_local_pose step_target[PF_M4_HSD_POSE_MAX_JOINTS];
+            pf_m4_hsd_local_pose next[PF_M4_HSD_POSE_MAX_JOINTS];
+            int32_t step_frame_q16 =
+                source_animation_frame_q16 -
+                (transition_steps - step) * PF_Q16_ONE;
+            const pf_m4_falcon_submotion_data *motion =
+                pf_m4_falcon_reference_submotion(
+                    source_submotion);
+
+            if (motion == NULL || motion->animation_frame_count == UINT16_C(0))
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            while (step_frame_q16 < INT32_C(0))
+            {
+                step_frame_q16 +=
+                    (int32_t)motion->animation_frame_count * PF_Q16_ONE;
+            }
+            if (!pf_m4_hsd_evaluate_local_pose_q16(
+                    data,
+                    source_submotion,
+                    step_frame_q16,
+                    step_target) ||
+                !pf_m4_hsd_blend_local_pose_q16(
+                    data,
+                    step_target,
+                    current,
+                    (int32_t)(INT32_C(6) - step) * PF_Q16_ONE /
+                        (int32_t)(INT32_C(7) - step),
+                    next))
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            (void)memcpy(current, next, sizeof(*next) * data->joint_count);
+        }
+        progress_q16 = transition_steps * PF_Q16_ONE;
+    }
+    else if (world->ground_blend_progress_q16[player_index] > INT32_C(0) &&
+             action == previous_action &&
+             source_submotion == world->source_submotion[player_index])
+    {
+        int32_t frame_delta_q16 =
+            source_animation_frame_q16 -
+            world->source_animation_frame_q16[player_index];
+        const pf_m4_falcon_submotion_data *motion =
+            pf_m4_falcon_reference_submotion(
+                source_submotion);
+
+        if (motion == NULL || motion->animation_frame_count == UINT16_C(0))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        if (frame_delta_q16 < INT32_C(0))
+        {
+            frame_delta_q16 +=
+                (int32_t)motion->animation_frame_count * PF_Q16_ONE;
+        }
+        progress_q16 = world->ground_blend_progress_q16[player_index] +
+                       frame_delta_q16;
+        if (progress_q16 < INT32_C(6) * PF_Q16_ONE)
+        {
+            if (!pf_m4_hsd_inflate_compact_pose_q16(
+                    data,
+                    target,
+                    &world->ground_blend_pose[player_index],
+                    current) ||
+                !pf_m4_hsd_blend_local_pose_q16(
+                    data,
+                    target,
+                    current,
+                    pf_m4_ground_blend_weight_q16(
+                        world->ground_blend_progress_q16[player_index],
+                        progress_q16),
+                    result))
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+        }
+    }
+    if (progress_q16 > INT32_C(0) &&
+        progress_q16 < INT32_C(6) * PF_Q16_ONE)
+    {
+        if (transition_steps > 0)
+        {
+            (void)memcpy(
+                result,
+                current,
+                sizeof(*current) * data->joint_count);
+        }
+        if (!pf_m4_hsd_pack_compact_pose_q16(
+                data,
+                result,
+                out_pose))
+        {
+            return PF_STATUS_DETERMINISTIC_FAULT;
+        }
+        *out_progress_q16 = progress_q16;
+    }
+    else
+    {
+        (void)memset(out_pose, 0, sizeof(*out_pose));
+        *out_progress_q16 = INT32_C(0);
+    }
+    return PF_STATUS_OK;
+}
+
 static int pf_m4_advance_falcon_source_submotion(
     uint16_t *submotion_index,
     uint16_t *action_ticks)
@@ -611,27 +877,6 @@ static uint16_t pf_m4_axis_magnitude(int16_t axis)
     return (uint16_t)axis;
 }
 
-/* atan(i / 64) in unsigned-turn units. The compact octant table keeps guard
- * steering deterministic across native and Wasm builds without a libm call. */
-static const uint16_t pf_m4_atan_turn_table[65] = {
-    UINT16_C(0), UINT16_C(163), UINT16_C(326), UINT16_C(489),
-    UINT16_C(651), UINT16_C(813), UINT16_C(975), UINT16_C(1136),
-    UINT16_C(1297), UINT16_C(1457), UINT16_C(1617), UINT16_C(1775),
-    UINT16_C(1933), UINT16_C(2090), UINT16_C(2246), UINT16_C(2401),
-    UINT16_C(2555), UINT16_C(2708), UINT16_C(2860), UINT16_C(3010),
-    UINT16_C(3159), UINT16_C(3307), UINT16_C(3453), UINT16_C(3599),
-    UINT16_C(3742), UINT16_C(3884), UINT16_C(4025), UINT16_C(4164),
-    UINT16_C(4302), UINT16_C(4438), UINT16_C(4572), UINT16_C(4705),
-    UINT16_C(4836), UINT16_C(4966), UINT16_C(5094), UINT16_C(5220),
-    UINT16_C(5344), UINT16_C(5467), UINT16_C(5589), UINT16_C(5708),
-    UINT16_C(5826), UINT16_C(5943), UINT16_C(6058), UINT16_C(6171),
-    UINT16_C(6282), UINT16_C(6392), UINT16_C(6500), UINT16_C(6607),
-    UINT16_C(6712), UINT16_C(6815), UINT16_C(6917), UINT16_C(7018),
-    UINT16_C(7117), UINT16_C(7214), UINT16_C(7310), UINT16_C(7405),
-    UINT16_C(7498), UINT16_C(7589), UINT16_C(7679), UINT16_C(7768),
-    UINT16_C(7856), UINT16_C(7942), UINT16_C(8026), UINT16_C(8110),
-    UINT16_C(8192)};
-
 static const int16_t pf_m4_sine_q15_table[65] = {
     INT16_C(0), INT16_C(804), INT16_C(1608), INT16_C(2410),
     INT16_C(3212), INT16_C(4011), INT16_C(4808), INT16_C(5602),
@@ -776,51 +1021,10 @@ void pf_m4_shield_tilt_axes(
         INT64_C(65535));
 }
 
-static uint16_t pf_m4_atan_octant_turn(uint32_t numerator, uint32_t denominator)
-{
-    const uint64_t position =
-        ((uint64_t)numerator << 22U) / (uint64_t)denominator;
-    const uint32_t index = (uint32_t)(position >> 16U);
-    const uint32_t fraction = (uint32_t)position & UINT32_C(65535);
-    const uint32_t lower = pf_m4_atan_turn_table[index];
-    const uint32_t upper = pf_m4_atan_turn_table[
-        index < UINT32_C(64) ? index + UINT32_C(1) : index];
-
-    return (uint16_t)(
-        lower +
-        (((upper - lower) * fraction + UINT32_C(32768)) >> 16U));
-}
-
 static uint16_t pf_m4_atan2_turn(int32_t y, int32_t x)
 {
-    const uint32_t absolute_x =
-        x < INT32_C(0) ? (uint32_t)(-x) : (uint32_t)x;
-    const uint32_t absolute_y =
-        y < INT32_C(0) ? (uint32_t)(-y) : (uint32_t)y;
-    uint16_t octant;
-    uint32_t angle;
+    const uint32_t angle = (uint32_t)pf_m4_fixed_atan2_turn(y, x);
 
-    if ((absolute_x | absolute_y) == UINT32_C(0))
-    {
-        return UINT16_C(0);
-    }
-    octant = absolute_x >= absolute_y
-                  ? pf_m4_atan_octant_turn(absolute_y, absolute_x)
-                  : (uint16_t)(
-                        UINT16_C(16384) -
-                        pf_m4_atan_octant_turn(absolute_x, absolute_y));
-    if (x >= INT32_C(0))
-    {
-        angle = y >= INT32_C(0)
-                    ? (uint32_t)octant
-                    : UINT32_C(65536) - (uint32_t)octant;
-    }
-    else
-    {
-        angle = y >= INT32_C(0)
-                    ? UINT32_C(32768) - (uint32_t)octant
-                    : UINT32_C(32768) + (uint32_t)octant;
-    }
     /* GALE01 clamps angles in the final degree to 359 before smoothing. */
     return (uint16_t)(angle > UINT32_C(65354) ? UINT32_C(65354) : angle);
 }
@@ -1878,6 +2082,7 @@ static int pf_m4_reference_ecb_pose_q16(
     uint8_t prone_roll_motion_orientation,
     int8_t tech_direction,
     int8_t facing,
+    const pf_m4_hsd_compact_pose *ground_loop_compact,
     pf_m4_falcon_ecb_pose_q16 *out_pose)
 {
     const pf_m4_falcon_collision_pose *pose =
@@ -1889,6 +2094,28 @@ static int pf_m4_reference_ecb_pose_q16(
         out_pose == NULL)
     {
         return 0;
+    }
+    if (ground_loop_compact != NULL)
+    {
+        const pf_m4_hsd_pose_data *data =
+            pf_m4_falcon_reference_ground_loop_hsd_data();
+        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+        pf_m4_hsd_local_pose blended[PF_M4_HSD_POSE_MAX_JOINTS];
+
+        if (data == NULL ||
+            !pf_m4_hsd_evaluate_local_pose_q16(
+                data,
+                source_submotion,
+                source_animation_frame_q16,
+                target) ||
+            !pf_m4_hsd_inflate_compact_pose_q16(
+                data, target, ground_loop_compact, blended) ||
+            !pf_m4_falcon_reference_ground_loop_ecb_pose_from_local_pose(
+                blended, out_pose))
+        {
+            return 0;
+        }
+        return 1;
     }
     if (pf_m4_falcon_reference_ground_loop_ecb_pose(
             source_submotion,
@@ -2031,6 +2258,7 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
             prone_roll_motion_orientation,
             tech_direction,
             facing,
+            NULL,
             &action_pose) != 0)
     {
         bottom_y_from_origin_q16 = action_pose.bottom_y_from_origin_q16;
@@ -12715,6 +12943,9 @@ pf_status pf_m4_step_player(
         int32_t wall_side_y_from_origin_q16 = INT32_C(0);
         int32_t wall_impact_self_velocity_y_q16 = velocity_y;
         int64_t exact_wall_future_y = future_y;
+        pf_m4_hsd_compact_pose wall_blend_pose;
+        int32_t wall_blend_progress_q16 = INT32_C(0);
+        const pf_m4_hsd_compact_pose *wall_blend_pose_or_null = NULL;
         int exact_reference_wall_pose = 0;
         int exact_wall_contact = 0;
         const int moving_right = position_x > previous_position_x;
@@ -12724,6 +12955,30 @@ pf_status pf_m4_step_player(
         int8_t away_direction = INT8_C(0);
         uint8_t wall_support = UINT8_C(0);
 
+        if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+            pf_m4_falcon_reference_ground_loop_ecb_pose(
+                source_submotion,
+                source_animation_frame_q16,
+                &wall_pose) != 0)
+        {
+            status = pf_m4_evaluate_falcon_ground_blend_pose(
+                world,
+                player_index,
+                action_state,
+                scratch->hitlag_resume_action[player_index],
+                source_submotion,
+                source_animation_frame_q16,
+                &wall_blend_pose,
+                &wall_blend_progress_q16);
+            if (status != PF_STATUS_OK)
+            {
+                return status;
+            }
+            if (wall_blend_progress_q16 > INT32_C(0))
+            {
+                wall_blend_pose_or_null = &wall_blend_pose;
+            }
+        }
         exact_reference_wall_pose = pf_m4_reference_ecb_pose_q16(
             fighter,
             action_state,
@@ -12734,6 +12989,7 @@ pf_status pf_m4_step_player(
             scratch->prone_roll_motion_orientation[player_index],
             scratch->tech_direction[player_index],
             facing,
+            wall_blend_pose_or_null,
             &wall_pose);
         if (exact_reference_wall_pose != 0)
         {
@@ -12803,6 +13059,10 @@ pf_status pf_m4_step_player(
                     world->prone_roll_motion_orientation[player_index],
                     world->tech_direction[player_index],
                     world->facing[player_index],
+                    world->ground_blend_progress_q16[player_index] >
+                            INT32_C(0)
+                        ? &world->ground_blend_pose[player_index]
+                        : NULL,
                     &previous_wall_pose))
                 {
                     previous_wall_pose = wall_pose;
@@ -13285,6 +13545,7 @@ pf_status pf_m4_step_player(
                 scratch->prone_roll_motion_orientation[player_index],
                 scratch->tech_direction[player_index],
                 facing,
+                NULL,
                 &ceiling_pose) != 0)
         {
             ceiling_top_extent_q16 = ceiling_pose.top_y_from_origin_q16;
@@ -14074,6 +14335,22 @@ pf_status pf_m4_step_player(
             tilt_y_direction,
             tilt_x_age,
             tilt_y_age);
+    if (fighter->reference_frame_data_enabled != UINT8_C(0))
+    {
+        status = pf_m4_evaluate_falcon_ground_blend_pose(
+            world,
+            player_index,
+            scratch->action_state[player_index],
+            scratch->hitlag_resume_action[player_index],
+            scratch->source_submotion[player_index],
+            scratch->source_animation_frame_q16[player_index],
+            &scratch->ground_blend_pose[player_index],
+            &scratch->ground_blend_progress_q16[player_index]);
+        if (status != PF_STATUS_OK)
+        {
+            return status;
+        }
+    }
     return PF_STATUS_OK;
 }
 
@@ -14242,6 +14519,9 @@ pf_status pf_m4_inspect(
     {
         pf_m4_player_inspection *player =
             &out_inspection->players[player_index];
+        pf_m4_hsd_local_pose
+            ground_loop_pose[PF_M4_HSD_POSE_MAX_JOINTS];
+        const pf_m4_hsd_local_pose *ground_loop_pose_or_null = NULL;
 
         player->position_x_q16 =
             sim->world.position_x_q16[player_index];
@@ -14534,6 +14814,29 @@ pf_status pf_m4_inspect(
             &player->grabbox_right_q16,
             &player->grabbox_top_q16,
             &player->grabbox_bottom_q16);
+        if (sim->world.ground_blend_progress_q16[player_index] >
+            INT32_C(0))
+        {
+            const pf_m4_hsd_pose_data *data =
+                pf_m4_falcon_reference_ground_loop_hsd_data();
+            pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+
+            if (data == NULL ||
+                !pf_m4_hsd_evaluate_local_pose_q16(
+                    data,
+                    sim->world.source_submotion[player_index],
+                    sim->world.source_animation_frame_q16[player_index],
+                    target) ||
+                !pf_m4_hsd_inflate_compact_pose_q16(
+                    data,
+                    target,
+                    &sim->world.ground_blend_pose[player_index],
+                    ground_loop_pose))
+            {
+                return PF_STATUS_DETERMINISTIC_FAULT;
+            }
+            ground_loop_pose_or_null = ground_loop_pose;
+        }
         player->hurt_capsule_count =
             pf_m4_reference_world_hurt_capsules(
                 &sim->content.fighter,
@@ -14547,6 +14850,7 @@ pf_status pf_m4_inspect(
                 sim->world.source_submotion[player_index],
                 sim->world.source_animation_frame_q16[player_index],
                 player->action_ticks,
+                ground_loop_pose_or_null,
                 player->hurt_capsules);
     }
     return PF_STATUS_OK;

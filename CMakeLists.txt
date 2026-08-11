@@ -89,6 +89,8 @@ set(
     src/sim/sim_combat.c
     src/sim/sim_content.c
     src/sim/sim_falcon_frame_data.c
+    src/sim/sim_fixed_math.c
+    src/sim/sim_fixed_math.h
     src/sim/sim_hsd_pose.c
     src/sim/sim_hsd_pose.h
     src/sim/sim_ssbm_common_data.c
@@ -553,7 +555,27 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.snapshot
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-snapshot=pass bytes=947 hash_algorithm=sha256")
+                       "sim-snapshot=pass bytes=1707 hash_algorithm=sha256")
+
+    add_executable(
+        m4_hsd_transition_test
+        tests/sim/test_m4_hsd_transition.c)
+    target_link_libraries(m4_hsd_transition_test PRIVATE sim)
+    target_include_directories(
+        m4_hsd_transition_test
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/sim")
+    target_compile_features(m4_hsd_transition_test PRIVATE c_std_17)
+    set_target_properties(
+        m4_hsd_transition_test
+        PROPERTIES C_EXTENSIONS OFF)
+    pf_enable_project_warnings(m4_hsd_transition_test)
+    pf_apply_build_mode(m4_hsd_transition_test)
+
+    add_test(NAME sim.m4_hsd_transition COMMAND m4_hsd_transition_test)
+    set_tests_properties(
+        sim.m4_hsd_transition
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "m4-hsd-transition=pass cases=27")
 
     add_executable(m4_movement_test tests/sim/test_m4_movement.c)
     target_link_libraries(m4_movement_test PRIVATE sim)
@@ -760,7 +782,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_item
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-item=pass content_schema=77 state_schema=70 save_bytes=947 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
+                   "m4-item=pass content_schema=77 state_schema=71 save_bytes=1707 item_invariants=44 bat_drop=1 glide_toss=1 jump_cancel_throw=1 directional_throws=4 replay=1 rl=1")
 
     add_executable(
         m4_projectile_test
@@ -777,7 +799,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_projectile
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-projectile=pass content_schema=77 state_schema=70 save_bytes=947 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
+                   "m4-projectile=pass content_schema=77 state_schema=71 save_bytes=1707 projectile_invariants=46 short_hop_laser=1 powershield_reflect=1 replay=1 rl=1 emergent_technique_tests=skipped")
 
     add_executable(
         m4_reflector_test
@@ -794,7 +816,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_reflector
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-reflector=pass content_schema=77 state_schema=70 save_bytes=947 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
+                   "m4-reflector=pass content_schema=77 state_schema=71 save_bytes=1707 reflector_invariants=32 shine_spike=1 projectile_reflect=1 replay=1 rl=1")
 
     add_executable(
         m4_charge_test
@@ -814,7 +836,7 @@ if(BUILD_TESTING)
     set_tests_properties(
         sim.m4_charge
         PROPERTIES PASS_REGULAR_EXPRESSION
-                   "m4-charge=pass content_schema=77 state_schema=70 save_bytes=947 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
+                   "m4-charge=pass content_schema=77 state_schema=71 save_bytes=1707 charge_invariants=28 charge_storage_cancel=1 resumed_release=1 replay=1 rl=1")
 
     add_executable(m4_match_test tests/sim/test_m4_match.c)
     target_link_libraries(m4_match_test PRIVATE sim)
@@ -868,7 +890,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             sim.replay_corpus
             PROPERTIES PASS_REGULAR_EXPRESSION
-                       "sim-replay=pass ticks=240 players=4 bytes=41719")
+                       "sim-replay=pass ticks=240 players=4 bytes=42479")
     endif()
 
     if(PF_BUILD_HEADLESS)

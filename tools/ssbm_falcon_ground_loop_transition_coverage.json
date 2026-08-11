@@ -60,6 +60,7 @@
     "local_tolerance": 0.00001,
     "quaternion_tolerance": 0.00001,
     "semantic_sha256": "cd3aba1802a0b749e2b677e720eadb4c97b254574b548f184be529589ef16f1d",
+    "compact_oracle_semantic_sha256": "37c29a7122eee91ddbf13560b9416fd3764efed9bc1a0b95a00b89ff603a630c",
     "converged_suffix_counts": {
       "common_hurt_walk_slow_": 51,
       "common_hurt_walk_middle_": 37,

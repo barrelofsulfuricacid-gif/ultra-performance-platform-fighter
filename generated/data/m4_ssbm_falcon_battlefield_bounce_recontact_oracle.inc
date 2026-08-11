@@ -144,7 +144,7 @@ pf_m4_ssbm_falcon_battlefield_bounce_recontact_cases[] = {
 #define PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_SOURCE_TRACE_SHA256 \
     "4e9a0ad3222bd0d6b6d7ab7def0177cf4b5c361bded3826abfe2e91f9210dd5a"
 #define PF_M4_SSBM_FALCON_BATTLEFIELD_BOUNCE_RECONTACT_PRODUCTION_TRACE_SHA256 \
-    "222a5504d62bc5500e57a88a0adad108b931ea73d2b70cdf46faccde3f36d2db"
+    "79cc9ff8118443815d4b8d20a8666f9858602c32dc1472a8a6aec440c8084fae"
 
 _Static_assert(
     sizeof(pf_m4_ssbm_falcon_battlefield_bounce_recontact_cases) /

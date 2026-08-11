@@ -18,9 +18,11 @@
     "model_dat": "dcc34bbb428f978858e95b18e29d4a476b4582d59cdc5daca3814dcaf2eef872"
   },
   "motions": [
+    { "submotion_index": 2, "c_submotion": "PF_M4_FALCON_SUBMOTION_WAIT" },
     { "submotion_index": 7, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_SLOW" },
     { "submotion_index": 8, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_MIDDLE" },
     { "submotion_index": 9, "c_submotion": "PF_M4_FALCON_SUBMOTION_WALK_FAST" },
+    { "submotion_index": 12, "c_submotion": "PF_M4_FALCON_SUBMOTION_DASH" },
     { "submotion_index": 13, "c_submotion": "PF_M4_FALCON_SUBMOTION_RUN" }
   ],
   "joint_point_sets": [
@@ -29,6 +31,7 @@
       "source_joint_indices": [39, 47, 25, 14, 8, 4]
     }
   ],
+  "blend_copy_target_source_joint_indices": [1],
   "pose_branches": [
     {
       "id": "shield_break_down_up",
@@ -43,13 +46,16 @@
     "source_joint_count": 63,
     "runtime_part_count": 63,
     "joint_count": 25,
-    "motion_count": 4,
-    "track_count": 229,
-    "key_count": 1295,
+    "motion_count": 6,
+    "track_count": 344,
+    "key_count": 3043,
     "capsule_count": 11,
+    "rotation_joint_count": 19,
+    "translation_joint_count": 6,
+    "copy_target_joint_count": 1,
     "joint_point_set_count": 1,
     "pose_branch_count": 1,
-    "data_sha256": "aeb63682e4b3ae0cae4fd51f7db810ed86bfc164b9b647b5ac3464e7658ad846"
+    "data_sha256": "dfca517d662b6c2851a8e4a60243e6a214193f42c7f1632806bbc6959a8d5ad5"
   },
   "stored_oracle": {
     "capture_sha256": "4894c8d3917568e43d3499b71cb3b3ebc361575670aeaad63c8a99bcba106b4e",

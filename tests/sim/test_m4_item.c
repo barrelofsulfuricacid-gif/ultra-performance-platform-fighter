@@ -800,7 +800,7 @@ static int run_save_replay_rl_contract(
     pf_m4_inspection inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     size_t save_size;
     pf_mut_bytes destination;
     pf_bytes save;
@@ -840,7 +840,7 @@ static int run_save_replay_rl_contract(
                 pf_sim_query_save_size(source, &save_size),
                 PF_STATUS_OK,
                 "item-save-size") ||
-            save_size != (size_t)947)
+            save_size != (size_t)1707)
         {
             return fail("item-save-setup");
         }
@@ -1100,7 +1100,7 @@ int main(void)
     }
 
     (void)printf(
-        "m4-item=pass content_schema=%u state_schema=%u save_bytes=947 "
+        "m4-item=pass content_schema=%u state_schema=%u save_bytes=1707 "
         "item_invariants=44 bat_drop=1 glide_toss=1 "
         "jump_cancel_throw=1 directional_throws=4 replay=1 rl=1\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,

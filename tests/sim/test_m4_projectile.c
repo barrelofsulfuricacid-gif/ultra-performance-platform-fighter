@@ -787,7 +787,7 @@ static int run_save_replay_rl_contract(
     pf_m4_inspection inspection;
     pf_state_hash source_hash;
     pf_state_hash loaded_hash;
-    uint8_t save_bytes[1024];
+    uint8_t save_bytes[2048];
     size_t save_size = (size_t)0;
     pf_mut_bytes destination;
     pf_bytes save;
@@ -820,7 +820,7 @@ static int run_save_replay_rl_contract(
             pf_sim_query_save_size(source, &save_size),
             PF_STATUS_OK,
             "projectile-save-size") ||
-        save_size != (size_t)947)
+        save_size != (size_t)1707)
     {
         return fail("projectile-save-setup");
     }
@@ -1033,7 +1033,7 @@ int main(void)
 
     (void)printf(
         "m4-projectile=pass content_schema=%u state_schema=%u "
-        "save_bytes=947 projectile_invariants=46 short_hop_laser=1 "
+        "save_bytes=1707 projectile_invariants=46 short_hop_laser=1 "
         "powershield_reflect=1 replay=1 rl=1 "
         "emergent_technique_tests=skipped\n",
         (unsigned int)PF_M4_CONTENT_SCHEMA_VERSION,

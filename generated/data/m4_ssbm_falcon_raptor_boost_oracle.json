@@ -183,7 +183,7 @@
   ],
   "domain": "falcon-side-special",
   "kind": "native-csv-trace-v1",
-  "production_trace_sha256": "7733655e234ac2de12fe1b674ed6be967ad7de39b848d94cf97b2e36547509a0",
+  "production_trace_sha256": "da81c197b03f96492997812f5e7d23fa7b446fcd25367e431c7d5e238a34503f",
   "schema": 1,
   "source_trace_sha256": "19b5d604d5721e20bc2151e41c11054632a5c384dfd5528cf373dac2bd1abe2c"
 }

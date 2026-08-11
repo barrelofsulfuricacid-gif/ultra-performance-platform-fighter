@@ -9,7 +9,7 @@
 #include <string.h>
 
 #define PF_SIM_SAVE_HEADER_BYTES ((size_t)140)
-#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)807)
+#define PF_SIM_SAVE_PAYLOAD_BYTES ((size_t)1567)
 #define PF_SIM_SAVE_TOTAL_BYTES \
     (PF_SIM_SAVE_HEADER_BYTES + PF_SIM_SAVE_PAYLOAD_BYTES)
 
@@ -32,7 +32,7 @@ typedef struct pf_byte_reader
 
 static const uint8_t pf_save_magic[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x53), UINT8_C(0x41),
-    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x35), UINT8_C(0x39)};
+    UINT8_C(0x56), UINT8_C(0x45), UINT8_C(0x36), UINT8_C(0x30)};
 
 static const uint8_t pf_config_hash_domain[8] = {
     UINT8_C(0x50), UINT8_C(0x46), UINT8_C(0x43), UINT8_C(0x46),
@@ -115,6 +115,14 @@ static void pf_writer_u64(pf_byte_writer *writer, uint64_t value)
 static void pf_writer_i32(pf_byte_writer *writer, int32_t value)
 {
     pf_writer_u32(writer, (uint32_t)value);
+}
+
+static void pf_writer_i16(pf_byte_writer *writer, int16_t value)
+{
+    uint16_t bits;
+
+    (void)memcpy(&bits, &value, sizeof(bits));
+    pf_writer_u16(writer, bits);
 }
 
 static void pf_writer_i8(pf_byte_writer *writer, int8_t value)
@@ -213,6 +221,15 @@ static int32_t pf_reader_i32(pf_byte_reader *reader)
 {
     const uint32_t bits = pf_reader_u32(reader);
     int32_t value;
+
+    (void)memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+static int16_t pf_reader_i16(pf_byte_reader *reader)
+{
+    const uint16_t bits = pf_reader_u16(reader);
+    int16_t value;
 
     (void)memcpy(&value, &bits, sizeof(value));
     return value;
@@ -376,6 +393,52 @@ static void pf_write_payload(
             pf_m4_snapshot_canonical_source_submotion(
                 world,
                 player_index));
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        const int active =
+            world->ground_blend_progress_q16[player_index] > INT32_C(0);
+        uint8_t rotation_index;
+
+        pf_writer_i32(
+            writer,
+            active != 0
+                ? world->ground_blend_progress_q16[player_index]
+                : INT32_C(0));
+        for (rotation_index = UINT8_C(0);
+             rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
+             ++rotation_index)
+        {
+            uint8_t component;
+
+            for (component = UINT8_C(0); component < UINT8_C(3); ++component)
+            {
+                pf_writer_i16(
+                    writer,
+                    active != 0
+                        ? world->ground_blend_pose[player_index]
+                              .rotation_q15[rotation_index][component]
+                        : INT16_C(0));
+            }
+        }
+        for (uint8_t translation_index = UINT8_C(0);
+             translation_index < PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY;
+             ++translation_index)
+        {
+            uint8_t component;
+
+            for (component = UINT8_C(0); component < UINT8_C(3); ++component)
+            {
+                pf_writer_i32(
+                    writer,
+                    active != 0
+                        ? world->ground_blend_pose[player_index]
+                              .translation_q16[translation_index][component]
+                        : INT32_C(0));
+            }
+        }
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -1013,6 +1076,41 @@ static void pf_read_payload(
     {
         world->source_animation_rate_q16[player_index] =
             pf_reader_i32(reader);
+    }
+    for (player_index = UINT32_C(0);
+         player_index < PF_SIM_MAX_PLAYERS;
+         ++player_index)
+    {
+        uint8_t rotation_index;
+
+        world->ground_blend_progress_q16[player_index] =
+            pf_reader_i32(reader);
+        for (rotation_index = UINT8_C(0);
+             rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
+             ++rotation_index)
+        {
+            uint8_t component;
+
+            for (component = UINT8_C(0); component < UINT8_C(3); ++component)
+            {
+                world->ground_blend_pose[player_index]
+                    .rotation_q15[rotation_index][component] =
+                    pf_reader_i16(reader);
+            }
+        }
+        for (uint8_t translation_index = UINT8_C(0);
+             translation_index < PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY;
+             ++translation_index)
+        {
+            uint8_t component;
+
+            for (component = UINT8_C(0); component < UINT8_C(3); ++component)
+            {
+                world->ground_blend_pose[player_index]
+                    .translation_q16[translation_index][component] =
+                    pf_reader_i32(reader);
+            }
+        }
     }
     for (player_index = UINT32_C(0);
          player_index < PF_SIM_MAX_PLAYERS;
@@ -2192,6 +2290,85 @@ static int pf_m4_snapshot_source_animation_clock_valid(
                    (int64_t)PF_Q16_ONE;
 }
 
+static int pf_m4_snapshot_ground_blend_valid(
+    const pf_m4_fighter_data *fighter,
+    const pf_world_state *world,
+    uint32_t player_index)
+{
+    const int32_t progress_q16 =
+        world->ground_blend_progress_q16[player_index];
+    const pf_m4_hsd_compact_pose *compact =
+        &world->ground_blend_pose[player_index];
+    uint8_t rotation_index;
+    uint8_t translation_index;
+
+    if (progress_q16 == INT32_C(0))
+    {
+        for (rotation_index = UINT8_C(0);
+             rotation_index < PF_M4_HSD_COMPACT_ROTATION_CAPACITY;
+             ++rotation_index)
+        {
+            for (uint8_t component = UINT8_C(0);
+                 component < UINT8_C(3);
+                 ++component)
+            {
+                if (compact->rotation_q15[rotation_index][component] !=
+                    INT16_C(0))
+                {
+                    return 0;
+                }
+            }
+        }
+        for (translation_index = UINT8_C(0);
+             translation_index < PF_M4_HSD_COMPACT_TRANSLATION_CAPACITY;
+             ++translation_index)
+        {
+            for (uint8_t component = UINT8_C(0);
+                 component < UINT8_C(3);
+                 ++component)
+            {
+                if (compact->translation_q16[translation_index][component] !=
+                    INT32_C(0))
+                {
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
+    if (fighter->reference_frame_data_enabled == UINT8_C(0) ||
+        world->active[player_index] == UINT8_C(0) ||
+        !pf_m4_action_uses_velocity_animation_clock(
+            world->action_state[player_index],
+            world->hitlag_resume_action[player_index]) ||
+        progress_q16 <= INT32_C(0) ||
+        progress_q16 >= INT32_C(6) * PF_Q16_ONE)
+    {
+        return 0;
+    }
+    {
+        const pf_m4_hsd_pose_data *data =
+            pf_m4_falcon_reference_ground_loop_hsd_data();
+        pf_m4_hsd_local_pose target[PF_M4_HSD_POSE_MAX_JOINTS];
+        pf_m4_hsd_local_pose pose[PF_M4_HSD_POSE_MAX_JOINTS];
+        pf_m4_reference_hurt_capsule
+            capsules[PF_M4_HSD_POSE_MAX_CAPSULES];
+        uint8_t count;
+
+        return data != NULL &&
+               pf_m4_hsd_evaluate_local_pose_q16(
+                   data,
+                   world->source_submotion[player_index],
+                   world->source_animation_frame_q16[player_index],
+                   target) &&
+               pf_m4_hsd_inflate_compact_pose_q16(
+                   data, target, compact, pose) &&
+               pf_m4_falcon_reference_dynamic_ground_hurt_capsules_from_local_pose(
+                   pose, capsules, &count) &&
+               count != UINT8_C(0);
+    }
+}
+
 static uint32_t pf_m4_snapshot_ledge_attack_ticks(
     const pf_m4_fighter_data *fighter,
     uint16_t source_submotion)
@@ -2281,6 +2458,11 @@ static int pf_m4_snapshot_content_state_consistent(
                 source_submotion,
                 world->source_animation_frame_q16[player_index],
                 world->source_animation_rate_q16[player_index]))
+        {
+            return 0;
+        }
+        if (!pf_m4_snapshot_ground_blend_valid(
+                &content->fighter, world, player_index))
         {
             return 0;
         }
