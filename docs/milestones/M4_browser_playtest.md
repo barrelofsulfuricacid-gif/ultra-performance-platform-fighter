@@ -6,6 +6,8 @@
 > rendered UI and replay integration, Gamepad/WebUSB input mappings, the
 > C-to-web adapter contract, and a real headless-browser smoke. Probe lists
 > below describe historical checkpoints, not current startup requirements.
+> The host adapter test likewise retains only boundary checks; it no longer
+> replays gameplay scenarios already owned by native simulation tests.
 
 This checkpoint runs the production `pf_sim_tick` M4 movement, solid stage
 geometry, four standing ground attacks, ground/wall/ceiling tech and

@@ -92,6 +92,15 @@ Remaining work is evidence/model work rather than a known code-only fix:
   instead of four values plus 58 probe statuses. Native simulation suites own
   simulation fidelity; the web gate retains adapter ABI, controller polling,
   mapping, UI, Wasm-load, and real browser interaction checks.
+- [x] Remove the remaining host-compiled gameplay duplication from
+  `tests/web/test_m4_playtest.c`. The adapter test is reduced from 1,337 to 397
+  lines and now checks only startup/view packing, exported input endpoints,
+  independent trigger edges, hit-geometry presentation, duel/team setup, and
+  four-player routing. Falcon move lifecycles, tactics, items, and combat-event
+  semantics remain solely in native simulation, replay, and SSBM-oracle lanes.
+  The shell gate is reduced from 421 to 150 lines by deleting action-name and
+  simulation-source greps; it retains syntax checks and compact browser-only
+  Gamepad, WebUSB, controller, visual-cue, and endpoint contract markers.
 - [x] Correct the imported initial-dash frame clock so an A press after source
   Dash frame 4 enters DashAttack, keep ground-damage animation advancing after
   hitstun unlocks, and remove Falcon's incorrect six-frame delayed-double-jump
