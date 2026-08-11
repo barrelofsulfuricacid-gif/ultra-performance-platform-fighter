@@ -89,21 +89,6 @@ _Static_assert(
         PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT,
     "Falcon airborne ECB track spans must cover the packed table");
 _Static_assert(
-    sizeof(pf_m4_falcon_collision_pose_data
-               .aerial_attack_bottom_y_from_origin_q16) /
-            sizeof(pf_m4_falcon_collision_pose_data
-                       .aerial_attack_bottom_y_from_origin_q16[0]) ==
-        (size_t)PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT,
-    "Falcon aerial-attack ECB table must be complete");
-_Static_assert(
-    PF_M4_FALCON_NEUTRAL_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_FORWARD_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_BACK_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_UP_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_DOWN_AERIAL_ECB_FRAME_COUNT ==
-        PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT,
-    "Falcon aerial-attack ECB spans must cover the packed table");
-_Static_assert(
     sizeof(pf_m4_falcon_collision_pose_data.shield_break_fly) /
             sizeof(pf_m4_falcon_collision_pose_data.shield_break_fly[0]) ==
         (size_t)PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT,
@@ -1210,64 +1195,6 @@ pf_m4_falcon_reference_airborne_ecb_pose(
         action_ticks = (uint16_t)(frame_count - UINT16_C(1));
     }
     return &pf_m4_falcon_collision_pose_data.airborne[offset + action_ticks];
-}
-
-int pf_m4_falcon_reference_aerial_attack_bottom_q16(
-    uint8_t action_state,
-    uint16_t action_ticks,
-    int32_t *out_bottom_y_from_origin_q16)
-{
-    pf_m4_falcon_move_index move_index;
-    uint16_t offset;
-    uint16_t frame_count;
-
-    if (out_bottom_y_from_origin_q16 == NULL ||
-        !pf_m4_falcon_reference_move_for_action(action_state, &move_index))
-    {
-        return 0;
-    }
-    switch (move_index)
-    {
-    case PF_M4_FALCON_NEUTRAL_AERIAL:
-        offset = UINT16_C(0);
-        frame_count = PF_M4_FALCON_NEUTRAL_AERIAL_ECB_FRAME_COUNT;
-        break;
-    case PF_M4_FALCON_FORWARD_AERIAL:
-        offset = PF_M4_FALCON_NEUTRAL_AERIAL_ECB_FRAME_COUNT;
-        frame_count = PF_M4_FALCON_FORWARD_AERIAL_ECB_FRAME_COUNT;
-        break;
-    case PF_M4_FALCON_BACK_AERIAL:
-        offset = (uint16_t)(
-            PF_M4_FALCON_NEUTRAL_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_FORWARD_AERIAL_ECB_FRAME_COUNT);
-        frame_count = PF_M4_FALCON_BACK_AERIAL_ECB_FRAME_COUNT;
-        break;
-    case PF_M4_FALCON_UP_AERIAL:
-        offset = (uint16_t)(
-            PF_M4_FALCON_NEUTRAL_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_FORWARD_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_BACK_AERIAL_ECB_FRAME_COUNT);
-        frame_count = PF_M4_FALCON_UP_AERIAL_ECB_FRAME_COUNT;
-        break;
-    case PF_M4_FALCON_DOWN_AERIAL:
-        offset = (uint16_t)(
-            PF_M4_FALCON_NEUTRAL_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_FORWARD_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_BACK_AERIAL_ECB_FRAME_COUNT +
-            PF_M4_FALCON_UP_AERIAL_ECB_FRAME_COUNT);
-        frame_count = PF_M4_FALCON_DOWN_AERIAL_ECB_FRAME_COUNT;
-        break;
-    default:
-        return 0;
-    }
-    if (action_ticks >= frame_count)
-    {
-        action_ticks = (uint16_t)(frame_count - UINT16_C(1));
-    }
-    *out_bottom_y_from_origin_q16 =
-        pf_m4_falcon_collision_pose_data
-            .aerial_attack_bottom_y_from_origin_q16[offset + action_ticks];
-    return 1;
 }
 
 const pf_m4_reference_search_sphere *

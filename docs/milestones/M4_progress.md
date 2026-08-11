@@ -5995,3 +5995,32 @@ M5 content scaling remains blocked until M4 combat feel is approved.
 - Windows MinGW Release passes 39/39 in 4.94 seconds and WSL Release passes
   41/41 in 3.22 seconds. The full 21-domain / 117-case stored-plus-replay gate
   passes in 999.624 ms on Windows and 855.897 ms in WSL.
+
+## 2026-08-11 common airborne ECB lock and aerial HSD routing
+
+- A pinned/current decomp sweep identifies the shared owner rather than an
+  aerial-specific callback: `ftCommon_8007D5D4` converts the fighter to air,
+  stores ECB lock 10, and marks collision bottom locked. `Fighter_procMap`
+  decrements before collision, so the entry collision observes lock 9 while
+  retaining the previous desired bottom.
+- All five aerial attacks now use the same allocation-free DAT/HSD evaluator
+  as other qualified actions. Two existing independent Dolphin captures cover
+  2,066 selected observations / 1,840 unique frames across 25 action routes;
+  all qualified coordinates agree within one Q16 unit. Rapid Jab Start remains
+  the sole action-ECB exception because its entry blend is not a raw HSD pose.
+- The route-captured 195-value aerial bottom table is removed. One common
+  transition detector initializes the ten-update lock for grounded-to-air and
+  aerial-jump conversions, preserves an already locked desired bottom, and
+  releases to the current HSD bottom. A production integration fixture checks
+  the double-jump entry, Nair frames 1-8, and frame-9 unlock.
+- The parent-closed profile grows to 50 motions, 3,366 tracks, and 37,366 keys
+  under decoded-data SHA-256
+  `caab1daafb4b54c836b1eee697ebe01935780561ed5ddaf421c3039ea4d7a552`.
+  The deterministic replay corpus/final/event SHA-256 values are now
+  `7de13f6a61f41619113c004203979d889a3603d2d8e5a60cd0ed2fab96d7a35f` /
+  `7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48` /
+  `55581ad6489814368e540e8eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd`.
+- Rebuilt Windows and WSL trees pass 41/41 tests. The complete 21-domain /
+  117-case stored gate plus replay passes three isolated Windows runs in
+  984.414-1,062.244 ms and three WSL runs in 1,294.885-1,754.153 ms, retaining
+  the existing two-second budget.

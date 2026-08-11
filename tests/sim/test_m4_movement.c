@@ -9246,6 +9246,9 @@ static int run_aerial_landing_test(
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(25);
     auto_content.fighter.double_jump_speed_q16 =
         (INT32_C(3) * PF_Q16_ONE) / INT32_C(25);
+    /* This fixture intentionally mutates authored gravity/jump values to
+     * exercise generic auto-cancel timing, not the imported Melee ECB path. */
+    auto_content.fighter.reference_frame_data_enabled = UINT8_C(0);
     if (!expect_status(
             pf_m4_make_content_view(&auto_content, &auto_view),
             PF_STATUS_OK,

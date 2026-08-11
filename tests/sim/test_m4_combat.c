@@ -28121,18 +28121,6 @@ static int run_falcon_reference_table_test(void)
             INT32_C(75621) ||
         collision_pose->platform_drop_bottom_y_from_origin_q16[29] !=
             INT32_C(21330) ||
-        collision_pose->aerial_attack_bottom_y_from_origin_q16[0] !=
-            INT32_C(0) ||
-        collision_pose->aerial_attack_bottom_y_from_origin_q16[43] !=
-            INT32_C(25538) ||
-        collision_pose->aerial_attack_bottom_y_from_origin_q16[82] !=
-            INT32_C(24952) ||
-        collision_pose->aerial_attack_bottom_y_from_origin_q16[117] !=
-            INT32_C(22943) ||
-        collision_pose->aerial_attack_bottom_y_from_origin_q16[150] !=
-            INT32_C(25930) ||
-        collision_pose->aerial_attack_bottom_y_from_origin_q16[194] !=
-            INT32_C(41004) ||
         collision_pose->shield_break_fly[0].bottom_y_from_origin_q16 !=
             INT32_C(0) ||
         collision_pose->shield_break_fly[39].bottom_y_from_origin_q16 !=

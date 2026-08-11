@@ -3484,7 +3484,8 @@ pf_status pf_sim_snapshot_validate_world(const pf_world_state *world)
                 world->recovery_available[player_index] > UINT8_C(1) ||
                 world->short_hop_latched[player_index] > UINT8_C(2) ||
                 world->platform_drop_ticks[player_index] > UINT8_C(120) ||
-                world->ecb_bottom_lock_ticks[player_index] > UINT8_C(5) ||
+                world->ecb_bottom_lock_ticks[player_index] >
+                    PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS ||
                 (world->ecb_bottom_lock_ticks[player_index] == UINT8_C(0) &&
                  world->ecb_locked_bottom_y_q16[player_index] != INT32_C(0)) ||
                 (world->ecb_bottom_lock_ticks[player_index] != UINT8_C(0) &&

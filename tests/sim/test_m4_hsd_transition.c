@@ -53,6 +53,11 @@ static const qualified_action_ecb_case qualified_action_ecb_cases[] = {
     {UINT16_C(67), UINT16_C(49), (uint8_t)PF_M4_ACTION_DOWN_STRONG_ATTACK, INT8_C(0)},
     {UINT16_C(242), UINT16_C(30), (uint8_t)PF_M4_ACTION_GRAB, INT8_C(-1)},
     {UINT16_C(243), UINT16_C(40), (uint8_t)PF_M4_ACTION_DASH_GRAB, INT8_C(-1)},
+    {UINT16_C(68), UINT16_C(44), (uint8_t)PF_M4_ACTION_AERIAL_ATTACK, INT8_C(0)},
+    {UINT16_C(69), UINT16_C(39), (uint8_t)PF_M4_ACTION_FORWARD_AERIAL, INT8_C(0)},
+    {UINT16_C(70), UINT16_C(35), (uint8_t)PF_M4_ACTION_BACK_AERIAL, INT8_C(0)},
+    {UINT16_C(71), UINT16_C(33), (uint8_t)PF_M4_ACTION_UP_AERIAL, INT8_C(0)},
+    {UINT16_C(72), UINT16_C(44), (uint8_t)PF_M4_ACTION_DOWN_AERIAL, INT8_C(0)},
 };
 
 static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
@@ -115,9 +120,9 @@ static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &(pf_m4_falcon_ecb_pose_q16){0}) ||
         pf_m4_falcon_reference_action_hsd_ecb_pose(
-            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK,
+            (uint8_t)PF_M4_ACTION_LEDGE_ATTACK,
             UINT16_C(0),
-            UINT8_C(0),
+            UINT8_C(1),
             PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
             &(pf_m4_falcon_ecb_pose_q16){0}))
     {
@@ -127,6 +132,130 @@ static int run_qualified_action_ecb_cases(uint32_t *out_pose_count)
         return 0;
     }
     *out_pose_count = pose_count;
+    return 1;
+}
+
+static int run_production_common_air_entry_ecb_lock(void)
+{
+    test_sim_storage storage;
+    pf_m4_content content;
+    pf_content_view view;
+    pf_sim_config config;
+    pf_sim *sim = NULL;
+    pf_input_frame inputs[PF_SIM_MAX_PLAYERS];
+    pf_tick_result result;
+    pf_m4_inspection inspection;
+    pf_m4_falcon_ecb_pose_q16 unlocked_frame_9;
+    uint32_t tick;
+
+    if (pf_m4_default_content(&content) != PF_STATUS_OK ||
+        pf_m4_make_content_view(&content, &view) != PF_STATUS_OK ||
+        pf_sim_default_config(&config, UINT8_C(2), PF_SIM_MODE_DUEL) !=
+            PF_STATUS_OK ||
+        pf_sim_init(
+            storage.state,
+            sizeof(storage.state),
+            storage.scratch,
+            sizeof(storage.scratch),
+            &view,
+            &config,
+            &sim) != PF_STATUS_OK ||
+        pf_sim_reset(sim, UINT64_C(0x4543424c4f434b31)) != PF_STATUS_OK)
+    {
+        return 0;
+    }
+    sim->world.velocity_x_q16[0] = INT32_C(0);
+    sim->world.velocity_y_q16[0] = INT32_C(0);
+    sim->world.grounded[0] = UINT8_C(0);
+    sim->world.support[0] = (uint8_t)PF_M4_SURFACE_NONE;
+    sim->world.action_state[0] = (uint8_t)PF_M4_ACTION_AIRBORNE;
+    sim->world.action_ticks[0] = UINT16_C(0);
+    sim->world.source_submotion[0] =
+        (uint16_t)PF_M4_FALCON_SUBMOTION_FALL;
+    sim->world.source_animation_frame_q16[0] = INT32_C(0);
+    sim->world.source_animation_rate_q16[0] = (int32_t)PF_Q16_ONE;
+    sim->world.air_jumps_remaining[0] = UINT8_C(1);
+    sim->world.ecb_bottom_lock_ticks[0] = UINT8_C(3);
+    sim->world.ecb_locked_bottom_y_q16[0] = INT32_C(0);
+
+    (void)memset(inputs, 0, sizeof(inputs));
+    inputs[0].tick = sim->world.tick;
+    inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+    inputs[0].player_slot = UINT8_C(0);
+    inputs[0].buttons = PF_INPUT_BUTTON_JUMP;
+    inputs[1].tick = sim->world.tick;
+    inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+    inputs[1].player_slot = UINT8_C(1);
+    if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
+        sim->world.ecb_bottom_lock_ticks[0] != UINT8_C(9) ||
+        sim->world.ecb_locked_bottom_y_q16[0] != INT32_C(0) ||
+        sim->world.source_submotion[0] !=
+            (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-hsd-transition=fail operation=common-ecb-lock-entry"
+            " ticks=%u bottom=%" PRId32 " submotion=%u action=%u"
+            " grounded=%u active=%u jumps=%u\n",
+            (unsigned int)sim->world.ecb_bottom_lock_ticks[0],
+            sim->world.ecb_locked_bottom_y_q16[0],
+            (unsigned int)sim->world.source_submotion[0],
+            (unsigned int)sim->world.action_state[0],
+            (unsigned int)sim->world.grounded[0],
+            (unsigned int)sim->world.active[0],
+            (unsigned int)sim->world.air_jumps_remaining[0]);
+        return 0;
+    }
+
+    for (tick = UINT32_C(0); tick < UINT32_C(9); ++tick)
+    {
+        (void)memset(inputs, 0, sizeof(inputs));
+        inputs[0].tick = sim->world.tick;
+        inputs[0].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[0].player_slot = UINT8_C(0);
+        inputs[0].buttons = tick == UINT32_C(0)
+                                ? PF_INPUT_BUTTON_ATTACK
+                                : UINT64_C(0);
+        inputs[1].tick = sim->world.tick;
+        inputs[1].schema_version = PF_SIM_INPUT_SCHEMA_VERSION;
+        inputs[1].player_slot = UINT8_C(1);
+        if (pf_sim_tick(sim, inputs, (size_t)2, &result) != PF_STATUS_OK ||
+            pf_m4_inspect(sim, &inspection) != PF_STATUS_OK ||
+            inspection.players[0].action_state !=
+                (uint8_t)PF_M4_ACTION_AERIAL_ATTACK ||
+            (tick < UINT32_C(8) &&
+             inspection.players[0].ecb_bottom_y_from_origin_q16 !=
+                 INT32_C(0)))
+        {
+            (void)fprintf(
+                stderr,
+                "m4-hsd-transition=fail operation=common-ecb-lock-hold"
+                " tick=%" PRIu32 " action=%u bottom=%" PRId32 "\n",
+                tick,
+                (unsigned int)inspection.players[0].action_state,
+                inspection.players[0].ecb_bottom_y_from_origin_q16);
+            return 0;
+        }
+    }
+    if (!pf_m4_falcon_reference_action_hsd_ecb_pose(
+            (uint8_t)PF_M4_ACTION_AERIAL_ATTACK,
+            UINT16_C(8),
+            UINT8_C(0),
+            PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+            &unlocked_frame_9) ||
+        sim->world.ecb_bottom_lock_ticks[0] != UINT8_C(0) ||
+        inspection.players[0].ecb_bottom_y_from_origin_q16 !=
+            unlocked_frame_9.bottom_y_from_origin_q16)
+    {
+        (void)fprintf(
+            stderr,
+            "m4-hsd-transition=fail operation=common-ecb-lock-release"
+            " ticks=%u expected=%" PRId32 " actual=%" PRId32 "\n",
+            (unsigned int)sim->world.ecb_bottom_lock_ticks[0],
+            unlocked_frame_9.bottom_y_from_origin_q16,
+            inspection.players[0].ecb_bottom_y_from_origin_q16);
+        return 0;
+    }
     return 1;
 }
 
@@ -564,7 +693,8 @@ int main(void)
             dive_throw_relocked.top_y_from_origin_q16);
         return 1;
     }
-    if (!run_qualified_action_ecb_cases(&qualified_action_pose_count))
+    if (!run_qualified_action_ecb_cases(&qualified_action_pose_count) ||
+        !run_production_common_air_entry_ecb_lock())
     {
         return 1;
     }

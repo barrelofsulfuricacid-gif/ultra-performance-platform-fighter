@@ -179,6 +179,22 @@ def main() -> int:
         for case in cases:
             action = str(case["source_action"])
             submotion = int(case["submotion_index"])
+            compared_components = case.get(
+                "compared_components",
+                qualification.get(
+                    "compared_components", ["top", "bottom", "right", "left"]
+                ),
+            )
+            require(
+                isinstance(compared_components, list)
+                and compared_components
+                and len(set(compared_components)) == len(compared_components)
+                and all(
+                    component in ("top", "bottom", "right", "left")
+                    for component in compared_components
+                ),
+                f"{spec['id']}/{action}: invalid compared ECB components",
+            )
             if require_motion_offset:
                 require(
                     submotion in action_frame_offsets and
@@ -342,7 +358,7 @@ def main() -> int:
                 )
                 difference = max(
                     abs(actual[point][axis] - expected[point][axis])
-                    for point in ("top", "bottom", "right", "left")
+                    for point in compared_components
                     for axis in (0, 1)
                 )
                 if not args.report_only:
@@ -359,7 +375,8 @@ def main() -> int:
                 f"{'report' if args.report_only else 'pass'} "
                 f"capture={spec['id']} action={action} rows={len(selected)} "
                 f"unique_frames={len(frames)} max_q16={case_maximum} "
-                f"within_tolerance={int(case_maximum <= tolerance)}"
+                f"within_tolerance={int(case_maximum <= tolerance)} "
+                f"components={','.join(compared_components)}"
             )
             total_rows += len(selected)
             total_unique_frames += len(frames)

@@ -1600,3 +1600,23 @@ placement boundary through the production combat runner. All six 99-frame
 comparisons pass and directly compare 36 live/native GuardSetOff frame/rate
 rows. The native fixture retains Falcon's imported Jab 1 timing and source
 spheres, rather than the removed legacy two-active-frame rectangle fallback.
+
+## Falcon aerial-attack HSD geometry and common airborne ECB lock
+
+The five aerial actions are parent-closed additions to the same pinned
+`PlCa.dat` / `PlCaAJ.dat` / `PlCo.dat` / `PlCaGy.dat` profile used by ordinary
+action geometry. The resulting immutable profile contains 50 motions, 3,366
+FObj tracks, and 37,366 keys under decoded-data SHA-256
+`caab1daafb4b54c836b1eee697ebe01935780561ed5ddaf421c3039ea4d7a552`.
+Two independent Dolphin captures qualify Nair/Fair/Bair/Uair/Dair top, right,
+and left coordinates together with the 20 grounded routes: 2,066 observations
+and 1,840 unique frames, with maximum one-Q16 coordinate error.
+
+The bottom coordinate is not an aerial-owned frame-data table. Pinned
+`ftCommon_8007D5D4` enters air with ECB lock 10, while `Fighter_procMap`
+decrements the lock before collision and retains the previous desired bottom
+until expiry. Production therefore derives the live top/sides and eventual
+bottom from HSD, while one shared transition rule owns the inherited-bottom
+lifecycle. The former packed 195-value aerial bottom table has been removed;
+the retained complete captures remain independent source evidence for the
+shared rule and natural landing routes.

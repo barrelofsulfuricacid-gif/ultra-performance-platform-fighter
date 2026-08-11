@@ -50,9 +50,9 @@
       "ticks": "240",
       "players": "4",
       "bytes": "42519",
-      "corpus_sha256": "469c03272c7ce71f684bad27dd53f55d76a4ace72535152ed2fa5cc451a78315",
-      "final_sha256": "c00595389591d404fd06e60780138a99dfda498a6160c7318b3b6acf713d3081",
-      "events_sha256": "6f0f9376198d1f9507e6502da4eece00110a6ebe7c18233c78303d5b9764743d"
+      "corpus_sha256": "7de13f6a61f41619113c004203979d889a3603d2d8e5a60cd0ed2fab96d7a35f",
+      "final_sha256": "7d031c271e05fb0041fa749488689175fb6b775f44d58a794bc1aa1e1c47bd48",
+      "events_sha256": "55581ad6489814368e5408eb96779ece01d840b1dd6ce7899afd1c4f724ac6bd"
     }
   }
 }

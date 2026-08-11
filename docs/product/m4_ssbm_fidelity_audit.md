@@ -317,3 +317,14 @@ Dive miss route passes all 165 identical-input frames. Target-switch updates
 retain the decomp's install blend plus advanced-target blend, while stable
 updates apply only the latter. The authored Raptor, Dive, and FallSpecial ECB
 arrays are removed.
+
+Current aerial-attack geometry addendum: Nair/Fair/Bair/Uair/Dair now extend
+the shared allocation-free DAT/HSD evaluator rather than consuming the older
+packed 195-value bottom table. The 25-route source qualification covers 2,066
+paired Dolphin observations / 1,840 unique frames at maximum one-Q16 error for
+each selected component. Bottom ownership follows the independent shared
+decomp path: `ftCommon_8007D5D4` installs lock 10, map processing decrements it
+before collision, and collision retains the previous desired bottom until the
+lock expires. A production double-jump/Nair lifecycle gate protects entry,
+frames 1-8, and frame-9 release. Rapid Jab Start's entry blend remains the only
+explicit ordinary-action geometry exception.

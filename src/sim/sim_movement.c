@@ -2795,14 +2795,6 @@ static int32_t pf_m4_floor_contact_bottom_extent_q16(
         has_reference_pose = 1;
         exact_reference_pose = 1;
     }
-    else if (pf_m4_falcon_reference_aerial_attack_bottom_q16(
-                 action_state,
-                 action_ticks,
-                 &bottom_y_from_origin_q16) != 0)
-    {
-        has_reference_pose = 1;
-        exact_reference_pose = 1;
-    }
     else if (action_state == (uint8_t)PF_M4_ACTION_AIR_DODGE)
     {
         const uint16_t frame_index =
@@ -7109,7 +7101,7 @@ pf_status pf_m4_step_player(
         ecb_bottom_lock_ticks != UINT8_C(0)
             ? ecb_locked_bottom_y_q16
             : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
-    const int32_t inherited_locked_bottom_y_q16 =
+    int32_t inherited_locked_bottom_y_q16 =
         ecb_bottom_lock_ticks > UINT8_C(1)
             ? ecb_locked_bottom_y_q16
             : PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16;
@@ -13327,6 +13319,49 @@ pf_status pf_m4_step_player(
         }
     }
 
+    if (fighter->reference_frame_data_enabled != UINT8_C(0) &&
+        ((world->grounded[player_index] != UINT8_C(0) &&
+          grounded == UINT8_C(0)) ||
+         (air_jumps_remaining <
+              world->air_jumps_remaining[player_index] &&
+          (source_submotion ==
+               (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_FORWARD ||
+           source_submotion ==
+               (uint16_t)PF_M4_FALCON_SUBMOTION_JUMP_AERIAL_BACKWARD))))
+    {
+        int previous_exact_pose = 0;
+
+        /* ftCommon_8007D5D4 always relocks the ECB for ten map updates,
+         * including when JumpAerial resets an existing lock.  Melee keeps
+         * CollData.desired_ecb.bottom from the preceding map update; derive
+         * that same value from canonical source state instead of storing a
+         * second copy of the complete desired ECB. */
+        ecb_locked_bottom_y_q16 =
+            previous_locked_bottom_y_q16 !=
+                    PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16
+                ? previous_locked_bottom_y_q16
+                : pf_m4_floor_contact_bottom_extent_q16(
+                      fighter,
+                      pf_m4_effective_action_state(
+                          world->action_state[player_index],
+                          world->hitlag_resume_action[player_index]),
+                      world->action_ticks[player_index],
+                      world->grounded[player_index],
+                      PF_M4_FALCON_ECB_BOTTOM_UNLOCKED_Q16,
+                      world->source_submotion[player_index],
+                      world->source_animation_frame_q16[player_index],
+                      world->fall_animation_blend_q16[player_index],
+                      world->fall_animation_target_switched[player_index],
+                      world->prone_orientation[player_index],
+                      world->prone_roll_motion_orientation[player_index],
+                      world->tech_direction[player_index],
+                      world->facing[player_index],
+                      &previous_exact_pose);
+        (void)previous_exact_pose;
+        ecb_bottom_lock_ticks = PF_M4_COMMON_AIR_ENTRY_ECB_LOCK_TICKS;
+        inherited_locked_bottom_y_q16 = ecb_locked_bottom_y_q16;
+    }
+
     if (action_state != (uint8_t)PF_M4_ACTION_SHIELD &&
         action_state != (uint8_t)PF_M4_ACTION_SHIELD_STUN)
     {
@@ -15095,7 +15130,7 @@ pf_status pf_m4_step_player(
         {
             return PF_STATUS_DETERMINISTIC_FAULT;
         }
-        ecb_bottom_lock_ticks = UINT8_C(5);
+        ecb_bottom_lock_ticks = PF_M4_USE_ALL_JUMPS_ECB_LOCK_TICKS;
     }
     else if (action_state != (uint8_t)PF_M4_ACTION_HITLAG &&
              ecb_bottom_lock_ticks != UINT8_C(0))

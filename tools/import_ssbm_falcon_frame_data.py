@@ -1216,11 +1216,6 @@ def generate(
         str(track["id"]): track
         for track in aerial_attack_ecb_profile["tracks"]
     }
-    aerial_attack_frames = tuple(
-        frame
-        for track_id in ("nair", "fair", "bair", "uair", "dair")
-        for frame in aerial_attack_tracks[track_id]["frames"]
-    )
     shield_break_tracks = {
         str(track["id"]): track
         for track in shield_break_ecb_profile["tracks"]
@@ -2551,14 +2546,6 @@ def generate(
                 f"        {render_ecb_pose_q16(frame)},"
                 for frame in airborne_frames
             ),
-            "    },",
-            "    .aerial_attack_bottom_y_from_origin_q16 = {",
-            "        "
-            + ", ".join(
-                f"INT32_C({int(frame['ecb_q16']['bottom'][1])})"
-                for frame in aerial_attack_frames
-            )
-            + ",",
             "    },",
             "    .shield_break_fly = {",
             *(

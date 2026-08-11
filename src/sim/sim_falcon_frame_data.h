@@ -36,7 +36,6 @@
 #define PF_M4_FALCON_BACK_AERIAL_ECB_FRAME_COUNT UINT16_C(35)
 #define PF_M4_FALCON_UP_AERIAL_ECB_FRAME_COUNT UINT16_C(33)
 #define PF_M4_FALCON_DOWN_AERIAL_ECB_FRAME_COUNT UINT16_C(44)
-#define PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT UINT16_C(195)
 #define PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT UINT16_C(42)
 #define PF_M4_FALCON_SHIELD_BREAK_DOWN_ECB_FRAME_COUNT UINT16_C(26)
 #define PF_M4_FALCON_SHIELD_BREAK_STAND_ECB_FRAME_COUNT UINT16_C(30)
@@ -653,8 +652,6 @@ typedef struct pf_m4_falcon_collision_pose
         PF_M4_FALCON_PLATFORM_DROP_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 airborne[
         PF_M4_FALCON_AIRBORNE_ECB_FRAME_COUNT];
-    int32_t aerial_attack_bottom_y_from_origin_q16[
-        PF_M4_FALCON_AERIAL_ATTACK_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 shield_break_fly[
         PF_M4_FALCON_SHIELD_BREAK_FLY_ECB_FRAME_COUNT];
     pf_m4_falcon_ecb_pose_q16 shield_break_down_down[
@@ -892,11 +889,6 @@ const pf_m4_falcon_ecb_pose_q16 *
 pf_m4_falcon_reference_airborne_ecb_pose(
     uint16_t source_submotion,
     uint16_t action_ticks);
-
-int pf_m4_falcon_reference_aerial_attack_bottom_q16(
-    uint8_t action_state,
-    uint16_t action_ticks,
-    int32_t *out_bottom_y_from_origin_q16);
 
 const pf_m4_reference_search_sphere *
 pf_m4_falcon_reference_side_special_search_spheres(
